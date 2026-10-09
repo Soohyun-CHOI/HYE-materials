@@ -3,7 +3,7 @@
 // WHAT THIS TIER CANNOT SEE IS THE WHOLE POINT OF THE ISSUE. Which zone a time
 // actually renders in is a property of the runtime it renders in, so a pinned
 // string would pass where it was written and fail in CI — `offline/
-// tool-item-view.mjs` recorded exactly that about the options it used to hold.
+// asset-view.mjs` recorded exactly that about the options it used to hold.
 // Nothing here opens a page either, so the blank before hydration, the warning
 // React would emit and the change when a browser's zone changes are all measured
 // in a browser and written into the pull request.

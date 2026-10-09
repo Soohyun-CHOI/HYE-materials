@@ -72,7 +72,7 @@ import { PR_KIND_COPY } from "../../../lib/prKind.js";
 import { RESTORE, ROLLBACK_COPY } from "../../../lib/rollbackReport.js";
 import { MAX_UPLOAD_BYTES, UPLOAD_LIMIT_COPY } from "../../../lib/uploadLimit.js";
 import { FILE_AXIS_LABEL, FILE_VIEWER_COPY } from "../../../lib/fileLinks.js";
-import { TOOL_ITEM_COPY } from "../../../lib/toolItemView.js";
+import { ASSET_COPY } from "../../../lib/assetView.js";
 import { MATERIAL_SEARCH_COPY } from "../../../lib/materialPriceView.js";
 import { PO_ADDRESS_COPY } from "../../../lib/poDeliveryAddress.js";
 import { DELIVERY_ADDRESS_COPY } from "../../../lib/deliveryAddress.js";
@@ -114,11 +114,11 @@ const NON_SCREEN = new Set(["_shared.md", "README.md", "design-copy-findings.md"
  * off a page it claims, given an opener the brief does not name, or put back as a page
  * fails here rather than leaving a brief that tells the design work something else.
  * #457's labels are the second row: they were `/tool-items/labels` and are a dialog over a
- * tool's page and a tool item's.
+ * category's page and an asset's.
  */
 const DIALOG_BRIEFS = new Map([
-    ["tools-new.md", "app/(tools)/tools/RegistrationDialog.js"],
-    ["tool-items-labels.md", "app/(tools)/tool-items/LabelsDialog.js"],
+    ["tools-new.md", "app/(assets)/asset-categories/RegistrationDialog.js"],
+    ["tool-items-labels.md", "app/(assets)/assets/LabelsDialog.js"],
 ]);
 
 /** Each file's imports, parsed once however many pages' walks pass through it. */
@@ -478,14 +478,14 @@ const PINNED = [
     "Do not approve again",
     "Do not send it back again",
     "Ask for these to be corrected in Airtable",
-    // #340 — the two sentences the tool item's own page owns, and neither is a word
+    // #340 — the two sentences the asset's own page owns, and neither is a word
     // this app uses elsewhere, so a pin on either fails on a rewording. The first
-    // is the state #338 can leave behind — a tool item written whose first log row
+    // is the state #338 can leave behind — an asset written whose first log row
     // was not — and its brief quotes it as reachable rather than as an error, which
     // is the reading a redesign is most likely to lose. Both are the design's since
     // #463, which replaced `Nothing has been recorded against this tool, …` and
     // `Tool item not found`; the second is pinned on the phone's sentence, since the
-    // heading it stands under is the tool page's heading too.
+    // heading it stands under is the category page's heading too.
     // Pinned on a clause that fits inside a brief's own 72-character wrap, which
     // is the constraint the #272 note above records the hard way, and on a clause
     // unique to THIS constant.
@@ -718,7 +718,7 @@ export function run({ check, assert, log }) {
         ...stringsFrom(FILE_VIEWER_COPY),
         // #340 — plain values, and the only two of them a pin can hold: the rest
         // are single words this app says in other constants.
-        ...stringsFrom(TOOL_ITEM_COPY),
+        ...stringsFrom(ASSET_COPY),
         // #357 — the search box's words and its two misses. `truncated` is a
         // builder that takes a count, which `stringsFrom`'s `[1]` probe supplies.
         ...stringsFrom(MATERIAL_SEARCH_COPY),
@@ -828,13 +828,13 @@ export function run({ check, assert, log }) {
     // A ROUTE GROUP REACHES A BRIEF NAME THROUGH `routeTemplate` AND MUST NOT
     // SURVIVE THE TRIP (#348). The name is derived from the URL, so the parentheses
     // Next.js reads as "give these a shared layout" are not in it — a brief called
-    // `tools-tools-toolRecordId.md` would fail the both-directions check above by
+    // `assets-asset-categories-categoryRecordId.md` would fail the both-directions check above by
     // naming a page that does not exist, which is loud, but a reader handed the
     // wrong filename is the failure this pair actually prevents.
     assert(
         "  and reads a route group out of the path before naming a brief",
-        briefFileName(routeTemplate("app/(tools)/tool-items/[toolItemId]/page.js")) ===
-            "tool-items-toolItemId.md"
+        briefFileName(routeTemplate("app/(assets)/assets/[assetId]/page.js")) ===
+            "assets-assetId.md"
     );
     assert("the tone walk found a chip tone", tonesInStatusCopy().has("complete"));
     assert("  and a verdict tone", tonesInStatusCopy().has("exception"));
@@ -849,21 +849,21 @@ export function run({ check, assert, log }) {
     assert("every dialog brief is on disk", [...DIALOG_BRIEFS.keys()].every((f) => onDisk.includes(f)));
     assert(
         "the import walk reaches the registration dialog from the tool list",
-        reachedFrom(pageFileByRoute.get("/tools") ?? "").has("app/(tools)/tools/RegistrationDialog.js")
+        reachedFrom(pageFileByRoute.get("/asset-categories") ?? "").has("app/(assets)/asset-categories/RegistrationDialog.js")
     );
     assert(
-        "  and not from a tool item's page, which never opens it",
-        !reachedFrom(pageFileByRoute.get("/tool-items/[toolItemId]") ?? "").has("app/(tools)/tools/RegistrationDialog.js")
+        "  and not from an asset's page, which never opens it",
+        !reachedFrom(pageFileByRoute.get("/assets/[assetId]") ?? "").has("app/(assets)/asset-categories/RegistrationDialog.js")
     );
-    // The labels' dialog (#457) the other way round: a tool item's page reaches it and
+    // The labels' dialog (#457) the other way round: an asset's page reaches it and
     // the printed path's page, which only redirects, does not.
     assert(
-        "the import walk reaches the labels' dialog from a tool item's page",
-        reachedFrom(pageFileByRoute.get("/tool-items/[toolItemId]") ?? "").has("app/(tools)/tool-items/LabelsDialog.js")
+        "the import walk reaches the labels' dialog from an asset's page",
+        reachedFrom(pageFileByRoute.get("/assets/[assetId]") ?? "").has("app/(assets)/assets/LabelsDialog.js")
     );
     assert(
         "  and not from the printed path's",
-        !reachedFrom(pageFileByRoute.get("/t/[labelCode]") ?? "").has("app/(tools)/tool-items/LabelsDialog.js")
+        !reachedFrom(pageFileByRoute.get("/l/[labelCode]") ?? "").has("app/(assets)/assets/LabelsDialog.js")
     );
     check("the Opens from line is read route by route", (opensFrom("Opens from: `/a` and `/b/[c]`.") ?? []).join(" "), "/a /b/[c]");
     assert("  and a brief with none reads as none", opensFrom("Route: `/a`") === null);

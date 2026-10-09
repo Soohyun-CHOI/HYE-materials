@@ -344,15 +344,15 @@ control is `required` and the submit is disabled until the plan is complete.
 this section is judged on its own terms, and recounting 86 strings across every
 screen is a pass over that section rather than part of an issue that adds one page.
 
-## `/t/[labelCode]` (#460)
+## `/l/[labelCode]` (#460)
 
 **The scan's hop renders nothing, so every string the census gives it is one no
-reader meets there.** Its page reads the code and redirects to the tool item's page
+reader meets there.** Its page reads the code and redirects to the asset's page
 before anything is drawn. The census counts the layouts above a screen as part of
 it, so the hop lists the root layout's title template and the product's name — two
 strings a reader reads, each met on another screen and none here. From #460 it also
 listed the words the rail imports from `lib/navigation.js`, eleven in all, until #478
-took the page out of the tools layout, which it had no use for. None is a refusal, so
+took the page out of the assets layout, which it had no use for. None is a refusal, so
 `Coverage` below does not move; the hop is listed because a census reader meets its
 count.
 

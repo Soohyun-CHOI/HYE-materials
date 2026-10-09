@@ -84,6 +84,14 @@ not a quantity, so nothing here needs the canonical 19-value list and
 `add_unit_options.py` stays a five-table script -- the same note
 `create_direct_purchases_272.py` makes for its own table.
 
+#513 RENAMED ALL THREE, AND THIS SCRIPT KEEPS #334's NAMES. `Tools`,
+`Tool Items` and `Tool Log` are `Asset Categories`, `Assets` and
+`Asset Log`, their fields and the inverses on `Jobs` and `Users` with
+them, renamed by `rename_tools_to_assets_513.mjs`. The spec below is the
+record of what #334 created, so a run against a base holding the renamed
+tables stops before anything else: finding no table named `Tools`, it
+would otherwise create all three again under their old names.
+
 THE SYMMETRIC FIELDS ARE FREE AND ALL FIVE ARE THE NAME WE WOULD HAVE
 CHOSEN, so none is renamed. Creating a link auto-creates the inverse on
 the far table named after the SOURCE TABLE, which is why no `(as X)`
@@ -674,6 +682,10 @@ class AirtableSchemaClient:
         return resp.json()
 
 
+# The three tables' names since #513, which this script refuses to run beside.
+RENAMED_BY_513 = ("Asset Categories", "Assets", "Asset Log")
+
+
 def find_table(tables, name: str):
     return next((t for t in tables if t["name"] == name), None)
 
@@ -917,6 +929,21 @@ def main():
     tables = client.fetch_tables()
     print(f"  {len(tables)} tables")
     print()
+
+    # The tables are renamed (#513, the header) and this spec keeps #334's
+    # names, so a run here would create a second set beside them.
+    renamed = [name for name in RENAMED_BY_513 if find_table(tables, name)]
+    if renamed:
+        print("0/2  STOPPED — #513 renamed the tables this script creates")
+        print()
+        for name in renamed:
+            print(f"    `{name}` is on the base")
+        print()
+        print("  This spec is the record of what #334 created, under #334's names.")
+        print("  Running it would create `Tools`, `Tool Items` and `Tool Log` again")
+        print("  beside them. scripts/import/rename_tools_to_assets_513.mjs owns the")
+        print("  renamed tables.")
+        return 1
 
     # PREFLIGHT BEFORE ANYTHING IS WRITTEN, because a table cannot be deleted
     # through any API and a schema half-built over a name collision is not

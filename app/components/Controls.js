@@ -22,13 +22,13 @@ import Menu from "./Menu";
  *
  * A CONTROL IS NOT A DIALOG'S, WHICH IS WHY THESE ARE NOT IN `DialogFrame.js`. The
  * registration dialog is their first caller, and #463 draws the same button and the same
- * field on the tools screens themselves; a screen importing them from the frame would
+ * field on the asset screens themselves; a screen importing them from the frame would
  * import a dialog it does not have. Their words are `lib/controls.js`'s for the same
  * reason, apart from the frame's in `lib/dialogFrame.js`.
  *
  * A SCREEN TAKES ITS LOOK FROM THESE AND WRITES NO VALUE. Every class reads a name
  * `app/designValues.css` declares, and until #258 only a file nothing outside
- * `app/(tools)/` and `app/login/` calls may do that — `offline/design-values.mjs` walks the
+ * `app/(assets)/` and `app/login/` calls may do that — `offline/design-values.mjs` walks the
  * import graph, so a screen above those importing one of these fails it wherever the file
  * sits. **The materials screens keep their own controls until then**, and one of them is
  * the same kind of thing: `app/admin/disciplines/new/JobCombobox.js` is a searchable
@@ -65,7 +65,7 @@ import Menu from "./Menu";
  * id its label points at, the id of that line and whether it refuses. So a control inside
  * a field is labeled, described and marked invalid without its caller wiring three ids.
  *
- * IN A SHEET ON A PHONE THEY TAKE THE PHONE'S SIZES, AND NOWHERE ELSE (#458). The tool item
+ * IN A SHEET ON A PHONE THEY TAKE THE PHONE'S SIZES, AND NOWHERE ELSE (#458). The asset
  * page's dialogs open as Tools 0a's sheets below the phone's edge, and there a button is
  * 48 and full width, 17 at 600, a bordered one a text button, and a field's label 15. The
  * frame marks such a dialog `data-sheet`, so those sizes are `max-sm:in-data-[sheet]:`
@@ -132,7 +132,7 @@ export function InfoMark({ size = "size-mobile-alert-icon", tone = "muted" }) {
  * at 16 in Ink. It is a refusal, so assistive tech hears it as one.
  *
  * MOVED HERE FROM THE SIGN-IN STEPS IN #463, which drew it for a request that did not go
- * through; the tool item page draws it for a press somebody else's scan got in front of
+ * through; the asset page draws it for a press somebody else's scan got in front of
  * (1k). Where it stands, and whether a desk draws something else in its place, is its
  * caller's.
  */
@@ -151,7 +151,7 @@ export function Notice({ children }) {
 }
 
 /**
- * A refusal about the whole of what a form asks — a dialog's (0l Actions), and a tool item
+ * A refusal about the whole of what a form asks — a dialog's (0l Actions), and an asset
  * page's at a desk (#463): the 16 info mark 6 before one sentence at 13, both in Ink 2, and at
  * 15 in a sheet below the phone's edge (#458). The mark stands on the sentence's first line.
  *
@@ -523,9 +523,9 @@ function ClearButton({ onClear }) {
 }
 
 /**
- * Part of a line that names something the line is about — a tool, a count, a class — in
+ * Part of a line that names something the line is about — a category, a count, a class — in
  * Ink against the line's own lighter ink: 1b's preview under a typed name until #507, and
- * a tool's caption since (`ToolCaption`), its class and its path.
+ * a category's caption since (`CategoryCaption`), its class and its path.
  */
 export function NoteEmphasis({ children }) {
     return <span className="text-foreground-default tabular-nums">{children}</span>;
@@ -689,7 +689,7 @@ const STEP =
  *
  * The figure is text rather than `type="number"`, as the design draws it: the browser's
  * own spinner and its own refusal bubble are neither this app's nor the design's, so what
- * a count may be is `lib/toolRegistration.js:readQuantity`'s to say in the field's own
+ * a count may be is `lib/assetRegistration.js:readQuantity`'s to say in the field's own
  * line. What it keeps of a keystroke and what a step does are `lib/controls.js`'s. Inside a
  * busy form the figure is read-only and the steps take no press (#469).
  */

@@ -60,10 +60,10 @@ export const TABLE_ROW_LINK = "after:absolute after:inset-0 after:rounded-contro
  * 2026-10-07 dropped the noun the head drew beside it since #463; a figure read straight after
  * a heading names nothing it counts, so `noun` follows it unseen, in the list's own word.
  *
- * `caption` IS WHAT A TOOL'S OWN PAGE SAYS UNDER ITS TITLE (#507): what the tool is, where
+ * `caption` IS WHAT A CATEGORY'S OWN PAGE SAYS UNDER ITS TITLE (#507): what the category is, where
  * the record header says its caption — 10 under the title (0n Header stack) — and the control
  * stays centered on the title's line, as the record header's actions are. 0n's list header
- * draws no caption; Design is drawing the tool's, and this is the closest until then.
+ * draws no caption; Design is drawing the category's, and this is the closest until then.
  */
 export function ListHeader({ title, count, noun, caption, underBreadcrumb = false, children }) {
     return (

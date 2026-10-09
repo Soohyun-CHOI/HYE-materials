@@ -17,17 +17,17 @@ export const metadata = { title: COPY.heading };
  * site staffer who talked to the vendor is the one who knows it. A job code is an
  * accounting artifact and a vendor is a commercial relationship, which is why
  * those two are the office's to author; a place is neither. `/deliveries/new`, the
- * tool registration and `createOverageDraftAction` are the precedent: site work takes
+ * asset registration and `createOverageDraftAction` are the precedent: site work takes
  * `requireUser()` plus whatever per-record rule applies, and there is none here.
  * An Admin gate would also make this a dead end for the exact reader it is built
  * for, since #385 sends a requester here from the request form.
  *
  * TWO LISTS, TWO OPERATIONS, NEITHER PER ROW. `getAllAddresses` is the whole table
  * in one query — the places a company ships to are bounded by its sites and its
- * suppliers, the `Vendors` and `Tools` shape — and it is what lets the form warn
+ * suppliers, the `Vendors` and `Asset Categories` shape — and it is what lets the form warn
  * about a label that is already taken at no query cost per keystroke AND list what
  * a job already ships to without a second question. `getAllJobs` is the one-query
- * shape `/deliveries/new` and the tool registration's openers both use.
+ * shape `/deliveries/new` and the asset registration's openers both use.
  *
  * `?from=` IS A REQUEST WAITING FOR THIS ADDRESS (#385), AND IT IS JUDGED BY
  * NOTHING HERE ON PURPOSE. It is a `PR ID` rather than an address, so there is no
@@ -42,7 +42,7 @@ export const metadata = { title: COPY.heading };
  * assigned ones sort first "without ever hiding the rest" — so a job's identity is
  * not scoped in this app and a job's address list cannot leak one. Scoping here
  * would refuse a requester the job they are about to raise a request against.
- * `assignedJobsFor` is deliberately not reached for: that is the tools axis's rule
+ * `assignedJobsFor` is deliberately not reached for: that is the assets axis's rule
  * for which job an EVENT may be filed against, which is a different question.
  */
 export default async function NewAddressPage(props) {
@@ -70,7 +70,7 @@ async function renderNewAddressPage({ searchParams }) {
     // record id because that is the identifier this app prints — every document
     // list heads a column `Job` and puts the code in it — and because a record id
     // in a URL is the defect `docs/notes/naming.md` records against
-    // `/tools/[toolRecordId]` and says not to repeat. Resolving it costs nothing:
+    // `/asset-categories/[categoryRecordId]` and says not to repeat. Resolving it costs nothing:
     // the list is already in hand. An unknown code preselects nothing rather than
     // refusing, which is the same outcome as arriving with no parameter at all —
     // the job is a convenience here, not the subject of the screen.

@@ -322,7 +322,7 @@ export function run({ check, assert, log }) {
     // #325 SPENT THE SEARCH RESERVATION AND #326 STILL HOLDS THE PAGE. What is left
     // reserved is `page`, and the assertion is unchanged for it: a filter taking that
     // name is what this stops. Both names were inherited rather than coined — `q` from
-    // `/materials` and `page` from `/tools/[toolRecordId]` — so the app says one word
+    // `/materials` and `page` from `/asset-categories/[categoryRecordId]` — so the app says one word
     // for one thing across screens that do the same thing.
     for (const [what, name] of Object.entries(RESERVED_PARAMS)) {
         assert(
@@ -772,7 +772,7 @@ export function run({ check, assert, log }) {
     );
 
     // THE FOOT'S WORDS ARE SWEPT TOO, AND OVER A NARROWER SET THAN THE BAR'S (#326).
-    // `Previous` and `Next` are also `lib/toolListView.js`'s, legitimately: two axes
+    // `Previous` and `Next` are also `lib/assetListView.js`'s, legitimately: two axes
     // each own the words their own paging control says, and a repository-wide sweep of
     // those two would report that module rather than a defect. So this asks the
     // question where a literal WOULD be the defect — the four clients and the two

@@ -39,9 +39,9 @@ const ICON_MODULE = "app/components/Icon.js";
  * drawing one is a stale entry and fails.
  */
 const NOT_MARKS = {
-    "app/(tools)/StatusMark.js": "a status dot, which the design's 0a says is not an icon",
-    "app/(tools)/tool-items/LabelsDialog.js": "a printed label's face and the symbol on it, the label's own drawing",
-    "lib/toolLabelQR.js": "the QR symbol a label carries, built as a string",
+    "app/(assets)/StatusMark.js": "a status dot, which the design's 0a says is not an icon",
+    "app/(assets)/assets/LabelsDialog.js": "a printed label's face and the symbol on it, the label's own drawing",
+    "lib/assetLabelQR.js": "the QR symbol a label carries, built as a string",
     "app/prs/[prId]/SignerProgressBar.js": "the arcs of a request's send-backs, a chart and no mark",
     "app/prs/new/PRForm.js": "a materials screen's own mark, until #258 draws those screens from the design",
 };
@@ -137,10 +137,10 @@ const DESIGN_SHAPES = {
 
 /** Which marks each file draws, so a mark gone from a screen is a failure here. */
 const MARKS_BY_FILE = {
-    "app/(tools)/tool-items/[toolItemId]/MoreActions.js": ["ellipsis"],
-    "app/(tools)/tool-items/[toolItemId]/NameSheet.js": ["x"],
-    "app/(tools)/tool-items/[toolItemId]/TransitionBar.js": ["map-pin", "user"],
-    "app/(tools)/tool-items/[toolItemId]/page.js": ["map-pin", "search-x", "user"],
+    "app/(assets)/assets/[assetId]/MoreActions.js": ["ellipsis"],
+    "app/(assets)/assets/[assetId]/NameSheet.js": ["x"],
+    "app/(assets)/assets/[assetId]/TransitionBar.js": ["map-pin", "user"],
+    "app/(assets)/assets/[assetId]/page.js": ["map-pin", "search-x", "user"],
     "app/components/Breadcrumb.js": ["chevron-left"],
     "app/components/Controls.js": ["check", "chevron-down", "circle-alert", "info", "minus", "plus", "x"],
     "app/components/DialogFrame.js": ["check", "x"],

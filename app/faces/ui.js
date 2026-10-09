@@ -5,7 +5,7 @@ import { Instrument_Sans } from "next/font/google";
  * (0h). `--font-ui` in `app/designValues.css` resolves to the variable this call sets.
  *
  * ONE FACE, ONE MODULE, ONE CALL, AND A LAYOUT IMPORTS THE FACES ITS SCREENS DRAW (#473).
- * The tools layout loaded all three faces itself until the sign-in screens needed two of
+ * The assets layout loaded all three faces itself until the sign-in screens needed two of
  * them under a layout of their own. A second call in that layout would have been a second
  * copy of this one's options — a `next/font` call takes literals only, so the two could
  * not share them — and one module holding all three would have handed the sign-in screens

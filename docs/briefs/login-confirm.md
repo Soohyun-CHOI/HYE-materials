@@ -4,7 +4,7 @@ Route: `/login/confirm`
 Who reaches it: anyone holding a sign-in link. It is opened from an email client,
 so it is the one screen in the app that is regularly reached from outside it.
 It is also the second half of a scan that arrived signed out, so it is used at a
-phone width as well as at a monitor — the only screen outside the tools track of
+phone width as well as at a monitor — the only screen outside the assets track of
 which that is true, along with the sign-in screen before it.
 
 

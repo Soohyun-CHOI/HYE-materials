@@ -1,8 +1,8 @@
-// Who records what happens to a tool — read in one place, and asked alike by the server's
+// Who records what happens to an asset — read in one place, and asked alike by the server's
 // gate and by every control a screen draws (#506).
 //
-// WHAT THIS IS DEFENDING. Only a site manager adds tools, prints their labels, checks a
-// tool out or in and retires one, and everybody else reads the same screens without those
+// WHAT THIS IS DEFENDING. Only a site manager adds assets, prints their labels, checks an
+// asset out or in and retires one, and everybody else reads the same screens without those
 // controls. That is two halves in different files, and either can drift from the other
 // without anything failing: a screen drawing a control the server refuses is a press that
 // lands on a refusal, and a server admitting what the screen hides is a control one request
@@ -12,23 +12,23 @@
 //
 //   1. THE ONE READING. `isSiteManager` by value, no read of a user's `isSiteManager` under
 //      app/ or lib/ outside lib/siteManager.js, the field's name spelled in the mapper
-//      alone, and nothing on the tools axis asking the office's flag or the role instead —
+//      alone, and nothing on the assets axis asking the office's flag or the role instead —
 //      but for the one read #509 admits, what a list starts from (`SCOPE` below).
-//   2. THE SERVER. Every export of a `"use server"` file on the tools axis is
+//   2. THE SERVER. Every export of a `"use server"` file on the assets axis is
 //      `withSiteManagerAction(handler)`, found by walking the tree rather than listed — so
 //      a fifth action fails until it is wrapped and this inventory says so — and no handler
 //      is exported, so the wrapper cannot be stepped round. lib/authz.js binds that wrapper
 //      to `createFlagGuard` over a gate whose verdict is `isSiteManager`, with a refusal that
 //      re-renders the page and says nothing.
-//   3. THE SCREENS. Each tools page asks `isSiteManager` once, into `recorder`, and every
-//      control a site manager alone uses is drawn under it; the tool's list is handed it as
+//   3. THE SCREENS. Each asset page asks `isSiteManager` once, into `recorder`, and every
+//      control a site manager alone uses is drawn under it; a category's list is handed it as
 //      `selects` and draws its boxes and its bar under that.
 //   4. THE LABELS' DIALOG opens on nothing when the read behind it is refused.
 //
 // WHAT A PASS DOES NOT PROVE. That a refused press re-renders anything — `refresh()` is the
 // framework's, and the re-render was seen in a browser — or that a control is missing from a
 // page as drawn; both are browser measurements recorded in the pull request. What
-// `planTransition` offers a reader who is not a site manager is `offline/tool-transition.mjs`'s,
+// `planTransition` offers a reader who is not a site manager is `offline/asset-transition.mjs`'s,
 // by value, since the plan is that module's, and what the account says of a site manager is
 // `offline/navigation.mjs`'s.
 //
@@ -46,18 +46,18 @@ const MAPPER = "lib/airtable/users.js";
 const AUTHZ = "lib/authz.js";
 const FIELD = "Is Site Manager";
 
-const LIST = "app/(tools)/tools/page.js";
-const TOOL = "app/(tools)/tools/[toolRecordId]/page.js";
-const ITEM = "app/(tools)/tool-items/[toolItemId]/page.js";
-const TOOL_LIST = "app/(tools)/tools/[toolRecordId]/ToolItemList.js";
-const LABELS = "app/(tools)/tool-items/LabelsDialog.js";
+const LIST = "app/(assets)/asset-categories/page.js";
+const CATEGORY = "app/(assets)/asset-categories/[categoryRecordId]/page.js";
+const ITEM = "app/(assets)/assets/[assetId]/page.js";
+const ASSET_LIST = "app/(assets)/asset-categories/[categoryRecordId]/AssetList.js";
+const LABELS = "app/(assets)/assets/LabelsDialog.js";
 
-/** The tools axis's server actions, each `file::export`. A fifth fails until it is here. */
-const TOOLS_ACTIONS = [
-    "app/(tools)/tool-items/[toolItemId]/actions.js::recordToolItemEventAction",
-    "app/(tools)/tool-items/[toolItemId]/actions.js::retireToolItemAction",
-    "app/(tools)/tool-items/actions.js::readToolItemLabelsAction",
-    "app/(tools)/tools/actions.js::registerToolItemsAction",
+/** The assets axis's server actions, each `file::export`. A fifth fails until it is here. */
+const ASSET_ACTIONS = [
+    "app/(assets)/assets/[assetId]/actions.js::recordAssetEventAction",
+    "app/(assets)/assets/[assetId]/actions.js::retireAssetAction",
+    "app/(assets)/assets/actions.js::readAssetLabelsAction",
+    "app/(assets)/asset-categories/actions.js::registerAssetsAction",
 ];
 
 /**
@@ -69,12 +69,12 @@ const TOOLS_ACTIONS = [
  */
 const GATED = [
     { file: LIST, element: "RegistrationDialog", count: 2, flag: "recorder" },
-    { file: TOOL, element: "RegistrationDialog", count: 2, flag: "recorder" },
-    { file: TOOL, element: "RegistrationShortfall", count: 1, flag: "recorder" },
-    { file: TOOL, element: "RegistrationUnlogged", count: 1, flag: "recorder" },
+    { file: CATEGORY, element: "RegistrationDialog", count: 2, flag: "recorder" },
+    { file: CATEGORY, element: "RegistrationShortfall", count: 1, flag: "recorder" },
+    { file: CATEGORY, element: "RegistrationUnlogged", count: 1, flag: "recorder" },
     { file: ITEM, element: "LabelsDialog", count: 1, flag: "recorder" },
-    { file: TOOL_LIST, element: "Checkbox", count: 2, flag: "selects" },
-    { file: TOOL_LIST, element: "SelectionBar", count: 1, flag: "selects" },
+    { file: ASSET_LIST, element: "Checkbox", count: 2, flag: "selects" },
+    { file: ASSET_LIST, element: "SelectionBar", count: 1, flag: "selects" },
 ];
 
 /** `a.b.c` for a member chain, the name for an identifier, the node's type otherwise. */
@@ -98,12 +98,12 @@ export function siteManagerReads({ ast, source }) {
 }
 
 /**
- * THE ONE READ OF THE OFFICE'S FLAG THE AXIS ADMITS (#509): what a tools list starts from —
- * every tool item for the office, a reader's own jobs' for anybody else — which is a question
+ * THE ONE READ OF THE OFFICE'S FLAG THE AXIS ADMITS (#509): what an asset list starts from —
+ * every asset for the office, a reader's own jobs' for anybody else — which is a question
  * about the office and not about who records, so the mark cannot answer it. It is the flag
  * alone, in this one function, once; the role is admitted nowhere.
  */
-const SCOPE = { file: "lib/toolListView.js", fn: "toolListScope", name: "isAdmin" };
+const SCOPE = { file: "lib/assetListView.js", fn: "assetListScope", name: "isAdmin" };
 
 /**
  * Every line on which the office's flag or the role is read off anything, leaving out reads
@@ -272,13 +272,13 @@ export function run({ check, assert, log }) {
     });
     check("  which carries it on the user, an unmarked box reading as false", mapped, `record.get("${FIELD}") || false`);
 
-    const toolsFiles = scanned.filter((rel) => rel.startsWith("app/(tools)/") || /^lib\/tool[A-Z][^/]*\.js$/.test(rel));
-    assert(`  ${toolsFiles.length} files on the tools axis are walked`, toolsFiles.length > 20);
-    const office = toolsFiles
+    const assetsFiles = scanned.filter((rel) => rel.startsWith("app/(assets)/") || /^lib\/asset[A-Z][^/]*\.js$/.test(rel));
+    assert(`  ${assetsFiles.length} files on the assets axis are walked`, assetsFiles.length > 20);
+    const office = assetsFiles
         .map((rel) => [rel, officeReads(parseFile(rel), rel === SCOPE.file ? { skip: SCOPE.fn, admitted: SCOPE.name } : {})])
         .filter(([, lines]) => lines.length > 0);
     check(
-        "nothing on the tools axis asks the office's flag or the role instead",
+        "nothing on the assets axis asks the office's flag or the role instead",
         office.map(([rel, lines]) => `${rel}:${lines.join(",")}`).join(" | "),
         ""
     );
@@ -296,7 +296,7 @@ export function run({ check, assert, log }) {
         "  and that admission reaches neither the role there nor the flag anywhere else",
         officeReads(
             parseSource(
-                "export function toolListScope(user) { return user.isAdmin && user.role; }\nconst b = user.isAdmin;\n",
+                "export function assetListScope(user) { return user.isAdmin && user.role; }\nconst b = user.isAdmin;\n",
                 "<planted-scope>"
             ),
             { skip: SCOPE.fn, admitted: SCOPE.name }
@@ -306,7 +306,7 @@ export function run({ check, assert, log }) {
 
     // ── 2: the server ────────────────────────────────────────────────────────
     log("");
-    log("every server action on the tools axis is a site manager's:");
+    log("every server action on the assets axis is a site manager's:");
     // Every file under app/ and lib/ was parsed above, where a failure throws and names it, so
     // this walk meets none — and if it ever did, an unread file is an unchecked one.
     const { entries } = listEntryPoints({
@@ -314,16 +314,16 @@ export function run({ check, assert, log }) {
             throw new Error(message);
         },
     });
-    const actions = entries.filter((e) => e.kind !== "page" && (e.file.startsWith("app/(tools)/") || e.file.startsWith("app/t/")));
+    const actions = entries.filter((e) => e.kind !== "page" && (e.file.startsWith("app/(assets)/") || e.file.startsWith("app/l/")));
     check(
         "the axis's server actions are the four this gate is for, found by walking",
         actions.map((e) => `${e.file}::${e.name}`).sort().join(" | "),
-        [...TOOLS_ACTIONS].sort().join(" | ")
+        [...ASSET_ACTIONS].sort().join(" | ")
     );
     check(
         "  each withSiteManagerAction around a handler nobody can call round it",
         actions.map((e) => `${e.name}: ${wrappingOf(e.ast, e.name)}`).sort().join(" | "),
-        TOOLS_ACTIONS.map((key) => `${key.split("::")[1]}: withSiteManagerAction(1 arg), handler not exported`).sort().join(" | ")
+        ASSET_ACTIONS.map((key) => `${key.split("::")[1]}: withSiteManagerAction(1 arg), handler not exported`).sort().join(" | ")
     );
     // ANTI-VACUITY: the classifier tells the right wrapper from another, a handler kept in from
     // one exported beside it, and a plain export from a wrapped one.
@@ -378,7 +378,7 @@ export function run({ check, assert, log }) {
     // ── 3: the screens ───────────────────────────────────────────────────────
     log("");
     log("every control a site manager alone uses is drawn under the one answer:");
-    for (const file of [LIST, TOOL, ITEM]) {
+    for (const file of [LIST, CATEGORY, ITEM]) {
         const page = parseFile(file);
         check(`  ${file} asks it once, into recorder`, recorderOf(page), "isSiteManager(user), asked 1 time(s)");
         assert(`    reading it from lib/siteManager.js`, importsFrom(page.ast, "isSiteManager", "/lib/siteManager"));
@@ -393,16 +393,16 @@ export function run({ check, assert, log }) {
         drawn.join(" | "),
         GATED.map((gated) => `${gated.file}#${gated.element ?? gated.text}: ${Array(gated.count).fill("under").join(",")}`).join(" | ")
     );
-    const toolPage = parseFile(TOOL);
+    const categoryPage = parseFile(CATEGORY);
     let handed = "not handed";
-    walk(toolPage.ast, (n) => {
-        if (n.type === "JSXOpeningElement" && n.name?.name === "ToolItemList") {
+    walk(categoryPage.ast, (n) => {
+        if (n.type === "JSXOpeningElement" && n.name?.name === "AssetList") {
             const value = n.attributes.find((a) => a.name?.name === "selects")?.value?.expression;
             handed = value ? nameOf(value) : "not handed";
         }
     });
-    check("  and the tool's list is handed the same answer as `selects`", handed, "recorder");
-    const list = parseFile(TOOL_LIST);
+    check("  and a category's list is handed the same answer as `selects`", handed, "recorder");
+    const list = parseFile(ASSET_LIST);
     let readsSelects = false;
     walk(list.ast, (n) => {
         if (n.type === "ObjectPattern") readsSelects ||= n.properties.some((p) => p.key?.name === "selects");
@@ -431,19 +431,19 @@ export function run({ check, assert, log }) {
     );
     check(
         "  and a page binding recorder to anything else is read as that",
-        recorderOf(parseSource("const recorder = canRegisterToolItems(user, jobs);\n", "<planted-recorder>")),
-        "canRegisterToolItems(user, jobs), asked 0 time(s)"
+        recorderOf(parseSource("const recorder = canRegisterAssets(user, jobs);\n", "<planted-recorder>")),
+        "canRegisterAssets(user, jobs), asked 0 time(s)"
     );
 
     // ── 4: the labels' dialog opens on nothing when the read is refused ──────
     log("");
     log("a refused read opens no labels:");
     const labels = parseFile(LABELS).source.replace(/\/\/[^\n]*\n/g, "\n");
-    const guarded = /const read = await readToolItemLabelsAction\(toolItemIds\);\s*if \(!read\) return;\s*setRun\(read\);/;
+    const guarded = /const read = await readAssetLabelsAction\(assetIds\);\s*if \(!read\) return;\s*setRun\(read\);/;
     assert("the dialog sets no run and opens nothing on a null read", guarded.test(labels));
     assert(
         "  and a press that opens whatever comes back is seen not to",
-        !guarded.test("const read = await readToolItemLabelsAction(toolItemIds);\n setRun(read);\n setOpen(true);\n")
+        !guarded.test("const read = await readAssetLabelsAction(assetIds);\n setRun(read);\n setOpen(true);\n")
     );
 }
 

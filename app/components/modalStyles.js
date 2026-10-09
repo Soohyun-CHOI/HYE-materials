@@ -6,11 +6,11 @@
 //
 // ONE OF TWO FRAMES SINCE #456, AND WHAT ENDS THAT IS WRITTEN DOWN. The
 // design's frame is `app/components/DialogFrame.js`, on the browser's own
-// modal dialog, and only the tools axis calls it until #258. The last two
-// dialogs on that axis drawn here — the tool item page's retirement and its
+// modal dialog, and only the assets axis calls it until #258. The last two
+// dialogs on that axis drawn here — the asset page's retirement and its
 // check-out sheet — moved onto the frame in #458, so nothing under
-// `app/(tools)/` imports this file, and `offline/dialog-frame.mjs` fails one
-// that does. The screens above the tools axis keep this file until #258
+// `app/(assets)/` imports this file, and `offline/dialog-frame.mjs` fails one
+// that does. The screens above the assets axis keep this file until #258
 // gives them the design's frame, and this file goes with it then.
 //
 // MODAL_CARD deliberately carries NO max-w-* width: width is the caller's

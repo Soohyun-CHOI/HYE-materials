@@ -44,7 +44,7 @@ kind — there is nowhere else to go from here.
 
 **It also carries one thing it never shows.** Where the reader was going travels
 with them into this screen and out the other side, so a person who scanned a
-tool label lands on that tool item. It is in the URL and in a hidden field,
+tool label lands on that asset. It is in the URL and in a hidden field,
 never in a sentence — the same silence the two screens before it keep.
 
 ## What it carries only sometimes
@@ -79,7 +79,7 @@ edit until an issue decides who may change whose name.
 
 **The first name is what every screen naming a person then shows** — the
 request list's Requester column, the signing chain, the history timeline,
-`Recorded by`, a tool item's log. The full name appears in exactly two kinds of
+`Recorded by`, an asset's log. The full name appears in exactly two kinds of
 place: where a person is chosen from a list (the signer pickers), and where
 somebody outside this company reads it (the purchase order PDF and the order
 email).

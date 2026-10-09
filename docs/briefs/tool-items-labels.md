@@ -1,11 +1,11 @@
 # Print labels
 
-Opens from: `/tools/[toolRecordId]` and `/tool-items/[toolItemId]`, as a dialog
+Opens from: `/asset-categories/[categoryRecordId]` and `/assets/[assetId]`, as a dialog
 over the page that opens it — it was the page `/tool-items/labels` until #457.
 Who reaches it: a site manager on either page (#506) — nobody else is drawn a
 control that opens it, and the read behind a tool's page refuses anybody else.
-No tool item is one reader's rather than another's, so a site manager may print
-any label; everyone else still reads a tool item's label on its own screen.
+No asset is one reader's rather than another's, so a site manager may print
+any label; everyone else still reads an asset's label on its own screen.
 Which width comes first: **desktop**. This dialog is used at whatever machine the
 printer is attached to, which `docs/notes/tools.md` settled for the whole label
 step, and it does not support a phone's width (`_shared.md`).
@@ -15,7 +15,7 @@ step, and it does not support a phone's width (`_shared.md`).
 We added some tools and now they need stickers. Print their QR labels on the
 label printer's tape, one label to a page.
 
-**A tool item with no label is a row nothing can reach.** The QR symbol is the
+**An asset with no label is a row nothing can reach.** The QR symbol is the
 only way a phone gets from a physical drill to its record, so this dialog is the
 last step of registration rather than a convenience — and it is why a
 registration lands on its tool's own screen with what it wrote selected, one
@@ -31,7 +31,7 @@ correctness is physical.
 ## What it always carries
 
 **identity.** The title — `Print labels` from a tool's page and `Print label`
-from a tool item's, the word each page's control says — and under it the tool's
+from an asset's, the word each page's control says — and under it the tool's
 name. It was the heading `Print tool labels` until #457.
 
 **evidence.** Two facts about the run on one line, both screen-only and never
@@ -111,17 +111,17 @@ not the same:
   is part of the label's arithmetic; see below.
 
 **The tool's name is not on the label (#431).** The design dropped it. The
-picker above the labels named each tool item by its tool until #457, because that
+picker above the labels named each asset by its tool until #457, because that
 was a screen naming a record and the person choosing labels chose by it; the
 dialog names the opening page's tool under its title, and the sticker carries the
 code alone.
 
-**The printed code is not the whole `Tool Item ID`, and the difference is the
-point (#411).** A tool item is `HYE-TL-260909-004` in the base and on every
+**The printed code is not the whole `Asset ID`, and the difference is the
+point (#411).** An asset is `HYE-AST-260909-004` in the base and on every
 screen; the sticker carries `260909-004`. The seven characters dropped are on
-every tool item and separate none of them, so they cost the symbol its headroom
+every asset and separate none of them, so they cost the symbol its headroom
 and the label its width while confirming nothing. **A design must not put them
-back.** The picker named each tool item by the whole id until #457, a screen
+back.** The picker named each asset by the whole id until #457, a screen
 naming a record above a sticker a person reads in order to type; the dialog has
 no picker, and it names a code it did not find in the sticker's form,
 `260909-098`, as 1e draws it.
@@ -136,9 +136,9 @@ rather than printing them. The dialog opens when the read answers.
 **When nothing is selected, the dialog does not open:** a tool's page draws its
 control disabled with the reason beside it, `Nothing is selected, so there is
 nothing to print.` Until #457 the screen said `Nothing was named to print. Open
-this from a tool's own page.` to an address that named no tool item, pointing at
+this from a tool's own page.` to an address that named no asset, pointing at
 the page where a run is selected. It named a registration's answer as well until
-#449, which stopped a registration opening this screen. It said `No tool item was
+#449, which stopped a registration opening this screen. It said `No asset was
 named` until #455; the design's noun is `tool`, and a first `tool` meaning one of
 a tool's tools would stand for two things in a sentence that goes on to name the
 tool.
@@ -273,7 +273,7 @@ four modules a side as the address it encodes gets longer; the module cannot
 shrink to absorb that, because it is already at its floor, and the label no
 longer keeps room for a bigger one. **So the host's length decides whether a
 label prints**: a host of up to seventeen characters gives today's symbol — at
-exactly seventeen, only while a day's tool items stay under a thousand — and a
+exactly seventeen, only while a day's assets stay under a thousand — and a
 longer one, which a Vercel domain is, gives a symbol the dialog draws no page for,
 saying so in a sentence that points at the host. A design must keep that sentence
 where Print is pressed. **It is also why the host a label carries is settled
@@ -281,21 +281,21 @@ before the first label is printed**: it is `app.hyeusa.com`, fourteen characters
 which leaves three, and a permanent host past seventeen would build a symbol the
 tape has no room for.
 
-**The screen words are the design's (#455).** A `Tools` row is a tool, and a
-`Tool Items` row — which this brief calls a tool item — is a `tool` in any
+**The screen words are the design's (#455).** An `Asset Categories` row is a tool, and a
+`Assets` row — which this brief calls an asset — is a `tool` in any
 sentence about one, and never a `tool item` on screen. The dialog's sentences
 name labels and codes; `None of those tools exists.` was this screen's until
-#457. The same words govern `/tools`, the registration dialog over it, the
-tool's own screen, where the tools under one are counted as `items`, and the tool
-item's. This said
+#457. The same words govern `/asset-categories`, the registration dialog over it, the
+tool's own screen, where the tools under one are counted as `items`, and the asset's.
+This said
 the pair was `tool` and `tool item` and never a bare `item`, which the design
 reversed.
 
 **Two pages open this dialog and their words come from here** — `Print labels`
-and `Print label` — so the controls on a tool's own page and on a tool item's own
+and `Print label` — so the controls on a tool's own page and on an asset's own
 page cannot drift from the dialog they open. That is the arrangement the registration dialog has with the controls that
-open it, which was `/tools`' control on `/tools/new` until #456. This
-said two until #443, which counted the tool item's, added in #352; it said three
+open it, which was `/asset-categories`' control on `/tools/new` until #456. This
+said two until #443, which counted the asset's, added in #352; it said three
 until #449, which moved a registration's run onto the tool's own page — the
 registration lands there with what it wrote selected, and that page's control is
 how its labels are printed.

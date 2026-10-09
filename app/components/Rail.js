@@ -15,13 +15,13 @@ import { useTooltip } from "./Tooltip";
  * screen sits in" (#460). `docs/notes/tools.md`'s `The navigation` has what was weighed
  * and measured for it.
  *
- * WRITTEN WHERE ANY SCREEN COULD CALL IT, AND ONLY THE TOOLS LAYOUT DOES. The screens
- * above the tools axis each hold a width container inside their own page — twenty-four
+ * WRITTEN WHERE ANY SCREEN COULD CALL IT, AND ONLY THE ASSETS LAYOUT DOES. The screens
+ * above the assets axis each hold a width container inside their own page — twenty-four
  * of them across twenty pages (`docs/notes/tools.md`) — and a rail beside them would
  * fight every one. So the materials sections are on it and their screens are not under
  * it: pressing one leaves the rail behind, which is the state until #258. **What moves
  * it is #258**, which gathers those screens into one layout: the call moves from
- * `app/(tools)/layout.js` to `app/layout.js`, the design's faces move with it, and
+ * `app/(assets)/layout.js` to `app/layout.js`, the design's faces move with it, and
  * `offline/design-values.mjs` widens its boundary to every route file, in one commit.
  * Nothing in this file changes, which is why it reads its section off the address
  * rather than taking it from the caller (`lib/navigation.js`).
@@ -36,7 +36,7 @@ import { useTooltip } from "./Tooltip";
  * never stays open over the screen it took the reader to.
  *
  * BELOW THE PHONE'S EDGE THERE IS NO RAIL. The phone frame draws a top bar in its place
- * — on the tool item page, 1j's, with the id and one 48 button — and no rail at any
+ * — on the asset page, 1j's, with the id and one 48 button — and no rail at any
  * width, so the two never meet: they divide at `max-sm`, the edge every phone name
  * already divides at. The top bar is `TopBar.js` (#463). Below that edge the document
  * scrolls rather than this column, which is at least the screen's height there and lays
@@ -44,8 +44,8 @@ import { useTooltip } from "./Tooltip";
  * screen.
  *
  * THE EXPANDED STATE IS THIS COMPONENT'S, AND NOTHING STORES IT. A layout does not render
- * again on a navigation, so a rail held by the tools layout keeps what the reader set
- * across every move between tools screens. A reload, a new tab, a scan and a trip
+ * again on a navigation, so a rail held by the assets layout keeps what the reader set
+ * across every move between asset screens. A reload, a new tab, a scan and a trip
  * through a screen without the rail start collapsed — the design's resting state.
  * Storage only the browser reads would have the server draw the rail collapsed and
  * widen it after hydration, shifting the screen sideways on every load from 1280 up.
@@ -59,7 +59,7 @@ import { useTooltip } from "./Tooltip";
  * 360ms, beside the icon, on hover and on keyboard focus, gone on Escape, and only while
  * the rail is collapsed. It is in the top layer, so nothing the rail clips can clip it,
  * and it is hidden from assistive tech, which has the name already. It is `Tooltip.js`'s
- * since #463, which drew a second, above the tool item page's `More actions`.
+ * since #463, which drew a second, above the asset page's `More actions`.
  *
  * AND AT ITS FOOT, THE ACCOUNT (0m, #478) — `RailAccount`, held to the rail's bottom at
  * either width by an auto margin. The caller hands over `account`, the words the page's
@@ -87,7 +87,7 @@ const SECTION_ICONS = {
     "purchase-orders": "clipboard-list",
     invoices: "receipt",
     deliveries: "truck",
-    tools: "wrench",
+    assets: "wrench",
     "material-prices": "tag",
 };
 

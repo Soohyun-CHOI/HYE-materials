@@ -81,14 +81,14 @@ import { SCROLL_LANE } from "./scrollLane";
  * handle 12 from its top and the title 14 above and below at 17 and 600, no close, the
  * actions stacked full width with the commitment over `Cancel`, and 20 at the foot plus the
  * device's safe area. A Confirm drawn so is 0a's sheet that confirms: no handle, the title
- * 24 from its top, the id 4 under it at 15 in Ink 3, the sentence 14 below. The tool item
+ * 24 from its top, the id 4 under it at 15 in Ink 3, the sentence 14 below. The asset
  * page's dialogs are the ones a phone opens, so they are the callers; every other dialog on
  * the frame is a desk's. The frame marks the dialog `data-sheet` — `drawer` or `confirm` —
  * and what it holds takes its phone sizes from `max-sm:in-data-[sheet]:` classes, so CSS
  * decides both conditions and none of it is a second account of the phone's edge.
  *
  * 1j's THREE SHEETS ARE PARTS ON THIS FRAME, built to be opened as they are. The job sheet
- * and the name sheet beside the tool item page, and the retirement's Confirm, close on a
+ * and the name sheet beside the asset page, and the retirement's Confirm, close on a
  * press on what lies behind them while drawn as sheets (`closesOnBackdrop`), the name
  * sheet on its handle too (`onHandlePress`), and the name sheet ends in `done`, a text
  * button at its head's end in place of the close, since it holds a field (0a Sheet). The job
@@ -101,13 +101,13 @@ import { SCROLL_LANE } from "./scrollLane";
  * removed, which leaves focus on the document. So the frame keeps what opened it: focus
  * goes back there while the page still has it — the check-out's opener, which a refusal
  * re-rendering the page in place can turn into the check-in's press — and to the page's
- * heading when it went with the dialog, as on every landing on the tool item page: the
+ * heading when it went with the dialog, as on every landing on the asset page: the
  * router answers an action's redirect by remounting the tree under the component that
  * called it, and the retirement's question leaves with its opener. The heading is where
  * #459 sends a dialog nothing opened.
  *
  * A DIALOG ITS PAGE STOPS DRAWING CLOSES (#495). A page can draw an opener on one side of
- * the phone's edge alone — the tool item page's header row at a desk, its foot bar on a
+ * the phone's edge alone — the asset page's header row at a desk, its foot bar on a
  * phone — and a modal dialog inside a box the page has hidden stays modal and draws
  * nothing: measured at 375, `:modal` with no box and the page behind it inert, on a phone
  * with no `Escape` to leave by. Turning a phone is all it takes, since one on its side is
@@ -138,9 +138,9 @@ import { SCROLL_LANE } from "./scrollLane";
  * inside the column's 24 with its Rules as narrow as the body. The dialog is marked
  * `data-preview` for what it holds to take the column's sides.
  *
- * THE ONLY FRAME ON THE TOOLS AXIS SINCE #458. The tool item page's retirement and the
+ * THE ONLY FRAME ON THE ASSETS AXIS SINCE #458. The asset page's retirement and the
  * check-out's name sheet were drawn on `app/components/modalStyles.js` until then, and
- * `offline/dialog-frame.mjs` fails a file under `app/(tools)/` that imports it. The screens
+ * `offline/dialog-frame.mjs` fails a file under `app/(assets)/` that imports it. The screens
  * above this axis keep `modalStyles.js` until #258, which is where they take the design's
  * frame and the file's own header says so.
  */

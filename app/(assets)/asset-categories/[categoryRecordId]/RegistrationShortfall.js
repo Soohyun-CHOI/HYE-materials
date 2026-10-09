@@ -1,0 +1,116 @@
+"use client";
+
+import { useSearchParams } from "next/navigation";
+import { Button } from "@/app/components/Controls";
+import { DialogActions, DialogBody, DialogFrame, DialogMessage } from "@/app/components/DialogFrame";
+import { ASSET_REGISTRATION_COPY as COPY, accountToTell } from "@/lib/assetRegistration";
+import { RegistrationForm, RegistrationOpener, useRegistrationOpening } from "../RegistrationDialog";
+
+// What a registration that fell short offers where it lands (#449): write the rest, or
+// be done. A FORK AND NOT A NOTICE, and the difference is what the markup carries — two
+// answers to one question, where the notice told before it (`RegistrationUnlogged.js`),
+// naming assets with no history, carries one control that answers nothing, because
+// nothing repairs those.
+//
+// A DIALOG OVER THE PAGE SINCE #459, THE DESIGN'S 1c, AND ITS FINAL COMPOSITION SINCE
+// #495: how many were not added is its title, the category is the line under it, and its one
+// sentence says the others were added and are selected on this page — it said how many of
+// how many were added in its title until then, and how many were not in its sentence.
+// What was added needs `asked`, which the landing's address carries beside `unwritten`
+// for exactly this, and is the one less the other. It is
+// told after the notice when a landing carries both — `accountToTell` has why — and it
+// is open while the page found a shortfall and `unwritten` is still on the address, so
+// the address stays the one account of whether the question is asked.
+//
+// NOT A `done` FLAG, AND THE REASON IS WHAT NEXT KEEPS. The page's state survives a
+// landing on this same route at another address — the router keys a page's state on its
+// segment without the query (`createRouterCacheKey(…, true)` in the installed 16.2.10's
+// `layout-router.js`), which is what kept #456's dialog open over its own landing — so a
+// flag one landing's `Not now` set would hide the next landing's question. Not seen for
+// this fork: reaching it takes a registration that falls short, which takes the base
+// failing. Read off the address, a new landing asks again because it carries the
+// question again.
+//
+// `Add 2 more` PUTS THE FORK AWAY AND OPENS THE REGISTRATION DIALOG ON THIS KIND AT THE
+// COUNT IT NAMES — at its second step, since #507, with nothing to pick — the count still
+// the person's to change there — 1c's own answer, which
+// closes the one before it opens the other rather than stacking them. The words and the
+// dialog are handed one value, `account.unwritten`, so they cannot name two numbers
+// (#485); it said `Create the rest` until then and named none. The
+// registration's rule is #456's and is not repeated here: it is open while the address
+// is the one it was opened at (`useRegistrationOpening`). Canceling it brings the fork
+// back, because nothing answered it — the question stands until `Not now`, and the
+// address still carries it, so the screen says what a reload would. A registration that
+// lands answers it by moving the address, and the new one carries only its own account.
+// For a site manager on no job the answer is drawn disabled with the reason before it, as
+// every opener is (#456); the fork is told to a site manager alone (#506), since whoever
+// added is one.
+//
+// `Not now` IS THE OTHER ANSWER, AND IT ENDS THE QUESTION: `asked` and `unwritten` leave
+// the address, so a reload does not ask again. The close and Escape answer it too — the
+// design sends its close to the same place, and the frame makes Escape the close — so no
+// way out of the dialog leaves the question on the address with nothing on the screen.
+// The two answers are a pair on purpose — one goes on adding and one stops — which is
+// what says the choice is about the shortfall and not about the notice.
+//
+// THE DISMISSAL EDITS THE CURRENT ADDRESS AND THE FORK'S TWO KEYS OF IT. The list's
+// boxes rewrite the address without a render (`AssetList.js`'s header has why), so an
+// address built from anything this render was handed would put back a selection the
+// reader has since changed. It deletes `asked` and `unwritten` and nothing else: the
+// page, the selection and the notice's `unlogged` stay where they are.
+// `history.replaceState` rather than the router, for #443's reason — a navigation
+// renders the page again, four operations to take away one dialog.
+//
+// NO PRESS OPENED IT, so it is `unprompted` and hands focus to the page's heading as it
+// closes (`DialogFrame.js`).
+//
+// EVERY WORD IS `ASSET_REGISTRATION_COPY`'s, this axis's rule since #338: they are a
+// registration's words wherever they are drawn, which is also why the fork is a file of
+// its own rather than part of the list.
+export default function RegistrationShortfall({ category, catalog, account, canRegister, jobs }) {
+    const address = useSearchParams();
+    const registration = useRegistrationOpening();
+    const told = accountToTell(account, address) === "shortfall";
+
+    const notNow = () => {
+        const current = new URL(window.location.href);
+        current.searchParams.delete("asked");
+        current.searchParams.delete("unwritten");
+        window.history.replaceState(null, "", `${current.pathname}${current.search}`);
+    };
+
+    return (
+        <>
+            <DialogFrame
+                open={told && !registration.open}
+                onClose={notNow}
+                unprompted
+                title={COPY.shortfallHeading(account.unwritten)}
+                subtitle={category.itemName}
+            >
+                <DialogBody>
+                    <DialogMessage>{COPY.shortfall(account.asked - account.unwritten)}</DialogMessage>
+                </DialogBody>
+                <DialogActions>
+                    <Button variant="bordered" onClick={notNow}>
+                        {COPY.doneRegistering}
+                    </Button>
+                    <RegistrationOpener canRegister={canRegister} onOpen={registration.start}>
+                        {COPY.registerOthers(account.unwritten)}
+                    </RegistrationOpener>
+                </DialogActions>
+            </DialogFrame>
+            {canRegister && (
+                <RegistrationForm
+                    key={registration.opening}
+                    open={registration.open}
+                    onClose={registration.close}
+                    jobs={jobs}
+                    category={category}
+                    catalog={catalog}
+                    quantity={account.unwritten}
+                />
+            )}
+        </>
+    );
+}

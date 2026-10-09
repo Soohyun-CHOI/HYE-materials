@@ -8,7 +8,7 @@
 // that a rule living on that side needs a credentialed check that reads the live
 // values.
 //
-// WHY IT MATTERS MORE HERE THAN FOR THE OTHER FIVE FAMILIES. A `Tool Item ID` is
+// WHY IT MATTERS MORE HERE THAN FOR THE OTHER FIVE FAMILIES. An `Asset ID` is
 // printed onto a QR label and glued to a physical tool. Two rows sharing one is
 // not a string collision — it is two labels already stuck to two different tools,
 // and the repair is reprinting both and finding them on a site.
@@ -45,10 +45,10 @@
 
 import { TABLES, base } from "../../lib/airtable/client.js";
 import { getJobByCode } from "../../lib/airtable/jobs.js";
-import { createToolItems } from "../../lib/airtable/toolItems.js";
+import { createAssets } from "../../lib/airtable/assets.js";
 import { ID_KINDS, dailyIdPrefix } from "../../lib/idSequence.js";
-import { TOOL_STATUS } from "../../lib/toolStatus.js";
-import { TOOL_CATALOG_FIELDS } from "../../lib/toolCatalog.js";
+import { ASSET_STATUS } from "../../lib/assetStatus.js";
+import { ASSET_CATEGORY_FIELDS } from "../../lib/assetCategory.js";
 import { resetOps, snapshot } from "../../lib/airtableOps.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { printProvenance } from "./_provenance.mjs";
@@ -72,22 +72,22 @@ const log = (text = "") => console.log(text);
 
 // NO `tagField` ON THE TOOL ITEMS BUCKET, and that is the helper's own rule
 // rather than an omission: the tag must reach EVERY row in a bucket or it reaches
-// none usefully, and a `Tool Item ID` is MINTED — this script cannot put a run tag
+// none usefully, and an `Asset ID` is MINTED — this script cannot put a run tag
 // in it without defeating the thing under test. They are tracked by id and
-// discovered through the parent `Tools` row instead, which is the path
+// discovered through the parent `Asset Categories` row instead, which is the path
 // `_fixtures.mjs` documents for exactly this case.
 const fixtures = createFixtures({
     tag: "V335",
     buckets: [
-        { name: "toolItems", table: TABLES.TOOL_ITEMS, label: "Tool Item" },
+        { name: "assets", table: TABLES.ASSETS, label: "Tool Item" },
         {
             name: "tools",
-            table: TABLES.TOOLS,
+            table: TABLES.ASSET_CATEGORIES,
             label: "Tool",
             // The field the kind is written by since #507, when `Tool Name` became a
             // formula over it; until then the kind was written by that name.
-            tagField: TOOL_CATALOG_FIELDS.level2,
-            children: [{ link: "Tool Items", table: TABLES.TOOL_ITEMS, label: "Tool Item" }],
+            tagField: ASSET_CATEGORY_FIELDS.level2,
+            children: [{ link: "Assets", table: TABLES.ASSETS, label: "Tool Item" }],
         },
     ],
 });
@@ -109,20 +109,20 @@ try {
         incomplete = true;
     } else {
         // A kind is written by its catalog fields since #507; nothing here reads its class.
-        const toolRecord = await base(TABLES.TOOLS).create({ [TOOL_CATALOG_FIELDS.level2]: `${TAG} probe drill` });
-        track("tools", toolRecord.id);
+        const categoryRecord = await base(TABLES.ASSET_CATEGORIES).create({ [ASSET_CATEGORY_FIELDS.level2]: `${TAG} probe drill` });
+        track("tools", categoryRecord.id);
 
         const register = async (count) => {
-            const result = await createToolItems({
-                toolRecordId: toolRecord.id,
+            const result = await createAssets({
+                categoryRecordId: categoryRecord.id,
                 jobRecordId: job.id,
                 count,
             });
-            for (const created of result.created) track("toolItems", created.id);
+            for (const created of result.created) track("assets", created.id);
             return result;
         };
 
-        const todayPrefix = dailyIdPrefix(ID_KINDS.TOOL_ITEM, new Date());
+        const todayPrefix = dailyIdPrefix(ID_KINDS.ASSET, new Date());
 
         // ── Part A ──────────────────────────────────────────────────────────
         log("Part A — format, width and contiguity within one batch");
@@ -132,10 +132,10 @@ try {
         check("  created", a.created.length, 3);
         check("  none failed", a.failure, null);
 
-        const aIds = a.created.map((t) => t.toolItemId);
+        const aIds = a.created.map((t) => t.assetId);
         log(`    ${aIds.join(", ")}`);
         assert(
-            "  every id is HYE-TL-YYMMDD-### with today's prefix",
+            "  every id is HYE-AST-YYMMDD-### with today's prefix",
             aIds.every((id) => new RegExp(`^${todayPrefix}-\\d{3,}$`).test(id))
         );
         check("  the sequence is padded to three", aIds[0].slice(todayPrefix.length + 1).length, 3);
@@ -145,10 +145,10 @@ try {
             [seqOf(aIds[0]), seqOf(aIds[0]) + 1, seqOf(aIds[0]) + 2].join(",")
         );
 
-        // The fields registration fills, read back off what createToolItems returned.
-        check("  status is In stock", a.created[0].status, TOOL_STATUS.IN_STOCK);
+        // The fields registration fills, read back off what createAssets returned.
+        check("  status is In stock", a.created[0].status, ASSET_STATUS.IN_STOCK);
         check("  the job is set", (a.created[0].job || [])[0], job.id);
-        check("  the kind is set", (a.created[0].tool || [])[0], toolRecord.id);
+        check("  the kind is set", (a.created[0].category || [])[0], categoryRecord.id);
 
         // ── Part B ──────────────────────────────────────────────────────────
         log();
@@ -156,7 +156,7 @@ try {
         resetOps();
         const b = await register(6);
         const opsB = snapshot().total;
-        const bIds = b.created.map((t) => t.toolItemId);
+        const bIds = b.created.map((t) => t.assetId);
         log(`    ${bIds.join(", ")}`);
         check("  created", b.created.length, 6);
         check("  the second batch starts one after the first ends",
@@ -187,15 +187,15 @@ try {
         log("Part D — the highest row is deleted, then one more is minted");
         log("  MAX + 1 is documented against a gap in the MIDDLE. This is the top.");
         const highest = b.created[b.created.length - 1];
-        log(`    deleting ${highest.toolItemId}, the highest id on this prefix`);
-        await base(TABLES.TOOL_ITEMS).destroy(highest.id);
-        fixtures.untrack("toolItems", highest.id);
+        log(`    deleting ${highest.assetId}, the highest id on this prefix`);
+        await base(TABLES.ASSETS).destroy(highest.id);
+        fixtures.untrack("assets", highest.id);
 
         const d = await register(1);
-        const reissued = d.created[0].toolItemId;
+        const reissued = d.created[0].assetId;
         log(`    the next mint produced ${reissued}`);
 
-        const isReissue = reissued === highest.toolItemId;
+        const isReissue = reissued === highest.assetId;
         // NOT ASSERTED AS A PASS OR A FAIL, because either answer is a fact about
         // MAX + 1 rather than a defect this script gets to judge — and the point is
         // to have the measurement written down. What IS asserted is that the run

@@ -10,7 +10,7 @@ important that a designer knows how little it is: **this screen is a stopgap, no
 designed landing page.**
 
 Its own source says why it exists — the app had no navigation shell, so a new
-route was otherwise reachable only by typing its URL. The tools screens carry the
+route was otherwise reachable only by typing its URL. The asset screens carry the
 design's rail since #460, and the other screens it links to still carry none. Each
 of its links was added by the issue that added the screen behind it, one at a time,
 for that reason alone.
@@ -20,7 +20,7 @@ generated it.
 **So this is the screen with the most design freedom in the app and the least
 existing content to preserve.** The absence of a navigation shell was the largest
 single gap a design would find; the design has drawn one, and until #258 gathers
-the screens above the tools axis under it, this page is where its absence shows.
+the screens above the assets axis under it, this page is where its absence shows.
 
 ## What it always carries
 
@@ -37,7 +37,7 @@ on whether there is a session.
   back to them, which matters because almost every screen behaves differently by
   role and nothing else says which one you are.
 - **action** — `New Purchase Request` as the filled primary button, then four
-  outlined links: `Material prices`, `Deliveries`, `Purchase orders`, `Tools`.
+  outlined links: `Material prices`, `Deliveries`, `Purchase orders`, `Asset Categories`.
 - **action** — a sign-out control.
 
 **When not signed in:** the line `Not signed in.` and a single `Sign in` button.
@@ -53,7 +53,7 @@ before it renders.
 
 **The link labels are screen names and one of them disagrees with its
 destination.** `Purchase orders` here, `Purchase Orders` as that screen's own
-heading. `Material prices`, `Deliveries` and `Tools` match theirs exactly.
+heading. `Material prices`, `Deliveries` and `Asset Categories` match theirs exactly.
 Whatever a redesign does with navigation, these labels and the headings they
 point at should be settled together — see the shared brief.
 
@@ -63,7 +63,7 @@ words for one screen.
 
 **The role stated here is the distinction the materials screens' gates use** —
 President, Employee, and the Admin flag that means office staff. It is an
-organizational distinction rather than a privilege ladder. **The tools screens
+organizational distinction rather than a privilege ladder. **The asset screens
 gate on a mark this line does not state**, `Is Site Manager` (#506): the account
 at the foot of their rail says it, `Site manager` after the rest, and has said
 the reader's roles since #478 — so this line is no longer the only place a

@@ -3,7 +3,7 @@
 // WHAT THIS FILE IS FOR. `app/components/DialogFrame.js` is Claude Design's 0l drawn once,
 // `app/components/Controls.js` and `app/components/Menu.js` are the 0a controls the
 // registration dialog is the first to use, and the landing's two dialogs call them (#459),
-// as the labels' does (#457) and the tool item page's do (#458), rather than drawing their
+// as the labels' does (#457) and the asset page's do (#458), rather than drawing their
 // own. So what they are held to is held here, where each of those issues ran into it:
 //
 //   1. THE KEYS. WAI-ARIA's select-only combobox and its editable combobox with list
@@ -26,11 +26,11 @@
 //      only while they are sheets, and a dialog taken off the page handing focus on.
 //   4. THE WORDS. Every string these three render comes from `lib/dialogFrame.js` or
 //      `lib/controls.js`, pinned by value, and none is in their markup — the rule
-//      `offline/tool-list-view.mjs` holds for every file under `app/(tools)/`, which these
+//      `offline/asset-list-view.mjs` holds for every file under `app/(assets)/`, which these
 //      do not sit under.
-//   5. ONE FRAME ON THE TOOLS AXIS. The tool item page's two dialogs were the last drawn on
+//   5. ONE FRAME ON THE ASSETS AXIS. The asset page's two dialogs were the last drawn on
 //      `app/components/modalStyles.js`, and #458 moved them onto this frame, so a file
-//      under `app/(tools)/` importing it fails — the measurable condition CLAUDE.md's "one
+//      under `app/(assets)/` importing it fails — the measurable condition CLAUDE.md's "one
 //      rule, one implementation" asked for, met.
 //   6. A DIALOG THAT SUBMITS (#469). The frame hands its `busy` to everything it holds: the
 //      form's submit draws 0f's Working and every other control locks, none disabled, and
@@ -76,8 +76,8 @@ const MENU = "app/components/Menu.js";
 const ACCOUNT = "app/components/RailAccount.js";
 
 /**
- * Whether a file draws a dialog on `modalStyles.js` — which no file under `app/(tools)/`
- * does since #458 moved the tool item page's two onto the frame. One found is a second
+ * Whether a file draws a dialog on `modalStyles.js` — which no file under `app/(assets)/`
+ * does since #458 moved the asset page's two onto the frame. One found is a second
  * frame growing back.
  */
 const drawsOldFrame = (text) => text.includes("@/app/components/modalStyles");
@@ -875,27 +875,27 @@ export function run({ check, assert, log }) {
         check(`  no copy in ${label}'s markup${found.length ? ` (${found[0]})` : ""}`, found.length, 0);
     }
 
-    // ── 5: one frame on the tools axis ──────────────────────────────────────
+    // ── 5: one frame on the assets axis ──────────────────────────────────────
     log("");
-    log("no tools file draws a dialog on the old frame, since #458:");
-    const toolsFiles = listJsFiles(repoPath("app/(tools)")).map((abs) => toPosix(abs).slice(toPosix(REPO_ROOT).length + 1));
-    const onOldFrame = toolsFiles.filter((rel) => drawsOldFrame(readFileSync(repoPath(rel), "utf8"))).sort();
+    log("no file on the assets axis draws a dialog on the old frame, since #458:");
+    const assetsFiles = listJsFiles(repoPath("app/(assets)")).map((abs) => toPosix(abs).slice(toPosix(REPO_ROOT).length + 1));
+    const onOldFrame = assetsFiles.filter((rel) => drawsOldFrame(readFileSync(repoPath(rel), "utf8"))).sort();
     check("  the files on it", onOldFrame.length, 0);
-    const onNewFrame = toolsFiles.filter((rel) => readFileSync(repoPath(rel), "utf8").includes("@/app/components/DialogFrame")).sort();
+    const onNewFrame = assetsFiles.filter((rel) => readFileSync(repoPath(rel), "utf8").includes("@/app/components/DialogFrame")).sort();
     // The registration's dialog (#456), the landing's two (#459), the labels' (#457), and the
-    // tool item page's transition, its retirement's question and 1j's two sheets (#458).
+    // asset page's transition, its retirement's question and 1j's two sheets (#458).
     check(
         "  and the frame's callers on the axis are the dialogs drawn on it",
         onNewFrame.join(", "),
         [
-            "app/(tools)/tool-items/LabelsDialog.js",
-            "app/(tools)/tool-items/[toolItemId]/JobSheet.js",
-            "app/(tools)/tool-items/[toolItemId]/NameSheet.js",
-            "app/(tools)/tool-items/[toolItemId]/RetirementConfirm.js",
-            "app/(tools)/tool-items/[toolItemId]/TransitionDialog.js",
-            "app/(tools)/tools/RegistrationDialog.js",
-            "app/(tools)/tools/[toolRecordId]/RegistrationShortfall.js",
-            "app/(tools)/tools/[toolRecordId]/RegistrationUnlogged.js",
+            "app/(assets)/assets/LabelsDialog.js",
+            "app/(assets)/assets/[assetId]/JobSheet.js",
+            "app/(assets)/assets/[assetId]/NameSheet.js",
+            "app/(assets)/assets/[assetId]/RetirementConfirm.js",
+            "app/(assets)/assets/[assetId]/TransitionDialog.js",
+            "app/(assets)/asset-categories/RegistrationDialog.js",
+            "app/(assets)/asset-categories/[categoryRecordId]/RegistrationShortfall.js",
+            "app/(assets)/asset-categories/[categoryRecordId]/RegistrationUnlogged.js",
         ]
             .sort()
             .join(", ")
@@ -1155,7 +1155,7 @@ export function run({ check, assert, log }) {
         });
         return found;
     };
-    const dialogs = toolsFiles
+    const dialogs = assetsFiles
         .filter((rel) => readFileSync(repoPath(rel), "utf8").includes("@/app/components/DialogFrame"))
         .flatMap((rel) => submitFacts(parseFile(rel)))
         .sort();
@@ -1175,7 +1175,7 @@ export function run({ check, assert, log }) {
     );
     check("  across the dialogs drawn on the frame", dialogs.length, onNewFrame.length);
 
-    // AND EVERY FORM THAT SUBMITS OUTSIDE A FRAME IS HELD TO THE SAME (#463): the tool item
+    // AND EVERY FORM THAT SUBMITS OUTSIDE A FRAME IS HELD TO THE SAME (#463): the asset
     // page's foot bar, which wraps what it holds in `FormBusy` itself, and the desk's press,
     // whose button says its own busy state. Found rather than listed — each function under
     // the axis handing `FormBusy` a state or a button a `busy` — and read as the state it is
@@ -1205,7 +1205,7 @@ export function run({ check, assert, log }) {
         });
         return found;
     };
-    const forms = toolsFiles.flatMap((rel) => formFacts(parseFile(rel))).sort();
+    const forms = assetsFiles.flatMap((rel) => formFacts(parseFile(rel))).sort();
     check(
         "every form on the axis that submits outside a frame, and every press that waits on a read, says it is busy and names its word (#495)",
         forms.join(" | "),

@@ -16,7 +16,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 | `app/materials/**`, `lib/material*.js` | `docs/notes/materials.md` |
 | `lib/listFilters.js`, `app/components/ListFilterBar.js` | `docs/notes/deliveries-and-invoices.md` |
 | `app/addresses/**`, `lib/address*.js` | `docs/notes/addresses.md` |
-| `app/(tools)/**`, `lib/tool*.js` | `docs/notes/tools.md` |
+| `app/(assets)/**`, `lib/asset*.js` | `docs/notes/tools.md` |
 | `app/designValues.css`, `app/globals.css`, `app/components/Icon.js` | `docs/notes/design-system.md` |
 | `lib/airtable/**`, `lib/airtableFormula.js`, `lib/airtableOps.js`, `lib/airtableBatch.js` | `docs/notes/airtable-access.md` **and** `docs/notes/naming.md` |
 | `lib/airtable/**`, `scripts/import/**`, `scripts/demo/**`, `scripts/tests/verify-*.mjs`, adding or changing a field or a table | `docs/notes/data-model.md` |
@@ -58,7 +58,7 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 
 Site staff talk to a vendor first and get a quotation — that happens outside the app, and it is why a PR arrives with the vendor and the prices already settled. The requester raises the PR with that quotation attached and names an ordered chain of signers. Each signer approves, edits and continues, or returns it for correction to anyone earlier. Full approval generates the PO as a frozen snapshot of the items, the President signs it, and **the order is placed by emailing that PDF to the vendor from inside the app (#281)** — sending it IS placing it, which is why the requester who raised the request may do it as well as the office. The vendor's invoice comes back to office staff, who enter it and reconcile it line by line against the PO.
 
-Three kinds of people, and the distinction is organizational rather than a privilege ladder. **Site staff** are non-Admin Employees: they raise PRs, sign, and withdraw their own. **Office staff** all run with `Is Admin: true`, so gating something to Admin scopes it to the office — invoicing is Admin because invoicing is office work, not because Admin is more trusted. The **President** signs POs; nothing else is role-specific to them. On the tools axis, recording what happens to a tool is a **site manager**'s, marked `Is Site Manager` and not `Is Admin` (#506). Vendors have no account and never touch the app.
+Three kinds of people, and the distinction is organizational rather than a privilege ladder. **Site staff** are non-Admin Employees: they raise PRs, sign, and withdraw their own. **Office staff** all run with `Is Admin: true`, so gating something to Admin scopes it to the office — invoicing is Admin because invoicing is office work, not because Admin is more trusted. The **President** signs POs; nothing else is role-specific to them. On the assets axis, recording what happens to an asset is a **site manager**'s, marked `Is Site Manager` and not `Is Admin` (#506). Vendors have no account and never touch the app.
 
 What that boundary implies keeps coming up: a decision made before a PR exists cannot be helped by a form inside one (#19), and a status describing something that happens outside the app has nobody to set it (#144).
 
@@ -114,16 +114,16 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/addressChoice.js` — how a form asks where material goes, on both screens that ask (#385, #387). **A request stores an ADDRESS and not a choice.**
 - `lib/materialIdentity.js` — what makes two ordered items the same material (#356). The lock key, the cache's grouping key and `getMaterialByKey`'s values all come from here.
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
-- `lib/toolStatus.js` — the tools track's two closed vocabularies and the three maps over them (#334, #335, #362, #363). No call site passes `createToolLogEntry` a string literal.
-- `lib/toolJob.js` — the job a `Tool Log` row is filed against (#363), the one assignment used without asking (#458), and the picker's words.
-- `lib/toolCatalog.js` — the catalog a tool is picked from (#507): its fields, the class, the name's formula, which rows a registration may pick and the walk to one, and the catalog's words. **No code writes a `Tools` row.**
-- `lib/toolRegistration.js` — registering tool items (#338): the ceiling, what the dialog opens with and may submit (#456), a landing's account (#449), and every word a registration says.
-- `lib/toolItemView.js` — what one tool item's page shows (#340), and every word it says.
-- `lib/toolRoutes.js` — every address on the tools axis (#348), and the code a label prints (#411). **That code and the printed path's segment are one string.**
-- `lib/toolLabelQR.js` — the QR symbol a tool label carries (#351).
-- `lib/toolLabelPage.js` — the page a tool label prints as (#353, #467).
-- `lib/toolTransition.js` — what a person may record against a tool item (#362, #363): the two transitions, which of them asks first (#458), the refusals, and every word it says.
-- `lib/toolListView.js` — the two tools list screens (#339), the app's first paging, which tool items a label run is for (#443), which jobs' tool items they hold (#509), and their own words.
+- `lib/assetStatus.js` — the assets axis's two closed vocabularies and the three maps over them (#334, #335, #362, #363). No call site passes `createAssetLogEntry` a string literal.
+- `lib/assetJob.js` — the job an `Asset Log` row is filed against (#363), the one assignment used without asking (#458), and the picker's words.
+- `lib/assetCategory.js` — the asset categories a registration picks from (#507): their fields, the class, the name's formula, which rows a registration may pick and the walk to one, and the catalog's words. **No code writes an `Asset Categories` row.**
+- `lib/assetRegistration.js` — registering assets (#338): the ceiling, what the dialog opens with and may submit (#456), a landing's account (#449), and every word a registration says.
+- `lib/assetView.js` — what one asset's page shows (#340), and every word it says.
+- `lib/assetRoutes.js` — every address on the assets axis (#348), and the code a label prints (#411). **That code and the printed path's segment are one string.**
+- `lib/assetLabelQR.js` — the QR symbol an asset's label carries (#351).
+- `lib/assetLabelPage.js` — the page an asset's label prints as (#353, #467).
+- `lib/assetTransition.js` — what a person may record against an asset (#362, #363): the two transitions, which of them asks first (#458), the refusals, and every word it says.
+- `lib/assetListView.js` — the two asset list screens (#339), the app's first paging, which assets a label run is for (#443), which jobs' assets they hold (#509), and their own words.
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
 - `lib/materialPriceView.js` — the view rules for those screens: row ordering, the lowest-price mark, the quantity caveat, and `MATERIAL_SEARCH_COPY` (#357).
 - `lib/poItemQty.js` — what leaves an order open: `uninvoicedQty`, `hasUninvoicedQty`, `countsAsOrdered`, and `hasUninvoicedItems` per order.
@@ -166,15 +166,15 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/prRequester.js` — who raised a request, and whether a write may take it as the reader's own draft (#440). **Nothing else reads `Requester` off a request.**
 - `lib/prVisibility.js` — `canViewPR`, the one row-visibility rule for a PR.
 - `lib/invoiceVisibility.js` — `seesEveryInvoice` and `getVisibleInvoiceIds`, the walk that reaches `canViewPR` from an invoice. Credentialed. **`seesEveryInvoice` answers only whether the walk can be skipped (#309): payment carries no gate.**
-- `lib/siteManager.js` — `isSiteManager`, who records what happens to a tool (#506), and the one reading of `Is Site Manager`.
+- `lib/siteManager.js` — `isSiteManager`, who records what happens to an asset (#506), and the one reading of `Is Site Manager`.
 - `lib/authzWrap.js` — the guard-wrapper factories. Nothing here imports `next/*`.
-- `app/designValues.css` — the design's values under conventional names, in rem (#462). **A screen taking its look from the design reads a name, never the value — Tailwind's own for the weights, the breakpoints, the blur and the full radius — and until #258 only a file nothing outside `app/(tools)/` and `app/login/` calls may read one, the date's four aside (#463).**
+- `app/designValues.css` — the design's values under conventional names, in rem (#462). **A screen taking its look from the design reads a name, never the value — Tailwind's own for the weights, the breakpoints, the blur and the full radius — and until #258 only a file nothing outside `app/(assets)/` and `app/login/` calls may read one, the date's four aside (#463).**
 - `app/faces/` — the design's faces, a module each (#473).
 - `app/components/Icon.js` — every mark the design draws from Lucide, its shapes at the release the design draws from and the one frame and line they share (#502). **The one module that draws an icon; a status dot is not one.**
-- `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the styling of every modal not on `DialogFrame.js`, none of them on the tools axis since #458, until #258. **Anything that opens over the page — modal or not — opens from the keyboard, closes on `Escape` as well as by its opener, and hands focus back to that opener, or to the page's heading when nothing opened it (#459) or the opener went with it (#458) or is hidden; one its page stops drawing closes (#495). A menu draws the focus it moves on opening as `focus-visible`, so a press opens it with nothing shaded (#501).**
-- `app/components/DialogFrame.js` — the frame a tools dialog opens in (#456), and below the phone's edge Tools 0a's sheet for one marked so (#458); `lib/dialogFrame.js`, its word and when focus fell. **A submission in flight is the frame's `busy`, handed to all it holds (#469): its submit works, the rest lock, nothing is disabled, and focus never falls out of a dialog left open.**
+- `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the styling of every modal not on `DialogFrame.js`, none of them on the assets axis since #458, until #258. **Anything that opens over the page — modal or not — opens from the keyboard, closes on `Escape` as well as by its opener, and hands focus back to that opener, or to the page's heading when nothing opened it (#459) or the opener went with it (#458) or is hidden; one its page stops drawing closes (#495). A menu draws the focus it moves on opening as `focus-visible`, so a press opens it with nothing shaded (#501).**
+- `app/components/DialogFrame.js` — the frame a dialog on the assets axis opens in (#456), and below the phone's edge Tools 0a's sheet for one marked so (#458); `lib/dialogFrame.js`, its word and when focus fell. **A submission in flight is the frame's `busy`, handed to all it holds (#469): its submit works, the rest lock, nothing is disabled, and focus never falls out of a dialog left open.**
 - `app/components/Controls.js`, `Menu.js` — 0a's controls, the list a field opens (#456) and the menu a button opens (#478); `lib/controls.js`, their keys and words, and what a button is under a busy form (#469). **A control that acts takes the hand from `app/globals.css`'s one rule, on every screen, and one that does not says so with `disabled` or `aria-disabled` (#501).**
-- `app/components/Rail.js`, `RailAccount.js`, `Breadcrumb.js` — the rail, its account (#478) and the column a screen scrolls in, and the bar above a record's title (#460); `lib/navigation.js`, the sections, which one an address is in, what the account says, and their words. **Only the tools layout calls the rail until #258.**
+- `app/components/Rail.js`, `RailAccount.js`, `Breadcrumb.js` — the rail, its account (#478) and the column a screen scrolls in, and the bar above a record's title (#460); `lib/navigation.js`, the sections, which one an address is in, what the account says, and their words. **Only the assets layout calls the rail until #258.**
 - `app/components/TopBar.js`, `BottomBar.js`, `Tooltip.js`, `Space.js`, `Dot.js` — a phone screen's top bar and foot bar (#463, #473), 0k's tooltip, a space the text holds at a design width, and 0e's dot.
 - `app/components/keyboardViewport.js` — `KEYBOARD_VIEWPORT`, what every screen drawing the foot bar asks of a phone's keyboard (#495), held by `offline/keyboard-viewport.mjs`.
 - `app/components/ListFrame.js`, `ListTable.js`, `scrollLane.js` — a list's frame and parts (#463), and the bar every lane draws. **A row is its own stacking context, so nothing in it rises over the column head (#501).**
@@ -264,7 +264,7 @@ Read `docs/notes/uploads-and-drafts.md` before changing an upload path or `persi
 - **Caller obligation for the flag helpers:** `requireAdmin()` only *reports* the decision. A caller that does not act on `{ authorized }` protects nothing.
 - **Re-authorization rule:** every directly-callable endpoint re-authorizes to the level of the strictest page that renders its UI. A page being the only caller is not a substitute — Route Handlers and Server Actions are reachable directly.
 - Any route or action that fetches a caller-supplied URL, or hands one to Airtable, restricts it to our own Blob store, independent of auth.
-- **Role-scoped:** `app/admin/**` and the invoice write paths (`/invoices/new`, `/invoices/[invoiceId]/edit`, and the edit, delete and payment actions) are Admin-only; the tools axis's four actions are a site manager's (#506).
+- **Role-scoped:** `app/admin/**` and the invoice write paths (`/invoices/new`, `/invoices/[invoiceId]/edit`, and the edit, delete and payment actions) are Admin-only; the assets axis's four actions are a site manager's (#506).
 - **Row-scoped, not role-scoped:** `/prs`, `/prs/[prId]`, `/pos`, `/pos/[poId]`, `/invoices`, `/invoices/[invoiceId]`. All need only an active session to reach, then decide per record through `canViewPR` — for the invoice routes via `lib/invoiceVisibility.js`, which owns the walk and no predicate of its own. **A refusal renders the ordinary not-found text**, a write's too: never confirm that a record exists outside someone's scope.
 - **Enforced by `offline/authz-structure.mjs`**, which enumerates every `app/api/**/route.js` and every `"use server"` export and requires each to be wrapped or listed as an exemption with a reason. A stale exemption fails. An exemption's per-record comparison is held by `offline/owner-before-write.mjs` wherever a request is read by id (#440).
 

@@ -9,7 +9,7 @@ import { SIGN_IN_COPY } from "@/lib/authTokenState";
  * desk (0o) and a step page below the phone's edge (Tools 0a) — so each part is drawn once,
  * with the phone's values under `max-sm:`. The bar a step's action stands in was here too,
  * and the alert a phone draws for a refusal; both are `app/components/`'s since #463, when
- * the tool item page came to draw them, and the desk's refusal line is `Controls.js`'s
+ * the asset page came to draw them, and the desk's refusal line is `Controls.js`'s
  * `Refusal` since #495, when the dialogs came to draw it.
  *
  * EVERY WORD IS THE CALLER'S, from `lib/authTokenState.js` and `lib/userName.js`, apart

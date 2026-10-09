@@ -1,6 +1,6 @@
 # Add tools
 
-Opens from: `/tools` and `/tools/[toolRecordId]`, as a dialog over the page that
+Opens from: `/asset-categories` and `/asset-categories/[categoryRecordId]`, as a dialog over the page that
 opens it — it was the page `/tools/new` until #456.
 Who reaches it: a site manager on either page (#506) — nobody else is drawn a
 control that opens it — and only one assigned to a job can open it.
@@ -15,14 +15,14 @@ We bought some tools. Get them onto the system so each one can be labeled.
 bought (#507).** The office keeps the catalog of tools in Airtable — every kind
 the company buys, named by a category, a tool and a size, and marked with a
 class — and this dialog never adds to it: it picks one of its rows and creates
-one `Tool Items` row per unit, each with its own minted id. A kind missing from
+one `Assets` row per unit, each with its own minted id. A kind missing from
 the catalog is the office's to add. It created the kind as well until #507,
 from a name typed here.
 
 **The two tables are not interchangeable, and the screen keeps them apart
-without a second noun (#455).** A `Tools` row is a **tool** — the kind, a row of
-the catalog, `DEMO Impact Driver 1/4" Hex`. A `Tool Items` row — the base's
-**tool item**, which is what this brief calls it — is one physical drill, the
+without a second noun (#455).** An `Asset Categories` row is a **tool** — the kind, a row of
+the catalog, `DEMO Impact Driver 1/4" Hex`. An `Assets` row — the base's
+**asset**, which is what this brief calls it — is one physical drill, the
 thing a QR label is stuck to, carrying an id that is printed. **On the screen
 both are `tool`, which is the design's word**: the search names the kind, and
 `Add 5 tools` makes the units. Six of one drill is one tool and six tools added
@@ -30,12 +30,12 @@ under it. **Never `tool item` on screen.**
 
 **Picking a tool the company already has is the ordinary case, and so is
 picking one nobody has bought yet**: both are rows of the catalog, and what is
-added goes under the row picked. Buying more of a kind later adds tool items
+added goes under the row picked. Buying more of a kind later adds assets
 under the same row.
 
 ## What it always carries
 
-**identity.** The heading, `Add tools` (#485) — the word `/tools` and a tool's
+**identity.** The heading, `Add tools` (#485) — the word `/asset-categories` and a tool's
 own screen open it with, so the two cannot drift.
 
 **action.** Two steps, and the dialog shows one at a time (#507).
@@ -83,8 +83,8 @@ nothing in the app lets a person join a job — the office assigns one in
 Airtable — so an instruction to join is one the reader cannot follow, which is
 why the design's `Join a job to create tools` went back to the design and this
 came back. No opener is hidden from them — on either screen — so a site manager
-on a tool's own screen sees exactly what one on `/tools` does.
-`Tool Items."Job"` is required, the job comes from the reader's own assignments
+on a tool's own screen sees exactly what one on `/asset-categories` does.
+`Assets."Job"` is required, the job comes from the reader's own assignments
 with no exception for the office, so an Admin on no job meets this too.
 
 **When the reader is assigned to exactly one job:** the job is already chosen,
@@ -99,9 +99,9 @@ on that tool with its `Add tools`, and after a registration that fell short, its
 count those words name (#485). **It opens at the second step with the size
 already the tool's (#507)**: the tool's name is the line under the title, there
 is no size to choose and no `Change`, so what is added goes under the tool that
-screen is about; another tool is picked from `/tools`. The class is stated as
+screen is about; another tool is picked from `/asset-categories`. The class is stated as
 always. The count starts at the one handed over, and at 1 when none is — where
-it starts on `/tools` too — and is the reader's to change. **The dialog says
+it starts on `/asset-categories` too — and is the reader's to change. **The dialog says
 nothing about why the count is filled**: a line saying so would be a second
 account of the registration that fell short, which the tool's screen already
 gives, and #321 took such lines off every screen. Opening it writes nothing to
@@ -109,7 +109,7 @@ the address, so a reload shows the page it was opened over, and the dialog shut.
 The job is never carried, so a reader on several jobs chooses one as always.
 
 **When a registration writes anything, the dialog is left (#449).** The reader
-lands on the tool's own screen — the tool the tool items were written under — on
+lands on the tool's own screen — the tool the assets were written under — on
 the page of its list where they begin, with every one of them selected. That
 screen, and not this one, is what says what was written: its list names every
 id, a reload keeps the selection, and its print control sends exactly those
@@ -157,24 +157,24 @@ changed. Every field keeps what was chosen and typed through any of them.
 
 ## What must agree elsewhere
 
-**`Tools` and `Tool Items` are two tables, and the screens name them the
+**`Asset Categories` and `Assets` are two tables, and the screens name them the
 design's way (#455).** A tool, and the tools under it — `items` where a tool's
-own screen counts them. The same words govern `/tools`, the tool's own screen
-and the tool item's, so a word chosen here is chosen for all of them. **The act
+own screen counts them. The same words govern `/asset-categories`, the tool's own screen
+and the asset's, so a word chosen here is chosen for all of them. **The act
 is `add` (#485)**, where it was `create` from #455; the code and these briefs
-call it registration, which is the code's word, and no string a tools screen
+call it registration, which is the code's word, and no string an asset screen
 renders may say that. `create` stays where it names something else: the
 creation date where a registration lands.
 
 **The catalog's words are the same on every screen that shows them (#507):**
 `Category`, `Tool`, `Size` and `Class` here, the list's `Class` and `Category`
-columns, and the line under a tool's name on its own screen and on a tool
-item's — `Class B · DEMO Power Tools > DEMO Jigsaw > T-Shank`. A tool's name is
+columns, and the line under a tool's name on its own screen and on an asset's
+— `Class B · DEMO Power Tools > DEMO Jigsaw > T-Shank`. A tool's name is
 its tool and its size, `DEMO Jigsaw T-Shank`, so the category is said beside a
 name and never inside one.
 
 **The heading is also the word on the controls that open this dialog** —
-`/tools`' and a tool's own screen's — and they come from one constant so they
+`/asset-categories`' and a tool's own screen's — and they come from one constant so they
 cannot drift. After a registration that fell short, `Add 2 more` opens it too,
 from the same constant, naming the count it opens with. This said "the control
 that opens this screen", which stopped being the only one at #449, and a tool's
@@ -182,7 +182,7 @@ own screen said `Create more of this tool` until #456 took the design's word for
 it.
 
 **The cap of 100 is a fact about one submission, not about a tool.** It was
-set from what one server invocation could write when each tool item cost three
+set from what one server invocation could write when each asset cost three
 Airtable operations, and since a registration writes in batches a hundred costs
 far fewer (#470); what holds it at 100 is what says it — `Up to 100`, `Max 100
 at a time.` and the labels' dialog, which prints the largest registration in one
@@ -194,10 +194,10 @@ wrong.
 (#449).** The ids appear together there as a selection, on a screen somebody can
 return to and reload; its print control is how their labels are printed; and what
 the registration could not do — write all it was asked for, or record the
-registration of every tool item it wrote — is said there over them, in dialogs
+registration of every asset it wrote — is said there over them, in dialogs
 of their own (#459). This dialog's part is the form.
 
-**A tool item's id is printed and glued to a tool.** Two rows sharing one id
+**An asset's id is printed and glued to a tool.** Two rows sharing one id
 means two tools wearing one label, which is why nothing in the app deletes a
-tool item and why the ids a registration writes are worth reading carefully
+asset and why the ids a registration writes are worth reading carefully
 where it lands.

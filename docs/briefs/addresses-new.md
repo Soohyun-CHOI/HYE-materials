@@ -109,7 +109,7 @@ and `Formatted Address` is already the composition.
 
 **The label is enforced unique by the app and not by the schema.** Airtable has no
 unique constraint, so two labels that differ only in case or in internal spacing
-are one address here, the same rule `Tools."Tool Name"` lives under.
+are one address here, the same rule `Asset Categories."Item Name"` lives under.
 
 **Who may reach it is the argument, not an oversight.** The three `/admin` create
 forms are Admin-only because a job code is an accounting artifact and a vendor is

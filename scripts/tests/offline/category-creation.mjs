@@ -36,7 +36,7 @@
 // HQ's highest tail is 33; this one holds that the module's floor is 901 as a
 // literal, and then compares the two — a second path to the same fact rather than
 // an expression over one value, which is #224's rule and the mistake
-// `offline/tool-label-qr.mjs` made first.
+// `offline/asset-label-qr.mjs` made first.
 //
 // WHAT IT CANNOT SEE is the screen. Whether the controls render, whether a level
 // disables when its parent is unpicked, whether the preview's two lines are legible

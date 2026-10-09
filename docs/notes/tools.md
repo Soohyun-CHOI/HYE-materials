@@ -1,10 +1,44 @@
-# Tools — the reasoning
+# Tools & Equipment — the reasoning
 
-Governs `lib/tool*.js` and `app/(tools)/**`. **Read this before editing there** — CLAUDE.md carries only the rules that bind code outside this area; the derivation, the evidence and the alternatives weighed are here.
+Governs `lib/asset*.js` and `app/(assets)/**`. **Read this before editing there** — CLAUDE.md carries only the rules that bind code outside this area; the derivation, the evidence and the alternatives weighed are here.
 
-The index row named only `lib/tool*.js` until #336, because `offline/notes-index.mjs` fails a glob that matches nothing and there was no `app/tools/` for one to match. #336 created the directory and widened the row in the same commit.
+The index row named only `lib/tool*.js` until #336, because `offline/notes-index.mjs` fails a glob that matches nothing and there was no `app/tools/` for one to match. #336 created the directory and widened the row in the same commit, and #513 moved both globs to the new names.
 
-`lib/airtable/tool*.js` is additionally governed by `airtable-access.md` and `naming.md`, as all of `lib/airtable/**` is.
+`lib/airtable/asset*.js` is additionally governed by `airtable-access.md` and `naming.md`, as all of `lib/airtable/**` is.
+
+## The axis renamed to assets (#513)
+
+**Every section below this one is a record of its own issue and keeps the names that issue used.** The axis began holding equipment as well as tools, and the office calls each thing it labels and tracks an asset, so the tables, the code and the addresses took that word; read the older sections through this map.
+
+| Before #513 | Since #513 |
+|---|---|
+| `Tools`, a tool, primary `Tool Name` | `Asset Categories`, a **category**, primary `Item Name` |
+| `Tool Items`, a tool item, `Tool Item ID` `HYE-TL-YYMMDD-###` | `Assets`, an **asset**, `Asset ID` `HYE-AST-YYMMDD-###` |
+| `Tool Items."Tool"` and `Tools."Tool Items"` | `Assets."Category"` and `Asset Categories."Assets"` |
+| `Tool Log`, `Tool Log ID`, `Tool Log."Tool Item"` | `Asset Log`, `Asset Log ID`, `Asset Log."Asset"` |
+| `Jobs."Tool Items"`, `Jobs."Tool Log"`, `Users."Tool Log"` | `Jobs."Assets"`, `Jobs."Asset Log"`, `Users."Asset Log"` |
+| `/tools`, `/tools/[toolRecordId]`, `/tool-items/[toolItemId]` | `/asset-categories`, `/asset-categories/[categoryRecordId]`, `/assets/[assetId]` |
+| `/t/[labelCode]`, and `/T/` rewritten to it | `/l/[labelCode]`, and `/L/` rewritten to it |
+| `app/(tools)/`, `lib/tool*.js`, `lib/airtable/{tools,toolItems,toolLog}.js` | `app/(assets)/`, `lib/asset*.js`, `lib/airtable/{assetCategories,assets,assetLog}.js` |
+| `offline/tool-*.mjs` | `offline/asset-*.mjs` |
+
+Two modules and two checks took a name of their own rather than the prefix swap: `lib/toolCatalog.js` is `lib/assetCategory.js` and `lib/toolItemView.js` is `lib/assetView.js`, the shape of materials' `lib/materialCategory.js` beside `lib/airtable/materialCategories.js`, and their checks are `asset-category.mjs` and `asset-view.mjs`.
+
+**THE SCREENS SAY WHAT THEY SAID, BUT FOR THE AXIS'S OWN NAME.** `Tools & Equipment` is the rail's link, the category list's heading and tab, the breadcrumb's first step on a category's page and an asset's, the root screen's link and `Back to Tools & Equipment`, all from `ASSET_LIST_COPY.heading`: the site says tools and equipment where the office says assets, and the people reading these screens are the site's. Every other `tool` on a screen — `Add tools`, `Tool ID`, `No tools yet`, the registration's `Tool` level — is the design's to settle and is listed in `docs/briefs/design-copy-findings.md`. A copy key that mirrors its string keeps the string's word (`noToolsHeading`, `backToTools`, `toolGone`), #333's precedent, until the design changes the string. `screen-strings.mjs` run over every route before the heading changed found the rendered strings identical but for the route constant itself; afterwards the axis's name is the only difference, and the root screen's census grew by the four other strings of `ASSET_LIST_COPY`, which it imports and does not render.
+
+**`category` IN CODE, AND `assetCategory` WHERE THE FIRST LEVEL IS ALSO `category`.** A row of `Asset Categories` takes its table's name in the singular, as a `Material Categories` row does; the catalog walk, the registration dialog and the category list call their first level `category` too, so in those modules the row is `assetCategory`. A prop crossing into one keeps `category` (`RegistrationDialog`'s `category: assetCategory`). `naming.md` carries the rule; the levels themselves — `Level 1`, `Level 2`, `Size`, `Class` — are #514's to change and kept their names.
+
+**`/l/` NAMES THE LABEL, NOT A TABLE.** A printed address cannot move once a sticker carries it, so its segment says what it is on — a label — and no later rename of a table or a screen reaches it. `/t/` was not kept beside it: only demo labels carry it, and a second address for one page would be one more to answer for as long as the app runs. The uppercase spelling a QR's alphanumeric mode encodes is `/L/`, rewritten to `/l/` in `next.config.mjs` as `/T/` was; the symbol is the same version, since the segment is the same length.
+
+**`HYE-AST`, NOT `HYE-AS`, AND THE IDS WERE REWRITTEN RATHER THAN MINTED AGAIN.** `AS` reads as after-sales service in Korea. Every existing id kept its date and its sequence — `HYE-TL-260909-004` is `HYE-AST-260909-004` — and every `Asset Log ID` followed its asset's, so the sequence each day's mint continues from is the one it was. Nothing printed changes: a label carries the code without the token (#411). The token is eight characters where `HYE-TL-` was seven, which every check counting the token's length was moved to.
+
+**WHAT KEPT ITS NAME.** This file, so every comment citing `docs/notes/tools.md` stays true; the two briefs of pages that became dialogs, `tools-new.md` and `tool-items-labels.md`, which name the page they were (#456); and every script named for its issue — `create_tools_334.py`, `create_tool_catalog_507.mjs`, `verify-tools-schema-334.mjs`, `verify-tool-item-ids-335.mjs` — whose narrative of its own issue keeps that issue's names while the names it reads off the base are today's. `create_tools_334.py` refuses to run while any of the three tables exists under its #513 name, since a rerun would create the old three beside them.
+
+**ONE CHECK WOULD HAVE NARROWED IN SILENCE, AND THE RETIRED NAMES ARE HELD.** `offline/asset-routes.mjs` found the axis's Route Handlers by the old words in their paths, `tool-item` and `tools`, which a handler under `app/api/assets/` would have passed; it matches the new segments beside the old ones now, and a handler planted at `app/api/assets/` or at `app/api/tool-items/` fails it. Its list of retired addresses gained `/tools`, `/tool-items/` and `/t/`, and a planted `href="/tools"` fails it. `offline/table-field-names.mjs` retires every old table and field name with the issue that retired it; it reads neither `parentLinkFieldName` (`offline/id-sequence.mjs` holds that one) nor a payload key written without quotes, which Airtable refuses on the write rather than passing.
+
+**THE BASE, BY ID.** `scripts/import/rename_tools_to_assets_513.mjs` renamed three tables and ten fields through the Metadata API — the two on `Jobs` and the one on `Users` among them — each answering 200, and the formula primary kept its expression through the rename. It rewrote 315 ids, 135 on `Assets` and 180 on `Asset Log`, by field id, then planned again and found nothing left, and a scan of every text field in the base found no `HYE-TL`. The descriptions that named the old tables, fields or modules were edited in two passes, 13 and 7, and `create_tool_catalog_507.mjs`, run again, wrote the catalog's own under the new names; both ledgers are beside the script, and `--revert <ledger>` puts any one of them back.
+
+**THE READS DID NOT MOVE.** Measured in the dev ledger before the rename and after, with one session: the category list 6 operations, a category's page 4, an asset's page 7 in stock and 6 while out, a label run the gate's 1 and 1, a registration of one the gate's 1 and 6, a check-out or check-in the gate's 1 and 7, and `/l/` 0 — each the same table by table, under the new names.
 
 ## What this track is (#334)
 

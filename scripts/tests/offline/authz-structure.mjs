@@ -51,8 +51,8 @@
 // which compares a job, is still held by nothing but its exemptions here. THE TOOLS
 // AXIS LEFT THIS LIST IN #506: its four actions are a site manager's and are wrapped by
 // `withSiteManagerAction`, and the job each body still compares is held where the
-// body's planners are — `offline/tool-transition.mjs` for the scan and the retirement,
-// `offline/tool-registration.mjs` for the registration.
+// body's planners are — `offline/asset-transition.mjs` for the scan and the retirement,
+// `offline/asset-registration.mjs` for the registration.
 // ---------------------------------------------------------------------------
 
 import { REPO_ROOT, callsFunction, listJsFiles, parseFile, parseSource, repoPath, toPosix, walk } from "./_ast.mjs";
@@ -69,7 +69,7 @@ const WRAPPERS = {
     withAdminAction: 2,
     withPresidentAction: 1,
     // #506 — the handler alone: its refusal is bound in lib/authz.js, one answer for all
-    // four tools actions, so a call site has no position to supply one in either.
+    // four of the axis's actions, so a call site has no position to supply one in either.
     withSiteManagerAction: 1,
 };
 
@@ -97,8 +97,8 @@ const DELIVERY_JOB_AXIS =
 // gate was the session alone. #506 made all four a site manager's, which is a ROLE, so
 // they are wrapped by `withSiteManagerAction` and neither reason is anybody's any more.
 // The job comparison they described is still in the bodies, and its derivation — no
-// office clause, a retirement inheriting the tool item's own job — is in
-// docs/notes/tools.md and lib/toolJob.js, where the code it is about is.
+// office clause, a retirement inheriting the asset's own job — is in
+// docs/notes/tools.md and lib/assetJob.js, where the code it is about is.
 
 // #384's, AND IT IS THE ONE ENTRY ON THIS LIST WITH NO PER-RECORD COMPARISON
 // BEHIND IT — which is why it is a constant of its own rather than a fifth reader

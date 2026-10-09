@@ -1,7 +1,7 @@
 // The three tools tables, against the live base (#334).
 //
-// WHY THIS TIER AND NOT THE OFFLINE ONE. `offline/tool-status.mjs` compares two
-// FILES — lib/toolStatus.js against the option lists create_tools_334.py sends —
+// WHY THIS TIER AND NOT THE OFFLINE ONE. `offline/asset-status.mjs` compares two
+// FILES — lib/assetStatus.js against the option lists create_tools_334.py sends —
 // and that is the whole of what a file-only check can say. It cannot see what
 // Airtable actually holds, and this schema has three things that live only there:
 // a select's option list (which no API can repair once the field exists), a link
@@ -20,7 +20,7 @@
 //      fields the base really has: a wrong name in `record.get()` reads
 //      `undefined` silently, which is the quiet half of the rename window
 //      docs/notes/airtable-access.md measured in #333. It also mints a real
-//      `Tool Log ID` through `createToolLogEntry`, so the ninth `CHILD_KINDS`
+//      `Asset Log ID` through `createAssetLogEntry`, so the ninth `CHILD_KINDS`
 //      relation is exercised rather than merely registered.
 //   C  THE SELECT REFUSES. `Event` is written with no `typecast`, so a value
 //      outside the option list must FAIL the write rather than mint a ninth
@@ -31,9 +31,9 @@
 // Part A is safe at any time. Parts B and C create records, cleaned up within the
 // run through scripts/tests/_fixtures.mjs. Cost is roughly 20 operations.
 //
-// `Tools` IS THE CATALOG SINCE #507, so Part A reads its four fields and the class's
-// options against lib/toolCatalog.js, and Part B writes its kind by those fields and
-// reads back the name the base's formula gave it — the one place `composeToolName`
+// `Asset Categories` IS THE CATALOG SINCE #507, so Part A reads its four fields and the class's
+// options against lib/assetCategory.js, and Part B writes its kind by those fields and
+// reads back the name the base's formula gave it — the one place `composeItemName`
 // is held against the live expression outside the creation script. Its kind was a
 // typed `Tool Name`, found by name, until then. This also named `Tool Log."Notes"`,
 // which #363 deleted, in Part A's list, the fixture tag and Part B's entry; a log row
@@ -50,17 +50,17 @@
 import { TABLES, base } from "../../lib/airtable/client.js";
 import { getJobByCode } from "../../lib/airtable/jobs.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
-import { getToolsByRecordIds } from "../../lib/airtable/tools.js";
-import { getToolItemByToolItemId, getToolItemsByTool } from "../../lib/airtable/toolItems.js";
-import { createToolLogEntry, getToolLogByToolItem } from "../../lib/airtable/toolLog.js";
+import { getAssetCategoriesByRecordIds } from "../../lib/airtable/assetCategories.js";
+import { getAssetByAssetId, getAssetsByCategory } from "../../lib/airtable/assets.js";
+import { createAssetLogEntry, getAssetLogByAsset } from "../../lib/airtable/assetLog.js";
 import {
     STATUS_AFTER_EVENT,
-    TOOL_EVENT,
-    TOOL_EVENT_VALUES,
-    TOOL_STATUS,
-    TOOL_STATUS_VALUES,
-} from "../../lib/toolStatus.js";
-import { TOOL_CATALOG_FIELDS, TOOL_CLASS_VALUES, composeToolName } from "../../lib/toolCatalog.js";
+    ASSET_EVENT,
+    ASSET_EVENT_VALUES,
+    ASSET_STATUS,
+    ASSET_STATUS_VALUES,
+} from "../../lib/assetStatus.js";
+import { ASSET_CATEGORY_FIELDS, ASSET_CLASS_VALUES, composeItemName } from "../../lib/assetCategory.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { printProvenance } from "./_provenance.mjs";
 
@@ -90,21 +90,21 @@ function log(line = "") {
 const fixtures = createFixtures({
     tag: "V334",
     buckets: [
-        { name: "toolLog", table: TABLES.TOOL_LOG, label: "Tool Log row", tagField: "Checked Out To" },
+        { name: "assetLog", table: TABLES.ASSET_LOG, label: "Tool Log row", tagField: "Checked Out To" },
         {
-            name: "toolItems",
-            table: TABLES.TOOL_ITEMS,
+            name: "assets",
+            table: TABLES.ASSETS,
             label: "Tool Item",
-            tagField: "Tool Item ID",
-            children: [{ link: "Tool Log", table: TABLES.TOOL_LOG, label: "Tool Log row" }],
+            tagField: "Asset ID",
+            children: [{ link: "Asset Log", table: TABLES.ASSET_LOG, label: "Tool Log row" }],
         },
         {
             name: "tools",
-            table: TABLES.TOOLS,
+            table: TABLES.ASSET_CATEGORIES,
             label: "Tool",
             // The field the kind is written by (#507); its formula name begins the same.
-            tagField: TOOL_CATALOG_FIELDS.level2,
-            children: [{ link: "Tool Items", table: TABLES.TOOL_ITEMS, label: "Tool Item" }],
+            tagField: ASSET_CATEGORY_FIELDS.level2,
+            children: [{ link: "Assets", table: TABLES.ASSETS, label: "Tool Item" }],
         },
     ],
 });
@@ -139,22 +139,22 @@ try {
 
         const EXPECTED = {
             // The catalog since #507: the name a formula over two of the four.
-            [TABLES.TOOLS]: [
-                ["Tool Name", "formula"],
-                [TOOL_CATALOG_FIELDS.level1, "singleLineText"],
-                [TOOL_CATALOG_FIELDS.level2, "singleLineText"],
-                [TOOL_CATALOG_FIELDS.size, "singleLineText"],
-                [TOOL_CATALOG_FIELDS.toolClass, "singleSelect"],
+            [TABLES.ASSET_CATEGORIES]: [
+                ["Item Name", "formula"],
+                [ASSET_CATEGORY_FIELDS.level1, "singleLineText"],
+                [ASSET_CATEGORY_FIELDS.level2, "singleLineText"],
+                [ASSET_CATEGORY_FIELDS.size, "singleLineText"],
+                [ASSET_CATEGORY_FIELDS.assetClass, "singleSelect"],
             ],
-            [TABLES.TOOL_ITEMS]: [
-                ["Tool Item ID", "singleLineText"],
-                ["Tool", "multipleRecordLinks"],
+            [TABLES.ASSETS]: [
+                ["Asset ID", "singleLineText"],
+                ["Category", "multipleRecordLinks"],
                 ["Status", "singleSelect"],
                 ["Job", "multipleRecordLinks"],
             ],
-            [TABLES.TOOL_LOG]: [
-                ["Tool Log ID", "singleLineText"],
-                ["Tool Item", "multipleRecordLinks"],
+            [TABLES.ASSET_LOG]: [
+                ["Asset Log ID", "singleLineText"],
+                ["Asset", "multipleRecordLinks"],
                 ["Event", "singleSelect"],
                 ["Job", "multipleRecordLinks"],
                 ["Recorded By", "multipleRecordLinks"],
@@ -179,37 +179,37 @@ try {
         }
 
         // THE OPTION LISTS, THE HALF WITH NO SECOND CHANCE. Compared against
-        // lib/toolStatus.js rather than against a literal here — a check that
+        // lib/assetStatus.js rather than against a literal here — a check that
         // restates its subject asserts nothing, and the JS module is what the app
         // writes from.
         log();
-        log("  the option lists, against lib/toolStatus.js and lib/toolCatalog.js:");
-        const statusField = field(byName.get(TABLES.TOOL_ITEMS), "Status");
-        const eventField = field(byName.get(TABLES.TOOL_LOG), "Event");
+        log("  the option lists, against lib/assetStatus.js and lib/assetCategory.js:");
+        const statusField = field(byName.get(TABLES.ASSETS), "Status");
+        const eventField = field(byName.get(TABLES.ASSET_LOG), "Event");
         const liveStatus = (statusField?.options?.choices || []).map((c) => c.name);
         const liveEvent = (eventField?.options?.choices || []).map((c) => c.name);
-        check("    Tool Items.Status", liveStatus.join(" | "), TOOL_STATUS_VALUES.join(" | "));
-        check("    Tool Log.Event", liveEvent.join(" | "), TOOL_EVENT_VALUES.join(" | "));
+        check("    Assets.Status", liveStatus.join(" | "), ASSET_STATUS_VALUES.join(" | "));
+        check("    Asset Log.Event", liveEvent.join(" | "), ASSET_EVENT_VALUES.join(" | "));
         // A choice added by hand is exactly what no file-only check can see, and it
         // is the whole reason this part exists — `DRUM` sat on `PR Items` held by no
         // record and creatable by no code path.
-        const strayStatus = liveStatus.filter((n) => !TOOL_STATUS_VALUES.includes(n));
-        const strayEvent = liveEvent.filter((n) => !TOOL_EVENT_VALUES.includes(n));
+        const strayStatus = liveStatus.filter((n) => !ASSET_STATUS_VALUES.includes(n));
+        const strayEvent = liveEvent.filter((n) => !ASSET_EVENT_VALUES.includes(n));
         check("    choices on Status no code can write", strayStatus.join(", "), "");
         check("    choices on Event no code can write", strayEvent.join(", "), "");
-        // THE CLASS'S TWO (#507), against lib/toolCatalog.js for the same reason.
-        const classField = field(byName.get(TABLES.TOOLS), TOOL_CATALOG_FIELDS.toolClass);
+        // THE CLASS'S TWO (#507), against lib/assetCategory.js for the same reason.
+        const classField = field(byName.get(TABLES.ASSET_CATEGORIES), ASSET_CATEGORY_FIELDS.assetClass);
         const liveClass = (classField?.options?.choices || []).map((c) => c.name);
-        check("    Tools.Class", liveClass.join(" | "), TOOL_CLASS_VALUES.join(" | "));
+        check("    Asset Categories.Class", liveClass.join(" | "), ASSET_CLASS_VALUES.join(" | "));
 
         log();
         log("  the five inverses, checked on the far tables:");
         const INVERSES = [
-            [TABLES.TOOL_ITEMS, "Tool", TABLES.TOOLS, "Tool Items"],
-            [TABLES.TOOL_ITEMS, "Job", "Jobs", "Tool Items"],
-            [TABLES.TOOL_LOG, "Tool Item", TABLES.TOOL_ITEMS, "Tool Log"],
-            [TABLES.TOOL_LOG, "Job", "Jobs", "Tool Log"],
-            [TABLES.TOOL_LOG, "Recorded By", "Users", "Tool Log"],
+            [TABLES.ASSETS, "Category", TABLES.ASSET_CATEGORIES, "Assets"],
+            [TABLES.ASSETS, "Job", "Jobs", "Assets"],
+            [TABLES.ASSET_LOG, "Asset", TABLES.ASSETS, "Asset Log"],
+            [TABLES.ASSET_LOG, "Job", "Jobs", "Asset Log"],
+            [TABLES.ASSET_LOG, "Recorded By", "Users", "Asset Log"],
         ];
         const needsToggle = [];
         for (const [ourTable, ourField, farTable, farField] of INVERSES) {
@@ -249,68 +249,68 @@ try {
     } else {
         const user = users[0];
         // A catalog row, written by its four fields as the office types one (#507);
-        // `Tool Name` is the base's to compute.
-        const kind = { level1: `${TAG} probe tools`, level2: `${TAG} probe drill`, size: "18V", toolClass: TOOL_CLASS_VALUES[1] };
-        // `Tool Item ID` is written as a literal here rather than minted: #335 owns
+        // `Item Name` is the base's to compute.
+        const kind = { level1: `${TAG} probe tools`, level2: `${TAG} probe drill`, size: "18V", assetClass: ASSET_CLASS_VALUES[1] };
+        // `Asset ID` is written as a literal here rather than minted: #335 owns
         // the generator and does not exist yet, and the shape of a top-level ID is
         // that issue's subject. What this part is for is the CHILD id, which is
         // registered and minted below.
-        const toolItemId = `${TAG}-001`;
+        const assetId = `${TAG}-001`;
 
-        const toolRecord = await base(TABLES.TOOLS).create(
-            Object.fromEntries(Object.entries(TOOL_CATALOG_FIELDS).map(([key, fieldName]) => [fieldName, kind[key]]))
+        const categoryRecord = await base(TABLES.ASSET_CATEGORIES).create(
+            Object.fromEntries(Object.entries(ASSET_CATEGORY_FIELDS).map(([key, fieldName]) => [fieldName, kind[key]]))
         );
-        track("tools", toolRecord.id);
+        track("tools", categoryRecord.id);
 
-        const itemRecord = await base(TABLES.TOOL_ITEMS).create({
-            "Tool Item ID": toolItemId,
-            Tool: [toolRecord.id],
-            Status: TOOL_STATUS.IN_STOCK,
+        const itemRecord = await base(TABLES.ASSETS).create({
+            "Asset ID": assetId,
+            Category: [categoryRecord.id],
+            Status: ASSET_STATUS.IN_STOCK,
             Job: [job.id],
         });
-        track("toolItems", itemRecord.id);
+        track("assets", itemRecord.id);
 
         // THROUGH THE PRODUCTION WRITER, which is what makes the ninth CHILD_KINDS
         // relation a measured thing rather than a registered one. It mints the id
         // inside the per-parent lock, so a wrong `idField` in the registry would
         // read `undefined` off every sibling and be caught here rather than on the
         // first real scan.
-        const entry = await createToolLogEntry({
-            toolItemRecordId: itemRecord.id,
-            toolItemId,
-            event: TOOL_EVENT.CHECKED_OUT,
+        const entry = await createAssetLogEntry({
+            assetRecordId: itemRecord.id,
+            assetId,
+            event: ASSET_EVENT.CHECKED_OUT,
             jobRecordId: job.id,
             recordedByUserId: user.id,
             checkedOutTo: `${TAG} first event`,
         });
-        track("toolLog", entry.id);
+        track("assetLog", entry.id);
 
         log("  the child ID minted from the registry:");
-        check("    Tool Log ID", entry.toolLogId, `${toolItemId}-001`);
+        check("    Asset Log ID", entry.assetLogId, `${assetId}-001`);
 
         log("  the kind, read back by record id:");
-        const [readTool] = await getToolsByRecordIds([toolRecord.id]);
-        // The base's formula against lib/toolCatalog.js's rule, on a row this run wrote.
-        check("    toolName, as the formula names it", readTool?.toolName, composeToolName(kind));
+        const [readCategory] = await getAssetCategoriesByRecordIds([categoryRecord.id]);
+        // The base's formula against lib/assetCategory.js's rule, on a row this run wrote.
+        check("    itemName, as the formula names it", readCategory?.itemName, composeItemName(kind));
         check(
             "    its path and class, through the mapper",
-            `${readTool?.level1} | ${readTool?.level2} | ${readTool?.size} | ${readTool?.toolClass}`,
-            `${kind.level1} | ${kind.level2} | ${kind.size} | ${kind.toolClass}`
+            `${readCategory?.level1} | ${readCategory?.level2} | ${readCategory?.size} | ${readCategory?.assetClass}`,
+            `${kind.level1} | ${kind.level2} | ${kind.size} | ${kind.assetClass}`
         );
-        assert("    carries its Tool Items reverse-link", (readTool?.toolItems || []).includes(itemRecord.id));
+        assert("    carries its Assets reverse-link", (readCategory?.assets || []).includes(itemRecord.id));
 
         log("  the tool item, read back by its printed id:");
-        const readItem = await getToolItemByToolItemId(toolItemId);
-        check("    toolItemId", readItem?.toolItemId, toolItemId);
-        check("    status", readItem?.status, TOOL_STATUS.IN_STOCK);
-        check("    tool", (readItem?.tool || [])[0], toolRecord.id);
+        const readItem = await getAssetByAssetId(assetId);
+        check("    assetId", readItem?.assetId, assetId);
+        check("    status", readItem?.status, ASSET_STATUS.IN_STOCK);
+        check("    category", (readItem?.category || [])[0], categoryRecord.id);
         check("    job", (readItem?.job || [])[0], job.id);
-        assert("    carries its Tool Log reverse-link", (readItem?.toolLog || []).includes(entry.id));
+        assert("    carries its Asset Log reverse-link", (readItem?.assetLog || []).includes(entry.id));
 
         log("  the log row, read back through the parent's reverse-link:");
-        const history = await getToolLogByToolItem(itemRecord.id);
+        const history = await getAssetLogByAsset(itemRecord.id);
         check("    rows", history.length, 1);
-        check("    event", history[0]?.event, TOOL_EVENT.CHECKED_OUT);
+        check("    event", history[0]?.event, ASSET_EVENT.CHECKED_OUT);
         check("    job", (history[0]?.job || [])[0], job.id);
         check("    recordedBy", (history[0]?.recordedBy || [])[0], user.id);
         check("    checkedOutTo", history[0]?.checkedOutTo, `${TAG} first event`);
@@ -318,11 +318,11 @@ try {
 
         // The `rowIds` path is what every screen will take, since a caller holding
         // the tool item record already has the array. It must return the same rows.
-        const viaRowIds = await getToolLogByToolItem(itemRecord.id, { rowIds: readItem.toolLog });
+        const viaRowIds = await getAssetLogByAsset(itemRecord.id, { rowIds: readItem.assetLog });
         check("    the rowIds path returns the same row", viaRowIds[0]?.id, history[0]?.id);
 
-        const units = await getToolItemsByTool(toolRecord.id, { rowIds: readTool.toolItems });
-        check("  the kind's units", units.map((u) => u.toolItemId).join(", "), toolItemId);
+        const units = await getAssetsByCategory(categoryRecord.id, { rowIds: readCategory.assets });
+        check("  the kind's units", units.map((u) => u.assetId).join(", "), assetId);
 
         // The mapping the app applies, against the row it just wrote. This is the
         // one place both halves are live at once: the event on the base, and the
@@ -330,7 +330,7 @@ try {
         check(
             "  STATUS_AFTER_EVENT agrees with what the row would set",
             STATUS_AFTER_EVENT[history[0]?.event],
-            TOOL_STATUS.OUT
+            ASSET_STATUS.OUT
         );
 
         // ── Part C — the select refuses a value outside its list ────────────
@@ -338,9 +338,9 @@ try {
         log("Part C — Event is written with no typecast, so a stray value fails");
         let refusal = null;
         try {
-            await base(TABLES.TOOL_LOG).create({
-                "Tool Log ID": `${toolItemId}-999`,
-                "Tool Item": [itemRecord.id],
+            await base(TABLES.ASSET_LOG).create({
+                "Asset Log ID": `${assetId}-999`,
+                "Asset": [itemRecord.id],
                 Event: "Marked Lost",
                 Job: [job.id],
                 "Checked Out To": `${TAG} should not exist`,
@@ -352,10 +352,10 @@ try {
             // If it somehow landed, it is a row on the shared base and must be
             // tracked so teardown takes it — a leak reported is recoverable, a leak
             // unnoticed is not.
-            const stray = await base(TABLES.TOOL_LOG)
-                .select({ filterByFormula: `{Tool Log ID} = "${toolItemId}-999"`, maxRecords: 1 })
+            const stray = await base(TABLES.ASSET_LOG)
+                .select({ filterByFormula: `{Asset Log ID} = "${assetId}-999"`, maxRecords: 1 })
                 .firstPage();
-            if (stray.length > 0) track("toolLog", stray[0].id);
+            if (stray.length > 0) track("assetLog", stray[0].id);
         }
         assert("  a value outside the option list is refused", refusal !== null);
         assert(

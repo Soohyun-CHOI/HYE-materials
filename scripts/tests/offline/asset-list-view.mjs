@@ -1,0 +1,1848 @@
+// What the two asset list screens show (#339).
+//
+// THREE THINGS LIVE HERE AND THE THIRD IS WIDER THAN THE OTHER TWO.
+//
+//   THE COUNT PER STATUS IS DERIVED FROM THE VOCABULARY, NOT WRITTEN OUT. A category's
+//   row carries `In stock`, `Out` and `Retired` whatever the assets under it
+//   are, so a status nobody has designated reads `0` rather than going missing —
+//   the app's own distinction between nothing and no measurement. Writing the
+//   three out would make a fourth status appear on no screen and fail nothing;
+//   asserting the row's keys ARE `ASSET_STATUS_VALUES` is what closes that.
+//
+//   THE PAGING IS THE FIRST IN THIS APP, so there is no second implementation to
+//   compare it against and the assertions have to be properties rather than
+//   examples. The one that matters is reassembly: pages 1..N concatenated are the
+//   whole list, in order, with nothing dropped and nothing repeated. An off-by-one
+//   in the slice or in the page count fails it at exactly one length, which is why
+//   it runs over every length around the boundary rather than one. **Since #442 the
+//   size and those lengths are literals** — before it every length was derived from
+//   the constant, and only a twelve-row fixture held a figure, by the accident of
+//   being two pages at ten — and the source is read for the two things no figure
+//   shows: that the screen reads one page, and that its page size is its own number
+//   rather than the document lists'.
+//
+//   THE SELECTION IS WHAT A LABEL RUN IS FOR (#443), and it splits the same way.
+//   What a press does to it and what the control says are pure functions, held by
+//   value at literal sizes on both sides of the print cap; what no value can show is
+//   where it lives — that the server never reads it, that the list is handed only the
+//   rows the page read, that the labels' opener and both steps are built from it, and
+//   that a press rewrites the address without a render — so those are read off the
+//   AST of the page and of the list, each beside a planted screen doing it wrong.
+//
+//   AND A REGISTRATION LANDS HERE (#449), which splits the same way once more. That
+//   what it wrote opens the first page is `pageOfAssets`' newest first, held by
+//   value over a category that already fills pages (#463), where `pageHolding` held the
+//   page by its edges while the list read oldest first; what the page reads for the
+//   account it lands with, what it
+//   hands the fork, and what the fork's dismissal does to the address are read off
+//   the AST beside planted versions doing each wrong. So is the control that opens
+//   the form from the page (#451): what it is handed, what it says, and that no
+//   condition stands above it. Since #459 the fork and the notice are dialogs, and
+//   the same reading holds when each is open, what closing it answers, the order
+//   they stand in, and how the fork opens the registration.
+//
+//   AND NO ASSET SCREEN PUTS TEXT IN ITS MARKUP. #338 and #340 both state that
+//   arrangement in prose — every string an asset screen renders is in a constant,
+//   so a vocabulary sweep and scripts/screen-strings.mjs can reach it — and until
+//   this file nothing held it. It is asserted over the whole of app/(assets)/ rather
+//   than over the two screens this issue adds, because the rule is the axis's and
+//   the next screen is the one that will forget it. `/tools` was in fact carrying
+//   one, `<h1>Tools</h1>`, from #336 until this issue moved it into the constant.
+//
+// WHAT IT CANNOT SEE. Whether any of it reaches a browser, which is this tier's
+// standing limit — a page renders no rows in a check. In particular it cannot see
+// that the counts are right about the base: `summarizeAssetCategories` is exercised on
+// literal assets here. **This went on to say `Out` depended on a screen that
+// writes a `Checked out` row, which the app did not have; #362 wrote one, and a
+// browser has shown the figure since.**
+//
+// EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
+
+import { ASSET_STATUS, ASSET_STATUS_VALUES } from "../../../lib/assetStatus.js";
+import { ASSET_COPY } from "../../../lib/assetView.js";
+import {
+    ASSET_LIST_COPY,
+    ASSET_PAGE_SIZE,
+    describeSelection,
+    idsInScope,
+    pageOfAssets,
+    pageOfAssetCategories,
+    pageSelection,
+    summarizeAssetCategories,
+    togglePage,
+    toggleAsset,
+    assetListScope,
+    assetCategoriesInScope,
+} from "../../../lib/assetListView.js";
+import { MAX_LABELS_PER_REQUEST } from "../../../lib/assetLabelPage.js";
+import { readAssetIds } from "../../../lib/assetRoutes.js";
+import { listJsFiles, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
+import { isMain, standalone } from "./_harness.mjs";
+
+export const title = "What the two tools list screens show (#339)";
+
+/** Three categories, one of them with nothing under it, named out of alphabetical order. */
+const CATEGORIES = [
+    { id: "recGrinder", itemName: "angle grinder", assets: ["i1", "i2", "i3"] },
+    { id: "recDriver", itemName: "Impact Driver", assets: ["i4"] },
+    { id: "recNothing", itemName: "Cordless Drill", assets: [] },
+];
+
+const ITEMS = [
+    { id: "i1", category: ["recGrinder"], status: ASSET_STATUS.IN_STOCK },
+    { id: "i2", category: ["recGrinder"], status: ASSET_STATUS.OUT },
+    { id: "i3", category: ["recGrinder"], status: ASSET_STATUS.IN_STOCK },
+    { id: "i4", category: ["recDriver"], status: ASSET_STATUS.RETIRED },
+];
+
+const rowFor = (rows, itemName) => rows.find((r) => r.itemName === itemName);
+const countIn = (row, status) => row.counts.find((c) => c.status === status)?.count;
+
+/** Every string the copy constant holds, builders called with a plausible argument. */
+function copyStrings() {
+    const out = [];
+    for (const value of Object.values(ASSET_LIST_COPY)) {
+        if (typeof value === "string") out.push(value);
+        else if (typeof value === "function") {
+            out.push(value(2), value({ page: 2, pageCount: 3, from: 26, to: 40, total: 40 }));
+        }
+    }
+    return out.filter((s) => typeof s === "string");
+}
+
+/**
+ * The noun the design replaced (#455), in any number and case.
+ *
+ * THIS FILE HELD THE OPPOSITE RULE UNTIL THEN — a string here failed for a bare `item`,
+ * the tools area's reading of #303. The design put `items` on a tool's own page (its
+ * count and its column) and `tool` in every sentence about one, so what a string here
+ * may no longer say is the noun it used to require.
+ */
+const TOOL_ITEM_NOUN = /\btool items?\b/i;
+
+/** The category's own screen, whose read and the rows it hands on section 2b reads off the AST. */
+const CATEGORY_SCREEN = "app/(assets)/asset-categories/[categoryRecordId]/page.js";
+
+/** The list on that screen, whose selection section 2b reads off the AST (#443). */
+const ASSET_LIST = "app/(assets)/asset-categories/[categoryRecordId]/AssetList.js";
+
+/** The category list, whose opener of the registration dialog section 2b reads off the AST (#456). */
+const LIST_SCREEN = "app/(assets)/asset-categories/page.js";
+
+/** The frame both lists are drawn in, its parts, the box and the rail's column (#463). */
+const LIST_FRAME = "app/components/ListFrame.js";
+const LIST_TABLE = "app/components/ListTable.js";
+const CONTROLS = "app/components/Controls.js";
+const RAIL = "app/components/Rail.js";
+
+/** The source of the function `name` declares in a parsed file, or "" when there is none. */
+function functionSource(parsed, name) {
+    let found = "";
+    walk(parsed.ast, (n) => {
+        if (!found && n.type === "FunctionDeclaration" && n.id?.name === name) found = parsed.source.slice(n.start, n.end);
+    });
+    return found;
+}
+
+/** What a JSX element named `name` is handed for `prop`, as written, each occurrence once. */
+function propSources(parsed, name, prop) {
+    const out = [];
+    walk(parsed.ast, (n) => {
+        if (n.type !== "JSXOpeningElement" || n.name?.name !== name) return;
+        const attribute = n.attributes.find((a) => a.name?.name === prop);
+        if (attribute) out.push(attribute.value ? parsed.source.slice(attribute.value.start, attribute.value.end) : "true");
+    });
+    return out;
+}
+
+/** `(await searchParams) ?? {}`, `await searchParams` or `searchParams` — a page's address. */
+function isSearchParams(init) {
+    let e = init;
+    if (e?.type === "LogicalExpression") e = e.left;
+    if (e?.type === "AwaitExpression") e = e.argument;
+    return e?.type === "Identifier" && e.name === "searchParams";
+}
+
+/** `page.ids` for a member read, the bare name for an identifier, else the node's type. */
+function nameOf(node) {
+    if (node?.type === "Identifier") return node.name;
+    if (node?.type === "MemberExpression" && !node.computed) return `${nameOf(node.object)}.${node.property.name}`;
+    return node?.type ?? "none";
+}
+
+/**
+ * A JSX element's attributes as name and value, a spread of an object the same file binds
+ * read as that object's own props (#463): two openers on one page hand one object, so what
+ * each is handed is read off the object rather than lost behind the spread.
+ */
+function attributesOf(openingElement, ast) {
+    const out = [];
+    for (const attribute of openingElement.attributes) {
+        if (attribute.type === "JSXSpreadAttribute" && attribute.argument?.type === "Identifier") {
+            let bound = null;
+            walk(ast, (n) => {
+                if (!bound && n.type === "VariableDeclarator" && n.id?.name === attribute.argument.name && n.init?.type === "ObjectExpression") bound = n.init;
+            });
+            for (const p of bound?.properties ?? [])
+                out.push({ name: p.key?.name, value: p.shorthand ? { type: "Identifier", name: p.key.name } : p.value });
+        } else out.push({ name: attribute.name?.name, value: attribute.value });
+    }
+    return out;
+}
+
+/**
+ * What a `<RegistrationDialog>` is handed (#456), prop by prop and sorted: a name or a
+ * member as `nameOf` reads it, a literal as its value, an object as its own props, and a
+ * bare attribute as `true`. The opener carries what the registration's address carried
+ * until #456, so these are what the three openers are held to.
+ */
+function dialogProps(openingElement, ast) {
+    // A call reads as its callee and its arguments, so `canRegisterAssets(user, jobs)`
+    // is told from a literal `true` and from the same predicate asked of another list;
+    // a function handed as an argument reads as `…`, since only its caller matters here.
+    const sourceOf = (node) => {
+        if (node?.type === "CallExpression")
+            return `${sourceOf(node.callee)}(${node.arguments
+                .map((argument) => (argument.type === "ArrowFunctionExpression" ? "…" : sourceOf(argument)))
+                .join(", ")})`;
+        if (node?.type === "MemberExpression" && !node.computed) return `${sourceOf(node.object)}.${node.property.name}`;
+        return nameOf(node);
+    };
+    const valueOf = (node) => {
+        if (!node) return "true";
+        const expression = node.type === "JSXExpressionContainer" ? node.expression : node;
+        if (expression?.type === "Literal") return String(expression.value);
+        if (expression?.type === "ObjectExpression")
+            return `{ ${expression.properties
+                .map((p) => (p.shorthand ? p.key.name : `${p.key?.name}: ${sourceOf(p.value)}`))
+                .join(", ")} }`;
+        return sourceOf(expression);
+    };
+    return attributesOf(openingElement, ast)
+        .map((attribute) => `${attribute.name}: ${valueOf(attribute.value)}`)
+        .sort()
+        .join(", ");
+}
+
+// ---------------------------------------------------------------------------
+// the markup scan
+// ---------------------------------------------------------------------------
+
+/** The JSX attributes whose value a reader sees. None is in use on this axis. */
+const VISIBLE_ATTRIBUTES = new Set(["placeholder", "title", "alt", "aria-label"]);
+
+/**
+ * Every piece of text one file writes straight into its markup.
+ *
+ * THREE SHAPES, BECAUSE REMOVING ONE LEAVES THE OTHER TWO. Bare JSX text is the
+ * obvious one; a string literal in an expression container (`{"Tools"}`) renders
+ * identically and is what somebody reaches for when a bare word will not parse;
+ * and a visible attribute is copy that never appears between tags at all.
+ */
+function markupText(ast) {
+    const found = [];
+    walk(ast, (n) => {
+        if (n.type === "JSXText" && n.value.trim()) found.push(n.value.trim());
+        if (
+            n.type === "JSXExpressionContainer" &&
+            n.expression?.type === "Literal" &&
+            typeof n.expression.value === "string" &&
+            n.expression.value.trim()
+        )
+            found.push(n.expression.value.trim());
+        if (
+            n.type === "JSXAttribute" &&
+            VISIBLE_ATTRIBUTES.has(n.name?.name) &&
+            n.value?.type === "Literal" &&
+            typeof n.value.value === "string" &&
+            n.value.value.trim()
+        )
+            found.push(`${n.name.name}="${n.value.value.trim()}"`);
+    });
+    return found;
+}
+
+/** Every `.js` under app/(assets)/, repo-relative and posix-separated. */
+function assetsFiles() {
+    const out = [];
+    listJsFiles(repoPath("app/(assets)"), out);
+    return out.map((abs) => toPosix(abs).slice(toPosix(REPO_ROOT).length + 1));
+}
+
+export function run({ check, assert, log }) {
+    // ── 1: the count per status ─────────────────────────────────────────────
+    log("every category carries a count for every status, a zero included:");
+
+    const rows = summarizeAssetCategories(CATEGORIES, ITEMS);
+    check("one row per category", rows.length, CATEGORIES.length);
+    for (const row of rows) {
+        check(
+            `  ${row.itemName} carries the whole vocabulary`,
+            row.counts.map((c) => c.status).join(", "),
+            ASSET_STATUS_VALUES.join(", ")
+        );
+    }
+
+    const grinder = rowFor(rows, "angle grinder");
+    check("two of the grinders are in stock", countIn(grinder, ASSET_STATUS.IN_STOCK), 2);
+    check("  one is out", countIn(grinder, ASSET_STATUS.OUT), 1);
+    check("  and none is retired", countIn(grinder, ASSET_STATUS.RETIRED), 0);
+    check(
+        "the counts add up to the assets under it",
+        grinder.counts.reduce((sum, c) => sum + c.count, 0),
+        3
+    );
+
+    // An `Asset Categories` row with nothing under it is a row of zeros rather than a
+    // missing row. The list leaves such a row off before it summarizes
+    // (`assetCategoriesInScope`, #507), so this holds the function alone.
+    const nothing = rowFor(rows, "Cordless Drill");
+    assert("a category with no assets is still a row", Boolean(nothing));
+    check("  and its counts are three zeros", nothing.counts.map((c) => c.count).join(), "0,0,0");
+
+    check(
+        "the order is by name, case-insensitively",
+        rows.map((r) => r.itemName).join(" | "),
+        "angle grinder | Cordless Drill | Impact Driver"
+    );
+
+    // ANTI-VACUITY: the summarizer is seen counting something other than zero for
+    // each of the three, so the row above is a fact about the input rather than
+    // about a function that returns zeros.
+    const everyStatus = summarizeAssetCategories(
+        [{ id: "recAll", itemName: "All", assets: [] }],
+        ASSET_STATUS_VALUES.map((status, i) => ({ id: `s${i}`, category: ["recAll"], status }))
+    )[0];
+    assert(
+        "  and every status is reachable as a nonzero count",
+        everyStatus.counts.every((c) => c.count === 1)
+    );
+    // An asset whose link did not resolve is counted nowhere rather than
+    // throwing — `findByRecordIds` returns fewer rows than it was asked for, and
+    // one bad link must not take the whole list down.
+    const unlinked = summarizeAssetCategories(CATEGORIES, [...ITEMS, { id: "i9", category: [], status: ASSET_STATUS.OUT }]);
+    check(
+        "an unlinked asset is counted nowhere",
+        unlinked.reduce((sum, r) => sum + r.counts.reduce((s, c) => s + c.count, 0), 0),
+        ITEMS.length
+    );
+
+    // ── 2: the paging ───────────────────────────────────────────────────────
+    log("");
+    log("a page holds twenty-five assets, and the pages are the whole list:");
+
+    // PINNED BY VALUE SINCE #442, where this held only that the size was a whole
+    // number under fifty. Every length in the loop was derived from the constant,
+    // and the one thing that tied the size down was a twelve-row fixture, by the
+    // accident of twelve rows being two pages at ten. It is the design's figure and
+    // the design may move it (docs/briefs/asset-categories-categoryRecordId.md); moving it is an edit
+    // to these literals in the same commit.
+    check("a page holds this many assets", ASSET_PAGE_SIZE, 25);
+    // Above 50 a page would cost two `findChildRecords` queries instead of one,
+    // which is a boundary on this number that is not the design's.
+    assert("  and stays inside one batched read of fifty", ASSET_PAGE_SIZE <= 50);
+    // AND A PAGE IS WHAT ONE PRESS OF THE PAGE BOX SELECTS (#443), the other boundary
+    // that is not the design's. The print control acts only on a selection of at most
+    // `MAX_LABELS_PER_REQUEST` — a cap tied to the registration form rather than to
+    // this page — so a page larger than that would be a box whose first press leaves
+    // the control refusing. It was what one press of print SENT until #443 (#442), and
+    // the order held for that reason then. Each figure is pinned by value where it
+    // lives; this is the order between them.
+    assert("  and fits what one print takes at once", ASSET_PAGE_SIZE <= MAX_LABELS_PER_REQUEST);
+
+    const idsOfLength = (n) => Array.from({ length: n }, (_, i) => `rec${String(i).padStart(3, "0")}`);
+    // Literal lengths and literal page counts, on both sides of both edges a page of
+    // twenty-five has inside a hundred.
+    for (const [n, pages] of [
+        [0, 1],
+        [1, 1],
+        [24, 1],
+        [25, 1],
+        [26, 2],
+        [50, 2],
+        [51, 3],
+        [100, 4],
+    ]) {
+        const all = idsOfLength(n);
+        const first = pageOfAssets(all, 1);
+        check(`  ${n} assets make ${pages} page${pages === 1 ? "" : "s"}`, first.pageCount, pages);
+
+        // THE ASSERTION THIS FILE IS FOR: every page, in order, is the whole list — newest
+        // first since #463, the link array turned over.
+        const reassembled = [];
+        for (let p = 1; p <= first.pageCount; p++) reassembled.push(...pageOfAssets(all, p).ids);
+        check(`    and the pages reassemble into it, newest first`, reassembled.join(), [...all].reverse().join());
+        check(`    with the total stating the whole list`, first.total, n);
+    }
+
+    // A LIST THAT REALLY SPANS PAGES AT THIS SIZE (#442). This was twelve, which was
+    // two pages at ten and is one at twenty-five: its page-2 assertions fail at this
+    // size, and any version of them bent to pass would be asking about a list with
+    // no second page. Fifty-two is three pages — two full and two left over, which
+    // puts a middle page between the two ends. Its page count is pinned first, so a
+    // fixture that stopped spanning pages fails here rather than quietly asking about
+    // page 1 three times.
+    const fiftyTwo = idsOfLength(52);
+    check("fifty-two assets make three pages", pageOfAssets(fiftyTwo, 1).pageCount, 3);
+    // NEWEST FIRST (#463): the array's last opens page 1, and its first closes the list.
+    check("  page 1 holds the newest twenty-five", pageOfAssets(fiftyTwo, 1).ids.length, 25);
+    check("  opening on the newest of all", pageOfAssets(fiftyTwo, 1).ids[0], "rec051");
+    check("  page 2 opens on the twenty-sixth newest", pageOfAssets(fiftyTwo, 2).ids[0], "rec026");
+    check("  and closes on the fiftieth", pageOfAssets(fiftyTwo, 2).ids.at(-1), "rec002");
+    check("  and page 3 holds the remaining two", pageOfAssets(fiftyTwo, 3).ids.length, 2);
+    check("  which are the oldest two, newest first", pageOfAssets(fiftyTwo, 3).ids.join(), "rec001,rec000");
+    check("  and the link array it was handed is left as it was", fiftyTwo[0], "rec000");
+
+    log("");
+    log("a page nobody can be on resolves to one they can:");
+    for (const [raw, want, why] of [
+        [undefined, 1, "no parameter at all"],
+        ["", 1, "an empty one"],
+        ["abc", 1, "one that is not a number"],
+        ["-3", 1, "a negative"],
+        ["0", 1, "a zero"],
+        ["1.5", 1, "a fraction"],
+        ["2", 2, "one in the middle"],
+        ["3", 3, "the last one"],
+        ["999", 3, "one past the end"],
+    ])
+        check(`  ${why} lands on page ${want}`, pageOfAssets(fiftyTwo, raw).page, want);
+    check("an empty category has one page, not none", pageOfAssets([], 1).pageCount, 1);
+    check("  and that page is empty", pageOfAssets([], 1).ids.length, 0);
+
+    // WHERE A REGISTRATION LANDS (#449): the first page since #463, because the list reads
+    // newest first and what a registration wrote is the newest its category holds. Its assets
+    // are appended to the category's link array, so they are seen opening page 1 of a category
+    // that already fills a page, the last written first, and a run longer than a page going
+    // on to page 2 — which is what the action's landing on page 1 rests on, and
+    // `offline/asset-registration.mjs` reads that 1 off its redirect. Until #463 the landing
+    // was `pageHolding`'s page, held here by its edges.
+    log("");
+    log("what a registration wrote opens the first page, newest first:");
+    const before = idsOfLength(30);
+    const written = Array.from({ length: 14 }, (_, i) => `new${String(i).padStart(3, "0")}`);
+    check("  the category already fills a page", pageOfAssets(before, 1).pageCount, 2);
+    check(
+        "  a registration's fourteen open page 1, the last written first",
+        pageOfAssets([...before, ...written], 1).ids.slice(0, 14).join(),
+        [...written].reverse().join()
+    );
+    check("  and the category's newest before them follows", pageOfAssets([...before, ...written], 1).ids[14], "rec029");
+    const run = Array.from({ length: 30 }, (_, i) => `run${String(i).padStart(3, "0")}`);
+    check(
+        "  a run longer than a page fills page 1 and goes on to page 2",
+        `${pageOfAssets([...before, ...run], 1).ids.every((id) => id.startsWith("run"))} ${pageOfAssets([...before, ...run], 2).ids.slice(0, 5).join()}`,
+        "true run004,run003,run002,run001,run000"
+    );
+
+    // ── 2b: the screen reads one page, and its list selects among it (#442, #443) ─
+    log("");
+    log("the category's screen reads the page it shows and hands the list those rows alone:");
+    // TWO CLAIMS REST ON ONE ARGUMENT AND NOTHING HELD IT UNTIL #442. The screen is
+    // four operations whatever the category's size, and its page box selects one page —
+    // and both are true only because the read hands `getAssetsByCategory` the page's
+    // ids and the list is handed the rows that read returned. Drop `rowIds` and the
+    // screen reads every asset under the category and offers every one of them to the
+    // page box, with no figure on screen to show it. Until #443 the second claim was
+    // the print link, built on this page from the same read — the labels' opener, in the
+    // list, since #457.
+    //
+    // AND THE PAGE READS NOTHING BUT `page` OFF ITS ADDRESS (#443). What a label run is
+    // for is in the address too, and a page that read it could fetch the assets
+    // selected on other pages — a fifth operation, and more — without any figure on
+    // screen moving. It is the list's to read, on the client; the page never names it.
+    const screenFacts = (ast) => {
+        let pageBinding = null;
+        let readBinding = null;
+        let rowIds = null;
+        let rowsFrom = null;
+        let printLinks = 0;
+        let listItemName = null;
+        let accountFrom = null;
+        let fork = null;
+        let notice = null;
+        const told = [];
+        const mapped = [];
+        const addressBindings = new Set();
+        const addressReads = new Set();
+        walk(ast, (n) => {
+            // #449: where the account is read from, what the fork is handed, and which
+            // arrays the page maps — the notice's ids are one of them.
+            if (n.type === "CallExpression" && n.callee?.name === "readRegistrationAccount")
+                accountFrom = (n.arguments[0]?.properties ?? [])
+                    .map((p) => `${p.key?.name}: ${nameOf(p.value)}`)
+                    .sort()
+                    .join(", ");
+            if (n.type === "JSXOpeningElement" && n.name?.name === "RegistrationShortfall") {
+                fork = n.attributes
+                    .map((a) => `${a.name?.name}: ${nameOf(a.value?.expression ?? {})}`)
+                    .sort()
+                    .join(", ");
+                told.push(n.name.name);
+            }
+            // #455: the notice is a component of its own now, since `Got it` is a press.
+            if (n.type === "JSXOpeningElement" && n.name?.name === "RegistrationUnlogged") {
+                notice = n.attributes
+                    .map((a) => `${a.name?.name}: ${nameOf(a.value?.expression ?? {})}`)
+                    .sort()
+                    .join(", ");
+                told.push(n.name.name);
+            }
+            if (n.type === "CallExpression" && n.callee?.property?.name === "map") mapped.push(nameOf(n.callee.object));
+            if (n.type === "VariableDeclarator" && isSearchParams(n.init)) {
+                if (n.id?.type === "Identifier") addressBindings.add(n.id.name);
+                if (n.id?.type === "ObjectPattern")
+                    for (const p of n.id.properties) if (p.key?.type === "Identifier") addressReads.add(p.key.name);
+            }
+            // What the list is handed as its rows: the read's binding, mapped.
+            if (n.type === "JSXAttribute" && n.name?.name === "rows") {
+                const value = n.value?.expression;
+                const mapped = value?.type === "CallExpression" && value.callee?.property?.name === "map";
+                rowsFrom = mapped ? nameOf(value.callee.object) : nameOf(value ?? {});
+            }
+            // The labels' opener (#457), which is the list's to draw — it was a link the
+            // list built until then, and a page drawing one of its own would open the
+            // labels on something other than the selection the list holds.
+            if (n.type === "JSXOpeningElement" && n.name?.name === "LabelsDialog") printLinks++;
+            if (n.type === "JSXOpeningElement" && n.name?.name === "AssetList") {
+                const named = n.attributes.find((a) => a.name?.name === "itemName");
+                listItemName = named ? nameOf(named.value?.expression ?? {}) : "none";
+            }
+            if (
+                n.type === "VariableDeclarator" &&
+                n.init?.type === "CallExpression" &&
+                n.init.callee?.name === "pageOfAssets"
+            )
+                pageBinding = n.id?.name ?? null;
+            // The read may stand alone or sit in a `Promise.all` destructured by
+            // position; either way its binding is the name that receives it.
+            if (n.type === "VariableDeclarator" && n.init) {
+                const init = n.init.type === "AwaitExpression" ? n.init.argument : n.init;
+                if (init?.type === "CallExpression" && init.callee?.name === "getAssetsByCategory")
+                    readBinding = n.id?.name ?? null;
+                const list = init?.type === "CallExpression" ? init.arguments?.[0] : null;
+                if (list?.type === "ArrayExpression" && n.id?.type === "ArrayPattern") {
+                    list.elements.forEach((element, at) => {
+                        if (element?.type === "CallExpression" && element.callee?.name === "getAssetsByCategory")
+                            readBinding = n.id.elements[at]?.name ?? null;
+                    });
+                }
+            }
+            if (n.type === "CallExpression" && n.callee?.name === "getAssetsByCategory") {
+                const option = n.arguments?.[1]?.properties?.find((p) => p.key?.name === "rowIds");
+                rowIds = option ? nameOf(option.value) : "none";
+            }
+        });
+        walk(ast, (n) => {
+            if (
+                n.type === "MemberExpression" &&
+                !n.computed &&
+                n.object?.type === "Identifier" &&
+                addressBindings.has(n.object.name)
+            )
+                addressReads.add(n.property.name);
+        });
+        return {
+            pageBinding,
+            readBinding,
+            rowIds,
+            rowsFrom,
+            printLinks,
+            listItemName,
+            accountFrom,
+            fork,
+            notice,
+            // The order the two stand in, which is the order their frames close and open in.
+            told: told.join(", "),
+            mappedFromAddress: mapped.filter((name) => name.includes("unlogged")).join(", "),
+            addressReads: [...addressReads].sort(),
+        };
+    };
+    const facts = screenFacts(parseFile(CATEGORY_SCREEN).ast);
+    assert("the screen chooses its page through pageOfAssets", facts.pageBinding !== null);
+    check("  the read is handed that page's ids", facts.rowIds, `${facts.pageBinding}.ids`);
+    check("  and the list is handed the rows that read returned", facts.rowsFrom, facts.readBinding);
+    assert("  which is a binding the screen really has", facts.readBinding !== null);
+    // AND A REGISTRATION'S ACCOUNT (#449), which this page does read: it is drawn at
+    // render and no box or step moves it, so a server read is right for it where it is
+    // wrong for the selection. Pinned by name, so a page that began to read `id` fails
+    // here even while it read the account as well. `job` is the job the list is narrowed
+    // to (#509), read into `assetListScope` before the page is chosen.
+    check(
+        "the page reads `page`, `job` and a registration's account off its address, and never the selection",
+        facts.addressReads.join(", "),
+        "asked, job, page, unlogged, unwritten"
+    );
+    check("  and draws no labels' opener of its own", facts.printLinks, 0);
+    // THE LABELS' DIALOG NAMES THE CATEGORY UNDER ITS TITLE (#457), and the name is the one
+    // this page read for its heading, handed to the list that draws the opener.
+    check("  handing the list the category's name for that dialog", facts.listItemName, "category.itemName");
+    // WHAT THE ACCOUNT IS READ THROUGH AND HANDED TO (#449, #455, #459). One reader of the
+    // three keys, and both dialogs handed what that reader returned — not the address's
+    // values, which would skip the reading that drops a forged count and spells every id
+    // once. Each is handed the whole account since #459, because which of them is told
+    // depends on both parts (`accountToTell`), and each names the category under its title.
+    check(
+        "  the account is read through readRegistrationAccount, off the address",
+        facts.accountFrom,
+        "asked: sp.asked, unlogged: sp.unlogged, unwritten: sp.unwritten"
+    );
+    // AND, SINCE #456, what the fork's opener needs of the reader: whether they may
+    // register, asked once on this page, and the jobs the dialog offers — the same two the
+    // page's own opener is handed, so the two openers cannot answer the reader differently.
+    // Since #507 the category it opens on is the page's opener's too, and so is the catalog that
+    // admits it; what those two are is read off their declarations below, beside the openers.
+    check(
+        "  the fork is handed the page opener's tool and catalog, that reading and the page's answer about the reader",
+        facts.fork,
+        "account: account, canRegister: canRegister, catalog: catalog, category: opened, jobs: assignedJobs"
+    );
+    check("  and the notice the category's name and the same reading", facts.notice, "account: account, itemName: category.itemName");
+    check("  which the page no longer lists itself", facts.mappedFromAddress, "");
+    // THE NOTICE STANDS FIRST (#459): it is told first, and a notice whose answer hands
+    // over to the fork has to close before the fork opens, which is tree order.
+    check("  the notice stands before the fork", facts.told, "RegistrationUnlogged, RegistrationShortfall");
+    // ANTI-VACUITY: a planted page reading one key raw, handing the fork a record id and
+    // the address itself, handing the notice the address, putting the fork first and
+    // mapping the address's list as well is seen doing all of it.
+    const plantedHandoff = screenFacts(
+        parseSource(
+            "async function renderCategoryPage({ searchParams }) {\n" +
+                "  const sp = (await searchParams) ?? {};\n" +
+                "  const account = readRegistrationAccount({ unwritten: sp.unwritten });\n" +
+                "  return (<>\n" +
+                "    <RegistrationShortfall tool={tool.id} account={sp} />\n" +
+                "    <RegistrationUnlogged account={sp} />\n" +
+                "    <ul>{sp.unlogged.map((id) => <li key={id}>{id}</li>)}</ul>\n" +
+                "  </>);\n" +
+                "}\n",
+            "<planted-handoff>"
+        ).ast
+    );
+    check("  a reader handed one key is seen so", plantedHandoff.accountFrom, "unwritten: sp.unwritten");
+    check("  a fork handed a record id and the address is seen so", plantedHandoff.fork, "account: sp, tool: tool.id");
+    check("  a notice handed the address is seen so", plantedHandoff.notice, "account: sp");
+    check("  the fork put first is seen", plantedHandoff.told, "RegistrationShortfall, RegistrationUnlogged");
+    check("  and a list mapped off the address is seen so", plantedHandoff.mappedFromAddress, "sp.unlogged");
+    // ANTI-VACUITY: a planted screen that reads the whole category, hands the list the whole
+    // link array, reads the selection and prints it itself is seen doing all four, so the
+    // answers above are facts about the screen rather than a reader that echoes them.
+    const plantedScreen = screenFacts(
+        parseSource(
+            "async function renderCategoryPage({ searchParams }) {\n" +
+                "  const sp = (await searchParams) ?? {};\n" +
+                "  const page = pageOfAssets(tool.assets, sp.page);\n" +
+                "  const [assets, jobs] = await Promise.all([getAssetsByCategory(tool.id), getAllJobs()]);\n" +
+                "  const picked = await getAssetsByAssetIds(sp.id);\n" +
+                "  return (<>\n" +
+                "    <AssetList rows={tool.assets.map((id) => id)} />\n" +
+                "    <LabelsDialog assetIds={picked} />\n" +
+                "  </>);\n" +
+                "}\n",
+            "<planted-screen>"
+        ).ast
+    );
+    check("  a read with no page is seen reading none", plantedScreen.rowIds, "none");
+    check("  rows from the whole category are seen so", plantedScreen.rowsFrom, "tool.assets");
+    check("  a page reading the selection is seen reading it", plantedScreen.addressReads.join(", "), "id, page");
+    check("  a labels' opener drawn on the page is seen", plantedScreen.printLinks, 1);
+    check("  and a list handed no category's name is seen so", plantedScreen.listItemName, "none");
+
+    // THE LIST'S HALF (#443). The selection is read off the address here and nowhere
+    // else, and three things about it hold only in the source: the labels' opener is
+    // handed it and not the rows — a link built from it until #457, which took the labels
+    // into a dialog — and stands disabled exactly where the list's own sentence says why;
+    // the page box acts on the rows it was handed and nothing wider; and every address
+    // this file writes carries it, through `history.replaceState` and never the router —
+    // which is the difference between a press that costs nothing and one that re-renders
+    // the page at four operations.
+    const listFacts = (ast, source) => {
+        const bindings = new Map();
+        let selection = null;
+        let readOff = null;
+        // What the read stands under (#506): `selects ? read : []` for a list that selects
+        // only for a site manager, and `none` for a read made whoever is reading.
+        let readUnder = "none";
+        let printFrom = null;
+        let printDisabled = null;
+        let printTitle = null;
+        let pageBoxOver = null;
+        const categoryPathCalls = [];
+        let replaced = 0;
+        const routed = [];
+        walk(ast, (n) => {
+            if (n.type === "VariableDeclarator" && n.id?.type === "Identifier") {
+                bindings.set(n.id.name, n.init);
+                const gated = n.init?.type === "ConditionalExpression" ? n.init : null;
+                const read = gated ? gated.consequent : n.init;
+                if (read?.type === "CallExpression" && read.callee?.name === "readAssetIds") {
+                    selection = n.id.name;
+                    // What it is handed: every `id` in the address, or only the first.
+                    const argument = read.arguments[0];
+                    const method = argument?.type === "CallExpression" ? nameOf(argument.callee).split(".").pop() : null;
+                    const literals = argument?.arguments?.map((a) => JSON.stringify(a.value)).join(", ");
+                    readOff = method ? `${method}(${literals})` : nameOf(argument ?? {});
+                    if (gated) readUnder = `${nameOf(gated.test)} ? read : ${source.slice(gated.alternate.start, gated.alternate.end)}`;
+                }
+            }
+        });
+        const origin = (node) => {
+            const init = node?.type === "Identifier" ? bindings.get(node.name) : node;
+            return init?.type === "CallExpression" && init.callee?.property?.name === "map"
+                ? nameOf(init.callee.object)
+                : nameOf(node ?? {});
+        };
+        walk(ast, (n) => {
+            if (n.type === "JSXOpeningElement" && n.name?.name === "LabelsDialog") {
+                const attribute = (name) => n.attributes.find((a) => a.name?.name === name)?.value?.expression;
+                printFrom = origin(attribute("assetIds"));
+                const disabled = attribute("disabled");
+                printDisabled = disabled && source ? source.slice(disabled.start, disabled.end) : "none";
+                const title = attribute("title");
+                printTitle = title ? nameOf(title) : "none";
+            }
+            if (n.type !== "CallExpression") return;
+            const callee = nameOf(n.callee);
+            if (callee === "togglePage") pageBoxOver = origin(n.arguments[1]);
+            // The selection each write carries, and `+job` where its options carry the job
+            // the list is narrowed to (#509).
+            if (callee === "assetCategoryPath") {
+                const options = n.arguments[3];
+                const job =
+                    options?.type === "ObjectExpression" && options.properties.some((p) => p.key?.name === "job") ? "+job" : "";
+                categoryPathCalls.push(n.arguments.length >= 3 ? `${nameOf(n.arguments[2])}${job}` : `${n.arguments.length} arguments`);
+            }
+            if (callee === "window.history.replaceState") replaced++;
+            if (callee === "useRouter" || callee === "redirect" || /^router\./.test(callee)) routed.push(callee);
+        });
+        return { selection, readOff, readUnder, printFrom, printDisabled, printTitle, pageBoxOver, categoryPathCalls, replaced, routed };
+    };
+    const listFile = parseFile(ASSET_LIST);
+    const list = listFacts(listFile.ast, listFile.source);
+    check("the list reads its selection through readAssetIds", list.selection, "selection");
+    // `get` would answer with the first id alone, so a selection of three would read as
+    // one and print one — a defect no figure on this page shows until print is pressed.
+    check("  handed every `id` in the address", list.readOff, 'getAll("id")');
+    // A list that selects nothing reads nothing (#506): a copied link's `id` neither marks a
+    // row for a reader who is not a site manager nor rides the pager's steps.
+    check("  and only for a list that selects, which reads none otherwise (#506)", list.readUnder, "selects ? read : []");
+    check("  the labels' opener is handed it", list.printFrom, list.selection);
+    // `describeSelection` says why a press would not print — nothing selected, or more
+    // than one print takes — and the opener is drawn disabled on exactly that.
+    check("  and is disabled where the list's sentence says why", list.printDisabled, "!summary.printable");
+    // ITS WORD IS THE DIALOG'S TITLE FROM A CATEGORY'S PAGE, `Print labels`. The opener hands
+    // the dialog its title, so the asset page's `Print label` here would title a run
+    // of many with one label's word, and no figure on the page would move.
+    check("  and says the dialog's word for a run from a category", list.printTitle, "LABEL_COPY.openFromCategory");
+    check("  the page box acts on the rows the page handed it", list.pageBoxOver, "rows");
+    check(
+        "  every address it writes carries a selection — the new one, or the current one on a step — and the job (#509)",
+        list.categoryPathCalls.join(", "),
+        "next+job, selection+job, selection+job"
+    );
+    check("  written with history.replaceState", list.replaced, 1);
+    check("  and never through the router", list.routed.join(", "), "");
+    // ANTI-VACUITY: a planted list doing each of those wrong is seen doing it — the
+    // opener handed the rows and never disabled, the page box over a wider list, a step
+    // that drops the selection, and the router instead of the history.
+    const plantedListFile = parseSource(
+        "function AssetList({ categoryRecordId, rows, page, everyId }) {\n" +
+            "  const router = useRouter();\n" +
+            "  const params = useSearchParams();\n" +
+            '  const selection = readAssetIds(params.get("id"));\n' +
+            "  const wider = everyId.map((id) => id);\n" +
+            "  const press = () => router.replace(assetCategoryPath(categoryRecordId, page, togglePage(selection, wider)));\n" +
+            "  return (<>\n" +
+            "    <LabelsDialog assetIds={rows.map((row) => row.assetId)} />\n" +
+            "    <Link href={assetCategoryPath(categoryRecordId, page + 1)} />\n" +
+            "  </>);\n" +
+            "}\n",
+        "<planted-list>"
+    );
+    const plantedList = listFacts(plantedListFile.ast, plantedListFile.source);
+    check("  a read of the first id alone is seen so", plantedList.readOff, 'get("id")');
+    check("  and one made whoever is reading is seen so", plantedList.readUnder, "none");
+    check("  an opener handed the rows is seen so", plantedList.printFrom, "rows");
+    check("  and one never disabled is seen so", plantedList.printDisabled, "none");
+    check("  and one with no title of its own is seen so", plantedList.printTitle, "none");
+    check("  a page box over a wider list is seen so", plantedList.pageBoxOver, "everyId");
+    check("  a step dropping the selection is seen", plantedList.categoryPathCalls.join(", "), "CallExpression, 2 arguments");
+    check("  and the router is seen", plantedList.routed.join(", "), "useRouter, router.replace");
+    check("  with no history write", plantedList.replaced, 0);
+
+    // THE FORK'S HALF (#449, #455, #459). `Not now` has to edit the CURRENT address and
+    // take the fork's own two keys out of it: an address rebuilt from anything the render
+    // was handed would put back a selection the reader has since changed, and deleting
+    // `unlogged` too would take the notice's ids with it. `Add 2 more` has to carry the
+    // count the fork was handed into the registration dialog — and since #485 it names that
+    // count, so its words and the dialog are handed one value — and since #459 the fork is
+    // a dialog of its own: open while `accountToTell` tells it and the registration is
+    // shut, closed with `Not now` on the close and on Escape as on its own answer, handing
+    // focus to the page's heading, and opening the form through the one opening rule
+    // behind the one gate. Its title and its sentence are read here too (#485), as the
+    // expressions whose values `offline/asset-registration.mjs` holds for a batch that
+    // failed. None of that moves a figure, so it is read off the source — and the
+    // notice's `Got it` below is held the same way.
+    const FORK = "app/(assets)/asset-categories/[categoryRecordId]/RegistrationShortfall.js";
+    const NOTICE = "app/(assets)/asset-categories/[categoryRecordId]/RegistrationUnlogged.js";
+    const forkFacts = ({ ast, source }) => {
+        const text = (node) => (node ? source.slice(node.start, node.end).replace(/\s+/g, " ") : "");
+        const deleted = [];
+        const added = [];
+        let replaced = 0;
+        let rebuilt = 0;
+        let readsLocation = false;
+        const routed = [];
+        let opens = null;
+        let gate = null;
+        let frame = null;
+        let told = null;
+        let registration = null;
+        // The count the answer that goes on names, and the count the form is handed (#485).
+        let offers = "none";
+        let handed = "none";
+        // What the dialog says: its title and its one sentence, as expressions (#485).
+        let titled = "none";
+        let message = "none";
+        const answers = [];
+        walk(ast, (n) => {
+            if (n.type === "MemberExpression" && nameOf(n) === "window.location.href") readsLocation = true;
+            if (n.type === "JSXOpeningElement" && n.name?.name === "RegistrationForm") {
+                opens = dialogProps(n);
+                const quantity = n.attributes.find((a) => a.name?.name === "quantity");
+                if (quantity) handed = text(quantity.value?.expression);
+            }
+            // The gate and what it says: its props, and the one expression it holds.
+            if (n.type === "JSXElement" && n.openingElement.name?.name === "RegistrationOpener") {
+                const said = n.children.find((c) => c.type === "JSXExpressionContainer");
+                gate = `${dialogProps(n.openingElement)} → ${text(said?.expression)}`;
+                if (said?.expression?.type === "CallExpression") offers = said.expression.arguments.map(text).join(", ");
+            }
+            if (n.type === "JSXElement" && n.openingElement.name?.name === "DialogMessage") {
+                const said = n.children.find((c) => c.type === "JSXExpressionContainer");
+                if (said) message = text(said.expression);
+            }
+            // The frame: when it is open, what closing it answers, and whether a press opened it.
+            if (n.type === "JSXOpeningElement" && n.name?.name === "DialogFrame") {
+                const attribute = (name) => n.attributes.find((a) => a.name?.name === name);
+                const unprompted = attribute("unprompted");
+                frame = `open: ${text(attribute("open")?.value?.expression)} · onClose: ${text(
+                    attribute("onClose")?.value?.expression
+                )} · ${unprompted ? "unprompted" : "prompted"}`;
+                if (attribute("title")) titled = text(attribute("title").value?.expression);
+            }
+            // The dialog's own answers, by what each one runs.
+            if (n.type === "JSXOpeningElement" && n.name?.name === "Button") {
+                const onClick = n.attributes.find((a) => a.name?.name === "onClick");
+                answers.push(text(onClick?.value?.expression));
+            }
+            if (n.type === "VariableDeclarator" && n.id?.name === "told") told = text(n.init);
+            if (n.type === "VariableDeclarator" && n.id?.name === "registration") registration = text(n.init);
+            if (n.type !== "CallExpression") return;
+            const callee = nameOf(n.callee);
+            if (/\.searchParams\.delete$/.test(callee)) deleted.push(n.arguments[0]?.value);
+            if (/\.searchParams\.(set|append)$/.test(callee)) added.push(n.arguments[0]?.value);
+            if (callee === "window.history.replaceState") replaced++;
+            if (callee === "assetCategoryPath") rebuilt++;
+            if (callee === "useRouter" || /^router\./.test(callee)) routed.push(callee);
+        });
+        return {
+            deleted,
+            added,
+            replaced,
+            rebuilt,
+            readsLocation,
+            routed,
+            opens,
+            gate,
+            frame,
+            told,
+            registration,
+            offers,
+            handed,
+            titled,
+            message,
+            answers: answers.join(", "),
+        };
+    };
+    const fork = forkFacts(parseFile(FORK));
+    check("the fork's dismissal takes exactly its own two keys out of the address", fork.deleted.join(", "), "asked, unwritten");
+    check("  and puts nothing in", fork.added.join(", "), "");
+    check("  editing the current address rather than rebuilding one", `${fork.readsLocation} ${fork.rebuilt}`, "true 0");
+    check("  written with history.replaceState", fork.replaced, 1);
+    check("  and never through the router", fork.routed.join(", "), "");
+    check("it is told when accountToTell says so", fork.told, 'accountToTell(account, address) === "shortfall"');
+    check(
+        "  open while it is told and the registration is shut, closed as `Not now` closes it, and unprompted",
+        fork.frame,
+        "open: told && !registration.open · onClose: notNow · unprompted"
+    );
+    check("  whose own answer that stops is the same `Not now`", fork.answers, "notNow");
+    check("its answer that goes on opens through the one opening rule", fork.registration, "useRegistrationOpening()");
+    check(
+        "  behind the one gate, in the fork's own words",
+        fork.gate,
+        "canRegister: canRegister, onOpen: registration.start → COPY.registerOthers(account.unwritten)"
+    );
+    // The category and the catalog are the page's, handed through (#507): the dialog starts on
+    // the category's second step, and the reading admits it only while that catalog offers it.
+    check(
+        "  onto the registration form on this tool and its catalog, with the count it was handed",
+        fork.opens,
+        "catalog: catalog, category: category, jobs: jobs, key: registration.opening, onClose: registration.close, open: registration.open, quantity: account.unwritten"
+    );
+    // ONE VALUE FOR THE WORDS AND THE FORM (#485): the answer names how many it will add, and
+    // the dialog it opens starts at that count, so both are handed the same expression.
+    check("  naming the count it hands the form, one value for both", `${fork.offers} | ${fork.handed}`, "account.unwritten | account.unwritten");
+    check(
+        "its title and its sentence, from the account it was handed",
+        `${fork.titled} · ${fork.message}`,
+        "COPY.shortfallHeading(account.unwritten) · COPY.shortfall(account.asked - account.unwritten)"
+    );
+    // ANTI-VACUITY: a planted fork doing each of those wrong is seen doing it.
+    const plantedFork = forkFacts(
+        parseSource(
+            "function RegistrationShortfall({ categoryRecordId, page, itemName, account, requested, jobs }) {\n" +
+                "  const router = useRouter();\n" +
+                "  const registration = { open: false };\n" +
+                "  const told = account.unwritten > 0;\n" +
+                "  const finish = () => {\n" +
+                "    const address = new URL(assetCategoryPath(categoryRecordId, page, []), origin);\n" +
+                '    address.searchParams.delete("unwritten");\n' +
+                '    address.searchParams.delete("unlogged");\n' +
+                '    address.searchParams.set("done", "1");\n' +
+                "    router.replace(`${address.pathname}${address.search}`);\n" +
+                "  };\n" +
+                "  return (<>\n" +
+                "    <DialogFrame open={told} onClose={() => {}} title={COPY.shortfallHeading(account.asked)}>\n" +
+                "      <DialogMessage>{COPY.shortfall(account.unwritten)}</DialogMessage>\n" +
+                "      <Button onClick={finish}>{COPY.doneRegistering}</Button>\n" +
+                "      <RegistrationOpener canRegister={true} onOpen={() => {}}>{COPY.registerOthers(account.asked)}</RegistrationOpener>\n" +
+                "    </DialogFrame>\n" +
+                "    <RegistrationForm open={true} onClose={finish} jobs={jobs} tool={{ id: categoryRecordId }} quantity={requested} />\n" +
+                "  </>);\n" +
+                "}\n",
+            "<planted-fork>"
+        )
+    );
+    check("  a dismissal taking the notice with it is seen", plantedFork.deleted.join(", "), "unwritten, unlogged");
+    check("  a key put in is seen", plantedFork.added.join(", "), "done");
+    check("  an address rebuilt from the render is seen", `${plantedFork.readsLocation} ${plantedFork.rebuilt}`, "false 1");
+    check("  the router is seen", plantedFork.routed.join(", "), "useRouter, router.replace");
+    check("  with no history write", plantedFork.replaced, 0);
+    check("  a fork told whatever the address says is seen", plantedFork.told, "account.unwritten > 0");
+    check(
+        "  a frame open over the registration, closed by an answer that answers nothing, and prompted, is seen",
+        plantedFork.frame,
+        "open: told · onClose: () => {} · prompted"
+    );
+    check("  an opening kept by itself is seen", plantedFork.registration, "{ open: false }");
+    check(
+        "  a gate opened on nothing, naming another count, is seen",
+        plantedFork.gate,
+        "canRegister: true, onOpen: ArrowFunctionExpression → COPY.registerOthers(account.asked)"
+    );
+    check(
+        "  a form opened on a row of its own making with no catalog, another count and always is seen",
+        plantedFork.opens,
+        "jobs: jobs, onClose: finish, open: true, quantity: requested, tool: { id: categoryRecordId }"
+    );
+    check("  the words naming one count and the form handed another are seen", `${plantedFork.offers} | ${plantedFork.handed}`, "account.asked | requested");
+    check(
+        "  and a title and a sentence counting the wrong things are seen",
+        `${plantedFork.titled} · ${plantedFork.message}`,
+        "COPY.shortfallHeading(account.asked) · COPY.shortfall(account.unwritten)"
+    );
+
+    // THE NOTICE'S HALF (#455, #459). `Got it` is the same act on the other key: the
+    // current address, `unlogged` alone out of it, no router. The fork's `asked` and
+    // `unwritten` stay, so a reader who takes the notice away is asked the fork's question
+    // next. Since #459 it is a dialog told first, closed with `Got it` on the close and on
+    // Escape, handing focus to the page's heading, and opening nothing.
+    const notice = forkFacts(parseFile(NOTICE));
+    check("the notice's dismissal takes exactly `unlogged` out of the address", notice.deleted.join(", "), "unlogged");
+    check("  and puts nothing in", notice.added.join(", "), "");
+    check("  editing the current address rather than rebuilding one", `${notice.readsLocation} ${notice.rebuilt}`, "true 0");
+    check("  written with history.replaceState", notice.replaced, 1);
+    check("  never through the router", notice.routed.join(", "), "");
+    check("it is told when accountToTell says so", notice.told, 'accountToTell(account, address) === "unlogged"');
+    check("  open while it is told, closed as `Got it` closes it, and unprompted", notice.frame, "open: told · onClose: gotIt · unprompted");
+    check("  whose one answer is that `Got it`", notice.answers, "gotIt");
+    check("  and it opens no registration", `${notice.opens} ${notice.gate}`, "null null");
+    // ANTI-VACUITY: a planted notice taking the fork's keys with it, through the router,
+    // told whatever the address says, and offering to create them again is seen doing each.
+    const plantedNotice = forkFacts(
+        parseSource(
+            "function RegistrationUnlogged({ account, itemName, jobs }) {\n" +
+                "  const router = useRouter();\n" +
+                "  const told = account.unlogged.length > 0;\n" +
+                "  const dismiss = () => {\n" +
+                "    const address = new URL(window.location.href);\n" +
+                '    address.searchParams.delete("unlogged");\n' +
+                '    address.searchParams.delete("unwritten");\n' +
+                "    router.replace(`${address.pathname}${address.search}`);\n" +
+                "  };\n" +
+                "  return (<>\n" +
+                "    <DialogFrame open={told} onClose={dismiss} unprompted><Button onClick={dismiss}>{COPY.gotIt}</Button></DialogFrame>\n" +
+                "    <RegistrationForm open={told} onClose={dismiss} jobs={jobs} tool={{ itemName }} quantity={account.unlogged.length} />\n" +
+                "  </>);\n" +
+                "}\n",
+            "<planted-notice>"
+        )
+    );
+    check("  a dismissal taking the fork's count with it is seen", plantedNotice.deleted.join(", "), "unlogged, unwritten");
+    check("  the router is seen", plantedNotice.routed.join(", "), "useRouter, router.replace");
+    check("  a notice told whatever the address says is seen", plantedNotice.told, "account.unlogged.length > 0");
+    check(
+        "  and an offer to create them again is seen",
+        plantedNotice.opens,
+        "jobs: jobs, onClose: dismiss, open: told, quantity: account.unlogged.length, tool: { itemName }"
+    );
+
+    // THE OPENERS OF THE REGISTRATION DIALOG, ON BOTH SCREENS (#451, #456). A category's page
+    // opens it on that category and with no count, in the dialog's own title — `Add tools` since
+    // #485 — and the list opens it on no category. Each stands under ONE condition since #506,
+    // that the reader is a site manager — the page's `recorder` — and under nothing else: a
+    // category with nothing under it keeps its opener, and so does a site manager on no job, whom
+    // the opener itself tells why it cannot act (0f). What decides that is one predicate,
+    // `canRegisterAssets`, asked by each page and handed down, so no opener answers the
+    // reader differently. An opener drawn only beside the list renders this very page on
+    // every category this base holds, so none of that shows in a figure and all of it is read
+    // off the source. WHICH condition, and not only how many, since #506: a count of one is
+    // what an opener gated on the reader's job would read as too.
+    const dialogOpeners = (ast) => {
+        const found = [];
+        const bindings = new Map();
+        const skip = new Set(["type", "start", "end", "loc", "range", "parent"]);
+        // The keys under which a node's children render only sometimes.
+        const branches = {
+            ConditionalExpression: ["consequent", "alternate"],
+            LogicalExpression: ["right"],
+            IfStatement: ["consequent", "alternate"],
+        };
+        // A condition as it reads, and its negation on the branch taken when it is false.
+        const said = (test) => {
+            if (!test) return "none";
+            if (test.type === "Identifier" || test.type === "MemberExpression") return nameOf(test);
+            if (test.type === "Literal") return JSON.stringify(test.value);
+            if (test.type === "UnaryExpression") return `${test.operator}${said(test.argument)}`;
+            if (test.type === "BinaryExpression" || test.type === "LogicalExpression")
+                return `${said(test.left)} ${test.operator} ${said(test.right)}`;
+            if (test.type === "CallExpression") return `${nameOf(test.callee)}(…)`;
+            return test.type;
+        };
+        const conditionOf = (node, key) =>
+            key === "alternate" ? `!(${said(node.test)})` : node.type === "LogicalExpression" ? said(node.left) : said(node.test);
+        walk(ast, (n) => {
+            if (n.type === "VariableDeclarator" && n.id?.type === "Identifier" && n.init?.type === "CallExpression")
+                bindings.set(n.id.name, nameOf(n.init.callee));
+        });
+        (function visit(node, under) {
+            if (!node || typeof node !== "object") return;
+            if (Array.isArray(node)) return node.forEach((child) => visit(child, under));
+            if (typeof node.type !== "string") return;
+            if (node.type === "JSXOpeningElement" && node.name?.name === "RegistrationDialog") {
+                const raw = attributesOf(node, ast).find((a) => a.name === "canRegister")?.value;
+                const canRegister = raw?.type === "JSXExpressionContainer" ? raw.expression : raw;
+                found.push({
+                    handed: dialogProps(node, ast),
+                    // What decides whether it may act, followed through a binding the page
+                    // asked it into, so a literal and a second predicate both show.
+                    asks:
+                        canRegister?.type === "CallExpression"
+                            ? nameOf(canRegister.callee)
+                            : canRegister?.type === "Identifier"
+                              ? (bindings.get(canRegister.name) ?? canRegister.name)
+                              : nameOf(canRegister ?? {}),
+                    conditions: under.length,
+                    under: under.join(", ") || "nothing",
+                });
+            }
+            for (const key of Object.keys(node)) {
+                if (skip.has(key)) continue;
+                visit(node[key], branches[node.type]?.includes(key) ? [...under, conditionOf(node, key)] : under);
+            }
+        })(ast, []);
+        return found;
+    };
+    // TWO OPENERS EACH SINCE #463, HANDED ONE OBJECT: the head's, under the reader being a site
+    // manager alone (#506), and an empty list's second one, bordered, under the branch that
+    // draws the empty state as well (1a, 1d).
+    const openers = dialogOpeners(parseFile(CATEGORY_SCREEN).ast);
+    check("a category's page opens the registration dialog from its head, and from an empty list", openers.length, 2);
+    check(
+        "  on this tool and its catalog, with no count, in the dialog's own title",
+        openers[0]?.handed,
+        "canRegister: canRegister, catalog: catalog, category: opened, jobs: assignedJobs, opener: ASSET_REGISTRATION_COPY.heading"
+    );
+    check("  asking the one predicate every opener asks", openers[0]?.asks, "canRegisterAssets");
+    check("  and under the reader being a site manager alone — not the list's, not a job (#506)", openers[0]?.under, "recorder");
+    check(
+        "  the empty list's the same opener, bordered, under the empty branch and the same reader",
+        `${openers[1]?.handed} | ${openers[1]?.asks} | ${openers[1]?.under}`,
+        "canRegister: canRegister, catalog: catalog, category: opened, jobs: assignedJobs, opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | canRegisterAssets | page.total === 0, recorder"
+    );
+    // WHAT THE CATEGORY AND THE CATALOG ARE (#507), off their declarations, since `category: opened`
+    // above reads alike whatever `opened` is: the row the page read, by the id the action
+    // admits and the class the second step says, and the catalog the reading admits it from —
+    // that one row, while the catalog offers it.
+    const handedOn = ({ ast, source }) => {
+        const declared = {};
+        walk(ast, (n) => {
+            if (n.type === "VariableDeclarator" && ["opened", "catalog"].includes(n.id?.name) && !(n.id.name in declared))
+                declared[n.id.name] = source.slice(n.init.start, n.init.end).replace(/\s+/g, " ");
+        });
+        return `${declared.opened ?? "none"} | ${declared.catalog ?? "none"}`;
+    };
+    check(
+        "  the tool is the row the page read, and the catalog that row while the catalog offers it",
+        handedOn(parseFile(CATEGORY_SCREEN)),
+        "{ id: category.id, itemName: category.itemName, assetClass: category.assetClass } | readCatalog([category]).offered.map(({ id, itemName, assetClass }) => ({ id, itemName, assetClass }))"
+    );
+    check(
+        "  and a page handing a row of its own making, and the whole table as its catalog, is seen (anti-vacuity)",
+        handedOn(parseSource("const opened = { id: sp.tool };\nconst catalog = tools;\n", "<planted-handed>")),
+        "{ id: sp.tool } | tools"
+    );
+    const listOpeners = dialogOpeners(parseFile(LIST_SCREEN).ast);
+    check("the category list opens it from its head, and from an empty list", listOpeners.length, 2);
+    // THE CATALOG IS THE WHOLE READ'S (#507), and never the scope's (#509): a kind is the
+    // company's, and one off the reader's jobs or with nothing under it is one to add to.
+    check(
+        "  on no tool, in the same title, with the whole catalog to pick from — whatever the list's scope (#509, #507)",
+        listOpeners[0]?.handed,
+        "canRegister: canRegisterAssets(user, allJobs), catalog: readCatalog(assetCategories).offered.map(…), jobs: assignedJobsFor(user, allJobs).map(…), opener: ASSET_REGISTRATION_COPY.heading"
+    );
+    check("  asking the same predicate", listOpeners[0]?.asks, "canRegisterAssets");
+    check("  and under the reader being a site manager alone too (#506)", listOpeners[0]?.under, "recorder");
+    check(
+        "  the empty list's the same opener, bordered, under the empty branch and the same reader",
+        `${listOpeners[1]?.handed} | ${listOpeners[1]?.asks} | ${listOpeners[1]?.under}`,
+        "canRegister: canRegisterAssets(user, allJobs), catalog: readCatalog(assetCategories).offered.map(…), jobs: assignedJobsFor(user, allJobs).map(…), opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | canRegisterAssets | rows.length === 0, !(narrowed), recorder"
+    );
+    // The count a suggested tool carried, its link array's length (#456), was held here until
+    // #507: a suggestion is a name of the catalog now, beside its category, and how many of a
+    // kind there are is its own page's figure alone.
+    // ANTI-VACUITY: a planted page carrying an opener in the not-found return, one beside
+    // the list only, and one for a reader on a job only is seen doing all three — and the
+    // one beside the list is seen handing a record id and a count, saying another word and
+    // asking no predicate at all.
+    const plantedOpeners = dialogOpeners(
+        parseSource(
+            "async function renderCategoryPage() {\n" +
+                "  if (!tool) return <RegistrationDialog opener={ASSET_REGISTRATION_COPY.heading} canRegister={canRegister} jobs={assignedJobs} tool={{ itemName: name }} />;\n" +
+                "  return (<div>\n" +
+                "    {page.total === 0 ? <p /> : <RegistrationDialog opener={ASSET_REGISTRATION_COPY.registerOthers} canRegister={true} jobs={assignedJobs} tool={{ itemName: tool.id }} quantity={page.total} />}\n" +
+                "    {canRegisterAssets(user, jobs) && <RegistrationDialog opener={ASSET_REGISTRATION_COPY.heading} canRegister={canRegister} jobs={assignedJobs} tool={{ itemName: tool.itemName }} />}\n" +
+                "  </div>);\n" +
+                "}\n",
+            "<planted-opener>"
+        ).ast
+    );
+    check("  three openers are seen as three", plantedOpeners.length, 3);
+    check(
+        "  each under the condition it is drawn beneath",
+        plantedOpeners.map((opener) => opener.conditions).join(", "),
+        "1, 1, 1"
+    );
+    // And named for it (#506), so an opener drawn for a reader on a job reads as that and
+    // not as the site manager's one condition.
+    check(
+        "  and each condition read as it is written, a false branch negated",
+        plantedOpeners.map((opener) => opener.under).join(" | "),
+        "!tool | !(page.total === 0) | canRegisterAssets(…)"
+    );
+    check(
+        "  a record id, a count and another word are seen handed",
+        plantedOpeners[1]?.handed,
+        "canRegister: true, jobs: assignedJobs, opener: ASSET_REGISTRATION_COPY.registerOthers, quantity: page.total, tool: { itemName: tool.id }"
+    );
+    check("  and a literal in place of the predicate is seen", plantedOpeners[1]?.asks, "Literal");
+
+    // ── 2c: this list's page and the document lists' page stay two constants ─
+    log("");
+    log("the asset lists' page size and the document lists' are two numbers, not one:");
+    // SINCE #442 BOTH ARE 25, AND THAT IS WHAT MAKES THIS WORTH A CHECK. They are set
+    // for different readers — a phone and three short facts against a monitor and six
+    // columns — and this one is also how many labels a press prints. Folding them into
+    // one constant makes a design change to either move the other, and two equal
+    // numbers in two files is the first thing a pass that names the design's values
+    // reaches for. So each has to be declared as a number in its own module, and
+    // neither module may reach the other: a shared token, an alias and a re-export all
+    // fail here. **What retires this** is a design decision that the two are one
+    // reader's page, taken where #258 names the design's values — and then this
+    // section changes in that commit, with both docstrings and the notes. The values
+    // are not pinned here: this one is pinned above, and the document lists derive
+    // theirs on purpose (`offline/list-filters.mjs`).
+    const declaredAs = (ast, name) => {
+        let found = "not declared";
+        walk(ast, (n) => {
+            if (n.type === "VariableDeclarator" && n.id?.name === name)
+                found =
+                    n.init?.type === "Literal" && typeof n.init.value === "number" ? "a number" : n.init?.type ?? "empty";
+        });
+        return found;
+    };
+    const sourcesNaming = (ast, fragment) => {
+        const found = [];
+        walk(ast, (n) => {
+            if (
+                (n.type === "ImportDeclaration" || n.type === "ExportNamedDeclaration" || n.type === "ExportAllDeclaration") &&
+                typeof n.source?.value === "string" &&
+                n.source.value.includes(fragment)
+            )
+                found.push(n.source.value);
+        });
+        return found;
+    };
+    const assetListAst = parseFile("lib/assetListView.js").ast;
+    const listFiltersAst = parseFile("lib/listFilters.js").ast;
+    check("ASSET_PAGE_SIZE is declared as a number of its own", declaredAs(assetListAst, "ASSET_PAGE_SIZE"), "a number");
+    check("  and LIST_PAGE_SIZE as one of its own", declaredAs(listFiltersAst, "LIST_PAGE_SIZE"), "a number");
+    check(
+        "  and neither module reaches the other",
+        [...sourcesNaming(assetListAst, "listFilters"), ...sourcesNaming(listFiltersAst, "assetListView")].length,
+        0
+    );
+    // ANTI-VACUITY: a fold by a shared token, by an alias of the other and by a
+    // re-export are each seen for what they are.
+    check(
+        "  a shared token reads as a reference, not a number",
+        declaredAs(parseSource('import { PAGE_SIZE } from "./tokens.js";\nexport const ASSET_PAGE_SIZE = PAGE_SIZE;\n', "<planted-token>").ast, "ASSET_PAGE_SIZE"),
+        "Identifier"
+    );
+    check(
+        "  a re-export reads as no declaration at all",
+        declaredAs(parseSource('export { PAGE_SIZE as ASSET_PAGE_SIZE } from "./tokens.js";\n', "<planted-reexport>").ast, "ASSET_PAGE_SIZE"),
+        "not declared"
+    );
+    check(
+        "  and a module reaching the other is seen reaching it",
+        sourcesNaming(parseSource('import { LIST_PAGE_SIZE } from "./listFilters.js";\n', "<planted-reach>").ast, "listFilters").length,
+        1
+    );
+
+    // ── 2d: what a press makes of the selection, and when print acts (#443) ─
+    log("");
+    log("a box selects one entry, the page box this page, and print acts on what one print takes:");
+    // Printed ids typed out, three on this page and one that is not — which is the
+    // shape every claim below is about, since a selection outlives a page turn.
+    const A = "HYE-AST-260909-001";
+    const B = "HYE-AST-260909-002";
+    const C = "HYE-AST-260909-003";
+    const ELSEWHERE = "HYE-AST-260910-001";
+    const thisPage = [A, B, C];
+
+    // ASCENDING ID, WHATEVER ORDER THE BOXES WERE PRESSED IN — the order a run prints in,
+    // which was the list's own until #463 turned the list newest first and left the
+    // selection as it was. ELSEWHERE is a later day, so it sorts after the page even when
+    // it was selected first.
+    check("a press adds an entry, in ascending id", toggleAsset([ELSEWHERE], B).join(), `${B},${ELSEWHERE}`);
+    check("  a second press takes it out again", toggleAsset([B, ELSEWHERE], B).join(), ELSEWHERE);
+    check("  and what is left is in ascending id too", toggleAsset([C, A, B], A).join(), `${B},${C}`);
+    // BY THE SEQUENCE AS A NUMBER: a day's thousandth asset follows its 999th, where
+    // a sort of the strings would put `-1000` first.
+    check(
+        "a four-digit sequence follows a three-digit one",
+        toggleAsset(["HYE-AST-260909-999"], "HYE-AST-260909-1000").join(),
+        "HYE-AST-260909-999,HYE-AST-260909-1000"
+    );
+    check("  and a string that is no id goes last", toggleAsset(["ABC"], A).join(), `${A},ABC`);
+
+    check("this page with none of it selected", pageSelection([ELSEWHERE], thisPage), "none");
+    check("  with some of it", pageSelection([B, ELSEWHERE], thisPage), "some");
+    check("  with all of it, whatever else is selected", pageSelection([ELSEWHERE, C, A, B], thisPage), "all");
+    check("  and a page with no entries has nothing selected", pageSelection([ELSEWHERE], []), "none");
+
+    check(
+        "the page box on a page with none selected adds the page",
+        togglePage([ELSEWHERE], thisPage).join(),
+        `${A},${B},${C},${ELSEWHERE}`
+    );
+    check(
+        "  on a page partly selected it adds the rest and takes nothing out",
+        togglePage([C, ELSEWHERE], thisPage).join(),
+        `${A},${B},${C},${ELSEWHERE}`
+    );
+    check(
+        "  on a page all selected it takes this page out and keeps the other",
+        togglePage([A, ELSEWHERE, B, C], thisPage).join(),
+        ELSEWHERE
+    );
+    // Two left over, arriving out of order as a hand-typed address can, so the order of
+    // what is left is a fact this asserts rather than one a single survivor hides.
+    const LATER = "HYE-AST-260911-001";
+    check(
+        "  and what it keeps is in ascending id",
+        togglePage([LATER, A, B, C, ELSEWHERE], thisPage).join(),
+        `${ELSEWHERE},${LATER}`
+    );
+
+    // NOTHING SELECTED DRAWS NO BAR (#463, 0b), so there is no sentence for it and no reason:
+    // the bar comes with the first box pressed.
+    const noneSelected = describeSelection([], thisPage);
+    check("nothing selected: print does not act", noneSelected.printable, false);
+    check("  and there is no bar to say anything", `${noneSelected.count} ${noneSelected.reason}`, "0 null");
+    check("one selected: print acts", describeSelection([B], thisPage).printable, true);
+    check("  and the bar says how many", ASSET_LIST_COPY.selectedCount(describeSelection([B], thisPage).count), "1 selected");
+    // Two on this page and one not, so the two counts differ: with one of each, a count
+    // of the entries ON this page would read the same here — the one-selected case
+    // above catches that swap too, so this is a second path to the claim.
+    const across = describeSelection([A, ELSEWHERE, B], thisPage);
+    check(
+        "some of them not on this page: it says how many are not, after the count",
+        `${ASSET_LIST_COPY.selectedCount(across.count)} · ${ASSET_LIST_COPY.notOnPage(across.notOnPage)}`,
+        "3 selected · 1 not on this page"
+    );
+    check("  and counts them", describeSelection([A, ELSEWHERE, B], thisPage).notOnPage, 1);
+
+    // THE CAP'S TWO SIDES, AT LITERAL SIZES, WITH EACH INPUT'S SIZE ASSERTED FIRST. The
+    // boundary this is about is DISTINCT ids after the address is read, so the inputs are
+    // built through `readAssetIds` and counted before anything is asked of them — a
+    // fixture that collapsed to fewer ids would otherwise ask about the wrong side of the
+    // edge and pass, which is what #442 found a twelve-row fixture doing to a page size.
+    const distinctIds = (n) =>
+        readAssetIds(Array.from({ length: n }, (_, at) => `HYE-AST-260909-${String(at + 1).padStart(3, "0")}`));
+    const hundred = distinctIds(100);
+    const hundredAndOne = distinctIds(101);
+    check("a hundred distinct ids read as a hundred", hundred.length, 100);
+    check("  and a hundred and one as a hundred and one", hundredAndOne.length, 101);
+    check("a selection of a hundred prints", describeSelection(hundred, thisPage).printable, true);
+    check("  and one of a hundred and one does not", describeSelection(hundredAndOne, thisPage).printable, false);
+    check("  and says why before the control", describeSelection(hundredAndOne, thisPage).reason, "Up to 100 labels per print.");
+    check("  where one it takes has no reason", describeSelection(hundred, thisPage).reason, null);
+    // The same edge from the address's side: a hundred and one values holding a repeat
+    // are a hundred assets, and print.
+    const withRepeat = readAssetIds([...hundred, hundred[0].toLowerCase()]);
+    check("a hundred and one values with one repeat read as a hundred", withRepeat.length, 100);
+    check("  and print", describeSelection(withRepeat, thisPage).printable, true);
+
+    // The address a page of this list lives at moved to lib/assetRoutes.js in
+    // #348, with every other address on the axis; `offline/asset-routes.mjs`
+    // holds it now.
+
+    // ── 2e: the category list's pages, and the frame both lists are drawn in (#463)
+    log("");
+    log("the category list pages its rows as a category's own list does, and both are drawn in one frame:");
+    // THE CATEGORY LIST PAGES AT THE SAME 25 BY THE SAME CLAMP, over rows the page already built:
+    // reassembly over the lengths around both edges, and the window both lists share.
+    const rowsOf = (n) => Array.from({ length: n }, (_, at) => ({ id: `rec${at}` }));
+    const listLengths = [0, 1, 24, 25, 26, 49, 50, 51];
+    const reassembled = listLengths.filter((n) => {
+        const first = pageOfAssetCategories(rowsOf(n), 1);
+        const pages = Array.from({ length: first.pageCount }, (_, at) => pageOfAssetCategories(rowsOf(n), at + 1).rows.map((row) => row.id));
+        return pages.flat().join() === rowsOf(n).map((row) => row.id).join() && first.pageCount === Math.max(1, Math.ceil(n / 25));
+    });
+    check("the category list's pages are the whole list, at every length around the edges", reassembled.join(), listLengths.join());
+    const second = pageOfAssetCategories(rowsOf(40), "2");
+    check("  page 2 of 40 shows the 26th to the 40th", `${second.page}/${second.pageCount} ${second.from}–${second.to} of ${second.total}`, "2/2 25–40 of 40");
+    check("  a page past the end is the last, and an unreadable one the first", `${pageOfAssetCategories(rowsOf(26), "9").page} ${pageOfAssetCategories(rowsOf(26), "x").page}`, "2 1");
+    const disagreements = [];
+    for (const n of [0, 1, 25, 26, 51])
+        for (const asked of ["1", "2", "3", "x"]) {
+            const categories = pageOfAssetCategories(rowsOf(n), asked);
+            const items = pageOfAssets(rowsOf(n).map((row) => row.id), asked);
+            if (`${categories.page} ${categories.pageCount} ${categories.from} ${categories.to}` !== `${items.page} ${items.pageCount} ${items.from} ${items.to}`) disagreements.push(`${n}/${asked}`);
+        }
+    check("  and the two lists' windows agree at every length and page asked", disagreements.join(), "");
+
+    // THE LIST PAGE READS ITS PAGE OFF THE ADDRESS AND DRAWS THAT PAGE'S ROWS, its steps
+    // through `assetCategoriesPath`, and no pager over an empty list.
+    const listScreen = parseFile(LIST_SCREEN);
+    let pagedWith = "none";
+    walk(listScreen.ast, (n) => {
+        if (n.type === "CallExpression" && n.callee?.name === "pageOfAssetCategories") pagedWith = n.arguments.map((a) => listScreen.source.slice(a.start, a.end)).join(", ");
+    });
+    check("the category list cuts its built rows by the page asked for", pagedWith, "rows, sp.page");
+    check(
+        "  draws the page's rows, and steps through assetCategoriesPath, keeping the job (#509)",
+        `${/\{page\.rows\.map\(\(row\) =>/.test(listScreen.source)} ${propSources(listScreen, "Pager", "previous").join()} ${propSources(listScreen, "Pager", "next").join()}`,
+        "true {{ href: page.page > 1 ? assetCategoriesPath(page.page - 1, job) : null, label: COPY.previous }} {{ href: page.page < page.pageCount ? assetCategoriesPath(page.page + 1, job) : null, label: COPY.next }}"
+    );
+    check(
+        "  and draws no pager over an empty list",
+        propSources(listScreen, "ListFrame", "footer").map((f) => /^\{\s*rows\.length > 0 && \(\s*<Pager/.test(f)).join(),
+        "true"
+    );
+
+    // A CATEGORY'S LIST FLOATS THE BAR WHILE ANYTHING IS SELECTED, and hands the print control
+    // what the selection makes of it, the reason with it.
+    const itemList = parseFile(ASSET_LIST);
+    check(
+        "the tool's list shows the bar while anything is selected, and the end room with it",
+        `${propSources(itemList, "SelectionBar", "shown").join()} ${propSources(itemList, "ListFrame", "overlayShown").join()} ${/const selecting = summary\.count > 0;/.test(itemList.source)}`,
+        "{selecting} {selecting} true"
+    );
+    check(
+        "  and its print control acts on what one print takes, pointing at the reason the bar draws (#495)",
+        `${propSources(itemList, "LabelsDialog", "disabled").join()} ${propSources(itemList, "LabelsDialog", "describedBy").join()} ${propSources(itemList, "LabelsDialog", "assetIds").join()} ${propSources(itemList, "LabelsDialog", "disabledReason").length}`,
+        "{!summary.printable} {summary.reason ? reasonId : undefined} {selection} 0"
+    );
+    check(
+        "  which the bar is handed with the id it draws it under",
+        `${propSources(itemList, "SelectionBar", "reason").join()} ${propSources(itemList, "SelectionBar", "reasonId").join()}`,
+        "{summary.reason} {reasonId}"
+    );
+    check(
+        "  the page box shows this page all, some or none, by the page box's name",
+        `${propSources(itemList, "Checkbox", "checked").join(" | ")} ~ ${propSources(itemList, "Checkbox", "indeterminate").join()} ~ ${propSources(itemList, "Checkbox", "label").join(" | ")}`,
+        "{pageState === \"all\"} | {selected} ~ {pageState === \"some\"} ~ {COPY.selectPage} | {COPY.selectAsset(row.assetId)}"
+    );
+    check(
+        "  and both steps carry the selection and the job (#509)",
+        `${propSources(itemList, "Pager", "previous").join()} ${propSources(itemList, "Pager", "next").join()}`,
+        "{{ href: page.page > 1 ? assetCategoryPath(categoryRecordId, page.page - 1, selection, { job }) : null, label: COPY.previous }} {{ href: page.page < page.pageCount ? assetCategoryPath(categoryRecordId, page.page + 1, selection, { job }) : null, label: COPY.next }}"
+    );
+
+    // THE FRAME: one lane that holds the rows and stops at its end, a pager whose ground
+    // says whether rows run beneath it, and end room that grows by the bar's height.
+    const frame = parseFile(LIST_FRAME);
+    const frameSource = functionSource(frame, "ListFrame");
+    check(
+        "the frame marks its root for the column, and scrolls its rows in a lane of their own that stops at its end",
+        `${/data-list-frame=""/.test(frameSource)} ${/overflow-y-auto overscroll-y-contain \[scrollbar-gutter:stable\] \$\{SCROLL_LANE\}/.test(frameSource)}`,
+        "true true"
+    );
+    check(
+        "  rows run beneath the pager until the lane is at its end",
+        /setBeneath\(lane\.scrollTop \+ lane\.clientHeight < lane\.scrollHeight - 1\)/.test(frameSource),
+        true
+    );
+    check(
+        "  which is when its ground is the Sticky one under a Band, and plain white with no rule otherwise",
+        /beneath \? "border-divider-strong bg-background-translucent backdrop-blur-sm" : "border-transparent bg-white"/.test(frameSource),
+        true
+    );
+    check("  and the rows end on the pager's height, and the bar's too while it stands", /className=\{overlayShown \? END_ROOM_WITH_BAR : END_ROOM\}/.test(frameSource), true);
+    const rail = parseFile(RAIL);
+    check(
+        "the column holding a list scrolls nothing and reserves no lane",
+        /sm:has-\[>\[data-list-frame\]\]:overflow-y-hidden sm:has-\[>\[data-list-frame\]\]:\[scrollbar-gutter:auto\]/.test(rail.source),
+        true
+    );
+    const barSource = functionSource(frame, "SelectionBar");
+    check(
+        "the bar clears the selection on Escape, unless a dialog is open to close first",
+        /if \(event\.key !== "Escape" \|\| event\.defaultPrevented \|\| document\.querySelector\("dialog\[open\]"\)\) return;\s*onClear\(\);/.test(barSource),
+        true
+    );
+    check("  and while it does not show it cannot be reached", /inert=\{!shown\}/.test(barSource), true);
+    // CENTERED FROM THE LIST'S MIDDLE, IT TAKES ITS CONTENT'S WIDTH (#495): a box set from the
+    // middle and left to size itself is held to the half beyond it, which cut a past-100 bar.
+    check("  at its content's width, which a box set from the list's middle does not take by itself (#495)", /absolute bottom-full left-1\/2 mb-selection-bar-offset flex w-max -translate-x-1\/2/.test(barSource), true);
+    // AN ACTION THE SELECTION IS TOO LARGE FOR SAYS WHY BEFORE IT (0b, #495): 14 before the
+    // actions, led by a 16 info mark 6 before it in Ink 3, in a column that opens and closes
+    // as the second clause does and keeps its words while it closes.
+    check(
+        "the bar draws an action's reason 14 before the actions, led by the info mark in Ink 3, 6 from it (#495)",
+        [
+            /gap-selection-bar-reason-gap whitespace-nowrap pr-gap-lg/.test(barSource),
+            /<InfoMark size="size-icon" tone="subtle" \/>/.test(barSource),
+            /<span id=\{reasonId\} className="text-body-sm text-foreground-subtle">\s*\{lastReason\}/.test(barSource),
+        ].join(" "),
+        "true true true"
+    );
+    check(
+        "  opening and closing as the second clause does, its words kept while it closes",
+        [
+            /reason \? "grid-cols-\[1fr\] opacity-100" : "grid-cols-\[0fr\] opacity-0"/.test(barSource),
+            /aria-hidden=\{reason \? undefined : true\}/.test(barSource),
+            /if \(reason && reason !== lastReason\) setLastReason\(reason\);/.test(barSource),
+        ].join(" "),
+        "true true true"
+    );
+    const table = parseFile(LIST_TABLE);
+    check(
+        "a step at its end is drawn and does not act, and a step with somewhere to go is a link",
+        /if \(!href\) \{\s*return \(\s*<button type="button" disabled aria-label=\{label\}/.test(functionSource(table, "PagerStep")) && /<Link href=\{href\} aria-label=\{label\}/.test(functionSource(table, "PagerStep")),
+        true
+    );
+    const checkbox = functionSource(parseFile(CONTROLS), "Checkbox");
+    check(
+        "the box is the browser's own checkbox under the drawing, named, its mixed state set on the element",
+        `${/type="checkbox"/.test(checkbox)} ${/aria-label=\{label\}/.test(checkbox)} ${/if \(box\) box\.indeterminate = indeterminate;/.test(checkbox)}`,
+        "true true true"
+    );
+
+    // WHAT STANDS OVER WHAT (#501). A row is its own stacking context, so the box it lifts
+    // over the link that covers it rises inside the row and stays under the column head; the
+    // pager, which the selection bar is drawn in, takes the head's z-index after the lane, so
+    // it is the one on top where the two meet; and the rail's Panel covers them all. Until
+    // #501 a row was no context of its own, and every row's box — at the head's z-index and
+    // later in the document — drew over the head as its row scrolled under it.
+    const stackingOf = ({ table: tableFile, frame: frameFile, rail: railFile, controls: controlsFile }) => {
+        const constant = (parsed, name) => {
+            let value = "";
+            walk(parsed.ast, (n) => {
+                if (n.type === "VariableDeclarator" && n.id?.name === name && n.init?.type === "Literal") value = String(n.init.value);
+            });
+            return value.split(/\s+/).filter(Boolean);
+        };
+        // The classes of the first JSX element under `node` that `picks` takes — a string, or a
+        // template's fixed text — with where the element starts in its file.
+        const classesOf = (parsed, picks, node = parsed.ast) => {
+            let found = null;
+            walk(node, (n) => {
+                if (found || n.type !== "JSXElement" || !picks(n)) return;
+                const value = n.openingElement.attributes.find((a) => a.name?.name === "className")?.value;
+                const expression = value?.type === "JSXExpressionContainer" ? value.expression : value;
+                const text =
+                    expression?.type === "Literal"
+                        ? String(expression.value)
+                        : expression?.type === "TemplateLiteral"
+                          ? expression.quasis.map((q) => q.value.cooked).join(" ")
+                          : "";
+                found = { tokens: text.split(/\s+/).filter(Boolean), start: n.start };
+            });
+            return found ?? { tokens: [], start: -1 };
+        };
+        const named = (name) => (n) => n.openingElement.name?.name === name;
+        const holding = (parsed, text) => (n) => parsed.source.slice(n.openingElement.start, n.openingElement.end).includes(text);
+        const layer = (tokens) => Number(tokens.find((t) => /^z-\d+$/.test(t))?.slice(2) ?? NaN);
+        let checkboxFn = null;
+        walk(controlsFile.ast, (n) => {
+            if (n.type === "FunctionDeclaration" && n.id?.name === "Checkbox") checkboxFn = n;
+        });
+        const box = classesOf(controlsFile, named("label"), checkboxFn ?? {});
+        const cover = constant(tableFile, "TABLE_ROW_LINK");
+        const head = constant(tableFile, "TABLE_HEAD");
+        const pager = classesOf(frameFile, holding(frameFile, "PAGER_OVER_ROWS"));
+        const lane = classesOf(frameFile, holding(frameFile, "ref={laneRef}"));
+        const nav = classesOf(railFile, named("nav"));
+        return {
+            row: constant(tableFile, "TABLE_ROW").includes("isolate"),
+            box: `${box.tokens.includes("relative")} ${layer(box.tokens) > 0} ${cover.includes("after:absolute")} ${cover.some((t) => /(^|:)z-/.test(t))}`,
+            head: `${head.includes("sticky")} ${layer(head) > 0}`,
+            pager: `${pager.tokens.includes("relative")} ${layer(pager.tokens) === layer(head)} ${lane.start >= 0 && pager.start > lane.start}`,
+            panel: layer(nav.tokens) > Math.max(layer(head), layer(pager.tokens)),
+        };
+    };
+    const stack = stackingOf({ table, frame, rail, controls: parseFile(CONTROLS) });
+    check("a row is a stacking context of its own, so what it lifts rises inside it and no further (#501)", stack.row, true);
+    check("  where the box stands over the link that covers the row, which lifts nothing", stack.box, "true true true false");
+    check("the column head holds at the top of the rows, over them", stack.head, "true true");
+    check("  the pager over it at its z-index, after the lane, so on top where the two meet", stack.pager, "true true true");
+    check("  and the rail's Panel over all of them", stack.panel, true);
+    // Anti-vacuity: the reading sees each of those undone in a planted list. The lifted cover
+    // is assembled while this runs, so no whole class of it is in a file Tailwind scans.
+    const liftedCover = ["after:", "z-10"].join("");
+    const plantedStack = stackingOf({
+        table: parseSource(
+            'export const TABLE_HEAD = "sticky top-0 z-10";\n' +
+                'export const TABLE_ROW = "relative box-content";\n' +
+                `export const TABLE_ROW_LINK = "after:absolute after:inset-0 ${liftedCover}";`,
+            "<planted ListTable>"
+        ),
+        frame: parseSource(
+            "export default function ListFrame() { return <div><div className={`relative z-20 ${PAGER_OVER_ROWS}`} /><div ref={laneRef} /></div>; }",
+            "<planted ListFrame>"
+        ),
+        rail: parseSource('export default function Rail() { return <nav className="absolute z-10" />; }', "<planted Rail>"),
+        controls: parseSource('export function Checkbox() { return <label className="flex" />; }', "<planted Controls>"),
+    });
+    check("  a row that is no context of its own is seen", plantedStack.row, false);
+    check("  a box that lifts nothing over a cover that lifts itself is seen", plantedStack.box, "false false true true");
+    check("  a pager off the head's layer and before the lane is seen", plantedStack.pager, "true false false");
+    check("  and one the rail's Panel does not cover", plantedStack.panel, false);
+
+    // ONE LINE, AND THE FIGURE ALONE ON THE SCREEN (0n, #505). The head is the title and, 8 on
+    // along its baseline, the figure at Ink 3, its noun said to assistive tech alone — and
+    // under that line a caption where a page hands one, which a category's page does (#507); 32 above
+    // it, or the breadcrumb bar's 14 where one stands over it, which the category's page alone
+    // says. The pager is 60, its rule counted in the 12 above its controls, and the rows end
+    // on that. Under the pointer the bar's clear lifts its Ink 3 to Ink, and a breadcrumb
+    // level keeps its Ink 2, a target set in text (0f). Read through one function, so a
+    // planted list is judged the same way.
+    const headOf = ({ table: tableFile, frame: frameFile, crumb, categoryScreen, listScreen: listFile }) => {
+        const header = functionSource(tableFile, "ListHeader");
+        const pager = functionSource(tableFile, "Pager");
+        let level = "";
+        walk(crumb.ast, (n) => {
+            if (n.type === "VariableDeclarator" && n.id?.name === "LEVEL" && n.init?.type === "Literal") level = String(n.init.value);
+        });
+        return {
+            // The title's line, and under it a caption alone, drawn only where a page hands one
+            // (#507) — the control on the right kept centered on the title's line either way.
+            line: `${/<div className="flex min-w-0 items-baseline gap-list-count-inline">/.test(header)} ${/<div className="flex min-w-0 flex-col gap-title-stack">\s*<div className="flex min-w-0 items-baseline gap-list-count-inline">[\s\S]*?<\/p>\s*<\/div>\s*\{caption\}\s*<\/div>/.test(header)}`,
+            centered:
+                /caption \? "items-start" : "items-center"/.test(header) &&
+                /caption \? "-mt-\[calc\(\(var\(--height-control-lg\)-var\(--text-heading-lg--line-height\)\)\/2\)\]" : ""/.test(header),
+            figure: /<p className="shrink-0 text-body tabular-nums text-foreground-subtle">\s*\{count\}\s*<span className="sr-only">\{` \$\{noun\}`\}<\/span>\s*<\/p>/.test(header),
+            top: /underBreadcrumb \? "pt-breadcrumb-stack" : "pt-list-header-inset-top"/.test(header) && /pb-list-header-inset-bottom/.test(header),
+            under: `${propSources(categoryScreen, "ListHeader", "underBreadcrumb").join()}|${propSources(listFile, "ListHeader", "underBreadcrumb").join()}`,
+            pager: /pt-\[calc\(var\(--spacing-pager-inset-top\)-1px\)\] pb-pager-inset-bottom/.test(pager),
+            endRoom: /const END_ROOM = "h-\[calc\(var\(--spacing-pager-inset-top\)\+var\(--height-control\)\+var\(--spacing-pager-inset-bottom\)\)\]";/.test(frameFile.source),
+            clear: /rounded-control text-foreground-subtle hover:bg-hover hover:text-foreground-default"/.test(functionSource(frameFile, "SelectionBar")),
+            level: `${level.includes("text-foreground-muted")} ${level.includes("hover:bg-hover")} ${!/hover:text-/.test(level)}`,
+        };
+    };
+    const crumbFile = parseFile("app/components/Breadcrumb.js");
+    const head = headOf({ table, frame, crumb: crumbFile, categoryScreen: parseFile(CATEGORY_SCREEN), listScreen });
+    check("a list's head is one line, the count on the title's baseline 8 on (#505), a caption alone under it (#507)", head.line, "true true");
+    check("  its control centered on the title's line, a caption or not (#507)", head.centered, true);
+    check("  the figure alone at Ink 3, its noun said to assistive tech alone", head.figure, true);
+    check("  32 above it, or the breadcrumb's 14, and 18 under it", head.top, true);
+    check("  the breadcrumb's on the category's page and not on the list", head.under, "true|");
+    check("the pager is 60, its rule counted in the 12 above its controls (#505)", head.pager, true);
+    check("  and the rows end on that", head.endRoom, true);
+    check("the bar's clear lifts to Ink under the pointer (#505)", head.clear, true);
+    check("  and a breadcrumb level keeps its Ink 2, taking the Hover face alone", head.level, "true true true");
+    const plantedHead = headOf({
+        table: parseSource(
+            'export function ListHeader() { return <div className="flex min-w-0 flex-col gap-title-stack"><p className="text-body">{count} {noun}</p></div>; }\n' +
+                'export function Pager() { return <div className="pt-pager-inset-top pb-pager-inset-bottom" />; }',
+            "<planted ListTable>"
+        ),
+        frame: parseSource(
+            'const END_ROOM = "h-[calc(var(--spacing-pager-inset-top)+var(--height-control))]";\n' +
+                'export function SelectionBar() { return <button className="rounded-control text-foreground-subtle hover:bg-hover" />; }',
+            "<planted ListFrame>"
+        ),
+        crumb: parseSource('const LEVEL = "text-foreground-muted hover:bg-hover hover:text-foreground-default";', "<planted Breadcrumb>"),
+        categoryScreen: parseSource("export default function Page() { return <ListHeader title={t} />; }", "<planted tool page>"),
+        listScreen: parseSource("export default function Page() { return <ListHeader title={t} underBreadcrumb />; }", "<planted list>"),
+    });
+    check("  a two-line head is seen", plantedHead.line, "false false");
+    check("  a control left to the head's own centering is seen", plantedHead.centered, false);
+    check("  a noun drawn beside the figure is seen", plantedHead.figure, false);
+    check("  a head with neither top is seen", plantedHead.top, false);
+    check("  the breadcrumb's top on the wrong screen is seen", plantedHead.under, "|true");
+    check("  a pager with its rule outside its 12 is seen", plantedHead.pager, false);
+    check("  rows ending short of it are seen", plantedHead.endRoom, false);
+    check("  a clear that keeps Ink 3 is seen", plantedHead.clear, false);
+    check("  and a level that lifts is seen", plantedHead.level, "true true false");
+
+    // ── 2f: what a reader's lists start from, and what a job narrows (#509) ─
+    log("");
+    log("a list starts from the reader's jobs, or everything for the office, and a job narrows it:");
+    // Three jobs, the third with nothing on it, over the three categories above — the third of
+    // those with nothing under it at all. `i1`–`i4` are the assets `ITEMS` holds.
+    const JOBS = [
+        { id: "recJ1", jobCode: "26-A", assets: ["i1", "i2"] },
+        { id: "recJ2", jobCode: "26-B", assets: ["i3", "i4"] },
+        { id: "recJ3", jobCode: "26-C", assets: [] },
+    ];
+    const office = { isAdmin: true, assignedJobs: ["recJ1"] };
+    const site = { isAdmin: false, assignedJobs: ["recJ1", "recJ3"] };
+    const said = (scope) => (scope === null ? "every" : [...scope].join(","));
+    const named = (categories) => categories.map((category) => category.id).join(",");
+    const jobsOf = (scope) => scope.jobs.map((job) => job.jobCode).join(",");
+
+    // THE OFFICE, ASSIGNED OR NOT, STARTS FROM EVERYTHING — every asset, and so every
+    // category with one. A category with nothing under it was listed for the office until #507, as a
+    // registration the office puts right; it is a catalog row nobody has bought yet now, and
+    // left off for everybody.
+    const whole = assetListScope(office, JOBS, undefined);
+    check("the office may narrow to every job, one with nothing on it included", jobsOf(whole), "26-A,26-B,26-C");
+    check("  starts from every asset, its assignment notwithstanding", `${said(whole.start)} ${said(whole.shown)} ${whole.job}`, "every every null");
+    check("  and lists every category with an asset, the one with none left off (#507)", named(assetCategoriesInScope(CATEGORIES, whole.shown)), "recGrinder,recDriver");
+    // ANYBODY ELSE STARTS FROM THEIR JOBS' ASSETS, TOGETHER.
+    const own = assetListScope(site, JOBS, undefined);
+    check("anybody else may narrow to their own jobs, one with nothing on it included", jobsOf(own), "26-A,26-C");
+    check("  starts from those jobs' assets together", `${said(own.start)} | ${said(own.shown)}`, "i1,i2 | i1,i2");
+    check("  and lists only the categories with one in it — no empty category", named(assetCategoriesInScope(CATEGORIES, own.shown)), "recGrinder");
+    // A JOB NARROWS EITHER, TO THE CATEGORIES WITH AN ASSET THERE.
+    const officeOnB = assetListScope(office, JOBS, "recJ2");
+    check("the office narrowed to a job holds that job's assets", `${officeOnB.job?.jobCode} ${said(officeOnB.shown)}`, "26-B i3,i4");
+    check("  lists the categories with one there, the empty category left off", named(assetCategoriesInScope(CATEGORIES, officeOnB.shown)), "recGrinder,recDriver");
+    check("  and counts out of every category with an asset, the empty one left off (#507)", assetCategoriesInScope(CATEGORIES, officeOnB.start).length, 2);
+    const onEmpty = assetListScope(office, JOBS, "recJ3");
+    check("a job with nothing on it is chosen, and lists no category", `${onEmpty.job?.jobCode} ${named(assetCategoriesInScope(CATEGORIES, onEmpty.shown))}|`, "26-C |");
+    const siteOnC = assetListScope(site, JOBS, "recJ3");
+    check("  for anybody else too, out of their own start", `${siteOnC.job?.jobCode} ${assetCategoriesInScope(CATEGORIES, siteOnC.shown).length} of ${assetCategoriesInScope(CATEGORIES, siteOnC.start).length}`, "26-C 0 of 1");
+    // THE JOB ASKED FOR IS A REQUEST: one outside the reader's, one that is no job and a
+    // repeated parameter are all the whole scope, answered alike.
+    const asked = (raw) => {
+        const scope = assetListScope(site, JOBS, raw);
+        return `${scope.job === null} ${said(scope.shown)}`;
+    };
+    check("a job outside the reader's is the whole scope", asked("recJ2"), "true i1,i2");
+    check("  so is one that is no job", asked("recNope"), "true i1,i2");
+    check("  and a repeated parameter", asked(["recJ1"]), "true i1,i2");
+    // THE FLAG ALONE: a President who is not marked Admin starts from their own jobs.
+    check(
+        "a President not marked Admin starts from their own jobs",
+        said(assetListScope({ role: "President", isAdmin: false, assignedJobs: ["recJ2"] }, JOBS).start),
+        "i3,i4"
+    );
+    check("  and a reader on no job from nothing", `${said(assetListScope({ isAdmin: false }, JOBS).start)}|${jobsOf(assetListScope({ isAdmin: false }, JOBS))}|`, "||");
+    // A CATEGORY'S OWN LIST IS CUT IN THE LINK ARRAY'S ORDER, BEFORE ANY READ.
+    check("ids in scope keep their own order", idsInScope(["i2", "i9", "i1"], own.shown).join(), "i2,i1");
+    check("  and every one for the office's whole list", idsInScope(["i2", "i9"], null).join(), "i2,i9");
+    check("  so a category's page counts only those", pageOfAssets(idsInScope(["i1", "i3", "i2"], own.shown), 1).total, 2);
+    // THE COUNTS ARE OVER THE SCOPE'S ASSETS ALONE.
+    const narrowedRows = summarizeAssetCategories(
+        assetCategoriesInScope(CATEGORIES, officeOnB.shown),
+        ITEMS.filter((item) => officeOnB.shown.has(item.id))
+    );
+    check(
+        "a narrowed list counts that job's assets and no other",
+        narrowedRows.map((row) => `${row.itemName}:${row.counts.map((c) => c.count).join("/")}`).join(" "),
+        "angle grinder:1/0/0 Impact Driver:0/0/1"
+    );
+
+    // BOTH SCREENS ASK THE ONE JUDGMENT, BEFORE ANY ASSET IS READ — the list for which
+    // categories and which of their assets, a category's page for which of its assets, both
+    // counting out of `start` — which no figure shows, so it is read off the source.
+    const scopeUse = (parsed) => {
+        const calls = {};
+        walk(parsed.ast, (n) => {
+            if (n.type !== "CallExpression") return;
+            const callee = n.callee?.name;
+            if (!["assetListScope", "assetCategoriesInScope", "idsInScope", "pageOfAssets"].includes(callee)) return;
+            const args = n.arguments.map((a) => parsed.source.slice(a.start, a.end)).join(", ");
+            (calls[callee] ||= []).push(args);
+        });
+        return Object.keys(calls)
+            .sort()
+            .map((name) => `${name}(${calls[name].join(" | ")})`)
+            .join(" ");
+    };
+    check(
+        "the tool list asks the one judgment, and reads and counts by it",
+        scopeUse(parseFile(LIST_SCREEN)),
+        "assetCategoriesInScope(assetCategories, scope.shown | assetCategories, scope.start) assetListScope(user, allJobs, sp.job) idsInScope(assetCategory.assets, scope.shown)"
+    );
+    check(
+        "  and a tool's page the same one, cutting its page from it",
+        scopeUse(parseFile(CATEGORY_SCREEN)),
+        "assetListScope(user, jobs, sp.job) idsInScope(category.assets, scope.shown | category.assets, scope.start) pageOfAssets(idsInScope(category.assets, scope.shown), sp.page)"
+    );
+    // ANTI-VACUITY: a planted page paging the whole link array and counting with no scope is
+    // seen doing it.
+    check(
+        "  a page ignoring the scope is seen",
+        scopeUse(parseSource("const page = pageOfAssets(tool.assets, sp.page);\nconst rows = assetCategoriesInScope(tools, null);\n", "<planted-scope>")),
+        "assetCategoriesInScope(tools, null) pageOfAssets(tool.assets, sp.page)"
+    );
+
+    // ── 3: the words ────────────────────────────────────────────────────────
+    log("");
+    log("every word both screens say is in the constant:");
+    const strings = copyStrings();
+    assert(`the constant holds ${strings.length} strings`, strings.length >= 10);
+    check("none is empty", strings.filter((s) => !s.trim()).length, 0);
+    check(
+        "no string says `kind`",
+        strings.filter((s) => /\bkinds?\b/i.test(s)).length,
+        0
+    );
+    // THE SWEEP'S CLAIM (#455): nothing here says the noun the design replaced.
+    check(
+        "no string says `tool item`",
+        strings.filter((s) => TOOL_ITEM_NOUN.test(s)).length,
+        0
+    );
+    // The three field labels are the asset page's, not a second spelling.
+    for (const [key, label] of [
+        ["toolLabel", ASSET_COPY.toolLabel],
+        ["statusLabel", ASSET_COPY.statusLabel],
+        ["jobLabel", ASSET_COPY.jobLabel],
+        ["backToTools", ASSET_COPY.backToTools],
+    ])
+        check(`  ${key} is the asset page's word`, ASSET_LIST_COPY[key], label);
+    // A status is a closed vocabulary value and is rendered from it. Spelling one
+    // into a sentence here would be a second copy that a narrowing like #335's
+    // would leave behind.
+    check(
+        "no string spells a status",
+        strings.filter((s) => ASSET_STATUS_VALUES.some((v) => s.includes(v))).length,
+        0
+    );
+    check("the heading is the axis's name on screen", ASSET_LIST_COPY.heading, "Tools & Equipment");
+    // THE DESIGN'S `13 items` (#455): a category's own page counts what is under it as items,
+    // and heads their column the same way.
+    check("one item is singular", ASSET_LIST_COPY.total(1), "1 item");
+    check("  and two are plural", ASSET_LIST_COPY.total(2), "2 items");
+    check("  and none is plural too", ASSET_LIST_COPY.total(0), "0 items");
+    check("  the column over each one's code, the design's since #463", ASSET_LIST_COPY.assetIdLabel, "Tool ID");
+    check(
+        "  and the head counts each list in its own noun",
+        `${ASSET_LIST_COPY.toolNoun(1)} ${ASSET_LIST_COPY.toolNoun(17)} ${ASSET_LIST_COPY.itemNoun(1)} ${ASSET_LIST_COPY.itemNoun(0)}`,
+        "tool tools item items"
+    );
+    // THE TWO EMPTY STATES, which the sweep carried the verb and the noun into. The
+    // second's sentence, that an addition had stopped before saving any, went in #507: a
+    // category with nothing under it is a catalog row nobody has bought yet, so its heading
+    // stands alone.
+    check(
+        "no tool at all, a heading and a sentence (1a)",
+        `${ASSET_LIST_COPY.noToolsHeading} | ${ASSET_LIST_COPY.noTools}`,
+        "No tools yet | Each tool shows here with how many are in stock, out and retired."
+    );
+    check(
+        "  and a tool with nothing under it, its heading alone (1d, #507)",
+        `${ASSET_LIST_COPY.noAssetsHeading} | ${"noToolItems" in ASSET_LIST_COPY}`,
+        "No items under this tool | false"
+    );
+    check(
+        "the pager's two figures, and its steps' names",
+        `${ASSET_LIST_COPY.range({ from: 26, to: 40, total: 40 })} | ${ASSET_LIST_COPY.pagePosition({ page: 2, pageCount: 2 })} | ${ASSET_LIST_COPY.previous} | ${ASSET_LIST_COPY.next}`,
+        "26–40 of 40 | Page 2 of 2 | Previous page | Next page"
+    );
+    assert(
+        "the position names both figures",
+        ASSET_LIST_COPY.pagePosition({ page: 2, pageCount: 3 }).includes("2") &&
+            ASSET_LIST_COPY.pagePosition({ page: 2, pageCount: 3 }).includes("3")
+    );
+    // THE SELECTION'S WORDS (#443), AND NONE NAMES WHAT IS SELECTED. They were written
+    // while `tool item` was decided against showing with its replacement still open, so
+    // they said neither that nor `item`; #455 settled the word and left them alone. The
+    // sentences are pinned in 2d; these are the controls'.
+    check("the page box, Design's name for it", ASSET_LIST_COPY.selectPage, "Select this page");
+    check("  an entry's box, named by its id", ASSET_LIST_COPY.selectAsset(A), `Select ${A}`);
+    check("  the way out", ASSET_LIST_COPY.clearSelection, "Clear selection");
+    check("  and the bar's name", ASSET_LIST_COPY.selectionBar, "Selected items");
+    check(
+        "  and not one of the selection's words says an item, the bar's name aside",
+        [
+            ASSET_LIST_COPY.selectPage,
+            ASSET_LIST_COPY.clearSelection,
+            ASSET_LIST_COPY.selectedCount(3),
+            ASSET_LIST_COPY.notOnPage(1),
+            ASSET_LIST_COPY.printCap(100),
+        ].filter((text) => /\bitems?\b/i.test(text)).length,
+        0
+    );
+    assert("the noun matcher finds `tool items`", TOOL_ITEM_NOUN.test("No tools yet. One appears here when somebody registers tool items of it."));
+    assert("  and passes the design's `13 items`", !TOOL_ITEM_NOUN.test(ASSET_LIST_COPY.total(13)));
+
+    // ── 4: no asset screen writes text into its markup ──────────────────────
+    log("");
+    log("no screen under app/(assets)/ puts a word in its markup:");
+    const files = assetsFiles();
+    assert(`${files.length} files scanned`, files.length >= 4);
+    const offenders = [];
+    for (const rel of files) {
+        for (const text of markupText(parseFile(rel).ast)) offenders.push(`${rel}: ${text}`);
+    }
+    check(
+        `every string comes from a constant${offenders.length ? ` (${offenders.join("; ")})` : ""}`,
+        offenders.length,
+        0
+    );
+
+    // ANTI-VACUITY AND THE MUTATION IN ONE: the heading `/asset-categories` carried until this
+    // issue, restored, plus the two shapes a rewrite would reach for instead.
+    const planted = parseSource(
+        'function Page() {\n' +
+            '  return (<div>\n' +
+            '    <h1>Tools</h1>\n' +
+            '    <p>{"Register tool items"}</p>\n' +
+            '    <input placeholder="Tool name" />\n' +
+            '    <span>{COPY.heading}</span>\n' +
+            '  </div>);\n' +
+            '}\n',
+        "<planted-markup>"
+    );
+    const seen = markupText(planted.ast);
+    for (const [text, shape] of [
+        ["Tools", "bare JSX text"],
+        ["Register tool items", "a string literal child"],
+        ['placeholder="Tool name"', "a visible attribute"],
+    ])
+        assert(`  the scanner sees ${shape}`, seen.includes(text));
+    check("  and passes a constant through", seen.length, 3);
+}
+
+if (isMain(import.meta.url)) standalone(title, run);
