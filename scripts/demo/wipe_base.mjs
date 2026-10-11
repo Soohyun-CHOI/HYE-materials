@@ -118,10 +118,13 @@ const KEPT = [
     // reference data rather than demo data. Re-running the loader after a wipe
     // would also cost 78 write requests for rows that never changed.
     TABLES.MATERIAL_CATEGORIES,
-    // The assets axis (#334-#362). NOTHING REBUILDS THESE: there is no seed for them
-    // in this directory, and every row was registered through the app. They also
-    // sit on no screen the document demo shows, so clearing them would cost real
-    // work to make a set of pages tidier that never render them.
+    // The assets axis (#334-#362). `Asset Categories` is the office's catalog since
+    // #517 — loaded from scripts/import/asset_categories.csv and edited by hand
+    // after, a hand edit being in no file — so it is reference data, as #354's is.
+    // An asset is registered through the app and is the row a printed label
+    // points at, which nothing in this directory rebuilds. None of the three sits
+    // on a screen the document demo shows, so clearing them would cost real work to
+    // make a set of pages tidier that never render them.
     TABLES.ASSET_CATEGORIES,
     TABLES.ASSETS,
     TABLES.ASSET_LOG,
@@ -133,8 +136,9 @@ const KEPT = [
  *
  * `Assets."Job"` is required and app-enforced, and `Asset Log."Job"` is on
  * every row and never blank. Deleting Jobs while keeping assets would leave
- * 18 rows whose required link points at nothing, which is a worse state than
- * either wiping both or keeping both. `Disciplines` follows its parent.
+ * every asset and log row with a required link pointing at nothing, which is a
+ * worse state than either wiping both or keeping both. `Disciplines` follows its
+ * parent.
  *
  * Nothing in the document chain is left inconsistent by this: a request links a
  * discipline and a delivery links a job, and both of those go, so what survives

@@ -116,7 +116,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
 - `lib/assetStatus.js` — the assets axis's two closed vocabularies and the three maps over them (#334, #335, #362, #363). No call site passes `createAssetLogEntry` a string literal.
 - `lib/assetJob.js` — the job an `Asset Log` row is filed against (#363), the one assignment used without asking (#458), and the picker's words.
-- `lib/assetCategory.js` — the asset categories a registration picks from (#507): their six levels (#514), the type and the class, the name's formula, which rows a registration may pick and the walk to one, and the catalog's words. **No code writes an `Asset Categories` row.**
+- `lib/assetCategory.js` — the asset categories a registration picks from (#507): their six levels (#514), the type and the class, the name's formula, which rows a registration may pick and the walk to one, and the catalog's words. **Nothing under `app/` or `lib/` writes an `Asset Categories` row.**
 - `lib/assetRegistration.js` — registering assets (#338): the ceiling, what the dialog opens with and may submit (#456), a landing's account (#449), and every word a registration says.
 - `lib/assetView.js` — what one asset's page shows (#340), and every word it says.
 - `lib/assetRoutes.js` — every address on the assets axis (#348), and the code a label prints (#411). **That code and the printed path's segment are one string.**

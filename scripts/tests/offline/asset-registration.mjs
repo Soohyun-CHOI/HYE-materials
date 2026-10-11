@@ -386,8 +386,9 @@ export async function run({ check, assert, log }) {
     );
 
     // THE SECOND STEP'S REFUSALS (#514): each level it asks and nobody has chosen, keyed by the
-    // level, all at once — and none for a level left empty, which holds a value, nor for one the
-    // name's rows never give a value.
+    // level, all at once — the empty option beside a value among them since #517, which the
+    // reader chooses — and none for a level whose one option is empty, nor for one the name's
+    // rows never give a value.
     const welder = [
         { id: "weldLi", level3: "Welding Machine", size: "", maker: "Lincoln", partNumber: "POWER MIG 256" },
         { id: "weldMi", level3: "Welding Machine", size: "", maker: "Miller", partNumber: "Millermatic 255" },
@@ -399,7 +400,13 @@ export async function run({ check, assert, log }) {
     ];
     const refusedOf = (rows, chosen) => JSON.stringify(detailRefusals(walkDetails(rows, chosen).levels));
     check("each level still to choose is refused under itself, all at once", refusedOf(welder, {}), JSON.stringify({ maker: "Choose a maker.", partNumber: "Choose a part #." }));
-    check("  a level left empty is not, nor one never asked", refusedOf(grinder, {}), JSON.stringify({ size: "Choose a size." }));
+    check(
+        "  a level offering the empty option beside a value is, until chosen",
+        refusedOf(grinder, {}),
+        JSON.stringify({ size: "Choose a size.", maker: "Choose a maker.", partNumber: "Choose a part #." })
+    );
+    check("  a level whose one option is empty is not", refusedOf(grinder, { size: '5"' }), "{}");
+    check("  and the empty option chosen is a choice", refusedOf(grinder, { size: '4-1/2"', maker: "" }), "{}");
     check("  a level chosen is not", refusedOf(welder, { maker: "miller" }), "{}");
     check("  and nothing walked refuses nothing", JSON.stringify(detailRefusals()), "{}");
 
