@@ -1,7 +1,9 @@
 // Loads the office's catalog of tools and equipment into `Asset Categories` (issue #517).
 //
 // WHAT IT LOADS. `asset_categories.csv` beside this file is the company's list as the office
-// handed it over, byte for byte — its byte-order mark included — with six columns, `Level 1
+// handed it over — every value, and its UTF-8 byte-order mark — with its line endings alone
+// changed: the file came with CRLF and Git on Windows committed it with LF, and the reader
+// below drops a carriage return, so it reads either the same. It has six columns, `Level 1
 // Category`, `Level 2 Category`, `Level 3 Category`, `Size`, `Maker` and `Part Number`. Each
 // row becomes one row of the catalog: the six levels in `Level 1` to `Part Number`, in the
 // order a path says them, and `Class` A, since the list carries no class and the office sets
