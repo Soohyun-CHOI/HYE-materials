@@ -130,7 +130,9 @@ async function renderCategoriesPage({ searchParams }) {
         jobs: assignedJobsFor(user, allJobs).map(({ id, jobCode, jobName }) => ({ id, jobCode, jobName })),
         catalog: registrationCatalog(categories),
     };
-    const opener = recorder && <RegistrationDialog {...registration} />;
+    // A reader on no job meets no opener in the head (1a2, #522): the design draws its no-job
+    // state with the heading alone, where #509 drew the opener locked with why before it.
+    const opener = recorder && !onNoJob && <RegistrationDialog {...registration} />;
 
     // Nothing on the job, or no job at all: the words where the rows would be (1a2, #519) —
     // a reader on no job's, a site manager's with the opener under them, or who fills it for

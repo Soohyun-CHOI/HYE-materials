@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Choice, Combobox, Field, SheetField } from "@/app/components/Controls";
+import { Button, Choice, Combobox, Field, SheetField, useRefusalFocus } from "@/app/components/Controls";
 import { DialogActions, DialogBody, DialogFrame } from "@/app/components/DialogFrame";
 import { chosenJobId, onlyJob } from "@/lib/assetJob";
 import { ASSET_EVENT } from "@/lib/assetStatus";
 import {
     ASSET_TRANSITION_COPY as COPY,
     asksBeforeRecording,
+    fieldRefusals,
     jobMoveNotice,
     matchedPart,
     namesAreRecent,
@@ -39,10 +40,11 @@ import { useRefusalSentence, useAssetTransition } from "./AssetTransition";
  * The dialog is what the design draws where the act needs an answer first.
  *
  * WHAT A SUBMISSION MAY BE IS `readSubmission`, ASKED BEFORE IT IS SENT AND AGAIN BY THE
- * ACTION. The dialog's commitment acts only when that answers with no refusal — a job among the
- * reader's own and, for a check-out, a name — which is the design's (1f, 1i): a check-out's
- * two answers can be missing but never wrong, so the act "cannot act yet" (0f), and the empty
- * field is the reason, with no line before it.
+ * ACTION. The dialog's commitment always acts (0l: "a commitment stays live while the form is
+ * incomplete"; 1i draws it live), and a press `readSubmission` refuses sends nothing: each
+ * field it is missing says so under itself, by `fieldRefusals` as the phone's foot bar does,
+ * and focus goes to the first of them (`useRefusalFocus`). Until #522 the commitment was held
+ * at 0f's 40% until the job and the name were given, the empty field the reason.
  *
  * THE ANSWER IS THE PAGE'S, NOT THIS CONTROL'S (#463). The press and the dialog send through
  * `AssetTransition`, which holds the action's answer and whether the dialog is open: a
@@ -138,6 +140,10 @@ function TransitionForm({ open, onClose, plan, assetId, currentJobCode, recentCh
     const [name, setName] = useState("");
     const [listOpen, setListOpen] = useState(false);
     const [sheet, setSheet] = useState(null);
+    // Which event a press asked for, as the foot bar keeps it: a refusal that flips the status
+    // offers the other event, which nobody has pressed for yet.
+    const [pressedFor, setPressedFor] = useState(null);
+    const focusRefused = useRefusalFocus();
     // A CHOSEN JOB THE PLAN NO LONGER HOLDS STARTS AGAIN WHERE AN OPENING STARTS (#469) — see
     // `chosenJobId`, which the phone's foot bar asks of its own choice too (#463).
     const kept = chosenJobId(plan.jobs, jobId);
@@ -152,7 +158,8 @@ function TransitionForm({ open, onClose, plan, assetId, currentJobCode, recentCh
     // the names are about, and typing narrows them further.
     const recent = recentNamesFor(recentCheckOuts, { jobCode: chosen?.jobCode });
     const offered = offeredNames(recent, name);
-    const reading = readSubmission(plan, { event: plan.event, jobId: kept, checkedOutTo: name });
+    const pressed = pressedFor === plan.event;
+    const refusals = fieldRefusals(plan, { jobId: kept, checkedOutTo: name });
 
     const submit = (event) => {
         event.preventDefault();
@@ -162,7 +169,11 @@ function TransitionForm({ open, onClose, plan, assetId, currentJobCode, recentCh
             jobId: String(formData.get("jobId") ?? ""),
             checkedOutTo: String(formData.get("checkedOutTo") ?? ""),
         });
-        if (answer.refusal) return;
+        if (answer.refusal) {
+            setPressedFor(plan.event);
+            focusRefused(event.currentTarget);
+            return;
+        }
         onSend(formData);
     };
 
@@ -184,7 +195,12 @@ function TransitionForm({ open, onClose, plan, assetId, currentJobCode, recentCh
                 <DialogBody>
                     {/* The two `Job` values on this screen disagreeing is the asset changing site,
                         said under the field rather than left for the reader to notice. */}
-                    <Field label={COPY.jobLabel} labelAs="span" note={jobMoveNotice({ from: currentJobCode, to: chosen?.jobCode })}>
+                    <Field
+                        label={COPY.jobLabel}
+                        labelAs="span"
+                        note={jobMoveNotice({ from: currentJobCode, to: chosen?.jobCode })}
+                        refusal={pressed ? refusals.jobRefusal : null}
+                    >
                         <div className="max-sm:hidden">
                             <Choice name="jobId" options={options} value={kept} onChange={setJobId} placeholder={COPY.jobUnchosen} />
                         </div>
@@ -196,7 +212,7 @@ function TransitionForm({ open, onClose, plan, assetId, currentJobCode, recentCh
                         />
                     </Field>
                     {asksName && (
-                        <Field label={COPY.checkedOutToLabel}>
+                        <Field label={COPY.checkedOutToLabel} refusal={pressed ? refusals.nameRefusal : null}>
                             <div className="max-sm:hidden">
                                 <Combobox
                                     name="checkedOutTo"
@@ -217,7 +233,7 @@ function TransitionForm({ open, onClose, plan, assetId, currentJobCode, recentCh
                     <Button variant="bordered" onClick={onClose}>
                         {COPY.cancel}
                     </Button>
-                    <Button type="submit" disabled={Boolean(reading.refusal)} busyLabel={COPY.working[plan.event]}>
+                    <Button type="submit" busyLabel={COPY.working[plan.event]}>
                         {COPY.control[plan.event]}
                     </Button>
                 </DialogActions>

@@ -404,7 +404,6 @@
     --height-mobile-chip: 2.25rem; /* Pill, 36: a chip */
     --spacing-mobile-chip-inset-x: 0.875rem; /* Pill, 14: either side */
     --spacing-mobile-chip-inset-right: 0.75rem; /* Pill, 12: on its chevron side */
-    --size-mobile-chip-chevron: 0.6875rem; /* 1j, 11: a pill's chevron — from the drawings, not the spec */
     --spacing-mobile-avatar-chip-inset-left: 0.375rem; /* Tools 0a, 6: the avatar from an address chip's round end */
     --size-mobile-status-indicator: 0.625rem; /* Status, 10: the mark */
     --radius-mobile-control: 0.75rem; /* Radius, 12: a button, a field, a menu and a dialog */

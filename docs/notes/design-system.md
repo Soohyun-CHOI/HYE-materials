@@ -204,6 +204,18 @@ The design set the code on a tool label in Inconsolata at 500 with −0.04em of 
 
 **AN ID SET IN A LINE OF TEXT TAKES A LINE HEIGHT OF 1, SO THE LINE IS 20 AT EVERY PIXEL RATIO.** The tool item page's line under its title and its not-found sentence set an id in Fragment Mono inside Instrument Sans, and stood 21 where the drawings' stand 20. The faces were not the cause: the woff2 next/font serves and the one Google serves today are both Fragment Mono 1.011 and Instrument Sans 1.000, with the same ascents and descents (950 and −250, 970 and −250). Two boxes on one baseline with fractional ascents round apart, and the line grows: the same markup with the same files drew 20 at a ratio of two device pixels to the CSS pixel and 21 at one, the drawings as much as the app, so the two had been read at different ratios. At a line height of 1 the id's box sits inside the line's and its glyphs draw where they did; measured in the app at both ratios, both lines are 20 and the status and `Back to Tools` stand at the drawings' 74 and 66. A block that is all id — 1c's notice, 1e's codes not found, the retirement's id under its title in 1f and 1g — has one face and no second box, and was 20 at both before and after.
 
+## The files of 2026-10-11 (#522)
+
+**Every tools canvas and the Sign in file were rendered and held against the app, every state open**, and `tools.md` has what the screens took. What it means for the values:
+
+- **A phone canvas is 373 inside a 1px border** in a 375 frame, and a Sign in desk canvas 1598 × 898 inside a 1600 one, so a reading takes the frame's inner box and the app is measured at that size. Read from the outer box, every phone x is 1 too many.
+- **A form field's Edge is a 1px border, its room measured inside it** — 12 at a desk and 16 on a phone, 13 and 17 from its outer side — as every drawing has it; `TextInput` and `Combobox` drew an inset ring that took no room. The number field keeps its ring, its steps already 3 from its outer side as 1b draws them, border and 2 together, and its steps rest at Ink 3.
+- **0a's Menu widths are measured outside, at the widths drawn**: a list a field or a chip opens is 140 to 280 with its room and Edge counted, as 1a draws it, and the asset page's record menu 152 at a desk and 234 on a phone, 1f's and 1j's — 0a's 140 and 232 taken inside the room and the Edge. They are written as those sums, `--min-width-menu`, `--max-width-menu` and `--width-mobile-menu` with `--spacing-menu-inset` and the 1px Edge, so no name was added.
+- **The foot bar's pill draws its icon and its chevron in 0a's 16 box**, as 1j does; `--size-mobile-chip-chevron`, the 11 an earlier drawing gave the chevron, was undeclared with its last reader.
+- **Figures in a list, a sheet's rows and a group of chips are tabular** (0h Figures), the job codes, the sizes and the selection bar's `100` among them.
+
+**WHAT THE FILES DRAW THAT WAS NOT TAKEN, EACH A DRAWING AGAINST ITS OWN SPEC AND DECIDED WITH SOO FOR THE SPEC**: 1a's `0 of 0` pager under a list emptied by its band, where no empty state draws a pager; 1b's Rule over its second step's fields with nothing scrolled, where 0l draws one only past hidden content; 1i's head 4 tighter than 1b's and 1c's, the title at 22 and 18 to the first label; 0b's selection bar centered on the list and its 8 lane together, 4 right of the list's middle; 1e's page cells each carrying an empty slot 8 under the page, so rows stand 28 apart where 1e's own gap is 20; and the rail laying out 11.5 and 223 inside a border its 56 and 248 count, where 0m says 12 inside and 0a the account's menu 224. **The pager's Sticky ground and Band under rows that end above it was no difference**: the design's own code drops both once its rows end, and a canvas's first state is drawn before that measure runs.
+
 ## From the design's words to the names
 
 Every declaration, by the design's row and the figure the design draws, and after them the values read under Tailwind's own names. A length's rem is the design's px over 16, and the px is given beside it.
@@ -481,7 +493,6 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | Tools 0a Pill | `--height-mobile-chip` | 2.25rem (36) |
 | Tools 0a Pill, either side | `--spacing-mobile-chip-inset-x` | 0.875rem (14) |
 | Tools 0a Pill, its chevron side | `--spacing-mobile-chip-inset-right` | 0.75rem (12) |
-| 1j's drawing, a pill's chevron — not the spec | `--size-mobile-chip-chevron` | 0.6875rem (11) |
 | Tools 0a Pill, an address pill's avatar from its round end | `--spacing-mobile-avatar-chip-inset-left` | 0.375rem (6) |
 | Tools 0a Status, the mark | `--size-mobile-status-indicator` | 0.625rem (10) |
 | Tools 0a Radius, a control and a dialog | `--radius-mobile-control` | 0.75rem (12) |

@@ -115,13 +115,14 @@ At a desk the check-out's dialog asks it under the job, in a field labeled
 `Checked out to` that reads `e.g. Jane Doe` while it is empty (#458). On a
 phone the foot bar's field reads `Checked out to` behind a person's mark. The
 people it names have no account here, so it is free text rather than a picker
-over a list of users. **A check-out cannot be recorded without one.** The
-dialog's `Check out` cannot act until the field holds a name; **the foot bar's
-press always acts, and a press with no name is answered under the field**,
-`Enter a name to check out.`, as 1k draws it — and a press with no job chosen
-is answered under the pill the same way, both at once when both are missing.
-Nothing is written either way. A field of nothing but spaces is the same
-refusal.
+over a list of users. **A check-out cannot be recorded without one.** **The
+dialog's `Check out` and the foot bar's press always act (#522), and a press
+with no name is answered under the field**, `Enter a name to check out.`, as 1k
+draws it — and a press with no job chosen is answered under the job the same
+way, both at once when both are missing, focus going to the first of them
+(1k-b). Nothing is written either way. A field of nothing but spaces is the
+same refusal. Until #522 the dialog's `Check out` could not act until the field
+held a name.
 
 **Below the phone's edge, touching the name field opens a sheet**, titled with
 the field's words, with the system keyboard up. A name can be typed there or
@@ -169,9 +170,11 @@ chosen — and on a phone the pill starts with none chosen the same way.
 the dialog's commitment or the foot bar's press keeps its color and its width
 and, after a moment, draws a spinner in place of its words, saying
 `Checking out…` or `Checking in…` to assistive tech — at both widths since
-#495 — and nothing beside it takes a press. That is
-not the commitment that cannot act yet — drawn faded until the job and the name
-are given — and a design must keep the two apart.
+#495 — and nothing beside it takes a press. **The dialog's commitment never
+waits for what is missing (#522, 1i, 0l)**: a press with the job or the name
+missing sends nothing, says so under each field it is missing, and moves focus
+to the first, as the foot bar's press does; until #522 it was drawn faded until
+both were given.
 
 **action.** For a site manager (#506), `Retire this item` (#519; `Retire this tool` until then), behind `More actions` — at a desk a 32 icon
 button beside the transition, named by its tooltip, and on a phone the 48

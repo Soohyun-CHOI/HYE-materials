@@ -1111,23 +1111,34 @@ export function run({ check, assert, log }) {
         "  reads what it would send with readSubmission",
         /readSubmission\(plan, \{[\s\S]*formData\.get\("event"\)[\s\S]*formData\.get\("jobId"\)[\s\S]*formData\.get\("checkedOutTo"\)[\s\S]*\}\)/.test(submitSource)
     );
-    const refusesAt = submitSource.indexOf("if (answer.refusal) return;");
+    const refusesAt = submitSource.indexOf("if (answer.refusal) {");
     assert("  and sends only after that refuses nothing", refusesAt > -1 && refusesAt < submitSource.indexOf("onSend(formData)"));
-    check("the frame submits through it", attributeSources(formFn, dialog.source, "DialogFrame", "onSubmit").join(), "{submit}");
-    // NOTHING IN IT IS DISABLED FOR THE SENDING (#469): the frame's `busy` draws the
-    // commitment's Working and locks `Cancel`, so the one `disabled` left is the commitment's
-    // own — it cannot act until `readSubmission` takes what is chosen (0f Disabled).
-    check(
-        "the commitment acts only when readSubmission takes what is chosen",
-        attributeSources(formFn, dialog.source, "Button", "disabled").join(" | "),
-        "{Boolean(reading.refusal)}"
+    // A REFUSED PRESS IS SAID FIELD BY FIELD AND TAKES FOCUS TO THE FIRST (#522): 1i draws the
+    // commitment live, 0l answers a press on an incomplete form in each missing field's place,
+    // and 1k-b draws the caret in the refused field.
+    assert(
+        "  a refused press marks the event pressed and hands its form to the refusal focus, before it returns (#522)",
+        /if \(answer\.refusal\) \{\s*setPressedFor\(plan\.event\);\s*focusRefused\(event\.currentTarget\);\s*return;\s*\}/.test(submitSource)
     );
+    check("  the focus is the controls' one rule for it (#522)", initSource(formFn, dialog.source, "focusRefused"), "useRefusalFocus()");
+    check("the frame submits through it", attributeSources(formFn, dialog.source, "DialogFrame", "onSubmit").join(), "{submit}");
+    // NOTHING IN IT IS DISABLED (#469, #522): the frame's `busy` draws the commitment's Working
+    // and locks `Cancel`, and since #522 the commitment acts whatever is chosen — 1i draws it
+    // live and 0l says a commitment stays live while the form is incomplete — where it was held
+    // at 0f's 40% until `readSubmission` took what was chosen.
+    check("the commitment is never disabled, as 1i and 0l draw it (#522)", attributeSources(formFn, dialog.source, "Button", "disabled").length, 0);
     check(
         "  and gives way to its event's working word while it sends",
         attributeSources(formFn, dialog.source, "Button", "busyLabel").join(" | "),
         "{COPY.working[plan.event]}"
     );
-    check("  reading the dialog's own choice and name", initSource(formFn, dialog.source, "reading"), "readSubmission(plan, { event: plan.event, jobId: kept, checkedOutTo: name })");
+    check("its field refusals are fieldRefusals of its own choice and name, as the foot bar's are (#522)", initSource(formFn, dialog.source, "refusals"), "fieldRefusals(plan, { jobId: kept, checkedOutTo: name })");
+    check(
+        "  each said under its field once a press asked for this event (#522)",
+        attributeSources(formFn, dialog.source, "Field", "refusal").join(" | "),
+        "{pressed ? refusals.jobRefusal : null} | {pressed ? refusals.nameRefusal : null}"
+    );
+    check("  where pressed is a press for the event offered now (#522)", initSource(formFn, dialog.source, "pressed"), "pressedFor === plan.event");
     let trims = 0;
     walk(dialog.ast, (n) => {
         if (n.type === "CallExpression" && n.callee?.type === "MemberExpression" && n.callee.object?.name === "name" && n.callee.property?.name === "trim") trims++;
@@ -1136,7 +1147,7 @@ export function run({ check, assert, log }) {
     check("the name is asked only of a check-out", initSource(formFn, dialog.source, "asksName"), "plan.event === ASSET_EVENT.CHECKED_OUT");
     assert(
         "  and both of its controls stand under that",
-        /\{asksName && \(\s*<Field label=\{COPY\.checkedOutToLabel\}>/.test(formSource) && /\{asksName && \(\s*<NameSheet/.test(formSource)
+        /\{asksName && \(\s*<Field label=\{COPY\.checkedOutToLabel\}[^>]*>/.test(formSource) && /\{asksName && \(\s*<NameSheet/.test(formSource)
     );
     check("the move notice is asked of jobMoveNotice", callArguments(formFn, dialog.source, "jobMoveNotice").join(), "{ from: currentJobCode, to: chosen?.jobCode }");
     check("  and said under the job", attributeSources(formFn, dialog.source, "Field", "note").join(), "{jobMoveNotice({ from: currentJobCode, to: chosen?.jobCode })}");
@@ -1252,6 +1263,11 @@ export function run({ check, assert, log }) {
     );
     const barRefusesAt = barSubmit.indexOf("if (answer.refusal) {");
     assert("  and sends only after that refuses nothing", barRefusesAt > -1 && barRefusesAt < barSubmit.indexOf("send(formData)"));
+    assert(
+        "  a refused press hands its form to the refusal focus, so the first refused field takes it (1k-b, #522)",
+        /if \(answer\.refusal\) \{\s*setPressedFor\(plan\.event\);\s*focusRefused\(event\.currentTarget\);\s*return;\s*\}/.test(barSubmit)
+    );
+    check("  the bar's focus is the controls' one rule for it (#522)", initSource(barFn ?? {}, bar.source, "focusRefused"), "useRefusalFocus()");
     check("its field refusals are fieldRefusals of its own choice and name", initSource(barFn ?? {}, bar.source, "refusals"), "fieldRefusals(plan, { jobId: kept, checkedOutTo: name })");
     check(
         "  each said under its field once a press asked for this event",

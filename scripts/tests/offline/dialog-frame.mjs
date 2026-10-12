@@ -156,6 +156,148 @@ function markupCopy(ast) {
 }
 
 export function run({ check, assert, log }) {
+    // ── 0: the design of 2026-10-11 (#522) ─────────────────────────────────
+    // At the head of the check, so an older assertion that throws cannot keep these from
+    // printing. Each is read off the source; what a browser showed is in `tools.md`.
+    {
+        const sourceOf = (file) => parseFile(file).source;
+        const fnSource = (file, name) => {
+            const { ast, source } = parseFile(file);
+            const fn = functionNamed(ast, name);
+            return fn ? source.slice(fn.start, fn.end) : "";
+        };
+        const constantOf = (file, name) => {
+            const { ast, source } = parseFile(file);
+            let text = "";
+            walk(ast, (n) => {
+                if (n.type === "VariableDeclarator" && n.id?.name === name && n.init) text = source.slice(n.init.start, n.init.end);
+            });
+            return text;
+        };
+        const menuFn = fnSource(MENU, "Menu");
+        const choiceFn = fnSource(CONTROLS, "Choice");
+        const chipFn = fnSource(CONTROLS, "FilterChip");
+        log("the design of 2026-10-11 (#522):");
+        // A LIST SHADES ITS OPTION ONLY WHERE A KEY PUT VISUAL FOCUS: 0a's Menu marks the one
+        // chosen by its check, and a press that opens a list shades nothing.
+        check(
+            "a list shades the option under visual focus only when told a key put it there",
+            [/function Menu\(\{[^}]*\bshade = true\b/.test(menuFn), /index === active && shade \? "bg-hover" : ""/.test(menuFn)].join(" "),
+            "true true"
+        );
+        check(
+            "  a choice is told by its keys and not by a press",
+            [
+                /shade=\{keyed\}/.test(choiceFn),
+                /event\.preventDefault\(\);\s*setKeyed\(true\);/.test(choiceFn),
+                /else show\(false\);/.test(choiceFn),
+                /case "open":\s*show\(true\);/.test(choiceFn),
+            ].join(" "),
+            "true true true true"
+        );
+        check(
+            "  and so is a filter chip",
+            [/shade=\{keyed\}/.test(chipFn), /event\.preventDefault\(\);\s*setKeyed\(true\);/.test(chipFn), /setActive\(opening\(\)\);\s*setKeyed\(false\);/.test(chipFn)].join(" "),
+            "true true true"
+        );
+        // THE JOB'S CHIP TAKES EDGE FOCUS FROM THE KEYBOARD ALONE: 1a draws it opened by a press
+        // on its Edge, a bordered control's Open being its Wash (0f).
+        const chipLook = constantOf(CONTROLS, "CHOICE_LOOK").split(/\n\s*chip:/)[1]?.split(/\n\s*crumb:/)[0] ?? "";
+        check(
+            "the job's chip turns to Edge focus for the keyboard alone",
+            [/focus-visible:border-border-focus/.test(chipLook), /(^|[\s"])focus:border-border-focus/.test(chipLook)].join(" "),
+            "true false"
+        );
+        // EVERY FIGURE IN A LIST, A SHEET'S ROWS AND A GROUP OF CHIPS IS TABULAR (0h Figures).
+        check(
+            "a list, a sheet's rows and a dialog's chips set their figures tabular",
+            [
+                /role="listbox"[\s\S]*?className=\{`[^`]*\btabular-nums\b/.test(menuFn),
+                /\btabular-nums\b/.test(fnSource(FRAME, "SheetRows")),
+                /\btabular-nums\b/.test(constantOf(CONTROLS, "CHIP")),
+            ].join(" "),
+            "true true true"
+        );
+        check(
+            "a number field's steps rest at Ink 3, as 1b draws them",
+            [/\btext-foreground-subtle\b/.test(constantOf(CONTROLS, "STEP")), /\btext-foreground-muted\b/.test(constantOf(CONTROLS, "STEP"))].join(" "),
+            "true false"
+        );
+        // A TEXT FIELD'S EDGE IS A BORDER, SO ITS ROOM IS MEASURED INSIDE IT: an inset ring took
+        // no room and stood every value 1px left of the drawings.
+        const textInput = fnSource(CONTROLS, "TextInput");
+        const combobox = fnSource(CONTROLS, "Combobox");
+        check(
+            "a text field and a combobox draw their Edge as a border, with no inset ring",
+            [
+                /rounded-control border bg-white/.test(textInput),
+                /\binset-ring\b/.test(textInput),
+                /rounded-control border bg-white/.test(combobox),
+                /\binset-ring\b/.test(combobox),
+            ].join(" "),
+            "true false true false"
+        );
+        // A COMMITMENT CAN HOLD THE WIDTH OF A LONGER FORM OF ITS WORDS, unseen and unread.
+        const buttonFn = fnSource(CONTROLS, "Button");
+        check(
+            "an action holds the width of words it keeps room for, unseen, its figures tabular",
+            [
+                /<span className="inline-grid justify-items-center tabular-nums">/.test(buttonFn),
+                /<span aria-hidden="true" className="invisible col-start-1 row-start-1">\s*\{holdWidthOf\}/.test(buttonFn),
+            ].join(" "),
+            "true true"
+        );
+        check(
+            "  the registration's commitment holds `Add 99 items`, as 1b draws it",
+            /<Button type="submit" busyLabel=\{COPY\.working\} holdWidthOf=\{COPY\.submit\(99\)\}>/.test(sourceOf("app/(assets)/asset-categories/RegistrationDialog.js")),
+            true
+        );
+        // A RECORD'S MENU TAKES 0a's WIDTHS INSIDE ITS ROOM AND ITS EDGE (1f, 1j), and a list a
+        // field or a chip opens holds 140 with both counted (1a).
+        const menuLook = constantOf(MENU, "MENU_LOOK");
+        check(
+            "a record's menu is 152 at a desk and 234 on a phone, measured outside, and a list stays 140",
+            [
+                menuLook.includes("min-w-[calc(var(--min-width-menu)+2*var(--spacing-menu-inset)+2px)]"),
+                menuLook.includes("max-sm:w-[calc(var(--width-mobile-menu)+2px)]"),
+                /fit === "field" \? "" : "w-max min-w-menu max-w-menu"/.test(menuFn),
+            ].join(" "),
+            "true true true"
+        );
+        const sheetChip = fnSource(CONTROLS, "SheetChip");
+        check(
+            "the foot bar's pill draws its icon and its chevron in 0a's 16 box",
+            [/<span className="flex size-icon shrink-0 items-center/.test(sheetChip), /name="chevron-down" className="size-icon shrink-0/.test(sheetChip)].join(" "),
+            "true true"
+        );
+        // A REFUSED PRESS TAKES FOCUS TO THE FIRST FIELD REFUSED: a field says it refuses on its
+        // box, and the first drawn control in the tab order inside it takes focus.
+        const refusalFocus = fnSource(CONTROLS, "useRefusalFocus");
+        check(
+            "a field and a group of chips say they refuse on their box",
+            [
+                /<div data-refused=\{refusal \? "" : undefined\} className="flex min-w-0 flex-col">/.test(fnSource(CONTROLS, "Field")),
+                /<div data-refused=\{refusal \? "" : undefined\} className="flex flex-col">/.test(fnSource(CONTROLS, "ChipChoice")),
+            ].join(" "),
+            "true true"
+        );
+        check(
+            "  and focus goes to the first drawn control in the tab order inside the first of them",
+            [
+                /form\.querySelectorAll\("\[data-refused\]"\)/.test(refusalFocus),
+                /element\.tabIndex >= 0/.test(refusalFocus),
+                /element\.getClientRects\(\)\.length > 0/.test(refusalFocus),
+                /target\.focus\(\);\s*return;/.test(refusalFocus),
+            ].join(" "),
+            "true true true true"
+        );
+        check(
+            "  the registration hands its form over on the press it refuses",
+            /setGuarded\(\{[^\n]*\}\);\s*focusRefused\(event\.currentTarget\);\s*return;/.test(sourceOf("app/(assets)/asset-categories/RegistrationDialog.js")),
+            true
+        );
+    }
+
     // ── 1: the keys ─────────────────────────────────────────────────────────
     log("a choice's keys are the select-only combobox's:");
     for (const [name, mods, open, expected] of [
@@ -201,7 +343,8 @@ export function run({ check, assert, log }) {
     ])
         check(`  ${open ? "open" : "shut"}, ${JSON.stringify(name)}${mods.altKey ? " with Alt" : ""}`, multiSelectKey(key(name, mods), open), expected);
     // THE SEARCH A DIALOG IS BUILT AROUND (#520), 1b's: its results always show, the arrows move
-    // through them and wrap, Enter takes the one under visual focus and is stopped either way,
+    // through them and wrap, Enter takes the one under visual focus — or the one result left
+    // when none is (#522) — and is stopped either way,
     // and Escape and Tab are not its — the dialog's, and the filters' after it in the row.
     log("a dialog's search moves through results that always show, and Enter takes one (#520):");
     for (const [name, state, expected] of [
@@ -214,6 +357,8 @@ export function run({ check, assert, log }) {
         ["ArrowDown", { active: -1, count: 0 }, null],
         ["Enter", { active: 1, count: 3 }, { accept: 1 }],
         ["Enter", { active: -1, count: 3 }, { accept: null }],
+        ["Enter", { active: -1, count: 1 }, { accept: 0 }],
+        ["Enter", { active: -1, count: 0 }, { accept: null }],
         ["Enter", { active: 4, count: 3 }, { accept: null }],
         ["Escape", { active: 0, count: 3 }, null],
         ["Tab", { active: 0, count: 3 }, null],
@@ -510,7 +655,7 @@ export function run({ check, assert, log }) {
                 /lg: "h-control-lg px-input-inset-x text-body"/.test(constant("TEXT_INPUT_SIZE")),
                 /xl: "h-control-xl px-input-inset-x /.test(constant("TEXT_INPUT_SIZE")),
                 /field: \(refused\) =>\s*`[^`]*rounded-control border bg-white px-input-inset-x text-body outline-none/.test(constant("CHOICE_LOOK")),
-                /rounded-control bg-white px-input-inset-x text-body /.test(functionSource("Combobox")),
+                /rounded-control border bg-white px-input-inset-x text-body /.test(functionSource("Combobox")),
                 !/font-medium/.test(constant("CHOICE_LOOK").split(/\n\s*chip:/)[0]),
             ].join(" "),
         };
@@ -938,19 +1083,19 @@ export function run({ check, assert, log }) {
 
     // THE SEARCH A DIALOG IS BUILT AROUND (#520), 1b's first step: the field a combobox over
     // results that always show — expanded, naming them, pointing at the one under visual focus —
-    // its keys `searchResultsKey`'s, the first result held once something is typed and a keystroke
-    // handing visual focus back to it, a result pressed with its mousedown stopped so focus stays
+    // its keys `searchResultsKey`'s, no result held until an arrow moves to one (#522; the first
+    // was held once something was typed from #520) and a keystroke giving visual focus up, a result pressed with its mousedown stopped so focus stays
     // in the field, and the whole marked as the dialog's body, so focus that falls in the dialog
     // comes back to the field. A secondary action stands at the actions' left (1b's `Back`), a
     // ghost pulled out by its side room, and a ghost is its word alone in Ink, 10 either side.
     const searchFn = functionNamed(frame.ast, "DialogSearch");
     const searchPart = searchFn ? frame.source.slice(searchFn.start, searchFn.end) : "";
     check(
-        "a dialog's search is a combobox over results that always show, the first held once something is typed (#520)",
+        "a dialog's search is a combobox over results that always show, none held until an arrow moves to one (#522)",
         [
             /role="combobox"\s*aria-expanded="true"\s*aria-controls=\{listId\}\s*aria-autocomplete="list"\s*aria-activedescendant=\{active >= 0 \? `\$\{listId\}-\$\{active\}` : undefined\}/.test(searchPart),
             calls(searchFn ?? {}).has("searchResultsKey"),
-            /const active = moved >= 0 && moved < count \? moved : value\.trim\(\) !== "" && count > 0 \? 0 : -1;/.test(searchPart),
+            /const active = moved >= 0 && moved < count \? moved : -1;/.test(searchPart),
             /const type = \(next\) => \{\s*setMoved\(-1\);\s*onChange\(next\);/.test(searchPart),
             /role="option"\s*aria-selected=\{index === active \? "true" : "false"\}\s*onMouseDown=\{\(event\) => event\.preventDefault\(\)\}/.test(searchPart),
             /<div data-dialog-body="" /.test(searchPart),

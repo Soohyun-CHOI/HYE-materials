@@ -67,8 +67,15 @@ const MENU_HEADING = "shrink-0 truncate px-control-inset-x py-menu-heading-inset
  * AN OPTION IS PRESSED ON `click` AND ITS `mousedown` IS STOPPED, which is what keeps DOM
  * focus on the control: a blur would close the list before the click arrived, and a
  * choice closes on blur by choosing what is under visual focus (the pattern's rule).
+ *
+ * THE OPTION UNDER VISUAL FOCUS IS SHADED ONLY WHERE A KEY PUT IT THERE (#522). `active` is the
+ * option `aria-activedescendant` names, and `shade` is whether the keyboard brought it there:
+ * a list a press opened shows the one chosen by its check alone, as 0a's Menu marks a list you
+ * choose one from, and the pointer shades what it is on; until #522 the chosen row took Hover
+ * however the list opened (#501), which read as a row the pointer was on. Every figure in a
+ * list is tabular (0h), so a column of job codes holds one width.
  */
-export default function Menu({ id, anchorRef, shown, labelId, heading, options, active, onPick, fit = "field", rows = "lg", multiselectable = false }) {
+export default function Menu({ id, anchorRef, shown, labelId, heading, options, active, shade = true, onPick, fit = "field", rows = "lg", multiselectable = false }) {
     const listRef = useRef(null);
 
     useLayoutEffect(() => {
@@ -120,7 +127,7 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
             aria-labelledby={labelId}
             aria-multiselectable={multiselectable || undefined}
             popover="manual"
-            className={`inset-auto mx-0 mt-menu-offset mb-0 flex-col overflow-y-auto rounded-card border border-border bg-white p-menu-inset font-ui text-body-sm text-foreground-default shadow-popover open:flex ${
+            className={`inset-auto mx-0 mt-menu-offset mb-0 flex-col overflow-y-auto rounded-card border border-border bg-white p-menu-inset font-ui text-body-sm text-foreground-default tabular-nums shadow-popover open:flex ${
                 fit === "field" ? "" : "w-max min-w-menu max-w-menu"
             }`}
         >
@@ -139,7 +146,7 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => onPick(index)}
                     className={`flex ${rows === "sm" ? "h-control" : "h-control-lg"} shrink-0 cursor-pointer items-center justify-between gap-gap rounded-control px-control-inset-x hover:bg-hover ${
-                        index === active ? "bg-hover" : ""
+                        index === active && shade ? "bg-hover" : ""
                     }`}
                 >
                     {multiselectable && (
@@ -201,9 +208,9 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
  * as if pointed at — the account's `Sign out` did until #501. The browser marks a focus a
  * script moves visible after a key and not after a press, so a menu opened from the
  * keyboard, or walked with its keys after a press, still shows where focus is. The field
- * list's shaded option is not focus: it is the option `aria-activedescendant` names — the
- * chosen one as a choice opens, which a native select shows the same way — and it is drawn
- * however the list opened.
+ * list's shaded option is not focus: it is the option `aria-activedescendant` names, and
+ * since #522 it is drawn only once a key has put it there, the same reading of the press
+ * against the keyboard (`Menu`'s `shade`).
  *
  * WHERE IT OPENS IS `placement`. The account sits at the foot of the rail with no room under
  * it, so 0a's "6 under it" is 6 above while the rail is expanded, the menu as wide as the row
@@ -219,7 +226,8 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
  * `look="record"` IS THE ASSET PAGE'S `More actions` (#463, 1f and 1j): set against its
  * opener's right end, since the opener stands at the content's edge, and drawn two ways. At
  * a desk it is this frame with the dots' ink meeting its right edge and items at 13, the
- * Beside size 1f draws them at; below the phone's edge it is Tools 0a's Menu — 232 wide, 12
+ * Beside size 1f draws them at, 152 wide (below); below the phone's edge it is Tools 0a's
+ * Menu — 232 inside its Edge, 12
  * from the screen's right edge and 4 under the top bar, the phone's Radius and no room of its
  * own, rows 48 with 16 inside at 17. An item of `tone: "danger"` is 0f's Destructive: red
  * on red's Face under the pointer at a desk, and red at rest on a phone, which 1j draws
@@ -375,12 +383,17 @@ const PLACEMENT = {
 // under the top bar plus the 4 between the 48 button and the bar's foot. The account's width
 // is the expanded rail's inside — its 248 less the 12 either side — and it grows from the
 // corner by its button.
+//
+// A RECORD'S MENU TAKES 0a's WIDTHS INSIDE ITS ROOM AND ITS EDGE, AS 1f AND 1j DRAW IT (#522):
+// at a desk 140 to 280 inside its 5 and its Edge, so 152 on the asset page, and on a phone 232
+// inside its Edge, 234 in all. The lists a field or a chip opens hold 140 with both counted,
+// as 1a draws them, and the account's 224 is its own.
 const MENU_LOOK = {
     account:
         "w-[calc(var(--width-rail-expanded)-2*var(--spacing-rail-inset))] rounded-card p-menu-inset origin-bottom-left open:animate-account-menu",
     record:
-        "ml-0 w-max min-w-menu max-w-menu rounded-card p-menu-inset mr-[calc((var(--height-control)-var(--size-icon))/2)] " +
-        "max-sm:w-mobile-menu max-sm:min-w-0 max-sm:max-w-none max-sm:overflow-hidden max-sm:rounded-mobile-control max-sm:p-0 " +
+        "ml-0 w-max min-w-[calc(var(--min-width-menu)+2*var(--spacing-menu-inset)+2px)] max-w-[calc(var(--max-width-menu)+2*var(--spacing-menu-inset)+2px)] rounded-card p-menu-inset mr-[calc((var(--height-control)-var(--size-icon))/2)] " +
+        "max-sm:w-[calc(var(--width-mobile-menu)+2px)] max-sm:min-w-0 max-sm:max-w-none max-sm:overflow-hidden max-sm:rounded-mobile-control max-sm:p-0 " +
         "max-sm:mt-[calc(var(--spacing-mobile-menu-offset)+(var(--height-mobile-top-bar)-var(--spacing-mobile-touch-target))/2)] " +
         "max-sm:mr-[calc(var(--spacing-mobile-menu-gutter)-var(--spacing-mobile-top-bar-inset-right))]",
 };

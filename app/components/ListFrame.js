@@ -248,7 +248,7 @@ export function SelectionBar({ shown, label, count, notOnPage, words, clearLabel
                     <span className="min-w-0 overflow-hidden">
                         <span className="flex items-center gap-selection-bar-reason-gap whitespace-nowrap pr-gap-lg">
                             <InfoMark size="size-icon" tone="subtle" />
-                            <span id={reasonId} className="text-body-sm text-foreground-subtle">
+                            <span id={reasonId} className="text-body-sm text-foreground-subtle tabular-nums">
                                 {lastReason}
                             </span>
                         </span>
