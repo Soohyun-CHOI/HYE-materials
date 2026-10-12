@@ -38,19 +38,23 @@ export const TABLE_HEAD =
 
 /**
  * 0b's Row: 40 under its 1px Rule, its text 12 in from the content's edge where the rule
- * stops, and a Control-radius face under the pointer and while it is selected — Wash, since a
- * table row counts as bordered (0f), and Face (0c). The drawings set both faces square; 0b
- * gives the hover a Control radius on 1080, and the spec is the one followed. `isolate` makes
- * it a stacking context of its own, so its box stays under the column head (above).
+ * stops, and a square face under the pointer and while it is selected — Wash, since a table
+ * row counts as bordered (0f), and Face (0c). Every list 1a and 1d draw sets the row's corners
+ * at 0, where 0b's sentence gives the hover a Control radius on 1080; the drawings are followed
+ * since 2026-10-12, and the row wore the Control radius until then. `isolate` makes it a
+ * stacking context of its own, so its box stays under the column head (above).
  */
 export const TABLE_ROW =
-    "relative isolate box-content grid h-table-row content-center items-baseline gap-x-table-column-inline rounded-control px-table-bleed pt-px text-body text-foreground-default before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-divider hover:bg-hover-subtle";
+    "relative isolate box-content grid h-table-row content-center items-baseline gap-x-table-column-inline px-table-bleed pt-px text-body text-foreground-default before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-divider hover:bg-hover-subtle";
 
 /** A selected row's Face (0c), over the hover's Wash. */
 export const TABLE_ROW_SELECTED = "bg-selected hover:bg-selected";
 
-/** A row that is one link: the link's own box stretched over the row, so the row is the target. */
-export const TABLE_ROW_LINK = "after:absolute after:inset-0 after:rounded-control";
+/**
+ * A row that is one link: the link's own box stretched over the row, so the row is the target,
+ * square as the row is.
+ */
+export const TABLE_ROW_LINK = "after:absolute after:inset-0";
 
 /**
  * The head a list opens with (0n's list header, 1a, 1d): one line — its title, then 8 on

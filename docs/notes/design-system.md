@@ -216,6 +216,10 @@ The design set the code on a tool label in Inconsolata at 500 with −0.04em of 
 
 **WHAT THE FILES DRAW THAT WAS NOT TAKEN, EACH A DRAWING AGAINST ITS OWN SPEC AND DECIDED WITH SOO FOR THE SPEC**: 1a's `0 of 0` pager under a list emptied by its band, where no empty state draws a pager; 1b's Rule over its second step's fields with nothing scrolled, where 0l draws one only past hidden content; 1i's head 4 tighter than 1b's and 1c's, the title at 22 and 18 to the first label; 0b's selection bar centered on the list and its 8 lane together, 4 right of the list's middle; 1e's page cells each carrying an empty slot 8 under the page, so rows stand 28 apart where 1e's own gap is 20; and the rail laying out 11.5 and 223 inside a border its 56 and 248 count, where 0m says 12 inside and 0a the account's menu 224. **The pager's Sticky ground and Band under rows that end above it was no difference**: the design's own code drops both once its rows end, and a canvas's first state is drawn before that measure runs.
 
+**A ROW'S FACES ARE SQUARE (2026-10-12, no issue).** One drawing against its spec was taken for the drawing at Soo's asking: every list row 1a and 1d draw sets its corners at 0, where 0b's Row gives the hover a Control-radius face on 1080, so `ListTable.js`'s row and the link covering it carry no radius; `--radius-control` keeps its other readers.
+
+**A DIALOG'S HEAD HOLDS 16 OVER A BODY THAT SCROLLS IN THE LANE (2026-10-12, no issue).** 1b pads the head over its second step 16 under its line and draws the Rule the chips show once they scroll in that 16's last row. `--spacing-dialog-header-inset-bottom` is that 16, from the drawing and not the spec, declared with its one reader, `DialogBody` in the lane; the 4 left of 0l's 20 to the body sits inside the lane, written as the two names' difference, so it takes no name.
+
 ## From the design's words to the names
 
 Every declaration, by the design's row and the figure the design draws, and after them the values read under Tailwind's own names. A length's rem is the design's px over 16, and the px is given beside it.
@@ -365,6 +369,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 1b's drawing, the height that dialog holds while what it asks changes — not the spec | `--height-dialog-search` | 30.625rem (490) |
 | 0f Field, the borderless row the search a dialog is built around is | `--height-dialog-search-row` | 3.5rem (56) |
 | 1b's drawing, the title's line to that row — not the spec | `--spacing-dialog-search-inset-top` | 0.25rem (4) |
+| 1b's drawing, under a dialog's head to the Rule a body scrolling in a lane shows — not the spec | `--spacing-dialog-header-inset-bottom` | 1rem (16) |
 | 1b's drawing, how far its search mark pulls out — not the spec | `--spacing-dialog-search-icon-bleed` | 0.1875rem (3) |
 | 1b's drawing, between the filter chips at its end — not the spec | `--spacing-dialog-filter-inline` | 0.375rem (6) |
 | 0f Field, a result's hover face past its text, and the row's Rule as wide | `--spacing-dialog-result-bleed` | 0.75rem (12) |

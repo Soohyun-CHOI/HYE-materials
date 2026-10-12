@@ -289,6 +289,21 @@ export function run({ check, assert, log }) {
         true
     );
 
+    // ── A row's faces are square, as 1a and 1d draw them ────────────────────
+    // Every list row the drawings draw sets its corners at 0, and the link covering it is its
+    // box; 0b's sentence gives the hover a Control radius, which the row wore until 2026-10-12.
+    // A rounded token of either constant, whatever its size or corner, would round them again.
+    {
+        const tableSource = parseFile(LIST_TABLE).source;
+        const tokensOf = (name) => (tableSource.match(new RegExp(`export const ${name} =\\s*"([^"]*)"`))?.[1] ?? "").split(/\s+/);
+        const rounded = (tokens) => tokens.filter((t) => /(^|:)rounded(-|$)/.test(t));
+        check(
+            "a row's faces and the link that covers it are square, as 1a and 1d draw them",
+            [rounded(tokensOf("TABLE_ROW")).join(" "), rounded(tokensOf("TABLE_ROW_LINK")).join(" "), tokensOf("TABLE_ROW").includes("hover:bg-hover-subtle")].join(" | "),
+            " |  | true"
+        );
+    }
+
     // ── 1: the count per status ─────────────────────────────────────────────
     log("every category carries a count for every status, a zero included:");
 

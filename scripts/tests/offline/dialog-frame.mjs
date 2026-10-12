@@ -1148,11 +1148,25 @@ export function run({ check, assert, log }) {
     check(
         "  and a body holding its height scrolls in 0i's lane, the fields always asked under it (#520)",
         [
-            /lane\s*\?\s*`pr-\[calc\(var\(--spacing-dialog-inset\)-var\(--spacing-scrollbar-gutter\)\)\] pl-dialog-inset \[scrollbar-gutter:stable\] \$\{SCROLL_LANE\}`/.test(bodyPart),
+            /lane\s*\?\s*`pt-\[[^\]]*\] pr-\[calc\(var\(--spacing-dialog-inset\)-var\(--spacing-scrollbar-gutter\)\)\] pl-dialog-inset \[scrollbar-gutter:stable\] \$\{SCROLL_LANE\}`/.test(bodyPart),
             /\{foot && <div className="shrink-0 pt-gap-lg in-data-fixed:px-dialog-inset">\{foot\}<\/div>\}\s*<\/div>\s*\);/.test(bodyPart),
             /\{hidden\.below && [^\n]*\n\s*<\/div>\s*\{foot &&/.test(bodyPart),
             // What scrolls is what the dialog holds and nothing more: the fields never scroll.
             /`\}\s*>\s*\{children\}\s*<\/div>\s*\{hidden\.above/.test(bodyPart),
+        ].join(" "),
+        "true true true true"
+    );
+    // A BODY IN THE LANE STANDS 16 UNDER THE HEAD (1b, 2026-10-12): the Rule it shows once it
+    // scrolls is drawn in the last row of that 16, as 1b's head draws it at its foot, and what
+    // scrolls keeps the 20 from the title's line at rest, 4 of it inside the lane. A body out of
+    // the lane keeps its 20 inside and its Rule at its own top.
+    check(
+        "  and one in the lane stands 16 under the head, its Rule in the head's last row, 20 from the line at rest",
+        [
+            /className=\{`relative flex min-h-0 grow flex-col \$\{lane \? "mt-dialog-header-inset-bottom" : ""\}`\}/.test(bodyPart),
+            bodyPart.includes("pt-[calc(var(--spacing-dialog-header-stack)-var(--spacing-dialog-header-inset-bottom))]"),
+            /: "pt-dialog-header-stack in-data-preview:px-dialog-inset/.test(bodyPart),
+            /\{hidden\.above && <div aria-hidden="true" className=\{`absolute inset-x-0 h-px bg-divider \$\{lane \? "-top-px" : "top-0"\}`\} \/>\}/.test(bodyPart),
         ].join(" "),
         "true true true true"
     );
