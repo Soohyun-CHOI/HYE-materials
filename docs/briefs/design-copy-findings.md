@@ -173,32 +173,30 @@ and not this word, and stays. `docs/notes/naming.md` has the rows for `tool` /
 ## The catalog's six levels (#514)
 
 The registration names a kind by its type, category and name on its first
-step, and by the size, maker and part number its rows hold on its second; the
-list says the category beside each name, and the two pages that head a kind say
-the type, the category and the class under it (#519, the design's). The level
-words are the issue's; the rest are the closest shape the app already says until
-Design's drawing of a step is taken. The first step took 1b's in #520 — its
-search and chips, and no line under the title — so `All types`, `Choose a name`
-and its refusal, and the path beside a name in the search and on the line under
-the title, left this table then.
+step, and by its size and model on its second; the list says the category
+beside each name, and the two pages that head a kind say the type, the category
+and the class under it (#519, the design's). The level words are the issue's,
+and both steps took 1b's in #520 — the search and its chips, no line under the
+title while it picks, the size and the model as chips, `None` and `Not
+specified` for a choice left empty, and `Choose a size.` and `Choose a model.`
+for one not made — so `All types`, `Choose a name` and its refusal, the path
+beside a name in the search and on the line under the title, the second step's
+placeholders and `No size`, `No maker` and `No part #` left this table then.
 
 ### What a reader sees
 
 | String | Where | Shape it takes |
 |---|---|---|
-| `Type`, `Category`, `Name`, `Size`, `Maker`, `Part #` | the dialog's fields | the issue's words |
-| `Choose a size`, `Choose a maker`, `Choose a part #` | a field still to choose | `Choose a job` (0l) |
-| `Choose a size.`, `Choose a maker.`, `Choose a part #.` | the refusal under each | `Choose a job.` (0l) |
-| `No size`, `No maker`, `No part #` | a level left empty, as its option and its value | new: one per level |
+| `Type`, `Category`, `Name`, `Size`, `Maker`, `Part #` | the levels | the issue's words |
 | `Tool · Power tools · Class B` | a kind's caption and an asset's | 1d, 1f, 1j (#519) |
 
-**`No maker` is a value and not a placeholder**, which is why it is set in the
-field's ink and `Choose a maker` in the placeholder's: chosen — by the reader,
-or already, where it is the level's one choice — it says the row without a
-maker is the one being added. Beside a maker it is one of the choices, and the
-level starts on `Choose a maker` (#517). One word per level rather than one
-for all: `None` is also what the catalog's check refuses as a value, and a
-screen saying it would read as asking the office to type it.
+**`None` and `Not specified` are values and not placeholders**, which is why
+they are chips of their own, set in Ink 3 as 1b sets them: chosen — by the
+reader, or already, where one is the choice's only option — each says the row
+without a size or a model is the one being added. `None` is also what the
+catalog's check sets aside as a value (`isPlaceholder`), which is why #514 wrote
+one word per level instead; the design's word was taken in #520, since a row
+carrying it never reaches the dialog.
 
 ---
 

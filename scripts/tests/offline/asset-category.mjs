@@ -37,7 +37,7 @@ import {
     ASSET_CATEGORY_COPY,
     ASSET_CATEGORY_FIELDS,
     ASSET_CLASS_VALUES,
-    ASSET_OPTIONAL_LEVELS,
+    ASSET_MODEL_LEVELS,
     ASSET_PATH_LEVELS,
     ASSET_PATH_SEPARATOR,
     ASSET_REQUIRED_LEVELS,
@@ -48,6 +48,7 @@ import {
     catalogPathKey,
     catalogRowsOf,
     compareCatalogText,
+    compareSizes,
     composeItemName,
     isPlaceholder,
     pathOf,
@@ -209,7 +210,7 @@ export function run({ check, assert, log }) {
     );
     check("  the path outermost first: type, category, name, then size, maker, part number", ASSET_PATH_LEVELS.join(" > "), "level1 > level2 > level3 > size > maker > partNumber");
     check("  the three every row a registration may pick fills", ASSET_REQUIRED_LEVELS.join(", "), "level1, level2, level3");
-    check("  and the three a row may leave empty, in the order the second step asks them", ASSET_OPTIONAL_LEVELS.join(", "), "size, maker, partNumber");
+    check("  and the two a model is, chosen together on the second step (#520)", ASSET_MODEL_LEVELS.join(", "), "maker, partNumber");
     check("  the type's two values, in the select's order", ASSET_TYPE_VALUES.join(", "), "Equipment, Tool");
     check("  the class's two values, in the select's order", ASSET_CLASS_VALUES.join(", "), "A, B");
     check("  the separator a path is said with, `lib/materialCategory.js`' own", ASSET_PATH_SEPARATOR, " > ");
@@ -413,63 +414,76 @@ export function run({ check, assert, log }) {
 
     // ── 4: the second step's walk ────────────────────────────────────────────
     log("");
-    log("the second step asks the levels the name's rows hold, narrowing as it goes:");
+    log("the second step asks the size, then the model — a row's maker and part number together (#520):");
     const grinder = catalogRowsOf(offered, "tool\nmachining\nangle grinder");
-    // EVERY LEVEL IS 0l's CHOICE, THE EMPTY OPTION ONE OF ITS OPTIONS (#517): beside a value it
-    // is chosen by the reader, and it is chosen already only where it is the one option.
+    // THE SIZE FIRST, AMONG SEVERAL, AND THE MODEL WAITING FOR IT (1b): nothing is offered as a
+    // model until the size is settled, since a model belongs to a size.
+    check("sizes to choose, and no model asked until one is", walked(grinder, {}), 'size 4-1/2"/5" = ? → no row');
     check(
-        "a level offering the empty option beside values starts unchosen, as one of several does",
-        walked(grinder, {}),
-        'size 4-1/2"/5" = ? · maker No maker/Bosch/Makita = ? · partNumber No part #/GA4530/GA4570 = ? → no row'
+        "  a size chosen offers its models, makers first, `Not specified` last",
+        walked(grinder, { size: '4-1/2"' }),
+        'size 4-1/2"/5" = 4-1/2" · model Bosch/Makita (GA4530)/Makita (GA4570)/Not specified = ? → no row'
     );
-    check("  a size chosen leaves its makers, the empty one among them, to choose", walked(grinder, { size: '4-1/2"' }), 'size 4-1/2"/5" = 4-1/2" · maker No maker/Bosch/Makita = ? · partNumber No part #/GA4530/GA4570 = ? → no row');
-    check("  a maker chosen narrows the part numbers to its own, none left empty", walked(grinder, { size: '4-1/2"', maker: "makita" }), 'size 4-1/2"/5" = 4-1/2" · maker No maker/Bosch/Makita = Makita · partNumber GA4530/GA4570 = ? → no row');
-    check("  and one of them makes its row", walked(grinder, { size: '4-1/2"', maker: "makita", partNumber: "ga4570" }), 'size 4-1/2"/5" = 4-1/2" · maker No maker/Bosch/Makita = Makita · partNumber GA4530/GA4570 = GA4570 → g45mk70');
-    check("  a maker with no part number leaves it empty, the one held read as never made", walked(grinder, { size: '4-1/2"', maker: "bosch", partNumber: "ga4570" }), 'size 4-1/2"/5" = 4-1/2" · maker No maker/Bosch/Makita = Bosch · partNumber No part # = No part # → g45bo');
-    check("  a size with no maker starts the maker again", walked(grinder, { size: '5"', maker: "makita", partNumber: "ga4570" }), 'size 4-1/2"/5" = 5" · maker No maker = No maker · partNumber No part # = No part # → g5');
-    check("  the empty option chosen as itself", walked(grinder, { size: '4-1/2"', maker: "" }), 'size 4-1/2"/5" = 4-1/2" · maker No maker/Bosch/Makita = No maker · partNumber No part # = No part # → g45');
+    check("  a model chosen makes its row, one maker's part numbers told apart", walked(grinder, { size: '4-1/2"', model: "makita\nga4570" }), 'size 4-1/2"/5" = 4-1/2" · model Bosch/Makita (GA4530)/Makita (GA4570)/Not specified = Makita (GA4570) → g45mk70');
+    check("  a maker with no part number is its maker alone", walked(grinder, { size: '4-1/2"', model: "bosch\n" }), 'size 4-1/2"/5" = 4-1/2" · model Bosch/Makita (GA4530)/Makita (GA4570)/Not specified = Bosch → g45bo');
+    check("  `Not specified` is a choice, the row naming no model", walked(grinder, { size: '4-1/2"', model: "\n" }), 'size 4-1/2"/5" = 4-1/2" · model Bosch/Makita (GA4530)/Makita (GA4570)/Not specified = Not specified → g45');
+    check("  a size whose rows name no model is asked none, the model held read as never made", walked(grinder, { size: '5"', model: "makita\nga4570" }), 'size 4-1/2"/5" = 5" → g5');
     check(
-        "equipment with no size is asked none, and a maker none leaves empty must be chosen",
+        "equipment with no size is asked none, and its models start with none chosen",
         walked(catalogRowsOf(offered, "equipment\nwelding\nwelding machine"), {}),
-        "maker Lincoln/Miller = ? · partNumber Millermatic 255/POWER MIG 256 = ? → no row"
+        "model Lincoln (POWER MIG 256)/Miller (Millermatic 255) = ? → no row"
     );
-    check("  whose one part number is then already chosen", walked(catalogRowsOf(offered, "equipment\nwelding\nwelding machine"), { maker: "miller" }), "maker Lincoln/Miller = Miller · partNumber Millermatic 255 = Millermatic 255 → weldMi");
-    check("equipment with a generic row beside a maker's starts on neither", walked(catalogRowsOf(offered, "equipment\nmachining\ndrill press"), {}), "maker No maker/Jet = ? · partNumber No part #/JDP-17 = ? → no row");
-    check("  takes the generic row by the empty option", walked(catalogRowsOf(offered, "equipment\nmachining\ndrill press"), { maker: "" }), "maker No maker/Jet = No maker · partNumber No part # = No part # → press");
-    check("  and its maker's row by its maker", walked(catalogRowsOf(offered, "equipment\nmachining\ndrill press"), { maker: "jet" }), "maker No maker/Jet = Jet · partNumber JDP-17 = JDP-17 → pressJet");
-    // THE OFFICE'S BATTERY (#517): a DeWalt with no size beside two Milwaukees. Started on `No
-    // size`, the maker would be DeWalt alone and chosen, and a Milwaukee left unsized added as a
-    // DeWalt; it starts on nothing, and `No size` is a choice that then makes the DeWalt.
+    check("  and one chosen makes its row", walked(catalogRowsOf(offered, "equipment\nwelding\nwelding machine"), { model: "miller\nmillermatic 255" }), "model Lincoln (POWER MIG 256)/Miller (Millermatic 255) = Miller (Millermatic 255) → weldMi");
+    check("a generic row beside a maker's starts on neither", walked(catalogRowsOf(offered, "equipment\nmachining\ndrill press"), {}), "model Jet (JDP-17)/Not specified = ? → no row");
+    check("  takes the generic row by `Not specified`", walked(catalogRowsOf(offered, "equipment\nmachining\ndrill press"), { model: "\n" }), "model Jet (JDP-17)/Not specified = Not specified → press");
+    check("  and its maker's row by its model", walked(catalogRowsOf(offered, "equipment\nmachining\ndrill press"), { model: "jet\njdp-17" }), "model Jet (JDP-17)/Not specified = Jet (JDP-17) → pressJet");
+    // THE OFFICE'S BATTERY (#517): a DeWalt with no size beside two Milwaukees. Started on the empty
+    // size, the maker would be DeWalt alone and chosen, and a Milwaukee left unsized added as a
+    // DeWalt; the size starts on nothing, `None` last among its options, and the model waits.
     const battery = [
         { id: "batDw", level3: "Battery", size: "", maker: "DeWalt", partNumber: "" },
         { id: "batM12", level3: "Battery", size: "M12", maker: "Milwaukee", partNumber: "" },
         { id: "batM18", level3: "Battery", size: "M18", maker: "Milwaukee", partNumber: "" },
     ];
-    check("a size with no size beside two starts unchosen, and so does the maker under it", walked(battery, {}), "size No size/M12/M18 = ? · maker DeWalt/Milwaukee = ? → no row");
-    check("  `No size` chosen makes the one maker left already chosen", walked(battery, { size: "" }), "size No size/M12/M18 = No size · maker DeWalt = DeWalt → batDw");
-    check("  and a size makes its Milwaukee", walked(battery, { size: "m18" }), "size No size/M12/M18 = M18 · maker Milwaukee = Milwaukee → batM18");
-    // THE OFFICE'S WRENCH: one size of many by a maker. The maker waits for the size, and then
-    // is the one option the size leaves — empty for most, the maker for one.
+    check("a size beside no size starts unchosen, `None` last, and asks no model yet", walked(battery, {}), "size M12/M18/None = ? → no row");
+    check("  `None` chosen makes the one model left, already chosen and still said", walked(battery, { size: "" }), "size M12/M18/None = None · model DeWalt = DeWalt → batDw");
+    check("  and a size makes its Milwaukee", walked(battery, { size: "m18" }), "size M12/M18/None = M18 · model Milwaukee = Milwaukee → batM18");
+    // THE OFFICE'S WRENCH: one size of many by a maker. The model waits for the size, and then is
+    // the one option the size leaves — said where it names a maker, and not where it names none.
     const wrench = [
         { id: "wr16", level3: "Wrench", size: "16 mm", maker: "", partNumber: "" },
         { id: "wr17", level3: "Wrench", size: "17 mm", maker: "", partNumber: "" },
         { id: "wrProto", level3: "Wrench", size: "13x14 mm", maker: "Proto", partNumber: "" },
     ];
-    check("a maker one size of many has waits on the size", walked(wrench, {}), "size 13x14 mm/16 mm/17 mm = ? · maker No maker/Proto = ? → no row");
-    check("  a size with no maker leaves `No maker` the one option, chosen", walked(wrench, { size: "16 mm" }), "size 13x14 mm/16 mm/17 mm = 16 mm · maker No maker = No maker → wr16");
-    check("  and the size with one has that maker chosen", walked(wrench, { size: "13x14 mm" }), "size 13x14 mm/16 mm/17 mm = 13x14 mm · maker Proto = Proto → wrProto");
+    check("a maker one size of many has waits on the size", walked(wrench, {}), "size 13x14 mm/16 mm/17 mm = ? → no row");
+    check("  a size with no maker asks no model and is its row", walked(wrench, { size: "16 mm" }), "size 13x14 mm/16 mm/17 mm = 16 mm → wr16");
+    check("  and the size with one has that maker chosen", walked(wrench, { size: "13x14 mm" }), "size 13x14 mm/16 mm/17 mm = 13x14 mm · model Proto = Proto → wrProto");
+    const partOnly = [
+        { id: "pA", level3: "Gauge", size: "", maker: "", partNumber: "X-2" },
+        { id: "pB", level3: "Gauge", size: "", maker: "Acme", partNumber: "" },
+    ];
+    check("a part number with no maker is the part number alone, after the makers", walked(partOnly, {}), "model Acme/X-2 = ? → no row");
     check("a name with one row and no levels asks nothing and is that row", walked(catalogRowsOf(offered, "equipment\nsite services\nair compressor"), {}), " → air");
-    check("a name with one size has it already chosen (0l)", walked(catalogRowsOf(offered, "tool\ncarpentry\njigsaw"), {}), "size T-Shank = T-Shank → jig");
+    check("a name with one size asks none and is its row (1b)", walked(catalogRowsOf(offered, "tool\ncarpentry\njigsaw"), {}), " → jig");
     check("  and no rows ask nothing and make no row", walked([], {}), " → no row");
-    // WHICH LEVELS ARE ASKED IS THE NAME'S, NOT THE CHOICES': the grinder's part number is asked
-    // under its generic size too, where every row under that size leaves it empty.
-    check(
-        "the levels asked do not change with what is chosen",
-        walkDetails(grinder, { size: '5"' })
+    // WHAT IS DRAWN FOLLOWS THE SIZE: the model is asked once the size is settled and a row under it
+    // names one, and not before.
+    const askedOf = (chosen) =>
+        walkDetails(grinder, chosen)
             .levels.map((level) => `${level.level}:${level.asked}`)
-            .join(" "),
-        "size:true maker:true partNumber:true"
+            .join(" ");
+    check("the model is drawn once the size is settled, and only where a row under it names one", [askedOf({}), askedOf({ size: '4-1/2"' }), askedOf({ size: '5"' })].join(" | "), "size:true model:false | size:true model:true | size:true model:false");
+    // THE SIZES' ORDER (1b): the metric ones first, then the rest, each by the figure it leads with.
+    check(
+        "sizes by their figures, metric first, where words alone put 1/2\" before 8 mm",
+        ['3/4"', "8 mm", '1/2"', "10 mm", "9 mm", '11/16"', "27 mm"].sort(compareSizes).join(" | "),
+        '8 mm | 9 mm | 10 mm | 27 mm | 1/2" | 11/16" | 3/4"'
     );
+    check("  a mixed number read whole, and a figure after a letter", ['5"', '4-1/2"', "M18", "M12"].sort(compareSizes).join(" | "), '4-1/2" | 5" | M12 | M18');
+    check("  its fraction counted, so it stands between the whole numbers", ['4-3/4"', '5"', '4-1/4"', '4"'].sort(compareSizes).join(" | "), '4" | 4-1/4" | 4-3/4" | 5"');
+    check("  millimeters after an inch mark are an inch size's own", ["150 mm", '5" (127 mm)', '4"'].sort(compareSizes).join(" | "), '150 mm | 4" | 5" (127 mm)');
+    check("  and before any, a metric size", ["50 to 120 mm", "8A to 25A (8 to 32 mm)"].sort(compareSizes).join(" | "), "8A to 25A (8 to 32 mm) | 50 to 120 mm");
+    check("  a size with no figure after those with one, by its words", ["T-Shank", '1/2"', "Cross-Line"].sort(compareSizes).join(" | "), '1/2" | Cross-Line | T-Shank');
     // THE ORDER EVERY ASSET LIST SAYS WORDS IN, which the category list sorts its rows by too.
     check(
         "words by their spelling, case aside, and a run of digits as a number",
@@ -496,20 +510,17 @@ export function run({ check, assert, log }) {
         "Search items | Clear search | Clear type filter | Clear category filter | Clear class filter"
     );
     check("  a × for each filter a chip draws", Object.keys(ASSET_CATEGORY_COPY.clearFilter).join(" "), "level1 level2 assetClass");
+    // THE SECOND STEP'S WORDS ARE 1b's (#520): its second choice, and each choice's empty option,
+    // where #514 drew `Choose a size`-shaped placeholders and `No size`, `No maker`, `No part #`.
+    check("  the second step's model", ASSET_CATEGORY_COPY.modelLabel, "Model");
     check(
-        "  each level the second step asks while nothing is chosen, `Choose a job`'s",
-        Object.entries(ASSET_CATEGORY_COPY.unchosen)
-            .map(([level, word]) => `${level}=${word}`)
-            .join(" | "),
-        "size=Choose a size | maker=Choose a maker | partNumber=Choose a part #"
-    );
-    check(
-        "  each level a row may leave empty, as the option that leaves it so",
+        "  each choice left empty, as the chip that leaves it so",
         Object.entries(ASSET_CATEGORY_COPY.leftEmpty)
             .map(([level, word]) => `${level}=${word}`)
             .join(" | "),
-        "size=No size | maker=No maker | partNumber=No part #"
+        "size=None | model=Not specified"
     );
+    check("  and no placeholder, since a chip has none", "unchosen" in ASSET_CATEGORY_COPY, false);
     const classParts = ASSET_CATEGORY_COPY.classOf("A");
     check(
         "  and the class beside a kind, its value the part in Ink",

@@ -61,6 +61,7 @@ import {
     movedIndex,
     multiSelectKey,
     numberFieldText,
+    radioKey,
     searchResultsKey,
     selectOnlyKey,
     stepNumber,
@@ -219,6 +220,22 @@ export function run({ check, assert, log }) {
         ["a", { active: 0, count: 3 }, null],
     ])
         check(`  ${JSON.stringify(name)} at ${state.active} of ${state.count}`, JSON.stringify(searchResultsKey(key(name), state)), JSON.stringify(expected));
+    // CHIPS TAKING ONE VALUE ARE A RADIO GROUP (#520), 1b's size and model: every arrow moves and
+    // chooses, the down and right ones on and the up and left ones back, and Space chooses.
+    log("a group of chips taking one value moves and chooses by the arrows (#520):");
+    for (const [name, expected] of [
+        ["ArrowDown", "next"],
+        ["ArrowRight", "next"],
+        ["ArrowUp", "previous"],
+        ["ArrowLeft", "previous"],
+        [" ", "check"],
+        ["Enter", null],
+        ["Tab", null],
+        ["Home", null],
+        ["a", null],
+    ])
+        check(`  ${JSON.stringify(name)}`, radioKey(key(name)), expected);
+    check("  and they wrap at both ends", `${menuIndex(3, 4, "next")} ${menuIndex(0, 4, "previous")}`, "0 3");
     log("and it moves within the list, stopping at its ends:");
     check("  down from nothing reaches the first", movedIndex(-1, 4, "next"), 0);
     check("  down from the last stays", movedIndex(4, 4, "next"), 4);
@@ -856,7 +873,8 @@ export function run({ check, assert, log }) {
                 /var\(--height-dialog-search\)/.test(fixed) && !/\bp-dialog-inset\b/.test(fixed),
                 /\$\{wide \? WIDTH\.search : WIDTH\.compact\} \$\{fixed \? FIXED : COMPACT\}/.test(source),
                 /data-fixed=\{fixed \? "" : undefined\}/.test(source),
-                (source.match(/\bin-data-fixed:px-dialog-inset\b/g) ?? []).length === 3,
+                // The head, the body, the fields on the actions (`foot`) and the actions.
+                (source.match(/\bin-data-fixed:px-dialog-inset\b/g) ?? []).length === 4,
                 /flex min-h-0 flex-col in-data-fixed:grow/.test(source),
             ].join(" "),
             withPreview: [
@@ -892,7 +910,7 @@ export function run({ check, assert, log }) {
             bodyContained: (() => {
                 const fn = functionNamed(ast, "DialogBody");
                 const body = fn ? source.slice(fn.start, fn.end) : "";
-                return /ref=\{scrollerRef\}\s*className="[^"]*\boverflow-y-auto overscroll-contain\b/.test(body);
+                return /ref=\{scrollerRef\}\s*className=\{`[^`]*\boverflow-y-auto overscroll-contain\b/.test(body);
             })(),
             bodyGrows: (() => {
                 let grows = false;
@@ -950,6 +968,48 @@ export function run({ check, assert, log }) {
             /const insetOf = \(variant, size\) => \(variant === "ghost" \? "px-ghost-inset-x" : BUTTON_INSET\[size\]\);/.test(controlSource),
         ].join(" "),
         "true true true"
+    );
+    // 0l's CHIPS (#520), 1b's size and model: a radio group named by its label, one stop for Tab on
+    // the chip chosen or the first, the arrows moving and choosing through `radioKey`, an equal-width
+    // grid each as wide as the widest label measured once drawn and once the faces load, 72 at
+    // least; a refusal at the right end of the label's line; the chosen chip on the Face in its Edge
+    // and an empty option in Ink 3. And a body holding its dialog's height: what scrolls reserves
+    // 0i's lane, and the fields always asked sit under it, outside the scroll, 14 below it.
+    const chipFn = functionNamed(parseFile(CONTROLS).ast, "ChipChoice");
+    const chipPart = chipFn ? controlSource.slice(chipFn.start, chipFn.end) : "";
+    check(
+        "a group of chips is a radio group, one Tab stop, the arrows choosing, each as wide as the widest (#520)",
+        [
+            /role="radiogroup"\s*aria-labelledby=\{labelId\}/.test(chipPart),
+            /role="radio"\s*aria-checked=\{on\}/.test(chipPart),
+            /tabIndex=\{on \|\| \(chosen < 0 && index === 0\) \? 0 : -1\}/.test(chipPart),
+            calls(chipFn ?? {}).has("radioKey") && /const next = action === "check" \? index : menuIndex\(index, options\.length, action\);\s*choose\(next\);/.test(chipPart),
+            /minmax\(min\(100%,max\(var\(--min-width-dialog-chip\),calc\(var\(--chip-label-width,0px\)\+2\*var\(--spacing-input-inset-x\)\+2px\)\)\),1fr\)/.test(chipPart),
+            /each\.scrollWidth/.test(chipPart) && /grid\.style\.setProperty\("--chip-label-width"/.test(chipPart) && /document\.fonts\?\.ready\.then\(measure\)/.test(chipPart),
+        ].join(" "),
+        "true true true true true true"
+    );
+    check(
+        "  its refusal on its label's line, the chosen chip on the Face, an empty option in Ink 3 (#520)",
+        [
+            /justify-between[^"]*"[\s\S]*?role="alert" className="text-body-sm text-danger"/.test(chipPart),
+            /chosen: "border-selected-border bg-selected not-aria-disabled:hover:bg-selected-hover"/.test(controlSource),
+            /option\.empty \? "text-foreground-subtle" : "text-foreground-default"/.test(chipPart),
+        ].join(" "),
+        "true true true"
+    );
+    const bodyFn = functionNamed(frame.ast, "DialogBody");
+    const bodyPart = bodyFn ? frame.source.slice(bodyFn.start, bodyFn.end) : "";
+    check(
+        "  and a body holding its height scrolls in 0i's lane, the fields always asked under it (#520)",
+        [
+            /lane\s*\?\s*`pr-\[calc\(var\(--spacing-dialog-inset\)-var\(--spacing-scrollbar-gutter\)\)\] pl-dialog-inset \[scrollbar-gutter:stable\] \$\{SCROLL_LANE\}`/.test(bodyPart),
+            /\{foot && <div className="shrink-0 pt-gap-lg in-data-fixed:px-dialog-inset">\{foot\}<\/div>\}\s*<\/div>\s*\);/.test(bodyPart),
+            /\{hidden\.below && [^\n]*\n\s*<\/div>\s*\{foot &&/.test(bodyPart),
+            // What scrolls is what the dialog holds and nothing more: the fields never scroll.
+            /`\}\s*>\s*\{children\}\s*<\/div>\s*\{hidden\.above/.test(bodyPart),
+        ].join(" "),
+        "true true true true"
     );
 
     // THE PHONE'S SHEET, 0l's CONFIRM, AND A DIALOG TAKEN AWAY OPEN (#458). Below the phone's
@@ -1031,7 +1091,12 @@ export function run({ check, assert, log }) {
     check(
         "a sheet's body, sentence and actions take the phone's sizes from its mark",
         [
-            partClass("DialogBody", (c) => /max-sm:in-data-\[sheet=drawer\]:gap-mobile-field-stack/.test(c)),
+            (() => {
+                // The body's scroller writes its class as a template since #520, its sides chosen
+                // by whether it reserves 0i's lane, so it is read off the function's source.
+                const fn = functionNamed(frame.ast, "DialogBody");
+                return Boolean(fn) && /max-sm:in-data-\[sheet=drawer\]:gap-mobile-field-stack/.test(frame.source.slice(fn.start, fn.end));
+            })(),
             partClass("DialogMessage", (c) => /max-sm:in-data-\[sheet\]:text-mobile-body/.test(c)),
             partClass("DialogActions", (c) => /max-sm:in-data-\[sheet\]:flex-col-reverse max-sm:in-data-\[sheet\]:gap-mobile-drawer-action-stack/.test(c)),
             partClass("DialogActions", (c) => /max-sm:in-data-\[sheet\]:pt-mobile-drawer-body-stack/.test(c)),

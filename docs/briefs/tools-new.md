@@ -73,23 +73,35 @@ holds its height, so going between the steps never moves its edges.
   the actions' left, which goes back to the first step with the search as it
   was left; picking the name again keeps what was chosen. It was `Change`,
   beside the name and its whole place on that line, from #507 to #520. Then
-  the levels the catalog holds under that name, in order:
-  `Size`, `Maker`, `Part #` — **only a level some row under the name gives a
-  value**, so most equipment is asked no size, and a name with one row and none
-  of the three is asked none of them. Each level's choices are the values the
-  rows still standing under the earlier choices hold, so a maker chosen narrows
-  the part numbers to that maker's. **A level may be left empty only where such
-  a row leaves it empty**: then its first choice is `No maker` (`No size`, `No
-  part #`). **Every level is a choice 0l's way, `No maker` one of its
-  choices**: one choice is already chosen — `No maker` too, where it is all
-  the rows still standing allow — and several start with none, so leaving the
-  level alone picks nothing and the reader says which (#517). The office's
-  `Battery` is why: a DeWalt with no size beside two Milwaukees sized M12 and
-  M18, so a size started on `No size` would leave DeWalt the one maker, chosen,
-  for somebody adding a Milwaukee who never touched the size. Then how many, a
-  whole number of at least 1, capped at 100 per submission. Then the job. **Nobody
-  types one anywhere on this axis.** Somebody on one job gets that job without
-  being asked; somebody on several picks from their own.
+  the size and the model (1b, #520), each a row of chips — 36 tall, as wide
+  as their longest option and as many to a line as fit, the one chosen on
+  the blue face — under its word, `Size` or `Model`. **The size first, and
+  only among several**: a name whose rows give one size, or none, is asked
+  none, the name saying it already. Its chips are the sizes in order of
+  their figures, the metric ones first — `8 mm` to `27 mm`, then `7/16"` to
+  `3/4"` — and `None` last, in a lighter ink, where a row gives no size
+  beside rows that do. **Then the model, a maker and a part number
+  together**, `Lincoln Electric (TIG 205)` — the maker alone, or the part
+  number alone, where the row gives one — offered only once the size is
+  settled, since a model belongs to a size, makers alphabetically and `Not
+  specified` last, in the lighter ink, for a row giving neither. The model
+  is asked wherever a row under the size names one, even alone, chosen
+  already: it says who made what is added. **One option is chosen without
+  asking, and several start with none**, so leaving a choice alone picks
+  nothing and the reader says which (#517). The office's `Battery` is why: a
+  DeWalt with no size beside two Milwaukees sized M12 and M18, so a size
+  started on its empty option would leave DeWalt the one maker, chosen, for
+  somebody adding a Milwaukee who never touched the size; here the size is
+  asked among `M12`, `M18` and `None`, and the model waits for it. From
+  #514 to #520 the step asked `Size`, `Maker` and `Part #` one by one, each
+  a choice with its empty option first — `No size`, `No maker`, `No part
+  #` — and drew a level of one option as a choice holding it.
+- **The fields it always asks sit on the actions** (0l, 1b): how many, a
+  whole number of at least 1, capped at 100 per submission, and the job,
+  side by side, with the size and the model scrolling above them when there
+  are more than the dialog's height holds. **Nobody types a job anywhere on
+  this axis.** Somebody on one job gets that job without being asked;
+  somebody on several picks from their own.
 
 The first step has no actions (1b): a pick goes on, and the close and Escape
 stop. The submit stands on the second, after `Cancel`, with `Back` at the
@@ -97,11 +109,11 @@ line's other end. It names what it will add by its count — `Add 1 item`, `Add
 5 items` — and says `Add items` while the count is one a submission would
 refuse (#469).
 
-**evidence.** On the second step, the class of the kind its levels make —
-`Class` over `B` — once each level holds a value. **It is stated, not asked**:
-the office sets it in the catalog, `A` for an item that matters more, usually a
-dearer one, and `B` otherwise, and no act reads it. A design may not make it a
-choice here.
+**The class is not said here (1b, #520).** The office sets it in the catalog,
+`A` for an item that matters more, usually a dearer one, and `B` otherwise,
+and no act reads it; a category's own screen and an asset's say it in their
+caption. The second step stated it under the levels from #507 to #520. A
+design may not make it a choice here.
 
 ## What it carries only sometimes
 
@@ -136,14 +148,14 @@ the name is what tells two codes apart for a reader choosing between them.
 **When it is opened on a category (#449, #451, #456):** a category's own screen opens it
 on that category with its `Add items`, and after a registration that fell short, its
 `Add 2 more` opens it on that category with the count that was not written — the
-count those words name (#485). **It opens at the second step with that category's
-levels already chosen (#507, #514)**: the category's name is the line under the
-title, each level the category has is a choice holding its one value, chosen, and
-there is no `Back`, so what is added goes under the category that screen is
-about; another is picked from `/asset-categories`. It is 480 wide, as the
-dialog sharing its title is, and as tall as what it holds, since it picks
-nothing (#520). The class is stated as
-always. The count starts at the one handed over, and at 1 when none is — where
+count those words name (#485). **It opens at the second step with nothing to
+choose (#507, #520)**: the category's name is the line under the title, it asks
+how many and the job and nothing else, and there is no `Back`, so what is added
+goes under the category that screen is about; another is picked from
+`/asset-categories`. Until #520 it drew each level the category has as a choice
+holding its one value, and stated the class. It is 480 wide, as the dialog
+sharing its title is, and as tall as what it holds, since it picks nothing
+(#520). The count starts at the one handed over, and at 1 when none is — where
 it starts on `/asset-categories` too — and is the reader's to change. **The dialog says
 nothing about why the count is filled**: a line saying so would be a second
 account of the registration that fell short, which the category's screen already
@@ -178,15 +190,15 @@ color, because the press it is waiting on has happened.
 
 **When nothing was written:** one sentence on the line above the actions —
 `Couldn't add the items. Try again.` The dialog stays, and **everything
-chosen and typed stays with it** — the name, its levels, the count and the job —
+chosen and typed stays with it** — the name, its size and model, the count and the job —
 because what the sentence asks for is the same submit again.
 
 **When the catalog no longer offers the row picked (#507):** the office has
 emptied one of its levels or its class, or a second row names the same path,
 since the page was drawn. The submission is refused whole, with one sentence on
 the line above the actions — `That item isn't available any more.` — and the
-page is drawn again under the dialog, so the dialog's levels and class are the
-catalog's as it now stands and can no longer make the row refused. The dialog
+page is drawn again under the dialog, so the dialog's names, sizes and models
+are the catalog's as it now stands and can no longer make the row refused. The dialog
 stays open with everything else it held.
 
 **When nothing the search lists holds what is typed (1b, #520):** in the
@@ -196,12 +208,13 @@ else the type in lower case, `in tool`, or else any category. It is not a
 refusal: the first step refuses nothing. Until #520 Enter on words naming no
 one row of the catalog was refused under the field, `Choose a name.`
 
-**When a refusal fires:** a refusal about one field is said under that field,
-in the place its help or its note takes, and rings the field — a level with no value chosen
-(`Choose a size.`, `Choose a maker.`, `Choose a part #.`, each under its own
-level, and only while it holds none), a count that is not 1 to 100 (`Enter 1
-to 100.`), one over the cap (`Max 100 at a time.`), and a job not chosen or not
-the reader's; the one about
+**When a refusal fires:** a size or a model with nothing chosen is refused at
+the right end of its word's line in red — `Choose a size.`, `Choose a model.`,
+1b's, and only while it holds none, and the model only once the size is
+settled (0l's chips, #520); a refusal about any other field is said under that
+field, in the place its help or its note takes, and rings the field — a count
+that is not 1 to 100 (`Enter 1 to 100.`), one over the cap (`Max 100 at a
+time.`), and a job not chosen or not the reader's; the one about
 the whole dialog — nothing written, or the row no longer offered — takes the
 line above the actions (0l, #456). A field's refusal goes when that field is
 changed. Every field keeps what was chosen and typed through any of them.

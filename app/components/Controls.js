@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { createContext, useContext, useId, useRef, useState } from "react";
+import { createContext, useContext, useId, useLayoutEffect, useRef, useState } from "react";
 import {
     CONTROLS_COPY as COPY,
     buttonBusyState,
     editableComboboxKey,
+    menuIndex,
     movedIndex,
     multiSelectKey,
     numberFieldText,
+    radioKey,
     selectOnlyKey,
     stepNumber,
     typeaheadIndex,
@@ -1262,6 +1264,118 @@ export function FilterChip({ label, options, values, onChange, clearLabel, sever
                         : toggle
                 }
             />
+        </div>
+    );
+}
+
+// A chip of 0l's chips: 36 tall, its option at 14 and 400 like a field's value, 12 either side,
+// on white inside the Edge, filling at Wash under the pointer (0f Bordered); the one chosen on
+// the Face inside its Edge, filling at Face hover. Neither moves while a form waits (#469).
+const CHIP = "flex h-control-lg min-w-0 items-center justify-center rounded-control border px-input-inset-x text-body outline-none focus-visible:border-border-focus";
+const CHIP_LOOK = {
+    resting: "border-border bg-white not-aria-disabled:hover:bg-hover-subtle",
+    chosen: "border-selected-border bg-selected not-aria-disabled:hover:bg-selected-hover",
+};
+
+/**
+ * 0l's chips (1b, #520): "when the options are few and short and choosing among them is the
+ * dialog's main task, they are laid out instead as 36 chips … in an equal-width grid, each as
+ * wide as the longest option, 8 apart; the chosen chip takes the selected Face and Edge." The
+ * registration's size and model are the first. The label sits 8 above them at 13 and 500, as a
+ * field's does, and a refusal at the right end of its line at 13 in red.
+ *
+ * EACH AS WIDE AS THE LONGEST OPTION, WHICH ONLY THE BROWSER CAN MEASURE. The grid fills its row
+ * with as many columns as fit at that width, then shares what is left among them, so a row of
+ * short sizes runs five across at 432 and a model longer than half the row runs one. The widest
+ * label is measured once its chips are drawn — and again once the faces have loaded, which can
+ * widen it — and handed to the grid as `--chip-label-width`; the chip adds its 12 either side
+ * and its Edge, and stands at least 72, 1b's narrowest. Until the measure the grid lays out at
+ * 72, and it runs before the first paint.
+ *
+ * IT IS A RADIO GROUP, THE AUTHORING PRACTICES' (`lib/controls.js:radioKey`): one stop for Tab,
+ * on the chip chosen or on the first while none is, the arrows moving and choosing as they go,
+ * and wrapping. An option marked `empty` is the one leaving the choice empty — `None`, `Not
+ * specified` — set in Ink 3, as 1b sets it.
+ */
+export function ChipChoice({ label, options, value, onChange, refusal }) {
+    const labelId = useId();
+    const refusalId = useId();
+    const gridRef = useRef(null);
+    const formBusy = useContext(FormBusyContext);
+    const chosen = options.findIndex((option) => option.value === value);
+    const labels = options.map((option) => option.label).join("\n");
+
+    useLayoutEffect(() => {
+        const grid = gridRef.current;
+        if (!grid) return undefined;
+        let drawn = true;
+        const measure = () => {
+            if (!drawn) return;
+            const widest = Math.max(0, ...[...grid.querySelectorAll("[data-chip-label]")].map((each) => each.scrollWidth));
+            grid.style.setProperty("--chip-label-width", `${widest}px`);
+        };
+        measure();
+        document.fonts?.ready.then(measure);
+        return () => {
+            drawn = false;
+        };
+    }, [labels]);
+
+    const choose = (index) => {
+        if (!formBusy && index >= 0 && index < options.length) onChange(options[index].value);
+    };
+    const onKeyDown = (index) => (event) => {
+        const action = radioKey(event);
+        if (!action) return;
+        event.preventDefault();
+        if (formBusy) return;
+        const next = action === "check" ? index : menuIndex(index, options.length, action);
+        choose(next);
+        gridRef.current?.querySelector(`[data-index="${next}"]`)?.focus();
+    };
+
+    return (
+        <div className="flex flex-col">
+            <div className="flex items-baseline justify-between gap-gap-lg pb-gap">
+                <span id={labelId} className={FIELD_LABEL}>
+                    {label}
+                </span>
+                {refusal && (
+                    <span id={refusalId} role="alert" className="text-body-sm text-danger">
+                        {refusal}
+                    </span>
+                )}
+            </div>
+            <div
+                ref={gridRef}
+                role="radiogroup"
+                aria-labelledby={labelId}
+                aria-describedby={refusal ? refusalId : undefined}
+                aria-invalid={refusal ? true : undefined}
+                className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,max(var(--min-width-dialog-chip),calc(var(--chip-label-width,0px)+2*var(--spacing-input-inset-x)+2px))),1fr))] gap-gap"
+            >
+                {options.map((option, index) => {
+                    const on = index === chosen;
+                    return (
+                        <button
+                            key={option.value}
+                            type="button"
+                            role="radio"
+                            aria-checked={on}
+                            aria-disabled={formBusy || undefined}
+                            data-index={index}
+                            tabIndex={on || (chosen < 0 && index === 0) ? 0 : -1}
+                            onClick={() => choose(index)}
+                            onKeyDown={onKeyDown(index)}
+                            className={`${CHIP} ${on ? CHIP_LOOK.chosen : CHIP_LOOK.resting}`}
+                        >
+                            <span data-chip-label="" className={`min-w-0 truncate ${option.empty ? "text-foreground-subtle" : "text-foreground-default"}`}>
+                                {option.label}
+                            </span>
+                        </button>
+                    );
+                })}
+            </div>
         </div>
     );
 }

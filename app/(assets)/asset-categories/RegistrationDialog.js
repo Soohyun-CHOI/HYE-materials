@@ -2,7 +2,7 @@
 
 import { Fragment, startTransition, useActionState, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Button, Choice, Field, FilterChip, NumberField } from "@/app/components/Controls";
+import { Button, ChipChoice, Choice, Field, FilterChip, NumberField } from "@/app/components/Controls";
 import { DialogActions, DialogBody, DialogFrame, DialogSearch } from "@/app/components/DialogFrame";
 import Dot from "@/app/components/Dot";
 import { onlyJob } from "@/lib/assetJob";
@@ -28,9 +28,9 @@ import { registerAssetsAction } from "./actions";
  *
  * TWO STEPS SINCE #507, BECAUSE A REGISTRATION PICKS A KIND FROM THE CATALOG. The first finds
  * the name — a search over the catalog's names, which the type and the category narrow — and
- * picking one goes on to the second, which takes the levels the catalog holds under that name
- * (#514) — its size, maker and part number, each only where a row gives it one — the count and
- * the job, says the class of the kind they make, and submits. Nothing here creates a kind: the
+ * picking one goes on to the second, which takes what the catalog holds under that name — its
+ * size and its model since #520, the maker and part number together, each only where the rows
+ * give a choice — the count and the job, and submits. Nothing here creates a kind: the
  * name typed on this dialog from #338 was found or created as it was written, and the office
  * keeps the catalog in Airtable now.
  *
@@ -44,20 +44,23 @@ import { registerAssetsAction } from "./actions";
  * way to the first, a ghost at the actions' left. Until #520 the search offered five names in
  * a list under a field, the filters were 0l's choices above it, the first step said
  * `Each one gets its own ID and label.` under the title, and the way back was the sign-in
- * steps' `Change` on that line. The second step still draws each level as 0l's choice.
+ * steps' `Change` on that line.
  *
- * THE SECOND STEP IS `walkDetails`' ANSWER, DRAWN. Which levels it asks, what each offers under
- * the choices before it, which may be left empty — `No maker` first, and the level starting
- * on it only where it is the one option (#517) — and which row they make are
- * `lib/assetCategory.js`'s, asked again on every render of what the reader chose; this holds
- * the choices and nothing derived from them, so a choice a choice before it took away is read
- * there as never made, and no effect has to clear it.
+ * THE SECOND STEP IS 1b's SINCE #520, AND `walkDetails`' ANSWER, DRAWN. The size and the model
+ * are 0l's chips (`ChipChoice`), scrolling in 0i's lane, and the count and the job sit on the
+ * actions under them and do not scroll; the class the kind carries is not said, as 1b says none.
+ * Which choices it draws, what each offers under the size chosen, the empty option last — `None`,
+ * `Not specified` — and which row they make are `lib/assetCategory.js`'s, asked again on every
+ * render of what the reader chose; this holds the choices and nothing derived from them, so a
+ * model the size chosen since took away is read there as never made, and no effect has to
+ * clear it. From #514 to #520 it asked the size, the maker and the part number one by one, each
+ * 0l's choice with its empty option first, and stated the class under them.
  *
  * WHERE FOCUS GOES BETWEEN THE TWO IS THE FRAME'S RULE AND NOT A RULE OF ITS OWN. Opening, the
  * caret is in the search, the frame's first field that takes typing. A step that goes takes
  * what held focus with it — the search, or `Back` — and the frame puts focus that falls in
- * an open dialog on the first thing its body holds that can take it (#469): the first level
- * the second step asks, or the count where it asks none, and back on the first step the
+ * an open dialog on the first thing its body holds that can take it (#469): the first chip
+ * the second step draws, or the count where it draws none, and back on the first step the
  * search, which keeps what was typed. The filters stand after the search in its row (1b): the
  * results never cover them, since they stand under the row the whole time rather than opening
  * over what is below, which is what stood the filters above the search from #507 to #520.
@@ -65,11 +68,12 @@ import { registerAssetsAction } from "./actions";
  * THREE OPENERS, AND EACH HANDS OVER WHAT THE ADDRESS USED TO CARRY. The category list opens
  * it on no kind, so the first step picks one; a kind's own page opens it on that kind; and
  * the offer a registration that fell short makes opens it on that kind with the count it did
- * not write. Opened on a kind, the dialog starts at its second step with that kind's levels
- * already chosen — the catalog it is handed is that row alone, so each level it asks has one
- * value, already chosen (0l) — and nothing to pick: the kind's name is the line under the
- * title, the design's, and there is no way back, since what is added goes under the kind that
- * page is about — another is picked from the list's opener (#449, #451, #456, #514). Nothing
+ * not write. Opened on a kind, the dialog starts at its second step with nothing to choose —
+ * the catalog it is handed is that row alone, so its size and its model are already its own —
+ * and asks the count and the job alone (#520), where it drew the kind's levels each holding its
+ * one value until then: the kind's name is the line under the title, the design's, and there is
+ * no way back, since what is added goes under the kind that page is about — another is picked
+ * from the list's opener (#449, #451, #456, #514). Nothing
  * is written to the address to open it, and nothing about where it was opened from is said
  * inside it.
  *
@@ -104,8 +108,9 @@ import { registerAssetsAction } from "./actions";
  * stays until the next press. The first step refuses nothing: Enter takes the name under visual
  * focus — the first listed, once something is typed — and a search that lists nothing says so
  * in the list's place. Until #520 Enter with no suggestion under visual focus took the one name
- * typed in full and refused any other, under the field. The second step's refusals are each
- * level still to choose, `detailRefusals`', said under it beside the reading's.
+ * typed in full and refused any other, under the field. The second step's refusals are the
+ * size or the model still to choose, `detailRefusals`', each at the end of its label's line
+ * (0l's chips) beside the reading's.
  *
  * IT SUBMITS THROUGH `submit`, INSIDE A TRANSITION, which React follows with no reset of
  * the form (#449 read that in react-dom). The form carries no `action` prop: #449 kept one
@@ -193,20 +198,6 @@ export function RegistrationOpener({ variant = "filled", canRegister, onOpen, ch
 }
 
 /**
- * A fact the dialog says rather than asks — the class of the kind the two steps made (#507):
- * a field's label over its value, the closest the app draws to a field with no control until
- * Design draws the step.
- */
-function Stated({ label, children }) {
-    return (
-        <div className="flex min-w-0 flex-col">
-            <span className="mb-gap text-body-sm font-medium text-foreground-default">{label}</span>
-            <span className="text-body text-foreground-default">{children}</span>
-        </div>
-    );
-}
-
-/**
  * The dialog itself, opened by whatever holds its opening.
  *
  * `catalog` is the rows a registration may pick (`registrationCatalog`) — every one on the
@@ -223,9 +214,9 @@ export function RegistrationForm({ open, onClose, jobs, category, catalog = [], 
     // The first step's two filters, each a level's key, an empty one no filter (#514).
     const [filters, setFilters] = useState({ level1: "", level2: "" });
     const [typed, setTyped] = useState("");
-    // What the reader chose on the second step, level by level — a value's key, or "" for a
-    // level left empty — and nothing for a level not chosen, which starts where `walkDetails`
-    // starts it (#514).
+    // What the reader chose on the second step, `{ size, model }` — an option's value each, ""
+    // for a size of `None` — and nothing for a choice not made, which starts where `walkDetails`
+    // starts it (#514, #520).
     const [chosen, setChosen] = useState({});
     const [count, setCount] = useState(() => String(openingCount(quantity)));
     // With one job it is already chosen, and with several nothing is (0l) — `onlyJob`, the
@@ -326,6 +317,25 @@ export function RegistrationForm({ open, onClose, jobs, category, catalog = [], 
         </>
     ) : undefined;
 
+    // The count and the job, which every registration asks (1b): on the actions while the dialog
+    // picks, and the whole of what it asks opened on a kind.
+    const fields = (
+        <div className="grid grid-cols-[var(--width-number-input)_minmax(0,1fr)] gap-dialog-inline">
+            <Field label={COPY.quantityLabel} help={COPY.quantityHelp(MAX_ASSETS_PER_REGISTRATION)} refusal={refusalFor("quantity")}>
+                <NumberField name="quantity" value={count} onChange={edit("quantity", setCount)} min={1} max={MAX_ASSETS_PER_REGISTRATION} />
+            </Field>
+            <Field label={COPY.jobLabel} labelAs="span" refusal={refusalFor("jobId")}>
+                <Choice
+                    name="jobId"
+                    options={jobs.map((job) => ({ value: job.id, label: job.jobCode, note: job.jobName }))}
+                    value={jobId}
+                    onChange={edit("jobId", setJobId)}
+                    placeholder={COPY.jobUnchosen}
+                />
+            </Field>
+        </div>
+    );
+
     return (
         <DialogFrame open={open} onClose={onClose} busy={pending} title={COPY.heading} subtitle={subtitle} onSubmit={submit} wide fixed={!category}>
             {step === "name" ? (
@@ -391,47 +401,27 @@ export function RegistrationForm({ open, onClose, jobs, category, catalog = [], 
                 />
             ) : (
                 <>
-                    <DialogBody>
-                        <input type="hidden" name="categoryRecordId" value={made?.id ?? ""} />
-                        {details.levels
-                            .filter(({ asked }) => asked)
-                            .map(({ level, options, value }) => (
-                                // A level's refusal stands while it holds nothing: a choice before it
-                                // can leave it one value, already chosen, without the reader touching it.
-                                <Field key={level} label={CATALOG.levelLabel[level]} labelAs="span" refusal={value === null ? refusalFor(level) : undefined}>
-                                    <Choice
-                                        options={options}
-                                        value={value}
-                                        onChange={edit(level, (key) => setChosen((was) => ({ ...was, [level]: key })))}
-                                        placeholder={CATALOG.unchosen[level]}
-                                    />
-                                </Field>
-                            ))}
-                        {made?.assetClass && <Stated label={CATALOG.classLabel}>{made.assetClass}</Stated>}
-                        <div className="grid grid-cols-[var(--width-number-input)_minmax(0,1fr)] gap-dialog-inline">
-                            <Field
-                                label={COPY.quantityLabel}
-                                help={COPY.quantityHelp(MAX_ASSETS_PER_REGISTRATION)}
-                                refusal={refusalFor("quantity")}
-                            >
-                                <NumberField
-                                    name="quantity"
-                                    value={count}
-                                    onChange={edit("quantity", setCount)}
-                                    min={1}
-                                    max={MAX_ASSETS_PER_REGISTRATION}
-                                />
-                            </Field>
-                            <Field label={COPY.jobLabel} labelAs="span" refusal={refusalFor("jobId")}>
-                                <Choice
-                                    name="jobId"
-                                    options={jobs.map((job) => ({ value: job.id, label: job.jobCode, note: job.jobName }))}
-                                    value={jobId}
-                                    onChange={edit("jobId", setJobId)}
-                                    placeholder={COPY.jobUnchosen}
-                                />
-                            </Field>
-                        </div>
+                    <input type="hidden" name="categoryRecordId" value={made?.id ?? ""} />
+                    {/* Opened on a kind there is nothing to choose, so the dialog asks the count
+                        and the job alone. Picking, the size and the model scroll in 0i's lane
+                        over those two, which sit on the actions (0l, 1b). */}
+                    <DialogBody lane={!category} foot={category ? undefined : fields}>
+                        {category
+                            ? fields
+                            : details.levels
+                                  .filter(({ asked }) => asked)
+                                  .map(({ level, options, value }) => (
+                                      // A choice's refusal stands while it holds nothing: a size
+                                      // chosen can leave the model one option, chosen without asking.
+                                      <ChipChoice
+                                          key={level}
+                                          label={level === "model" ? CATALOG.modelLabel : CATALOG.levelLabel[level]}
+                                          options={options}
+                                          value={value}
+                                          onChange={edit(level, (key) => setChosen((was) => ({ ...was, [level]: key })))}
+                                          refusal={value === null ? refusalFor(level) : undefined}
+                                      />
+                                  ))}
                     </DialogBody>
                     {/* The way back stands at the actions' left, a ghost (1b) — none for a dialog
                         opened on a kind, which has no first step to go back to. */}

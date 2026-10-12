@@ -259,6 +259,7 @@
     --spacing-dialog-results-inset-top: 0.5rem; /* 1b, 8: from the row's Rule to the first result — from the drawings, not the spec */
     --spacing-dialog-results-inset-bottom: 0.75rem; /* 1b, 12: under the results, to the dialog's edge — from the drawings, not the spec */
     --spacing-dialog-results-empty-inset-top: 6rem; /* 1b, 96: above the sentence saying no result matches — from the drawings, not the spec */
+    --min-width-dialog-chip: 4.5rem; /* 1b, 72: the narrowest a dialog's chips stand, however short their longest option — from the drawings, not the spec */
 
     /* 0m · Navigation — the frame every screen sits in. From Tailwind's xl, the
        design's 1280 window, the expanded rail pushes the page. */

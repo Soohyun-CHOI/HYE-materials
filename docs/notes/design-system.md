@@ -167,6 +167,8 @@ Each is for the issue that draws it to name, in the same commit as its reader, s
 
 - 1b's search, the registration's first step, carries eight more, which #520 named with their readers the same way: the 490 the dialog holds while it picks (`--height-dialog-search`), 0l giving a fixed height and no figure; 4 from the title's line to the search's row (`--spacing-dialog-search-inset-top`); its mark pulled 3 so the ink meets the edge (`--spacing-dialog-search-icon-bleed`); the chips 6 apart (`--spacing-dialog-filter-inline`), where the band's stand at 0b's 8; 14 from a result's name to what it offers (`--spacing-dialog-result-inline`); 8 above the first result and 12 under the last (`--spacing-dialog-results-inset-top`, `--spacing-dialog-results-inset-bottom`); and 96 above the sentence saying nothing matched (`--spacing-dialog-results-empty-inset-top`). The 480, the row's 56 and the results' 12 are the spec's (0l Width, 0f Field), the clear 30 a Nested control with a 14 mark, and `Back` Ghost's 32 with 10 either side, pulled out by them. **Not taken**: 1b's chip lists at 31 a row, where 0a's Menu and 1a draw 32; the search's caret in Ink, where every field's is the Accent; the sentence's 16 either side, where it keeps the results' 12; and a set chip's chevron in black, a button's default the drawing did not set, where 1a draws it Ink 3.
 
+- 1b's second step, the size and the model as 0l's chips, carries one more, which #520 named the same way: the 72 a chip stands at however short its longest option (`--min-width-dialog-chip`). The rest is the spec's: each chip a 36 Commitment with a field's 12 either side and its value at 14 and 400, as wide as the longest option and 8 apart, the chosen one on 0c's Face in its Edge; the word 8 above at 13 and 500 and a refusal at the end of its line at 13 in red (0l Compact); the chips scrolling in 0i's lane 20 under the title's line and 14 over the fields always asked, which sit 24 over the actions. The width each chip takes is measured from its longest label in the browser, as the drawing measures it, and handed to the grid; it lays out at 72 until then, before the first paint.
+
 - A date's slashes are at 45% with 1.5 of room either side, and its time 9 past it at a desk and 8 on a phone — every date both files draw, and no row. #463 named the four with `app/components/Instant.js`, which draws every date in the app.
 
 **THE ONE PLACE A DRAWING CONTRADICTED THE SPEC IS SETTLED**: the name sheet's `Done` is 48 now, the phone's Target (answer 11).
@@ -358,6 +360,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 1b's drawing, the row's Rule to the first result — not the spec | `--spacing-dialog-results-inset-top` | 0.5rem (8) |
 | 1b's drawing, under the results to the dialog's edge — not the spec | `--spacing-dialog-results-inset-bottom` | 0.75rem (12) |
 | 1b's drawing, above the sentence saying nothing matched — not the spec | `--spacing-dialog-results-empty-inset-top` | 6rem (96) |
+| 1b's drawing, the narrowest a dialog's chips stand — not the spec | `--min-width-dialog-chip` | 4.5rem (72) |
 | 0m Rail, collapsed | `--width-rail` | 3.5rem (56) |
 | 0m Rail, expanded | `--width-rail-expanded` | 15.5rem (248) |
 | 0m Rail, inside | `--spacing-rail-inset` | 0.75rem (12) |

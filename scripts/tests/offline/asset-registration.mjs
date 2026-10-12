@@ -276,14 +276,15 @@ export async function run({ check, assert, log }) {
     check("  and while it is on its way, 0f's -ing word with no count", ASSET_REGISTRATION_COPY.working, "Adding…");
     check("  and the way out", ASSET_REGISTRATION_COPY.cancel, "Cancel");
     // EACH FIELD'S REFUSAL, AND THE ONE ABOUT THE WHOLE DIALOG (#456). Those a pick earns
-    // are `Choose a job.`'s shape (#507), one per level and keyed by it (#514), and a category
-    // the catalog no longer offers is the whole registration's.
+    // are `Choose a job.`'s shape (#507), keyed by what they refuse — the second step's size and
+    // model since #520, 1b's words, where #514 refused a maker and a part number apart — and a
+    // category the catalog no longer offers is the whole registration's.
     check(
-        "a submission naming no row, which no dialog sends, and each level of the second step not chosen",
+        "a submission naming no row, which no dialog sends, and the second step's size and model not chosen",
         Object.entries(ASSET_REGISTRATION_COPY.levelNoneChosen)
             .map(([level, word]) => `${level}=${word}`)
             .join(" | "),
-        "level3=Choose a name. | size=Choose a size. | maker=Choose a maker. | partNumber=Choose a part #."
+        "level3=Choose a name. | size=Choose a size. | model=Choose a model."
     );
     check("  and no word is left for the tool #507 searched", ["toolNoneChosen", "sizeNoneChosen", "changeTool"].filter((key) => key in ASSET_REGISTRATION_COPY).join(", "), "");
     check("  a category the catalog no longer offers", ASSET_REGISTRATION_COPY.itemGone, "That item isn't available any more.");
@@ -405,10 +406,10 @@ export async function run({ check, assert, log }) {
         "categoryRecordId, quantity, jobId"
     );
 
-    // THE SECOND STEP'S REFUSALS (#514): each level it asks and nobody has chosen, keyed by the
-    // level, all at once — the empty option beside a value among them since #517, which the
-    // reader chooses — and none for a level whose one option is empty, nor for one the name's
-    // rows never give a value.
+    // THE SECOND STEP'S REFUSALS (#514, #520): each choice it draws that nobody has made, keyed by
+    // the choice, all at once — the empty option beside others among them since #517, which the
+    // reader chooses — and none for a choice of one option, nor for one not drawn: the model is
+    // not drawn until the size is settled, so a press with no size refuses the size alone (1b).
     const welder = [
         { id: "weldLi", level3: "Welding Machine", size: "", maker: "Lincoln", partNumber: "POWER MIG 256" },
         { id: "weldMi", level3: "Welding Machine", size: "", maker: "Miller", partNumber: "Millermatic 255" },
@@ -419,15 +420,12 @@ export async function run({ check, assert, log }) {
         { id: "g5", level3: "Angle Grinder", size: '5"', maker: "", partNumber: "" },
     ];
     const refusedOf = (rows, chosen) => JSON.stringify(detailRefusals(walkDetails(rows, chosen).levels));
-    check("each level still to choose is refused under itself, all at once", refusedOf(welder, {}), JSON.stringify({ maker: "Choose a maker.", partNumber: "Choose a part #." }));
-    check(
-        "  a level offering the empty option beside a value is, until chosen",
-        refusedOf(grinder, {}),
-        JSON.stringify({ size: "Choose a size.", maker: "Choose a maker.", partNumber: "Choose a part #." })
-    );
-    check("  a level whose one option is empty is not", refusedOf(grinder, { size: '5"' }), "{}");
-    check("  and the empty option chosen is a choice", refusedOf(grinder, { size: '4-1/2"', maker: "" }), "{}");
-    check("  a level chosen is not", refusedOf(welder, { maker: "miller" }), "{}");
+    check("a model still to choose is refused on its own line", refusedOf(welder, {}), JSON.stringify({ model: "Choose a model." }));
+    check("  a size still to choose is, and the model waiting on it is not", refusedOf(grinder, {}), JSON.stringify({ size: "Choose a size." }));
+    check("  a size chosen leaves its model to refuse, `Not specified` among its options", refusedOf(grinder, { size: '4-1/2"' }), JSON.stringify({ model: "Choose a model." }));
+    check("  a size whose rows name no model refuses nothing", refusedOf(grinder, { size: '5"' }), "{}");
+    check("  and `Not specified` chosen is a choice", refusedOf(grinder, { size: '4-1/2"', model: "\n" }), "{}");
+    check("  a model chosen is not refused", refusedOf(welder, { model: "miller\nmillermatic 255" }), "{}");
     check("  and nothing walked refuses nothing", JSON.stringify(detailRefusals()), "{}");
 
     // ── 7: what a landing's account reads as (#449) ─────────────────────────
@@ -854,6 +852,8 @@ export async function run({ check, assert, log }) {
             firstStepFields: "none",
             back: "none",
             backDrawn: "none",
+            body: "none",
+            classSaid: false,
             frame: "none",
             levels: "none",
             secondStepRefusal: "none",
@@ -986,20 +986,29 @@ export async function run({ check, assert, log }) {
                         : text(secondary);
                 }
             }
-            // The second step's levels (#514): which of `walkDetails`' levels are drawn, and what
-            // each draws — the field's label and refusal, and the choice's options, value, change
-            // and placeholder.
+            // The second step's levels (#514, #520): which of `walkDetails`' levels are drawn, and
+            // what each draws — since #520 0l's chips, their label, options, value, change and
+            // refusal; until then a field and its choice.
             if (n.type === "CallExpression" && n.callee?.property?.name === "map" && n.callee.object?.type === "CallExpression") {
                 const filtered = n.callee.object;
                 if (filtered.callee?.property?.name === "filter" && text(filtered.callee.object) === "details.levels") {
                     const drawn = [];
                     walk(n.arguments[0] ?? {}, (inner) => {
-                        if (inner.type === "JSXOpeningElement" && ["Field", "Choice"].includes(inner.name?.name)) drawn.push(`${inner.name.name} { ${attributesOf(inner)} }`);
+                        if (inner.type === "JSXOpeningElement" && ["Field", "Choice", "ChipChoice"].includes(inner.name?.name)) drawn.push(`${inner.name.name} { ${attributesOf(inner)} }`);
                     });
                     // A chain broken across lines reads as one, as the source says it.
                     facts.levels = `${text(filtered).replace(/ \./g, ".")} · ${drawn.join(" · ")}`;
                 }
             }
+            // The second step's body (#520): what scrolls in 0i's lane and what sits on the actions
+            // while the dialog picks, and what it holds opened on a kind.
+            if (n.type === "JSXElement" && n.openingElement.name?.name === "DialogBody") {
+                const inside = n.children.find((child) => child.type === "JSXExpressionContainer")?.expression;
+                const holds = inside?.type === "ConditionalExpression" ? `${text(inside.test)} ? ${text(inside.consequent)} : …` : text(inside) || "children";
+                facts.body = `${attributesOf(n.openingElement) || "no attributes"} · holds ${holds}`;
+            }
+            // The class the kind carries, said on the second step until #520 and by 1b nowhere.
+            if (n.type === "MemberExpression" && !n.computed && ["classLabel", "assetClass"].includes(n.property?.name)) facts.classSaid = true;
             // The way back (#507): what `Change` runs, which keeps the name picked.
             if (n.type === "VariableDeclarator" && n.id?.name === "back" && /Function/.test(n.init?.type ?? "")) {
                 const calls = [];
@@ -1183,16 +1192,20 @@ export async function run({ check, assert, log }) {
     );
     check("  a pick starts another name's choices afresh, and keeps the name already held's", dialog.pickRule, "if (name.key !== picked?.key) setChosen({});");
     check("  and the first step submits nothing", dialog.firstStep, "return;");
-    // THE SECOND STEP (#514): each level the walk asks, a choice in a field under its own word
-    // and its own refusal, offering what the walk offers and holding what it holds, a change
-    // being that level's choice and the field's own edit; and a press with a level still to
-    // choose says so under the level — while it holds nothing, since a choice before it can
-    // leave it one value without the reader touching it — beside whatever else the reading refused.
+    // THE SECOND STEP (#514, #520): each choice the walk draws — the size, the model — as 0l's chips
+    // under its own word and with its own refusal, offering what the walk offers and holding what
+    // it holds, a change being that choice and the field's own edit; and a press with one still to
+    // choose says so on its line — while it holds nothing, since a size chosen can leave the model
+    // one option without the reader touching it — beside whatever else the reading refused. The
+    // chips scroll in 0i's lane over the count and the job, which sit on the actions, and a dialog
+    // opened on a kind holds the count and the job alone. The class is said nowhere (1b).
     check(
-        "the second step draws each level the walk asks, as a choice holding what the walk holds",
+        "the second step draws each choice the walk asks, as chips holding what the walk holds",
         dialog.levels,
-        "details.levels.filter(({ asked }) => asked) · Field { key: level, label: CATALOG.levelLabel[level], labelAs: \"span\", refusal: value === null ? refusalFor(level) : undefined } · Choice { options: options, value: value, onChange: edit(level, (key) => setChosen((was) => ({ ...was, [level]: key }))), placeholder: CATALOG.unchosen[level] }"
+        'details.levels.filter(({ asked }) => asked) · ChipChoice { key: level, label: level === "model" ? CATALOG.modelLabel : CATALOG.levelLabel[level], options: options, value: value, onChange: edit(level, (key) => setChosen((was) => ({ ...was, [level]: key }))), refusal: value === null ? refusalFor(level) : undefined }'
     );
+    check("  in a lane over the count and the job, which a kind's dialog holds alone", dialog.body, "lane: !category, foot: category ? undefined : fields · holds category ? fields : …");
+    check("  and the class is said nowhere", dialog.classSaid, false);
     check(
         "  and a press with one still to choose says so under it, beside the reading's refusals",
         dialog.secondStepRefusal,
@@ -1257,6 +1270,7 @@ export async function run({ check, assert, log }) {
                 '{step === "name" ? <><DialogSearch results={tools.map((x) => ({ label: x.itemName }))} /><FilterChip label={CATALOG.levelLabel.level1} onChange={setFilters} /></> : null}' +
                 '{false ? <input type="hidden" name="categoryRecordId" value={category.id} /> : <Choice name="categoryRecordId" />}' +
                 "{details.levels.filter(() => true).map(({ level }) => <Field label={level}><Choice options={[]} /></Field>)}" +
+                "<DialogBody><Stated label={CATALOG.classLabel}>{made.assetClass}</Stated></DialogBody>" +
                 '<DialogActions secondary={<Button onClick={setPicked}>{COPY.changeName}</Button>}><Button type="submit" disabled={pending}>{COPY.submit(Number(count))}</Button></DialogActions>' +
                 "</form></DialogFrame>;\n" +
                 "}\n",
@@ -1285,6 +1299,8 @@ export async function run({ check, assert, log }) {
     check("  a first step that submits a lookup is seen", plantedDialog.firstStep, "{ const found = findCatalogName(catalog, { typed }); setPicked(found); }");
     check("  a dialog at 420 with no height held is seen", plantedDialog.frame, "no wide, no fixed");
     check("  every level drawn, asked or not, under no refusal, is seen", plantedDialog.levels, "details.levels.filter(() => true) · Field { label: level } · Choice { options: [] }");
+    check("  a body with no lane and nothing on the actions is seen", plantedDialog.body, "no attributes · holds children");
+    check("  and the class said under the choices", plantedDialog.classSaid, true);
     check("  a press that drops the levels' refusals is seen", plantedDialog.secondStepRefusal, "reading");
     check("  a commitment on both steps is seen", plantedDialog.commitmentUnder, "nothing");
     check("  a gate on something else, with no reason, is seen", plantedDialog.gate, "canRegister === false → Button disabled");

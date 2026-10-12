@@ -400,6 +400,7 @@ const VALUES = [
     ["--spacing-dialog-results-inset-top", "0.5rem", null],
     ["--spacing-dialog-results-inset-bottom", "0.75rem", null],
     ["--spacing-dialog-results-empty-inset-top", "6rem", null],
+    ["--min-width-dialog-chip", "4.5rem", null],
     // 0m · Navigation
     ["--width-rail", "3.5rem", null],
     ["--width-rail-expanded", "15.5rem", null],

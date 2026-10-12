@@ -501,8 +501,14 @@ export function DialogFrame({
  * IT STOPS AT ITS END (0i Chain, #495): a scroll past its last line does not move the page
  * behind the dialog. Beside a preview it holds the column's 24 either side inside itself, so
  * it scrolls across the column's whole width and its Rules run edge to edge (1e).
+ *
+ * IN A DIALOG HOLDING ITS HEIGHT (#520) the fields it always has sit on the actions and only
+ * what changes scrolls (0l): `foot` is those fields, 14 under what scrolls and outside it, and
+ * `lane` reserves 0i's lane so what scrolls keeps its width whether or not the bar is drawn,
+ * as 1b's chips do. The body's Rules mark the scrolling part's edges, so the one under it runs
+ * between what scrolls and the fields.
  */
-export function DialogBody({ children }) {
+export function DialogBody({ lane = false, foot, children }) {
     const scrollerRef = useRef(null);
     const [hidden, setHidden] = useState({ above: false, below: false });
 
@@ -526,15 +532,22 @@ export function DialogBody({ children }) {
     }, []);
 
     return (
-        <div data-dialog-body="" className="relative flex min-h-0 grow flex-col">
-            <div
-                ref={scrollerRef}
-                className="flex min-h-0 flex-col gap-gap-lg overflow-y-auto overscroll-contain pt-dialog-header-stack in-data-preview:px-dialog-inset in-data-fixed:px-dialog-inset max-sm:in-data-[sheet]:px-mobile-gutter max-sm:in-data-[sheet=drawer]:gap-mobile-field-stack max-sm:in-data-[sheet=drawer]:pt-0 max-sm:in-data-[sheet=confirm]:pt-mobile-confirm-id-stack"
-            >
-                {children}
+        <div data-dialog-body="" className="flex min-h-0 grow flex-col">
+            <div className="relative flex min-h-0 grow flex-col">
+                <div
+                    ref={scrollerRef}
+                    className={`flex min-h-0 flex-col gap-gap-lg overflow-y-auto overscroll-contain pt-dialog-header-stack ${
+                        lane
+                            ? `pr-[calc(var(--spacing-dialog-inset)-var(--spacing-scrollbar-gutter))] pl-dialog-inset [scrollbar-gutter:stable] ${SCROLL_LANE}`
+                            : "in-data-preview:px-dialog-inset in-data-fixed:px-dialog-inset"
+                    } max-sm:in-data-[sheet]:px-mobile-gutter max-sm:in-data-[sheet=drawer]:gap-mobile-field-stack max-sm:in-data-[sheet=drawer]:pt-0 max-sm:in-data-[sheet=confirm]:pt-mobile-confirm-id-stack`}
+                >
+                    {children}
+                </div>
+                {hidden.above && <div aria-hidden="true" className="absolute inset-x-0 top-0 h-px bg-divider" />}
+                {hidden.below && <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-px bg-divider" />}
             </div>
-            {hidden.above && <div aria-hidden="true" className="absolute inset-x-0 top-0 h-px bg-divider" />}
-            {hidden.below && <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-px bg-divider" />}
+            {foot && <div className="shrink-0 pt-gap-lg in-data-fixed:px-dialog-inset">{foot}</div>}
         </div>
     );
 }
