@@ -240,7 +240,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 1a and 1d's drawings, between two columns — not the spec | `--spacing-table-column-inline` | 1.25rem (20) |
 | 1a's drawing, a column of counts — not the spec | `--width-table-count` | 6rem (96) |
 | 1d's drawing, a column of printed ids — not the spec | `--width-table-id` | 15rem (240) |
-| 1d's drawing, a column of statuses — not the spec | `--width-table-status` | 10rem (160) |
+| 1d's drawing, a column of days — not the spec; the status's 160 until #520 gave the status the room left | `--width-table-date` | 7.5rem (120) |
 | 0b Pager, above its controls, its 1px rule counted | `--spacing-pager-inset-top` | 0.75rem (12) |
 | 0b Pager, under them, 60 in all | `--spacing-pager-inset-bottom` | 1rem (16) |
 | 1a and 1d's drawings, the least room between the rows a pager counts and its page — not the spec | `--spacing-pager-inline` | 1.5rem (24) |

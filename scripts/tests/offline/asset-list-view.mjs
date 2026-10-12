@@ -58,13 +58,15 @@
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
-import { ASSET_STATUS, ASSET_STATUS_VALUES } from "../../../lib/assetStatus.js";
+import { ASSET_EVENT, ASSET_STATUS, ASSET_STATUS_VALUES } from "../../../lib/assetStatus.js";
 import { ASSET_COPY } from "../../../lib/assetView.js";
 import {
     ASSET_LIST_COPY,
     ASSET_PAGE_SIZE,
     describeSelection,
     idsInScope,
+    lastChangeOf,
+    latestLogRowIds,
     pageOfAssets,
     pageOfAssetCategories,
     pageSelection,
@@ -482,7 +484,7 @@ export function run({ check, assert, log }) {
     log("");
     log("the category's screen reads the page it shows and hands the list those rows alone:");
     // TWO CLAIMS REST ON ONE ARGUMENT AND NOTHING HELD IT UNTIL #442. The screen is
-    // four operations whatever the category's size, and its page box selects one page —
+    // five operations whatever the category's size (four until #520), and its page box selects one page —
     // and both are true only because the read hands `getAssetsByCategory` the page's
     // ids and the list is handed the rows that read returned. Drop `rowIds` and the
     // screen reads every asset under the category and offers every one of them to the
@@ -698,7 +700,7 @@ export function run({ check, assert, log }) {
     // the page box acts on the rows it was handed and nothing wider; and every address
     // this file writes carries it, through `history.replaceState` and never the router —
     // which is the difference between a press that costs nothing and one that re-renders
-    // the page at four operations.
+    // the page at five operations.
     const listFacts = (ast, source) => {
         const bindings = new Map();
         let selection = null;
@@ -2074,6 +2076,141 @@ export function run({ check, assert, log }) {
             !/jobCode && \(/.test(assetSource),
         ].join(" "),
         "true true true true true"
+    );
+
+    // ── #520: when each item last changed, and who holds one that is out ──────────
+    log("");
+    log("a category's list says when each item last changed, off its latest log row (#520):");
+    // ONE ROW PER ASSET, AND THE NEWEST. The fifth read is one query whatever the histories
+    // hold only because the page asks for one row per asset, and it is the right row only
+    // because that row is the last of the link array — `newestFirst`'s reading. An older row
+    // standing in the read must not answer for an asset whose latest did not come back.
+    const LOGGED = [
+        { id: "a1", status: ASSET_STATUS.OUT, assetLog: ["l1", "l2", "l3"] },
+        { id: "a2", status: ASSET_STATUS.IN_STOCK, assetLog: ["l4"] },
+        { id: "a3", status: ASSET_STATUS.OUT, assetLog: ["l5", "l6"] },
+        { id: "a4", status: ASSET_STATUS.IN_STOCK, assetLog: [] },
+        { id: "a5", status: ASSET_STATUS.RETIRED },
+        { id: "a6", status: ASSET_STATUS.OUT, assetLog: ["l1", "l9"] },
+    ];
+    check("the read asks for each asset's last row, and none for an asset with none", latestLogRowIds(LOGGED).join(","), "l3,l4,l6,l9");
+    check("  and nothing for no assets", latestLogRowIds(undefined).length, 0);
+    const ENTRIES = new Map([
+        ["l1", { id: "l1", event: ASSET_EVENT.CHECKED_OUT, eventAt: "2026-09-01T12:00:00.000Z", checkedOutTo: "Old Holder" }],
+        ["l3", { id: "l3", event: ASSET_EVENT.CHECKED_OUT, eventAt: "2026-10-02T15:30:00.000Z", checkedOutTo: "  Jiho   Lee " }],
+        ["l4", { id: "l4", event: ASSET_EVENT.CREATED, eventAt: "2026-10-09T20:45:13.558Z" }],
+        ["l6", { id: "l6", event: ASSET_EVENT.CHECKED_IN, eventAt: "2026-10-05T09:00:00.000Z" }],
+    ]);
+    const lastSaid = (asset) => {
+        const change = lastChangeOf(asset, ENTRIES);
+        return `${change.updatedAt} ${change.holder}`;
+    };
+    check("an item out says its latest check-out's moment and who it went to", lastSaid(LOGGED[0]), "2026-10-02T15:30:00.000Z Jiho Lee");
+    check("  an item in stock its latest moment and nobody", lastSaid(LOGGED[1]), "2026-10-09T20:45:13.558Z null");
+    check("  an item out whose latest row is no check-out names nobody", lastSaid(LOGGED[2]), "2026-10-05T09:00:00.000Z null");
+    check("  an item with no row says neither", `${lastSaid(LOGGED[3])} | ${lastSaid(LOGGED[4])}`, "null null | null null");
+    check("  and one whose latest row did not come back says neither, not an older row's", lastSaid(LOGGED[5]), "null null");
+    check("the column says `Updated`, the design's (1d)", ASSET_LIST_COPY.updatedLabel, "Updated");
+
+    // WHERE THE PAGE TAKES THEM FROM, off its source: the ids from the very assets its read
+    // returned, one batched read of them outside any loop, and each row spread from
+    // `lastChangeOf` over what that read returned — so a page cannot read each asset's whole
+    // log, ask for rows its list does not show, or say a moment its read did not bring.
+    const logReadFacts = (ast) => {
+        const reads = [];
+        let readBinding = null;
+        let spreadOver = "none";
+        walk(ast, (n) => {
+            if (n.type === "VariableDeclarator" && n.init) {
+                const init = n.init.type === "AwaitExpression" ? n.init.argument : n.init;
+                if (init?.type === "CallExpression" && init.callee?.name === "getAssetsByCategory") readBinding = n.id?.name ?? null;
+            }
+            if (n.type === "CallExpression" && n.callee?.property?.name === "map") {
+                const body = n.arguments?.[0];
+                walk(body ?? {}, (inner) => {
+                    if (inner.type === "CallExpression" && /^getAssetLog/.test(inner.callee?.name ?? "")) reads.push("in a loop");
+                });
+            }
+            if (n.type === "CallExpression" && n.callee?.name === "getAssetLogEntriesByRecordIds") {
+                const ids = n.arguments?.[0];
+                reads.push(ids?.type === "CallExpression" && ids.callee?.name === "latestLogRowIds" ? `latest of ${nameOf(ids.arguments?.[0])}` : `of ${nameOf(ids)}`);
+            }
+            if (n.type === "SpreadElement" && n.argument?.type === "CallExpression" && n.argument.callee?.name === "lastChangeOf")
+                spreadOver = nameOf(n.argument.arguments?.[1]);
+        });
+        let latestFrom = "none";
+        walk(ast, (n) => {
+            if (n.type === "VariableDeclarator" && n.id?.name === spreadOver) {
+                walk(n.init ?? {}, (inner) => {
+                    if (inner.type === "CallExpression" && inner.callee?.name === "getAssetLogEntriesByRecordIds") latestFrom = "the read";
+                });
+            }
+        });
+        return { reads: reads.join(", "), readBinding, latestFrom };
+    };
+    const logFacts = logReadFacts(parseFile(CATEGORY_SCREEN).ast);
+    check("the page reads the latest rows of the assets its read returned, once", logFacts.reads, `latest of ${logFacts.readBinding}`);
+    check("  and spreads each row from what that read returned", logFacts.latestFrom, "the read");
+    // ANTI-VACUITY: a planted page reading each asset's whole log in a loop, and one reading
+    // the page's ids and spreading from something else, are each seen.
+    const plantedLoop = logReadFacts(
+        parseSource(
+            "async function renderCategoryPage() {\n" +
+                "  const assets = await getAssetsByCategory(category.id, { rowIds: page.ids });\n" +
+                "  const logs = await Promise.all(assets.map((asset) => getAssetLogByAsset(asset.id)));\n" +
+                "  return <AssetList rows={assets.map((asset) => ({ ...lastChangeOf(asset, logs) }))} />;\n" +
+                "}\n",
+            "<planted-log-loop>"
+        ).ast
+    );
+    check("  a read per asset is seen in its loop", plantedLoop.reads, "in a loop");
+    check("  and rows spread from it are seen not to be the read's", plantedLoop.latestFrom, "none");
+    const plantedIds = logReadFacts(
+        parseSource(
+            "async function renderCategoryPage() {\n" +
+                "  const assets = await getAssetsByCategory(category.id, { rowIds: page.ids });\n" +
+                "  const latest = await getAssetLogEntriesByRecordIds(page.ids);\n" +
+                "  return <AssetList rows={assets.map((asset) => ({ ...lastChangeOf(asset, guessed) }))} />;\n" +
+                "}\n",
+            "<planted-log-ids>"
+        ).ast
+    );
+    check("  a read of other ids is seen so", plantedIds.reads, "of page.ids");
+    check("  and rows spread from something else are seen so", plantedIds.latestFrom, "none");
+
+    // THE READER ASKS FOR THOSE ROWS BY RECORD ID AND THREE FIELDS, and does not throw over
+    // one that did not resolve: `findByRecordIds`, where the asset's own page keeps
+    // `findChildRecords` for a history that must come back whole.
+    const readerSource = functionSource(parseFile("lib/airtable/assetLog.js"), "getAssetLogEntriesByRecordIds");
+    check(
+        "the reader asks by record id for the event, its moment and who it went to, and nothing more",
+        [
+            /findByRecordIds\(TABLES\.ASSET_LOG, rowIds \|\| \[\], \{\s*fields: \["Event", "Event At", "Checked Out To"\],\s*\}\)/.test(readerSource),
+            !/findChildRecords/.test(readerSource),
+        ].join(" "),
+        "true true"
+    );
+
+    // THE LIST'S COLUMNS (1d): the id, the status taking the room left with who holds an
+    // `Out` after it, and the day at 120 where the job stood — with the box and without.
+    const assetListSource = parseFile(ASSET_LIST).source;
+    check(
+        "the list's columns are the id, the status and the day, with the box and without",
+        [
+            assetListSource.includes('const COLUMNS = "grid-cols-[var(--size-icon)_var(--width-table-id)_minmax(0,1fr)_var(--width-table-date)]";'),
+            assetListSource.includes('const COLUMNS_WITHOUT_BOX = "grid-cols-[var(--width-table-id)_minmax(0,1fr)_var(--width-table-date)]";'),
+            /\{COPY\.assetIdLabel\}<\/span>\s*<span role="columnheader">\{COPY\.statusLabel\}<\/span>\s*<span role="columnheader">\{COPY\.updatedLabel\}<\/span>/.test(assetListSource),
+            !/COPY\.jobLabel|row\.jobCode/.test(assetListSource),
+        ].join(" "),
+        "true true true true"
+    );
+    check(
+        "  an `Out` names who holds it behind 0e's dot, and the day is the reader's, in Ink 2",
+        [
+            /\{row\.holder && \(\s*<>\s*<Dot \/>\s*<span className="min-w-0 truncate text-foreground-muted">\{row\.holder\}<\/span>/.test(assetListSource),
+            /<span role="cell" className="text-foreground-muted">\s*<Instant at=\{row\.updatedAt\} format=\{DAY_FORMAT\} \/>/.test(assetListSource),
+        ].join(" "),
+        "true true"
     );
 }
 

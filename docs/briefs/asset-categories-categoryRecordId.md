@@ -145,8 +145,19 @@ retired one still counts.
 
 **evidence.** One entry per asset, **newest first** (1d), each carrying
 three facts: its printed `Asset ID`, which is the way into that asset's
-own screen; its status, one of `In stock`, `Out` or `Retired`; and
-the job it is on. Each carries its box as well, for a site manager; see above.
+own screen; its status, one of `In stock`, `Out` or `Retired`, and after an
+`Out` who it was checked out to, `Out · Hyunwoo Kang`; and the day it last
+changed, `09/22/2026` — the day of its latest scan, retirement or registration,
+in the reader's own zone (1d, #520). Each carries its box as well, for a site
+manager; see above.
+
+**The day is written with its year, which 0h does not ask for in a table
+column** — it says `MM/DD` there — and 1d draws it in full; the year stays
+because an item can sit on a shelf from one year to the next, and `09/22`
+would not say which. **The job each asset is on stood in the day's place from
+#463 until 1d drew the day**: where an asset was last scanned is on its own
+screen, and a reader on several jobs sees the one the list is narrowed to in
+the breadcrumb.
 
 **Newest first moves every row along at each registration, and that was
 accepted (#463).** A registration's assets go to the top, so a link to a
@@ -285,8 +296,9 @@ on it, and none of the controls a site manager uses here — no `Add items` in
 the head or under an empty list, no box on an entry or for the page, no
 selection bar and so nothing to print, and neither dialog a registration's
 landing tells, which speak to whoever added. The column of boxes goes with
-the boxes, so the table is `Item ID`, `Status` and `Job`, the job taking the
-room, as 1d draws it without the box (1d's `Updated` in the job's place is #520's). A selection carried on the address is not
+the boxes, so the table is `Item ID`, `Status` and `Updated`, the status taking
+the room, as 1d draws it without the box (#520; `Job` in the day's place until
+then). A selection carried on the address is not
 read for them, so it marks no entry and rides no step. Nothing replaces any of
 it with a sentence: the screen is theirs to read, and a control is absent
 rather than disabled because being a site manager is not something one asks
@@ -379,11 +391,13 @@ here would mean reading every asset under the category, which is the cost
 the paging exists to avoid — this page reads only the entries it draws,
 whatever the category's size.
 
-**The column over each code is `Item ID`, beside `Status` and `Job` (#519).**
-It was `Tool ID` from #463, `Item` from #455, the design's word then, and `Tool
-item` before it.
-`Status` and `Job` name one field each and are the words the asset's own
-screen already uses for them.
+**The column over each code is `Item ID`, beside `Status` and `Updated` (#519,
+#520).** It was `Tool ID` from #463, `Item` from #455, the design's word then,
+and `Tool item` before it. `Status` names one field and is the word the asset's
+own screen already uses for it. **`Updated` names no field on `Assets`**: it is
+the latest `Asset Log` row's `Event At`, read for each entry on the page in one
+batch (#520), and `docs/notes/naming.md` carries the row. It took the place of
+`Job`.
 
 **Every id here links to `/assets/[assetId]`, and this is where a
 registration's ids are listed (#449).** The registration form listed them

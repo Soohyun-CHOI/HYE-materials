@@ -233,7 +233,7 @@ const VALUES = [
     ["--spacing-table-column-inline", "1.25rem", null],
     ["--width-table-count", "6rem", null],
     ["--width-table-id", "15rem", null],
-    ["--width-table-status", "10rem", null],
+    ["--width-table-date", "7.5rem", null],
     ["--spacing-pager-inline", "1.5rem", null],
     ["--spacing-pager-step-gap", "0.625rem", null],
     ["--spacing-pager-step-bleed", "0.8125rem", null],

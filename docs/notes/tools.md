@@ -1374,6 +1374,32 @@ The screens #506, #509, #507, #514 and #517 drew ahead of the design, from the p
 
 **THIRTY-FIVE MUTATIONS WERE RUN, ONE AT A TIME, AND EVERY ONE IS CAUGHT.** They took a note's box, its truncation, its Ink 3 in the field and the field's note away; set labels strong only under a level, or never, and dropped the note on its way to the list; offered codes alone in both dialogs and names on the phone's foot bar, and had each page hand the registration no name; put the bar and 1a's head outside what holds, the column head under the head on 1d, at 0, or without the head's 18, and the bar's top at 0; dropped focus's room from the head and from the pager, gave the head the lane's 8 back and took its least height away; measured the head's top instead of its foot, left the lane unmarked, and showed the name always, unfaded, without its Rule or at 400; had the category's page hand no name and the asset's page hand one; lifted the bar and the head over the rail's Panel; and moved two names' values.
 
+## The list's filters, the model, and when each item last changed (#520)
+
+The three things the design's latest files drew new: the category list filtered by type, category and class and searched by name, on one job at a time; the registration searching every name first and then choosing a size and a model; and a category's page saying when each item last changed where it said its job. **What the screens say where those files say otherwise is `docs/briefs/design-copy-findings.md`'s last entry**, each a decision taken with the issue.
+
+**`Updated` IS THE LATEST `Asset Log` ROW'S MOMENT, READ ONE ROW PER ASSET.** 1d's column after the status, and after an `Out` the person it went to, `Out · Hyunwoo Kang`, off the same row. `Assets` holds no moment of its own — its five fields are the id, the category, the status, the job and the log's link — so the question was where to read it, and five ways were weighed against a page of twenty-five, which cost four operations before:
+
+| Way | A page | The holder | What it costs besides |
+|---|---|---|---|
+| Each asset's latest row, by the last id of its `Asset Log` array, in one batch | **5, whatever the histories hold** | off the same row | nothing new: the judgment of a link array's order is `newestFirst`'s already |
+| Every row of the page's assets | 4 + ⌈N/50⌉ | yes | grows with every scan — 25 assets of 200 events each would add 100 |
+| `{Asset}` filtered by its text (#376) | 4 + ⌈N/100⌉ | yes | grows the same way, and a formula naming 25 ids |
+| A rollup, `MAX(Event At)`, on `Assets` | 4 | no — a rollup has no argmax (`Status is written by this app`, below) | whether the Metadata API creates a rollup is unmeasured (`airtable-access.md`) |
+| A cache of the moment and the holder on `Assets`, written with `Status` and `Job` | 4, and no write request more | yes | two fields, both writers, a backfill, and a second copy of a fact the log holds |
+
+**The first is taken.** It holds the page at a figure that does not grow, and it asks the base for nothing it does not already keep. **The cache becomes the answer when a render needs the latest change of more than fifty assets at once** — a list across categories, say — since that is where one batched read becomes two and then more; `Status` and `Job` are caches for the same kind of reason, the list's counts, and the move would follow `updateAssetCache`'s shape.
+
+**THE LATEST IS THE LAST OF THE LINK ARRAY, WHICH IS `newestFirst`'s READING.** `lib/assetListView.js:latestLogRowIds` asks for one id per asset and `lastChangeOf` reads the moment and `currentHolder`'s answer off that row, so the asset's own page and this list read one order the one way. **A row the read did not return says nothing**, not the moment of an older row the read happened to hold: a list showing an older day would read as an item that has not moved since.
+
+**`findByRecordIds`, NOT `findChildRecords`.** A row that does not resolve leaves one asset's day empty rather than throwing the page down, the reading `summarizeAssetCategories` gives an asset that does not resolve. The asset's own page keeps the throwing reader, since a history with a hole in it is what that page exists to show whole. The reader asks for three fields and returns three, `getRecentCheckOuts`' shape.
+
+**THE DAY KEEPS ITS YEAR.** 0h says a date in a table column reads `MM/DD`; 1d draws `09/22/2026`, and the year stays, since an item can sit on a shelf from one year to the next. `<Instant format={DAY_FORMAT}>` draws it in the reader's own zone (#374), in Ink 2, at 120, `--width-table-date` — which took the place of `--width-table-status`, since the status now takes the room the job left.
+
+**WHAT A BROWSER SHOWED, AS `soo@` ON THIS CHECKOUT'S DEV SERVER, AT 1440.** The TIG welder's page drew `16 | 240 | 620 | 120`, 1d's own tracks, headed `Item ID`, `Status` and `Updated`, and `HYE-AST-261009-007` read `In stock` and `10/09/2026` in Ink 2, its `<time>` carrying `2026-10-09T20:45:13.558Z`. **5 operations** — Users, Asset Categories, Jobs, Assets and Asset Log, one each — where #519 measured four. **Not seen**: an `Out` with its holder, since nothing on the base is out, and the list without its box, since `soo@` is a site manager; the check holds both off the source.
+
+**WHAT THE CHECKS HOLD.** `offline/asset-list-view.mjs`: the ids asked for and the moment and holder each row says, by value, an older row in the read included; the page reading the latest rows of the assets its own read returned, once and outside any loop, and spreading every row from that read, beside two planted pages doing each wrong; the reader's projection and its batch; the list's tracks, heads and cells. **Twenty mutations were run, one at a time, and all twenty are caught.**
+
 ## Three tables, and what each is for
 
 `Tools` is the KIND. `Tool Items` is the object. `Tool Log` is the history.

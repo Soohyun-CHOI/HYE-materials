@@ -89,7 +89,7 @@
     --spacing-table-column-inline: 1.25rem; /* 1a and 1d, 20: between two columns — from the drawings, not the spec */
     --width-table-count: 6rem; /* 1a, 96: a column of counts — from the drawings, not the spec */
     --width-table-id: 15rem; /* 1d, 240: a column of printed ids — from the drawings, not the spec */
-    --width-table-status: 10rem; /* 1d, 160: a column of statuses — from the drawings, not the spec */
+    --width-table-date: 7.5rem; /* 1d, 120: a column of days — from the drawings, not the spec */
     --spacing-pager-inset-top: 0.75rem; /* Pager, 12: above its controls, counting its 1px rule */
     --spacing-pager-inset-bottom: 1rem; /* Pager, 16: under them, so 60 in all */
     --spacing-pager-inline: 1.5rem; /* 1a and 1d, 24: the least room between the rows a pager counts and its page — from the drawings, not the spec */

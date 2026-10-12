@@ -198,3 +198,20 @@ maker is the one being added. Beside a maker it is one of the choices, and the
 level starts on `Choose a maker` (#517). One word per level rather than one
 for all: `None` is also what the catalog's check refuses as a value, and a
 screen saying it would read as asking the office to type it.
+
+---
+
+## Where a screen says other than the design's files (#520)
+
+What the design's files of 2026-10-12 draw or state, and what the screens say
+instead, each by a decision taken with the issue. **This is the list the next
+sending is held against**: a file that draws one of these the old way again is
+not a change to take.
+
+| The files | The screen | Where |
+|---|---|---|
+| 0h: a date in a table column reads `MM/DD` | `09/22/2026`, the year written out, as 1d draws it | a category's list, `Updated` |
+
+**The year stays** because an item can sit on a shelf from one year to the
+next, and `09/22` would not say which; 1d draws the year, so the spec and the
+drawing disagreed and the drawing's reading was taken.
