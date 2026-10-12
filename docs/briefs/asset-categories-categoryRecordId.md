@@ -1,41 +1,42 @@
-# Tool detail
+# Item detail
 
 Route: `/asset-categories/[categoryRecordId]`
 Who reaches it: anyone signed in, with no Role and no Job gate (#337). What a
-reader DOES here — adding tools, and selecting and printing labels — is a site
+reader DOES here — adding items, and selecting and printing labels — is a site
 manager's (#506); everyone else reads the same screen without those controls.
 What the list holds first is the reader's (#509): the office's is every asset
-under the tool, anybody else's those on the jobs they are assigned to.
+under the category, anybody else's those on the jobs they are assigned to.
 Which width comes first: **desktop**, and it is the only one: this screen is
 used at a desk and does not support a phone's width (`_shared.md`).
 
 ## What it answers
 
-Which units of this tool exist, and where is each of them?
+Which units of this item exist, and where is each of them?
 
-**One row per physical object.** An `Asset Categories` row is a `tool` — the kind, a row
+**One row per physical object.** An `Asset Categories` row is a category — the kind, a row
 of the catalog the office keeps (#507) — and each row here is one drill with one printed
 id stuck to it, an `Assets` row, which this brief calls an asset.
 **The screen calls each one an `item`, the design's (#455)**: its head
 shows the figure alone, `13`, and says `13 items` to assistive tech (#505),
-it heads the column of their codes `Tool ID` (#463), and a
-sentence about one elsewhere calls it a `tool`. Six of one drill is one tool and six items on this
-screen.
+it heads the column of their codes `Item ID` (#519; `Tool ID` from #463), and a
+sentence about one elsewhere calls it an `item` too since #519, where it was a `tool`.
+The category list calls a category an `item` as well (#519), so one drill's row there and
+its six here are all items; the screens never set the two side by side in a sentence.
 
-**It is reached from the tool list, and a registration lands on it (#449).**
+**It is reached from the category list, and a registration lands on it (#449).**
 The asset's own screen is the one a machine opens; this one is opened by a
 person who picked a name off a list, or who has just registered assets of
-this tool and arrives with them selected — on the whole of what they start
+this category and arrives with them selected — on the whole of what they start
 from, with no job chosen, since what they wrote is on their own job and may be
 off one they had chosen (#509). So the reader is at a desk as often
 as on a site — printing labels, checking what the company has of something, or
 registering more of it (#451).
 
 **The address is a record id and cannot be read.** `Asset Categories` mints no id, the
-way `Vendors` and `Materials` mint none, because nothing prints a tool and
+way `Vendors` and `Materials` mint none, because nothing prints a category and
 nobody quotes one; its place in the catalog is its identity, and a name is
 not a path. So the URL carries Airtable's own record id and says nothing a
-reader recognizes, which is why the browser tab says only `Tool`.
+reader recognizes, which is why the browser tab says only `Item` (`Tool` until #519).
 
 **It is used at a desk, and the asset's screen is the one on this axis a
 phone shows** (#336). The width container lives in the layout with no width,
@@ -47,40 +48,40 @@ it while anything is selected.
 
 ## What it always carries
 
-**identity.** The tool's name as the heading, and no heading word beside
+**identity.** The category's name as the heading, and no heading word beside
 it — the shape the asset's screen takes with its printed id and the
 four document detail screens take with theirs.
 
-**identity.** Under the heading, what the tool is (#507): its class and where
+**identity.** Under the heading, what the item is (#507): its class and where
 it sits in the catalog, type first (#514), `Class B · Tool > DEMO Carpentry >
 DEMO Jigsaw > T-Shank`, and for a piece of equipment by a maker `Class A ·
 Equipment > DEMO Welding > DEMO Welding Machine > DEMO Miller > Millermatic
-255`. **It says what the name cannot**: a name is the tool's name and its size
+255`. **It says what the name cannot**: a name is the item's name and its size
 with a space between, then a comma and its maker, then its part number in
 parentheses, `DEMO Jigsaw T-Shank`, `DEMO Welding Machine, DEMO Miller
 (Millermatic 255)`, so it says neither where the name ends and the size begins
 nor which category or type holds it. The type and the class are
-information — the type `Equipment` or `Tool`, the class `A` for a tool that
+information — the type `Equipment` or `Tool`, the class `A` for an item that
 matters more, usually a dearer one, `B` otherwise — and nothing here acts on
 either. Design is drawing the line; it is the record header's line under
-its title (0n) until then. A part the tool lacks is left out, and with neither
+its title (0n) until then. A part the category lacks is left out, and with neither
 there is no line.
 
 **action.** A way back to `/asset-categories`: the breadcrumb's one level, `Tools & Equipment`
 behind a chevron (#460), the word the asset's screen opens its path with
 for the same trip.
 
-**action.** A control that opens the registration dialog on this tool,
-`Add tools` (#485) — the design's `New tools` from #456, and
-`Create more of this tool` from #451. Buying more of a tool the company already has is the same
-registration as buying the first, and the dialog puts them under this tool,
-which it names under its title — so somebody who knows which tool they bought
+**action.** A control that opens the registration dialog on this category,
+`Add items` (#519) — `Add tools` from #485, the design's `New tools` from #456, and
+`Create more of this tool` from #451. Buying more of a kind the company already has is the same
+registration as buying the first, and the dialog puts them under this category,
+which it names under its title — so somebody who knows what they bought
 starts here rather than finding it in the catalog again: the dialog opens at
-its second step, each level already this tool's (#507, #514). **It carries no count**:
+its second step, each level already this category's (#507, #514). **It carries no count**:
 nothing on this screen knows how many were bought, so the dialog asks,
 starting where it always starts. **Nor does it carry the selection or the
 page**: the boxes are for printing, and it opens the same dialog from every
-page of the list. It is on this screen for every tool it finds, the one with
+page of the list. It is on this screen for every category it finds, the one with
 nothing under it included, and for every site manager — one assigned to no job
 sees it disabled, with `Ask the office to assign you to a job` before it, as
 they would on `/asset-categories`. **A reader who is not a site manager is drawn none**
@@ -104,7 +105,7 @@ no further, and its name says so:** `Select this page`, Design's (#463), where
 it said `Select all on this page` beside the box until the box moved into the
 column head with no words of its own. This screen
 reads its assets a page at a time, so a render holds one page of printed
-ids and no more, and selecting the whole tool would need a read of every asset
+ids and no more, and selecting the whole category would need a read of every asset
 under it — the cost the paging exists to avoid. It shows whether **none,
 some or all of this page** is selected, and that is this page's answer alone,
 whatever is selected on another.
@@ -120,21 +121,21 @@ the label screen with it until #457.
 `3 selected` — with a way out beside it. The words name no noun for what is
 selected; see below.
 
-**action.** A choice of job in the head, before `Add tools` (#509): `All jobs`,
+**action.** A choice of job in the head, before `Add items` (#509): `All jobs`,
 which is the whole of what the reader starts from, then each job they may
 narrow to by its code — every job for the office, their own for anybody else,
 a job with nothing on it included. Choosing one lists that job's assets
-under this tool, from the first page, and keeps whatever is selected. Design is
+under this category, from the first page, and keeps whatever is selected. Design is
 drawing the control; it is the choice the registration dialog draws until then.
 
-**evidence.** How many assets this tool has in the reader's scope, `13`,
+**evidence.** How many assets this category has in the reader's scope, `13`,
 on the heading's line (`13 items` to assistive tech) — every one for the office,
 those on the reader's jobs for anybody else (#509). #326 names this as the fact every list in this app is missing: without it nothing on
 screen says whether a reader is looking at everything or at the beginning
 of it. **It is a fact about the list rather than about what the company
 holds** — which is why a single figure is right here and deliberately
-absent from the tool list, where a total would have to decide whether a
-retired tool still counts.
+absent from the category list, where a total would have to decide whether a
+retired one still counts.
 
 **evidence.** One entry per asset, **newest first** (1d), each carrying
 three facts: its printed `Asset ID`, which is the way into that asset's
@@ -154,7 +155,7 @@ of how many, `Page 1 of 2` (1d, #463).
 
 ## What it carries only sometimes
 
-**When a registration has just written assets of this tool (#449):** the
+**When a registration has just written assets of this category (#449):** the
 reader lands here with every asset it wrote selected — those and no others
 — on the first page, where they begin. A registration makes up to a hundred,
 so what it wrote can run past this page; the sentence beside the print control then says
@@ -167,25 +168,25 @@ went as well (#495).
 
 **When the registration wrote fewer than were asked for:** a dialog over the
 screen, the design's (#455, #459) — how many were not added as its title,
-`2 tools couldn't be added`, the tool's name under it, and where the others
+`2 items couldn't be added` (#519; `tools` until then), the category's name under it, and where the others
 are, `The other 3 were added and are selected on this page.` (#495; it was
 `3 of 5 tools added` over `2 couldn't be added.` until then) — and two
 controls that answer them, in the act's verb since #485. `Add 2 more` names
 how many were not written — `Add 1 more` at one — and puts the dialog away
-and opens the registration dialog on this tool,
+and opens the registration dialog on this category,
 with that count filled in and still the reader's to change there; canceling
 that brings this dialog back, since nothing answered it. `Not now` takes the
 dialog away, and so do its close and `Escape`. **The two are a pair, and the
 pairing is what says what the choice is about**: one goes on adding and the
 other ends it, so neither can be read as being about the entry below. It is a
 choice rather than a confirmation — `Not now` acts on nothing in the base. At
-one, either way, the title says `1 tool couldn't be added` and the sentence
+one, either way, the title says `1 item couldn't be added` and the sentence
 `The other 1 was added and is selected on this page.`
 
 **When some of what it wrote has no first history entry:** a dialog over the
-screen (#459) — `2 tools have no creation date` as its title, the tool's name
+screen (#459) — `2 items have no creation date` as its title, the category's name
 under it, and `Only the creation date wasn't saved for these 2, and it can't be
-added later.` (`1 tool has no creation date`, `… for this one, and it can't be
+added later.` (`1 item has no creation date`, `… for this one, and it can't be
 added later.` at one) — then their ids, in the dialog's summary, then one
 control, `Got it` (#455). **Nothing is offered that repairs them, because
 nothing does**: a late history entry would state a time that is not when they
@@ -195,23 +196,23 @@ from the entry above. They are also in the list as ordinary entries, selected
 with the rest, because they were written and need labels. **A design must not
 fold this notice into the list**,
 which would read them as created cleanly, **nor give it the entry above's two
-answers**, since there is nothing to choose. It can name a tool on another page
+answers**, since there is nothing to choose. It can name an asset on another page
 of the list.
 
-**When both happened:** each whole, one dialog at a time and the tools with no
+**When both happened:** each whole, one dialog at a time and the items with no
 creation date first (#459): `Add 2 more` can end on another landing, which
 carries only its own registration's account, so the notice is read before the
 shortfall is answered. The counts the first gives do not include the second's
-tools, which were written. `Not now` answers the first alone and `Got it` the
+items, which were written. `Not now` answers the first alone and `Got it` the
 second alone, so either can go and leave the other — after `Got it` the
 shortfall follows, and a reload between them opens whichever is left.
 
 **A step to the previous page** and **a step to the next**, each acting
 when there is a page that way and drawn without acting at its own end — 1d's,
 where until #463 each was absent at its end.
-**A second page exists only for a tool with more than twenty-five assets**,
-and that number counts every registration of the tool rather than
-one: registering more of a tool adds to the same list, and one registration
+**A second page exists only for a category with more than twenty-five assets**,
+and that number counts every registration under the category rather than
+one: registering more of a kind adds to the same list, and one registration
 can make up to a hundred. Both steps carry the selection, so what was
 selected on one page is still selected on the next, and the job the list is
 narrowed to (#509).
@@ -219,17 +220,17 @@ narrowed to (#509).
 **When a job narrows the list (#509):** the head's figure reads `N of M` — the
 document lists' words for the same thing — `M` being what the reader started
 from; the rows, the pager and the page box are that job's alone, and the
-breadcrumb's `Tools & Equipment` keeps the job. A job with none of this tool's items on it
+breadcrumb's `Tools & Equipment` keeps the job. A job with none of this category's items on it
 draws the head and nothing under it, `0 of 91` and the choice saying it; Design
-is drawing what that state says. So does a tool whose items are all off the
-reader's jobs, before any job is chosen: `No items under this tool` would be
+is drawing what that state says. So does a category whose items are all off the
+reader's jobs, before any job is chosen: `Nothing added yet` would be
 false there. An asset off the reader's jobs is left off this list and still
 opens from its label or a link. A job in the address the reader may not narrow
 to is answered with their whole scope and the choice reading `All jobs`.
 
 **When nothing is selected:** no selection bar, 0b's (#463), where until
 then a sentence, `Nothing is selected, so there is nothing to print.`, stood
-beside a print control drawn and not acting. Every arrival from the tool list
+beside a print control drawn and not acting. Every arrival from the category list
 starts here; a registration's arrival does not, and neither does any other
 address carrying a selection. **It does not print the page instead** — that
 was the control's behavior until #443, and it is exactly what made its range a
@@ -253,12 +254,12 @@ appear until the labels' dialog draws them.
 `Up to 100 labels per print.` before it behind an info mark, where it said
 `One print takes at most 100.` until #495. The labels' dialog reads a hundred
 at most (#457), and the label screen printed the first hundred of a longer
-run, so a press here would have printed less than it sent. It needs a tool
+run, so a press here would have printed less than it sent. It needs a category
 with more than a hundred assets, selected across pages.
 
-**When the tool has no assets at all:** in place of the entries, the
-heading `No items under this tool`, and under it a second, bordered
-`Add tools` (1d, #463, #485). **Since #507 this is a kind of the catalog
+**When the category has no assets at all:** in place of the entries, the
+heading `Nothing added yet` (#519; `No items under this tool` until then), and under
+it a second, bordered `Add items` (1d, #463, #485, #519). **Since #507 this is a kind of the catalog
 nobody has bought yet**, which no list shows — the screen is reached by its
 address — and the heading stands alone: the sentence 1d draws under it,
 `If you were adding some, it stopped before any were saved.`, spoke of a
@@ -266,28 +267,28 @@ registration that stopped between writing the tool and writing its items,
 which a registration no longer can, since it picks the tool rather than
 creating it. The total, the page position, the boxes and the print control
 are absent with it; there is nothing to count, no page to be on and nothing to
-print. **The control that registers more of this tool stays, and this is where
+print. **The control that registers more of this category stays, and this is where
 it matters most**: it is how the kind's first assets are added. **For a
 reader who is not a site manager the heading stands alone with nothing under
 it (#506)**: the opener is a site manager's. Design is drawing what this state
 says.
 
 **When the reader is not a site manager (#506):** the same screen, every fact
-on it, and none of the controls a site manager uses here — no `Add tools` in
+on it, and none of the controls a site manager uses here — no `Add items` in
 the head or under an empty list, no box on an entry or for the page, no
 selection bar and so nothing to print, and neither dialog a registration's
 landing tells, which speak to whoever added. The column of boxes goes with
-the boxes, so the table is `Tool ID`, `Status` and `Job`, the job taking the
+the boxes, so the table is `Item ID`, `Status` and `Job`, the job taking the
 room; Design is drawing that list. A selection carried on the address is not
 read for them, so it marks no entry and rides no step. Nothing replaces any of
 it with a sentence: the screen is theirs to read, and a control is absent
 rather than disabled because being a site manager is not something one asks
 the office for the way a job is.
 
-**When no tool carries the record id in the address:** the screen is the
-heading `Tool not found` and a way back to `/asset-categories`. Nothing on this axis
+**When no category carries the record id in the address:** the screen is the
+heading `Item not found` and a way back to `/asset-categories`. Nothing on this axis
 is gated by role or job, so unlike the request, order and invoice screens
-this refusal answers one state — no such tool — rather than standing in
+this refusal answers one state — no such category — rather than standing in
 for two.
 
 ## What must agree elsewhere
@@ -312,8 +313,8 @@ print those labels again rather than an account of anything. It is kept in
 ascending id, whatever order the boxes were pressed in, so the labels print as
 their ids count up — the list's own order until #463, which turned the list
 newest first and left the selection as it was. **A design must not offer
-"select all of this tool"**, for the reason this screen never offered
-"print all": it is a read of every asset under the tool. **A
+"select all of this category"**, for the reason this screen never offered
+"print all": it is a read of every asset under the category. **A
 registration's arrival is such an address (#449)**: it carries what the
 registration wrote, which is why what it wrote survives a reload.
 
@@ -344,18 +345,19 @@ labels' dialog asks nothing, so the selection here is the run.
 dialog's constant (#451)**, so none can drift from the dialog it opens — the
 arrangement the labels' dialog has with the two pages that open it. Two say
 the dialog's heading, because both begin a registration: `/asset-categories`' own, which
-opens it on no tool, and this screen's, which opens it on this tool. The
+opens it on no category, and this screen's, which opens it on this category. The
 fork's says how many it will add, `Add 2 more`, because it finishes one, and
-opens it on this tool at that count (#456, #485).
+opens it on this category at that count (#456, #485).
 
 **No word the selection adds names what is selected** — the way the document
 lists' pickers say `N selected`. It was written while `tool item` was decided
 against appearing with its replacement not yet chosen; #455 chose it, `item` on
-this screen, and the selection's words needed nothing from it.
+this screen, #519 made it `item` on every screen, and the selection's words needed
+nothing from either.
 
-**The status shown here is the same value the tool list counts.**
+**The status shown here is the same value the category list counts.**
 `Assets."Status"` is maintained by the app rather than computed on
-either screen, so this page, the tool list and the asset's own screen
+either screen, so this page, the category list and the asset's own screen
 cannot disagree about where an asset is.
 
 **All three statuses reach this column.** A check-out, a check-in and a
@@ -365,13 +367,14 @@ entry would read `In Stock` until a later phase, which stopped being true
 when those issues wrote the other two; corrected by #443.
 
 **There is no count per status on this screen, and adding one is not
-free.** That question belongs to the tool list one level up. Answering it
-here would mean reading every asset under the tool, which is the cost
+free.** That question belongs to the category list one level up. Answering it
+here would mean reading every asset under the category, which is the cost
 the paging exists to avoid — this page reads only the entries it draws,
-whatever the tool's size.
+whatever the category's size.
 
-**The column over each code is `Tool ID`, beside `Status` and `Job` (#463).**
-It was `Item` from #455, the design's word then, and `Tool item` before it.
+**The column over each code is `Item ID`, beside `Status` and `Job` (#519).**
+It was `Tool ID` from #463, `Item` from #455, the design's word then, and `Tool
+item` before it.
 `Status` and `Job` name one field each and are the words the asset's own
 screen already uses for them.
 
@@ -380,7 +383,7 @@ registration's ids are listed (#449).** The registration form listed them
 under itself until then, where a reload lost them; it keeps no account of its
 own now and sends the reader here, where the list survives a reload.
 
-**A tool's name never appears as a path segment**, here or anywhere. The
+**A category's name never appears as a path segment**, here or anywhere. The
 segment is Airtable's record id: `Asset Categories` mints none, a name can hold any
 character, and a rename would move the address. This screen stood one
 level deeper until #348, when the asset's own address moved off the

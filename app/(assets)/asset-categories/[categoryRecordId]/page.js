@@ -27,8 +27,9 @@ import AssetList from "./AssetList";
 // SECOND read of the same record, since generateMetadata runs separately from the
 // page render and the Airtable SDK deduplicates nothing. The other asset screen
 // with a dynamic segment carries the printed id in the URL already, so it names
-// its record for no operations at all.
-export const metadata = { title: "Tool" };
+// its record for no operations at all. `Item` since #519, the screens' word for a row of the
+// list, where it was `Tool`.
+export const metadata = { title: "Item" };
 
 /**
  * One category and its assets, a page at a time (#339).
@@ -65,7 +66,7 @@ export const metadata = { title: "Tool" };
  * is fetched. The office starts from every asset under the category and anybody else from
  * those on their jobs; a job in the head narrows to its own, and the head counts
  * `N of M`. A category with assets, none of them in the scope, draws its head and nothing
- * under it, as a job with none does on `/asset-categories`: `No items under this tool`
+ * under it, as a job with none does on `/asset-categories`: `Nothing added yet`
  * would be false there, and Design is drawing what it says. An asset off the scope still
  * opens from its label.
  *

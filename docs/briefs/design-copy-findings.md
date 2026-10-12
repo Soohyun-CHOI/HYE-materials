@@ -95,7 +95,7 @@ its own words.
 
 ---
 
-## `tool`, for an asset and for a category (#513)
+## `item`, for an asset and for a category (#513, #519)
 
 `Tool Items`, `Tools` and `Tool Log` became `Assets`, `Asset Categories` and
 `Asset Log`: the axis holds equipment as well as tools, and the office calls each
@@ -103,63 +103,59 @@ thing it labels and tracks an asset. The routes moved with them —
 `/asset-categories`, `/asset-categories/[categoryRecordId]`, `/assets/[assetId]`
 and the printed `/l/[labelCode]` — and so did the code.
 
-**One word on the screen moved, and only one:** the axis's own name is
-`Tools & Equipment`, on the rail, the category list's heading and tab, the
-breadcrumb, the root screen's link and `Back to Tools & Equipment`. That is the
-site's word for what the office calls assets, chosen for the people holding the
-phone. Every other string kept its `tool`, deliberately — the words are Design's,
-and #513 changed no behavior. The column below says what each `tool` stands for,
-because it stands for three things and a sweep needs to know which.
+**The screens say `item` for both since #519, the design's word**: a row of the
+category list is an item, and so is each labeled one. They said `tool` for both
+from #455, with `item` only where a category's own screen counted what is under
+it, and #513 moved one word alone, the axis's own name: `Tools & Equipment`, on
+the rail, the category list's heading and tab, the breadcrumb, the root screen's
+link and `Back to Tools & Equipment`, which stays — it is the site's word for what
+the office calls assets. So the screen word and the base's word differ on both
+tables, and the column below says which of the two each string names, since a
+later sweep needs to know.
 
 ### What a reader sees
 
 | String | Where | Names |
 |---|---|---|
-| `Add tools`, `Add 1 tool`, `Add 5 tools` | registration dialog: title, opener, submit | assets |
-| `Couldn't add the tools. Try again.` | registration dialog | assets |
-| `1 tool couldn't be added`, `5 tools couldn't be added` | the shortfall's title | assets |
-| `1 tool has no creation date`, `5 tools have no creation date` | the notice's title | assets |
-| `That tool isn't available any more.` | registration dialog | a category |
-| `No tools yet` | the category list, empty | assets |
-| `Each tool shows here with how many are in stock, out and retired.` | the category list, empty | a category |
-| `Tool` | the category list: the name column's head | a category |
-| `tool`, `tools` after the head's figure | the category list, assistive tech only | categories |
-| `Tool` | a category's page: the tab | a category |
-| `Tool ID` | a category's page: the column of codes | assets |
-| `No items under this tool` | a category's page, empty | a category |
-| `Tool not found` | a category's page and an asset's: not found | either |
-| `QR label for this tool` | an asset's page: the label's name, assistive tech only | an asset |
-| `No tool has the code …`, `No tool has this code. …` | an asset's page: not found | an asset |
-| `This tool was last scanned on …` | check-out and check-in | an asset |
-| `…, and the tool lists will say so. Do it again.` | a scan whose status was not saved | the lists |
-| `No tools have gone out on this job yet.` | the name sheet | assets |
-| `Retire this tool`, `Retire tool` | an asset's page: the menu and the confirm | an asset |
+| `Add items`, `Add 1 item`, `Add 5 items` | registration dialog: title, opener, submit | assets |
+| `Couldn't add the items. Try again.` | registration dialog | assets |
+| `1 item couldn't be added`, `5 items couldn't be added` | the shortfall's title | assets |
+| `1 item has no creation date`, `5 items have no creation date` | the notice's title | assets |
+| `That item isn't available any more.` | registration dialog | a category |
+| `No items yet` | the category list, empty | categories |
+| `Each item shows here with how many are in stock, out and retired.` | the category list, empty | a category |
+| `Name` | the category list: the name column's head | a category |
+| `item`, `items` after the head's figure | both lists, assistive tech only | categories, assets |
+| `Item` | a category's page: the tab | a category |
+| `Item ID` | a category's page: the column of codes | assets |
+| `Nothing added yet` | a category's page, empty | assets |
+| `Item not found` | a category's page and an asset's: not found | either |
+| `QR label for this item` | an asset's page: the label's name, assistive tech only | an asset |
+| `No item has the code …`, `No item has this code. …` | an asset's page: not found | an asset |
+| `This item was last scanned on …` | check-out and check-in | an asset |
+| `No items have gone out on this job yet.` | the name sheet | assets |
+| `Retire this item`, `Retire item` | an asset's page: the menu and the confirm | an asset |
 
-The registration's second level was the one `tool` that was not a row — `Tool`,
-`Choose a tool` and `Choose a tool.` on its search — and #514 took it: the
-catalog's levels are six, `Level 1` to `Level 3`, `Size`, `Maker` and `Part
-Number`, and the search names the third, `Name`. The next section lists what
-#514 says.
+`…, and the lists will say so. Do it again.`, a scan whose status was not saved,
+said `the tool lists` until #519 and says the lists alone: the sentence is about
+the two list screens, and `item lists` would read as a list of items.
 
 ### What moves with them
 
-Copy keys named after their string kept the string's word, which is #333's
-shape: an identifier that mirrors what a screen says is truthful for as long as
-the screen says it.
+A copy key named after its string takes the string's word when the string moves,
+#333's shape, and every one did in #519:
 
-- `ASSET_LIST_COPY.noToolsHeading`, `.noTools`, `.toolNoun` and `.toolLabel` in
-  `lib/assetListView.js`, and `.backToTools`, which already says the axis's name.
-- `ASSET_COPY.toolLabel` and `.backToTools` in `lib/assetView.js`, the first of
-  which the list's `toolLabel` reads.
-- `ASSET_REGISTRATION_COPY.toolGone` in `lib/assetRegistration.js`.
-- The second level, not a row, until #514 renamed it with its level:
-  `ASSET_CATEGORY_COPY.toolLabel` and `.toolUnchosen`, `ASSET_REGISTRATION_COPY`'s
-  `.toolNoneChosen` and `.changeTool`, the dialog's first step `"tool"` and the
-  refusal key `fields.tool` are the level's maps keyed `level3`, `changeName`,
-  the step `"name"` and `fields.level3`.
+- `ASSET_LIST_COPY.noItemsHeading`, `.noItems` and `.nameLabel` in
+  `lib/assetListView.js` — `noToolsHeading`, `noTools` and the borrowed
+  `toolLabel` until #519 — and `.backToTools`, which says the axis's name.
+  `toolNoun` went, since both lists count in `itemNoun` now.
+- `ASSET_COPY.toolLabel` in `lib/assetView.js` went: the category list was its one
+  reader.
+- `ASSET_REGISTRATION_COPY.itemGone` in `lib/assetRegistration.js`, `toolGone`
+  until #519.
 - The checks that pin these strings by value: `offline/asset-registration.mjs`,
-  `asset-category.mjs`, `asset-list-view.mjs`, `asset-view.mjs`,
-  `asset-transition.mjs`, `asset-screen-words.mjs` and `screen-briefs.mjs`.
+  `asset-list-view.mjs`, `asset-view.mjs`, `asset-transition.mjs`,
+  `asset-screen-words.mjs` and `screen-briefs.mjs`.
   `scripts/screen-strings.mjs` finds the screens.
 
 ### What the base calls it
@@ -168,8 +164,9 @@ An `Assets` row is an **asset**: `Asset ID` (`HYE-AST-YYMMDD-###`), `Category`,
 `Job`, `Status`. An `Asset Categories` row is a **category**: `Item Name`, a
 formula over `Level 3`, `Size`, `Maker` and `Part Number`, beside `Level 1`,
 `Level 2` and `Class` (#514; over `Level 2` and `Size` until then). An `Asset
-Log` row is an entry in an asset's history. `docs/notes/naming.md` has the rows
-for `tool` / `item`, `Tools & Equipment`, `category` and the six level words.
+Log` row is an entry in an asset's history. `Level 1`'s value `Tool` is the type
+and not this word, and stays. `docs/notes/naming.md` has the rows for `tool` /
+`item`, `Tools & Equipment`, `category` and the six level words.
 
 ---
 

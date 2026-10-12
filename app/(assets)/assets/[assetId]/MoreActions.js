@@ -25,7 +25,7 @@ function Dots({ phone }) {
  * WAI-ARIA'S MENU BUTTON, AS THE ACCOUNT AT THE RAIL'S FOOT IS (#478). The button says it opens
  * a menu and whether the menu is open; Enter, Space and Down open it on its first item and Up
  * on its last; the menu takes focus and the keys from there, and Escape hands focus back here.
- * Its one item, `Retire this tool`, is 0f's Destructive, and choosing it hands focus to this
+ * Its one item, `Retire this item`, is 0f's Destructive, and choosing it hands focus to this
  * button before the question opens — so the question's every way out comes back here, which
  * the browser's modal dialog does for whatever held focus as it opened.
  *

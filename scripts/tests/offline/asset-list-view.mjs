@@ -350,12 +350,12 @@ export function run({ check, assert, log }) {
     check(
         "the list heads its columns the name, the class, the type, the category and each status",
         columnHeads(parseFile(LIST_SCREEN)),
-        "COPY.toolLabel, ASSET_CATEGORY_COPY.classLabel, ASSET_CATEGORY_COPY.levelLabel.level1, ASSET_CATEGORY_COPY.levelLabel.level2, status"
+        "COPY.nameLabel, ASSET_CATEGORY_COPY.classLabel, ASSET_CATEGORY_COPY.levelLabel.level1, ASSET_CATEGORY_COPY.levelLabel.level2, status"
     );
     check(
         "  and a list with the type left out is seen (anti-vacuity)",
-        columnHeads(parseSource('<div><span role="columnheader">{COPY.toolLabel}</span><span role="columnheader">{ASSET_CATEGORY_COPY.levelLabel.level2}</span></div>', "<planted-heads>")),
-        "COPY.toolLabel, ASSET_CATEGORY_COPY.levelLabel.level2"
+        columnHeads(parseSource('<div><span role="columnheader">{COPY.nameLabel}</span><span role="columnheader">{ASSET_CATEGORY_COPY.levelLabel.level2}</span></div>', "<planted-heads>")),
+        "COPY.nameLabel, ASSET_CATEGORY_COPY.levelLabel.level2"
     );
     // An asset whose link did not resolve is counted nowhere rather than
     // throwing — `findByRecordIds` returns fewer rows than it was asked for, and
@@ -1040,8 +1040,8 @@ export function run({ check, assert, log }) {
     );
 
     // THE OPENERS OF THE REGISTRATION DIALOG, ON BOTH SCREENS (#451, #456). A category's page
-    // opens it on that category and with no count, in the dialog's own title — `Add tools` since
-    // #485 — and the list opens it on no category. Each stands under ONE condition since #506,
+    // opens it on that category and with no count, in the dialog's own title — `Add items` since
+    // #519, `Add tools` from #485 — and the list opens it on no category. Each stands under ONE condition since #506,
     // that the reader is a site manager — the page's `recorder` — and under nothing else: a
     // category with nothing under it keeps its opener, and so does a site manager on no job, whom
     // the opener itself tells why it cannot act (0f). What decides that is one predicate,
@@ -1774,9 +1774,12 @@ export function run({ check, assert, log }) {
         strings.filter((s) => TOOL_ITEM_NOUN.test(s)).length,
         0
     );
-    // The three field labels are the asset page's, not a second spelling.
+    // The two field labels are the asset page's, not a second spelling — and the name
+    // column's head is the list's own since #519, the design's `Name`, where it borrowed the
+    // asset page's `Tool`.
+    check("the name column's head, the list's own word", ASSET_LIST_COPY.nameLabel, "Name");
+    check("  which the asset page no longer carries", "toolLabel" in ASSET_COPY, false);
     for (const [key, label] of [
-        ["toolLabel", ASSET_COPY.toolLabel],
         ["statusLabel", ASSET_COPY.statusLabel],
         ["jobLabel", ASSET_COPY.jobLabel],
         ["backToTools", ASSET_COPY.backToTools],
@@ -1792,29 +1795,30 @@ export function run({ check, assert, log }) {
     );
     check("the heading is the axis's name on screen", ASSET_LIST_COPY.heading, "Tools & Equipment");
     // THE DESIGN'S `13 items` (#455): a category's own page counts what is under it as items,
-    // and heads their column the same way.
+    // and since #519 the category list counts its rows as items too, and the column over each
+    // code says `Item ID`.
     check("one item is singular", ASSET_LIST_COPY.total(1), "1 item");
     check("  and two are plural", ASSET_LIST_COPY.total(2), "2 items");
     check("  and none is plural too", ASSET_LIST_COPY.total(0), "0 items");
-    check("  the column over each one's code, the design's since #463", ASSET_LIST_COPY.assetIdLabel, "Tool ID");
+    check("  the column over each one's code, the design's since #519", ASSET_LIST_COPY.assetIdLabel, "Item ID");
     check(
-        "  and the head counts each list in its own noun",
-        `${ASSET_LIST_COPY.toolNoun(1)} ${ASSET_LIST_COPY.toolNoun(17)} ${ASSET_LIST_COPY.itemNoun(1)} ${ASSET_LIST_COPY.itemNoun(0)}`,
-        "tool tools item items"
+        "  and the head counts both lists in one noun",
+        `${ASSET_LIST_COPY.itemNoun(1)} ${ASSET_LIST_COPY.itemNoun(17)} ${"toolNoun" in ASSET_LIST_COPY}`,
+        "item items false"
     );
     // THE TWO EMPTY STATES, which the sweep carried the verb and the noun into. The
     // second's sentence, that an addition had stopped before saving any, went in #507: a
     // category with nothing under it is a catalog row nobody has bought yet, so its heading
-    // stands alone.
+    // stands alone. The design's words since #519.
     check(
-        "no tool at all, a heading and a sentence (1a)",
-        `${ASSET_LIST_COPY.noToolsHeading} | ${ASSET_LIST_COPY.noTools}`,
-        "No tools yet | Each tool shows here with how many are in stock, out and retired."
+        "no item at all, a heading and a sentence (1a)",
+        `${ASSET_LIST_COPY.noItemsHeading} | ${ASSET_LIST_COPY.noItems}`,
+        "No items yet | Each item shows here with how many are in stock, out and retired."
     );
     check(
-        "  and a tool with nothing under it, its heading alone (1d, #507)",
+        "  and a category with nothing under it, its heading (1d, #507)",
         `${ASSET_LIST_COPY.noAssetsHeading} | ${"noToolItems" in ASSET_LIST_COPY}`,
-        "No items under this tool | false"
+        "Nothing added yet | false"
     );
     check(
         "the pager's two figures, and its steps' names",

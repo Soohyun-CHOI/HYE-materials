@@ -12,7 +12,7 @@ import { assetCategoryPath, assetCategoriesPath } from "@/lib/assetRoutes";
 const ALL_JOBS = axesFor(FILTERED_LISTS[0]).find((axis) => axis.param === "job").words.all;
 
 // The job an asset list is narrowed to (#509), in the list's head — 0n's place for a list's
-// one control, beside `Add tools` — as 0l's choice: `All jobs` first, which is the whole of
+// one control, beside `Add items` — as 0l's choice: `All jobs` first, which is the whole of
 // what the reader starts from, and then each job they may narrow to by its code, as the
 // registration's choice names them. Design is drawing the control; this is the closest the
 // app already draws, and it is held to no width of its own until then, so it is as wide as

@@ -45,7 +45,8 @@
 // `--check` VERIFIES THAT LIST AND NOTHING ELSE. It asserts every string
 // `unfindable.md` quotes is still absent from this file's own output, so a rule added
 // here fails it — which is good news, and means an entry is stale. It caught one on
-// its first run. What it cannot check is whether the list is COMPLETE: a string this
+// its first run. A quote counts as produced only as a whole string, or a run of a
+// template's pieces, never inside a longer one (#519). What it cannot check is whether the list is COMPLETE: a string this
 // file cannot see and nobody wrote down is invisible to both, and that gap is the
 // list's own subject.
 //
@@ -642,17 +643,25 @@ function runCheck(routes) {
     }
 
     // Every string every screen produces, squashed, so a run can span the chunk
-    // boundary a concatenated template leaves behind.
+    // boundary a concatenated template leaves behind — and kept apart by a mark no string
+    // holds, so a quoted string is found only where it starts and ends on a string's own
+    // edge. A quote is a whole string a screen renders, never a part of one: matched as a
+    // bare substring, `That item`, the invoice detail's fallback, was found inside the
+    // registration's `That item isn't available any more.` the day #519 wrote it.
     const parseErrors = [];
-    let hay = "";
+    const EDGE = "\u0001";
+    let hay = EDGE;
     for (const route of routes) {
         const { strings, errors } = stringsForRoute(route);
         errors.forEach((e) => parseErrors.push(`${route}: ${e}`));
-        hay += strings.map((s) => s.text).join("  ") + "  ";
+        hay += strings.map((s) => s.text.replace(/\s+/g, "")).join(EDGE) + EDGE;
     }
-    const squashed = hay.replace(/\s+/g, "");
+    const produced = (q) => {
+        const chars = [...q.replace(/\s+/g, "")].map((c) => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+        return new RegExp(`${EDGE}${chars.join(`${EDGE}?`)}${EDGE}`).test(hay);
+    };
 
-    const nowFound = quoted.filter((q) => squashed.includes(q.replace(/\s+/g, "")));
+    const nowFound = quoted.filter(produced);
     console.log(`${quoted.length} strings quoted as unfindable, across ${routes.length} screens`);
     parseErrors.forEach((e) => console.log(`  UNPARSED ${e}`));
     if (nowFound.length === 0) {

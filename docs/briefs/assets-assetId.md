@@ -48,24 +48,24 @@ and which decisions in the drawing a later design may not undo.
 
 ## What it always carries
 
-**identity.** The tool's name as the heading — the record's name, as 0n and 1j
+**identity.** The category's name as the heading — the record's name, as 0n and 1j
 draw a record page — and the `Asset ID` beside it: under the heading at a
 desk, set in the id face with the job after it, and in the top bar on a phone,
-where the screen opens. An asset whose tool did not resolve is headed by its
+where the screen opens. An asset whose category did not resolve is headed by its
 id. It was the `Asset ID` as the heading, and nothing else, until #463.
 
-**identity.** What the tool is (#507): its class and where it sits in the
+**identity.** What the item is (#507): its class and where it sits in the
 catalog, type first (#514), `Class A · Tool > DEMO Machining > DEMO Angle
 Grinder > 4-1/2" > DEMO Makita > GA4570` — under the id and the job at a desk,
 and under the name on a phone, where a long one runs to two or three lines. It
-says what the name cannot: a name is the tool's name and its size with a space
+says what the name cannot: a name is the item's name and its size with a space
 between, then a comma and its maker, then its part number in parentheses,
 `DEMO Angle Grinder 4-1/2", DEMO Makita (GA4570)`, so it says neither where
 the name ends and the size begins nor which category or type holds it. The type and the class are information — the type `Equipment` or
-`Tool`, which changes nothing this screen offers, and the class `A` for a tool
+`Tool`, which changes nothing this screen offers, and the class `A` for an item
 that matters more, usually a dearer one, `B` otherwise — and no control here
 reads either. Design is drawing the line; it is
-the record header's line under its title until then. A part the tool lacks is
+the record header's line under its title until then. A part the category lacks is
 left out, and with neither there is no line.
 
 **The id is no longer the same string as the one on the sticker, and the
@@ -85,10 +85,10 @@ through. This is what the reader came for. **A value only one state has stands
 after it**: who holds a tool that is out — the name its latest entry checked it
 out to — at both widths, and at a desk the day a retired one was retired.
 
-**evidence.** The tool it is one of, which is the heading, and the job it is
+**evidence.** The category it is one of, which is the heading, and the job it is
 on, which a desk states under the heading. A phone states it on each history
 entry, and its foot bar states the job the next event will be recorded on.
-Both are single values, never lists — an asset is one unit of one tool and
+Both are single values, never lists — an asset is one unit of one category and
 sits on one job.
 
 **action.** For a site manager (#506), the one transition the status allows — `Check out` from `In stock`,
@@ -139,7 +139,7 @@ list**, so a design may set it: a name below the cut is one keystroke away
 rather than absent.
 
 **When that job has handed out nothing yet:** one sentence in place of the
-entries in the phone's sheet, `No tools have gone out on this job yet.`, and
+entries in the phone's sheet, `No items have gone out on this job yet.`, and
 at a desk no list under the field. **This is the first handout of a project
 rather than an error**, and it is the one screen that fills it. **Before a
 job is chosen the list is absent rather than empty** — heading and all —
@@ -165,7 +165,7 @@ and, after a moment, draws a spinner in place of its words, saying
 not the commitment that cannot act yet — drawn faded until the job and the name
 are given — and a design must keep the two apart.
 
-**action.** For a site manager (#506), `Retire this tool`, behind `More actions` — at a desk a 32 icon
+**action.** For a site manager (#506), `Retire this item` (#519; `Retire this tool` until then), behind `More actions` — at a desk a 32 icon
 button beside the transition, named by its tooltip, and on a phone the 48
 button at the top bar's right end (1f, 1j). At a desk it is the menu's one
 item, in 0f's destructive red, and opens a dialog. **On a phone the menu ends on
@@ -199,9 +199,9 @@ mis-press made less likely in the first place: a phone's foot bar holds only the
 act a scan is for, and the top bar's button is where a person goes looking for
 the rarer one.
 
-**What the dialog carries**, in this order: a heading that asks with the tool's
-name — `Retire DEMO Rotary Hammer?` for that tool — and the asset's id under
-it (#458), an account of what becomes true, and the two ways out, `Retire tool`
+**What the dialog carries**, in this order: a heading that asks with the category's
+name — `Retire DEMO Rotary Hammer?` for that one — and the asset's id under
+it (#458), an account of what becomes true, and the two ways out, `Retire item`
 and `Cancel` — the confirm names what it retires, as the opener does (#455). The
 account is the design's since #458, `It will be removed from inventory, and no
 more check-outs or check-ins can be recorded. This can't be undone.`: the asset
@@ -274,7 +274,7 @@ are. **So it has no size of its own**: it is drawn at whatever reads in its plac
 figures state rather than a size the drawing keeps. Until #463 the symbol alone was
 drawn at its printed size with a line saying so.
 
-**It is named for assistive tech**, `QR label for this tool`, as an image: the
+**It is named for assistive tech**, `QR label for this item`, as an image: the
 code under the symbol is nothing the heading says, so it takes a name rather than
 hiding. The string sat in the page's copy with nothing drawing it from #352 to
 #463.
@@ -367,7 +367,7 @@ distinguishing two outcomes that otherwise look alike, it is read on a phone in
 one hand, and it names no status because the status is stated directly above it
 and was just refreshed.
 
-**The retirement's dialog, which is closed until `Retire this tool` is chosen.**
+**The retirement's dialog, which is closed until `Retire this item` is chosen.**
 The page behind it stays legible, and it closes by `Cancel`, by `Escape`, by its
 close at a desk and on a press behind it as a phone's sheet, with focus returning
 to `More actions`; the confirm takes it away with the page's offer, and focus
@@ -431,12 +431,12 @@ a failure between the two leaves exactly this; the row is sound, with its id,
 its status and its job. There is no repair, because a log row written later
 would state a time that is not when the asset was created.
 
-**When no asset carries the code in the address:** the heading `Tool not
-found`, the design's (1h, 1k). At a desk, centered in the column, a sentence
-naming the code asked for in the id face — `No tool has the code
+**When no asset carries the code in the address:** the heading `Item not
+found`, the design's (1h, 1k; `Tool not found` until #519). At a desk, centered in the column, a sentence
+naming the code asked for in the id face — `No item has the code
 HYE-AST-260909-099. Check it against the label.` — and `Back to Tools & Equipment`. On a
 phone, under the top bar naming the code in Ink 3, a mark and one line,
-`No tool has this code. Check it against the label and scan again.`, **and no
+`No item has this code. Check it against the label and scan again.`, **and no
 way back**, as 1k-c draws it: a phone came from a scan, and the next thing it
 does is scan again. The top bar's menu holds the reader's account alone there
 (#495). Nothing on this axis is gated by role or job, so
@@ -476,12 +476,12 @@ blanks is what makes the previous entry's job readable as the previous job,
 which is why nothing stores a former job — collapsing the repetition would take
 that away.
 
-**The status shown here is the same value the tool list counts.** It is
+**The status shown here is the same value the category list counts.** It is
 maintained by the app rather than computed on this screen, so this page and
 the two list screens cannot disagree about where an asset is.
 
 **And it is the value both of this screen's controls move.** A transition here
-changes what `/asset-categories` counts and what the tool's own screen shows in its
+changes what `/asset-categories` counts and what the category's own screen shows in its
 `Status` column — the first non-zero `Out` either of them has ever rendered
 came from the transition control, and the first non-zero `Retired` from the
 other. The verdict and the actions are about one fact, which is why they sit
@@ -510,12 +510,13 @@ true record of a tool changing site**, and a retirement always matching the row
 before it is what keeps that reading available.
 
 **The two tables are not interchangeable, and the screen names them the
-design's way (#455).** An `Asset Categories` row is a tool — the kind, a row of the
+design's way (#455, #519).** An `Asset Categories` row is a category — the kind, a row of the
 catalog the office keeps (#507), whose name heads this page. An `Assets` row — this object, with this
-printed id, which this brief calls an asset — is a `tool` in every sentence
-about it: `Retire this tool`, `Tool not found`, `This tool was last scanned
-on …`. Six of one drill is one tool and six tools under it, counted as items on
-the tool's own page. **No sentence on the screen says `tool item` since #463**,
+printed id, which this brief calls an asset — is an `item` in every sentence
+about it since #519: `Retire this item`, `Item not found`, `This item was last scanned
+on …`. A row of the category list is an `item` as well, and no sentence sets the two side
+by side; from #455 to #519 both were a `tool` and the assets were counted as items on
+their category's own page. **No sentence on the screen says `tool item` since #463**,
 which took the design's `Tool not found` for the last one that did.
 
 **The label in the rail and the label the dialog prints are one object, built
@@ -535,8 +536,8 @@ dialog's.
 
 **There are two ways in, and both survive a reload.** A scan of the label is the
 first, arriving through the short route that redirects here; the second is a
-tool's own screen, which lists every asset under it with a link to this one
-(#339) and is reached from the tool list and from a registration, which lands
+category's own screen, which lists every asset under it with a link to this one
+(#339) and is reached from the category list and from a registration, which lands
 there with what it wrote selected (#449). **This said three ways, one of them
 lost on a reload**: the registration form's own answer linked here too until
 #449, and that list was gone once the page was.

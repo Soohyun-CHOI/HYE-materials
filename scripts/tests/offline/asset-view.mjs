@@ -224,13 +224,13 @@ export function run({ check, assert, log }) {
     check("no string says `tool item`", strings.filter((s) => TOOL_ITEM_NOUN.test(s)).join(" | "), "");
     // THE DESIGN'S WORDS (1f, 1k, 1h), typed out here so a rewording reaches this file.
     check("the empty history", ASSET_COPY.noHistory, "No history yet");
-    check("a code no asset carries, at a desk", `${ASSET_COPY.notFoundHeading} | ${ASSET_COPY.notFoundCode.before}HYE-AST-260909-099${ASSET_COPY.notFoundCode.after}`, "Tool not found | No tool has the code HYE-AST-260909-099. Check it against the label.");
-    check("  and after a scan", ASSET_COPY.notFoundScanned, "No tool has this code. Check it against the label and scan again.");
+    check("a code no asset carries, at a desk", `${ASSET_COPY.notFoundHeading} | ${ASSET_COPY.notFoundCode.before}HYE-AST-260909-099${ASSET_COPY.notFoundCode.after}`, "Item not found | No item has the code HYE-AST-260909-099. Check it against the label.");
+    check("  and after a scan", ASSET_COPY.notFoundScanned, "No item has this code. Check it against the label and scan again.");
     check("  with the way back", ASSET_COPY.backToTools, "Back to Tools & Equipment");
     check("the label's print size, in text", `${ASSET_COPY.sizeLabel} | ${ASSET_COPY.symbolLabel} ${ASSET_COPY.symbolSize(9.57)}`, "Size | Symbol 9.57 mm");
     check("an entry's two words", `${ASSET_COPY.historyTo} | ${ASSET_COPY.historyBy}`, "to | by");
     check("the retirement's button, at both widths", ASSET_COPY.moreActions, "More actions");
-    check("  and the label's name for assistive tech", ASSET_COPY.symbolAlt, "QR label for this tool");
+    check("  and the label's name for assistive tech", ASSET_COPY.symbolAlt, "QR label for this item");
     // `kind` is the notes' explanatory word for what separates `Asset Categories` from
     // `Assets` and names no row, so it may not reach a screen (#338).
     check("no string says `kind`", strings.filter((s) => /\bkinds?\b/i.test(s)).length, 0);

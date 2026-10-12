@@ -100,7 +100,7 @@ const COLUMNS =
  * the page's.
  *
  * TWO EMPTY STATES, AND ONE HAS NO WORDS YET. A list that starts from nothing — no category
- * with anything under it, or none on the reader's jobs — draws `No tools yet` and its sentence, with a
+ * with anything under it, or none on the reader's jobs — draws `No items yet` and its sentence, with a
  * second opener under them, and no pager: there is nothing to page. A job chosen with
  * nothing on it draws nothing under the head, whose `0 of M` and choice say what
  * happened (#509); Design is drawing what it says.
@@ -161,7 +161,7 @@ async function renderCategoriesPage({ searchParams }) {
     return (
         <ListFrame
             header={
-                <ListHeader title={COPY.heading} count={count} noun={COPY.toolNoun(rows.length)}>
+                <ListHeader title={COPY.heading} count={count} noun={COPY.itemNoun(rows.length)}>
                     {jobChoice}
                     {recorder && <RegistrationDialog {...registration} />}
                 </ListHeader>
@@ -182,8 +182,8 @@ async function renderCategoriesPage({ searchParams }) {
             {rows.length === 0 ? (
                 narrowed ? null : (
                     <div className="flex flex-col items-center pt-list-empty-state-inset-top text-center">
-                        <h2 className="text-heading font-semibold">{COPY.noToolsHeading}</h2>
-                        <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">{COPY.noTools}</p>
+                        <h2 className="text-heading font-semibold">{COPY.noItemsHeading}</h2>
+                        <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">{COPY.noItems}</p>
                         {recorder && (
                             <div className="mt-gap-lg">
                                 <RegistrationDialog {...registration} variant="bordered" />
@@ -194,7 +194,7 @@ async function renderCategoriesPage({ searchParams }) {
             ) : (
                 <div role="table" aria-label={COPY.heading}>
                     <div role="row" className={`${TABLE_HEAD} ${COLUMNS}`}>
-                        <span role="columnheader">{COPY.toolLabel}</span>
+                        <span role="columnheader">{COPY.nameLabel}</span>
                         <span role="columnheader">{ASSET_CATEGORY_COPY.classLabel}</span>
                         <span role="columnheader">{ASSET_CATEGORY_COPY.levelLabel.level1}</span>
                         <span role="columnheader">{ASSET_CATEGORY_COPY.levelLabel.level2}</span>

@@ -109,7 +109,7 @@ import { registerAssetsAction } from "./actions";
  *
  * ITS COMMITMENT NAMES WHAT IT WILL ADD, AND SAYS SO WHILE IT DOES (#469, #485). The words
  * follow the count as it is typed, through `readQuantity` — the reading the press itself
- * makes — so `Add 5 tools` stands only over a count the press would take, and `Add tools`
+ * makes — so `Add 5 items` stands only over a count the press would take, and `Add items`
  * over one it would refuse (1b). While the registration is on its way the frame is
  * `busy`: the commitment gives way to `Adding…` after 300ms, every other
  * control locks, and nothing is disabled, so focus stays where the press found it — and

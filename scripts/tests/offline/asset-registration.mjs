@@ -227,7 +227,7 @@ export async function run({ check, assert, log }) {
     // THE DESIGN'S WORDS, BY VALUE (#455, #456), AND THE ACT'S VERB `add` (#485). The title
     // is also the list's and a category's page's opener, so the three are one string; the submit
     // names what it adds.
-    check("the title, which both openers that begin a registration say", ASSET_REGISTRATION_COPY.heading, "Add tools");
+    check("the title, which both openers that begin a registration say", ASSET_REGISTRATION_COPY.heading, "Add items");
     check("  the line under it, while the dialog picks its category", ASSET_REGISTRATION_COPY.intro, "Each one gets its own ID and label.");
     // THE WAY BACK FROM THE SECOND STEP (#507), the sign-in steps' word for going back to the
     // step that chose what a chip names — beside the name it picked since #514.
@@ -239,18 +239,18 @@ export async function run({ check, assert, log }) {
     // THE SUBMIT NAMES WHAT IT MAKES BY ITS COUNT (#469, 1b) — and only a count the press
     // takes: the dialog hands it `readQuantity`'s count for what the field holds, so the
     // words over a count the press would refuse say the act alone, as 1b's Refused does.
-    check("  the submit, for one", ASSET_REGISTRATION_COPY.submit(1), "Add 1 tool");
-    check("  for several", ASSET_REGISTRATION_COPY.submit(5), "Add 5 tools");
-    check("  at the ceiling", ASSET_REGISTRATION_COPY.submit(100), "Add 100 tools");
-    check("  and over a count the press would refuse", ASSET_REGISTRATION_COPY.submit(null), "Add tools");
+    check("  the submit, for one", ASSET_REGISTRATION_COPY.submit(1), "Add 1 item");
+    check("  for several", ASSET_REGISTRATION_COPY.submit(5), "Add 5 items");
+    check("  at the ceiling", ASSET_REGISTRATION_COPY.submit(100), "Add 100 items");
+    check("  and over a count the press would refuse", ASSET_REGISTRATION_COPY.submit(null), "Add items");
     for (const [raw, expected, why] of [
-        ["1", "Add 1 tool", "  the field's 1, read as the press reads it"],
-        [" 12 ", "Add 12 tools", "  a dozen, its spaces trimmed as the press trims them"],
-        ["100", "Add 100 tools", "  the ceiling, typed"],
-        ["", "Add tools", "  nothing typed"],
-        ["0", "Add tools", "  zero"],
-        ["101", "Add tools", "  one past the ceiling"],
-        ["140", "Add tools", "  1b's refused 140"],
+        ["1", "Add 1 item", "  the field's 1, read as the press reads it"],
+        [" 12 ", "Add 12 items", "  a dozen, its spaces trimmed as the press trims them"],
+        ["100", "Add 100 items", "  the ceiling, typed"],
+        ["", "Add items", "  nothing typed"],
+        ["0", "Add items", "  zero"],
+        ["101", "Add items", "  one past the ceiling"],
+        ["140", "Add items", "  1b's refused 140"],
     ])
         check(why, ASSET_REGISTRATION_COPY.submit(readQuantity(raw).count), expected);
     check("  and while it is on its way, 0f's -ing word with no count", ASSET_REGISTRATION_COPY.working, "Adding…");
@@ -266,12 +266,12 @@ export async function run({ check, assert, log }) {
         "level3=Choose a name. | size=Choose a size. | maker=Choose a maker. | partNumber=Choose a part #."
     );
     check("  and no word is left for the tool #507 searched", ["toolNoneChosen", "sizeNoneChosen", "changeTool"].filter((key) => key in ASSET_REGISTRATION_COPY).join(", "), "");
-    check("  a category the catalog no longer offers", ASSET_REGISTRATION_COPY.toolGone, "That tool isn't available any more.");
+    check("  a category the catalog no longer offers", ASSET_REGISTRATION_COPY.itemGone, "That item isn't available any more.");
     check("  a count out of range", ASSET_REGISTRATION_COPY.quantityInvalid(100), "Enter 1 to 100.");
     check("  a count past the ceiling", ASSET_REGISTRATION_COPY.quantityTooMany(100), "Max 100 at a time.");
     check("  a job not chosen, the picker's own word", ASSET_REGISTRATION_COPY.jobNoneChosen, ASSET_JOB_COPY.noneChosen);
     check("  a job not the reader's, the picker's own word", ASSET_REGISTRATION_COPY.jobNotYours, ASSET_JOB_COPY.notYours);
-    check("nothing written", ASSET_REGISTRATION_COPY.noneWritten, "Couldn't add the tools. Try again.");
+    check("nothing written", ASSET_REGISTRATION_COPY.noneWritten, "Couldn't add the items. Try again.");
     check("why an opener cannot act, for a reader on no job", ASSET_REGISTRATION_COPY.noJob, "Ask the office to assign you to a job");
     // WHAT A REGISTRATION SAYS WHERE IT LANDS, pinned by value. The fork's title, its one
     // sentence and its two answers, one going on and one stopping — and the notice, whose
@@ -281,15 +281,15 @@ export async function run({ check, assert, log }) {
     // selection on this page, which #459 had left out as a confirmation off the address and
     // which came back by decision. The answer that goes on names how many are left since
     // #485, and says `more` at one as at two.
-    check("the fork's title, how many were not added", ASSET_REGISTRATION_COPY.shortfallHeading(2), "2 tools couldn't be added");
-    check("  at one", ASSET_REGISTRATION_COPY.shortfallHeading(1), "1 tool couldn't be added");
+    check("the fork's title, how many were not added", ASSET_REGISTRATION_COPY.shortfallHeading(2), "2 items couldn't be added");
+    check("  at one", ASSET_REGISTRATION_COPY.shortfallHeading(1), "1 item couldn't be added");
     check("  its sentence, where the others are", ASSET_REGISTRATION_COPY.shortfall(3), "The other 3 were added and are selected on this page.");
     check("  and with one other", ASSET_REGISTRATION_COPY.shortfall(1), "The other 1 was added and is selected on this page.");
     check("  the answer that goes on, naming how many are left", ASSET_REGISTRATION_COPY.registerOthers(2), "Add 2 more");
     check("  and that answer at one", ASSET_REGISTRATION_COPY.registerOthers(1), "Add 1 more");
     check("  and the one that stops", ASSET_REGISTRATION_COPY.doneRegistering, "Not now");
-    check("the notice's title", ASSET_REGISTRATION_COPY.unloggedHeading(2), "2 tools have no creation date");
-    check("  at one", ASSET_REGISTRATION_COPY.unloggedHeading(1), "1 tool has no creation date");
+    check("the notice's title", ASSET_REGISTRATION_COPY.unloggedHeading(2), "2 items have no creation date");
+    check("  at one", ASSET_REGISTRATION_COPY.unloggedHeading(1), "1 item has no creation date");
     check(
         "  its sentence, which says that nothing repairs it",
         ASSET_REGISTRATION_COPY.unlogged(2),
@@ -331,9 +331,9 @@ export async function run({ check, assert, log }) {
     // every count a shortfall can carry, from one to one short of the ceiling, the words, the
     // count the dialog starts at and the commitment it then shows name one number.
     for (const [unwritten, expected, why] of [
-        [1, "Add 1 more → Add 1 tool", "the fork's answer names the count its dialog opens at, at the smallest shortfall"],
-        [2, "Add 2 more → Add 2 tools", "  at 1c's two"],
-        [99, "Add 99 more → Add 99 tools", "  and at the largest a shortfall can carry"],
+        [1, "Add 1 more → Add 1 item", "the fork's answer names the count its dialog opens at, at the smallest shortfall"],
+        [2, "Add 2 more → Add 2 items", "  at 1c's two"],
+        [99, "Add 99 more → Add 99 items", "  and at the largest a shortfall can carry"],
     ])
         check(
             why,
@@ -363,12 +363,12 @@ export async function run({ check, assert, log }) {
     check(
         "  a row the catalog does not offer the whole registration's, and the page is out of date",
         reading({ ...good, categoryRecordId: "recGone" }),
-        JSON.stringify({ error: "That tool isn't available any more.", stale: true })
+        JSON.stringify({ error: "That item isn't available any more.", stale: true })
     );
     check(
         "  and so is a row an empty catalog cannot offer",
         reading(good, jobs, []),
-        JSON.stringify({ error: "That tool isn't available any more.", stale: true })
+        JSON.stringify({ error: "That item isn't available any more.", stale: true })
     );
     check("  a count past the ceiling under the count", reading({ ...good, quantity: "140" }), JSON.stringify({ fields: { quantity: "Max 100 at a time." } }));
     check("  no job chosen under the job", reading({ ...good, jobId: "" }), JSON.stringify({ fields: { jobId: ASSET_JOB_COPY.noneChosen } }));
@@ -1279,13 +1279,13 @@ export async function run({ check, assert, log }) {
     {
         const refused = await register(25, { assetAnswer: (n) => (n === 1 ? { land: 0 } : null) });
         check("an assets request refused whole: what landed before it is selected", refused.address.getAll("id").join(" "), printed(1, 10));
-        check("  and the fork says the rest, and offers it", refused.said, "15 tools couldn't be added — The other 10 were added and are selected on this page. — Add 15 more");
+        check("  and the fork says the rest, and offers it", refused.said, "15 items couldn't be added — The other 10 were added and are selected on this page. — Add 15 more");
         check("  with nothing unlogged, since every one written has its first row", `${refused.told()} ${refused.account.unlogged.length}`, "shortfall 0");
     }
     {
         const lost = await register(25, { assetAnswer: (n, rows) => (n === 1 ? { land: rows.length } : null) });
         check("its answer lost after the rows landed: the read-back selects twenty", lost.address.getAll("id").join(" "), printed(1, 20));
-        check("  and the fork says five, and offers them", lost.said, "5 tools couldn't be added — The other 20 were added and are selected on this page. — Add 5 more");
+        check("  and the fork says five, and offers them", lost.said, "5 items couldn't be added — The other 20 were added and are selected on this page. — Add 5 more");
         check("  each of the twenty with its first row, minted with no read", `${lost.rows.length} ${lost.rows[0]} ${lost.rows[19]}`, "20 HYE-AST-261001-001-001 HYE-AST-261001-020-001");
     }
     {
@@ -1293,7 +1293,7 @@ export async function run({ check, assert, log }) {
         check("a first rows request refused whole: every asset selected", unlogged.address.getAll("id").join(" "), printed(1, 12));
         check("  no shortfall to offer", `${unlogged.account.asked}/${unlogged.account.unwritten}`, "0/0");
         check("  and the notice names exactly the two without a row", unlogged.account.unlogged.join(" "), printed(11, 12));
-        check("  told as the notice", `${unlogged.told()} — ${ASSET_REGISTRATION_COPY.unloggedHeading(unlogged.account.unlogged.length)}`, "unlogged — 2 tools have no creation date");
+        check("  told as the notice", `${unlogged.told()} — ${ASSET_REGISTRATION_COPY.unloggedHeading(unlogged.account.unlogged.length)}`, "unlogged — 2 items have no creation date");
         check("  and after `Got it`, nothing", unlogged.told(without(unlogged.address, "unlogged")), null);
     }
     {
@@ -1309,7 +1309,7 @@ export async function run({ check, assert, log }) {
         check(
             "  then the fork, for the five never written",
             `${both.told(without(both.address, "unlogged"))} — ${both.said}`,
-            "shortfall — 5 tools couldn't be added — The other 20 were added and are selected on this page. — Add 5 more"
+            "shortfall — 5 items couldn't be added — The other 20 were added and are selected on this page. — Add 5 more"
         );
     }
 
