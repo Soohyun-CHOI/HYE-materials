@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { createContext, useContext, useId, useLayoutEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import {
     CONTROLS_COPY as COPY,
     buttonBusyState,
@@ -92,6 +92,42 @@ const FormBusyContext = createContext(false);
  */
 export function FormBusy({ busy, children }) {
     return <FormBusyContext.Provider value={busy}>{children}</FormBusyContext.Provider>;
+}
+
+/**
+ * Where focus goes when a press is refused for what its fields hold (#522): to the first
+ * field that refuses, in the order the form draws them, so the reader starts at what to fix
+ * and a screen reader reads that field's refusal with it. 1k-b draws the caret in the refused
+ * name; the asset page's foot bar and desk dialog and the registration ask it of every press
+ * they turn away themselves.
+ *
+ * A FIELD SAYS IT REFUSES ON THE BOX AROUND IT (`data-refused`, set by `Field` and
+ * `ChipChoice`), since what takes focus inside differs — a choice, a text field, a sheet's
+ * field, a group of chips — and one field can hold a desk's control and a phone's, one of them
+ * hidden. The first control in it that is drawn and in the tab order takes focus; it is asked
+ * once the refusal has rendered, which is why the press hands its form over rather than
+ * focusing at once.
+ */
+export function useRefusalFocus() {
+    const formRef = useRef(null);
+    const [asked, setAsked] = useState(0);
+    useEffect(() => {
+        const form = formRef.current;
+        if (asked === 0 || !form) return;
+        for (const field of form.querySelectorAll("[data-refused]")) {
+            const target = [...field.querySelectorAll("input, button, [tabindex]")].find(
+                (element) => element.tabIndex >= 0 && element.type !== "hidden" && element.getClientRects().length > 0
+            );
+            if (target) {
+                target.focus();
+                return;
+            }
+        }
+    }, [asked]);
+    return useCallback((form) => {
+        formRef.current = form;
+        setAsked((count) => count + 1);
+    }, []);
 }
 
 /**
@@ -315,8 +351,13 @@ function ButtonLabel({ size, busyLabel, children }) {
  * `describedBy` IS A REASON DRAWN SOMEWHERE ELSE (#495): a selection bar sets its action's
  * reason in a column of its own that comes and goes with the bar's motion (0b), so the
  * button points at it rather than drawing one before itself.
+ *
+ * `holdWidthOf` IS WORDS THE ACTION KEEPS ROOM FOR (#522): a commitment whose words carry a
+ * count the reader changes in place holds the width of a longer form of them, unseen and
+ * unread, so it does not grow and shrink under the reader's hand — 1b's `Add 1 item`, as wide
+ * as `Add 99 items`. Its figures are tabular, so no count is wider than another of its digits.
  */
-export function Button({ variant = "filled", size = "lg", type = "button", disabled = false, disabledReason, describedBy, busy = false, busyLabel, onClick, children }) {
+export function Button({ variant = "filled", size = "lg", type = "button", disabled = false, disabledReason, describedBy, busy = false, busyLabel, holdWidthOf, onClick, children }) {
     const reasonId = useId();
     const formBusy = useContext(FormBusyContext);
     const state = buttonBusyState({ busy, formBusy, submits: type === "submit", disabled });
@@ -334,7 +375,16 @@ export function Button({ variant = "filled", size = "lg", type = "button", disab
             className={`group/button ${BUTTON} ${BUTTON_SIZE[size]} ${insetOf(variant, size)} ${BUTTON_VARIANT[variant]} ${SHEET_BUTTON} ${SHEET_BUTTON_VARIANT[variant]}`}
         >
             <ButtonLabel size={size} busyLabel={busyLabel}>
-                {children}
+                {holdWidthOf ? (
+                    <span className="inline-grid justify-items-center tabular-nums">
+                        <span aria-hidden="true" className="invisible col-start-1 row-start-1">
+                            {holdWidthOf}
+                        </span>
+                        <span className="col-start-1 row-start-1">{children}</span>
+                    </span>
+                ) : (
+                    children
+                )}
             </ButtonLabel>
         </button>
     );
@@ -400,7 +450,7 @@ export function Field({ label, labelAs = "label", labelHidden = false, size = "l
     // 0a Field label), and what is said under it is 15 too (Beside) — #458.
     return (
         <FieldContext.Provider value={context}>
-            <div className="flex min-w-0 flex-col">
+            <div data-refused={refusal ? "" : undefined} className="flex min-w-0 flex-col">
                 {labelAs === "label" ? (
                     <label id={labelId} htmlFor={control} className={labelClass}>
                         {label}
@@ -451,6 +501,12 @@ const TEXT_INPUT_SIZE = {
  * Side room) — a dialog's field held a 36 button's 16 until #505, which the drawings never
  * drew. `onChange` is handed the value.
  *
+ * THE EDGE IS A BORDER, SO THE ROOM IS MEASURED INSIDE IT (#522). Every drawing sets a field's
+ * words 12 inside its 1px Edge at a desk and 16 inside it on a phone, 13 and 17 from the
+ * field's outer side; an inset ring takes no room, and until #522 stood every value and the
+ * phone's domain 1px left of the drawings and a desk's domain 1px right, the first seen on the
+ * sign-in field at 375.
+ *
  * A `suffix` IS FIXED BESIDE WHAT IS TYPED (#473): the sign-in's email field takes only the
  * part before the company's domain and shows the domain here. At a desk it sits at the
  * field's right end, 12 inside its edge (0o); on a phone it follows the typed words with no
@@ -477,8 +533,8 @@ export function TextInput({ size = "lg", suffix, value, onChange, readOnly = fal
     return (
         <div
             onClick={() => ref.current?.focus()}
-            className={`flex min-w-0 cursor-text items-center rounded-control bg-white inset-ring ${
-                field.refused ? "inset-ring-danger" : "inset-ring-border focus-within:inset-ring-border-focus"
+            className={`flex min-w-0 cursor-text items-center rounded-control border bg-white ${
+                field.refused ? "border-danger" : "border-border focus-within:border-border-focus"
             } ${TEXT_INPUT_SIZE[size]}`}
         >
             <span className={`grid min-w-0 ${suffix ? "flex-1 max-sm:flex-initial" : "flex-1"}`}>
@@ -597,7 +653,8 @@ export function SheetField({ value, placeholder, onOpen, chevron = false, icon }
 /**
  * Tools 0a's Pill as a field (#463) — the foot bar's job: 36 tall and round, 14 inside, an
  * Edge border on no ground, its icon 8 before its value at 15, and a chevron 12 inside its end
- * when a press opens the sheet that chooses. With no `onOpen` it states its value and takes
+ * when a press opens the sheet that chooses. The icon and the chevron are 0a's 16 box since
+ * #522, as 1j draws both; they were 14 and 11, the chevron an earlier drawing's own figure. With no `onOpen` it states its value and takes
  * no press, which is the one job of a person on one assignment (1j-b).
  *
  * ITS TARGET IS TALLER THAN ITS PILL: it reaches up into the bar's room above it, as 1j
@@ -615,7 +672,7 @@ export function SheetChip({ value, placeholder, onOpen, icon }) {
     } ${field.refused ? "border-danger" : "border-border"}`;
     const content = (
         <>
-            <span className="flex size-icon-sm shrink-0 items-center justify-center text-foreground-subtle">{icon}</span>
+            <span className="flex size-icon shrink-0 items-center justify-center text-foreground-subtle">{icon}</span>
             <span id={valueId} className={`min-w-0 truncate ${value ? "text-foreground-default" : "text-foreground-subtle"}`}>
                 {value || placeholder}
             </span>
@@ -641,7 +698,7 @@ export function SheetChip({ value, placeholder, onOpen, icon }) {
             >
                 <span className={`${pill} ${field.refused ? "" : "group-focus-visible/chip:border-border-focus"}`}>
                     {content}
-                    <Icon name="chevron-down" className="size-mobile-chip-chevron shrink-0 text-foreground-subtle" />
+                    <Icon name="chevron-down" className="size-icon shrink-0 text-foreground-subtle" />
                 </span>
             </button>
         </div>
@@ -684,7 +741,7 @@ export function Checkbox({ label, checked, indeterminate = false, onChange }) {
 }
 
 const STEP =
-    "flex h-control-sm aspect-square shrink-0 items-center justify-center rounded-control text-foreground-muted not-aria-disabled:hover:bg-hover not-aria-disabled:hover:text-foreground-default";
+    "flex h-control-sm aspect-square shrink-0 items-center justify-center rounded-control text-foreground-subtle not-aria-disabled:hover:bg-hover not-aria-disabled:hover:text-foreground-default";
 
 /**
  * A number field with its steps (0f Field): 120 wide, a 30 − and + inside it 3 from its
@@ -761,7 +818,8 @@ const TYPEAHEAD_MS = 500;
  * (1a): a 36 control as wide as what it holds, `label` before its value at Ink 3 and the value
  * at Ink, both at 14 and 500 — the words 16 from its left edge as a 36 control's are and the
  * chevron a field's 12 from its right — on an Edge, holding its Wash while its list is open, the
- * list set against its right end. `look="crumb"` is the same choice standing as a breadcrumb
+ * list set against its right end. Its Edge turns to Edge focus for the keyboard alone (#522):
+ * 1a draws a chip a press opened on its Edge, a bordered control's Open being its Wash (0f). `look="crumb"` is the same choice standing as a breadcrumb
  * level (1d, 1f): the level's 26, its side room pulled back and its 13 at 600 in Ink 2, a 12
  * chevron 6 after the word, and its list from the level's left with 32 rows. In both the label
  * the chip shows is hidden from a screen reader, which hears the field's label as the name.
@@ -778,6 +836,8 @@ export function Choice({ name, options, value, onChange, placeholder, look = "fi
     const chosen = options.findIndex((option) => option.value === value);
     const [open, setOpen] = useState(false);
     const [active, setActive] = useState(chosen);
+    // Whether a key put visual focus where it is, which is what shades it (`Menu`, #522).
+    const [keyed, setKeyed] = useState(false);
     const anchorRef = useRef(null);
     const search = useRef({ text: "", timer: null });
     const strong = look === "crumb" || options.some((option) => option.note);
@@ -785,8 +845,9 @@ export function Choice({ name, options, value, onChange, placeholder, look = "fi
     const choose = (index) => {
         if (index >= 0 && index < options.length) onChange(options[index].value);
     };
-    const show = () => {
+    const show = (byKey) => {
         setActive(chosen);
+        setKeyed(byKey);
         setOpen(true);
     };
 
@@ -795,9 +856,10 @@ export function Choice({ name, options, value, onChange, placeholder, look = "fi
         const action = selectOnlyKey(event, open);
         if (!action) return;
         event.preventDefault();
+        setKeyed(true);
         switch (action) {
             case "open":
-                show();
+                show(true);
                 return;
             case "first":
             case "last":
@@ -856,7 +918,7 @@ export function Choice({ name, options, value, onChange, placeholder, look = "fi
                 onClick={() => {
                     if (formBusy) return;
                     if (open) setOpen(false);
-                    else show();
+                    else show(false);
                 }}
                 onBlur={() => {
                     if (!open) return;
@@ -902,6 +964,7 @@ export function Choice({ name, options, value, onChange, placeholder, look = "fi
                     checked: index === chosen,
                 }))}
                 active={active}
+                shade={keyed}
                 onPick={(index) => {
                     choose(index);
                     setOpen(false);
@@ -918,7 +981,7 @@ const CHOICE_LOOK = {
             refused ? "border-danger" : "border-border focus:border-border-focus"
         }`,
     chip: () =>
-        "flex h-control-lg cursor-pointer items-center gap-gap rounded-control border border-border bg-white pr-input-inset-x pl-control-lg-inset-x text-body font-medium whitespace-nowrap tabular-nums outline-none not-aria-readonly:hover:bg-hover-subtle focus:border-border-focus aria-expanded:bg-hover-subtle",
+        "flex h-control-lg cursor-pointer items-center gap-gap rounded-control border border-border bg-white pr-input-inset-x pl-control-lg-inset-x text-body font-medium whitespace-nowrap tabular-nums outline-none not-aria-readonly:hover:bg-hover-subtle focus-visible:border-border-focus aria-expanded:bg-hover-subtle",
     crumb: () =>
         "-mx-control-inline-inset-x flex h-control-inline cursor-pointer items-center gap-breadcrumb-chevron-gap rounded-control px-control-inline-inset-x text-body-sm font-semibold whitespace-nowrap text-foreground-muted tabular-nums not-aria-readonly:hover:bg-hover aria-expanded:bg-hover",
 };
@@ -1007,8 +1070,8 @@ export function Combobox({ name, value, onChange, onPick, suggestions, heading, 
                     onListOpenChange(false);
                 }}
                 onKeyDown={onKeyDown}
-                className={`h-control-lg w-full rounded-control bg-white px-input-inset-x text-body text-foreground-default caret-primary outline-none inset-ring placeholder:text-foreground-subtle ${
-                    field.refused ? "inset-ring-danger" : "inset-ring-border focus:inset-ring-border-focus"
+                className={`h-control-lg w-full rounded-control border bg-white px-input-inset-x text-body text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle ${
+                    field.refused ? "border-danger" : "border-border focus:border-border-focus"
                 }`}
             />
             <Menu
@@ -1120,6 +1183,8 @@ export function FilterChip({ label, options, values, onChange, clearLabel, sever
     const anchorRef = useRef(null);
     const [open, setOpen] = useState(false);
     const [active, setActive] = useState(-1);
+    // Whether a key put visual focus where it is, which is what shades it (`Menu`, #522).
+    const [keyed, setKeyed] = useState(false);
     const search = useRef({ text: "", timer: null });
     const taken = new Set(values);
     const held = options.filter((option) => taken.has(option.value));
@@ -1142,6 +1207,7 @@ export function FilterChip({ label, options, values, onChange, clearLabel, sever
         const action = single ? selectOnlyKey(event, open) : multiSelectKey(event, open);
         if (!action) return;
         event.preventDefault();
+        setKeyed(true);
         switch (action) {
             case "open":
                 setActive(opening());
@@ -1205,7 +1271,10 @@ export function FilterChip({ label, options, values, onChange, clearLabel, sever
                     aria-activedescendant={open && active >= 0 ? `${listId}-${active}` : undefined}
                     onKeyDown={onKeyDown}
                     onClick={() => {
-                        if (!open) setActive(opening());
+                        if (!open) {
+                            setActive(opening());
+                            setKeyed(false);
+                        }
                         setOpen(!open);
                     }}
                     onBlur={() => {
@@ -1255,6 +1324,7 @@ export function FilterChip({ label, options, values, onChange, clearLabel, sever
                     checked: single && index === chosen,
                 }))}
                 active={active}
+                shade={keyed}
                 onPick={
                     single
                         ? (index) => {
@@ -1271,7 +1341,7 @@ export function FilterChip({ label, options, values, onChange, clearLabel, sever
 // A chip of 0l's chips: 36 tall, its option at 14 and 400 like a field's value, 12 either side,
 // on white inside the Edge, filling at Wash under the pointer (0f Bordered); the one chosen on
 // the Face inside its Edge, filling at Face hover. Neither moves while a form waits (#469).
-const CHIP = "flex h-control-lg min-w-0 items-center justify-center rounded-control border px-input-inset-x text-body outline-none focus-visible:border-border-focus";
+const CHIP = "flex h-control-lg min-w-0 items-center justify-center rounded-control border px-input-inset-x text-body tabular-nums outline-none focus-visible:border-border-focus";
 const CHIP_LOOK = {
     resting: "border-border bg-white not-aria-disabled:hover:bg-hover-subtle",
     chosen: "border-selected-border bg-selected not-aria-disabled:hover:bg-selected-hover",
@@ -1335,7 +1405,7 @@ export function ChipChoice({ label, options, value, onChange, refusal }) {
     };
 
     return (
-        <div className="flex flex-col">
+        <div data-refused={refusal ? "" : undefined} className="flex flex-col">
             <div className="flex items-baseline justify-between gap-gap-lg pb-gap">
                 <span id={labelId} className={FIELD_LABEL}>
                     {label}

@@ -280,6 +280,15 @@ function assetsFiles() {
 }
 
 export function run({ check, assert, log }) {
+    // ── #522: the status cell centered in its row, as 1d draws it ──────────
+    // At the head, so an older assertion that throws cannot keep it from printing. On the row's
+    // baseline the 9 mark lifted the status word half a pixel above 1d's.
+    check(
+        "the status cell stands centered in its row, as 1d draws it (#522)",
+        /<span role="cell" className="flex min-w-0 items-baseline gap-gap self-center">\s*<StatusMark status=\{row\.status\} \/>/.test(parseFile(ASSET_LIST).source),
+        true
+    );
+
     // ── 1: the count per status ─────────────────────────────────────────────
     log("every category carries a count for every status, a zero included:");
 
@@ -1168,7 +1177,9 @@ export function run({ check, assert, log }) {
         "canRegister: canRegisterAssets(user, allJobs), catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), opener: ASSET_REGISTRATION_COPY.heading"
     );
     check("  asking the same predicate", listOpeners[0]?.asks, "canRegisterAssets");
-    check("  and under the reader being a site manager alone too (#506)", listOpeners[0]?.under, "recorder");
+    // A READER ON NO JOB MEETS NO OPENER IN THE HEAD (1a2, #522): the design draws the no-job
+    // state with the heading alone, where #509 drew the opener locked with why before it.
+    check("  and under the reader being a site manager on a job (#506, #522)", listOpeners[0]?.under, "recorder && !onNoJob");
     check(
         "  the empty list's the same opener, bordered, under the empty branch and the same reader",
         `${listOpeners[1]?.handed} | ${listOpeners[1]?.asks} | ${listOpeners[1]?.under}`,
@@ -1494,9 +1505,16 @@ export function run({ check, assert, log }) {
         [
             /gap-selection-bar-reason-gap whitespace-nowrap pr-gap-lg/.test(barSource),
             /<InfoMark size="size-icon" tone="subtle" \/>/.test(barSource),
-            /<span id=\{reasonId\} className="text-body-sm text-foreground-subtle">\s*\{lastReason\}/.test(barSource),
+            /<span id=\{reasonId\} className="text-body-sm text-foreground-subtle tabular-nums">\s*\{lastReason\}/.test(barSource),
         ].join(" "),
         "true true true"
+    );
+    // ITS FIGURE IS TABULAR (#522), as 1d sets the `100` in `Up to 100 labels per print.`: 0h's
+    // every run of figures. The sentence's other words take nothing from it.
+    check(
+        "the bar's reason sets its figure tabular, as 1d draws it (#522)",
+        /<span id=\{reasonId\} className="[^"]*\btabular-nums\b[^"]*">/.test(barSource),
+        true
     );
     check(
         "  opening and closing as the second clause does, its words kept while it closes",

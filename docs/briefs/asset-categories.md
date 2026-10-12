@@ -65,8 +65,10 @@ from #455 — `add` because most registrations add to a kind the company already
 has, and since #507 every one adds to a row of the catalog. Every other list screen in the
 app opens its create form the same way, as a screen of its own. It is above
 the list rather than inside it, because the reader with no items at all is the
-one who needs it most. It is a site manager's: for one assigned to no job it is
-drawn disabled, with `Ask the office to assign you to a job` before it, and **a
+one who needs it most. It is a site manager's: for one whose list stands on no
+job it is drawn none, as 1a2 draws that state (#522; #509 drew it disabled), for
+an office reader assigned to no job it is drawn disabled, with `Ask the office
+to assign you to a job` before it, and **a
 reader who is not a site manager is drawn none (#506)** — being one is not
 something the office assigns on request the way a job is, so a disabled control
 with a reason would send them nowhere.

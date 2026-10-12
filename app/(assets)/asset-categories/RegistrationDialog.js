@@ -2,7 +2,7 @@
 
 import { Fragment, startTransition, useActionState, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Button, ChipChoice, Choice, Field, FilterChip, NumberField } from "@/app/components/Controls";
+import { Button, ChipChoice, Choice, Field, FilterChip, NumberField, useRefusalFocus } from "@/app/components/Controls";
 import { DialogActions, DialogBody, DialogFrame, DialogSearch } from "@/app/components/DialogFrame";
 import Dot from "@/app/components/Dot";
 import { onlyJob } from "@/lib/assetJob";
@@ -105,9 +105,9 @@ import { registerAssetsAction } from "./actions";
  * The action asks again with a fresh read of the reader's jobs and of the catalog. A refusal
  * keeps everything chosen and typed — the fields are this component's own state — and a
  * field's refusal goes as soon as that field is changed, where the one about the whole dialog
- * stays until the next press. The first step refuses nothing: Enter takes the name under visual
- * focus — the first listed, once something is typed — and a search that lists nothing says so
- * in the list's place. Until #520 Enter with no suggestion under visual focus took the one name
+ * stays until the next press. The first step refuses nothing: Enter takes the name an arrow put
+ * visual focus on, or the one name left, and a search that lists nothing says so in the list's
+ * place (#522; from #520 to #522 the first listed held visual focus once something was typed). Until #520 Enter with no suggestion under visual focus took the one name
  * typed in full and refused any other, under the field. The second step's refusals are the
  * size or the model still to choose, `detailRefusals`', each at the end of its label's line
  * (0l's chips) beside the reading's.
@@ -206,6 +206,7 @@ export function RegistrationOpener({ variant = "filled", canRegister, onOpen, ch
  */
 export function RegistrationForm({ open, onClose, jobs, category, catalog = [], quantity }) {
     const [state, formAction, pending] = useActionState(registerAssetsAction, null);
+    const focusRefused = useRefusalFocus();
     // What the first step picked last: a name in its place, whose rows the second narrows
     // between. Opened on a category, nothing is picked and the row is the page's. `Back` goes
     // to the first step and keeps it, so a pick can tell the name it had from another.
@@ -283,6 +284,7 @@ export function RegistrationForm({ open, onClose, jobs, category, catalog = [], 
             // No row is made while a level is still to choose, and each such level is said
             // under itself beside whatever else the reading refused.
             setGuarded({ ...reading, fields: { ...reading.fields, ...detailRefusals(details.levels) } });
+            focusRefused(event.currentTarget);
             return;
         }
         setGuarded(null);
@@ -438,7 +440,8 @@ export function RegistrationForm({ open, onClose, jobs, category, catalog = [], 
                         <Button variant="bordered" onClick={onClose}>
                             {COPY.cancel}
                         </Button>
-                        <Button type="submit" busyLabel={COPY.working}>
+                        {/* As wide as the two-figure count 1b holds its words at, whatever is typed. */}
+                        <Button type="submit" busyLabel={COPY.working} holdWidthOf={COPY.submit(99)}>
                             {COPY.submit(readQuantity(count).count)}
                         </Button>
                     </DialogActions>

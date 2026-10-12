@@ -64,8 +64,9 @@ holds its height, so going between the steps never moves its edges.
   lighter ink; `Pipe Cutter` is a `Cutter` of both types, so its rows say the
   type and the category, `Equipment · Cutter`. A name in one place says
   neither. **Picking one goes on**, by a press or by Enter, which takes the
-  name shaded: the first listed once something is typed, or the one the
-  arrows moved to. From #514 to #520 the type and the category were two
+  name the arrows moved to, or the one name left — nothing is shaded until an
+  arrow moves, as 1b draws a typed search (#522; from #520 the first listed was
+  shaded and taken once something was typed). From #514 to #520 the type and the category were two
   choices over a search field, `All types` and `All categories` until chosen,
   and the search offered five names with their places beside them.
 - **The second takes the rest.** The name picked on the line under the title —
@@ -129,10 +130,14 @@ you to a job` before it on its line (#456). **It says ask, not join (#455)**:
 nothing in the app lets a person join a job — the office assigns one in
 Airtable — so an instruction to join is one the reader cannot follow, which is
 why the design's `Join a job to create tools` went back to the design and this
-came back. No opener is hidden from them — on either screen — so a site manager
-on a category's own screen sees exactly what one on `/asset-categories` does.
-`Assets."Job"` is required, the job comes from the reader's own assignments
-with no exception for the office, so an Admin on no job meets this too.
+came back. **Since #522 the category list draws none for a reader whose list
+stands on no job**: 1a2's no-job state is the heading and its sentence alone,
+where #509 drew the opener there disabled too. A category's own screen, which
+the design does not draw for such a reader, still draws it disabled with that
+sentence. `Assets."Job"` is required, the job comes from the reader's own
+assignments with no exception for the office, so an Admin assigned to no job
+meets the disabled opener on both screens, the office's list standing on
+every job.
 
 **When the reader is assigned to exactly one job:** the job is already chosen,
 in a choice holding that one job.
@@ -217,7 +222,9 @@ that is not 1 to 100 (`Enter 1 to 100.`), one over the cap (`Max 100 at a
 time.`), and a job not chosen or not the reader's; the one about
 the whole dialog — nothing written, or the row no longer offered — takes the
 line above the actions (0l, #456). A field's refusal goes when that field is
-changed. Every field keeps what was chosen and typed through any of them.
+changed. Every field keeps what was chosen and typed through any of them. A
+press the dialog refuses for its fields moves focus to the first one refused
+(#522), as 1k-b draws the caret in the field a press was refused for.
 
 ## What must agree elsewhere
 

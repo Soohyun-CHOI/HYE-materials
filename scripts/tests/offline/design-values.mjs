@@ -546,7 +546,6 @@ const VALUES = [
     ["--height-mobile-chip", "2.25rem", null],
     ["--spacing-mobile-chip-inset-x", "0.875rem", null],
     ["--spacing-mobile-chip-inset-right", "0.75rem", null],
-    ["--size-mobile-chip-chevron", "0.6875rem", null],
     ["--spacing-mobile-avatar-chip-inset-left", "0.375rem", null],
     ["--size-mobile-status-indicator", "0.625rem", null],
     ["--radius-mobile-control", "0.75rem", null],

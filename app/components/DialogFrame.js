@@ -561,9 +561,10 @@ export function DialogBody({ lane = false, foot, children }) {
  * 12 past it, scrolling in 0i's lane through what is left of the dialog's fixed height.
  *
  * THE FIELD IS A COMBOBOX AND THE RESULTS ITS LIST, ALWAYS SHOWN. `lib/controls.js:searchResultsKey`
- * has the keys: once something is typed the first result holds visual focus, shaded as the
- * pointer shades a row, and Enter takes it; the arrows move it and a keystroke gives it back to
- * the first. A result is pressed on `click` with its `mousedown` stopped, as `Menu`'s options
+ * has the keys: no result holds visual focus until an arrow puts it on one, shaded as the
+ * pointer shades a row, and Enter takes that one, or the one result left when nothing is
+ * held; a keystroke gives visual focus up. Until #522 the first result held it as soon as
+ * anything was typed, which 1b draws unshaded. A result is pressed on `click` with its `mousedown` stopped, as `Menu`'s options
  * are, so focus stays in the field. With nothing listed, `empty` stands in the results' place.
  *
  * IT IS THE DIALOG'S BODY FOR FOCUS (#469): marked `data-dialog-body`, so focus that falls in an
@@ -578,11 +579,10 @@ export function DialogSearch({ label, value, onChange, clearLabel, filters, resu
     const inputRef = useRef(null);
     const listRef = useRef(null);
     const listId = useId();
-    // Where the arrows moved visual focus, or -1 since the last keystroke — and then, with
-    // something typed, the first result holds it.
+    // Where the arrows moved visual focus, or -1 since the last keystroke, when none holds it.
     const [moved, setMoved] = useState(-1);
     const count = results.length;
-    const active = moved >= 0 && moved < count ? moved : value.trim() !== "" && count > 0 ? 0 : -1;
+    const active = moved >= 0 && moved < count ? moved : -1;
 
     // The result under visual focus stays in view in a list long enough to scroll.
     useLayoutEffect(() => {
@@ -736,7 +736,7 @@ export function SheetRows({ rows }) {
                         type="button"
                         aria-current={row.chosen ? "true" : undefined}
                         onClick={row.onPress}
-                        className="flex min-h-mobile-drawer-row items-center justify-between gap-gap px-mobile-drawer-row-inset-x py-mobile-drawer-row-inset-y text-left text-mobile-body text-foreground-default outline-none focus-visible:bg-hover-subtle active:bg-hover-subtle"
+                        className="flex min-h-mobile-drawer-row items-center justify-between gap-gap px-mobile-drawer-row-inset-x py-mobile-drawer-row-inset-y text-left text-mobile-body text-foreground-default tabular-nums outline-none focus-visible:bg-hover-subtle active:bg-hover-subtle"
                     >
                         <span className="min-w-0 truncate">
                             {row.match ? (

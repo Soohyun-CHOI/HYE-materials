@@ -202,8 +202,10 @@ export default function AssetList({ categoryRecordId, itemName, selects, rows, p
                             </span>
                             {/* The status, and after an `Out` who holds it, behind 0e's dot in
                                 Ink 2 (1d, #520) — the value only that state has, which the
-                                item's own page says beside its status too. */}
-                            <span role="cell" className="flex min-w-0 items-baseline gap-gap">
+                                item's own page says beside its status too. Centered in the
+                                row as 1d draws it: on the row's baseline its mark lifted the
+                                word half a pixel (#522). */}
+                            <span role="cell" className="flex min-w-0 items-baseline gap-gap self-center">
                                 <StatusMark status={row.status} />
                                 <span className="flex min-w-0 items-baseline whitespace-nowrap">
                                     <span className="shrink-0">{row.status}</span>

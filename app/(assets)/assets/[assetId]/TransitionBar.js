@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import BottomBar from "@/app/components/BottomBar";
-import { Button, Field, FormBusy, SheetChip, SheetField } from "@/app/components/Controls";
+import { Button, Field, FormBusy, SheetChip, SheetField, useRefusalFocus } from "@/app/components/Controls";
 import Icon from "@/app/components/Icon";
 import { chosenJobId, onlyJob } from "@/lib/assetJob";
 import { ASSET_EVENT } from "@/lib/assetStatus";
@@ -23,11 +23,12 @@ import { useAssetTransition } from "./AssetTransition";
  * assets to under the field a phone types in. With one job and a check-in there is nothing to
  * ask, so the bar is the pill and the press, and the press records.
  *
- * THE PRESS ACTS WHATEVER IS MISSING, AND SAYS WHAT IS (1k). A desk's dialog holds its
- * commitment back until the job and the name are given (0f); the bar keeps its press, and a
+ * THE PRESS ACTS WHATEVER IS MISSING, AND SAYS WHAT IS (1k). A desk's dialog does the same
+ * since #522 (0l), where it held its commitment back until the job and the name were given; a
  * press with either missing is answered under the field it is about — both at once, as the
  * name step answers both its names (#473), by `fieldRefusals`, the reading `readSubmission`
- * makes in its own order. Nothing is sent until that refuses nothing, and the action asks
+ * makes in its own order — and focus goes to the first field refused (`useRefusalFocus`,
+ * 1k-b). Nothing is sent until that refuses nothing, and the action asks
  * again. A refusal stands until the field holds what it asked for, and a refusal of the
  * press itself is said in the title block (`TransitionRefusal.js`), not here.
  *
@@ -71,6 +72,7 @@ export default function TransitionBar({ recentCheckOuts }) {
     // Which event a press asked for. A refusal that flips the status offers the other event
     // and the fields that go with it, which nobody has pressed for yet.
     const [pressedFor, setPressedFor] = useState(null);
+    const focusRefused = useRefusalFocus();
     const kept = chosenJobId(plan.jobs, jobId);
     if (kept !== jobId) setJobId(kept);
 
@@ -102,6 +104,7 @@ export default function TransitionBar({ recentCheckOuts }) {
         });
         if (answer.refusal) {
             setPressedFor(plan.event);
+            focusRefused(event.currentTarget);
             return;
         }
         send(formData);
