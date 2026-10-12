@@ -1470,6 +1470,10 @@ Every canvas of the Tools file, 1a to 1k with each state tab, and the Sign in fi
 
 **A list's row is square under the pointer and while selected, as every list 1a and 1d draw.** Each row the drawings draw sets its corners at 0, and the link that covers it is its box with no radius; 0b's sentence gives the hover a Control-radius face on 1080, and #463 followed that sentence over the drawings. Soo asked for the drawings, so `ListTable.js`'s `TABLE_ROW` and `TABLE_ROW_LINK` carry no radius, and the category list and a category's page — the two readers — draw the Wash and the Face square to the content's edge and the 12 past the text. `offline/asset-list-view.mjs` fails a rounded token of either constant, of any size or corner, and a row that loses its hover; four mutations, each caught.
 
+## The room over the registration's scrolling step (2026-10-12, no issue)
+
+**The second step's chips scroll 16 under the head, and the Rule they show is drawn in that 16's last row.** 1b gives the head over a size or a model 16 of room under its line and draws the Rule its body shows once it scrolls as the head's own foot (`inset 0 -1px` on a head padded `24 24 16`), and the body starts there with no room of its own. The app ran the scroll from right under the line, the 20 to the first label inside it, so a scrolled `Wrench` drew its Rule at 70, touching the line under the title. `DialogBody` in the lane now stands 16 under the head (`--spacing-dialog-header-inset-bottom`) with its Rule a pixel above its own top, and keeps the 4 left of the 20 inside, so nothing moves at rest. **Seen at 1440** on `Wrench`'s 32 sizes: at rest the lane from 86 and `Size` at 90 with no Rule; scrolled 60, the Rule at 85 to 86 in `#E5E7EB`, the line under the title ending at 70; the fields unchanged, the lane ending at 302 and `Quantity` at 316. `offline/dialog-frame.mjs` holds the 16, the Rule's row, the 4 and the 20 a body out of the lane keeps; five mutations, each caught.
+
 ## Three tables, and what each is for
 
 `Tools` is the KIND. `Tool Items` is the object. `Tool Log` is the history.

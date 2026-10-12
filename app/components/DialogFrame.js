@@ -507,6 +507,12 @@ export function DialogFrame({
  * `lane` reserves 0i's lane so what scrolls keeps its width whether or not the bar is drawn,
  * as 1b's chips do. The body's Rules mark the scrolling part's edges, so the one under it runs
  * between what scrolls and the fields.
+ *
+ * A BODY IN THE LANE STANDS 16 UNDER THE HEAD, ITS RULE IN THE HEAD'S LAST ROW (1b, 2026-10-12).
+ * 1b draws the head over a second step that scrolls 16 deep under its line, the Rule its body
+ * shows once it scrolls drawn inside that 16 at its foot; what scrolls keeps the 20 from the
+ * title's line at rest, the 4 left of it inside the lane. Until then the Rule ran right under
+ * the line under the title.
  */
 export function DialogBody({ lane = false, foot, children }) {
     const scrollerRef = useRef(null);
@@ -533,18 +539,18 @@ export function DialogBody({ lane = false, foot, children }) {
 
     return (
         <div data-dialog-body="" className="flex min-h-0 grow flex-col">
-            <div className="relative flex min-h-0 grow flex-col">
+            <div className={`relative flex min-h-0 grow flex-col ${lane ? "mt-dialog-header-inset-bottom" : ""}`}>
                 <div
                     ref={scrollerRef}
-                    className={`flex min-h-0 flex-col gap-gap-lg overflow-y-auto overscroll-contain pt-dialog-header-stack ${
+                    className={`flex min-h-0 flex-col gap-gap-lg overflow-y-auto overscroll-contain ${
                         lane
-                            ? `pr-[calc(var(--spacing-dialog-inset)-var(--spacing-scrollbar-gutter))] pl-dialog-inset [scrollbar-gutter:stable] ${SCROLL_LANE}`
-                            : "in-data-preview:px-dialog-inset in-data-fixed:px-dialog-inset"
+                            ? `pt-[calc(var(--spacing-dialog-header-stack)-var(--spacing-dialog-header-inset-bottom))] pr-[calc(var(--spacing-dialog-inset)-var(--spacing-scrollbar-gutter))] pl-dialog-inset [scrollbar-gutter:stable] ${SCROLL_LANE}`
+                            : "pt-dialog-header-stack in-data-preview:px-dialog-inset in-data-fixed:px-dialog-inset"
                     } max-sm:in-data-[sheet]:px-mobile-gutter max-sm:in-data-[sheet=drawer]:gap-mobile-field-stack max-sm:in-data-[sheet=drawer]:pt-0 max-sm:in-data-[sheet=confirm]:pt-mobile-confirm-id-stack`}
                 >
                     {children}
                 </div>
-                {hidden.above && <div aria-hidden="true" className="absolute inset-x-0 top-0 h-px bg-divider" />}
+                {hidden.above && <div aria-hidden="true" className={`absolute inset-x-0 h-px bg-divider ${lane ? "-top-px" : "top-0"}`} />}
                 {hidden.below && <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-px bg-divider" />}
             </div>
             {foot && <div className="shrink-0 pt-gap-lg in-data-fixed:px-dialog-inset">{foot}</div>}

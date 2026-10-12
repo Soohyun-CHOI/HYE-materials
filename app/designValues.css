@@ -252,6 +252,7 @@
     --height-dialog-search: 30.625rem; /* 1b, 490: the fixed height that dialog holds while its choices change with what was picked — from the drawings, not the spec */
     --height-dialog-search-row: 3.5rem; /* 0f Field, 56: the borderless row the search a dialog is built around is */
     --spacing-dialog-search-inset-top: 0.25rem; /* 1b, 4: from the title's line to that row — from the drawings, not the spec */
+    --spacing-dialog-header-inset-bottom: 1rem; /* 1b, 16: under a dialog's head, down to the Rule its body shows once it scrolls in 0i's lane — from the drawings, not the spec */
     --spacing-dialog-search-icon-bleed: 0.1875rem; /* 1b, 3: how far that row's search mark pulls out so its ink meets the edge — from the drawings, not the spec */
     --spacing-dialog-filter-inline: 0.375rem; /* 1b, 6: between the filter chips at that row's end — from the drawings, not the spec */
     --spacing-dialog-result-bleed: 0.75rem; /* 0f Field, 12: a result's hover face past its text, and the row's Rule as wide as that face */

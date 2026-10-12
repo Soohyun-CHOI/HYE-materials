@@ -393,6 +393,7 @@ const VALUES = [
     ["--height-dialog-search", "30.625rem", null],
     ["--height-dialog-search-row", "3.5rem", null],
     ["--spacing-dialog-search-inset-top", "0.25rem", null],
+    ["--spacing-dialog-header-inset-bottom", "1rem", null],
     ["--spacing-dialog-search-icon-bleed", "0.1875rem", null],
     ["--spacing-dialog-filter-inline", "0.375rem", null],
     ["--spacing-dialog-result-bleed", "0.75rem", null],
