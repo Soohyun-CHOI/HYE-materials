@@ -413,12 +413,17 @@ export async function run({ check, assert, log }) {
     );
     check("  the President who is the office too", reader("soo@hanyangengusa.com", "President", true).label, "soo, President, Admin");
     check("  the President alone", reader("soo@hanyangengusa.com", "President", false).role, "President");
-    check("  a reader who is neither", reader("minjae.seo@hanyangengusa.com", "Employee", false).label, "minjae.seo, Employee");
+    // #519 — A READER WHO HOLDS NO ROLE IS THEIR NAME ALONE, as the design's latest files draw
+    // `lee` with no role line; `Employee`, the one word every reader holds, stood in until then.
+    check(
+        "  a reader who is neither, their name alone",
+        JSON.stringify(reader("minjae.seo@hanyangengusa.com", "Employee", false)),
+        JSON.stringify({ name: "minjae.seo", email: "minjae.seo@hanyangengusa.com", initial: "m", role: "", label: "minjae.seo" })
+    );
     check("  the avatar takes the address's first letter as it is spelled", reader("Kji9408@hanyangengusa.com", "Employee", false).initial, "K");
     check("  the menu's one word", NAVIGATION_COPY.account.signOut, "Sign out");
     check("  the office's word", NAVIGATION_COPY.account.admin, "Admin");
-    // #506 — A SITE MANAGER IS SAID LAST, after the roles the line already joined, and it
-    // takes the place of `Employee` the way `Admin` does: the one new word on any screen.
+    // #506 — A SITE MANAGER IS SAID LAST, after the roles the line already joined.
     const manager = (email, role, isAdmin) => accountOf({ email, role, isAdmin, isSiteManager: true });
     check("  the President, the office and a site manager in one person", manager("soo@hanyangengusa.com", "President", true).label, "soo, President, Admin, Site manager");
     check(
@@ -426,8 +431,18 @@ export async function run({ check, assert, log }) {
         JSON.stringify(manager("lee@hanyangengusa.com", "Employee", false)),
         JSON.stringify({ name: "lee", email: "lee@hanyangengusa.com", initial: "l", role: "Site manager", label: "lee, Site manager" })
     );
-    check("  a mark that is merely truthy is no site manager", accountOf({ email: "lee@hanyangengusa.com", role: "Employee", isSiteManager: "true" }).role, "Employee");
+    check("  a mark that is merely truthy is no site manager", accountOf({ email: "lee@hanyangengusa.com", role: "Employee", isSiteManager: "true" }).role, "");
     check("  the site manager's word, in the design's sentence case", NAVIGATION_COPY.account.siteManager, "Site manager");
+
+    // The expanded row draws the role line only when there is one (#519), so a reader with no
+    // role is not drawn an empty line under their name: the line's element stands under the
+    // role as its condition.
+    const roleLineGuard = (source) => /\{words\.role && <span[^>]*>\{words\.role\}<\/span>\}/.test(source);
+    assert("  the role line is drawn only for a reader who holds one", roleLineGuard(parseFile(ACCOUNT).source));
+    assert(
+        "  and a planted line drawn whatever the role is seen (anti-vacuity)",
+        !roleLineGuard('<span className="truncate">{words.role}</span>')
+    );
 
     const accountAst = parseFile(ACCOUNT).ast;
     check("  the account's name and its tooltip", judgeAccountName(accountAst).join(" | "), "");

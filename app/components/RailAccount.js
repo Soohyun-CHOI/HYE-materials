@@ -94,7 +94,8 @@ export default function RailAccount({ account: words, expanded = false, tip }) {
                 </span>
                 <span className="hidden min-w-0 flex-col items-start gap-account-name-stack group-data-expanded:flex">
                     <span className="max-w-full truncate text-body-sm font-semibold text-foreground-default">{words.name}</span>
-                    <span className="max-w-full truncate text-heading-sm font-normal text-foreground-subtle">{words.role}</span>
+                    {/* A reader who holds no role is their name alone (#519). */}
+                    {words.role && <span className="max-w-full truncate text-heading-sm font-normal text-foreground-subtle">{words.role}</span>}
                 </span>
                 <Icon name="chevron-up" className="ml-auto hidden size-account-chevron shrink-0 text-foreground-subtle group-data-expanded:block" />
             </button>

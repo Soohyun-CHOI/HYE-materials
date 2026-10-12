@@ -73,6 +73,7 @@ import {
     toggleAsset,
     assetListScope,
     assetCategoriesInScope,
+    pagerPosition,
 } from "../../../lib/assetListView.js";
 import { MAX_LABELS_PER_REQUEST } from "../../../lib/assetLabelPage.js";
 import { readAssetIds } from "../../../lib/assetRoutes.js";
@@ -317,9 +318,10 @@ export function run({ check, assert, log }) {
         "  and every status is reachable as a nonzero count",
         everyStatus.counts.every((c) => c.count === 1)
     );
-    // EACH ROW SAYS ITS KIND'S CLASS, TYPE AND CATEGORY (#507, #514), each under its level's
-    // name, and two kinds of one name are told apart by the category and then the type, so a
-    // page reads the same on every read.
+    // EACH ROW CARRIES ITS KIND'S CATEGORY AND TYPE (#507, #514), each under its level's name,
+    // and two kinds of one name are told apart by the category and then the type, so a page
+    // reads the same on every read. The category stands beside the name (1a, #519); the class
+    // rode here while the list drew it as a column, and does not since.
     const kinds = summarizeAssetCategories(
         [
             { id: "recLaserT", itemName: "Laser Level", assetClass: "B", level1: "Tool", level2: "Measuring", assets: [] },
@@ -330,13 +332,14 @@ export function run({ check, assert, log }) {
         []
     );
     check(
-        "each row carries its kind's class, type and category, one name ordered by category and then type",
-        kinds.map((r) => `${r.id} ${r.assetClass}/${r.level1}/${r.level2}`).join(" | "),
-        "recLaserE A/Equipment/Measuring | recLaserT B/Tool/Measuring | recKnifeC B/Tool/Carpentry | recKnifeX B/Tool/Cutting"
+        "each row carries its kind's type and category, one name ordered by category and then type",
+        kinds.map((r) => `${r.id} ${r.level1}/${r.level2}`).join(" | "),
+        "recLaserE Equipment/Measuring | recLaserT Tool/Measuring | recKnifeC Tool/Carpentry | recKnifeX Tool/Cutting"
     );
-    check("  and a kind without them says nothing for them", `${rowFor(rows, "angle grinder").assetClass}|${rowFor(rows, "angle grinder").level1}|${rowFor(rows, "angle grinder").level2}|`, "|||");
-    // THE LIST'S COLUMNS, OFF ITS SOURCE (#514): the name, then the class, the type and the
-    // category, then a count per status — the type between the two it sits between in a path.
+    check("  and no class rides a row", kinds.filter((r) => "assetClass" in r).length, 0);
+    check("  and a kind without them says nothing for them", `${rowFor(rows, "angle grinder").level1}|${rowFor(rows, "angle grinder").level2}|`, "||");
+    // THE LIST'S COLUMNS, OFF ITS SOURCE (#519): the name, then a count per status (1a). The
+    // class, the type and the category were columns between them from #507 and #514.
     const columnHeads = ({ ast, source }) => {
         const heads = [];
         walk(ast, (n) => {
@@ -348,14 +351,14 @@ export function run({ check, assert, log }) {
         return heads.join(", ");
     };
     check(
-        "the list heads its columns the name, the class, the type, the category and each status",
+        "the list heads its columns the name and each status",
         columnHeads(parseFile(LIST_SCREEN)),
-        "COPY.toolLabel, ASSET_CATEGORY_COPY.classLabel, ASSET_CATEGORY_COPY.levelLabel.level1, ASSET_CATEGORY_COPY.levelLabel.level2, status"
+        "COPY.nameLabel, status"
     );
     check(
         "  and a list with the type left out is seen (anti-vacuity)",
-        columnHeads(parseSource('<div><span role="columnheader">{COPY.toolLabel}</span><span role="columnheader">{ASSET_CATEGORY_COPY.levelLabel.level2}</span></div>', "<planted-heads>")),
-        "COPY.toolLabel, ASSET_CATEGORY_COPY.levelLabel.level2"
+        columnHeads(parseSource('<div><span role="columnheader">{COPY.nameLabel}</span><span role="columnheader">{ASSET_CATEGORY_COPY.levelLabel.level2}</span></div>', "<planted-heads>")),
+        "COPY.nameLabel, ASSET_CATEGORY_COPY.levelLabel.level2"
     );
     // An asset whose link did not resolve is counted nowhere rather than
     // throwing — `findByRecordIds` returns fewer rows than it was asked for, and
@@ -1040,8 +1043,8 @@ export function run({ check, assert, log }) {
     );
 
     // THE OPENERS OF THE REGISTRATION DIALOG, ON BOTH SCREENS (#451, #456). A category's page
-    // opens it on that category and with no count, in the dialog's own title — `Add tools` since
-    // #485 — and the list opens it on no category. Each stands under ONE condition since #506,
+    // opens it on that category and with no count, in the dialog's own title — `Add items` since
+    // #519, `Add tools` from #485 — and the list opens it on no category. Each stands under ONE condition since #506,
     // that the reader is a site manager — the page's `recorder` — and under nothing else: a
     // category with nothing under it keeps its opener, and so does a site manager on no job, whom
     // the opener itself tells why it cannot act (0f). What decides that is one predicate,
@@ -1159,7 +1162,7 @@ export function run({ check, assert, log }) {
     check(
         "  the empty list's the same opener, bordered, under the empty branch and the same reader",
         `${listOpeners[1]?.handed} | ${listOpeners[1]?.asks} | ${listOpeners[1]?.under}`,
-        "canRegister: canRegisterAssets(user, allJobs), catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | canRegisterAssets | rows.length === 0, !(narrowed), recorder"
+        "canRegister: canRegisterAssets(user, allJobs), catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | canRegisterAssets | rows.length === 0, !(narrowed), recorder && !onNoJob"
     );
     // The count a suggested tool carried, its link array's length (#456), was held here until
     // #507: a suggestion is a name of the catalog now, beside its category, and how many of a
@@ -1440,7 +1443,7 @@ export function run({ check, assert, log }) {
     const frame = parseFile(LIST_FRAME);
     const frameSource = functionSource(frame, "ListFrame");
     check(
-        "the frame marks its root for the column, and scrolls its rows in a lane of their own that stops at its end",
+        "the frame marks its root for the column, and scrolls the list in a lane of its own that stops at its end",
         `${/data-list-frame=""/.test(frameSource)} ${/overflow-y-auto overscroll-y-contain \[scrollbar-gutter:stable\] \$\{SCROLL_LANE\}/.test(frameSource)}`,
         "true true"
     );
@@ -1550,12 +1553,14 @@ export function run({ check, assert, log }) {
         const pager = classesOf(frameFile, holding(frameFile, "PAGER_OVER_ROWS"));
         const lane = classesOf(frameFile, holding(frameFile, "ref={laneRef}"));
         const nav = classesOf(railFile, named("nav"));
+        // What holds at the top of the lane (#519): 1d's bar and 1a's head.
+        const held = [classesOf(frameFile, holding(frameFile, "ref={topRef}")), classesOf(frameFile, holding(frameFile, 'backdrop-blur-sm">'))];
         return {
             row: constant(tableFile, "TABLE_ROW").includes("isolate"),
             box: `${box.tokens.includes("relative")} ${layer(box.tokens) > 0} ${cover.includes("after:absolute")} ${cover.some((t) => /(^|:)z-/.test(t))}`,
             head: `${head.includes("sticky")} ${layer(head) > 0}`,
             pager: `${pager.tokens.includes("relative")} ${layer(pager.tokens) === layer(head)} ${lane.start >= 0 && pager.start > lane.start}`,
-            panel: layer(nav.tokens) > Math.max(layer(head), layer(pager.tokens)),
+            panel: layer(nav.tokens) > Math.max(layer(head), layer(pager.tokens), ...held.map((h) => layer(h.tokens) || 0)),
         };
     };
     const stack = stackingOf({ table, frame, rail, controls: parseFile(CONTROLS) });
@@ -1563,7 +1568,7 @@ export function run({ check, assert, log }) {
     check("  where the box stands over the link that covers the row, which lifts nothing", stack.box, "true true true false");
     check("the column head holds at the top of the rows, over them", stack.head, "true true");
     check("  the pager over it at its z-index, after the lane, so on top where the two meet", stack.pager, "true true true");
-    check("  and the rail's Panel over all of them", stack.panel, true);
+    check("  and the rail's Panel over all of them, what holds at the top of the list too (#519)", stack.panel, true);
     // Anti-vacuity: the reading sees each of those undone in a planted list. The lifted cover
     // is assembled while this runs, so no whole class of it is in a file Tailwind scans.
     const liftedCover = ["after:", "z-10"].join("");
@@ -1604,12 +1609,15 @@ export function run({ check, assert, log }) {
         return {
             // The title's line, and under it a caption alone, drawn only where a page hands one
             // (#507) — the control on the right kept centered on the title's line either way.
-            line: `${/<div className="flex min-w-0 items-baseline gap-list-count-inline">/.test(header)} ${/<div className="flex min-w-0 flex-col gap-title-stack">\s*<div className="flex min-w-0 items-baseline gap-list-count-inline">[\s\S]*?<\/p>\s*<\/div>\s*\{caption\}\s*<\/div>/.test(header)}`,
+            line: `${/<div className="flex min-w-0 items-baseline gap-list-count-inline">/.test(header)} ${/<div className="flex min-w-0 flex-col gap-title-stack">\s*<div className="flex min-w-0 items-baseline gap-list-count-inline">[\s\S]*?<\/p>\s*\)\}\s*<\/div>\s*\{caption\}\s*<\/div>/.test(header)}`,
+            // The figure stands only where the page hands one (#519): a reader on no job's head
+            // is its title alone.
+            countGiven: /\{count != null && \(\s*<p className="shrink-0 text-body tabular-nums text-foreground-subtle">/.test(header),
             centered:
                 /caption \? "items-start" : "items-center"/.test(header) &&
                 /caption \? "-mt-\[calc\(\(var\(--height-control-lg\)-var\(--text-heading-lg--line-height\)\)\/2\)\]" : ""/.test(header),
             figure: /<p className="shrink-0 text-body tabular-nums text-foreground-subtle">\s*\{count\}\s*<span className="sr-only">\{` \$\{noun\}`\}<\/span>\s*<\/p>/.test(header),
-            top: /underBreadcrumb \? "pt-breadcrumb-stack" : "pt-list-header-inset-top"/.test(header) && /pb-list-header-inset-bottom/.test(header),
+            top: /underBreadcrumb \? "pt-breadcrumb-stack" : "min-h-\(--height-control-lg\) pt-list-header-inset-top"/.test(header) && /pb-list-header-inset-bottom/.test(header),
             under: `${propSources(categoryScreen, "ListHeader", "underBreadcrumb").join()}|${propSources(listFile, "ListHeader", "underBreadcrumb").join()}`,
             pager: /pt-\[calc\(var\(--spacing-pager-inset-top\)-1px\)\] pb-pager-inset-bottom/.test(pager),
             endRoom: /const END_ROOM = "h-\[calc\(var\(--spacing-pager-inset-top\)\+var\(--height-control\)\+var\(--spacing-pager-inset-bottom\)\)\]";/.test(frameFile.source),
@@ -1622,7 +1630,8 @@ export function run({ check, assert, log }) {
     check("a list's head is one line, the count on the title's baseline 8 on (#505), a caption alone under it (#507)", head.line, "true true");
     check("  its control centered on the title's line, a caption or not (#507)", head.centered, true);
     check("  the figure alone at Ink 3, its noun said to assistive tech alone", head.figure, true);
-    check("  32 above it, or the breadcrumb's 14, and 18 under it", head.top, true);
+    check("  and drawn only where the page hands one, a head with nothing to count its title alone (#519)", head.countGiven, true);
+    check("  32 above it, or the breadcrumb's 14, and 18 under it — and with no bar over it at least a 36 control's line (#519)", head.top, true);
     check("  the breadcrumb's on the category's page and not on the list", head.under, "true|");
     check("the pager is 60, its rule counted in the 12 above its controls (#505)", head.pager, true);
     check("  and the rows end on that", head.endRoom, true);
@@ -1774,9 +1783,12 @@ export function run({ check, assert, log }) {
         strings.filter((s) => TOOL_ITEM_NOUN.test(s)).length,
         0
     );
-    // The three field labels are the asset page's, not a second spelling.
+    // The two field labels are the asset page's, not a second spelling — and the name
+    // column's head is the list's own since #519, the design's `Name`, where it borrowed the
+    // asset page's `Tool`.
+    check("the name column's head, the list's own word", ASSET_LIST_COPY.nameLabel, "Name");
+    check("  which the asset page no longer carries", "toolLabel" in ASSET_COPY, false);
     for (const [key, label] of [
-        ["toolLabel", ASSET_COPY.toolLabel],
         ["statusLabel", ASSET_COPY.statusLabel],
         ["jobLabel", ASSET_COPY.jobLabel],
         ["backToTools", ASSET_COPY.backToTools],
@@ -1792,29 +1804,30 @@ export function run({ check, assert, log }) {
     );
     check("the heading is the axis's name on screen", ASSET_LIST_COPY.heading, "Tools & Equipment");
     // THE DESIGN'S `13 items` (#455): a category's own page counts what is under it as items,
-    // and heads their column the same way.
+    // and since #519 the category list counts its rows as items too, and the column over each
+    // code says `Item ID`.
     check("one item is singular", ASSET_LIST_COPY.total(1), "1 item");
     check("  and two are plural", ASSET_LIST_COPY.total(2), "2 items");
     check("  and none is plural too", ASSET_LIST_COPY.total(0), "0 items");
-    check("  the column over each one's code, the design's since #463", ASSET_LIST_COPY.assetIdLabel, "Tool ID");
+    check("  the column over each one's code, the design's since #519", ASSET_LIST_COPY.assetIdLabel, "Item ID");
     check(
-        "  and the head counts each list in its own noun",
-        `${ASSET_LIST_COPY.toolNoun(1)} ${ASSET_LIST_COPY.toolNoun(17)} ${ASSET_LIST_COPY.itemNoun(1)} ${ASSET_LIST_COPY.itemNoun(0)}`,
-        "tool tools item items"
+        "  and the head counts both lists in one noun",
+        `${ASSET_LIST_COPY.itemNoun(1)} ${ASSET_LIST_COPY.itemNoun(17)} ${"toolNoun" in ASSET_LIST_COPY}`,
+        "item items false"
     );
     // THE TWO EMPTY STATES, which the sweep carried the verb and the noun into. The
     // second's sentence, that an addition had stopped before saving any, went in #507: a
     // category with nothing under it is a catalog row nobody has bought yet, so its heading
-    // stands alone.
+    // stands alone. The design's words since #519.
     check(
-        "no tool at all, a heading and a sentence (1a)",
-        `${ASSET_LIST_COPY.noToolsHeading} | ${ASSET_LIST_COPY.noTools}`,
-        "No tools yet | Each tool shows here with how many are in stock, out and retired."
+        "no item at all, a heading and a sentence (1a)",
+        `${ASSET_LIST_COPY.noItemsHeading} | ${ASSET_LIST_COPY.noItems}`,
+        "No items yet | Each item shows here with how many are in stock, out and retired."
     );
     check(
-        "  and a tool with nothing under it, its heading alone (1d, #507)",
+        "  and a category with nothing under it, its heading (1d, #507)",
         `${ASSET_LIST_COPY.noAssetsHeading} | ${"noToolItems" in ASSET_LIST_COPY}`,
-        "No items under this tool | false"
+        "Nothing added yet | false"
     );
     check(
         "the pager's two figures, and its steps' names",
@@ -1884,6 +1897,184 @@ export function run({ check, assert, log }) {
     ])
         assert(`  the scanner sees ${shape}`, seen.includes(text));
     check("  and passes a constant through", seen.length, 3);
+
+    // ── #519: the design's latest files on the two lists and the asset's page ──
+    log("");
+    log("the design's latest files: the pager, the job's three places, the empty states and the caption (#519):");
+    // 0b's pager: the one figure where a page shows a single row, and the page and its steps only
+    // past one page — one function both pagers ask, so they cannot answer differently.
+    check(
+        "  the count is the one figure for a single row, a range otherwise",
+        `${ASSET_LIST_COPY.range({ from: 1, to: 1, total: 1 })} | ${ASSET_LIST_COPY.range({ from: 26, to: 26, total: 26 })} | ${ASSET_LIST_COPY.range({ from: 1, to: 25, total: 38 })}`,
+        "1 of 1 | 26 of 26 | 1–25 of 38"
+    );
+    check(
+        "  the page and its steps stand only past one page",
+        `${pagerPosition({ page: 1, pageCount: 1 })} | ${pagerPosition({ page: 2, pageCount: 3 })}`,
+        "null | Page 2 of 3"
+    );
+    const listSource = parseFile(LIST_SCREEN).source;
+    const categorySource = parseFile(CATEGORY_SCREEN).source;
+    const assetSource = parseFile("app/(assets)/assets/[assetId]/page.js").source;
+    const listFrameSource = parseFile("app/(assets)/asset-categories/[categoryRecordId]/AssetList.js").source;
+    check(
+        "  and both pagers ask it",
+        `${/position=\{pagerPosition\(page\)\}/.test(listSource)} ${/position=\{pagerPosition\(page\)\}/.test(listFrameSource)} ${/pagePosition\(/.test(listSource + listFrameSource)}`,
+        "true true false"
+    );
+    // The job is a choice only for a reader with more than one (1a, 1d, 1f): the list's chip, a
+    // category's breadcrumb level and an asset's, each under the one count.
+    const choosesJob = (source) => (source.match(/scope\.jobs\.length > 1/g) ?? []).length;
+    check(
+        "  the job is offered only to a reader on more than one, on all three screens",
+        `${choosesJob(listSource)} ${choosesJob(categorySource)} ${choosesJob(assetSource)} ${/scope\.jobs\.length > 0/.test(listSource + categorySource + assetSource)}`,
+        "1 1 1 false"
+    );
+    check(
+        "  the list's in its head as a chip, a category's and an asset's as a breadcrumb level",
+        [
+            /scope\.jobs\.length > 1 \? \(\s*<JobChoice /.test(listSource),
+            /key: "job",\s*control: \(\s*<CategoryJobChoice/.test(categorySource) && !/<ListHeader[\s\S]*?<CategoryJobChoice[\s\S]*?<\/ListHeader>/.test(categorySource),
+            /key: "job",\s*control: \(\s*<JobChoice\s+look="crumb"/.test(assetSource),
+        ].join(" "),
+        "true true true"
+    );
+    check("  and a planted list offering it to a reader on one job is seen (anti-vacuity)", choosesJob("scope.jobs.length > 0 ? <JobChoice /> : null"), 0);
+    // THE EMPTY STATES, the design's words by value and who reads each off the pages (1a2, 1d).
+    check(
+        "  the words for a reader who adds nothing, for a site manager's empty category, and for a reader on no job",
+        [ASSET_LIST_COPY.untilASiteManagerAdds, ASSET_LIST_COPY.untilYouAdd, ASSET_LIST_COPY.noJobHeading, ASSET_LIST_COPY.untilAssigned].join(" | "),
+        "Items show here once a site manager adds them. | Items show here once you add them. | No job yet | Items show here once the office assigns you to a job."
+    );
+    check(
+        "  the list: no figure and no job's words but for a reader on no job, the sentence by who reads it, no opener under a reader on no job",
+        [
+            /const onNoJob = scope\.jobs\.length === 0;/.test(listSource),
+            /const count = onNoJob \? null :/.test(listSource),
+            /\{onNoJob \? COPY\.noJobHeading : COPY\.noItemsHeading\}/.test(listSource),
+            /\{onNoJob \? COPY\.untilAssigned : recorder \? COPY\.noItems : COPY\.untilASiteManagerAdds\}/.test(listSource),
+            /\{recorder && !onNoJob && \(/.test(listSource),
+        ].join(" "),
+        "true true true true true"
+    );
+    check(
+        "  a category's page: who fills it, by who reads it",
+        /\{recorder \? COPY\.untilYouAdd : COPY\.untilASiteManagerAdds\}/.test(categorySource),
+        true
+    );
+    // ONE SCROLL (0i Chain, #519). The lane holds the whole list: on 1a the head held at the top
+    // on the Sticky ground, on 1d the bar held and the head scrolling away under it; the column
+    // head holds where the frame says, under the head's least height or under the bar; focus
+    // scrolls clear of both and of the pager; and the pager stands outside the lane, after it.
+    const frameWhole = parseFile(LIST_FRAME).source;
+    const oneScroll = (source) => {
+        const frameFn = source.slice(source.indexOf("export default function ListFrame"));
+        const lane = frameFn.indexOf("ref={laneRef}");
+        const pager = frameFn.indexOf("PAGER_OVER_ROWS");
+        const inLane = (pattern) => {
+            const at = frameFn.search(pattern);
+            return at > lane && at < pager;
+        };
+        return [
+            inLane(/<div ref=\{topRef\} className="sticky top-0 z-10">\s*\{top\}\s*<\/div>\s*<div ref=\{headerRef\}>\{header\}<\/div>/),
+            inLane(/<div className="sticky top-0 z-10 bg-background-translucent backdrop-blur-sm">\{header\}<\/div>/),
+            /\$\{\s*top \? UNDER_BAR : UNDER_HEAD\s*\}/.test(frameFn),
+            /const UNDER_HEAD =\s*"\[--table-head-top:calc\(var\(--spacing-list-header-inset-top\)\+var\(--height-control-lg\)\+var\(--spacing-list-header-inset-bottom\)\)\] scroll-pt-\[calc\(var\(--table-head-top\)\+var\(--height-table-header\)\)\]";/.test(source),
+            /const UNDER_BAR = "\[--table-head-top:var\(--height-breadcrumb\)\] scroll-pt-\[calc\(var\(--table-head-top\)\+var\(--height-table-header\)\)\]";/.test(source),
+            /\$\{footer \? \(overlayShown \? KEEP_CLEAR_OF_BAR : KEEP_CLEAR_OF_PAGER\) : ""\}/.test(frameFn),
+            // Nothing before the pager gives the lane's 8 back: what heads the list stands in it.
+            lane >= 0 && pager > lane && !/pr-scrollbar-gutter/.test(frameFn.slice(0, frameFn.lastIndexOf("className", pager))),
+        ].join(" ");
+    };
+    check(
+        "  one scroll: 1a's head and 1d's bar held at the top inside the lane, the column head under either, focus clear of them, the pager after the lane",
+        oneScroll(frameWhole),
+        "true true true true true true true"
+    );
+    check(
+        "  and the column head reads where the frame holds it",
+        /export const TABLE_HEAD =\s*"sticky top-\(--table-head-top\) z-10 /.test(parseFile(LIST_TABLE).source),
+        true
+    );
+    check(
+        "  and a frame holding its head outside the lane, as #463's did, is seen (anti-vacuity)",
+        oneScroll(
+            'export default function ListFrame() { return <div>{top && <div className="shrink-0 pr-scrollbar-gutter">{top}</div>}<div className="shrink-0">{header}</div><div ref={laneRef} className={`${SCROLL_LANE}`} /><div className={PAGER_OVER_ROWS} /></div>; }'
+        ),
+        "false false false false false false false"
+    );
+    // 1d's NAME IN THE BAR once its head has scrolled under it: measured by the frame, marked on
+    // the lane, drawn by the bar under the mark behind a 16 rule 16 either side at 13 and 600,
+    // and handed by the category's page alone.
+    const crumbSource = parseFile("app/components/Breadcrumb.js").source;
+    const nameInBar = ({ frameSource: f, crumb, category, asset }) =>
+        [
+            /setTitleGone\(head\.getBoundingClientRect\(\)\.bottom <= bar\.getBoundingClientRect\(\)\.bottom\)/.test(f),
+            /data-title-gone=\{titleGone \? "" : undefined\}/.test(f) && /group\/list-frame/.test(f),
+            /className="pointer-events-none invisible flex min-w-0 items-center opacity-0 transition-\[opacity,visibility\] duration-breadcrumb-title ease-out group-data-title-gone\/list-frame:visible group-data-title-gone\/list-frame:opacity-100"/.test(crumb),
+            /<span aria-hidden="true" className="mx-breadcrumb-title-rule-inline h-breadcrumb-title-rule w-px shrink-0 bg-divider" \/>\s*<span className="min-w-0 truncate text-body-sm font-semibold text-foreground-default">\{title\}<\/span>/.test(crumb),
+            /title=\{category\.itemName\}\s*\/>/.test(category),
+            !/<Breadcrumb[^>]*\btitle=/.test(asset),
+        ].join(" ");
+    check(
+        "  1d's name comes into the bar once its head has gone under it, and an asset's page hands the bar none",
+        nameInBar({ frameSource: frameWhole, crumb: crumbSource, category: categorySource, asset: assetSource }),
+        "true true true true true true"
+    );
+    check(
+        "  and a name always shown, measured off the title alone, or handed by an asset's page is seen (anti-vacuity)",
+        nameInBar({
+            frameSource: "setTitleGone(title.getBoundingClientRect().top < 0)",
+            crumb: '<div className="flex min-w-0 items-center"><span>{title}</span></div>',
+            category: "<Breadcrumb levels={levels} />",
+            asset: "<Breadcrumb levels={levels} title={category.itemName} />",
+        }),
+        "false false false false false false"
+    );
+    // A DIALOG'S JOB SAYS THE JOB'S NAME AFTER ITS CODE (1b, 1i): the registration from both
+    // pages that open it, and the check-out and check-in at a desk — the phone's sheet and foot
+    // bar keep the code alone, as 1j draws them.
+    const registrationSource = parseFile("app/(assets)/asset-categories/RegistrationDialog.js").source;
+    const transitionSource = parseFile("app/(assets)/assets/[assetId]/TransitionDialog.js").source;
+    const barSourceForJobs = parseFile("app/(assets)/assets/[assetId]/TransitionBar.js").source;
+    const jobNames = ({ registration, transition, bar, list, category }) =>
+        [
+            /options=\{jobs\.map\(\(job\) => \(\{ value: job\.id, label: job\.jobCode, note: job\.jobName \}\)\)\}/.test(registration),
+            /const options = plan\.jobs\.map\(\(job\) => \(\{ value: job\.id, label: job\.jobCode, note: job\.jobName \}\)\);/.test(transition),
+            /const options = plan\.jobs\.map\(\(job\) => \(\{ value: job\.id, label: job\.jobCode \}\)\);/.test(bar),
+            /jobs: assignedJobsFor\(user, allJobs\)\.map\(\(\{ id, jobCode, jobName \}\) => \(\{ id, jobCode, jobName \}\)\),/.test(list),
+            /const assignedJobs = assignedJobsFor\(user, jobs\)\.map\(\(\{ id, jobCode, jobName \}\) => \(\{ id, jobCode, jobName \}\)\);/.test(category),
+        ].join(" ");
+    check(
+        "  a dialog's job says the job's name after its code, the phone's foot bar the code alone, and both pages hand the registration the names",
+        jobNames({ registration: registrationSource, transition: transitionSource, bar: barSourceForJobs, list: listSource, category: categorySource }),
+        "true true true true true"
+    );
+    check(
+        "  and a dialog offering codes alone, and pages handing no name, are seen (anti-vacuity)",
+        jobNames({
+            registration: "options={jobs.map((job) => ({ value: job.id, label: job.jobCode }))}",
+            transition: "const options = plan.jobs.map((job) => ({ value: job.id, label: job.jobCode }));",
+            bar: "const options = plan.jobs.map((job) => ({ value: job.id, label: job.jobCode, note: job.jobName }));",
+            list: "jobs: assignedJobsFor(user, allJobs).map(({ id, jobCode }) => ({ id, jobCode })),",
+            category: "const assignedJobs = assignedJobsFor(user, jobs).map(({ id, jobCode }) => ({ id, jobCode }));",
+        }),
+        "false false false false false"
+    );
+    // THE CAPTION: the type, the category and the class (1d, 1f, 1j), the asset's id first at a
+    // desk, and the path the caption said from #507 nowhere in it.
+    const captionSource = parseFile("app/(assets)/CategoryCaption.js").source;
+    check(
+        "  the caption says the type, the category and the class, after what leads it, and no path",
+        [
+            /const parts = \[\s*lead,\s*category\?\.level1 \? value\(category\.level1\) : null,\s*category\?\.level2 \? value\(category\.level2\) : null,\s*assetClass/.test(captionSource),
+            !/pathOf/.test(captionSource),
+            /text-foreground-default tabular-nums max-sm:text-foreground-muted/.test(captionSource),
+            /<CategoryCaption\s+category=\{category\}\s+lead=\{<span className=\{ID_IN_TEXT\}>\{asset\.assetId\}<\/span>\}/.test(assetSource),
+            !/jobCode && \(/.test(assetSource),
+        ].join(" "),
+        "true true true true true"
+    );
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

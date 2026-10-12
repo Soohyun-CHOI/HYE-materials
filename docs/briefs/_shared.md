@@ -110,7 +110,7 @@ takes them away. They are not a layout to preserve.
    **A registration was a fifth, and it joined the rule rather than finding a
    better exception (#449).** The registration — the page `/tools/new` until
    #456, a dialog over the page that opens it since — writes as many assets
-   as were bought, so it has no one document to land on — and it lands on their TOOL, the
+   as were bought, so it has no one document to land on — and it lands on their CATEGORY, the
    screen that lists them, with every one it wrote selected. The selection is
    what it says about the act: it names each id, survives a reload, and is one
    press from their labels. The form stated its own account of the ids until
@@ -119,7 +119,7 @@ takes them away. They are not a layout to preserve.
    that fewer were written than asked for, which offers to write the rest or be
    done, and which of those written have no recorded registration. They are what
    the arrival cannot show, the way the invoice screen says how a delivery was
-   matched to it (#231), and the tool's own brief carries both and what a reload
+   matched to it (#231), and the category page's own brief carries both and what a reload
    does to them.
 
    A redesign that adds a success state to a document screen is undoing this,
@@ -721,10 +721,10 @@ office. Invoicing is Admin because invoicing is office work.
 | `/prs/new` | anyone signed in |
 | `/deliveries`, `/deliveries/[deliveryId]`, `/deliveries/[deliveryId]/edit`, `/deliveries/new` | anyone signed in, then Job assignment |
 | `/materials`, `/materials/[materialId]` | anyone signed in; document identifiers gated per row (#19) |
-| `/asset-categories` | anyone signed in, with no Role and no Job gate (#337); the list starts from the reader's jobs, every job's for an Admin (#509); adding tools from it is a site manager's (#506) |
+| `/asset-categories` | anyone signed in, with no Role and no Job gate (#337); the list starts from the reader's jobs, every job's for an Admin (#509); adding items from it is a site manager's (#506) |
 | the registration dialog, over `/asset-categories` and `/asset-categories/[categoryRecordId]` (#456) | a site manager on either page (#506); only one assigned to a job can open it (#338) |
 | the labels' dialog, over `/asset-categories/[categoryRecordId]` and `/assets/[assetId]` (#457) | a site manager on either page (#506) |
-| `/asset-categories/[categoryRecordId]` | anyone signed in, with no Role and no Job gate (#337); the list starts from the reader's jobs, every job's for an Admin (#509); selecting and printing labels, and adding tools, are a site manager's (#506) |
+| `/asset-categories/[categoryRecordId]` | anyone signed in, with no Role and no Job gate (#337); the list starts from the reader's jobs, every job's for an Admin (#509); selecting and printing labels, and adding items, are a site manager's (#506) |
 | `/assets/[assetId]` | anyone signed in, with no Role and no Job gate (#337) — off the reader's jobs included (#509); checking out and in, retiring and printing are a site manager's (#506) |
 | `/l/[labelCode]` | anyone, signed in or not — it draws nothing and redirects (#348) |
 | `/invoices/new`, `/invoices/[invoiceId]/edit`, `/admin/**` | Admin only |
@@ -738,7 +738,7 @@ then a signer on the chain; then the recipient of a correction request.
 render *differently* for two readers, not merely show fewer rows.
 
 **NO TABLE IN THIS APP DROPS A COLUMN OF FACTS BY READER, AND THAT IS NOW A FACT RATHER
-THAN AN ABSENCE.** This said any column until #506, which took a tool's list's column of
+THAN AN ABSENCE.** This said any column until #506, which took a category page's column of
 boxes away from a reader who is not a site manager: the boxes are a control, the selection
 a label run is made from, so the column goes with the act it serves and every fact on the
 row stays — and the row's last column, the job, takes the room rather than a budget being
@@ -750,12 +750,12 @@ both tables sum their declared widths to exactly the page width on the assumptio
 each stays one. **A design that reintroduces a reader-dependent column of facts is
 re-cutting a budget in two directions at once, which is what both of those did and what
 both of them then had to undo** — the freed width had been handed to a neighbor each
-time, so opening the column took it back off that neighbor. The tool's list sums no
+time, so opening the column took it back off that neighbor. The category page's list sums no
 budget: its last column takes whatever the others leave.
 
 **What survives is smaller than a column and still real.** A single LINE can be
 absent: the invoice list's `New invoice` control is Admin-only, and since #506 every
-control on the asset screens that adds a tool, prints a label, checks one out or in or
+control on the asset screens that adds an item, prints a label, checks one out or in or
 retires one is a site manager's — absent, not disabled, for anybody else, for the same
 reason `New invoice` is: it is a role, and a role is not something a reader asks for.
 **The other example this named is gone** — the purchase order detail's office-only
@@ -847,8 +847,8 @@ names, and #258 brings the screens above the assets axis onto them.
 
 **The asset's screen and the two sign-in screens are used at a phone width
 as well as at a monitor. Every other screen is used at a monitor**, the rest of
-the assets axis among them. A tool is entered and its labels printed at a desk,
-so the tool list, the registration dialog, a tool's screen and the labels'
+the assets axis among them. An item is added and its labels printed at a desk,
+so the category list, the registration dialog, a category's screen and the labels'
 dialog do not support a phone's width; an asset is scanned on site, on a
 phone, possibly by someone wearing gloves (#336). **`/login` and
 `/login/confirm` joined that set in #373**, which is a consequence of the same
@@ -897,8 +897,8 @@ rather than a layout — so it is #258's to make.
 a screen's measure, room and type are its own, read from the names the design's
 values are declared under. **Every asset screen is drawn the design's way since
 #463** — the asset's as 0n's record page at a desk and 1j's app screen on a
-phone, the tool list and a tool's screen as 1a and 1d's lists, which hold their
-head still and scroll their rows under it.
+phone, the category list and a category's screen as 1a and 1d's lists, each one scroll
+with what heads it held at the top as its rows pass under (0i, #519).
 
 **The navigation shell is the asset screens' alone (#460).** The design drew a
 rail with every section on it and a breadcrumb above a record; the asset screens

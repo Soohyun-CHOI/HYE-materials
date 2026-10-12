@@ -1,4 +1,5 @@
-// The asset screens never say `register`, and say `create` only where it is named (#455, #485).
+// The asset screens never say `register`, say `create` only where it is named (#455, #485), and
+// say `tool` only in the axis's own name (#519).
 //
 // WHAT THIS HOLDS. Putting assets into stock is `add` on the screen since #485, where it was
 // the design's `create` from #455. The code keeps `register` — `registerAssetsAction`,
@@ -32,14 +33,25 @@
 // found`; each constant the sweep reached holds that noun itself. This said the heading
 // still said it, and the design was rewriting it; corrected per #181 by #485.
 //
+// AND SINCE #519 THE NOUN. The screens say `item` for a row of the category list and for each
+// labeled one, the design's word, where they said `tool` for both from #455; the code says
+// `category` and `asset`, which say neither, and the base's `Level 1` value `Tool` is the type
+// and arrives as data. The hazard is the same one a third time: the axis is `Tools &
+// Equipment` on every screen and its files sit under `docs/notes/tools.md`, so the next string
+// written beside them would say `tool` without anybody choosing it. So a string an asset screen
+// renders that says `tool` or `tools` as a word fails, once the axis's own name is taken out
+// of it — `Tools & Equipment` and `Back to Tools & Equipment`, the one place the site's word
+// stands (#513).
+//
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
 import { stringsForRoute } from "../../screen-strings.mjs";
 import { ASSET_ROUTES } from "../../../lib/assetRoutes.js";
 import { ASSET_REGISTRATION_COPY } from "../../../lib/assetRegistration.js";
+import { ASSET_LIST_COPY } from "../../../lib/assetListView.js";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "The asset screens never say `register`, and say `create` only where it is named (#455, #485)";
+export const title = "The asset screens never say `register`, say `create` only where it is named, and say `tool` only in the axis's name (#455, #485, #519)";
 
 /** The verb the design replaced, in every form a sentence takes it. */
 const REGISTER = /regist/i;
@@ -58,14 +70,20 @@ const CREATE = /creat/i;
  * typed name, since a registration picks a tool of the catalog and coins none.
  */
 const STILL_CREATE = new Map([
-    ["1 tool has no creation date", "the creation date, the moment the log's first row, `Created`, records"],
-    ["tools have no creation date", "the creation date, in the notice's title for several"],
+    ["1 item has no creation date", "the creation date, the moment the log's first row, `Created`, records"],
+    ["items have no creation date", "the creation date, in the notice's title for several"],
     [
         "Only the creation date wasn't saved for this one, and it can't be added later.",
         "the creation date, in the notice's sentence for one",
     ],
     ["Only the creation date wasn't saved for these", "the creation date, in the notice's sentence for several"],
 ]);
+
+/** The noun #519 replaced, as a word in either number. */
+const TOOL = /\btools?\b/i;
+
+/** Whether a string says `tool` anywhere but in the axis's own name, which is taken out first. */
+const saysTool = (text) => TOOL.test(String(text).split(ASSET_LIST_COPY.heading).join(""));
 
 /** The strings saying `create` that `STILL_CREATE` does not name. */
 const unnamedCreate = (strings) => strings.filter((s) => CREATE.test(s.text) && !STILL_CREATE.has(s.text));
@@ -115,6 +133,22 @@ export function run({ check, assert, log }) {
     }
     check("  and every string the list names is one an asset screen still renders", staleEntries(rendered).join(" | "), "");
 
+    // ── 3: the noun ─────────────────────────────────────────────────────────
+    log("");
+    log("no string an asset screen renders says tool, the axis's own name aside (#519):");
+    for (const route of ROUTES) {
+        const said = stringsForRoute(route).strings.filter((s) => saysTool(s.text));
+        check(
+            `  ${route} says it nowhere`,
+            said.map((s) => `${s.file}:${s.line} ${JSON.stringify(s.text)}`).join("; "),
+            ""
+        );
+    }
+    assert(
+        "  and the axis's name, which every screen renders, is what was taken out",
+        [...rendered].some((text) => TOOL.test(text)) && [...rendered].every((text) => !saysTool(text))
+    );
+
     // ── anti-vacuity ───────────────────────────────────────────────────────
     log("");
     log("anti-vacuity — this check is seen to be able to fail:");
@@ -126,26 +160,26 @@ export function run({ check, assert, log }) {
         "is a tool nobody has registered yet.",
     ])
         assert(`  the matcher catches ${JSON.stringify(planted)}`, REGISTER.test(planted));
-    for (const passed of ["Add tools", "Add 5 tools", "Adding…", "Add 2 more", "Created"])
+    for (const passed of ["Add items", "Add 5 items", "Adding…", "Add 2 more", "Created"])
         assert(`  and passes ${JSON.stringify(passed)}`, !REGISTER.test(passed));
     // The second matcher and the list, on what the screens said for the act until #485 — each
     // caught and named nowhere, so each would fail above — and on its words now.
     for (const planted of ["Create tools", "Creating…", "tools created", "couldn't be created.", "Create the rest"])
         assert(`  the create matcher catches ${JSON.stringify(planted)}, which the list does not name`, CREATE.test(planted) && !STILL_CREATE.has(planted));
-    for (const passed of ["Add tools", "Add 1 tool", "Adding…", "tools added", "couldn't be added.", "Add 2 more"])
+    for (const passed of ["Add items", "Add 1 item", "Adding…", "tools added", "couldn't be added.", "Add 2 more"])
         assert(`  and the create matcher passes ${JSON.stringify(passed)}`, !CREATE.test(passed));
     // The two readers above, on a planted screen and a planted rendering: a string the list
     // does not name is reported and one it names is not, and an entry nothing renders is.
     check(
         "  a planted screen's unnamed create is reported, and a named one is not",
-        unnamedCreate([{ text: "Create tools" }, { text: "1 tool has no creation date" }])
+        unnamedCreate([{ text: "Create tools" }, { text: "1 item has no creation date" }])
             .map((s) => s.text)
             .join(" | "),
         "Create tools"
     );
     check(
         "  and every entry but the one a planted rendering says is reported stale",
-        staleEntries(new Set(["1 tool has no creation date"])).length,
+        staleEntries(new Set(["1 item has no creation date"])).length,
         STILL_CREATE.size - 1
     );
     // The collector reaches the constant that says the verb most: "nothing says it" is
@@ -164,6 +198,13 @@ export function run({ check, assert, log }) {
             list.includes(ASSET_REGISTRATION_COPY.working) &&
             list.includes(ASSET_REGISTRATION_COPY.changeName)
     );
+    // The noun's matcher, on what the screens said until #519 and on what they say now — the
+    // axis's name, in a sentence and alone, passing.
+    for (const planted of ["Add tools", "Add 1 tool", "Tool ID", "Retire this tool", "No tools yet", "Tool not found", "QR label for this tool"])
+        assert(`  the noun matcher catches ${JSON.stringify(planted)}`, saysTool(planted));
+    for (const passed of ["Add items", "Item ID", "Retire this item", ASSET_LIST_COPY.heading, `Back to ${ASSET_LIST_COPY.heading}`, "Toolbox"])
+        assert(`  and passes ${JSON.stringify(passed)}`, !saysTool(passed));
+    assert("  but catches the word beside the axis's name", saysTool(`${ASSET_LIST_COPY.heading} tools`));
     const landing = stringsForRoute("/asset-categories/[categoryRecordId]").strings.map((s) => s.text);
     assert("  and the pieces of a builder on the page a registration lands on", landing.some((t) => t.includes("couldn't be added")));
     assert(`  ${total} strings read across ${ROUTES.length} screens`, total > 100);

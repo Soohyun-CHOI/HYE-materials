@@ -45,9 +45,10 @@ move once and land on the asset.
 
 Nothing, and there is no branch. Every string is redirected alike — a code no
 asset carries reaches the asset screen and is answered there,
-`Tool not found` over a sentence asking for the code to be checked against the
-label, which is the one place that answer belongs. This said
-`Tool item not found`, the heading #463 replaced; corrected per #181 by #485.
+`Item not found` over a sentence asking for the code to be checked against the
+label, which is the one place that answer belongs. It is `Tool not found` until
+#519. This said `Tool item not found`, the heading #463 replaced; corrected per
+#181 by #485.
 
 **A whole `Asset ID` typed here reaches that same answer.** The old form
 of this address is not accepted: no label was ever printed with it and every

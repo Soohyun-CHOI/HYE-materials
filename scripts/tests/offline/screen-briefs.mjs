@@ -490,7 +490,7 @@ const PINNED = [
     // is the constraint the #272 note above records the hard way, and on a clause
     // unique to THIS constant.
     "No history yet",
-    "No tool has this code.",
+    "No item has this code.",
     // #146 — the one refusal five screens share, pinned WITHOUT either figure for the
     // reason the threshold sentence above is: the briefs write where the sizes go, and
     // both of them are meant to move. The file's size moves per file; the limit moves

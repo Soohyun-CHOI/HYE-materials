@@ -27,8 +27,9 @@ import AssetList from "./AssetList";
 // SECOND read of the same record, since generateMetadata runs separately from the
 // page render and the Airtable SDK deduplicates nothing. The other asset screen
 // with a dynamic segment carries the printed id in the URL already, so it names
-// its record for no operations at all.
-export const metadata = { title: "Tool" };
+// its record for no operations at all. `Item` since #519, the screens' word for a row of the
+// list, where it was `Tool`.
+export const metadata = { title: "Item" };
 
 /**
  * One category and its assets, a page at a time (#339).
@@ -63,9 +64,11 @@ export const metadata = { title: "Tool" };
  * scope — `assetListScope`, the judgment `/asset-categories` reads its rows by — which
  * comes off the job list's own link arrays, so the page is still chosen before anything
  * is fetched. The office starts from every asset under the category and anybody else from
- * those on their jobs; a job in the head narrows to its own, and the head counts
- * `N of M`. A category with assets, none of them in the scope, draws its head and nothing
- * under it, as a job with none does on `/asset-categories`: `No items under this tool`
+ * those on their jobs; a job chosen narrows to its own, and the head counts `N of M`. **The
+ * job is chosen in the breadcrumb since #519**, a level after `Tools & Equipment`, as 1d draws
+ * it, and only by a reader with more than one; it stood in the head beside the opener until
+ * then. A category with assets, none of them in the scope, draws its head and nothing
+ * under it, as a job with none does on `/asset-categories`: `Nothing added yet`
  * would be false there, and Design is drawing what it says. An asset off the scope still
  * opens from its label.
  *
@@ -103,18 +106,18 @@ export const metadata = { title: "Tool" };
  * levels it asks start on this kind's values (#514) — which is none at all for a row the
  * catalog no longer offers: its refusal is then the action's.
  *
- * WHAT THE KIND IS, IN THE CAPTION UNDER ITS NAME (#507): its class and where it sits in the
- * catalog, off the row already read (`CategoryCaption`).
+ * WHAT THE KIND IS, IN THE CAPTION UNDER ITS NAME (#507): its type, its category and its class
+ * since #519, off the row already read (`CategoryCaption`).
  *
  * A READER WHO IS NOT A SITE MANAGER READS THIS PAGE WITHOUT WHAT A SITE MANAGER DOES ON
  * IT (#506): no opener, no box on a row or on the page and no selection bar — so no label
  * run is made here, and an `id` on the address is left unread — and neither part of a
- * registration's account, which is told to whoever added. An empty category keeps its heading
- * and drops the sentence under it, which speaks to the person who was adding. Every
- * question is `isSiteManager`, asked once here, the one the actions behind those controls
- * ask through `withSiteManagerAction`. An empty kind's heading stands alone for everybody
- * since #507, when the sentence that spoke to whoever was adding went with the failed
- * registration it described.
+ * registration's account, which is told to whoever added. An empty category tells them who
+ * fills it, `Items show here once a site manager adds them.`, where a site manager is told it
+ * fills when they add, over the opener (1d, #519). Every question is `isSiteManager`, asked
+ * once here, the one the actions behind those controls ask through `withSiteManagerAction`.
+ * The heading stood alone for everybody from #507, when the sentence that spoke to whoever was
+ * adding went with the failed registration it described, until the design drew the two.
  *
  * NO COUNT PER STATUS HERE, DELIBERATELY. That is the question one level up, and
  * answering it on this page would mean reading every asset under the category —
@@ -184,6 +187,8 @@ async function renderCategoryPage({ params, searchParams }) {
     const scope = assetListScope(user, jobs, sp.job);
     const narrowed = scope.job !== null;
     const job = scope.job?.id ?? null;
+    // Whether the reader chooses a job at all: only with more than one (1d, #519).
+    const choosesJob = scope.jobs.length > 1;
     const page = pageOfAssets(idsInScope(category.assets, scope.shown), sp.page);
     const total = idsInScope(category.assets, scope.start).length;
     const assets = await getAssetsByCategory(category.id, { rowIds: page.ids });
@@ -197,16 +202,39 @@ async function renderCategoryPage({ params, searchParams }) {
     // site manager may register, which is the one predicate every opener asks, and the
     // jobs its choice offers.
     const canRegister = canRegisterAssets(user, jobs);
-    const assignedJobs = assignedJobsFor(user, jobs).map(({ id, jobCode }) => ({ id, jobCode }));
+    const assignedJobs = assignedJobsFor(user, jobs).map(({ id, jobCode, jobName }) => ({ id, jobCode, jobName }));
 
     // The way back is the breadcrumb's one level since #460, the list's own heading behind a
-    // chevron (1d). The category's name is the heading and there is no heading word, which is
-    // the shape the asset's page takes. Registering more under this category (#451) is the
-    // head's one control, so a category with nothing under it keeps it — there it is the way to
-    // write what a registration did not. It opens the dialog on this category (#456). The way
-    // back keeps the job the list is narrowed to (#509), and the head's choice stands
-    // before the opener, as on `/asset-categories`.
-    const top = <Breadcrumb levels={[{ label: COPY.heading, href: assetCategoriesPath(1, job) }]} />;
+    // chevron (1d) — and for a reader on several jobs a path, the list's heading and then the job
+    // the list is narrowed to, which the reader changes there (#519). The category's name is the
+    // heading and there is no heading word, which is the shape the asset's page takes.
+    // Registering more under this category (#451) is the head's one control, so a category with
+    // nothing under it keeps it — there it is the way to write what a registration did not. It
+    // opens the dialog on this category (#456). The way back keeps the job the list is narrowed
+    // to (#509). The bar names the category once its heading has scrolled under it (1d, #519).
+    const top = (
+        <Breadcrumb
+            levels={[
+                { label: COPY.heading, href: assetCategoriesPath(1, job) },
+                ...(choosesJob
+                    ? [
+                          {
+                              key: "job",
+                              control: (
+                                  <CategoryJobChoice
+                                      jobs={scope.jobs.map(({ id, jobCode }) => ({ id, jobCode }))}
+                                      job={job}
+                                      categoryRecordId={category.id}
+                                      selects={recorder}
+                                  />
+                              ),
+                          },
+                      ]
+                    : []),
+            ]}
+            title={category.itemName}
+        />
+    );
     // The dialog on this kind (#507): the row as the page read it, and the catalog it may pick
     // from, which is this row alone — none when the catalog no longer offers it — so each
     // level its second step asks has this row's value already chosen (#514).
@@ -221,14 +249,6 @@ async function renderCategoryPage({ params, searchParams }) {
             caption={<CategoryCaption category={category} className="text-body text-foreground-subtle" />}
             underBreadcrumb
         >
-            {scope.jobs.length > 0 && (
-                <CategoryJobChoice
-                    jobs={scope.jobs.map(({ id, jobCode }) => ({ id, jobCode }))}
-                    job={job}
-                    categoryRecordId={category.id}
-                    selects={recorder}
-                />
-            )}
             {recorder && <RegistrationDialog {...registration} />}
         </ListHeader>
     );
@@ -244,10 +264,11 @@ async function renderCategoryPage({ params, searchParams }) {
             <ListFrame top={top} header={header}>
                 <div className="flex flex-col items-center pt-list-empty-state-inset-top text-center">
                     <h2 className="text-heading font-semibold">{COPY.noAssetsHeading}</h2>
-                    {/* The opener under the heading is a site manager's (#506). The sentence
-                        between them, which told whoever was adding that a registration had
-                        stopped before writing any, went in #507: a kind with nothing under it
-                        is a catalog row nobody has bought yet. */}
+                    {/* Who fills it (1d, #519): the site manager, with the opener under it (#506),
+                        or a site manager, for anybody else. */}
+                    <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">
+                        {recorder ? COPY.untilYouAdd : COPY.untilASiteManagerAdds}
+                    </p>
                     {recorder && (
                         <div className="mt-gap-lg">
                             <RegistrationDialog {...registration} variant="bordered" />

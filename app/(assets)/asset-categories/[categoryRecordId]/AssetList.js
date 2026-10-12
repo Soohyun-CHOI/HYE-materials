@@ -10,6 +10,7 @@ import { ASSET_LABEL_PAGE_COPY as LABEL_COPY } from "@/lib/assetLabelPage";
 import {
     ASSET_LIST_COPY as COPY,
     describeSelection,
+    pagerPosition,
     pageSelection,
     togglePage,
     toggleAsset,
@@ -113,14 +114,14 @@ export default function AssetList({ categoryRecordId, itemName, selects, rows, p
         <ListFrame
             top={top}
             header={header}
-            // Which rows this page shows and which page it is, stated whether or not there
-            // is a second one: #326 names "nothing on screen says whether a reader is looking
-            // at everything or at the beginning of it" as the defect. Both steps carry the
-            // selection.
+            // Which rows this page shows of how many, stated whether or not there is a second
+            // page: #326 names "nothing on screen says whether a reader is looking at everything
+            // or at the beginning of it" as the defect. Which page it is and the steps stand only
+            // past one page (0b, #519). Both steps carry the selection.
             footer={
                 <Pager
                     range={COPY.range({ from: page.from + 1, to: page.to, total: page.total })}
-                    position={COPY.pagePosition(page)}
+                    position={pagerPosition(page)}
                     previous={{ href: page.page > 1 ? assetCategoryPath(categoryRecordId, page.page - 1, selection, { job }) : null, label: COPY.previous }}
                     next={{ href: page.page < page.pageCount ? assetCategoryPath(categoryRecordId, page.page + 1, selection, { job }) : null, label: COPY.next }}
                 />

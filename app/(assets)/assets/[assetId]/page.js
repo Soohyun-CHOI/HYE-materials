@@ -17,7 +17,7 @@ import { KEYBOARD_VIEWPORT } from "@/app/components/keyboardViewport";
 import TopBar from "@/app/components/TopBar";
 import { QR_SIDE_MODULES, buildAssetLabel } from "@/lib/assetLabelQR";
 import { ASSET_LABEL_PAGE_COPY as LABEL_COPY, labelBudget, symbolBox } from "@/lib/assetLabelPage";
-import { ASSET_LIST_COPY } from "@/lib/assetListView";
+import { ASSET_LIST_COPY, assetListScope } from "@/lib/assetListView";
 import { ASSET_CATEGORIES_PATH, labelCodeFor, assetPath, assetCategoryPath } from "@/lib/assetRoutes";
 import { ASSET_EVENT } from "@/lib/assetStatus";
 import { ASSET_TRANSITION_COPY as TRANSITION_COPY, planTransition } from "@/lib/assetTransition";
@@ -27,6 +27,7 @@ import { actorName } from "@/lib/userName";
 import LabelsDialog, { LabelPreview } from "../LabelsDialog";
 import StatusMark from "../../StatusMark";
 import CategoryCaption from "../../CategoryCaption";
+import JobChoice from "../../JobChoice";
 import MoreActions from "./MoreActions";
 import AssetTransition from "./AssetTransition";
 import TransitionBar from "./TransitionBar";
@@ -135,12 +136,14 @@ const ID_IN_TEXT = "font-id leading-none tracking-id text-foreground-default";
  * `withSiteManagerAction`.
  *
  * TWO DRAWINGS OF ONE PAGE (#463). A desk draws 0n's record page under the breadcrumb:
- * a header holding its category's name, its id and job, its status and the actions, the history
- * beside the record rail and its label (1f, 1g). A phone draws 1j: the top bar with the id
- * and `More actions`, the title block, the history, and the transition in a foot bar. **The
- * category's class and path are a caption in the header at both widths since #507** — under the
- * id and the job at a desk, which stay first under the name (#411), and under the name on a
- * phone — off the category row already read, so it costs nothing (`CategoryCaption`). What is
+ * a header holding its category's name, the line under it, its status and the actions, the
+ * history beside the record rail and its label (1f, 1g). A phone draws 1j: the top bar with the
+ * id and `More actions`, the title block, the history, and the transition in a foot bar. **The
+ * line under the name is the id and the caption since #519** — the id, the type, the category
+ * and the class at a desk, the id first as it has been since #411, and the caption alone under the
+ * name on a phone, whose top bar holds the id — off the category row already read, so it costs
+ * nothing (`CategoryCaption`). The job left that line with #519, as 1f draws it: every history
+ * entry names its job, and for a reader on several jobs the breadcrumb does. What is
  * one fact is one element — the heading, the status, an entry — set at each width's size;
  * what only one width draws is drawn there alone. Every word is a constant and every value a
  * name `app/designValues.css` declares, and the column the page sits in is the layout's
@@ -229,6 +232,12 @@ async function renderAssetPage({ params }) {
     // asks the same function again, because a Server Action is reachable without
     // this page.
     const transition = planTransition({ user, jobs, status: asset.status });
+    // The jobs this reader's lists hold, the same judgment the lists read by (#509): with more
+    // than one, the breadcrumb names the asset's job as a level they may change (#519), and the
+    // category's level carries it when it is one of theirs.
+    const scope = assetListScope(user, jobs, null);
+    const choosesJob = scope.jobs.length > 1;
+    const jobInScope = choosesJob && scope.jobs.some((each) => each.id === asset.job?.[0]) ? asset.job[0] : null;
     // Whether this reader prints labels (#506) — the question `planTransition` asked above,
     // asked of the one control outside the transition.
     const recorder = isSiteManager(user);
@@ -288,11 +297,30 @@ async function renderAssetPage({ params }) {
                 {/* WHERE THIS ASSET SITS UNDER ITS CATEGORY (#460): the list, the category, and the
                     code its label prints, which is how the design ends the path (1f). The
                     category is the row read above, so the path costs nothing. A phone draws the
-                    top bar in its place. */}
+                    top bar in its place. For a reader on several jobs the job the asset is on
+                    stands between the list and the category (1f, #519), a level that takes them
+                    to the category's list on another job, and the category's level carries the
+                    asset's job when the reader may narrow to it. */}
                 <Breadcrumb
                     levels={[
                         { label: ASSET_LIST_COPY.heading, href: ASSET_CATEGORIES_PATH },
-                        ...(category ? [{ label: category.itemName, href: assetCategoryPath(category.id) }] : []),
+                        ...(category && choosesJob
+                            ? [
+                                  {
+                                      key: "job",
+                                      control: (
+                                          <JobChoice
+                                              look="crumb"
+                                              jobs={scope.jobs.map(({ id, jobCode }) => ({ id, jobCode }))}
+                                              job={asset.job?.[0] ?? null}
+                                              shownAs={jobCode}
+                                              categoryRecordId={category.id}
+                                          />
+                                      ),
+                                  },
+                              ]
+                            : []),
+                        ...(category ? [{ label: category.itemName, href: assetCategoryPath(category.id, 1, [], { job: jobInScope }) }] : []),
                     ]}
                     current={labelCodeFor(asset.assetId)}
                     phone={false}
@@ -306,18 +334,14 @@ async function renderAssetPage({ params }) {
                         24 above and below its Band. On a phone, 1j's title block. */}
                     <header className="flex items-start justify-between gap-record-header-inline border-b border-divider-strong pb-record-header-stack max-sm:border-b-0 max-sm:px-mobile-gutter max-sm:pt-mobile-top-bar-stack max-sm:pb-mobile-title-stack">
                         <div className="flex min-w-0 flex-col gap-subtitle-stack">
-                            <div className="flex flex-col gap-title-stack">
+                            <div className="flex flex-col gap-title-stack max-sm:gap-mobile-caption-stack">
                                 <h1 className="text-heading-lg max-sm:text-mobile-heading-lg">{name}</h1>
-                                <p className="text-body text-foreground-subtle max-sm:hidden">
-                                    <span className={ID_IN_TEXT}>{asset.assetId}</span>
-                                    {jobCode && (
-                                        <>
-                                            <Dot />
-                                            <span className="text-foreground-default">{jobCode}</span>
-                                        </>
-                                    )}
-                                </p>
-                                {category && <CategoryCaption category={category} className="text-body text-foreground-subtle max-sm:text-mobile-body-sm" />}
+                                <CategoryCaption
+                                    category={category}
+                                    lead={<span className={ID_IN_TEXT}>{asset.assetId}</span>}
+                                    className="text-body text-foreground-subtle max-sm:hidden"
+                                />
+                                <CategoryCaption category={category} className="text-mobile-body-xs text-foreground-subtle sm:hidden" />
                             </div>
                             {/* THE STATUS, AND THE VALUE ONLY ONE STATE HAS 14 AFTER IT (0n):
                                 who holds an asset that is out, and at a desk when a retired one

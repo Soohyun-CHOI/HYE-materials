@@ -146,7 +146,7 @@ function TransitionForm({ open, onClose, plan, assetId, currentJobCode, recentCh
     const asksName = plan.event === ASSET_EVENT.CHECKED_OUT;
     const several = onlyJob(plan.jobs) === null;
     const chosen = plan.jobs.find((job) => job.id === kept) ?? null;
-    const options = plan.jobs.map((job) => ({ value: job.id, label: job.jobCode }));
+    const options = plan.jobs.map((job) => ({ value: job.id, label: job.jobCode, note: job.jobName }));
     // WHO THIS JOB HAS RECENTLY HANDED ASSETS TO, NARROWED IN THE BROWSER (#376). The page
     // loaded the rows for every job this reader is on; the chosen job decides which of them
     // the names are about, and typing narrows them further.

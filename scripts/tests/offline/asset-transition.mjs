@@ -613,7 +613,7 @@ export function run({ check, assert, log }) {
     check(
         "  and the one for a move",
         ASSET_TRANSITION_COPY.movesJob({ from: "26-DEMO-02", to: "26-DEMO-01" }),
-        "This tool was last scanned on 26-DEMO-02. Recording this on 26-DEMO-01 moves it there."
+        "This item was last scanned on 26-DEMO-02. Recording this on 26-DEMO-01 moves it there."
     );
     // `kind` is the notes' explanatory word for what separates `Asset Categories` from
     // `Assets` and names no row (#338); `transition` is this issue's, for the
@@ -1352,7 +1352,7 @@ export function run({ check, assert, log }) {
     // THE DESIGN'S WORDS (#455, #458): `tool` for the object, a title that asks and
     // names the record — 0l's Confirm and Tools 0a's sheet that confirms, the same
     // words at both widths — and a confirm that names what it retires.
-    check("the opener names its object", ASSET_TRANSITION_COPY.retireOpener, "Retire this tool");
+    check("the opener names its object", ASSET_TRANSITION_COPY.retireOpener, "Retire this item");
     const heading = ASSET_TRANSITION_COPY.retireHeading({ itemName: "DEMO Rotary Hammer", assetId: "HYE-AST-261001-022" });
     check("the title asks and names the asset", heading, "Retire DEMO Rotary Hammer?");
     check(
@@ -1360,7 +1360,7 @@ export function run({ check, assert, log }) {
         ASSET_TRANSITION_COPY.retireHeading({ itemName: undefined, assetId: "HYE-AST-261001-022" }),
         "Retire HYE-AST-261001-022?"
     );
-    check("the confirm names what it retires", ASSET_TRANSITION_COPY.retireSubmit, "Retire tool");
+    check("the confirm names what it retires", ASSET_TRANSITION_COPY.retireSubmit, "Retire item");
     check("  and says the verb alone, -ing, while it is on its way (#469)", ASSET_TRANSITION_COPY.retireWorking, "Retiring…");
     check("and the way out is the app's own word", ASSET_TRANSITION_COPY.cancel, "Cancel");
     // THE OPENER AND THE TRANSITION CONTROL MAY NOT READ ALIKE, which is half of
@@ -1369,7 +1369,7 @@ export function run({ check, assert, log }) {
     assert(
         "the opener does not read like the transition control",
         ASSET_TRANSITION_COPY.retireOpener !== ASSET_TRANSITION_COPY.control[ASSET_EVENT.CHECKED_OUT] &&
-            ASSET_TRANSITION_COPY.retireOpener.includes("this tool")
+            ASSET_TRANSITION_COPY.retireOpener.includes("this item")
     );
     // THE BODY IS AN ACCOUNT OF WHAT THE ACT ENDS, which `_shared.md` names as the point
     // of a confirmation and 0l's Confirm asks for: the design's sentence (1f, 1j).

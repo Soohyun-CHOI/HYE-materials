@@ -11,23 +11,34 @@ import { assetCategoryPath, assetCategoriesPath } from "@/lib/assetRoutes";
 // `offline/list-filters.mjs` holds that word to `lib/listFilters.js`.
 const ALL_JOBS = axesFor(FILTERED_LISTS[0]).find((axis) => axis.param === "job").words.all;
 
-// The job an asset list is narrowed to (#509), in the list's head — 0n's place for a list's
-// one control, beside `Add tools` — as 0l's choice: `All jobs` first, which is the whole of
-// what the reader starts from, and then each job they may narrow to by its code, as the
-// registration's choice names them. Design is drawing the control; this is the closest the
-// app already draws, and it is held to no width of its own until then, so it is as wide as
-// what it shows.
+// The job an asset list is narrowed to (#509), drawn the design's two ways since #519 and
+// only for a reader with more than one job to choose between — the page asks that. On the
+// category list it is 1a's chip in the head, `Job` and the value beside `Add items`; on a
+// category's page and an asset's it is a level of the breadcrumb, 1d's and 1f's, after
+// `Tools & Equipment` (`look="crumb"`). Both are `Choice`, 0l's select-only combobox, named
+// by the field's `Job`.
+//
+// `All jobs` STAYS FIRST, WHICH THE DESIGN DOES NOT DRAW. The files draw the chip and the level
+// holding a job and offer the jobs alone; but a list starts from the whole of the reader's
+// jobs (#509) — every one for the office, their own for anybody else — and `All jobs` is how
+// the list says it holds that, and how a reader gets back to it.
 //
 // WHAT IT OFFERS AND WHAT IT HOLDS ARE THE PAGE'S, from `lib/assetListView.js:assetListScope`,
 // the one judgment the page read its rows by. This file only turns a choice into an address.
+// On an asset's page the level holds the job the asset is on (`shownAs`), which the reader may
+// not be able to choose — off their jobs — and then it shows the job's code and marks nothing.
 //
 // A CHOICE IS A NAVIGATION, AND IT ADDS A HISTORY ENTRY. The page reads only the narrowed
 // scope's assets, so a new job is a new read, and Back returns to the scope before it.
 // The page goes back to its first, since a page of one scope is no page of another. On a
 // category's own list it keeps the label run selected (#443), which `CategoryJobChoice.js` beside
 // that page hands it — a selection outlives a page turn, and a change of job is one more of
-// those, the run's ids off it counted `not on this page`. `/asset-categories` selects nothing.
-export default function JobChoice({ jobs, job, categoryRecordId = null, selection = [] }) {
+// those, the run's ids off it counted `not on this page`. `/asset-categories` selects nothing,
+// and an asset's page lands on its category's list with nothing selected. A choice of what the
+// control already holds goes nowhere, which is also what keeps a blur with the list open from
+// leaving the page: the pattern chooses what is under visual focus as focus leaves, and that
+// is the held option until the reader moves.
+export default function JobChoice({ jobs, job, look = "chip", shownAs, categoryRecordId = null, selection = [] }) {
     const router = useRouter();
     const options = [{ value: "", label: ALL_JOBS }, ...jobs.map(({ id, jobCode }) => ({ value: id, label: jobCode }))];
 
@@ -37,28 +48,9 @@ export default function JobChoice({ jobs, job, categoryRecordId = null, selectio
         router.push(categoryRecordId ? assetCategoryPath(categoryRecordId, 1, selection, { job: chosen }) : assetCategoriesPath(1, chosen));
     };
 
-    // AS WIDE AS ITS LONGEST OPTION, AND NO WIDTH OF ITS OWN. A choice's list takes the field's
-    // width (0a Menu), so a field as wide as `All jobs` cut every code in the list to
-    // `26-DEM…` — seen in a browser. Each option is laid unseen in the one grid cell the
-    // field stands in, with the field's own side room, gap and chevron, so the cell is the
-    // widest of them and no value is chosen ahead of Design's drawing.
     return (
-        <div className="inline-grid">
-            <div className="col-start-1 row-start-1 min-w-0">
-                <Field label={COPY.jobLabel} labelAs="span" labelHidden>
-                    <Choice name="job" options={options} value={job ?? ""} onChange={choose} />
-                </Field>
-            </div>
-            {options.map((option) => (
-                <span
-                    key={option.value}
-                    aria-hidden="true"
-                    className="invisible col-start-1 row-start-1 flex h-0 gap-gap overflow-hidden border px-input-inset-x text-body whitespace-nowrap"
-                >
-                    {option.label}
-                    <span className="size-icon-sm shrink-0" />
-                </span>
-            ))}
-        </div>
+        <Field label={COPY.jobLabel} labelAs="span" labelHidden>
+            <Choice look={look} label={COPY.jobLabel} options={options} value={job ?? ""} onChange={choose} placeholder={shownAs} />
+        </Field>
     );
 }

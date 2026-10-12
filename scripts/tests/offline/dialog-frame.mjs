@@ -64,7 +64,7 @@ import {
     stepNumber,
     typeaheadIndex,
 } from "../../../lib/controls.js";
-import { DIALOG_FRAME_COPY, focusLost } from "../../../lib/dialogFrame.js";
+import { DIALOG_FRAME_COPY, focusFellFromPage, focusLost } from "../../../lib/dialogFrame.js";
 import { listJsFiles, parentMap, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
@@ -396,9 +396,9 @@ export function run({ check, assert, log }) {
             fieldSideRoom: [
                 /lg: "h-control-lg px-input-inset-x text-body"/.test(constant("TEXT_INPUT_SIZE")),
                 /xl: "h-control-xl px-input-inset-x /.test(constant("TEXT_INPUT_SIZE")),
-                /rounded-control border bg-white px-input-inset-x text-body outline-none/.test(functionSource("Choice")),
+                /field: \(refused\) =>\s*`[^`]*rounded-control border bg-white px-input-inset-x text-body outline-none/.test(constant("CHOICE_LOOK")),
                 /rounded-control bg-white px-input-inset-x text-body /.test(functionSource("Combobox")),
-                !/font-medium/.test(functionSource("Choice")),
+                !/font-medium/.test(constant("CHOICE_LOOK").split(/\n\s*chip:/)[0]),
             ].join(" "),
         };
     };
@@ -492,10 +492,67 @@ export function run({ check, assert, log }) {
     check(
         "a field's list sets its options at 13 and a typed fragment's match at 600 (#495)",
         [
-            /className="[^"]*\bp-menu-inset font-ui text-body-sm\b/.test(fieldListSource),
+            /className=\{?[`"][^`"]*\bp-menu-inset font-ui text-body-sm\b/.test(fieldListSource),
             /\{option\.match \? \(\s*<>\s*\{option\.match\.before\}\s*<span className="font-semibold">\{option\.match\.match\}<\/span>/.test(fieldListSource),
         ].join(" "),
         "true true"
+    );
+    // A LIST A CHIP OR A BREADCRUMB LEVEL OPENS IS SIZED THE MENU'S WAY (#519): 140 to 280 by its
+    // longest option, against the chip's right end at least as wide as the chip, or from the
+    // level's left; 32 rows under an inline level. And the two looks that open them: the job's
+    // chip, a 36 control with a 36 control's 16 before its words and a field's 12 on its chevron
+    // side, its words at 500; and the level, the breadcrumb's 26 with its 12 chevron 6 on.
+    const choiceLooks = parseFile(CONTROLS).source;
+    const looksOf = (source) => {
+        const at = source.indexOf("const CHOICE_LOOK");
+        return at < 0 ? "" : source.slice(at, source.indexOf("};", at));
+    };
+    const choiceFrames = looksOf(choiceLooks);
+    const chipLook = choiceFrames.slice(choiceFrames.indexOf("chip:"), choiceFrames.indexOf("crumb:"));
+    const crumbLook = choiceFrames.slice(choiceFrames.indexOf("crumb:"));
+    check(
+        "a list a chip or a level opens is 140 to 280, against the chip's end or from the level's start, 32 rows under a level",
+        [
+            /fit === "field" \? "" : "w-max min-w-menu max-w-menu"/.test(fieldListSource),
+            /if \(fit === "end"\) \{\s*list\.style\.left = "auto";\s*list\.style\.right = `\$\{document\.documentElement\.clientWidth - box\.right\}px`;\s*list\.style\.minWidth = `max\(var\(--min-width-menu\), \$\{box\.width\}px\)`;/.test(fieldListSource),
+            /rows === "sm" \? "h-control" : "h-control-lg"/.test(fieldListSource),
+            /fit=\{look === "chip" \? "end" : look === "crumb" \? "start" : "field"\}/.test(choiceLooks) && /rows=\{look === "crumb" \? "sm" : "lg"\}/.test(choiceLooks),
+        ].join(" "),
+        "true true true true"
+    );
+    check(
+        "  the chip: 36, 16 before its words and 12 on its chevron side, at 500 on an Edge, its Wash held while open",
+        ["h-control-lg", "pl-control-lg-inset-x", "pr-input-inset-x", "font-medium", "border-border", "aria-expanded:bg-hover-subtle"].filter((t) => !chipLook.includes(t)).join(" "),
+        ""
+    );
+    check(
+        "  the level: the breadcrumb's 26, its side room pulled back, 13 at 600 in Ink 2, the chevron 6 on",
+        ["h-control-inline", "-mx-control-inline-inset-x", "px-control-inline-inset-x", "text-body-sm", "font-semibold", "text-foreground-muted", "gap-breadcrumb-chevron-gap"].filter((t) => !crumbLook.includes(t)).join(" "),
+        ""
+    );
+    check("  and a chip with no look of its own is seen (anti-vacuity)", looksOf("const X = 1;").length, 0);
+    // AN OPTION'S NOTE (#519): a job's name after its code, at Ink 3 and 8 on, cut before the code
+    // is — in the list as two boxes of the row, and in the field the same way (1b, 1i). A list
+    // with a note in it, and a level's, sets each label at 500 in even figures (1b, 1d, 1f, 1i).
+    const noteOf = ({ list, choice }) => [
+        /<span className=\{`\$\{option\.note \? "shrink-0" : "min-w-0 truncate"\} \$\{option\.strong \? "font-medium tabular-nums" : ""\}`\}>/.test(list),
+        /\{option\.note && <span className="min-w-0 flex-1 truncate text-foreground-subtle">\{option\.note\}<\/span>\}/.test(list),
+        /const strong = look === "crumb" \|\| options\.some\(\(option\) => option\.note\);/.test(choice),
+        /note: option\.note,\s*strong,/.test(choice),
+        /\{chosen >= 0 && options\[chosen\]\.note \? \(\s*<span className="flex min-w-0 flex-1 gap-gap text-foreground-default">\s*<span className="shrink-0">\{options\[chosen\]\.label\}<\/span>\s*<span className="min-w-0 truncate text-foreground-subtle">\{options\[chosen\]\.note\}<\/span>/.test(choice),
+    ].join(" ");
+    check(
+        "an option's note: after its label at Ink 3, 8 on and cut first, in the list and in the field, and labels at 500 beside one or under a level",
+        noteOf({ list: fieldListSource, choice: choiceLooks }),
+        "true true true true true"
+    );
+    check(
+        "  and a note drawn as the label's own text, a label strong only under a level, and a field that drops it are seen (anti-vacuity)",
+        noteOf({
+            list: '<span className="min-w-0 truncate">{option.label} {option.note}</span>',
+            choice: 'const strong = look === "crumb";\nnote: option.note,\n{chosen >= 0 ? options[chosen].label : placeholder}',
+        }),
+        "false false false false false"
     );
     check(
         "the account's menu is 224, the expanded rail's inside, and grows in from the corner by its button (0m, #495)",
@@ -930,6 +987,17 @@ export function run({ check, assert, log }) {
     check("  nor one in which nothing held focus", fell({ held: false, onDocument: true }), false);
     check("  and focus on what can still hold it stays", fell({ onHeld: true, heldCanHold: true }), false);
 
+    // WHETHER THE PAGE TOOK A CONTROL AWAY WITH FOCUS ON IT, OUTSIDE A DIALOG (#519), by value:
+    // a refused press redrawn without its control, a selection bar gone inert under its clear.
+    const fellFromPage = (facts) =>
+        focusFellFromPage({ held: true, heldCanHold: false, onDocument: true, samePage: true, dialogOpen: false, ...facts });
+    check("a control the page took away with focus on it has let focus fall", fellFromPage({}), true);
+    check("  but one that can still hold focus has not", fellFromPage({ heldCanHold: true }), false);
+    check("  focus somewhere else went there on purpose", fellFromPage({ onDocument: false }), false);
+    check("  an open dialog keeps its own rule", fellFromPage({ dialogOpen: true }), false);
+    check("  a new address is a navigation's to place", fellFromPage({ samePage: false }), false);
+    check("  and nothing held focus, nothing fell", fellFromPage({ held: false }), false);
+
     // EACH CONTROL APPLIES THE FORM'S BUSY STATE, read off the source as the expression
     // that decides it. `FormBusy` provides it; the button asks `buttonBusyState` and draws the
     // answer — a press turned away, `aria-disabled`, and `aria-busy` with `data-busy` only
@@ -955,6 +1023,8 @@ export function run({ check, assert, log }) {
             });
             return found;
         };
+        // Choice's frames live in a constant since #519, one per look.
+        const choiceLook = constant("CHOICE_LOOK");
         return {
             provider: /export function FormBusy\(\{ busy, children \}\) \{\s*return <FormBusyContext\.Provider value=\{busy\}>\{children\}<\/FormBusyContext\.Provider>;/.test(source),
             button: [
@@ -977,7 +1047,9 @@ export function run({ check, assert, log }) {
                 /aria-readonly=\{formBusy \|\| undefined\}/.test(choice),
                 /const onKeyDown = \(event\) => \{\s*if \(formBusy\) return;/.test(choice),
                 /onClick=\{\(\) => \{\s*if \(formBusy\) return;/.test(choice),
-                /not-aria-readonly:hover:bg-hover-subtle/.test(choice) && !/(?<!not-aria-readonly:)hover:/.test(choice),
+                // Each look's hover is gated as the field's is (#519): the chip and the crumb stand
+                // in no busy form today, and the gate keeps one that comes to.
+                /not-aria-readonly:hover:bg-hover-subtle/.test(choiceLook) && !/(?<!not-aria-readonly:)hover:/.test(choiceLook),
             ].join(" "),
             combobox: [
                 reads("Combobox"),
@@ -1123,6 +1195,31 @@ export function run({ check, assert, log }) {
     check("  and asks focusLost of each change, putting fallen focus back inside", keeper.asks, true);
     check("  on the first thing its body holds that can take focus, or its title", keeper.target, "true true true true true");
     check("  where taking focus means on the page, enabled, not inert, and drawn", keeper.canHold, "true true true true");
+
+    // THE COLUMN A SCREEN SCROLLS IN PUTS FOCUS A PAGE TOOK AWAY ON ITS HEADING (#519), read off
+    // `Rail.js`: it follows what holds focus and where, watches what it holds change — its
+    // children, and an element turning disabled, hidden or inert, as the frame watches its own —
+    // asks `focusFellFromPage` of the frame's own `canHoldFocus`, counting focus still on the
+    // dead control as fallen, and puts focus where a dialog's closing does.
+    const columnKeeper = (railSource) => {
+        const hook = railSource.slice(railSource.indexOf("function useHeadingWhenFocusFalls"), railSource.indexOf("export default function Rail"));
+        return [
+            /held = event\.target;\s*heldAt = window\.location\.pathname;/.test(hook),
+            /observer\.observe\(column, \{ childList: true, subtree: true, attributes: true, attributeFilter: \["disabled", "hidden", "inert"\] \}\);/.test(hook),
+            /heldCanHold: Boolean\(held && canHoldFocus\(held\)\)/.test(hook),
+            /onDocument: document\.activeElement === null \|\| document\.activeElement === document\.body \|\| document\.activeElement === held/.test(hook),
+            /samePage: heldAt === window\.location\.pathname/.test(hook) && /dialogOpen: Boolean\(document\.querySelector\("dialog\[open\]"\)\)/.test(hook),
+            /if \(!fell\) return;\s*held = null;\s*focusPageHeading\(\);/.test(hook),
+            /useHeadingWhenFocusFalls\(columnRef\);/.test(railSource) && /<div ref=\{columnRef\} className=\{COLUMN\}>/.test(railSource),
+        ].join(" ");
+    };
+    const railSource = parseFile("app/components/Rail.js").source;
+    check("the column puts focus a page took away on the page's heading", columnKeeper(railSource), "true true true true true true true");
+    check(
+        "  and a column that watches only what it holds, not what turns inert, is seen (anti-vacuity)",
+        columnKeeper(railSource.replace('attributes: true, attributeFilter: ["disabled", "hidden", "inert"] ', "")),
+        "true false true true true true true"
+    );
 
     // EVERY DIALOG ON THE AXIS THAT SUBMITS IS HELD TO IT, found rather than listed: each
     // component drawing the frame, whether it submits, the busy state it hands the frame, a

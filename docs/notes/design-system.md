@@ -161,6 +161,8 @@ Each is for the issue that draws it to name, in the same commit as its reader, s
 - 1j's sheets carry four, which #458 named with their readers, each declaration saying the same: the 15 mark of the clear × at a filled field's end (`--size-mobile-input-clear-icon`), the 17 check at the end of the row already chosen (`--size-mobile-drawer-row-icon`), the 4 from a list's heading to its first row (`--spacing-mobile-drawer-heading-stack`), and the 12 either side of the name sheet's `Done`, pulled back out so its word meets the gutter (`--spacing-mobile-drawer-header-action-inset-x`). 0a's Sheet row gives the rows, the handle and the title, and none of these.
 - The sign-in steps carry eight, which #473 named with their readers, each declaration saying the same: the 12 between the name step's two fields (`--spacing-sign-in-form-inline`, 1g); the caret's height, 24 in a desk's box and 26 in a phone's (`--height-code-caret`, 1e; `--height-mobile-code-caret`, 1a); the clear ×'s target 6 from a phone field's inside edge, beside the 15 mark #458 named (`--spacing-mobile-input-clear-inset-right`, 1a); the 4 the resend control pulled left into the space before it, where it pulled its whole 8 to the right (`--spacing-code-resend-offset`, 1e and 1a), which #495 undeclared when the final files gave it a whole 8 drawn before it, and named the track of its spinner at 25% of its Accent instead (`--color-code-resend-spinner-track`); and, from the drawings' stylesheet, the spinner's 0.7 s turn and its track at 35% of its label's ink (`--animate-spinner`, `--color-spinner-track`) and the 160ms the foot bar's soft edge fades in over (`--transition-duration-mobile-bottom-bar`). The line under a phone's code stands 4 in, as 1a draws it, which is a field's refusal's 4 (`--spacing-mobile-input-message-inset-x`) and takes no name of its own.
 
+- The job's control in the files of 2026-10-11 carries five, which #519 named with their readers, each declaration saying they are the drawings': 12 between the job's chip and `Add items` in 1a's list header (`--spacing-list-header-control-inline`), where 0b's Gap within a cluster is 8; on 1d and 1f, where the job is a level of the breadcrumb, a 12 chevron (`--size-breadcrumb-chevron`) 6 after the level's word (`--spacing-breadcrumb-chevron-gap`) running 3 into the level's side room (`--spacing-breadcrumb-chevron-bleed`), so the level ends 5 past it; and 1j's 4 from a record's title to the caption under it on a phone (`--spacing-mobile-caption-stack`), where a desk's is the title block's 10. The chip itself is a 36 control's height, side room and words, and its list a 140 menu 6 under it at the chip's right edge with 36 rows, which 0a's Menu row gives; the level's list starts at the level's left with 32 rows. 1d's bar carries three more, which #519 named with their reader the same way: once the category's head has scrolled under the bar, its name comes in after the path behind a 16 Rule (`--height-breadcrumb-title-rule`) with 16 either side (`--spacing-breadcrumb-title-rule-inline`), fading in and out over 160ms (`--transition-duration-breadcrumb-title`). Where a list's column head holds — under 1a's head at its least, 32, a 36 control's line and 18, or under the 48 bar — is said in the names those are already, and takes none of its own.
+
 - A date's slashes are at 45% with 1.5 of room either side, and its time 9 past it at a desk and 8 on a phone — every date both files draw, and no row. #463 named the four with `app/components/Instant.js`, which draws every date in the app.
 
 **THE ONE PLACE A DRAWING CONTRADICTED THE SPEC IS SETTLED**: the name sheet's `Done` is 48 now, the phone's Target (answer 11).
@@ -351,12 +353,19 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0m Account, its menu beside a collapsed button | `--spacing-account-menu-offset-x` | 0.5rem (8) |
 | 0m Account, its menu growing in from 0.98 | `--animate-account-menu` | 120ms |
 | 0m Breadcrumb | `--height-breadcrumb` | 3rem (48) |
+| 1d's drawing, the chevron after a level that opens a list — not the spec | `--size-breadcrumb-chevron` | 0.75rem (12) |
+| 1d's drawing, that level's word to its chevron — not the spec | `--spacing-breadcrumb-chevron-gap` | 0.375rem (6) |
+| 1d's drawing, that chevron into the level's side room — not the spec | `--spacing-breadcrumb-chevron-bleed` | 0.1875rem (3) |
+| 1d's drawing, the rule before a record's name in the bar — not the spec | `--height-breadcrumb-title-rule` | 1rem (16) |
+| 1d's drawing, either side of that rule — not the spec | `--spacing-breadcrumb-title-rule-inline` | 1rem (16) |
+| 1d's drawing, that name fading in and out — not the spec | `--transition-duration-breadcrumb-title` | 160ms |
 | 0n Record header, around its rule | `--spacing-record-header-stack` | 1.5rem (24) |
 | 0n Record header, under the breadcrumb bar, and a list header's title under it (0m Breadcrumb) | `--spacing-breadcrumb-stack` | 0.875rem (14) |
 | 0n Header right, above a list header with no breadcrumb over it | `--spacing-list-header-inset-top` | 2rem (32) |
 | 0n Header right, under a list header | `--spacing-list-header-inset-bottom` | 1.125rem (18) |
 | 0n Header right, the least room from a list header's title to its control | `--spacing-list-header-inline` | 2.5rem (40) |
 | 0n Header right, a list header's title to its count | `--spacing-list-count-inline` | 0.5rem (8) |
+| 1a's drawing, between two controls in a list header — not the spec | `--spacing-list-header-control-inline` | 0.75rem (12) |
 | 0n Header stack, from the title | `--spacing-title-stack` | 0.625rem (10) |
 | 0n Header stack, to the status | `--spacing-subtitle-stack` | 0.75rem (12) |
 | 0n Rail blocks, from a block's name | `--spacing-heading-sm-stack` | 0.75rem (12) |
@@ -444,6 +453,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | Tools 0a Radius, a sheet's top corners | `--radius-mobile-drawer` | 1.75rem (28) |
 | Tools 0a Title block, under the top bar | `--spacing-mobile-top-bar-stack` | 1rem (16) |
 | Tools 0a Title block, below | `--spacing-mobile-title-stack` | 1.375rem (22) |
+| 1j's drawing, a record's title to the caption under it — not the spec | `--spacing-mobile-caption-stack` | 0.25rem (4) |
 | Tools 0a Section | `--spacing-mobile-stack` | 2rem (32) |
 | Tools 0a Step page, the wordmark from the top | `--spacing-mobile-sign-in-inset-top` | 4.5rem (72) |
 | Tools 0a Step page, the wordmark to the title | `--spacing-mobile-sign-in-brand-stack` | 2rem (32) |

@@ -390,6 +390,14 @@ const VALUES = [
     ["--spacing-account-menu-offset-x", "0.5rem", null],
     ["--animate-account-menu", "account-menu-in 120ms ease-out", null],
     ["--height-breadcrumb", "3rem", null],
+    // From the drawings, not the spec (#519): the chevron after a breadcrumb level that opens
+    // the job's list, its gap from the word and how far it runs into the level's side room.
+    ["--size-breadcrumb-chevron", "0.75rem", null],
+    ["--spacing-breadcrumb-chevron-gap", "0.375rem", null],
+    ["--spacing-breadcrumb-chevron-bleed", "0.1875rem", null],
+    ["--height-breadcrumb-title-rule", "1rem", null],
+    ["--spacing-breadcrumb-title-rule-inline", "1rem", null],
+    ["--transition-duration-breadcrumb-title", "160ms", null],
     // 0n · Record page
     ["--spacing-record-header-stack", "1.5rem", null],
     ["--spacing-breadcrumb-stack", "0.875rem", null],
@@ -398,6 +406,8 @@ const VALUES = [
     ["--spacing-list-header-inset-bottom", "1.125rem", null],
     ["--spacing-list-header-inline", "2.5rem", null],
     ["--spacing-list-count-inline", "0.5rem", null],
+    // From the drawings, not the spec (#519): between the job's chip and Add items.
+    ["--spacing-list-header-control-inline", "0.75rem", null],
     ["--spacing-title-stack", "0.625rem", null],
     ["--spacing-subtitle-stack", "0.75rem", null],
     ["--spacing-heading-sm-stack", "0.75rem", null],
@@ -509,6 +519,8 @@ const VALUES = [
     ["--opacity-mobile-pressed", "50%", null],
     ["--spacing-mobile-top-bar-stack", "1rem", null],
     ["--spacing-mobile-title-stack", "1.375rem", null],
+    // From the drawings, not the spec (#519): the phone caption under a record's title.
+    ["--spacing-mobile-caption-stack", "0.25rem", null],
     ["--spacing-mobile-stack", "2rem", null],
     // A phone's sign-in page (#473); the caret's height is the drawings'.
     ["--spacing-mobile-sign-in-inset-top", "4.5rem", null],
