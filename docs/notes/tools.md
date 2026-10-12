@@ -1466,6 +1466,10 @@ Every canvas of the Tools file, 1a to 1k with each state tab, and the Sign in fi
 
 **WHAT THE CHECKS HOLD.** `offline/dialog-frame.mjs` opens on #522's block — the shade and who sets it, the chip's focus ring, the tabular figures, the steps' ink, the border, the held width, the record menu's widths and the list's, the pill's box, the refusal focus and its marks — and holds the search's keys by value; `offline/asset-transition.mjs` the live commitment, its field refusals and the focus at both widths; `offline/asset-list-view.mjs` the status cell, the reason's figure and the list's opener on no job. **Forty-five mutations were run, one at a time in a copy of the tree, and every one is caught**; each of the 32 assertions this commit adds or changes fails under at least one.
 
+## Square row faces (2026-10-12, no issue)
+
+**A list's row is square under the pointer and while selected, as every list 1a and 1d draw.** Each row the drawings draw sets its corners at 0, and the link that covers it is its box with no radius; 0b's sentence gives the hover a Control-radius face on 1080, and #463 followed that sentence over the drawings. Soo asked for the drawings, so `ListTable.js`'s `TABLE_ROW` and `TABLE_ROW_LINK` carry no radius, and the category list and a category's page — the two readers — draw the Wash and the Face square to the content's edge and the 12 past the text. `offline/asset-list-view.mjs` fails a rounded token of either constant, of any size or corner, and a row that loses its hover; four mutations, each caught.
+
 ## Three tables, and what each is for
 
 `Tools` is the KIND. `Tool Items` is the object. `Tool Log` is the history.

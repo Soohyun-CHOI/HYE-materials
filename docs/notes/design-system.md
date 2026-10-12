@@ -216,6 +216,8 @@ The design set the code on a tool label in Inconsolata at 500 with −0.04em of 
 
 **WHAT THE FILES DRAW THAT WAS NOT TAKEN, EACH A DRAWING AGAINST ITS OWN SPEC AND DECIDED WITH SOO FOR THE SPEC**: 1a's `0 of 0` pager under a list emptied by its band, where no empty state draws a pager; 1b's Rule over its second step's fields with nothing scrolled, where 0l draws one only past hidden content; 1i's head 4 tighter than 1b's and 1c's, the title at 22 and 18 to the first label; 0b's selection bar centered on the list and its 8 lane together, 4 right of the list's middle; 1e's page cells each carrying an empty slot 8 under the page, so rows stand 28 apart where 1e's own gap is 20; and the rail laying out 11.5 and 223 inside a border its 56 and 248 count, where 0m says 12 inside and 0a the account's menu 224. **The pager's Sticky ground and Band under rows that end above it was no difference**: the design's own code drops both once its rows end, and a canvas's first state is drawn before that measure runs.
 
+**A ROW'S FACES ARE SQUARE (2026-10-12, no issue).** One drawing against its spec was taken for the drawing at Soo's asking: every list row 1a and 1d draw sets its corners at 0, where 0b's Row gives the hover a Control-radius face on 1080, so `ListTable.js`'s row and the link covering it carry no radius; `--radius-control` keeps its other readers.
+
 ## From the design's words to the names
 
 Every declaration, by the design's row and the figure the design draws, and after them the values read under Tailwind's own names. A length's rem is the design's px over 16, and the px is given beside it.
