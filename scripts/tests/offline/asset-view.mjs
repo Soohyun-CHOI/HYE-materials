@@ -337,9 +337,9 @@ export function run({ check, assert, log }) {
         "false 1 1"
     );
     check(
-        "  and the page draws that dot, three times, and no mark of its own",
-        `${imports.includes("@/app/components/Dot")} ${page.source.split("<Dot />").length - 1} ${page.source.split("·").length - 1}`,
-        "true 3 0"
+        "  and the page draws that dot twice in its history, and no mark of its own — the line under the title takes its dots from `CategoryCaption` since #519",
+        `${imports.includes("@/app/components/Dot")} ${page.source.split("<Dot />").length - 1} ${page.source.split("·").length - 1} ${parseFile("app/(assets)/CategoryCaption.js").source.includes("<Dot />")}`,
+        "true 2 0 true"
     );
     // ANTI-VACUITY: the padded dot this replaced is read as one.
     check(

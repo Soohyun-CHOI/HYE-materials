@@ -157,14 +157,18 @@ function focusHeading(heading) {
 
 /**
  * Where focus goes when a dialog no press opened closes: the page's heading (#459). A page
- * with no heading keeps what the browser gave back.
+ * with no heading keeps what the browser gave back. The column a screen scrolls in puts focus
+ * there too when the page takes a control away outside a dialog (`Rail.js`, #519).
  */
-function focusPageHeading() {
+export function focusPageHeading() {
     focusHeading(document.querySelector("h1"));
 }
 
-/** Whether an element can hold focus now: still on the page, not disabled, not inert, and drawn. */
-function canHoldFocus(element) {
+/**
+ * Whether an element can hold focus now: still on the page, not disabled, not inert, and drawn.
+ * The column a screen scrolls in asks it of what held focus outside a dialog too (#519).
+ */
+export function canHoldFocus(element) {
     return element.isConnected && !element.disabled && !element.closest("[inert]") && element.checkVisibility();
 }
 

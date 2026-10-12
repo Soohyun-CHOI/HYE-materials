@@ -174,21 +174,22 @@ and not this word, and stays. `docs/notes/naming.md` has the rows for `tool` /
 
 The registration names a kind by its type, category and name on its first
 step, and by the size, maker and part number its rows hold on its second; the
-lists and the two pages that head a kind say the type beside the class and the
-category. The level words are the issue's; the rest are the closest shape the
-app already says until Design draws the dialog and the list.
+list says the category beside each name, and the two pages that head a kind say
+the type, the category and the class under it (#519, the design's). The level
+words are the issue's; the rest are the closest shape the app already says until
+Design draws the dialog (#520).
 
 ### What a reader sees
 
 | String | Where | Shape it takes |
 |---|---|---|
-| `Type`, `Category`, `Name`, `Size`, `Maker`, `Part #` | the dialog's fields, the list's `Type` column | the issue's words |
+| `Type`, `Category`, `Name`, `Size`, `Maker`, `Part #` | the dialog's fields | the issue's words |
 | `All types` | the dialog's type, nothing chosen | `All jobs`, `All categories` |
 | `Choose a name`, `Choose a size`, `Choose a maker`, `Choose a part #` | a field still to choose | `Choose a job` (0l) |
 | `Choose a name.`, `Choose a size.`, `Choose a maker.`, `Choose a part #.` | the refusal under each | `Choose a job.` (0l) |
 | `No size`, `No maker`, `No part #` | a level left empty, as its option and its value | new: one per level |
-| `Tool > DEMO Machining` | beside a name in the search, the line under the title | the caption's path |
-| `Class A · Tool > … > GA4570` | a kind's caption, the type first | #507's caption |
+| `Tool > DEMO Machining` | beside a name in the search, the line under the title | #507's caption's path |
+| `Tool · Power tools · Class B` | a kind's caption and an asset's | 1d, 1f, 1j (#519) |
 
 **`No maker` is a value and not a placeholder**, which is why it is set in the
 field's ink and `Choose a maker` in the placeholder's: chosen — by the reader,

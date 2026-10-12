@@ -69,13 +69,15 @@ reader who is not a site manager is drawn none (#506)** — being one is not
 something the office assigns on request the way a job is, so a disabled control
 with a reason would send them nowhere.
 
-**action.** A choice of job in the head, before `Add items` (#509): `All jobs`,
-which is the whole of what the reader starts from, then each job they may
-narrow to by its code — every job for the office, their own for anybody else,
-a job with nothing on it included. Choosing one narrows the list to the items
-with an asset on that job, counted over those assets alone, from the
-first page. Design is drawing the control; it is the choice the registration
-dialog draws until then.
+**action.** For a reader on more than one job, a choice of job in the head, 12
+before `Add items` (#509, 1a since #519): a chip saying `Job` and the job it holds
+— `All jobs`, which is the whole of what the reader starts from, then each job
+they may narrow to by its code, every job for the office, their own for anybody
+else, a job with nothing on it included. Choosing one narrows the list to the
+items with an asset on that job, counted over those assets alone, from the
+first page. A reader on one job is drawn no choice: their list is that job's.
+**`All jobs` is not in the design's drawing**, which offers the jobs alone; it
+stays because a list starts from all of the reader's jobs (#509).
 
 **What a reader starts from is a fact the list carries, and a design may not
 make it a toggle (#509).** The office — `Is Admin` — starts from every item
@@ -91,20 +93,20 @@ shown first, not what they may see.
 number, so `DEMO Circular Saw 7-1/4"` comes before `DEMO Circular Saw 10"`
 (#507) — twenty-five to a page
 (0b's page of rows, #463) with the pager under them: which rows the page
-shows of how many, `1–17 of 17`, which page of how many, and a step each
-way that a page at its end draws and does not act. The name is the row's
+shows of how many, `1–25 of 38` — the one figure where a page shows a single
+row, `1 of 1` — and past one page which page of how many and a step each way
+that a page at its end draws and does not act (0b, #519). The name is the row's
 identity and the whole row is the way into that item's own screen. An item's
 name is its name and its size, then a comma and its maker, then its part
 number in parentheses — `DEMO Jigsaw T-Shank`, `DEMO Cordless Drill 18V, DEMO
 DeWalt (DCD791)` (#507, #514) — so the name is what tells two rows of one name
 and size apart, and a design must give it the room.
 
-**evidence.** Beside each name, the item's class, its type and its category,
-the catalog's (#507, #514) — `B`, `Tool`, `DEMO Carpentry` — between the name
-and the counts. The type is `Equipment` or `Tool` and changes nothing an item
-does; the class is `A` for an item that matters more, usually a dearer one, `B`
-otherwise; nothing on the list acts on either. Design is drawing the three
-columns.
+**evidence.** Beside each name, its category, the catalog's (#507, #514) —
+`Power tools`, in a lighter ink, giving its room up before the name does (1a,
+#519). The type and the class stood beside it as columns of their own from #507
+and #514; the design moves them to the filters #520 draws, and a category's own
+screen says all three under its name.
 
 **verdict.** Three counts on every row: how many of that item are
 `In stock`, how many are `Out`, how many are `Retired`. This is what the
@@ -129,16 +131,20 @@ sentence, `No items yet` and `Each item shows here with how many are in
 stock, out and retired.`, and under them a second, bordered `Add items`
 (1a, #463, #519). The control in the head is still there, and both are the way to
 make one. No pager stands under an empty list. **For a reader who is not a
-site manager, the heading and the sentence alone (#506)**: the sentence says
-what the list is for, which is true for whoever reads it, and both openers are
-a site manager's.
+site manager, `No items yet` and who fills it, `Items show here once a site
+manager adds them.` (1a2, #519)**, and no opener: both are a site manager's.
 
-**The shared brief's three empty states all have a producer here since #509,
-and this screen draws two.** "Nothing exists yet" and "nothing you can see" —
-a reader whose jobs hold no item, or who is on no job — both read the words
-above for now. "Nothing matching your filters" is a job chosen with nothing on
-it: the head reads `0 of 4` with the choice beside it, and nothing is drawn
-under it. Design is drawing what both of those say.
+**When the reader is on no job** — anybody but the office, with no assignment:
+the head is the heading alone, with no figure, and in place of the rows `No job
+yet` and `Items show here once the office assigns you to a job.` (1a2, #519). A
+site manager among them keeps the head's opener, drawn disabled with `Ask the
+office to assign you to a job` before it, and is drawn no second one.
+
+**The shared brief's three empty states all have a producer here since #509.**
+"Nothing exists yet" is the list with no items; "nothing you can see" a reader on
+no job; "nothing matching your filters" a job chosen with nothing on it, where
+the head reads `0 of 4` with the choice beside it and nothing is drawn under it,
+which the design does not draw.
 
 **When a job narrows the list:** the head's figure reads `N of M`, the document
 lists' words for the same thing, `M` being what the reader started from. The

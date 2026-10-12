@@ -9,13 +9,14 @@ import {
     ASSET_LIST_COPY as COPY,
     idsInScope,
     pageOfAssetCategories,
+    pagerPosition,
     summarizeAssetCategories,
     assetListScope,
     assetCategoriesInScope,
 } from "@/lib/assetListView";
 import { assetCategoryPath, assetCategoriesPath } from "@/lib/assetRoutes";
 import { ASSET_STATUS_VALUES } from "@/lib/assetStatus";
-import { ASSET_CATEGORY_COPY, registrationCatalog } from "@/lib/assetCategory";
+import { registrationCatalog } from "@/lib/assetCategory";
 import { ASSET_REGISTRATION_COPY, canRegisterAssets } from "@/lib/assetRegistration";
 import { withOpsLabel } from "@/lib/airtableOps";
 import { isSiteManager } from "@/lib/siteManager";
@@ -28,17 +29,13 @@ import RegistrationDialog from "./RegistrationDialog";
 // heading are both the table's name and must not drift apart.
 export const metadata = { title: COPY.heading };
 
-// 1a's columns: the name, then a count for each status at 96, right-aligned — and since
-// #507 the kind's class and its category between them, and since #514 its type between
-// those two, in the order a path says type and category. The class and the type each take a
-// count's track, the one narrow track 1a draws — `Equipment` fits it — and the category shares
-// the room with the name, until Design draws the columns. THE NAME TAKES THREE PARTS OF THAT
-// ROOM TO THE CATEGORY'S ONE SINCE #514: a name carries its maker and part number now, which
-// are what tell two rows of one tool and size apart, so it is the cell a cut would cost the
-// most — seen at 1440, where an even split cut `DEMO Cordless Drill 18V, DEMO DeWalt (DCD791)`
-// at 228 and left `DEMO Machining` 114 short of its 228.
-const COLUMNS =
-    "grid-cols-[minmax(0,3fr)_var(--width-table-count)_var(--width-table-count)_minmax(0,1fr)_repeat(3,var(--width-table-count))]";
+// 1a's columns since #519: the name, then a count for each status at 96, right-aligned. The
+// category stands in the name's cell, 20 after the name at Ink 3, and gives its room up first,
+// so a long name is cut last. From #507 to #519 the class, the type and the category were
+// columns of their own between the name and the counts — the closest shape the app drew
+// until the design drew the row; the design takes the type and the class to the filters #520
+// draws, and the category page's caption says all three.
+const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(3,var(--width-table-count))]";
 
 /**
  * Every kind of asset the company owns, with a count per status (#339).
@@ -72,15 +69,17 @@ const COLUMNS =
  * the reader started. `lib/assetListView.js:assetListScope` is the judgment, and a category's own
  * page reads its rows by the same one.
  *
- * EACH ROW SAYS ITS KIND'S CLASS, TYPE AND CATEGORY (#507, #514), off the row already read. A
- * kind's name is its name, its size, and its maker and part number, so the type and the
- * category are what the row says beside it; a kind the office left without one shows the
- * cell empty, and no word stands in for it.
+ * EACH ROW SAYS ITS KIND'S CATEGORY BESIDE ITS NAME (1a, #519), off the row already read. A
+ * kind's name is its name, its size, and its maker and part number, so the category is what the
+ * row says beside it; a kind the office left without one shows nothing there, and no word
+ * stands in for it. The class and the type stood beside it from #507 and #514; they are the
+ * category page's to say (`CategoryCaption`).
  *
  * A READER WHO IS NOT A SITE MANAGER READS THE SAME LIST WITH NO OPENER (#506), in the
  * head or under an empty list: adding assets is a site manager's, and the action behind
- * the dialog refuses anybody else through `withSiteManagerAction`. The empty list keeps
- * its heading and its sentence, which say what the list is for whoever reads it.
+ * the dialog refuses anybody else through `withSiteManagerAction`. Their empty list says who
+ * fills it, `Items show here once a site manager adds them.` (1a2, #519), where it said what
+ * the list is for, which is the site manager's sentence above an opener they have.
  *
  * NO PER-STATUS ROLLUP ON `Asset Categories`, WHICH IS A DECISION WITH A MEASURED TRIGGER.
  * The walk is `ceil(assets in scope / 50)` over three fixed operations, so this page
@@ -99,11 +98,18 @@ const COLUMNS =
  * (`pageOfAssetCategories`). The kinds the registration offers are the whole catalog, not
  * the page's.
  *
- * TWO EMPTY STATES, AND ONE HAS NO WORDS YET. A list that starts from nothing — no category
- * with anything under it, or none on the reader's jobs — draws `No items yet` and its sentence, with a
- * second opener under them, and no pager: there is nothing to page. A job chosen with
- * nothing on it draws nothing under the head, whose `0 of M` and choice say what
- * happened (#509); Design is drawing what it says.
+ * THREE EMPTY STATES (1a2, #519). A list that starts from nothing — no category with anything
+ * under it, or none on the reader's jobs — draws `No items yet` and, for a site manager, its
+ * sentence with a second opener under them; for anybody else who fills it. **A reader on no
+ * job** — anybody but the office with no assignment — draws `No job yet` and what the list
+ * waits for, with no figure in the head and no opener under it: a site manager among them has
+ * the head's opener, drawn disabled with why before it (#456). None of them draws a pager: there
+ * is nothing to page. A job chosen with nothing on it draws nothing under the head, whose
+ * `0 of M` and choice say what happened (#509), which the design does not draw.
+ *
+ * THE JOB IS A CHOICE ONLY FOR A READER WITH MORE THAN ONE (#519): 1a draws the chip for a
+ * reader on several jobs and nothing for one on one, whose list is that job's whatever they
+ * chose. The office starts from every job and has the chip wherever the base holds two.
  *
  * NO WIDTH OF ITS OWN AND NO TEXT IN THE MARKUP — #336 put this axis's only container
  * in the layout, the 1080 here is the content's measure inside it (0b), and every
@@ -138,11 +144,14 @@ async function renderCategoriesPage({ searchParams }) {
     const total = assetCategoriesInScope(categories, scope.start).length;
     // 0n's figure alone, and while a job narrows the list the document lists' `N of M`, `M`
     // being where the reader started (#509).
-    const count = narrowed ? FILTER_BAR_COPY.count(rows.length, total) : rows.length;
+    // A reader on no job — anybody but the office with no assignment — has nothing the list
+    // could hold, so the head counts nothing (1a2, #519).
+    const onNoJob = scope.jobs.length === 0;
+    const count = onNoJob ? null : narrowed ? FILTER_BAR_COPY.count(rows.length, total) : rows.length;
     const job = scope.job?.id ?? null;
-    // The head's choice, drawn when there is a job to choose (#509).
+    // The head's choice, drawn when there is more than one job to choose (#509, #519).
     const jobChoice =
-        scope.jobs.length > 0 ? (
+        scope.jobs.length > 1 ? (
             <JobChoice jobs={scope.jobs.map(({ id, jobCode }) => ({ id, jobCode }))} job={job} />
         ) : null;
 
@@ -170,7 +179,7 @@ async function renderCategoriesPage({ searchParams }) {
                 rows.length > 0 && (
                     <Pager
                         range={COPY.range({ from: page.from + 1, to: page.to, total: page.total })}
-                        position={COPY.pagePosition(page)}
+                        position={pagerPosition(page)}
                         previous={{ href: page.page > 1 ? assetCategoriesPath(page.page - 1, job) : null, label: COPY.previous }}
                         next={{ href: page.page < page.pageCount ? assetCategoriesPath(page.page + 1, job) : null, label: COPY.next }}
                     />
@@ -178,13 +187,17 @@ async function renderCategoriesPage({ searchParams }) {
             }
         >
             {/* A job chosen with nothing on it draws nothing under the head (#509), whose
-                `0 of M` and choice say it; a list that starts from nothing draws the words. */}
+                `0 of M` and choice say it; a list that starts from nothing draws the words —
+                a reader on no job's, a site manager's with the opener under them, or who
+                fills it for anybody else (1a2, #519). */}
             {rows.length === 0 ? (
                 narrowed ? null : (
                     <div className="flex flex-col items-center pt-list-empty-state-inset-top text-center">
-                        <h2 className="text-heading font-semibold">{COPY.noItemsHeading}</h2>
-                        <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">{COPY.noItems}</p>
-                        {recorder && (
+                        <h2 className="text-heading font-semibold">{onNoJob ? COPY.noJobHeading : COPY.noItemsHeading}</h2>
+                        <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">
+                            {onNoJob ? COPY.untilAssigned : recorder ? COPY.noItems : COPY.untilASiteManagerAdds}
+                        </p>
+                        {recorder && !onNoJob && (
                             <div className="mt-gap-lg">
                                 <RegistrationDialog {...registration} variant="bordered" />
                             </div>
@@ -195,9 +208,6 @@ async function renderCategoriesPage({ searchParams }) {
                 <div role="table" aria-label={COPY.heading}>
                     <div role="row" className={`${TABLE_HEAD} ${COLUMNS}`}>
                         <span role="columnheader">{COPY.nameLabel}</span>
-                        <span role="columnheader">{ASSET_CATEGORY_COPY.classLabel}</span>
-                        <span role="columnheader">{ASSET_CATEGORY_COPY.levelLabel.level1}</span>
-                        <span role="columnheader">{ASSET_CATEGORY_COPY.levelLabel.level2}</span>
                         {ASSET_STATUS_VALUES.map((status) => (
                             <span key={status} role="columnheader" className="text-right">
                                 {status}
@@ -206,15 +216,15 @@ async function renderCategoriesPage({ searchParams }) {
                     </div>
                     {page.rows.map((row) => (
                         <div key={row.id} role="row" className={`${TABLE_ROW} ${COLUMNS}`}>
-                            <span role="cell" className="min-w-0 truncate">
-                                <Link href={assetCategoryPath(row.id, 1, [], { job })} className={TABLE_ROW_LINK}>
-                                    {row.itemName}
-                                </Link>
-                            </span>
-                            <span role="cell">{row.assetClass}</span>
-                            <span role="cell">{row.level1}</span>
-                            <span role="cell" className="min-w-0 truncate">
-                                {row.level2}
+                            {/* The name gives its room up last: the category beside it shrinks a
+                                thousand times as fast, 20 after it at Ink 3 (1a). */}
+                            <span role="cell" className="flex min-w-0 items-baseline gap-x-table-column-inline whitespace-nowrap">
+                                <span className="min-w-0 shrink truncate">
+                                    <Link href={assetCategoryPath(row.id, 1, [], { job })} className={TABLE_ROW_LINK}>
+                                        {row.itemName}
+                                    </Link>
+                                </span>
+                                {row.level2 && <span className="min-w-0 shrink-[1000] truncate text-foreground-subtle">{row.level2}</span>}
                             </span>
                             {/* All three statuses on every row, a zero included: an absent
                                 one would read as "not known" where a `0` reads as "none",

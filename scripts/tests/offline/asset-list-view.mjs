@@ -73,6 +73,7 @@ import {
     toggleAsset,
     assetListScope,
     assetCategoriesInScope,
+    pagerPosition,
 } from "../../../lib/assetListView.js";
 import { MAX_LABELS_PER_REQUEST } from "../../../lib/assetLabelPage.js";
 import { readAssetIds } from "../../../lib/assetRoutes.js";
@@ -317,9 +318,10 @@ export function run({ check, assert, log }) {
         "  and every status is reachable as a nonzero count",
         everyStatus.counts.every((c) => c.count === 1)
     );
-    // EACH ROW SAYS ITS KIND'S CLASS, TYPE AND CATEGORY (#507, #514), each under its level's
-    // name, and two kinds of one name are told apart by the category and then the type, so a
-    // page reads the same on every read.
+    // EACH ROW CARRIES ITS KIND'S CATEGORY AND TYPE (#507, #514), each under its level's name,
+    // and two kinds of one name are told apart by the category and then the type, so a page
+    // reads the same on every read. The category stands beside the name (1a, #519); the class
+    // rode here while the list drew it as a column, and does not since.
     const kinds = summarizeAssetCategories(
         [
             { id: "recLaserT", itemName: "Laser Level", assetClass: "B", level1: "Tool", level2: "Measuring", assets: [] },
@@ -330,13 +332,14 @@ export function run({ check, assert, log }) {
         []
     );
     check(
-        "each row carries its kind's class, type and category, one name ordered by category and then type",
-        kinds.map((r) => `${r.id} ${r.assetClass}/${r.level1}/${r.level2}`).join(" | "),
-        "recLaserE A/Equipment/Measuring | recLaserT B/Tool/Measuring | recKnifeC B/Tool/Carpentry | recKnifeX B/Tool/Cutting"
+        "each row carries its kind's type and category, one name ordered by category and then type",
+        kinds.map((r) => `${r.id} ${r.level1}/${r.level2}`).join(" | "),
+        "recLaserE Equipment/Measuring | recLaserT Tool/Measuring | recKnifeC Tool/Carpentry | recKnifeX Tool/Cutting"
     );
-    check("  and a kind without them says nothing for them", `${rowFor(rows, "angle grinder").assetClass}|${rowFor(rows, "angle grinder").level1}|${rowFor(rows, "angle grinder").level2}|`, "|||");
-    // THE LIST'S COLUMNS, OFF ITS SOURCE (#514): the name, then the class, the type and the
-    // category, then a count per status — the type between the two it sits between in a path.
+    check("  and no class rides a row", kinds.filter((r) => "assetClass" in r).length, 0);
+    check("  and a kind without them says nothing for them", `${rowFor(rows, "angle grinder").level1}|${rowFor(rows, "angle grinder").level2}|`, "||");
+    // THE LIST'S COLUMNS, OFF ITS SOURCE (#519): the name, then a count per status (1a). The
+    // class, the type and the category were columns between them from #507 and #514.
     const columnHeads = ({ ast, source }) => {
         const heads = [];
         walk(ast, (n) => {
@@ -348,9 +351,9 @@ export function run({ check, assert, log }) {
         return heads.join(", ");
     };
     check(
-        "the list heads its columns the name, the class, the type, the category and each status",
+        "the list heads its columns the name and each status",
         columnHeads(parseFile(LIST_SCREEN)),
-        "COPY.nameLabel, ASSET_CATEGORY_COPY.classLabel, ASSET_CATEGORY_COPY.levelLabel.level1, ASSET_CATEGORY_COPY.levelLabel.level2, status"
+        "COPY.nameLabel, status"
     );
     check(
         "  and a list with the type left out is seen (anti-vacuity)",
@@ -1159,7 +1162,7 @@ export function run({ check, assert, log }) {
     check(
         "  the empty list's the same opener, bordered, under the empty branch and the same reader",
         `${listOpeners[1]?.handed} | ${listOpeners[1]?.asks} | ${listOpeners[1]?.under}`,
-        "canRegister: canRegisterAssets(user, allJobs), catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | canRegisterAssets | rows.length === 0, !(narrowed), recorder"
+        "canRegister: canRegisterAssets(user, allJobs), catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | canRegisterAssets | rows.length === 0, !(narrowed), recorder && !onNoJob"
     );
     // The count a suggested tool carried, its link array's length (#456), was held here until
     // #507: a suggestion is a name of the catalog now, beside its category, and how many of a
@@ -1604,7 +1607,10 @@ export function run({ check, assert, log }) {
         return {
             // The title's line, and under it a caption alone, drawn only where a page hands one
             // (#507) — the control on the right kept centered on the title's line either way.
-            line: `${/<div className="flex min-w-0 items-baseline gap-list-count-inline">/.test(header)} ${/<div className="flex min-w-0 flex-col gap-title-stack">\s*<div className="flex min-w-0 items-baseline gap-list-count-inline">[\s\S]*?<\/p>\s*<\/div>\s*\{caption\}\s*<\/div>/.test(header)}`,
+            line: `${/<div className="flex min-w-0 items-baseline gap-list-count-inline">/.test(header)} ${/<div className="flex min-w-0 flex-col gap-title-stack">\s*<div className="flex min-w-0 items-baseline gap-list-count-inline">[\s\S]*?<\/p>\s*\)\}\s*<\/div>\s*\{caption\}\s*<\/div>/.test(header)}`,
+            // The figure stands only where the page hands one (#519): a reader on no job's head
+            // is its title alone.
+            countGiven: /\{count != null && \(\s*<p className="shrink-0 text-body tabular-nums text-foreground-subtle">/.test(header),
             centered:
                 /caption \? "items-start" : "items-center"/.test(header) &&
                 /caption \? "-mt-\[calc\(\(var\(--height-control-lg\)-var\(--text-heading-lg--line-height\)\)\/2\)\]" : ""/.test(header),
@@ -1622,6 +1628,7 @@ export function run({ check, assert, log }) {
     check("a list's head is one line, the count on the title's baseline 8 on (#505), a caption alone under it (#507)", head.line, "true true");
     check("  its control centered on the title's line, a caption or not (#507)", head.centered, true);
     check("  the figure alone at Ink 3, its noun said to assistive tech alone", head.figure, true);
+    check("  and drawn only where the page hands one, a head with nothing to count its title alone (#519)", head.countGiven, true);
     check("  32 above it, or the breadcrumb's 14, and 18 under it", head.top, true);
     check("  the breadcrumb's on the category's page and not on the list", head.under, "true|");
     check("the pager is 60, its rule counted in the 12 above its controls (#505)", head.pager, true);
@@ -1888,6 +1895,85 @@ export function run({ check, assert, log }) {
     ])
         assert(`  the scanner sees ${shape}`, seen.includes(text));
     check("  and passes a constant through", seen.length, 3);
+
+    // ── #519: the design's latest files on the two lists and the asset's page ──
+    log("");
+    log("the design's latest files: the pager, the job's three places, the empty states and the caption (#519):");
+    // 0b's pager: the one figure where a page shows a single row, and the page and its steps only
+    // past one page — one function both pagers ask, so they cannot answer differently.
+    check(
+        "  the count is the one figure for a single row, a range otherwise",
+        `${ASSET_LIST_COPY.range({ from: 1, to: 1, total: 1 })} | ${ASSET_LIST_COPY.range({ from: 26, to: 26, total: 26 })} | ${ASSET_LIST_COPY.range({ from: 1, to: 25, total: 38 })}`,
+        "1 of 1 | 26 of 26 | 1–25 of 38"
+    );
+    check(
+        "  the page and its steps stand only past one page",
+        `${pagerPosition({ page: 1, pageCount: 1 })} | ${pagerPosition({ page: 2, pageCount: 3 })}`,
+        "null | Page 2 of 3"
+    );
+    const listSource = parseFile(LIST_SCREEN).source;
+    const categorySource = parseFile(CATEGORY_SCREEN).source;
+    const assetSource = parseFile("app/(assets)/assets/[assetId]/page.js").source;
+    const listFrameSource = parseFile("app/(assets)/asset-categories/[categoryRecordId]/AssetList.js").source;
+    check(
+        "  and both pagers ask it",
+        `${/position=\{pagerPosition\(page\)\}/.test(listSource)} ${/position=\{pagerPosition\(page\)\}/.test(listFrameSource)} ${/pagePosition\(/.test(listSource + listFrameSource)}`,
+        "true true false"
+    );
+    // The job is a choice only for a reader with more than one (1a, 1d, 1f): the list's chip, a
+    // category's breadcrumb level and an asset's, each under the one count.
+    const choosesJob = (source) => (source.match(/scope\.jobs\.length > 1/g) ?? []).length;
+    check(
+        "  the job is offered only to a reader on more than one, on all three screens",
+        `${choosesJob(listSource)} ${choosesJob(categorySource)} ${choosesJob(assetSource)} ${/scope\.jobs\.length > 0/.test(listSource + categorySource + assetSource)}`,
+        "1 1 1 false"
+    );
+    check(
+        "  the list's in its head as a chip, a category's and an asset's as a breadcrumb level",
+        [
+            /scope\.jobs\.length > 1 \? \(\s*<JobChoice /.test(listSource),
+            /key: "job",\s*control: \(\s*<CategoryJobChoice/.test(categorySource) && !/<ListHeader[\s\S]*?<CategoryJobChoice[\s\S]*?<\/ListHeader>/.test(categorySource),
+            /key: "job",\s*control: \(\s*<JobChoice\s+look="crumb"/.test(assetSource),
+        ].join(" "),
+        "true true true"
+    );
+    check("  and a planted list offering it to a reader on one job is seen (anti-vacuity)", choosesJob("scope.jobs.length > 0 ? <JobChoice /> : null"), 0);
+    // THE EMPTY STATES, the design's words by value and who reads each off the pages (1a2, 1d).
+    check(
+        "  the words for a reader who adds nothing, for a site manager's empty category, and for a reader on no job",
+        [ASSET_LIST_COPY.untilASiteManagerAdds, ASSET_LIST_COPY.untilYouAdd, ASSET_LIST_COPY.noJobHeading, ASSET_LIST_COPY.untilAssigned].join(" | "),
+        "Items show here once a site manager adds them. | Items show here once you add them. | No job yet | Items show here once the office assigns you to a job."
+    );
+    check(
+        "  the list: no figure and no job's words but for a reader on no job, the sentence by who reads it, no opener under a reader on no job",
+        [
+            /const onNoJob = scope\.jobs\.length === 0;/.test(listSource),
+            /const count = onNoJob \? null :/.test(listSource),
+            /\{onNoJob \? COPY\.noJobHeading : COPY\.noItemsHeading\}/.test(listSource),
+            /\{onNoJob \? COPY\.untilAssigned : recorder \? COPY\.noItems : COPY\.untilASiteManagerAdds\}/.test(listSource),
+            /\{recorder && !onNoJob && \(/.test(listSource),
+        ].join(" "),
+        "true true true true true"
+    );
+    check(
+        "  a category's page: who fills it, by who reads it",
+        /\{recorder \? COPY\.untilYouAdd : COPY\.untilASiteManagerAdds\}/.test(categorySource),
+        true
+    );
+    // THE CAPTION: the type, the category and the class (1d, 1f, 1j), the asset's id first at a
+    // desk, and the path the caption said from #507 nowhere in it.
+    const captionSource = parseFile("app/(assets)/CategoryCaption.js").source;
+    check(
+        "  the caption says the type, the category and the class, after what leads it, and no path",
+        [
+            /const parts = \[\s*lead,\s*category\?\.level1 \? value\(category\.level1\) : null,\s*category\?\.level2 \? value\(category\.level2\) : null,\s*assetClass/.test(captionSource),
+            !/pathOf/.test(captionSource),
+            /text-foreground-default tabular-nums max-sm:text-foreground-muted/.test(captionSource),
+            /<CategoryCaption\s+category=\{category\}\s+lead=\{<span className=\{ID_IN_TEXT\}>\{asset\.assetId\}<\/span>\}/.test(assetSource),
+            !/jobCode && \(/.test(assetSource),
+        ].join(" "),
+        "true true true true true"
+    );
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { focusFellFromPage } from "@/lib/dialogFrame";
 import { NAVIGATION_COPY as COPY, NAVIGATION_SECTIONS, currentOf } from "@/lib/navigation";
 import { WORDMARK } from "@/lib/productName";
 import Icon from "./Icon";
 import RailAccount from "./RailAccount";
+import { canHoldFocus, focusPageHeading } from "./DialogFrame";
 import { SCROLL_LANE } from "./scrollLane";
 import { useTooltip } from "./Tooltip";
 
@@ -108,11 +110,64 @@ const COLUMN = [
 ].join(" ");
 
 /**
+ * FOCUS A SCREEN TAKES AWAY GOES TO ITS HEADING (#519). A press refused on a page drawn while
+ * the reader could act comes back as the page drawn for who they are now (#506), and the
+ * control pressed — the phone's foot bar, the selection bar's `Print labels`, a row's box — is
+ * not on it; a cleared selection makes its bar inert, its clear with it. The browser lets focus
+ * fall to the document as it goes, with no event, so the column watches what it holds change —
+ * its children, and an element turning disabled, hidden or inert — and asks
+ * `lib/dialogFrame.js:focusFellFromPage`, and puts focus where the page begins — what a screen
+ * reader names as it lands, and where a dialog's closing puts it (#459). An open dialog keeps
+ * its own rule (#469), and a new address is a navigation's to place.
+ */
+function useHeadingWhenFocusFalls(columnRef) {
+    useEffect(() => {
+        const column = columnRef.current;
+        if (!column) return undefined;
+        let held = null;
+        let heldAt = null;
+        const onFocusIn = (event) => {
+            held = event.target;
+            heldAt = window.location.pathname;
+        };
+        // Asked on the frame after what the column holds changed, once for the lot of them.
+        let frame = 0;
+        const ask = () => {
+            frame = 0;
+            const fell = focusFellFromPage({
+                held: Boolean(held),
+                heldCanHold: Boolean(held && canHoldFocus(held)),
+                // On the document, or still on the control that can no longer hold it: the
+                // browser may report focus there until its own fix-up moves it.
+                onDocument: document.activeElement === null || document.activeElement === document.body || document.activeElement === held,
+                samePage: heldAt === window.location.pathname,
+                dialogOpen: Boolean(document.querySelector("dialog[open]")),
+            });
+            if (!fell) return;
+            held = null;
+            focusPageHeading();
+        };
+        const observer = new MutationObserver(() => {
+            if (!frame) frame = window.requestAnimationFrame(ask);
+        });
+        document.addEventListener("focusin", onFocusIn);
+        observer.observe(column, { childList: true, subtree: true, attributes: true, attributeFilter: ["disabled", "hidden", "inert"] });
+        return () => {
+            document.removeEventListener("focusin", onFocusIn);
+            observer.disconnect();
+            window.cancelAnimationFrame(frame);
+        };
+    }, [columnRef]);
+}
+
+/**
  * The rail beside the column `children` render in. Whether the reader has it expanded is
  * kept here, so it lasts as long as the layout that holds it.
  */
 export default function Rail({ account, children }) {
     const pathname = usePathname();
+    const columnRef = useRef(null);
+    useHeadingWhenFocusFalls(columnRef);
     const [expanded, setExpanded] = useState(false);
     const navRef = useRef(null);
     const toggleRef = useRef(null);
@@ -220,7 +275,9 @@ export default function Rail({ account, children }) {
                 </nav>
                 {tip.element}
             </div>
-            <div className={COLUMN}>{children}</div>
+            <div ref={columnRef} className={COLUMN}>
+                {children}
+            </div>
         </div>
     );
 }

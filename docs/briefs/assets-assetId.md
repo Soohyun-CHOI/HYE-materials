@@ -50,29 +50,34 @@ and which decisions in the drawing a later design may not undo.
 
 **identity.** The category's name as the heading — the record's name, as 0n and 1j
 draw a record page — and the `Asset ID` beside it: under the heading at a
-desk, set in the id face with the job after it, and in the top bar on a phone,
-where the screen opens. An asset whose category did not resolve is headed by its
-id. It was the `Asset ID` as the heading, and nothing else, until #463.
+desk, set in the id face and leading the line under it, and in the top bar on a
+phone, where the screen opens. An asset whose category did not resolve is headed
+by its id. It was the `Asset ID` as the heading, and nothing else, until #463.
 
-**identity.** What the item is (#507): its class and where it sits in the
-catalog, type first (#514), `Class A · Tool > DEMO Machining > DEMO Angle
-Grinder > 4-1/2" > DEMO Makita > GA4570` — under the id and the job at a desk,
-and under the name on a phone, where a long one runs to two or three lines. It
-says what the name cannot: a name is the item's name and its size with a space
-between, then a comma and its maker, then its part number in parentheses,
-`DEMO Angle Grinder 4-1/2", DEMO Makita (GA4570)`, so it says neither where
-the name ends and the size begins nor which category or type holds it. The type and the class are information — the type `Equipment` or
-`Tool`, which changes nothing this screen offers, and the class `A` for an item
-that matters more, usually a dearer one, `B` otherwise — and no control here
-reads either. Design is drawing the line; it is
-the record header's line under its title until then. A part the category lacks is
-left out, and with neither there is no line.
+**identity.** What the item is (1f, 1j, #519): its type, its category and its
+class — `HYE-AST-260909-004 · Tool · Power tools · Class B` at a desk, the id
+first, and `Tool · Power tools · Class B` under the name on a phone, 4 under it,
+its values a step lighter there. It says what the name cannot: a name is the
+item's name and its size, then a comma and its maker, then its part number in
+parentheses, `DEMO Angle Grinder 4-1/2", DEMO Makita (GA4570)`, so it says
+neither which category nor which type holds it, nor its class. The type and the
+class are information — the type `Equipment` or `Tool`, which changes nothing this
+screen offers, and the class `A` for an item that matters more, usually a dearer
+one, `B` otherwise — and no control here reads either. A part the category lacks
+is left out. From #507 to #519 the line under the heading was the id and the job,
+and a second line under it said the class and the whole path, `Class A · Tool >
+DEMO Machining > DEMO Angle Grinder > 4-1/2" > DEMO Makita > GA4570`.
 
 **The id is no longer the same string as the one on the sticker, and the
 confirmation still works (#411).** The label prints `260909-004` where the page
 reads `HYE-AST-260909-004`, so what a reader matches is the end of the id rather
 than the whole of it — and at a desk the breadcrumb above the heading ends on
-the printed code itself. That is what the seven dropped characters were worth:
+the printed code itself: `Tools & Equipment / DEMO Angle Grinder 4-1/2" /
+260909-004`. **For a reader on more than one job the path names the job the asset
+is on between the list and the category** (1f, #519), a level that opens the
+reader's jobs, `All jobs` first, and takes them to the category's list on the one
+they choose; the category's own level carries the asset's job when it is one of
+theirs. That is what the seven dropped characters were worth:
 every asset carries them, so they confirmed nothing, and what is left on the
 sticker is exactly the part that tells one asset from another. **A design
 may not close the gap by shortening the id** — this screen names a record and
@@ -86,10 +91,12 @@ after it**: who holds a tool that is out — the name its latest entry checked i
 out to — at both widths, and at a desk the day a retired one was retired.
 
 **evidence.** The category it is one of, which is the heading, and the job it is
-on, which a desk states under the heading. A phone states it on each history
-entry, and its foot bar states the job the next event will be recorded on.
-Both are single values, never lists — an asset is one unit of one category and
-sits on one job.
+on, which every history entry states at both widths and the phone's foot bar
+states as the job the next event will be recorded on — and for a reader on more
+than one job, the breadcrumb at a desk too, between the list and the category
+(below). The desk stated it under the heading, after the id, until #519, which
+the design dropped. Both are single values, never lists — an asset is one unit of
+one category and sits on one job.
 
 **action.** For a site manager (#506), the one transition the status allows — `Check out` from `In stock`,
 `Check in` from `Out` — and the job the event will be recorded on. There is

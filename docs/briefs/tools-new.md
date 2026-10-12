@@ -194,9 +194,10 @@ creation date where a registration lands.
 
 **The catalog's words are the same on every screen that shows them (#507,
 #514):** `Type`, `Category`, `Name`, `Size`, `Maker`, `Part #` and `Class`
-here, the list's `Class`, `Type` and `Category` columns, and the line under a
-category's name on its own screen and on an asset's — `Class A · Tool > DEMO
-Machining > DEMO Angle Grinder > 4-1/2" > DEMO Makita > GA4570`. An item's name
+here, the category beside each name on the list, and the line under a category's
+name on its own screen and on an asset's — `Tool · Power tools · Class B` (#519;
+the list's `Class`, `Type` and `Category` columns and a line saying the class and
+the whole path, `Class A · Tool > DEMO Machining > … > GA4570`, until then). An item's name
 is its name and its size, then a comma and its maker, then its part number in
 parentheses — `DEMO Angle Grinder 4-1/2", DEMO Makita (GA4570)`, `DEMO Angle
 Grinder 4-1/2", DEMO Bosch`, `DEMO Drill Press` — each part left out with what

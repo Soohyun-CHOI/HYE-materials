@@ -523,15 +523,6 @@ function ClearButton({ onClear }) {
 }
 
 /**
- * Part of a line that names something the line is about — a category, a count, a class — in
- * Ink against the line's own lighter ink: 1b's preview under a typed name until #507, and
- * a category's caption since (`CategoryCaption`), its class and its path.
- */
-export function NoteEmphasis({ children }) {
-    return <span className="text-foreground-default tabular-nums">{children}</span>;
-}
-
-/**
  * A field on a phone that one of 1j's sheets sets (Tools 0a Field, #458): it shows what was
  * chosen, or its placeholder at Ink 3, and a press opens the sheet that chooses. 50 tall,
  * 16 inside, its value at 16, white with an Edge border at the phone's Radius, as every form
@@ -751,8 +742,17 @@ const TYPEAHEAD_MS = 500;
  *
  * INSIDE A BUSY FORM IT IS READ-ONLY (#469): it keeps focus and its look, and no key and no
  * press opens it or changes what it holds. Tab still leaves.
+ *
+ * TWO MORE LOOKS, ONE PATTERN (#519). `look="chip"` is the job a list narrows to, in its head
+ * (1a): a 36 control as wide as what it holds, `label` before its value at Ink 3 and the value
+ * at Ink, both at 14 and 500 — the words 16 from its left edge as a 36 control's are and the
+ * chevron a field's 12 from its right — on an Edge, holding its Wash while its list is open, the
+ * list set against its right end. `look="crumb"` is the same choice standing as a breadcrumb
+ * level (1d, 1f): the level's 26, its side room pulled back and its 13 at 600 in Ink 2, a 12
+ * chevron 6 after the word, and its list from the level's left with 32 rows. In both the label
+ * the chip shows is hidden from a screen reader, which hears the field's label as the name.
  */
-export function Choice({ name, options, value, onChange, placeholder }) {
+export function Choice({ name, options, value, onChange, placeholder, look = "field", label }) {
     const field = useField();
     const formBusy = useContext(FormBusyContext);
     const listId = `${field.control}list`;
@@ -818,7 +818,7 @@ export function Choice({ name, options, value, onChange, placeholder }) {
     };
 
     return (
-        <div className="relative min-w-0">
+        <div className={look === "field" ? "relative min-w-0" : "relative flex"}>
             <div
                 ref={anchorRef}
                 id={field.control}
@@ -843,14 +843,20 @@ export function Choice({ name, options, value, onChange, placeholder }) {
                     choose(active);
                     setOpen(false);
                 }}
-                className={`flex h-control-lg w-full cursor-pointer items-center justify-between gap-gap rounded-control border bg-white px-input-inset-x text-body outline-none aria-readonly:cursor-default not-aria-readonly:hover:bg-hover-subtle ${
-                    field.refused ? "border-danger" : "border-border focus:border-border-focus"
-                }`}
+                className={CHOICE_LOOK[look](field.refused)}
             >
-                <span className={`min-w-0 truncate ${chosen >= 0 ? "text-foreground-default" : "text-foreground-subtle"}`}>
+                {look === "chip" && label && (
+                    <span aria-hidden="true" className="shrink-0 text-foreground-subtle">
+                        {label}
+                    </span>
+                )}
+                <span className={`min-w-0 truncate ${look === "crumb" ? "" : chosen >= 0 ? "text-foreground-default" : "text-foreground-subtle"}`}>
                     {chosen >= 0 ? options[chosen].label : placeholder}
                 </span>
-                <Icon name="chevron-down" className="size-icon-sm shrink-0 text-foreground-subtle" />
+                <Icon
+                    name="chevron-down"
+                    className={look === "crumb" ? "-mr-breadcrumb-chevron-bleed size-breadcrumb-chevron shrink-0" : "size-icon-sm shrink-0 text-foreground-subtle"}
+                />
             </div>
             {name && <input type="hidden" name={name} value={value} />}
             <Menu
@@ -858,6 +864,8 @@ export function Choice({ name, options, value, onChange, placeholder }) {
                 anchorRef={anchorRef}
                 shown={open}
                 labelId={field.labelId}
+                fit={look === "chip" ? "end" : look === "crumb" ? "start" : "field"}
+                rows={look === "crumb" ? "sm" : "lg"}
                 options={options.map((option, index) => ({
                     key: option.value,
                     label: option.label,
@@ -873,6 +881,18 @@ export function Choice({ name, options, value, onChange, placeholder }) {
         </div>
     );
 }
+
+// Each look's frame, handed whether the field refuses its value, which only a form field shows.
+const CHOICE_LOOK = {
+    field: (refused) =>
+        `flex h-control-lg w-full cursor-pointer items-center justify-between gap-gap rounded-control border bg-white px-input-inset-x text-body outline-none aria-readonly:cursor-default not-aria-readonly:hover:bg-hover-subtle ${
+            refused ? "border-danger" : "border-border focus:border-border-focus"
+        }`,
+    chip: () =>
+        "flex h-control-lg cursor-pointer items-center gap-gap rounded-control border border-border bg-white pr-input-inset-x pl-control-lg-inset-x text-body font-medium whitespace-nowrap tabular-nums outline-none not-aria-readonly:hover:bg-hover-subtle focus:border-border-focus aria-expanded:bg-hover-subtle",
+    crumb: () =>
+        "-mx-control-inline-inset-x flex h-control-inline cursor-pointer items-center gap-breadcrumb-chevron-gap rounded-control px-control-inline-inset-x text-body-sm font-semibold whitespace-nowrap text-foreground-muted tabular-nums not-aria-readonly:hover:bg-hover aria-expanded:bg-hover",
+};
 
 /**
  * A typed value with suggestions under it — WAI-ARIA's editable combobox with list

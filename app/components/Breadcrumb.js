@@ -28,10 +28,25 @@ import Icon from "./Icon";
  * A level is `{ label, href }`, and `current` is the screen's own name when it ends a
  * path. Every word arrives from the caller's constants, and the bar's own two — its
  * name and its separator — from `lib/navigation.js`.
+ *
+ * A LEVEL MAY BE A CONTROL RATHER THAN A LINK (#519): `{ key, control }`, the job a reader on
+ * several jobs narrows by, which 1d and 1f draw as a level of the path — `Tools & Equipment /
+ * 26-USA-06` on a category's page, the job before the category on an asset's. A path with such
+ * a level is a path whatever its length, so a category's page with one draws `/` rather than
+ * the chevron, and a path need not end on the screen's own name: 1d's ends on the job.
  */
 
 const LEVEL =
     "inline-flex h-control-inline min-w-0 items-center rounded-control px-control-inline-inset-x text-body-sm font-semibold text-foreground-muted hover:bg-hover";
+
+/** The mark between two levels, Ink 4, 8 either side. */
+function Separator() {
+    return (
+        <li aria-hidden="true" className="text-body-sm text-foreground-faint">
+            {COPY.separator}
+        </li>
+    );
+}
 
 export default function Breadcrumb({ levels, current, phone = true }) {
     return (
@@ -39,31 +54,36 @@ export default function Breadcrumb({ levels, current, phone = true }) {
             aria-label={COPY.breadcrumb}
             className={`sticky top-0 z-10 flex h-breadcrumb items-center bg-background-translucent px-page-gutter font-ui backdrop-blur-sm ${phone ? "" : "max-sm:hidden"}`}
         >
-            {current === undefined && levels.length === 1 ? (
+            {current === undefined && levels.length === 1 && !levels[0].control ? (
                 <Link href={levels[0].href} className={`${LEVEL} -mx-control-inline-inset-x gap-gap`}>
                     <Icon name="chevron-left" crop={[8, 8]} className="h-[var(--size-icon-sm)] shrink-0" />
                     {levels[0].label}
                 </Link>
             ) : (
                 <ol className="flex min-w-0 items-center gap-gap">
-                    {levels.map((level) => (
-                        <Fragment key={level.href}>
+                    {levels.map((level, index) => (
+                        <Fragment key={level.key ?? level.href}>
+                            {index > 0 && <Separator />}
                             <li className="flex min-w-0">
-                                <Link href={level.href} className={`${LEVEL} -mx-control-inline-inset-x`}>
-                                    <span className="truncate">{level.label}</span>
-                                </Link>
-                            </li>
-                            <li aria-hidden="true" className="text-body-sm text-foreground-faint">
-                                {COPY.separator}
+                                {level.control ?? (
+                                    <Link href={level.href} className={`${LEVEL} -mx-control-inline-inset-x`}>
+                                        <span className="truncate">{level.label}</span>
+                                    </Link>
+                                )}
                             </li>
                         </Fragment>
                     ))}
-                    <li
-                        aria-current="page"
-                        className="flex h-control-inline shrink-0 items-center whitespace-nowrap text-body-sm font-semibold text-foreground-default tabular-nums"
-                    >
-                        {current}
-                    </li>
+                    {current !== undefined && (
+                        <>
+                            <Separator />
+                            <li
+                                aria-current="page"
+                                className="flex h-control-inline shrink-0 items-center whitespace-nowrap text-body-sm font-semibold text-foreground-default tabular-nums"
+                            >
+                                {current}
+                            </li>
+                        </>
+                    )}
                 </ol>
             )}
         </nav>

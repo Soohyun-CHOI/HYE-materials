@@ -52,24 +52,24 @@ it while anything is selected.
 it — the shape the asset's screen takes with its printed id and the
 four document detail screens take with theirs.
 
-**identity.** Under the heading, what the item is (#507): its class and where
-it sits in the catalog, type first (#514), `Class B · Tool > DEMO Carpentry >
-DEMO Jigsaw > T-Shank`, and for a piece of equipment by a maker `Class A ·
-Equipment > DEMO Welding > DEMO Welding Machine > DEMO Miller > Millermatic
-255`. **It says what the name cannot**: a name is the item's name and its size
-with a space between, then a comma and its maker, then its part number in
-parentheses, `DEMO Jigsaw T-Shank`, `DEMO Welding Machine, DEMO Miller
-(Millermatic 255)`, so it says neither where the name ends and the size begins
-nor which category or type holds it. The type and the class are
+**identity.** Under the heading, what the item is (1d, #519): its type, its
+category and its class, `Tool · Power tools · Class B`, the values in a darker ink
+than the line. **It says what the name cannot**: a name is the item's name and
+its size, then a comma and its maker, then its part number in parentheses,
+`DEMO Welding Machine, DEMO Miller (Millermatic 255)`, so it says neither which
+category nor which type holds it, nor its class. The type and the class are
 information — the type `Equipment` or `Tool`, the class `A` for an item that
 matters more, usually a dearer one, `B` otherwise — and nothing here acts on
-either. Design is drawing the line; it is the record header's line under
-its title (0n) until then. A part the category lacks is left out, and with neither
-there is no line.
+either. A part the category lacks is left out, and with none there is no line.
+It said the class and the whole path from #507 to #519, `Class B · Tool > DEMO
+Carpentry > DEMO Jigsaw > T-Shank`, the record header's line under its title (0n)
+until the design drew this one.
 
 **action.** A way back to `/asset-categories`: the breadcrumb's one level, `Tools & Equipment`
 behind a chevron (#460), the word the asset's screen opens its path with
-for the same trip.
+for the same trip. **For a reader on more than one job the breadcrumb is a path
+instead, `Tools & Equipment / 26-DEMO-01`**, its second level the job the list is
+narrowed to, which opens the choice of job (1d, #519; below).
 
 **action.** A control that opens the registration dialog on this category,
 `Add items` (#519) — `Add tools` from #485, the design's `New tools` from #456, and
@@ -121,12 +121,15 @@ the label screen with it until #457.
 `3 selected` — with a way out beside it. The words name no noun for what is
 selected; see below.
 
-**action.** A choice of job in the head, before `Add items` (#509): `All jobs`,
-which is the whole of what the reader starts from, then each job they may
-narrow to by its code — every job for the office, their own for anybody else,
-a job with nothing on it included. Choosing one lists that job's assets
-under this category, from the first page, and keeps whatever is selected. Design is
-drawing the control; it is the choice the registration dialog draws until then.
+**action.** For a reader on more than one job, a choice of job as the
+breadcrumb's second level (1d, #519; in the head until then): it holds `All jobs`,
+the whole of what the reader starts from, or the job chosen, and opens on each job
+they may narrow to by its code — every job for the office, their own for anybody
+else, a job with nothing on it included. Choosing one lists that job's assets
+under this category, from the first page, and keeps whatever is selected. A reader
+on one job is drawn no choice. **`All jobs` is not in the design's drawing**, which
+offers the jobs alone; it stays because a list starts from all of the reader's
+jobs (#509).
 
 **evidence.** How many assets this category has in the reader's scope, `13`,
 on the heading's line (`13 items` to assistive tech) — every one for the office,
@@ -147,11 +150,12 @@ accepted (#463).** A registration's assets go to the top, so a link to a
 later page names different assets after one. The selection is printed ids
 and moves with nothing. It read oldest first until #463, for that reason.
 
-**evidence.** Which page of the list this is, and how many there are —
-stated whether or not there is a second page, because a position that
-appears only once a list is long leaves the short case saying nothing. The
-pager says which rows the page shows of how many, `1–25 of 38`, and which page
-of how many, `Page 1 of 2` (1d, #463).
+**evidence.** Which rows the page shows of how many, `1–25 of 38`, stated
+whether or not there is a second page, because a count that appears only once a
+list is long leaves the short case saying nothing — the one figure where a page
+shows a single row, `1 of 1` — and past one page which page of how many, `Page 1
+of 2`, with its steps (1d, 0b; #463, #519, where the page and its steps stood on
+every list until #519).
 
 ## What it carries only sometimes
 
@@ -207,9 +211,9 @@ items, which were written. `Not now` answers the first alone and `Got it` the
 second alone, so either can go and leave the other — after `Got it` the
 shortfall follows, and a reload between them opens whichever is left.
 
-**A step to the previous page** and **a step to the next**, each acting
-when there is a page that way and drawn without acting at its own end — 1d's,
-where until #463 each was absent at its end.
+**A step to the previous page** and **a step to the next**, past one page, each
+acting when there is a page that way and drawn without acting at its own end —
+1d's, where until #463 each was absent at its end.
 **A second page exists only for a category with more than twenty-five assets**,
 and that number counts every registration under the category rather than
 one: registering more of a kind adds to the same list, and one registration
@@ -221,8 +225,8 @@ narrowed to (#509).
 document lists' words for the same thing — `M` being what the reader started
 from; the rows, the pager and the page box are that job's alone, and the
 breadcrumb's `Tools & Equipment` keeps the job. A job with none of this category's items on it
-draws the head and nothing under it, `0 of 91` and the choice saying it; Design
-is drawing what that state says. So does a category whose items are all off the
+draws the head and nothing under it, `0 of 91` and the breadcrumb's job saying
+it, which the design does not draw. So does a category whose items are all off the
 reader's jobs, before any job is chosen: `Nothing added yet` would be
 false there. An asset off the reader's jobs is left off this list and still
 opens from its label or a link. A job in the address the reader may not narrow
@@ -259,19 +263,19 @@ with more than a hundred assets, selected across pages.
 
 **When the category has no assets at all:** in place of the entries, the
 heading `Nothing added yet` (#519; `No items under this tool` until then), and under
-it a second, bordered `Add items` (1d, #463, #485, #519). **Since #507 this is a kind of the catalog
-nobody has bought yet**, which no list shows — the screen is reached by its
-address — and the heading stands alone: the sentence 1d draws under it,
-`If you were adding some, it stopped before any were saved.`, spoke of a
-registration that stopped between writing the tool and writing its items,
-which a registration no longer can, since it picks the tool rather than
-creating it. The total, the page position, the boxes and the print control
-are absent with it; there is nothing to count, no page to be on and nothing to
-print. **The control that registers more of this category stays, and this is where
-it matters most**: it is how the kind's first assets are added. **For a
-reader who is not a site manager the heading stands alone with nothing under
-it (#506)**: the opener is a site manager's. Design is drawing what this state
-says.
+it who fills it — for a site manager `Items show here once you add them.` over a
+second, bordered `Add items` (1d, #463, #485, #519). **Since #507 this is a kind
+of the catalog nobody has bought yet**, which no list shows — the screen is
+reached by its address. The sentence 1d drew under it until #507, `If you were
+adding some, it stopped before any were saved.`, spoke of a registration that
+stopped between writing the tool and writing its items, which a registration no
+longer can, since it picks the kind rather than creating it. The page position,
+the boxes and the print control are absent with it; there is nothing to page and
+nothing to print, and the head counts `0`. **The control that registers more of
+this category stays, and this is where it matters most**: it is how the kind's
+first assets are added. **For a reader who is not a site manager, `Items show here
+once a site manager adds them.` and no opener (1d, #506, #519)**: the opener is a
+site manager's.
 
 **When the reader is not a site manager (#506):** the same screen, every fact
 on it, and none of the controls a site manager uses here — no `Add items` in
@@ -279,7 +283,7 @@ the head or under an empty list, no box on an entry or for the page, no
 selection bar and so nothing to print, and neither dialog a registration's
 landing tells, which speak to whoever added. The column of boxes goes with
 the boxes, so the table is `Item ID`, `Status` and `Job`, the job taking the
-room; Design is drawing that list. A selection carried on the address is not
+room, as 1d draws it without the box (1d's `Updated` in the job's place is #520's). A selection carried on the address is not
 read for them, so it marks no entry and rides no step. Nothing replaces any of
 it with a sentence: the screen is theirs to read, and a control is absent
 rather than disabled because being a site manager is not something one asks
