@@ -167,12 +167,17 @@ async function registerAssetsHandler(prevState, formData) {
 
         // OUTSIDE EVERY `try`, AND IT HAS TO BE. `redirect` throws to navigate, so a
         // `catch` around it would take the navigation for a failed log write.
+        //
+        // ON THE JOB IT WROTE TO (#520). A list stands on one job, and what was written is on
+        // the job the reader chose here, which need not be the first; landing on another would
+        // select ids the page does not draw. It landed with no job from #509, on the whole of
+        // the reader's jobs, which always showed it.
         redirect(
             assetCategoryPath(
                 category.id,
                 1,
                 created.map((asset) => asset.assetId),
-                { asked: count, unwritten: count - created.length, unlogged }
+                { job: job.id, asked: count, unwritten: count - created.length, unlogged }
             )
         );
     });

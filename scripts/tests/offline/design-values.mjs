@@ -201,6 +201,8 @@ const VALUES = [
     ["--spacing-control-inline-inset-x", "0.5rem", null],
     ["--spacing-control-inset-x", "0.625rem", null],
     ["--spacing-control-lg-inset-x", "1rem", null],
+    // 1a's 32 button under a list its band emptied (#520).
+    ["--spacing-control-md-inset-x", "0.8125rem", null],
     // A sign-in page's field and action, and the line under any field (#473).
     ["--height-control-xl", "2.5rem", null],
     ["--spacing-input-inset-x", "0.75rem", null],
@@ -211,12 +213,28 @@ const VALUES = [
     ["--spacing-menu-inset", "0.3125rem", null],
     // 0a Menu's head, which names what follows (#495).
     ["--spacing-menu-heading-inset-y", "0.375rem", null],
+    // 0a Menu's value at an option's end, and 1a's band: its filter chips, its search field and
+    // the × that empties either (#520).
+    ["--spacing-menu-value-inline", "1.5rem", null],
+    ["--spacing-menu-box-gap", "0.625rem", null],
+    ["--size-filter-chip-chevron", "0.75rem", null],
+    ["--spacing-filter-chip-inset-right", "0.5rem", null],
+    ["--width-list-search", "16.25rem", null],
+    ["--spacing-search-icon-inset", "0.6875rem", null],
+    ["--spacing-search-inset-left", "2rem", null],
+    ["--spacing-search-inset-right", "1.8125rem", null],
+    ["--width-clear-button", "1.5rem", null],
+    ["--size-clear-icon", "0.8125rem", null],
+    ["--spacing-ghost-inset-x", "0.625rem", null],
     // 0b · Layout
     ["--container-content", "67.5rem", null],
     ["--spacing-page-gutter", "2rem", null],
     ["--spacing-gap", "0.5rem", null],
     ["--spacing-gap-lg", "0.875rem", null],
     ["--spacing-nav-gap", "0.6875rem", null],
+    // 0b's Gap inside a 32 control and its Band padding, which 1a's band reads (#520).
+    ["--spacing-control-icon-gap", "0.375rem", null],
+    ["--spacing-control-band-inset-y", "0.875rem", null],
     ["--height-table-row", "2.5rem", null],
     ["--spacing-table-bleed", "0.75rem", null],
     ["--height-table-header", "2.25rem", null],
@@ -233,14 +251,18 @@ const VALUES = [
     ["--spacing-table-column-inline", "1.25rem", null],
     ["--width-table-count", "6rem", null],
     ["--width-table-id", "15rem", null],
-    ["--width-table-status", "10rem", null],
+    ["--width-table-date", "7.5rem", null],
     ["--spacing-pager-inline", "1.5rem", null],
     ["--spacing-pager-step-gap", "0.625rem", null],
     ["--spacing-pager-step-bleed", "0.8125rem", null],
     ["--spacing-list-empty-state-inset-top", "15rem", null],
+    // What a list says once its band has emptied it (1a, #520).
+    ["--spacing-list-emptied-inset-y", "3.75rem", null],
+    ["--spacing-list-emptied-stack", "0.75rem", null],
     // 0c · Blue
     ["--color-selected", "#F0F9FF", null],
     ["--color-selected-hover", "#E6F5FF", null],
+    ["--color-selected-border", "#C1DEFD", null],
     ["--color-primary", "oklch(0.487 0.216 257)", null],
     ["--color-primary-hover", "oklch(0.437 0.211 257)", null],
     ["--color-primary-disabled", "color-mix(in oklab, var(--color-primary) 40%, transparent)", null],
@@ -366,6 +388,19 @@ const VALUES = [
     ["--spacing-dialog-column-stack", "1.5rem", null],
     ["--spacing-dialog-column-list-stack", "0.25rem", null],
     ["--size-dialog-step", "1.25rem", null],
+    // A dialog that searches a list and picks from it (0l, 0f, 1b; #520).
+    ["--container-dialog-search", "30rem", null],
+    ["--height-dialog-search", "30.625rem", null],
+    ["--height-dialog-search-row", "3.5rem", null],
+    ["--spacing-dialog-search-inset-top", "0.25rem", null],
+    ["--spacing-dialog-search-icon-bleed", "0.1875rem", null],
+    ["--spacing-dialog-filter-inline", "0.375rem", null],
+    ["--spacing-dialog-result-bleed", "0.75rem", null],
+    ["--spacing-dialog-result-inline", "0.875rem", null],
+    ["--spacing-dialog-results-inset-top", "0.5rem", null],
+    ["--spacing-dialog-results-inset-bottom", "0.75rem", null],
+    ["--spacing-dialog-results-empty-inset-top", "6rem", null],
+    ["--min-width-dialog-chip", "4.5rem", null],
     // 0m · Navigation
     ["--width-rail", "3.5rem", null],
     ["--width-rail-expanded", "15.5rem", null],

@@ -1,10 +1,17 @@
 import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAssetsByCategory } from "@/lib/airtable/assets";
+import { getAssetLogEntriesByRecordIds } from "@/lib/airtable/assetLog";
 import { getAssetCategoriesByRecordIds } from "@/lib/airtable/assetCategories";
 import { assignedJobsFor } from "@/lib/assetJob";
-import { FILTER_BAR_COPY } from "@/lib/listFilters";
-import { ASSET_LIST_COPY as COPY, idsInScope, pageOfAssets, assetListScope } from "@/lib/assetListView";
+import {
+    ASSET_LIST_COPY as COPY,
+    idsInScope,
+    lastChangeOf,
+    latestLogRowIds,
+    pageOfAssets,
+    assetListScope,
+} from "@/lib/assetListView";
 import { registrationCatalog } from "@/lib/assetCategory";
 import { ASSET_REGISTRATION_COPY, canRegisterAssets, readRegistrationAccount } from "@/lib/assetRegistration";
 import { ASSET_CATEGORIES_PATH, assetCategoriesPath } from "@/lib/assetRoutes";
@@ -54,22 +61,29 @@ export const metadata = { title: "Item" };
  * what the page is a list of — a route rendering two different tables is a shape
  * the brief system, one file per page, cannot describe.
  *
- * FOUR OPERATIONS, WHATEVER THE CATEGORY'S SIZE. The session find, the category, the one
- * batched read of this page's assets, and the job list. The page is chosen
+ * FIVE OPERATIONS, WHATEVER THE CATEGORY'S SIZE. The session find, the category, the one
+ * batched read of this page's assets, the job list, and since #520 the one batched read of
+ * those assets' latest log rows. The page is chosen
  * from the category's own `Assets` link array BEFORE anything is fetched, so a
  * category with three hundred units costs exactly what one with three costs, and
  * the total the screen states comes from that array's length for nothing.
  *
- * AND WHATEVER JOB IT IS NARROWED TO (#509). The array is first cut to the reader's
- * scope — `assetListScope`, the judgment `/asset-categories` reads its rows by — which
- * comes off the job list's own link arrays, so the page is still chosen before anything
- * is fetched. The office starts from every asset under the category and anybody else from
- * those on their jobs; a job chosen narrows to its own, and the head counts `N of M`. **The
- * job is chosen in the breadcrumb since #519**, a level after `Tools & Equipment`, as 1d draws
- * it, and only by a reader with more than one; it stood in the head beside the opener until
- * then. A category with assets, none of them in the scope, draws its head and nothing
- * under it, as a job with none does on `/asset-categories`: `Nothing added yet`
- * would be false there, and Design is drawing what it says. An asset off the scope still
+ * AND WHATEVER THE ASSETS' HISTORIES HOLD (#520). Each row says when its asset last changed
+ * and, while it is out, who holds it — both off the asset's latest `Asset Log` row, the last
+ * of its link array — so the fifth read asks for one row per asset on the page
+ * (`latestLogRowIds`), however many scans are behind each. `Assets` carries no copy of the
+ * moment; docs/notes/tools.md weighs that against this read.
+ *
+ * AND WHATEVER JOB IT STANDS ON (#509, #520). The array is first cut to the job's assets —
+ * `assetListScope`, the judgment `/asset-categories` reads its rows by — which comes off the
+ * job list's own link arrays, so the page is still chosen before anything is fetched. A list
+ * stands on one job since #520, the first of the reader's by its code until they move, and
+ * the head counts what this category holds there; from #509 it started from all of the
+ * reader's jobs, counted `N of M` once a job narrowed it. **The job is chosen in the
+ * breadcrumb since #519**, a level after `Tools & Equipment`, as 1d draws it, and only by a
+ * reader with more than one; it stood in the head beside the opener until then. A category
+ * with assets, none of them on the job, draws its head and nothing under it: `Nothing added
+ * yet` would be false there, and Design is drawing what it says. An asset off the job still
  * opens from its label.
  *
  * AND WHATEVER IS SELECTED (#443). Which assets a label run is for rides in the
@@ -174,7 +188,7 @@ async function renderCategoryPage({ params, searchParams }) {
     // screen for a page that exists.
     //
     // `rowIds: page.ids` IS WHAT DIVIDES THE READ, AND TWO CLAIMS REST ON IT (#442):
-    // the four operations above, and the page box below selecting one page (#443;
+    // the five operations above, and the page box below selecting one page (#443;
     // until then the second claim was the print control sending one page). Without
     // it `getAssetsByCategory` reads the category's whole link array, and this screen
     // reads every asset under the category and offers every one of them to the page
@@ -182,18 +196,15 @@ async function renderCategoryPage({ params, searchParams }) {
     // the argument off the source, and the rows this hands the list, rather than
     // trusting a figure.
     //
-    // THE ARRAY IS CUT TO THE READER'S SCOPE FIRST (#509), off ids already in hand, so the
+    // THE ARRAY IS CUT TO THE JOB'S ASSETS FIRST (#509, #520), off ids already in hand, so the
     // read is still one page.
     const scope = assetListScope(user, jobs, sp.job);
-    const narrowed = scope.job !== null;
     const job = scope.job?.id ?? null;
     // Whether the reader chooses a job at all: only with more than one (1d, #519).
     const choosesJob = scope.jobs.length > 1;
     const page = pageOfAssets(idsInScope(category.assets, scope.shown), sp.page);
-    const total = idsInScope(category.assets, scope.start).length;
     const assets = await getAssetsByCategory(category.id, { rowIds: page.ids });
 
-    const jobCodeById = Object.fromEntries(jobs.map((each) => [each.id, each.jobCode]));
     const account = readRegistrationAccount({ asked: sp.asked, unwritten: sp.unwritten, unlogged: sp.unlogged });
     // Whether this reader adds assets and prints their labels here at all (#506): every
     // control below that does either is drawn under it, and nothing else on the page is.
@@ -206,12 +217,12 @@ async function renderCategoryPage({ params, searchParams }) {
 
     // The way back is the breadcrumb's one level since #460, the list's own heading behind a
     // chevron (1d) — and for a reader on several jobs a path, the list's heading and then the job
-    // the list is narrowed to, which the reader changes there (#519). The category's name is the
+    // the list stands on, which the reader changes there (#519). The category's name is the
     // heading and there is no heading word, which is the shape the asset's page takes.
     // Registering more under this category (#451) is the head's one control, so a category with
     // nothing under it keeps it — there it is the way to write what a registration did not. It
-    // opens the dialog on this category (#456). The way back keeps the job the list is narrowed
-    // to (#509). The bar names the category once its heading has scrolled under it (1d, #519).
+    // opens the dialog on this category (#456). The way back keeps the job the list stands on
+    // (#509). The bar names the category once its heading has scrolled under it (1d, #519).
     const top = (
         <Breadcrumb
             levels={[
@@ -244,7 +255,7 @@ async function renderCategoryPage({ params, searchParams }) {
     const header = (
         <ListHeader
             title={category.itemName}
-            count={narrowed ? FILTER_BAR_COPY.count(page.total, total) : page.total}
+            count={page.total}
             noun={COPY.itemNoun(page.total)}
             caption={<CategoryCaption category={category} className="text-body text-foreground-subtle" />}
             underBreadcrumb
@@ -285,6 +296,11 @@ async function renderCategoryPage({ params, searchParams }) {
     // the print control that opens the labels on it stands in the selection bar with the
     // count; the category's name is the line under that dialog's title (#457). The boxes and the
     // bar are a site manager's (#506), so `selects` is the page's one answer to that.
+    //
+    // Each row says when its asset last changed, and who holds one that is out, off its
+    // latest log row (1d, #520) — the rows read here in one batch, one per asset — where it
+    // said the job the asset was last scanned on from #463.
+    const latest = new Map((await getAssetLogEntriesByRecordIds(latestLogRowIds(assets))).map((entry) => [entry.id, entry]));
     return (
         <AssetList
             categoryRecordId={category.id}
@@ -294,7 +310,7 @@ async function renderCategoryPage({ params, searchParams }) {
                 id: asset.id,
                 assetId: asset.assetId,
                 status: asset.status,
-                jobCode: jobCodeById[asset.job?.[0]],
+                ...lastChangeOf(asset, latest),
             }))}
             page={page}
             job={job}

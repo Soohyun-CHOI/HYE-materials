@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useId } from "react";
 import { Checkbox } from "@/app/components/Controls";
+import Dot from "@/app/components/Dot";
+import Instant from "@/app/components/Instant";
 import ListFrame, { SelectionBar } from "@/app/components/ListFrame";
 import { Pager, TABLE_HEAD, TABLE_ROW, TABLE_ROW_LINK, TABLE_ROW_SELECTED } from "@/app/components/ListTable";
 import { ASSET_LABEL_PAGE_COPY as LABEL_COPY } from "@/lib/assetLabelPage";
@@ -16,14 +18,17 @@ import {
     toggleAsset,
 } from "@/lib/assetListView";
 import { readAssetIds, assetPath, assetCategoryPath } from "@/lib/assetRoutes";
+import { DAY_FORMAT } from "@/lib/format";
 import StatusMark from "../../StatusMark";
 import LabelsDialog from "../../assets/LabelsDialog";
 
-// 1d's columns: the box, the printed id at 240, the status at 160, and the job.
-const COLUMNS = "grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-status)_minmax(0,1fr)]";
-// The same three for a reader who selects nothing (#506), with no box to hold room for —
-// until Design draws that list, the closest shape the app already has.
-const COLUMNS_WITHOUT_BOX = "grid-cols-[var(--width-table-id)_var(--width-table-status)_minmax(0,1fr)]";
+// 1d's columns since #520: the box, the printed id at 240, the status taking the room left —
+// and after an `Out` who holds it — and the day each item last changed at 120. The status
+// stood at 160 with the job after it from #463 until 1d drew the day in the job's place.
+const COLUMNS = "grid-cols-[var(--size-icon)_var(--width-table-id)_minmax(0,1fr)_var(--width-table-date)]";
+// The same three for a reader who selects nothing (#506), with no box to hold room for, as 1d
+// draws the list for a reader with no role.
+const COLUMNS_WITHOUT_BOX = "grid-cols-[var(--width-table-id)_minmax(0,1fr)_var(--width-table-date)]";
 
 // One page of a category's assets, drawn as 1d's table (#463): a box on each and one for the
 // page in the column head, and the selection bar that opens the labels' dialog on what they
@@ -62,11 +67,11 @@ const COLUMNS_WITHOUT_BOX = "grid-cols-[var(--width-table-id)_var(--width-table-
 // NOT `router.replace`, the other way to rewrite an address without a history entry and
 // the one the document lists use: it fetches the page again —
 // `docs/notes/deliveries-and-invoices.md` measured one `?_rsc` request per write (#325)
-// — and this page is four Airtable operations, so every press would cost four. With
+// — and this page is five Airtable operations since #520, so every press would cost five. With
 // `replaceState` a press costs none, and a reload, a copied link and a step to another
 // page all carry the selection because it is in the address.
 //
-// THE SERVER NEVER SEES IT, WHICH IS WHAT KEEPS THE PAGE AT FOUR OPERATIONS. The page
+// THE SERVER NEVER SEES IT, WHICH IS WHAT KEEPS THE PAGE AT FIVE OPERATIONS. The page
 // hands this component the rows it read for its own page and nothing more; the ids
 // selected on other pages exist only in the address, and this file reaches no reader of
 // the base (`offline/client-import-safety.mjs`). The page box therefore reaches this
@@ -92,9 +97,10 @@ const COLUMNS_WITHOUT_BOX = "grid-cols-[var(--width-table-id)_var(--width-table-
 // to clear one — and it reads no selection off the address either, so a copied link's
 // `id` neither marks a row nor rides the pager's steps.
 //
-// THE JOB THE LIST IS NARROWED TO RIDES EVERY WRITE (#509). `job` is the page's, resolved
-// from the address by `assetListScope` — a job the reader may not narrow to is none — and a
-// press and a step keep it, so the address goes on naming the list the rows came from.
+// THE JOB THE LIST STANDS ON RIDES EVERY WRITE (#509, #520). `job` is the page's, resolved
+// from the address by `assetListScope` — a job the reader may not stand on is the first of
+// theirs — and a press and a step keep it, so the address goes on naming the list the rows
+// came from.
 export default function AssetList({ categoryRecordId, itemName, selects, rows, page, job = null, top, header, children }) {
     const params = useSearchParams();
     const selection = selects ? readAssetIds(params.getAll("id")) : [];
@@ -172,7 +178,7 @@ export default function AssetList({ categoryRecordId, itemName, selects, rows, p
                     )}
                     <span role="columnheader">{COPY.assetIdLabel}</span>
                     <span role="columnheader">{COPY.statusLabel}</span>
-                    <span role="columnheader">{COPY.jobLabel}</span>
+                    <span role="columnheader">{COPY.updatedLabel}</span>
                 </div>
                 {/* Newest first, the link array turned over by `pageOfAssets` (#463).
                     Nothing here sorts. */}
@@ -194,12 +200,26 @@ export default function AssetList({ categoryRecordId, itemName, selects, rows, p
                                     {row.assetId}
                                 </Link>
                             </span>
-                            <span role="cell" className="flex items-baseline gap-gap">
+                            {/* The status, and after an `Out` who holds it, behind 0e's dot in
+                                Ink 2 (1d, #520) — the value only that state has, which the
+                                item's own page says beside its status too. */}
+                            <span role="cell" className="flex min-w-0 items-baseline gap-gap">
                                 <StatusMark status={row.status} />
-                                {row.status}
+                                <span className="flex min-w-0 items-baseline whitespace-nowrap">
+                                    <span className="shrink-0">{row.status}</span>
+                                    {row.holder && (
+                                        <>
+                                            <Dot />
+                                            <span className="min-w-0 truncate text-foreground-muted">{row.holder}</span>
+                                        </>
+                                    )}
+                                </span>
                             </span>
-                            <span role="cell" className="min-w-0 truncate">
-                                {row.jobCode}
+                            {/* The day it last changed, in the reader's own zone (#374) and
+                                Ink 2, the year written out (#520); nothing for an item whose
+                                log holds no row. */}
+                            <span role="cell" className="text-foreground-muted">
+                                <Instant at={row.updatedAt} format={DAY_FORMAT} />
                             </span>
                         </div>
                     );

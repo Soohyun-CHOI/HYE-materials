@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { searchResultsKey } from "@/lib/controls";
 import { DIALOG_FRAME_COPY as COPY, focusLost } from "@/lib/dialogFrame";
 import { FormBusy, Refusal } from "./Controls";
 import Icon from "./Icon";
@@ -207,8 +208,24 @@ function focusAfterRemoval(opener) {
 /** The two builds' surfaces: 28 clear of every edge, the Surface corner and the Modal shadow. */
 const DIALOG = "m-auto max-h-[calc(100dvh-2*var(--spacing-dialog-gutter))] w-full overflow-hidden rounded-dialog bg-white font-ui text-foreground-default shadow-dialog backdrop:bg-dialog-overlay";
 
-/** Compact: 420 wide, 24 of room all round, one column. */
-const COMPACT = "max-w-[min(var(--container-dialog),calc(100vw-2*var(--spacing-dialog-gutter)))] flex-col p-dialog-inset open:flex";
+/**
+ * The two widths 0l gives a dialog of fields: 420, and 480 for one that searches a list and
+ * picks from it — and for any dialog sharing its name (#520).
+ */
+const WIDTH = {
+    compact: "max-w-[min(var(--container-dialog),calc(100vw-2*var(--spacing-dialog-gutter)))]",
+    search: "max-w-[min(var(--container-dialog-search),calc(100vw-2*var(--spacing-dialog-gutter)))]",
+};
+
+/** Compact: 24 of room all round, one column. */
+const COMPACT = "flex-col p-dialog-inset open:flex";
+
+/**
+ * A fixed height (0l, 1b; #520): 490 while what it asks changes with what was picked, and no
+ * room of its own — the head, the body and the actions each take the 24 they keep from its
+ * edges, so a search's row and its results can run across its whole width.
+ */
+const FIXED = "h-[min(var(--height-dialog-search),calc(100dvh-2*var(--spacing-dialog-gutter)))] flex-col open:flex";
 
 /**
  * With a preview (#457): 780 by 520, the pane 440 and the column the rest, and below the
@@ -251,6 +268,9 @@ function laidOutAsSheet(dialog) {
  * the Compact build's inside — see the header. `recordId` is 0l's Confirm, and `sheet`,
  * `closesOnBackdrop`, `onHandlePress` and `done` are the phone's sheet (#458), the header
  * again. `onHidden` runs before the frame closes a dialog its page stopped drawing (#495).
+ * `wide` is 0l's 480, a dialog that searches a list and picks from it, and `fixed` holds it at
+ * 1b's 490 while what it asks changes with what was picked (#520): what it holds then takes
+ * the rest of its height, `DialogSearch` or `DialogBody` scrolling and the actions at its foot.
  */
 export function DialogFrame({
     open,
@@ -263,6 +283,8 @@ export function DialogFrame({
     recordId,
     onSubmit,
     preview,
+    wide = false,
+    fixed = false,
     sheet = false,
     closesOnBackdrop = false,
     onHandlePress,
@@ -378,7 +400,7 @@ export function DialogFrame({
     // takes the phone's sides, and 14 above and below its title — or, confirming, 24 above.
     const head = (
         <div
-            className={`flex shrink-0 items-start justify-between gap-dialog-header-inline ${withPreview ? "px-dialog-inset pt-dialog-inset sm:col-start-2 sm:row-start-1" : ""} max-sm:in-data-[sheet=drawer]:px-mobile-gutter max-sm:in-data-[sheet=drawer]:py-mobile-drawer-title-inset-y max-sm:in-data-[sheet=confirm]:px-mobile-gutter max-sm:in-data-[sheet=confirm]:pt-mobile-confirm-inset-top`}
+            className={`flex shrink-0 items-start justify-between gap-dialog-header-inline ${withPreview ? "px-dialog-inset pt-dialog-inset sm:col-start-2 sm:row-start-1" : ""} in-data-fixed:px-dialog-inset in-data-fixed:pt-dialog-inset max-sm:in-data-[sheet=drawer]:px-mobile-gutter max-sm:in-data-[sheet=drawer]:py-mobile-drawer-title-inset-y max-sm:in-data-[sheet=confirm]:px-mobile-gutter max-sm:in-data-[sheet=confirm]:pt-mobile-confirm-inset-top`}
         >
             <div className="flex min-w-0 flex-col gap-dialog-title-stack max-sm:in-data-[sheet=confirm]:gap-mobile-confirm-title-stack">
                 <h2 ref={titleRef} id={titleId} className="text-heading font-semibold tabular-nums max-sm:in-data-[sheet]:text-mobile-heading">
@@ -424,6 +446,7 @@ export function DialogFrame({
             aria-labelledby={titleId}
             data-sheet={sheet ? (confirm ? "confirm" : "drawer") : undefined}
             data-preview={withPreview ? "" : undefined}
+            data-fixed={fixed ? "" : undefined}
             onCancel={(event) => {
                 event.preventDefault();
                 ask();
@@ -432,7 +455,7 @@ export function DialogFrame({
                 if (open) onClose();
             }}
             onClick={closesOnBackdrop ? onBackdropPress : undefined}
-            className={`${DIALOG} ${withPreview ? WITH_PREVIEW : COMPACT}${sheet ? ` ${SHEET}` : ""}`}
+            className={`${DIALOG} ${withPreview ? WITH_PREVIEW : `${wide ? WIDTH.search : WIDTH.compact} ${fixed ? FIXED : COMPACT}`}${sheet ? ` ${SHEET}` : ""}`}
         >
             {open && (
                 <>
@@ -453,7 +476,7 @@ export function DialogFrame({
                     )}
                     <Content
                         onSubmit={onSubmit}
-                        className={`flex min-h-0 flex-col ${withPreview ? "pb-dialog-inset sm:col-start-2 sm:row-start-2" : ""}`}
+                        className={`flex min-h-0 flex-col in-data-fixed:grow ${withPreview ? "pb-dialog-inset sm:col-start-2 sm:row-start-2" : ""}`}
                     >
                         <FormBusy busy={busy}>{children}</FormBusy>
                     </Content>
@@ -478,8 +501,14 @@ export function DialogFrame({
  * IT STOPS AT ITS END (0i Chain, #495): a scroll past its last line does not move the page
  * behind the dialog. Beside a preview it holds the column's 24 either side inside itself, so
  * it scrolls across the column's whole width and its Rules run edge to edge (1e).
+ *
+ * IN A DIALOG HOLDING ITS HEIGHT (#520) the fields it always has sit on the actions and only
+ * what changes scrolls (0l): `foot` is those fields, 14 under what scrolls and outside it, and
+ * `lane` reserves 0i's lane so what scrolls keeps its width whether or not the bar is drawn,
+ * as 1b's chips do. The body's Rules mark the scrolling part's edges, so the one under it runs
+ * between what scrolls and the fields.
  */
-export function DialogBody({ children }) {
+export function DialogBody({ lane = false, foot, children }) {
     const scrollerRef = useRef(null);
     const [hidden, setHidden] = useState({ above: false, below: false });
 
@@ -503,15 +532,150 @@ export function DialogBody({ children }) {
     }, []);
 
     return (
-        <div data-dialog-body="" className="relative flex min-h-0 grow flex-col">
-            <div
-                ref={scrollerRef}
-                className="flex min-h-0 flex-col gap-gap-lg overflow-y-auto overscroll-contain pt-dialog-header-stack in-data-preview:px-dialog-inset max-sm:in-data-[sheet]:px-mobile-gutter max-sm:in-data-[sheet=drawer]:gap-mobile-field-stack max-sm:in-data-[sheet=drawer]:pt-0 max-sm:in-data-[sheet=confirm]:pt-mobile-confirm-id-stack"
-            >
-                {children}
+        <div data-dialog-body="" className="flex min-h-0 grow flex-col">
+            <div className="relative flex min-h-0 grow flex-col">
+                <div
+                    ref={scrollerRef}
+                    className={`flex min-h-0 flex-col gap-gap-lg overflow-y-auto overscroll-contain pt-dialog-header-stack ${
+                        lane
+                            ? `pr-[calc(var(--spacing-dialog-inset)-var(--spacing-scrollbar-gutter))] pl-dialog-inset [scrollbar-gutter:stable] ${SCROLL_LANE}`
+                            : "in-data-preview:px-dialog-inset in-data-fixed:px-dialog-inset"
+                    } max-sm:in-data-[sheet]:px-mobile-gutter max-sm:in-data-[sheet=drawer]:gap-mobile-field-stack max-sm:in-data-[sheet=drawer]:pt-0 max-sm:in-data-[sheet=confirm]:pt-mobile-confirm-id-stack`}
+                >
+                    {children}
+                </div>
+                {hidden.above && <div aria-hidden="true" className="absolute inset-x-0 top-0 h-px bg-divider" />}
+                {hidden.below && <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-px bg-divider" />}
             </div>
-            {hidden.above && <div aria-hidden="true" className="absolute inset-x-0 top-0 h-px bg-divider" />}
-            {hidden.below && <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-px bg-divider" />}
+            {foot && <div className="shrink-0 pt-gap-lg in-data-fixed:px-dialog-inset">{foot}</div>}
+        </div>
+    );
+}
+
+/**
+ * The search a dialog is built around (0f Field, 1b; #520) — the registration's first step. A
+ * borderless row 56 tall across the dialog: the search's 16 mark at Ink 3, pulled out so its
+ * ink meets the edge; the words at 14; a 30 × that empties it while it holds anything; the
+ * filters at the row's right end, 6 apart; and a Rule under it as wide as the results' hover
+ * face. Under it the results, 36 rows whose text starts on the field's edge with the hover face
+ * 12 past it, scrolling in 0i's lane through what is left of the dialog's fixed height.
+ *
+ * THE FIELD IS A COMBOBOX AND THE RESULTS ITS LIST, ALWAYS SHOWN. `lib/controls.js:searchResultsKey`
+ * has the keys: once something is typed the first result holds visual focus, shaded as the
+ * pointer shades a row, and Enter takes it; the arrows move it and a keystroke gives it back to
+ * the first. A result is pressed on `click` with its `mousedown` stopped, as `Menu`'s options
+ * are, so focus stays in the field. With nothing listed, `empty` stands in the results' place.
+ *
+ * IT IS THE DIALOG'S BODY FOR FOCUS (#469): marked `data-dialog-body`, so focus that falls in an
+ * open dialog — a step that went, taking what held it — comes back to the field.
+ *
+ * `results` are `{ key, label, match, place, detail }`: `match` the part of `label` what is typed
+ * matched, set at 600 (`lib/assetTransition.js:matchedPart`'s shape); `place` what tells the
+ * label from another of the same words, after it at 13 in Ink 3, giving its room up first; and
+ * `detail` what picking it leads to, at the row's end at 13 in Ink 3.
+ */
+export function DialogSearch({ label, value, onChange, clearLabel, filters, results, resultsLabel, onPick, empty }) {
+    const inputRef = useRef(null);
+    const listRef = useRef(null);
+    const listId = useId();
+    // Where the arrows moved visual focus, or -1 since the last keystroke — and then, with
+    // something typed, the first result holds it.
+    const [moved, setMoved] = useState(-1);
+    const count = results.length;
+    const active = moved >= 0 && moved < count ? moved : value.trim() !== "" && count > 0 ? 0 : -1;
+
+    // The result under visual focus stays in view in a list long enough to scroll.
+    useLayoutEffect(() => {
+        if (active < 0) return;
+        listRef.current?.querySelector(`[data-index="${active}"]`)?.scrollIntoView({ block: "nearest" });
+    }, [active]);
+
+    const type = (next) => {
+        setMoved(-1);
+        onChange(next);
+    };
+    const onKeyDown = (event) => {
+        const answer = searchResultsKey(event, { active, count });
+        if (!answer) return;
+        event.preventDefault();
+        if (answer.accept === undefined) setMoved(answer.active);
+        else if (answer.accept !== null) onPick(results[answer.accept]);
+    };
+
+    return (
+        <div data-dialog-body="" className="flex min-h-0 grow flex-col">
+            <div className="relative mt-dialog-search-inset-top flex h-dialog-search-row shrink-0 items-center gap-gap pr-dialog-inset pl-[calc(var(--spacing-dialog-inset)-var(--spacing-dialog-search-icon-bleed))]">
+                <Icon name="search" className="size-icon shrink-0 text-foreground-subtle" />
+                <input
+                    ref={inputRef}
+                    type="text"
+                    role="combobox"
+                    aria-expanded="true"
+                    aria-controls={listId}
+                    aria-autocomplete="list"
+                    aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
+                    aria-label={label}
+                    placeholder={label}
+                    autoComplete="off"
+                    value={value}
+                    onChange={(event) => type(event.target.value)}
+                    onKeyDown={onKeyDown}
+                    className="min-w-0 flex-1 self-stretch bg-transparent text-body text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle"
+                />
+                {value !== "" && (
+                    <button
+                        type="button"
+                        aria-label={clearLabel}
+                        onClick={() => {
+                            type("");
+                            inputRef.current?.focus();
+                        }}
+                        className="flex aspect-square h-control-sm shrink-0 items-center justify-center rounded-control text-foreground-subtle hover:bg-hover hover:text-foreground-default"
+                    >
+                        <Icon name="x" className="size-icon-sm" />
+                    </button>
+                )}
+                <div className="flex shrink-0 items-center gap-dialog-filter-inline">{filters}</div>
+                <div aria-hidden="true" className="absolute inset-x-[calc(var(--spacing-dialog-inset)-var(--spacing-dialog-result-bleed))] bottom-0 h-px bg-divider" />
+            </div>
+            <div
+                ref={listRef}
+                className={`mb-dialog-results-inset-bottom min-h-0 grow overflow-y-auto overscroll-contain pt-dialog-results-inset-top pr-[calc(var(--spacing-dialog-inset)-var(--spacing-dialog-result-bleed)-var(--spacing-scrollbar-gutter))] pl-[calc(var(--spacing-dialog-inset)-var(--spacing-dialog-result-bleed))] [scrollbar-gutter:stable] ${SCROLL_LANE}`}
+            >
+                <div id={listId} role="listbox" aria-label={resultsLabel} className="flex flex-col">
+                    {results.map((result, index) => (
+                        <div
+                            key={result.key}
+                            id={`${listId}-${index}`}
+                            data-index={index}
+                            role="option"
+                            aria-selected={index === active ? "true" : "false"}
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => onPick(result)}
+                            className={`flex h-control-lg shrink-0 cursor-pointer items-center gap-dialog-result-inline rounded-control px-dialog-result-bleed hover:bg-hover ${
+                                index === active ? "bg-hover" : ""
+                            }`}
+                        >
+                            <span className="flex min-w-0 flex-1 items-baseline gap-gap whitespace-nowrap">
+                                <span className="min-w-0 truncate text-body text-foreground-default">
+                                    {result.match ? (
+                                        <>
+                                            {result.match.before}
+                                            <span className="font-semibold">{result.match.match}</span>
+                                            {result.match.after}
+                                        </>
+                                    ) : (
+                                        result.label
+                                    )}
+                                </span>
+                                {result.place && <span className="min-w-0 shrink-[1000] truncate text-body-sm text-foreground-subtle">{result.place}</span>}
+                            </span>
+                            {result.detail && <span className="shrink-0 text-body-sm text-foreground-subtle tabular-nums">{result.detail}</span>}
+                        </div>
+                    ))}
+                </div>
+                {count === 0 && empty}
+            </div>
         </div>
     );
 }
@@ -608,12 +772,17 @@ export function SheetRows({ rows }) {
  * which is the one arrangement 0a gives a sheet's actions, so a sheet of fields takes it too.
  * The commitment is written last and drawn first, so the order a keyboard meets them at a
  * desk — `Cancel`, then the act — is the order in the markup at both widths.
+ *
+ * A SECONDARY ACTION STANDS ON THE LEFT (0l Actions, 1b; #520) — `secondary`, the
+ * registration's `Back` — a ghost pulled out by its side room so its ink meets the edge, and
+ * first in the order a keyboard meets them, as it stands first on the line.
  */
-export function DialogActions({ refusal, children }) {
+export function DialogActions({ refusal, secondary, children }) {
     return (
-        <div className="flex shrink-0 flex-col gap-gap-lg pt-dialog-inset in-data-preview:px-dialog-inset max-sm:in-data-[sheet]:px-mobile-gutter max-sm:in-data-[sheet]:pt-mobile-drawer-body-stack">
+        <div className="flex shrink-0 flex-col gap-gap-lg pt-dialog-inset in-data-preview:px-dialog-inset in-data-fixed:px-dialog-inset in-data-fixed:pb-dialog-inset max-sm:in-data-[sheet]:px-mobile-gutter max-sm:in-data-[sheet]:pt-mobile-drawer-body-stack">
             {refusal && <Refusal>{refusal}</Refusal>}
-            <div className="flex flex-wrap justify-end gap-gap max-sm:in-data-[sheet]:flex-col-reverse max-sm:in-data-[sheet]:gap-mobile-drawer-action-stack">
+            <div className="flex flex-wrap items-center justify-end gap-gap max-sm:in-data-[sheet]:flex-col-reverse max-sm:in-data-[sheet]:gap-mobile-drawer-action-stack">
+                {secondary && <div className="mr-auto -ml-ghost-inset-x flex">{secondary}</div>}
                 {children}
             </div>
         </div>

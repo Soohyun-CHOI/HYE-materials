@@ -302,6 +302,18 @@ export function run({ check, assert, log }) {
     check("the category list narrowed to a job", assetCategoriesPath(1, "recJob1"), "/asset-categories?job=recJob1");
     check("  on a later page", assetCategoriesPath(2, "recJob1"), "/asset-categories?job=recJob1&page=2");
     check("  and none is the plain list, the rail's", `${assetCategoriesPath(1, null)} ${assetCategoriesPath(1)} ${assetCategoriesPath(2)}`, "/asset-categories /asset-categories /asset-categories?page=2");
+    // WHAT THE BAND HOLDS (#520): after the job and before the page, the search trimmed and
+    // each facet's values repeated under the chip's own word, nothing for what holds nothing.
+    check(
+        "  with what the band holds, after the job and before the page",
+        assetCategoriesPath(2, "recJob1", { q: "  tig welder ", level1: ["Equipment"], level2: ["Welding", "Power Tool"], assetClass: ["A"] }),
+        "/asset-categories?job=recJob1&q=tig+welder&type=Equipment&category=Welding&category=Power+Tool&class=A&page=2"
+    );
+    check(
+        "  and a band holding nothing writes nothing",
+        assetCategoriesPath(1, "recJob1", { q: "   ", level1: [], level2: [], assetClass: [] }),
+        "/asset-categories?job=recJob1"
+    );
     check(
         "a tool's list narrowed, with a page and a selection",
         assetCategoryPath("recAbc", 2, two, { job: "recJob1" }),

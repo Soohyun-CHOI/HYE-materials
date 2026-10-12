@@ -163,6 +163,12 @@ Each is for the issue that draws it to name, in the same commit as its reader, s
 
 - The job's control in the files of 2026-10-11 carries five, which #519 named with their readers, each declaration saying they are the drawings': 12 between the job's chip and `Add items` in 1a's list header (`--spacing-list-header-control-inline`), where 0b's Gap within a cluster is 8; on 1d and 1f, where the job is a level of the breadcrumb, a 12 chevron (`--size-breadcrumb-chevron`) 6 after the level's word (`--spacing-breadcrumb-chevron-gap`) running 3 into the level's side room (`--spacing-breadcrumb-chevron-bleed`), so the level ends 5 past it; and 1j's 4 from a record's title to the caption under it on a phone (`--spacing-mobile-caption-stack`), where a desk's is the title block's 10. The chip itself is a 36 control's height, side room and words, and its list a 140 menu 6 under it at the chip's right edge with 36 rows, which 0a's Menu row gives; the level's list starts at the level's left with 32 rows. 1d's bar carries three more, which #519 named with their reader the same way: once the category's head has scrolled under the bar, its name comes in after the path behind a 16 Rule (`--height-breadcrumb-title-rule`) with 16 either side (`--spacing-breadcrumb-title-rule-inline`), fading in and out over 160ms (`--transition-duration-breadcrumb-title`). Where a list's column head holds — under 1a's head at its least, 32, a 36 control's line and 18, or under the 48 bar — is said in the names those are already, and takes none of its own.
 
+- 1a's band, the filters and search under the list's head, carries twelve, which #520 named with their readers, each declaration saying they are the drawings': the search 260 wide (`--width-list-search`), its mark 11 in and its words 32 in and 29 from its end (`--spacing-search-icon-inset`, `--spacing-search-inset-left`, `--spacing-search-inset-right`); the × that empties it or a chip, 24 across with a 13 mark (`--width-clear-button`, `--size-clear-icon`); a filter chip's 12 chevron and 8 on that side (`--size-filter-chip-chevron`, `--spacing-filter-chip-inset-right`); a 32 button's 13 either side (`--spacing-control-md-inset-x`); a box 10 before its option's name in a list taking several (`--spacing-menu-box-gap`); and the 60 above and below what an emptied list says, 12 over its control (`--spacing-list-emptied-inset-y`, `--spacing-list-emptied-stack`). The chips, the search and the emptied state's control are a 32 control's height, words and Edge, 0a's; a set chip sits on 0c's Face inside its Edge, and the counts in a chip's list take 0a Menu's 24 before a value at a row's end.
+
+- 1b's search, the registration's first step, carries eight more, which #520 named with their readers the same way: the 490 the dialog holds while it picks (`--height-dialog-search`), 0l giving a fixed height and no figure; 4 from the title's line to the search's row (`--spacing-dialog-search-inset-top`); its mark pulled 3 so the ink meets the edge (`--spacing-dialog-search-icon-bleed`); the chips 6 apart (`--spacing-dialog-filter-inline`), where the band's stand at 0b's 8; 14 from a result's name to what it offers (`--spacing-dialog-result-inline`); 8 above the first result and 12 under the last (`--spacing-dialog-results-inset-top`, `--spacing-dialog-results-inset-bottom`); and 96 above the sentence saying nothing matched (`--spacing-dialog-results-empty-inset-top`). The 480, the row's 56 and the results' 12 are the spec's (0l Width, 0f Field), the clear 30 a Nested control with a 14 mark, and `Back` Ghost's 32 with 10 either side, pulled out by them. **Not taken**: 1b's chip lists at 31 a row, where 0a's Menu and 1a draw 32; the search's caret in Ink, where every field's is the Accent; the sentence's 16 either side, where it keeps the results' 12; and a set chip's chevron in black, a button's default the drawing did not set, where 1a draws it Ink 3.
+
+- 1b's second step, the size and the model as 0l's chips, carries one more, which #520 named the same way: the 72 a chip stands at however short its longest option (`--min-width-dialog-chip`). The rest is the spec's: each chip a 36 Commitment with a field's 12 either side and its value at 14 and 400, as wide as the longest option and 8 apart, the chosen one on 0c's Face in its Edge; the word 8 above at 13 and 500 and a refusal at the end of its line at 13 in red (0l Compact); the chips scrolling in 0i's lane 20 under the title's line and 14 over the fields always asked, which sit 24 over the actions. The width each chip takes is measured from its longest label in the browser, as the drawing measures it, and handed to the grid; it lays out at 72 until then, before the first paint.
+
 - A date's slashes are at 45% with 1.5 of room either side, and its time 9 past it at a desk and 8 on a phone — every date both files draw, and no row. #463 named the four with `app/components/Instant.js`, which draws every date in the app.
 
 **THE ONE PLACE A DRAWING CONTRADICTED THE SPEC IS SETTLED**: the name sheet's `Done` is 48 now, the phone's Target (answer 11).
@@ -216,6 +222,8 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0a Side room, an inline summary | `--spacing-control-inline-inset-x` | 0.5rem (8) |
 | 0a Side room, a chip or a menu option | `--spacing-control-inset-x` | 0.625rem (10) |
 | 0a Side room, any 36px button | `--spacing-control-lg-inset-x` | 1rem (16) |
+| 1a's drawing, either side of a 32 button's words — not the spec | `--spacing-control-md-inset-x` | 0.8125rem (13) |
+| Ghost, either side of its word in a row of 36 buttons, and its pull at the row's end | `--spacing-ghost-inset-x` | 0.625rem (10) |
 | 0o Field and Action, 40 tall | `--height-control-xl` | 2.5rem (40) |
 | 0a Side room, inside a form field — a dialog's and a sign-in page's — and 0o Field, its fixed domain from the border | `--spacing-input-inset-x` | 0.75rem (12) |
 | 0l Compact, a field's help under it, and 0o Refusal, one field's | `--spacing-input-message-stack` | 0.375rem (6) |
@@ -224,11 +232,15 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0a Menu, under the control | `--spacing-menu-offset` | 0.375rem (6) |
 | 0a Menu, inside | `--spacing-menu-inset` | 0.3125rem (5) |
 | 0a Menu, a head's room above and below | `--spacing-menu-heading-inset-y` | 0.375rem (6) |
+| 0a Menu, the least room from an option's name to a value at its end | `--spacing-menu-value-inline` | 1.5rem (24) |
+| 1a's drawing, an option's box to its name in a list taking several — not the spec | `--spacing-menu-box-gap` | 0.625rem (10) |
 | 0b Content | `--container-content` | 67.5rem (1080) |
 | 0b Margin | `--spacing-page-gutter` | 2rem (32) |
 | 0b Gap, within a cluster | `--spacing-gap` | 0.5rem (8) |
 | 0b Gap, between clusters | `--spacing-gap-lg` | 0.875rem (14) |
 | 0b Gap, in a nav row | `--spacing-nav-gap` | 0.6875rem (11) |
+| 0b Gap, an icon to its word inside a 32 control | `--spacing-control-icon-gap` | 0.375rem (6) |
+| 0b Band padding, above and below a band of controls | `--spacing-control-band-inset-y` | 0.875rem (14) |
 | 0b Row | `--height-table-row` | 2.5rem (40) |
 | 0b Row, past the text | `--spacing-table-bleed` | 0.75rem (12) |
 | 0b Column head | `--height-table-header` | 2.25rem (36) |
@@ -240,7 +252,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 1a and 1d's drawings, between two columns — not the spec | `--spacing-table-column-inline` | 1.25rem (20) |
 | 1a's drawing, a column of counts — not the spec | `--width-table-count` | 6rem (96) |
 | 1d's drawing, a column of printed ids — not the spec | `--width-table-id` | 15rem (240) |
-| 1d's drawing, a column of statuses — not the spec | `--width-table-status` | 10rem (160) |
+| 1d's drawing, a column of days — not the spec; the status's 160 until #520 gave the status the room left | `--width-table-date` | 7.5rem (120) |
 | 0b Pager, above its controls, its 1px rule counted | `--spacing-pager-inset-top` | 0.75rem (12) |
 | 0b Pager, under them, 60 in all | `--spacing-pager-inset-bottom` | 1rem (16) |
 | 1a and 1d's drawings, the least room between the rows a pager counts and its page — not the spec | `--spacing-pager-inline` | 1.5rem (24) |
@@ -249,6 +261,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 1a and 1d's drawings, above a list's empty state — not the spec | `--spacing-list-empty-state-inset-top` | 15rem (240) |
 | 0c Face | `--color-selected` | #F0F9FF |
 | 0c Face hover | `--color-selected-hover` | #E6F5FF |
+| 0c Edge, round what sits on the Face — a set filter chip | `--color-selected-border` | #C1DEFD |
 | 0c Accent | `--color-primary` | oklch(0.487 0.216 257) |
 | 0c Accent hover | `--color-primary-hover` | oklch(0.437 0.211 257) |
 | 0f Disabled | `--color-primary-disabled` | the Accent at 40% |
@@ -336,6 +349,18 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 1e, between the blocks of the column beside the pane | `--spacing-dialog-column-stack` | 1.5rem (24) |
 | 1e, between two codes the column lists | `--spacing-dialog-column-list-stack` | 0.25rem (4) |
 | 1e, a numbered step's mark | `--size-dialog-step` | 1.25rem (20) |
+| 0l Width, a dialog that searches a list and picks from it | `--container-dialog-search` | 30rem (480) |
+| 1b's drawing, the height that dialog holds while what it asks changes — not the spec | `--height-dialog-search` | 30.625rem (490) |
+| 0f Field, the borderless row the search a dialog is built around is | `--height-dialog-search-row` | 3.5rem (56) |
+| 1b's drawing, the title's line to that row — not the spec | `--spacing-dialog-search-inset-top` | 0.25rem (4) |
+| 1b's drawing, how far its search mark pulls out — not the spec | `--spacing-dialog-search-icon-bleed` | 0.1875rem (3) |
+| 1b's drawing, between the filter chips at its end — not the spec | `--spacing-dialog-filter-inline` | 0.375rem (6) |
+| 0f Field, a result's hover face past its text, and the row's Rule as wide | `--spacing-dialog-result-bleed` | 0.75rem (12) |
+| 1b's drawing, a result's name to what it offers — not the spec | `--spacing-dialog-result-inline` | 0.875rem (14) |
+| 1b's drawing, the row's Rule to the first result — not the spec | `--spacing-dialog-results-inset-top` | 0.5rem (8) |
+| 1b's drawing, under the results to the dialog's edge — not the spec | `--spacing-dialog-results-inset-bottom` | 0.75rem (12) |
+| 1b's drawing, above the sentence saying nothing matched — not the spec | `--spacing-dialog-results-empty-inset-top` | 6rem (96) |
+| 1b's drawing, the narrowest a dialog's chips stand — not the spec | `--min-width-dialog-chip` | 4.5rem (72) |
 | 0m Rail, collapsed | `--width-rail` | 3.5rem (56) |
 | 0m Rail, expanded | `--width-rail-expanded` | 15.5rem (248) |
 | 0m Rail, inside | `--spacing-rail-inset` | 0.75rem (12) |
@@ -366,6 +391,16 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0n Header right, the least room from a list header's title to its control | `--spacing-list-header-inline` | 2.5rem (40) |
 | 0n Header right, a list header's title to its count | `--spacing-list-count-inline` | 0.5rem (8) |
 | 1a's drawing, between two controls in a list header — not the spec | `--spacing-list-header-control-inline` | 0.75rem (12) |
+| 1a's drawing, the search field in a list's band — not the spec | `--width-list-search` | 16.25rem (260) |
+| 1a's drawing, that field's mark from its start — not the spec | `--spacing-search-icon-inset` | 0.6875rem (11) |
+| 1a's drawing, its words from its start, past the mark — not the spec | `--spacing-search-inset-left` | 2rem (32) |
+| 1a's drawing, its words from its end, clear of the × — not the spec | `--spacing-search-inset-right` | 1.8125rem (29) |
+| 1a's drawing, the × that empties a search or a filter chip — not the spec | `--width-clear-button` | 1.5rem (24) |
+| 1a's drawing, that ×'s mark — not the spec | `--size-clear-icon` | 0.8125rem (13) |
+| 1a's drawing, a filter chip's chevron — not the spec | `--size-filter-chip-chevron` | 0.75rem (12) |
+| 1a's drawing, a filter chip's room on its chevron's side — not the spec | `--spacing-filter-chip-inset-right` | 0.5rem (8) |
+| 1a's drawing, above and below what a band-emptied list says — not the spec | `--spacing-list-emptied-inset-y` | 3.75rem (60) |
+| 1a's drawing, that sentence to the control under it — not the spec | `--spacing-list-emptied-stack` | 0.75rem (12) |
 | 0n Header stack, from the title | `--spacing-title-stack` | 0.625rem (10) |
 | 0n Header stack, to the status | `--spacing-subtitle-stack` | 0.75rem (12) |
 | 0n Rail blocks, from a block's name | `--spacing-heading-sm-stack` | 0.75rem (12) |

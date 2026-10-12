@@ -40,6 +40,12 @@ const MENU_HEADING = "shrink-0 truncate px-control-inset-x py-menu-heading-inset
  * `strong` is set at 500 in even figures, as those lists and 1d's and 1f's draw a job's code.
  * Label and note are two boxes of the row, so assistive tech reads a space between them.
  *
+ * A LIST THAT TAKES SEVERAL VALUES MARKS EACH OPTION WITH A BOX (0a Menu, #520) — the filter
+ * chips over the category list — checked for one taken, 10 before its name as 1a draws it, and
+ * says so as `aria-multiselectable`, each option's `aria-selected` then whether it is taken. A
+ * `detail` is "a value that helps the choice", at its end at Ink 3 and at least 24 from the name
+ * (0a) — a chip's option its count, a suggestion its place.
+ *
  * IN THE TOP LAYER, THROUGH THE POPOVER API, SO NO DIALOG CLIPS IT. A dialog's body scrolls
  * when the screen is short (0l), and a list positioned inside it would be cut at the body's
  * edge or would push the dialog's height. `popover="manual"` puts it above the dialog and
@@ -62,7 +68,7 @@ const MENU_HEADING = "shrink-0 truncate px-control-inset-x py-menu-heading-inset
  * focus on the control: a blur would close the list before the click arrived, and a
  * choice closes on blur by choosing what is under visual focus (the pattern's rule).
  */
-export default function Menu({ id, anchorRef, shown, labelId, heading, options, active, onPick, fit = "field", rows = "lg" }) {
+export default function Menu({ id, anchorRef, shown, labelId, heading, options, active, onPick, fit = "field", rows = "lg", multiselectable = false }) {
     const listRef = useRef(null);
 
     useLayoutEffect(() => {
@@ -112,6 +118,7 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
             id={id}
             role="listbox"
             aria-labelledby={labelId}
+            aria-multiselectable={multiselectable || undefined}
             popover="manual"
             className={`inset-auto mx-0 mt-menu-offset mb-0 flex-col overflow-y-auto rounded-card border border-border bg-white p-menu-inset font-ui text-body-sm text-foreground-default shadow-popover open:flex ${
                 fit === "field" ? "" : "w-max min-w-menu max-w-menu"
@@ -135,7 +142,19 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
                         index === active ? "bg-hover" : ""
                     }`}
                 >
-                    <span className={`${option.note ? "shrink-0" : "min-w-0 truncate"} ${option.strong ? "font-medium tabular-nums" : ""}`}>
+                    {multiselectable && (
+                        <span
+                            aria-hidden="true"
+                            className={`mr-[calc(var(--spacing-menu-box-gap)-var(--spacing-gap))] flex size-icon shrink-0 items-center justify-center rounded-badge border ${
+                                option.selected ? "border-primary bg-primary" : "border-checkbox-border bg-white"
+                            }`}
+                        >
+                            {option.selected && <Icon name="check" className="size-checkbox-mark text-white" />}
+                        </span>
+                    )}
+                    <span
+                        className={`${option.note ? "shrink-0" : `min-w-0 truncate ${multiselectable ? "flex-1" : ""}`} ${option.strong ? "font-medium tabular-nums" : ""}`}
+                    >
                         {option.match ? (
                             <>
                                 {option.match.before}
@@ -147,8 +166,10 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
                         )}
                     </span>
                     {option.note && <span className="min-w-0 flex-1 truncate text-foreground-subtle">{option.note}</span>}
-                    {option.detail && (
-                        <span className="shrink-0 text-body-sm text-foreground-subtle tabular-nums">{option.detail}</span>
+                    {option.detail !== undefined && option.detail !== null && option.detail !== "" && (
+                        <span className="shrink-0 pl-[calc(var(--spacing-menu-value-inline)-var(--spacing-gap))] text-body-sm text-foreground-subtle tabular-nums">
+                            {option.detail}
+                        </span>
                     )}
                     {option.checked && <Icon name="check" className="size-icon-sm shrink-0 text-primary" />}
                 </div>

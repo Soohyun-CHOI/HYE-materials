@@ -173,28 +173,58 @@ and not this word, and stays. `docs/notes/naming.md` has the rows for `tool` /
 ## The catalog's six levels (#514)
 
 The registration names a kind by its type, category and name on its first
-step, and by the size, maker and part number its rows hold on its second; the
-list says the category beside each name, and the two pages that head a kind say
-the type, the category and the class under it (#519, the design's). The level
-words are the issue's; the rest are the closest shape the app already says until
-Design draws the dialog (#520).
+step, and by its size and model on its second; the list says the category
+beside each name, and the two pages that head a kind say the type, the category
+and the class under it (#519, the design's). The level words are the issue's,
+and both steps took 1b's in #520 — the search and its chips, no line under the
+title while it picks, the size and the model as chips, `None` and `Not
+specified` for a choice left empty, and `Choose a size.` and `Choose a model.`
+for one not made — so `All types`, `Choose a name` and its refusal, the path
+beside a name in the search and on the line under the title, the second step's
+placeholders and `No size`, `No maker` and `No part #` left this table then.
 
 ### What a reader sees
 
 | String | Where | Shape it takes |
 |---|---|---|
-| `Type`, `Category`, `Name`, `Size`, `Maker`, `Part #` | the dialog's fields | the issue's words |
-| `All types` | the dialog's type, nothing chosen | `All jobs`, `All categories` |
-| `Choose a name`, `Choose a size`, `Choose a maker`, `Choose a part #` | a field still to choose | `Choose a job` (0l) |
-| `Choose a name.`, `Choose a size.`, `Choose a maker.`, `Choose a part #.` | the refusal under each | `Choose a job.` (0l) |
-| `No size`, `No maker`, `No part #` | a level left empty, as its option and its value | new: one per level |
-| `Tool > DEMO Machining` | beside a name in the search, the line under the title | #507's caption's path |
+| `Type`, `Category`, `Name`, `Size`, `Maker`, `Part #` | the levels | the issue's words |
 | `Tool · Power tools · Class B` | a kind's caption and an asset's | 1d, 1f, 1j (#519) |
 
-**`No maker` is a value and not a placeholder**, which is why it is set in the
-field's ink and `Choose a maker` in the placeholder's: chosen — by the reader,
-or already, where it is the level's one choice — it says the row without a
-maker is the one being added. Beside a maker it is one of the choices, and the
-level starts on `Choose a maker` (#517). One word per level rather than one
-for all: `None` is also what the catalog's check refuses as a value, and a
-screen saying it would read as asking the office to type it.
+**`None` and `Not specified` are values and not placeholders**, which is why
+they are chips of their own, set in Ink 3 as 1b sets them: chosen — by the
+reader, or already, where one is the choice's only option — each says the row
+without a size or a model is the one being added. `None` is also what the
+catalog's check sets aside as a value (`isPlaceholder`), which is why #514 wrote
+one word per level instead; the design's word was taken in #520, since a row
+carrying it never reaches the dialog.
+
+---
+
+## Where a screen says other than the design's files (#520)
+
+What the design's files of 2026-10-12 draw or state, and what the screens say
+instead, each by a decision taken with the issue. **This is the list the next
+sending is held against**: a file that draws one of these the old way again is
+not a change to take.
+
+| The files | The screen | Where |
+|---|---|---|
+| 0h: a date in a table column reads `MM/DD` | `09/22/2026`, the year written out, as 1d draws it | a category's list, `Updated` |
+| 1b lists the names holding what is typed alphabetically | the name typed in full, then those beginning with it, then those holding it elsewhere, each group alphabetical | the registration's search |
+| 1b draws every name alone on its row and under the title | a name in two places says where: `Band Saw` `Machining`; `Pipe Cutter` `Equipment · Cutter` | the registration's search, and its line under the title |
+
+**The year stays** because an item can sit on a shelf from one year to the
+next, and `09/22` would not say which; 1d draws the year, so the spec and the
+drawing disagreed and the drawing's reading was taken.
+
+**The ranking stays #517's** because the office's commonest name is a word many
+others hold: alphabetically `wrench` lists `Adjustable Monkey Wrench` and four
+more before `Wrench`, and the first listed is the one Enter takes.
+
+**A name in two places says where it stands**, in Ink 3 after the name, because
+the catalog holds two `Band Saw`s — one a machining machine, one a power tool —
+and two `Pipe Cutter`s, and 1b's rows would draw each pair as the same row twice.
+The category tells the band saws apart; the pipe cutters share theirs, `Cutter`,
+so they say the type before it. A name in one place says neither, as 1b draws
+it. The line under the title says the same after a dot, since the second step
+is where the reader confirms which of the two was picked.

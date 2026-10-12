@@ -63,6 +63,7 @@
     --spacing-control-inline-inset-x: 0.5rem; /* Side room, 8: either side of an inline summary's words, and of a 26 pill (0f) */
     --spacing-control-inset-x: 0.625rem; /* Side room, 10: either side of a chip's or a menu option's words */
     --spacing-control-lg-inset-x: 1rem; /* Side room, 16: either side of a 36px control's words */
+    --spacing-control-md-inset-x: 0.8125rem; /* 1a, 13: either side of a 32 button's words — from the drawings, not the spec */
     --height-control-xl: 2.5rem; /* 0o, 40: a field or an action on a sign-in page, one step above a dialog's */
     --spacing-input-inset-x: 0.75rem; /* Side room, 12: inside a form field, either side — a dialog's 36 and a sign-in page's 40 (0o) — and a fixed suffix from its edge */
     --spacing-input-message-stack: 0.375rem; /* 0l and 0o, 6: a field's help or refusal under it */
@@ -71,6 +72,17 @@
     --spacing-menu-offset: 0.375rem; /* Menu, 6: under the control that opens it */
     --spacing-menu-inset: 0.3125rem; /* Menu, 5: inside it */
     --spacing-menu-heading-inset-y: 0.375rem; /* Menu, 6: above and below a head that names what follows */
+    --spacing-menu-value-inline: 1.5rem; /* Menu, 24: the least room from an option's name to a value at its end that helps the choice */
+    --spacing-menu-box-gap: 0.625rem; /* 1a, 10: from an option's box to its name, in a list that takes several — from the drawings, not the spec */
+    --size-filter-chip-chevron: 0.75rem; /* 1a, 12: a filter chip's chevron — from the drawings, not the spec */
+    --spacing-filter-chip-inset-right: 0.5rem; /* 1a, 8: a filter chip's room on its chevron's side — from the drawings, not the spec */
+    --width-list-search: 16.25rem; /* 1a, 260: the search field in a list's band — from the drawings, not the spec */
+    --spacing-search-icon-inset: 0.6875rem; /* 1a, 11: that field's search mark from its start — from the drawings, not the spec */
+    --spacing-search-inset-left: 2rem; /* 1a, 32: its words from its start, past the mark — from the drawings, not the spec */
+    --spacing-search-inset-right: 1.8125rem; /* 1a, 29: its words from its end, clear of the × — from the drawings, not the spec */
+    --width-clear-button: 1.5rem; /* 1a, 24: the × that empties a search field or a filter chip — from the drawings, not the spec */
+    --size-clear-icon: 0.8125rem; /* 1a, 13: that ×'s mark — from the drawings, not the spec */
+    --spacing-ghost-inset-x: 0.625rem; /* Ghost, 10: either side of an action that is its word alone, in a row of 36 buttons, and how far it pulls out at the row's end so its ink meets the edge */
 
     /* 0b · Layout — the page's own measure. */
     --container-content: 67.5rem; /* Content, 1080: the centered measure, for short text */
@@ -78,6 +90,8 @@
     --spacing-gap: 0.5rem; /* Gap, 8: within a cluster, and between an icon and its word */
     --spacing-gap-lg: 0.875rem; /* Gap, 14: between clusters */
     --spacing-nav-gap: 0.6875rem; /* Gap, 11: between an icon and its word in a nav row */
+    --spacing-control-icon-gap: 0.375rem; /* Gap, 6: between an icon and its word inside a 32 control */
+    --spacing-control-band-inset-y: 0.875rem; /* Band padding, 14: above and below a band of controls */
     --height-table-row: 2.5rem; /* Row, 40: a table row */
     --spacing-table-bleed: 0.75rem; /* Row, 12: how far a row's hover face, and a sticky ground over rows, reach past the text */
     --height-table-header: 2.25rem; /* Column head, 36: every table's head row */
@@ -89,18 +103,21 @@
     --spacing-table-column-inline: 1.25rem; /* 1a and 1d, 20: between two columns — from the drawings, not the spec */
     --width-table-count: 6rem; /* 1a, 96: a column of counts — from the drawings, not the spec */
     --width-table-id: 15rem; /* 1d, 240: a column of printed ids — from the drawings, not the spec */
-    --width-table-status: 10rem; /* 1d, 160: a column of statuses — from the drawings, not the spec */
+    --width-table-date: 7.5rem; /* 1d, 120: a column of days — from the drawings, not the spec */
     --spacing-pager-inset-top: 0.75rem; /* Pager, 12: above its controls, counting its 1px rule */
     --spacing-pager-inset-bottom: 1rem; /* Pager, 16: under them, so 60 in all */
     --spacing-pager-inline: 1.5rem; /* 1a and 1d, 24: the least room between the rows a pager counts and its page — from the drawings, not the spec */
     --spacing-pager-step-gap: 0.625rem; /* 1a and 1d, 10: from the page to its two steps — from the drawings, not the spec */
     --spacing-pager-step-bleed: 0.8125rem; /* 1a and 1d, 13: how far the steps pull out so the last chevron's ink meets the text's edge — from the drawings, not the spec */
     --spacing-list-empty-state-inset-top: 15rem; /* 1a and 1d, 240: above a list's empty state — from the drawings, not the spec */
+    --spacing-list-emptied-inset-y: 3.75rem; /* 1a, 60: above and below what a list says once its band has emptied it — from the drawings, not the spec */
+    --spacing-list-emptied-stack: 0.75rem; /* 1a, 12: from that sentence to the control under it — from the drawings, not the spec */
 
     /* 0c · Blue — a face pair and an accent. Blue marks what is chosen: what is
        selected, current, or the single action a screen exists for (0f Chosen). */
     --color-selected: #F0F9FF; /* Face: the current nav item, a set filter chip, the account avatar, a selected table row */
     --color-selected-hover: #E6F5FF; /* Face hover: pointing at something already on the face */
+    --color-selected-border: #C1DEFD; /* Edge: the border of anything sitting on the face — a set filter chip */
     --color-primary: oklch(0.487 0.216 257); /* Accent: the primary action, a current icon, a focused caret */
     --color-primary-hover: oklch(0.437 0.211 257); /* Accent hover: a filled action under the pointer */
     --color-primary-disabled: color-mix(in oklab, var(--color-primary) 40%, transparent); /* 0f Disabled: a filled action that cannot act yet */
@@ -231,6 +248,18 @@
     --spacing-dialog-column-stack: 1.5rem; /* 1e, 24: between the blocks of the column beside a preview */
     --spacing-dialog-column-list-stack: 0.25rem; /* 1e, 4: between two codes that column lists */
     --size-dialog-step: 1.25rem; /* 1e, 20: the round mark a numbered step in a dialog takes */
+    --container-dialog-search: 30rem; /* Width, 480: a dialog that searches a list and picks from it, and every dialog sharing its name */
+    --height-dialog-search: 30.625rem; /* 1b, 490: the fixed height that dialog holds while its choices change with what was picked — from the drawings, not the spec */
+    --height-dialog-search-row: 3.5rem; /* 0f Field, 56: the borderless row the search a dialog is built around is */
+    --spacing-dialog-search-inset-top: 0.25rem; /* 1b, 4: from the title's line to that row — from the drawings, not the spec */
+    --spacing-dialog-search-icon-bleed: 0.1875rem; /* 1b, 3: how far that row's search mark pulls out so its ink meets the edge — from the drawings, not the spec */
+    --spacing-dialog-filter-inline: 0.375rem; /* 1b, 6: between the filter chips at that row's end — from the drawings, not the spec */
+    --spacing-dialog-result-bleed: 0.75rem; /* 0f Field, 12: a result's hover face past its text, and the row's Rule as wide as that face */
+    --spacing-dialog-result-inline: 0.875rem; /* 1b, 14: from a result's name to what it offers — from the drawings, not the spec */
+    --spacing-dialog-results-inset-top: 0.5rem; /* 1b, 8: from the row's Rule to the first result — from the drawings, not the spec */
+    --spacing-dialog-results-inset-bottom: 0.75rem; /* 1b, 12: under the results, to the dialog's edge — from the drawings, not the spec */
+    --spacing-dialog-results-empty-inset-top: 6rem; /* 1b, 96: above the sentence saying no result matches — from the drawings, not the spec */
+    --min-width-dialog-chip: 4.5rem; /* 1b, 72: the narrowest a dialog's chips stand, however short their longest option — from the drawings, not the spec */
 
     /* 0m · Navigation — the frame every screen sits in. From Tailwind's xl, the
        design's 1280 window, the expanded rail pushes the page. */

@@ -23,6 +23,9 @@ const END_ROOM_WITH_BAR =
 // under either. And at the foot, the pager, and the selection bar over it while it stands.
 const UNDER_HEAD =
     "[--table-head-top:calc(var(--spacing-list-header-inset-top)+var(--height-control-lg)+var(--spacing-list-header-inset-bottom))] scroll-pt-[calc(var(--table-head-top)+var(--height-table-header))]";
+// 1a's head with its band of controls under it (#520): the band's 32 controls and the 14 under them.
+const UNDER_HEAD_AND_BAND =
+    "[--table-head-top:calc(var(--spacing-list-header-inset-top)+var(--height-control-lg)+var(--spacing-list-header-inset-bottom)+var(--height-control)+var(--spacing-control-band-inset-y))] scroll-pt-[calc(var(--table-head-top)+var(--height-table-header))]";
 const UNDER_BAR = "[--table-head-top:var(--height-breadcrumb)] scroll-pt-[calc(var(--table-head-top)+var(--height-table-header))]";
 const KEEP_CLEAR_OF_PAGER = "scroll-pb-[calc(var(--spacing-pager-inset-top)+var(--height-control)+var(--spacing-pager-inset-bottom))]";
 const KEEP_CLEAR_OF_BAR =
@@ -75,8 +78,12 @@ const KEEP_CLEAR_OF_BAR =
  * `overlay` stands 12 above the pager, centered on the list — the selection bar — and is
  * drawn only with a pager; `overlayShown` is whether it is showing, which the end room
  * follows.
+ *
+ * `band` IS 1a's FILTER BAND (#520): the list's controls in a row 8 apart under the head, 14
+ * over the column head, held at the top with the head as the one Sticky surface 0i draws — so
+ * the column head holds under both. A list with no band holds its column head under the head.
  */
-export default function ListFrame({ top, header, footer, overlay, overlayShown = false, children }) {
+export default function ListFrame({ top, header, band, footer, overlay, overlayShown = false, children }) {
     const laneRef = useRef(null);
     const topRef = useRef(null);
     const headerRef = useRef(null);
@@ -109,7 +116,7 @@ export default function ListFrame({ top, header, footer, overlay, overlayShown =
                 ref={laneRef}
                 data-title-gone={titleGone ? "" : undefined}
                 className={`group/list-frame min-h-0 flex-1 overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable] ${SCROLL_LANE} ${
-                    top ? UNDER_BAR : UNDER_HEAD
+                    top ? UNDER_BAR : band ? UNDER_HEAD_AND_BAND : UNDER_HEAD
                 } ${footer ? (overlayShown ? KEEP_CLEAR_OF_BAR : KEEP_CLEAR_OF_PAGER) : ""}`}
             >
                 {top ? (
@@ -120,7 +127,10 @@ export default function ListFrame({ top, header, footer, overlay, overlayShown =
                         <div ref={headerRef}>{header}</div>
                     </>
                 ) : (
-                    <div className="sticky top-0 z-10 bg-background-translucent backdrop-blur-sm">{header}</div>
+                    <div className="sticky top-0 z-10 bg-background-translucent backdrop-blur-sm">
+                        {header}
+                        {band && <div className={`${LIST_MEASURE} flex items-center gap-gap pb-control-band-inset-y`}>{band}</div>}
+                    </div>
                 )}
                 <div className={LIST_MEASURE}>{children}</div>
                 {footer && <div aria-hidden="true" className={overlayShown ? END_ROOM_WITH_BAR : END_ROOM} />}

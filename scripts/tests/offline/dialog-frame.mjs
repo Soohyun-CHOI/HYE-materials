@@ -59,7 +59,10 @@ import {
     menuIndex,
     menuKey,
     movedIndex,
+    multiSelectKey,
     numberFieldText,
+    radioKey,
+    searchResultsKey,
     selectOnlyKey,
     stepNumber,
     typeaheadIndex,
@@ -180,6 +183,59 @@ export function run({ check, assert, log }) {
         ["Tab", {}, true, null],
     ])
         check(`  ${open ? "open" : "shut"}, ${JSON.stringify(name)}${mods.altKey ? " with Alt" : mods.ctrlKey ? " with Ctrl" : ""}`, selectOnlyKey(key(name, mods), open), expected);
+    // A LIST TAKING SEVERAL (#520), a filter chip's: the same keys, but Enter and Space take or
+    // give back the option and leave the list open, and Alt+Up closes taking nothing.
+    log("a choice taking several values keeps its list open while it takes them (#520):");
+    for (const [name, mods, open, expected] of [
+        ["ArrowDown", {}, false, "open"],
+        ["Enter", {}, false, "open"],
+        [" ", {}, false, "open"],
+        ["Enter", {}, true, "toggle"],
+        [" ", {}, true, "toggle"],
+        ["ArrowUp", { altKey: true }, true, "close"],
+        ["Escape", {}, true, "close"],
+        ["ArrowDown", {}, true, "next"],
+        ["Home", {}, true, "first"],
+        ["p", {}, true, "type"],
+        ["Tab", {}, true, null],
+    ])
+        check(`  ${open ? "open" : "shut"}, ${JSON.stringify(name)}${mods.altKey ? " with Alt" : ""}`, multiSelectKey(key(name, mods), open), expected);
+    // THE SEARCH A DIALOG IS BUILT AROUND (#520), 1b's: its results always show, the arrows move
+    // through them and wrap, Enter takes the one under visual focus and is stopped either way,
+    // and Escape and Tab are not its — the dialog's, and the filters' after it in the row.
+    log("a dialog's search moves through results that always show, and Enter takes one (#520):");
+    for (const [name, state, expected] of [
+        ["ArrowDown", { active: -1, count: 3 }, { active: 0 }],
+        ["ArrowDown", { active: 0, count: 3 }, { active: 1 }],
+        ["ArrowDown", { active: 2, count: 3 }, { active: 0 }],
+        ["ArrowUp", { active: -1, count: 3 }, { active: 2 }],
+        ["ArrowUp", { active: 0, count: 3 }, { active: 2 }],
+        ["ArrowUp", { active: 2, count: 3 }, { active: 1 }],
+        ["ArrowDown", { active: -1, count: 0 }, null],
+        ["Enter", { active: 1, count: 3 }, { accept: 1 }],
+        ["Enter", { active: -1, count: 3 }, { accept: null }],
+        ["Enter", { active: 4, count: 3 }, { accept: null }],
+        ["Escape", { active: 0, count: 3 }, null],
+        ["Tab", { active: 0, count: 3 }, null],
+        ["a", { active: 0, count: 3 }, null],
+    ])
+        check(`  ${JSON.stringify(name)} at ${state.active} of ${state.count}`, JSON.stringify(searchResultsKey(key(name), state)), JSON.stringify(expected));
+    // CHIPS TAKING ONE VALUE ARE A RADIO GROUP (#520), 1b's size and model: every arrow moves and
+    // chooses, the down and right ones on and the up and left ones back, and Space chooses.
+    log("a group of chips taking one value moves and chooses by the arrows (#520):");
+    for (const [name, expected] of [
+        ["ArrowDown", "next"],
+        ["ArrowRight", "next"],
+        ["ArrowUp", "previous"],
+        ["ArrowLeft", "previous"],
+        [" ", "check"],
+        ["Enter", null],
+        ["Tab", null],
+        ["Home", null],
+        ["a", null],
+    ])
+        check(`  ${JSON.stringify(name)}`, radioKey(key(name)), expected);
+    check("  and they wrap at both ends", `${menuIndex(3, 4, "next")} ${menuIndex(0, 4, "previous")}`, "0 3");
     log("and it moves within the list, stopping at its ends:");
     check("  down from nothing reaches the first", movedIndex(-1, 4, "next"), 0);
     check("  down from the last stays", movedIndex(4, 4, "next"), 4);
@@ -291,8 +347,65 @@ export function run({ check, assert, log }) {
     // dialog around it closing on one press.
     check(
         "  each stopping a key it answers, so a dialog around it stays open",
-        ["Choice", "Combobox"].filter((name) => !calls(functionNamed(controls.ast, name) ?? {}).has("event.stopPropagation")).join(", "),
+        ["Choice", "Combobox", "FilterChip"].filter((name) => !calls(functionNamed(controls.ast, name) ?? {}).has("event.stopPropagation")).join(", "),
         ""
+    );
+    // THE FILTER CHIP AND THE SEARCH FIELD (#520), 1a's band. The chip is `Choice`'s pattern
+    // taking several: a combobox naming its list and its label, the multi-value keys, a list
+    // marked as taking several and counting each option, a blur that takes nothing, and a ×
+    // that empties it and hands focus back to the chip, which is one element in both looks.
+    // The search field says what it searches as its name, and its × keeps the caret in it.
+    const sourceOfFunction = (name) => {
+        const fn = functionNamed(controls.ast, name);
+        return fn ? controls.source.slice(fn.start, fn.end) : "";
+    };
+    const chipSource = sourceOfFunction("FilterChip");
+    check(
+        "a filter chip is the select-only combobox taking several, its list counting each option, and leaving it takes nothing (#520)",
+        [
+            /const action = single \? selectOnlyKey\(event, open\) : multiSelectKey\(event, open\);/.test(chipSource),
+            /role="combobox"/.test(chipSource) && /aria-haspopup="listbox"/.test(chipSource) && /aria-labelledby=\{labelId\}/.test(chipSource),
+            /rows="sm"\s+multiselectable=\{!single\}\s+options=/.test(chipSource) && /detail: option\.count,\s*selected: taken\.has\(option\.value\),/.test(chipSource),
+            /onBlur=\{\(\) => \{\s*if \(single && open\) choose\(active\);\s*setOpen\(false\);\s*\}\}/.test(chipSource),
+            /setOpen\(false\);\s*onChange\(\[\]\);\s*chipRef\.current\?\.focus\(\);/.test(chipSource),
+        ].join(" "),
+        "true true true true true"
+    );
+    // ONE TAKING ONE VALUE IS `Choice`'s PATTERN TO THE LETTER (#520), 1b's type and category: its
+    // list checks the value held and draws no box, a pick chooses and closes, leaving chooses what
+    // is under visual focus (above), it opens on the value held, and holding one it says the value
+    // alone — and its list opens where its caller says, at the end of a row.
+    check(
+        "  and one taking one value checks it, chooses and closes, and says the value alone (#520)",
+        [
+            /checked: single && index === chosen,/.test(chipSource),
+            /single\s*\?\s*\(index\) => \{\s*choose\(index\);\s*setOpen\(false\);\s*\}\s*:\s*toggle/.test(chipSource),
+            /case "closeSelect":\s*choose\(active\);\s*setOpen\(false\);/.test(chipSource),
+            /const opening = \(\) => \(single \? chosen :/.test(chipSource),
+            /\{!single && <span className="text-foreground-subtle">\{label\}<\/span>\}/.test(chipSource),
+            /fit=\{fit\}/.test(chipSource),
+        ].join(" "),
+        "true true true true true true"
+    );
+    const searchSource = sourceOfFunction("SearchField");
+    check(
+        "  and a search field names itself by what it searches, its × emptying it with the caret kept (#520)",
+        [
+            /<div role="search"/.test(searchSource),
+            /aria-label=\{label\}\s*placeholder=\{label\}/.test(searchSource),
+            /onChange\(""\);\s*inputRef\.current\?\.focus\(\);/.test(searchSource),
+        ].join(" "),
+        "true true true"
+    );
+    const multiMenuSource = parseFile(MENU).source;
+    check(
+        "  the list says it takes several and draws each option's box, and a value at its end keeps 0a's 24 (#520)",
+        [
+            /aria-multiselectable=\{multiselectable \|\| undefined\}/.test(multiMenuSource),
+            /\{multiselectable && \(\s*<span\s+aria-hidden="true"/.test(multiMenuSource) && /option\.selected \? "border-primary bg-primary" : "border-checkbox-border bg-white"/.test(multiMenuSource),
+            /pl-\[calc\(var\(--spacing-menu-value-inline\)-var\(--spacing-gap\)\)\]/.test(multiMenuSource),
+        ].join(" "),
+        "true true true"
     );
     const [explainedButton] = elements(functionNamed(controls.ast, "Button") ?? {}, "button");
     assert(
@@ -354,7 +467,7 @@ export function run({ check, assert, log }) {
             ].join(" "),
             textButton: /bordered:\s*"max-sm:in-data-\[sheet\]:border-0 max-sm:in-data-\[sheet\]:bg-transparent max-sm:in-data-\[sheet\]:not-aria-disabled:active:opacity-mobile-pressed"/.test(sheetVariants),
             applied: ["Button", "ButtonLink"].every((name) =>
-                /\$\{BUTTON\} \$\{BUTTON_SIZE\[size\]\} \$\{BUTTON_VARIANT\[variant\]\} \$\{SHEET_BUTTON\} \$\{SHEET_BUTTON_VARIANT\[variant\]\}/.test(functionSource(name))
+                /\$\{BUTTON\} \$\{BUTTON_SIZE\[size\]\} \$\{insetOf\(variant, size\)\} \$\{BUTTON_VARIANT\[variant\]\} \$\{SHEET_BUTTON\} \$\{SHEET_BUTTON_VARIANT\[variant\]\}/.test(functionSource(name))
             ),
             label: /const FIELD_LABEL = "[^"]*max-sm:in-data-\[sheet\]:text-mobile-body-sm"/.test(source),
             refusal: /role="alert"[\s\S]*max-sm:in-data-\[sheet\]:text-mobile-body-sm/.test(functionSource("Refusal")),
@@ -535,7 +648,7 @@ export function run({ check, assert, log }) {
     // is — in the list as two boxes of the row, and in the field the same way (1b, 1i). A list
     // with a note in it, and a level's, sets each label at 500 in even figures (1b, 1d, 1f, 1i).
     const noteOf = ({ list, choice }) => [
-        /<span className=\{`\$\{option\.note \? "shrink-0" : "min-w-0 truncate"\} \$\{option\.strong \? "font-medium tabular-nums" : ""\}`\}>/.test(list),
+        /<span\s+className=\{`\$\{option\.note \? "shrink-0" : `min-w-0 truncate \$\{multiselectable \? "flex-1" : ""\}`\} \$\{option\.strong \? "font-medium tabular-nums" : ""\}`\}\s*>/.test(list),
         /\{option\.note && <span className="min-w-0 flex-1 truncate text-foreground-subtle">\{option\.note\}<\/span>\}/.test(list),
         /const strong = look === "crumb" \|\| options\.some\(\(option\) => option\.note\);/.test(choice),
         /note: option\.note,\s*strong,/.test(choice),
@@ -736,6 +849,8 @@ export function run({ check, assert, log }) {
             return text;
         };
         const compact = constant("COMPACT");
+        const width = constant("WIDTH");
+        const fixed = constant("FIXED");
         const withPreview = constant("WITH_PREVIEW");
         const paneSource = (() => {
             let found = "";
@@ -749,7 +864,19 @@ export function run({ check, assert, log }) {
             return found;
         })();
         return {
-            compact: [/\bp-dialog-inset\b/.test(compact), /var\(--container-dialog\)/.test(compact)].join(" "),
+            compact: [/\bp-dialog-inset\b/.test(compact), /compact: "max-w-\[min\(var\(--container-dialog\),/.test(width)].join(" "),
+            // A dialog that searches a list and picks from it (#520): 0l's 480, and 1b's 490 held
+            // while it picks, with no room of its own — the head, the body and the actions each
+            // take their 24 inside it, and what it holds takes the height left.
+            search: [
+                /search: "max-w-\[min\(var\(--container-dialog-search\),/.test(width),
+                /var\(--height-dialog-search\)/.test(fixed) && !/\bp-dialog-inset\b/.test(fixed),
+                /\$\{wide \? WIDTH\.search : WIDTH\.compact\} \$\{fixed \? FIXED : COMPACT\}/.test(source),
+                /data-fixed=\{fixed \? "" : undefined\}/.test(source),
+                // The head, the body, the fields on the actions (`foot`) and the actions.
+                (source.match(/\bin-data-fixed:px-dialog-inset\b/g) ?? []).length === 4,
+                /flex min-h-0 flex-col in-data-fixed:grow/.test(source),
+            ].join(" "),
             withPreview: [
                 /var\(--container-dialog-preview\)/.test(withPreview),
                 /var\(--height-dialog-preview\)/.test(withPreview),
@@ -783,7 +910,7 @@ export function run({ check, assert, log }) {
             bodyContained: (() => {
                 const fn = functionNamed(ast, "DialogBody");
                 const body = fn ? source.slice(fn.start, fn.end) : "";
-                return /ref=\{scrollerRef\}\s*className="[^"]*\boverflow-y-auto overscroll-contain\b/.test(body);
+                return /ref=\{scrollerRef\}\s*className=\{`[^`]*\boverflow-y-auto overscroll-contain\b/.test(body);
             })(),
             bodyGrows: (() => {
                 let grows = false;
@@ -799,6 +926,7 @@ export function run({ check, assert, log }) {
     };
     const builds = buildFacts(frame);
     check("  the Compact build keeps its 24 all round, at 420", builds.compact, "true true");
+    check("  a dialog that searches is 480, held at 490 while it picks, its parts taking their own room (#520)", builds.search, "true true true true true true");
     check("  a preview's build is 780 by 520 with a 440 pane, and no room of its own", builds.withPreview, "true true true true");
     check("  its pane is on the Field ground, scrolls in 0i's reserved lane with its own room, and stops at its end (#495)", builds.pane, "true true true true true");
     check("  and the column beside it takes the Compact build's room, its body scrolling across it (#495)", builds.column, "true true true true");
@@ -807,6 +935,82 @@ export function run({ check, assert, log }) {
     // column is its content's height, so there is none to take and nothing moves.
     check("  the body takes the column's spare room, so the actions stand at its foot", builds.bodyGrows, true);
     check("a dialog's body stops at its end rather than scrolling the page behind it (#495)", builds.bodyContained, true);
+
+    // THE SEARCH A DIALOG IS BUILT AROUND (#520), 1b's first step: the field a combobox over
+    // results that always show — expanded, naming them, pointing at the one under visual focus —
+    // its keys `searchResultsKey`'s, the first result held once something is typed and a keystroke
+    // handing visual focus back to it, a result pressed with its mousedown stopped so focus stays
+    // in the field, and the whole marked as the dialog's body, so focus that falls in the dialog
+    // comes back to the field. A secondary action stands at the actions' left (1b's `Back`), a
+    // ghost pulled out by its side room, and a ghost is its word alone in Ink, 10 either side.
+    const searchFn = functionNamed(frame.ast, "DialogSearch");
+    const searchPart = searchFn ? frame.source.slice(searchFn.start, searchFn.end) : "";
+    check(
+        "a dialog's search is a combobox over results that always show, the first held once something is typed (#520)",
+        [
+            /role="combobox"\s*aria-expanded="true"\s*aria-controls=\{listId\}\s*aria-autocomplete="list"\s*aria-activedescendant=\{active >= 0 \? `\$\{listId\}-\$\{active\}` : undefined\}/.test(searchPart),
+            calls(searchFn ?? {}).has("searchResultsKey"),
+            /const active = moved >= 0 && moved < count \? moved : value\.trim\(\) !== "" && count > 0 \? 0 : -1;/.test(searchPart),
+            /const type = \(next\) => \{\s*setMoved\(-1\);\s*onChange\(next\);/.test(searchPart),
+            /role="option"\s*aria-selected=\{index === active \? "true" : "false"\}\s*onMouseDown=\{\(event\) => event\.preventDefault\(\)\}/.test(searchPart),
+            /<div data-dialog-body="" /.test(searchPart),
+        ].join(" "),
+        "true true true true true true"
+    );
+    const actionsFn = functionNamed(frame.ast, "DialogActions");
+    const actionsPart = actionsFn ? frame.source.slice(actionsFn.start, actionsFn.end) : "";
+    const controlSource = parseFile(CONTROLS).source;
+    check(
+        "  a secondary action stands first at the actions' left, pulled out, and a ghost is its word alone (#520)",
+        [
+            /\{secondary && <div className="mr-auto -ml-ghost-inset-x flex">\{secondary\}<\/div>\}\s*\{children\}/.test(actionsPart),
+            /ghost: "text-foreground-default not-disabled:not-aria-disabled:hover:bg-hover",/.test(controlSource),
+            /const insetOf = \(variant, size\) => \(variant === "ghost" \? "px-ghost-inset-x" : BUTTON_INSET\[size\]\);/.test(controlSource),
+        ].join(" "),
+        "true true true"
+    );
+    // 0l's CHIPS (#520), 1b's size and model: a radio group named by its label, one stop for Tab on
+    // the chip chosen or the first, the arrows moving and choosing through `radioKey`, an equal-width
+    // grid each as wide as the widest label measured once drawn and once the faces load, 72 at
+    // least; a refusal at the right end of the label's line; the chosen chip on the Face in its Edge
+    // and an empty option in Ink 3. And a body holding its dialog's height: what scrolls reserves
+    // 0i's lane, and the fields always asked sit under it, outside the scroll, 14 below it.
+    const chipFn = functionNamed(parseFile(CONTROLS).ast, "ChipChoice");
+    const chipPart = chipFn ? controlSource.slice(chipFn.start, chipFn.end) : "";
+    check(
+        "a group of chips is a radio group, one Tab stop, the arrows choosing, each as wide as the widest (#520)",
+        [
+            /role="radiogroup"\s*aria-labelledby=\{labelId\}/.test(chipPart),
+            /role="radio"\s*aria-checked=\{on\}/.test(chipPart),
+            /tabIndex=\{on \|\| \(chosen < 0 && index === 0\) \? 0 : -1\}/.test(chipPart),
+            calls(chipFn ?? {}).has("radioKey") && /const next = action === "check" \? index : menuIndex\(index, options\.length, action\);\s*choose\(next\);/.test(chipPart),
+            /minmax\(min\(100%,max\(var\(--min-width-dialog-chip\),calc\(var\(--chip-label-width,0px\)\+2\*var\(--spacing-input-inset-x\)\+2px\)\)\),1fr\)/.test(chipPart),
+            /each\.scrollWidth/.test(chipPart) && /grid\.style\.setProperty\("--chip-label-width"/.test(chipPart) && /document\.fonts\?\.ready\.then\(measure\)/.test(chipPart),
+        ].join(" "),
+        "true true true true true true"
+    );
+    check(
+        "  its refusal on its label's line, the chosen chip on the Face, an empty option in Ink 3 (#520)",
+        [
+            /justify-between[^"]*"[\s\S]*?role="alert" className="text-body-sm text-danger"/.test(chipPart),
+            /chosen: "border-selected-border bg-selected not-aria-disabled:hover:bg-selected-hover"/.test(controlSource),
+            /option\.empty \? "text-foreground-subtle" : "text-foreground-default"/.test(chipPart),
+        ].join(" "),
+        "true true true"
+    );
+    const bodyFn = functionNamed(frame.ast, "DialogBody");
+    const bodyPart = bodyFn ? frame.source.slice(bodyFn.start, bodyFn.end) : "";
+    check(
+        "  and a body holding its height scrolls in 0i's lane, the fields always asked under it (#520)",
+        [
+            /lane\s*\?\s*`pr-\[calc\(var\(--spacing-dialog-inset\)-var\(--spacing-scrollbar-gutter\)\)\] pl-dialog-inset \[scrollbar-gutter:stable\] \$\{SCROLL_LANE\}`/.test(bodyPart),
+            /\{foot && <div className="shrink-0 pt-gap-lg in-data-fixed:px-dialog-inset">\{foot\}<\/div>\}\s*<\/div>\s*\);/.test(bodyPart),
+            /\{hidden\.below && [^\n]*\n\s*<\/div>\s*\{foot &&/.test(bodyPart),
+            // What scrolls is what the dialog holds and nothing more: the fields never scroll.
+            /`\}\s*>\s*\{children\}\s*<\/div>\s*\{hidden\.above/.test(bodyPart),
+        ].join(" "),
+        "true true true true"
+    );
 
     // THE PHONE'S SHEET, 0l's CONFIRM, AND A DIALOG TAKEN AWAY OPEN (#458). Below the phone's
     // edge a dialog marked `sheet` is Tools 0a's: at the screen's foot and its width, the top
@@ -887,7 +1091,12 @@ export function run({ check, assert, log }) {
     check(
         "a sheet's body, sentence and actions take the phone's sizes from its mark",
         [
-            partClass("DialogBody", (c) => /max-sm:in-data-\[sheet=drawer\]:gap-mobile-field-stack/.test(c)),
+            (() => {
+                // The body's scroller writes its class as a template since #520, its sides chosen
+                // by whether it reserves 0i's lane, so it is read off the function's source.
+                const fn = functionNamed(frame.ast, "DialogBody");
+                return Boolean(fn) && /max-sm:in-data-\[sheet=drawer\]:gap-mobile-field-stack/.test(frame.source.slice(fn.start, fn.end));
+            })(),
             partClass("DialogMessage", (c) => /max-sm:in-data-\[sheet\]:text-mobile-body/.test(c)),
             partClass("DialogActions", (c) => /max-sm:in-data-\[sheet\]:flex-col-reverse max-sm:in-data-\[sheet\]:gap-mobile-drawer-action-stack/.test(c)),
             partClass("DialogActions", (c) => /max-sm:in-data-\[sheet\]:pt-mobile-drawer-body-stack/.test(c)),
@@ -1426,16 +1635,21 @@ export function run({ check, assert, log }) {
     check("  a sentence describing nothing is seen", plantedFrame.describes, "false false false");
     check("  and actions held on one line are seen", plantedFrame.wraps, false);
     // The build reader is seen to fail on a frame that gives a preview the Compact build's
-    // room and width and draws it in a pane on white that does not scroll.
+    // room and width and draws it in a pane on white that does not scroll — and since #520 on
+    // a dialog that searches drawn at 420 with the Compact build's room, no height held, and
+    // nothing marking it for what it holds.
     const plantedBuilds = buildFacts(
         parseSource(
-            'const COMPACT = "max-w-[min(var(--container-dialog),100vw)] flex-col";\n' +
+            'const WIDTH = { compact: "max-w-[min(var(--container-dialog),100vw)]", search: "max-w-[min(var(--container-dialog),100vw)]" };\n' +
+                'const COMPACT = "flex-col";\n' +
+                'const FIXED = "flex-col p-dialog-inset";\n' +
                 'const WITH_PREVIEW = "max-w-[min(var(--container-dialog),100vw)] p-dialog-inset";\n' +
                 'export function DialogFrame({ preview }) { return <dialog><div className="bg-white">{preview}</div></dialog>; }\n',
             "<planted-builds>"
         )
     );
     check("  a Compact build with no room of its own is seen", plantedBuilds.compact, "false true");
+    check("  a dialog that searches at 420, with no height held and nothing marked, is seen", plantedBuilds.search, "false false false false false false");
     check("  a preview's build at the Compact width with its room is seen", plantedBuilds.withPreview, "false false false false");
     check("  a pane on white that does not scroll is seen", plantedBuilds.pane, "false false false false false");
     check("  and a column taking no room is seen", plantedBuilds.column, "false false false false");

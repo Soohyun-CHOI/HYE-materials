@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { createContext, useContext, useId, useRef, useState } from "react";
+import { createContext, useContext, useId, useLayoutEffect, useRef, useState } from "react";
 import {
     CONTROLS_COPY as COPY,
     buttonBusyState,
     editableComboboxKey,
+    menuIndex,
     movedIndex,
+    multiSelectKey,
     numberFieldText,
+    radioKey,
     selectOnlyKey,
     stepNumber,
     typeaheadIndex,
@@ -194,23 +197,32 @@ export function Refusal({ centered = false, children }) {
 const BUTTON = "relative items-center justify-center whitespace-nowrap rounded-control font-ui font-semibold";
 
 // 0a's Commitment, 36, and a sign-in page's action, 40 and its column's width — and below
-// the phone's edge, the phone's 50 at 17 with its rounder corner (Tools 0a Button).
+// the phone's edge, the phone's 50 at 17 with its rounder corner (Tools 0a Button). And 0a's
+// Control, 32 at 13, which 1a draws under a list a band has emptied (#520).
 const BUTTON_SIZE = {
-    lg: "inline-flex h-control-lg shrink-0 px-control-lg-inset-x text-body",
-    xl: "flex h-control-xl w-full px-control-lg-inset-x text-body max-sm:h-mobile-button max-sm:rounded-mobile-control max-sm:text-mobile-heading",
+    md: "inline-flex h-control shrink-0 text-body-sm",
+    lg: "inline-flex h-control-lg shrink-0 text-body",
+    xl: "flex h-control-xl w-full text-body max-sm:h-mobile-button max-sm:rounded-mobile-control max-sm:text-mobile-heading",
 };
+
+// The room either side of the words, by size — and a ghost's own, whatever its size (#520).
+const BUTTON_INSET = { md: "px-control-md-inset-x", lg: "px-control-lg-inset-x", xl: "px-control-lg-inset-x" };
+const insetOf = (variant, size) => (variant === "ghost" ? "px-ghost-inset-x" : BUTTON_INSET[size]);
 
 // 0f: a filled action hovers to its Accent hover and keeps its white ink, and one that
 // cannot act yet keeps its fill at 40% and takes no hover; a bordered one fills at Wash
 // and leaves its Edge alone. A destructive commitment is filled red and hovers to Red's
-// Accent hover (0f Destructive, 0d) — the retirement's (#458). A busy one of any kind takes
-// no hover (0f Working), and neither does one locked with it (#469): both are
-// `aria-disabled`, which is what the hover is written against. It is written against what is
-// NOT disabled rather than what is enabled, so a link drawn as an action hovers too.
+// Accent hover (0f Destructive, 0d) — the retirement's (#458). A ghost is its word alone in
+// Ink, 10 either side, and fills at Hover (Ghost, 0f Faced) — a dialog's `Back` (1b, #520). A
+// busy one of any kind takes no hover (0f Working), and neither does one locked with it
+// (#469): both are `aria-disabled`, which is what the hover is written against. It is written
+// against what is NOT disabled rather than what is enabled, so a link drawn as an action
+// hovers too.
 const BUTTON_VARIANT = {
     filled: "bg-primary text-white not-disabled:not-aria-disabled:hover:bg-primary-hover disabled:bg-primary-disabled",
     bordered: "border border-border bg-white text-foreground-default not-disabled:not-aria-disabled:hover:bg-hover-subtle",
     danger: "bg-danger text-white not-disabled:not-aria-disabled:hover:bg-danger-hover",
+    ghost: "text-foreground-default not-disabled:not-aria-disabled:hover:bg-hover",
 };
 
 // In a sheet below the phone's edge (Tools 0a Button, #458): full width, 48, 17 at 600, at
@@ -224,6 +236,7 @@ const SHEET_BUTTON_VARIANT = {
     bordered:
         "max-sm:in-data-[sheet]:border-0 max-sm:in-data-[sheet]:bg-transparent max-sm:in-data-[sheet]:not-aria-disabled:active:opacity-mobile-pressed",
     danger: "max-sm:in-data-[sheet]:not-aria-disabled:active:bg-danger-hover",
+    ghost: "",
 };
 
 /**
@@ -277,7 +290,8 @@ function ButtonLabel({ size, busyLabel, children }) {
 /**
  * An action (0a's Commitment, 36, or `size="xl"`, a sign-in page's 40): `filled` for the
  * one a screen or a dialog exists for, `danger` for a dialog's commitment that cannot be
- * undone, `bordered` for the rest.
+ * undone, `ghost` for one that is its word alone — a dialog's `Back`, at `md` (#520) — and
+ * `bordered` for the rest.
  *
  * A DISABLED ACTION SAYS WHY BEFORE IT, ON ITS OWN LINE (0f Disabled): the reason sits 14
  * before the button at 13 and Ink 3, and the button names it as its description, so a
@@ -317,7 +331,7 @@ export function Button({ variant = "filled", size = "lg", type = "button", disab
             aria-busy={working || undefined}
             aria-disabled={state ? true : undefined}
             data-busy={working || undefined}
-            className={`group/button ${BUTTON} ${BUTTON_SIZE[size]} ${BUTTON_VARIANT[variant]} ${SHEET_BUTTON} ${SHEET_BUTTON_VARIANT[variant]}`}
+            className={`group/button ${BUTTON} ${BUTTON_SIZE[size]} ${insetOf(variant, size)} ${BUTTON_VARIANT[variant]} ${SHEET_BUTTON} ${SHEET_BUTTON_VARIANT[variant]}`}
         >
             <ButtonLabel size={size} busyLabel={busyLabel}>
                 {children}
@@ -346,7 +360,7 @@ const FIELD_MESSAGE =
  */
 export function ButtonLink({ variant = "filled", size = "lg", href, children }) {
     return (
-        <Link href={href} className={`${BUTTON} ${BUTTON_SIZE[size]} ${BUTTON_VARIANT[variant]} ${SHEET_BUTTON} ${SHEET_BUTTON_VARIANT[variant]}`}>
+        <Link href={href} className={`${BUTTON} ${BUTTON_SIZE[size]} ${insetOf(variant, size)} ${BUTTON_VARIANT[variant]} ${SHEET_BUTTON} ${SHEET_BUTTON_VARIANT[variant]}`}>
             {children}
         </Link>
     );
@@ -1014,5 +1028,354 @@ export function Combobox({ name, value, onChange, onPick, suggestions, heading, 
                 onPick={accept}
             />
         </>
+    );
+}
+
+/**
+ * A search field (0f, 1a; #520): 32 tall on the Field ground with no border, its words at 13,
+ * a 14 search mark 11 in from its start and the words 32 in, and while it holds anything a
+ * 24 × at its end that empties it. Focus gives it a white face and the Edge focus border. It
+ * says what it searches as its placeholder and as its name (0h), so it takes no label.
+ *
+ * WHAT IT HOLDS IS THE CALLER'S, as every control's here is. The × hands back an empty string
+ * and puts focus in the field, so the next search is typed at once rather than from a page
+ * whose focus fell when the × went.
+ */
+export function SearchField({ label, value, onChange, clearLabel }) {
+    const inputRef = useRef(null);
+    return (
+        <div role="search" className="relative h-control w-list-search shrink-0">
+            <Icon
+                name="search"
+                className="pointer-events-none absolute top-1/2 left-search-icon-inset size-icon-sm -translate-y-1/2 text-foreground-subtle"
+            />
+            <input
+                ref={inputRef}
+                type="text"
+                autoComplete="off"
+                aria-label={label}
+                placeholder={label}
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                className="h-control w-full rounded-control border border-transparent bg-background-muted pr-search-inset-right pl-search-inset-left text-body-sm text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle focus:border-border-focus focus:bg-white"
+            />
+            {value !== "" && (
+                <button
+                    type="button"
+                    aria-label={clearLabel}
+                    onClick={() => {
+                        onChange("");
+                        inputRef.current?.focus();
+                    }}
+                    className="absolute top-px right-px flex h-[calc(var(--height-control)-2px)] w-clear-button items-center justify-center rounded-r-[calc(var(--radius-control)-1px)] text-foreground-subtle hover:bg-hover hover:text-foreground-default"
+                >
+                    <Icon name="x" className="size-clear-icon" />
+                </button>
+            )}
+        </div>
+    );
+}
+
+// A filter chip's two looks (1a, #520). Holding nothing it is a ghost control — its words at
+// 13 and 500 in Ink 3 with a 12 chevron 6 after them — that fills at Hover and lifts to Ink
+// under the pointer and while its list shows (0f). Holding values it stands on the Face with
+// its Edge, its name in Ink 3 and what it holds in Ink, the chevron after them and a 24 × that
+// empties it at its end, each part filling at Face hover.
+const FILTER_CHIP_EMPTY =
+    "flex h-control cursor-pointer items-center gap-control-icon-gap rounded-control border border-transparent pr-filter-chip-inset-right pl-control-inset-x text-body-sm font-medium whitespace-nowrap text-foreground-subtle outline-none hover:bg-hover hover:text-foreground-default focus-visible:border-border-focus aria-expanded:bg-hover aria-expanded:text-foreground-default";
+const FILTER_CHIP_HOLDING = "flex h-control items-center rounded-control border border-selected-border bg-selected";
+const FILTER_CHIP_HELD =
+    "flex h-full cursor-pointer items-center gap-gap rounded-l-[calc(var(--radius-control)-1px)] pr-[calc(var(--spacing-filter-chip-inset-right)-1px)] pl-control-inset-x text-body-sm font-medium whitespace-nowrap outline-none hover:bg-selected-hover focus-visible:bg-selected-hover aria-expanded:bg-selected-hover";
+
+/**
+ * A filter chip and the list it opens (0a, 0c, 0f; 1a, #520) — how a list narrows by a set it
+ * has no tab for (0n). The list takes several values, each marked with a box and its count at
+ * the end, and stays open while values are taken; the chip says its name and, once it holds
+ * any, the one value it holds or how many (`several`), with a × beside it that empties it.
+ *
+ * IT IS `Choice`'s PATTERN, THE SELECT-ONLY COMBOBOX, TAKING SEVERAL. Focus stays on the chip
+ * and `aria-activedescendant` names the option under visual focus; what a key does is
+ * `lib/controls.js:multiSelectKey` — the pattern's keys, with Enter and Space taking or giving
+ * back an option and leaving the list open. Leaving the chip closes the list and takes nothing,
+ * since a list taking several takes as it goes. The chip is one element in both looks, so the ×
+ * hands focus back to it rather than letting focus fall with the × itself.
+ *
+ * WHAT IT HOLDS IS THE CALLER'S: `options` are `{ value, label, count }`, `values` the values
+ * taken, and `onChange` is handed the values taken in the options' order.
+ *
+ * A CHIP MARKED `single` TAKES ONE VALUE (1b, #520) — the registration's type and category, at
+ * the end of its search's row. It is then `Choice`'s pattern to the letter: its list marks the
+ * value held with a check at the row's end and no box, a press or Enter chooses and closes, and
+ * leaving the chip chooses what is under visual focus (`lib/controls.js:selectOnlyKey`). Holding
+ * one, it says the value alone, as 1b draws it, where a chip taking several says its name before
+ * what it holds. Its `values` and `onChange` keep the one shape, an empty list or one value.
+ * `fit` is where its list opens, as `Menu`'s: from its left, or set against its right end for a
+ * chip at the end of its row.
+ */
+export function FilterChip({ label, options, values, onChange, clearLabel, several, single = false, fit = "start" }) {
+    const id = useId();
+    const labelId = `${id}label`;
+    const listId = `${id}list`;
+    const chipRef = useRef(null);
+    const anchorRef = useRef(null);
+    const [open, setOpen] = useState(false);
+    const [active, setActive] = useState(-1);
+    const search = useRef({ text: "", timer: null });
+    const taken = new Set(values);
+    const held = options.filter((option) => taken.has(option.value));
+    const chosen = single ? options.findIndex((option) => taken.has(option.value)) : -1;
+
+    const toggle = (index) => {
+        const option = options[index];
+        if (!option) return;
+        const next = taken.has(option.value) ? held.filter((each) => each !== option) : [...held, option];
+        onChange(options.filter((each) => next.includes(each)).map((each) => each.value));
+    };
+    const choose = (index) => {
+        if (index >= 0 && index < options.length) onChange([options[index].value]);
+    };
+    // Where the list opens: on the value held for one value, as `Choice` does — on none while
+    // it holds none — and on the first value held, or the first option, for several.
+    const opening = () => (single ? chosen : Math.max(0, options.findIndex((option) => taken.has(option.value))));
+
+    const onKeyDown = (event) => {
+        const action = single ? selectOnlyKey(event, open) : multiSelectKey(event, open);
+        if (!action) return;
+        event.preventDefault();
+        switch (action) {
+            case "open":
+                setActive(opening());
+                setOpen(true);
+                return;
+            case "first":
+            case "last":
+            case "next":
+            case "previous":
+            case "pageUp":
+            case "pageDown":
+                if (!open) setOpen(true);
+                setActive(movedIndex(open ? active : single ? chosen : opening() - 1, options.length - 1, action));
+                return;
+            case "toggle":
+                toggle(active);
+                return;
+            case "closeSelect":
+                choose(active);
+                setOpen(false);
+                return;
+            case "close":
+                event.stopPropagation();
+                setOpen(false);
+                return;
+            case "type": {
+                const typed = search.current;
+                window.clearTimeout(typed.timer);
+                typed.text = event.key.length === 1 ? typed.text + event.key : "";
+                typed.timer = window.setTimeout(() => {
+                    typed.text = "";
+                }, TYPEAHEAD_MS);
+                if (!open) setOpen(true);
+                const found = typeaheadIndex(
+                    options.map((option) => option.label),
+                    typed.text,
+                    (open ? active : single ? chosen : -1) + 1
+                );
+                if (found >= 0) setActive(found);
+                return;
+            }
+            default:
+                return;
+        }
+    };
+
+    return (
+        <div className="relative flex shrink-0">
+            <span id={labelId} hidden>
+                {label}
+            </span>
+            <div ref={anchorRef} className={held.length > 0 ? FILTER_CHIP_HOLDING : "flex"}>
+                <div
+                    ref={chipRef}
+                    role="combobox"
+                    tabIndex={0}
+                    aria-haspopup="listbox"
+                    aria-expanded={open}
+                    aria-controls={listId}
+                    aria-labelledby={labelId}
+                    aria-activedescendant={open && active >= 0 ? `${listId}-${active}` : undefined}
+                    onKeyDown={onKeyDown}
+                    onClick={() => {
+                        if (!open) setActive(opening());
+                        setOpen(!open);
+                    }}
+                    onBlur={() => {
+                        if (single && open) choose(active);
+                        setOpen(false);
+                    }}
+                    className={held.length > 0 ? FILTER_CHIP_HELD : FILTER_CHIP_EMPTY}
+                >
+                    {held.length > 0 ? (
+                        <>
+                            {!single && <span className="text-foreground-subtle">{label}</span>}
+                            <span className="text-foreground-default">{held.length === 1 ? held[0].label : several(held.length)}</span>
+                        </>
+                    ) : (
+                        label
+                    )}
+                    <Icon name="chevron-down" className={`size-filter-chip-chevron shrink-0 ${held.length > 0 ? "text-foreground-subtle" : ""}`} />
+                </div>
+                {held.length > 0 && (
+                    <button
+                        type="button"
+                        aria-label={clearLabel}
+                        onClick={() => {
+                            setOpen(false);
+                            onChange([]);
+                            chipRef.current?.focus();
+                        }}
+                        className="flex h-full w-clear-button items-center justify-center rounded-r-[calc(var(--radius-control)-1px)] text-foreground-subtle hover:bg-selected-hover hover:text-foreground-default"
+                    >
+                        <Icon name="x" className="size-clear-icon" />
+                    </button>
+                )}
+            </div>
+            <Menu
+                id={listId}
+                anchorRef={anchorRef}
+                shown={open}
+                labelId={labelId}
+                fit={fit}
+                rows="sm"
+                multiselectable={!single}
+                options={options.map((option, index) => ({
+                    key: option.value,
+                    label: option.label,
+                    detail: option.count,
+                    selected: taken.has(option.value),
+                    checked: single && index === chosen,
+                }))}
+                active={active}
+                onPick={
+                    single
+                        ? (index) => {
+                              choose(index);
+                              setOpen(false);
+                          }
+                        : toggle
+                }
+            />
+        </div>
+    );
+}
+
+// A chip of 0l's chips: 36 tall, its option at 14 and 400 like a field's value, 12 either side,
+// on white inside the Edge, filling at Wash under the pointer (0f Bordered); the one chosen on
+// the Face inside its Edge, filling at Face hover. Neither moves while a form waits (#469).
+const CHIP = "flex h-control-lg min-w-0 items-center justify-center rounded-control border px-input-inset-x text-body outline-none focus-visible:border-border-focus";
+const CHIP_LOOK = {
+    resting: "border-border bg-white not-aria-disabled:hover:bg-hover-subtle",
+    chosen: "border-selected-border bg-selected not-aria-disabled:hover:bg-selected-hover",
+};
+
+/**
+ * 0l's chips (1b, #520): "when the options are few and short and choosing among them is the
+ * dialog's main task, they are laid out instead as 36 chips … in an equal-width grid, each as
+ * wide as the longest option, 8 apart; the chosen chip takes the selected Face and Edge." The
+ * registration's size and model are the first. The label sits 8 above them at 13 and 500, as a
+ * field's does, and a refusal at the right end of its line at 13 in red.
+ *
+ * EACH AS WIDE AS THE LONGEST OPTION, WHICH ONLY THE BROWSER CAN MEASURE. The grid fills its row
+ * with as many columns as fit at that width, then shares what is left among them, so a row of
+ * short sizes runs five across at 432 and a model longer than half the row runs one. The widest
+ * label is measured once its chips are drawn — and again once the faces have loaded, which can
+ * widen it — and handed to the grid as `--chip-label-width`; the chip adds its 12 either side
+ * and its Edge, and stands at least 72, 1b's narrowest. Until the measure the grid lays out at
+ * 72, and it runs before the first paint.
+ *
+ * IT IS A RADIO GROUP, THE AUTHORING PRACTICES' (`lib/controls.js:radioKey`): one stop for Tab,
+ * on the chip chosen or on the first while none is, the arrows moving and choosing as they go,
+ * and wrapping. An option marked `empty` is the one leaving the choice empty — `None`, `Not
+ * specified` — set in Ink 3, as 1b sets it.
+ */
+export function ChipChoice({ label, options, value, onChange, refusal }) {
+    const labelId = useId();
+    const refusalId = useId();
+    const gridRef = useRef(null);
+    const formBusy = useContext(FormBusyContext);
+    const chosen = options.findIndex((option) => option.value === value);
+    const labels = options.map((option) => option.label).join("\n");
+
+    useLayoutEffect(() => {
+        const grid = gridRef.current;
+        if (!grid) return undefined;
+        let drawn = true;
+        const measure = () => {
+            if (!drawn) return;
+            const widest = Math.max(0, ...[...grid.querySelectorAll("[data-chip-label]")].map((each) => each.scrollWidth));
+            grid.style.setProperty("--chip-label-width", `${widest}px`);
+        };
+        measure();
+        document.fonts?.ready.then(measure);
+        return () => {
+            drawn = false;
+        };
+    }, [labels]);
+
+    const choose = (index) => {
+        if (!formBusy && index >= 0 && index < options.length) onChange(options[index].value);
+    };
+    const onKeyDown = (index) => (event) => {
+        const action = radioKey(event);
+        if (!action) return;
+        event.preventDefault();
+        if (formBusy) return;
+        const next = action === "check" ? index : menuIndex(index, options.length, action);
+        choose(next);
+        gridRef.current?.querySelector(`[data-index="${next}"]`)?.focus();
+    };
+
+    return (
+        <div className="flex flex-col">
+            <div className="flex items-baseline justify-between gap-gap-lg pb-gap">
+                <span id={labelId} className={FIELD_LABEL}>
+                    {label}
+                </span>
+                {refusal && (
+                    <span id={refusalId} role="alert" className="text-body-sm text-danger">
+                        {refusal}
+                    </span>
+                )}
+            </div>
+            <div
+                ref={gridRef}
+                role="radiogroup"
+                aria-labelledby={labelId}
+                aria-describedby={refusal ? refusalId : undefined}
+                aria-invalid={refusal ? true : undefined}
+                className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,max(var(--min-width-dialog-chip),calc(var(--chip-label-width,0px)+2*var(--spacing-input-inset-x)+2px))),1fr))] gap-gap"
+            >
+                {options.map((option, index) => {
+                    const on = index === chosen;
+                    return (
+                        <button
+                            key={option.value}
+                            type="button"
+                            role="radio"
+                            aria-checked={on}
+                            aria-disabled={formBusy || undefined}
+                            data-index={index}
+                            tabIndex={on || (chosen < 0 && index === 0) ? 0 : -1}
+                            onClick={() => choose(index)}
+                            onKeyDown={onKeyDown(index)}
+                            className={`${CHIP} ${on ? CHIP_LOOK.chosen : CHIP_LOOK.resting}`}
+                        >
+                            <span data-chip-label="" className={`min-w-0 truncate ${option.empty ? "text-foreground-subtle" : "text-foreground-default"}`}>
+                                {option.label}
+                            </span>
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
     );
 }
