@@ -198,22 +198,29 @@ const BUTTON = "relative items-center justify-center whitespace-nowrap rounded-c
 // the phone's edge, the phone's 50 at 17 with its rounder corner (Tools 0a Button). And 0a's
 // Control, 32 at 13, which 1a draws under a list a band has emptied (#520).
 const BUTTON_SIZE = {
-    md: "inline-flex h-control shrink-0 px-control-md-inset-x text-body-sm",
-    lg: "inline-flex h-control-lg shrink-0 px-control-lg-inset-x text-body",
-    xl: "flex h-control-xl w-full px-control-lg-inset-x text-body max-sm:h-mobile-button max-sm:rounded-mobile-control max-sm:text-mobile-heading",
+    md: "inline-flex h-control shrink-0 text-body-sm",
+    lg: "inline-flex h-control-lg shrink-0 text-body",
+    xl: "flex h-control-xl w-full text-body max-sm:h-mobile-button max-sm:rounded-mobile-control max-sm:text-mobile-heading",
 };
+
+// The room either side of the words, by size — and a ghost's own, whatever its size (#520).
+const BUTTON_INSET = { md: "px-control-md-inset-x", lg: "px-control-lg-inset-x", xl: "px-control-lg-inset-x" };
+const insetOf = (variant, size) => (variant === "ghost" ? "px-ghost-inset-x" : BUTTON_INSET[size]);
 
 // 0f: a filled action hovers to its Accent hover and keeps its white ink, and one that
 // cannot act yet keeps its fill at 40% and takes no hover; a bordered one fills at Wash
 // and leaves its Edge alone. A destructive commitment is filled red and hovers to Red's
-// Accent hover (0f Destructive, 0d) — the retirement's (#458). A busy one of any kind takes
-// no hover (0f Working), and neither does one locked with it (#469): both are
-// `aria-disabled`, which is what the hover is written against. It is written against what is
-// NOT disabled rather than what is enabled, so a link drawn as an action hovers too.
+// Accent hover (0f Destructive, 0d) — the retirement's (#458). A ghost is its word alone in
+// Ink, 10 either side, and fills at Hover (Ghost, 0f Faced) — a dialog's `Back` (1b, #520). A
+// busy one of any kind takes no hover (0f Working), and neither does one locked with it
+// (#469): both are `aria-disabled`, which is what the hover is written against. It is written
+// against what is NOT disabled rather than what is enabled, so a link drawn as an action
+// hovers too.
 const BUTTON_VARIANT = {
     filled: "bg-primary text-white not-disabled:not-aria-disabled:hover:bg-primary-hover disabled:bg-primary-disabled",
     bordered: "border border-border bg-white text-foreground-default not-disabled:not-aria-disabled:hover:bg-hover-subtle",
     danger: "bg-danger text-white not-disabled:not-aria-disabled:hover:bg-danger-hover",
+    ghost: "text-foreground-default not-disabled:not-aria-disabled:hover:bg-hover",
 };
 
 // In a sheet below the phone's edge (Tools 0a Button, #458): full width, 48, 17 at 600, at
@@ -227,6 +234,7 @@ const SHEET_BUTTON_VARIANT = {
     bordered:
         "max-sm:in-data-[sheet]:border-0 max-sm:in-data-[sheet]:bg-transparent max-sm:in-data-[sheet]:not-aria-disabled:active:opacity-mobile-pressed",
     danger: "max-sm:in-data-[sheet]:not-aria-disabled:active:bg-danger-hover",
+    ghost: "",
 };
 
 /**
@@ -280,7 +288,8 @@ function ButtonLabel({ size, busyLabel, children }) {
 /**
  * An action (0a's Commitment, 36, or `size="xl"`, a sign-in page's 40): `filled` for the
  * one a screen or a dialog exists for, `danger` for a dialog's commitment that cannot be
- * undone, `bordered` for the rest.
+ * undone, `ghost` for one that is its word alone — a dialog's `Back`, at `md` (#520) — and
+ * `bordered` for the rest.
  *
  * A DISABLED ACTION SAYS WHY BEFORE IT, ON ITS OWN LINE (0f Disabled): the reason sits 14
  * before the button at 13 and Ink 3, and the button names it as its description, so a
@@ -320,7 +329,7 @@ export function Button({ variant = "filled", size = "lg", type = "button", disab
             aria-busy={working || undefined}
             aria-disabled={state ? true : undefined}
             data-busy={working || undefined}
-            className={`group/button ${BUTTON} ${BUTTON_SIZE[size]} ${BUTTON_VARIANT[variant]} ${SHEET_BUTTON} ${SHEET_BUTTON_VARIANT[variant]}`}
+            className={`group/button ${BUTTON} ${BUTTON_SIZE[size]} ${insetOf(variant, size)} ${BUTTON_VARIANT[variant]} ${SHEET_BUTTON} ${SHEET_BUTTON_VARIANT[variant]}`}
         >
             <ButtonLabel size={size} busyLabel={busyLabel}>
                 {children}
@@ -349,7 +358,7 @@ const FIELD_MESSAGE =
  */
 export function ButtonLink({ variant = "filled", size = "lg", href, children }) {
     return (
-        <Link href={href} className={`${BUTTON} ${BUTTON_SIZE[size]} ${BUTTON_VARIANT[variant]} ${SHEET_BUTTON} ${SHEET_BUTTON_VARIANT[variant]}`}>
+        <Link href={href} className={`${BUTTON} ${BUTTON_SIZE[size]} ${insetOf(variant, size)} ${BUTTON_VARIANT[variant]} ${SHEET_BUTTON} ${SHEET_BUTTON_VARIANT[variant]}`}>
             {children}
         </Link>
     );
@@ -1091,8 +1100,17 @@ const FILTER_CHIP_HELD =
  *
  * WHAT IT HOLDS IS THE CALLER'S: `options` are `{ value, label, count }`, `values` the values
  * taken, and `onChange` is handed the values taken in the options' order.
+ *
+ * A CHIP MARKED `single` TAKES ONE VALUE (1b, #520) — the registration's type and category, at
+ * the end of its search's row. It is then `Choice`'s pattern to the letter: its list marks the
+ * value held with a check at the row's end and no box, a press or Enter chooses and closes, and
+ * leaving the chip chooses what is under visual focus (`lib/controls.js:selectOnlyKey`). Holding
+ * one, it says the value alone, as 1b draws it, where a chip taking several says its name before
+ * what it holds. Its `values` and `onChange` keep the one shape, an empty list or one value.
+ * `fit` is where its list opens, as `Menu`'s: from its left, or set against its right end for a
+ * chip at the end of its row.
  */
-export function FilterChip({ label, options, values, onChange, clearLabel, several }) {
+export function FilterChip({ label, options, values, onChange, clearLabel, several, single = false, fit = "start" }) {
     const id = useId();
     const labelId = `${id}label`;
     const listId = `${id}list`;
@@ -1103,6 +1121,7 @@ export function FilterChip({ label, options, values, onChange, clearLabel, sever
     const search = useRef({ text: "", timer: null });
     const taken = new Set(values);
     const held = options.filter((option) => taken.has(option.value));
+    const chosen = single ? options.findIndex((option) => taken.has(option.value)) : -1;
 
     const toggle = (index) => {
         const option = options[index];
@@ -1110,15 +1129,20 @@ export function FilterChip({ label, options, values, onChange, clearLabel, sever
         const next = taken.has(option.value) ? held.filter((each) => each !== option) : [...held, option];
         onChange(options.filter((each) => next.includes(each)).map((each) => each.value));
     };
-    const firstHeld = () => Math.max(0, options.findIndex((option) => taken.has(option.value)));
+    const choose = (index) => {
+        if (index >= 0 && index < options.length) onChange([options[index].value]);
+    };
+    // Where the list opens: on the value held for one value, as `Choice` does — on none while
+    // it holds none — and on the first value held, or the first option, for several.
+    const opening = () => (single ? chosen : Math.max(0, options.findIndex((option) => taken.has(option.value))));
 
     const onKeyDown = (event) => {
-        const action = multiSelectKey(event, open);
+        const action = single ? selectOnlyKey(event, open) : multiSelectKey(event, open);
         if (!action) return;
         event.preventDefault();
         switch (action) {
             case "open":
-                setActive(firstHeld());
+                setActive(opening());
                 setOpen(true);
                 return;
             case "first":
@@ -1128,10 +1152,14 @@ export function FilterChip({ label, options, values, onChange, clearLabel, sever
             case "pageUp":
             case "pageDown":
                 if (!open) setOpen(true);
-                setActive(movedIndex(open ? active : firstHeld() - 1, options.length - 1, action));
+                setActive(movedIndex(open ? active : single ? chosen : opening() - 1, options.length - 1, action));
                 return;
             case "toggle":
                 toggle(active);
+                return;
+            case "closeSelect":
+                choose(active);
+                setOpen(false);
                 return;
             case "close":
                 event.stopPropagation();
@@ -1148,7 +1176,7 @@ export function FilterChip({ label, options, values, onChange, clearLabel, sever
                 const found = typeaheadIndex(
                     options.map((option) => option.label),
                     typed.text,
-                    (open ? active : -1) + 1
+                    (open ? active : single ? chosen : -1) + 1
                 );
                 if (found >= 0) setActive(found);
                 return;
@@ -1175,15 +1203,18 @@ export function FilterChip({ label, options, values, onChange, clearLabel, sever
                     aria-activedescendant={open && active >= 0 ? `${listId}-${active}` : undefined}
                     onKeyDown={onKeyDown}
                     onClick={() => {
-                        if (!open) setActive(firstHeld());
+                        if (!open) setActive(opening());
                         setOpen(!open);
                     }}
-                    onBlur={() => setOpen(false)}
+                    onBlur={() => {
+                        if (single && open) choose(active);
+                        setOpen(false);
+                    }}
                     className={held.length > 0 ? FILTER_CHIP_HELD : FILTER_CHIP_EMPTY}
                 >
                     {held.length > 0 ? (
                         <>
-                            <span className="text-foreground-subtle">{label}</span>
+                            {!single && <span className="text-foreground-subtle">{label}</span>}
                             <span className="text-foreground-default">{held.length === 1 ? held[0].label : several(held.length)}</span>
                         </>
                     ) : (
@@ -1211,17 +1242,25 @@ export function FilterChip({ label, options, values, onChange, clearLabel, sever
                 anchorRef={anchorRef}
                 shown={open}
                 labelId={labelId}
-                fit="start"
+                fit={fit}
                 rows="sm"
-                multiselectable
-                options={options.map((option) => ({
+                multiselectable={!single}
+                options={options.map((option, index) => ({
                     key: option.value,
                     label: option.label,
                     detail: option.count,
                     selected: taken.has(option.value),
+                    checked: single && index === chosen,
                 }))}
                 active={active}
-                onPick={toggle}
+                onPick={
+                    single
+                        ? (index) => {
+                              choose(index);
+                              setOpen(false);
+                          }
+                        : toggle
+                }
             />
         </div>
     );

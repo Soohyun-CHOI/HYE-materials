@@ -187,8 +187,9 @@ export function run({ check, assert, log }) {
     // its own since #456, so its words are the list's, reached through the dialog the
     // list imports. The submit is a builder since #469, naming its count, and the collector
     // reads the words it is built of: the act alone, and the act with one. The way back from
-    // the dialog's second step is a word only the dialog says (#507), which is what shows the
-    // collector reached the dialog and not only the opener's word.
+    // the dialog's second step is a word only the dialog says on that route — `Change` from #507,
+    // `Back` since #520 — which is what shows the collector reached the dialog and not only the
+    // opener's word.
     const list = stringsForRoute("/asset-categories").strings.map((s) => s.text);
     assert(
         "  the collector reaches the registration dialog's own words from the list",
@@ -196,7 +197,7 @@ export function run({ check, assert, log }) {
             list.includes(ASSET_REGISTRATION_COPY.submit(null)) &&
             list.includes(ASSET_REGISTRATION_COPY.submit(1)) &&
             list.includes(ASSET_REGISTRATION_COPY.working) &&
-            list.includes(ASSET_REGISTRATION_COPY.changeName)
+            list.includes(ASSET_REGISTRATION_COPY.back)
     );
     // The noun's matcher, on what the screens said until #519 and on what they say now — the
     // axis's name, in a sentence and alone, passing.

@@ -148,7 +148,7 @@ const MARKS_BY_FILE = {
     "app/(assets)/assets/[assetId]/page.js": ["map-pin", "search-x", "user"],
     "app/components/Breadcrumb.js": ["chevron-left"],
     "app/components/Controls.js": ["check", "chevron-down", "circle-alert", "info", "minus", "plus", "search", "x"],
-    "app/components/DialogFrame.js": ["check", "x"],
+    "app/components/DialogFrame.js": ["check", "search", "x"],
     "app/components/ListFrame.js": ["x"],
     "app/components/ListTable.js": ["chevron-left", "chevron-right"],
     "app/components/Menu.js": ["check"],

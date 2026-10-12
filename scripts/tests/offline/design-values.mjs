@@ -225,6 +225,7 @@ const VALUES = [
     ["--spacing-search-inset-right", "1.8125rem", null],
     ["--width-clear-button", "1.5rem", null],
     ["--size-clear-icon", "0.8125rem", null],
+    ["--spacing-ghost-inset-x", "0.625rem", null],
     // 0b · Layout
     ["--container-content", "67.5rem", null],
     ["--spacing-page-gutter", "2rem", null],
@@ -387,6 +388,18 @@ const VALUES = [
     ["--spacing-dialog-column-stack", "1.5rem", null],
     ["--spacing-dialog-column-list-stack", "0.25rem", null],
     ["--size-dialog-step", "1.25rem", null],
+    // A dialog that searches a list and picks from it (0l, 0f, 1b; #520).
+    ["--container-dialog-search", "30rem", null],
+    ["--height-dialog-search", "30.625rem", null],
+    ["--height-dialog-search-row", "3.5rem", null],
+    ["--spacing-dialog-search-inset-top", "0.25rem", null],
+    ["--spacing-dialog-search-icon-bleed", "0.1875rem", null],
+    ["--spacing-dialog-filter-inline", "0.375rem", null],
+    ["--spacing-dialog-result-bleed", "0.75rem", null],
+    ["--spacing-dialog-result-inline", "0.875rem", null],
+    ["--spacing-dialog-results-inset-top", "0.5rem", null],
+    ["--spacing-dialog-results-inset-bottom", "0.75rem", null],
+    ["--spacing-dialog-results-empty-inset-top", "6rem", null],
     // 0m · Navigation
     ["--width-rail", "3.5rem", null],
     ["--width-rail-expanded", "15.5rem", null],

@@ -34,7 +34,6 @@
 
 import { relative } from "path";
 import {
-    MAX_NAME_SUGGESTIONS,
     ASSET_CATEGORY_COPY,
     ASSET_CATEGORY_FIELDS,
     ASSET_CLASS_VALUES,
@@ -50,12 +49,11 @@ import {
     catalogRowsOf,
     compareCatalogText,
     composeItemName,
-    findCatalogName,
     isPlaceholder,
     pathOf,
     readCatalog,
     registrationCatalog,
-    suggestCatalogNames,
+    searchCatalogNames,
     walkDetails,
 } from "../../../lib/assetCategory.js";
 import { REPO_ROOT, listJsFiles, parentMap, parseFile, parseSource, repoPath, toPosix, walk } from "./_ast.mjs";
@@ -356,21 +354,23 @@ export function run({ check, assert, log }) {
     check("  under a type, its names alone", said(catalogNames(offered, { level1: "equipment" })), "Air Compressor (Equipment > Site Services), Drill Press (Equipment > Machining), Laser Level (Equipment > Measuring), Welding Machine (Equipment > Welding)");
     check("  under a category, its names alone", said(catalogNames(offered, { level2: "carpentry" })), "Cordless Drill (Tool > Carpentry), Jigsaw (Tool > Carpentry), Utility Knife (Tool > Carpentry)");
     check("  and under both, what both hold — here nothing", said(catalogNames(offered, { level1: "equipment", level2: "carpentry" })), "");
-    check("the search offers at most", MAX_NAME_SUGGESTIONS, 5);
-    check("  with nothing typed, the first of the names", said(suggestCatalogNames(offered)), "Air Compressor (Equipment > Site Services), Angle Grinder (Tool > Machining), Cordless Drill (Tool > Carpentry), Drill Press (Equipment > Machining), Jigsaw (Tool > Carpentry)");
-    check("  a part typed, in any case and spacing, the names holding it", said(suggestCatalogNames(offered, { typed: "  LEVEL " })), "Laser Level (Equipment > Measuring), Laser Level (Tool > Measuring)");
+    // THE SEARCH LISTS EVERY NAME IT HOLDS (#520), where it offered five until then: with nothing
+    // typed every name under the filters, in the names' order, so 1b's list opens on the catalog.
+    check("the search lists every name, with nothing typed, in the names' order", said(searchCatalogNames(offered)), said(catalogNames(offered)));
+    check("  a part typed, in any case and spacing, the names holding it", said(searchCatalogNames(offered, { typed: "  LEVEL " })), "Laser Level (Equipment > Measuring), Laser Level (Tool > Measuring)");
     check(
-        "  more names holding it cut to the five first",
-        said(suggestCatalogNames(offered, { typed: "e" })),
-        "Air Compressor (Equipment > Site Services), Angle Grinder (Tool > Machining), Cordless Drill (Tool > Carpentry), Drill Press (Equipment > Machining), Laser Level (Equipment > Measuring)"
+        "  every name holding it, none cut",
+        said(searchCatalogNames(offered, { typed: "e" })),
+        "Air Compressor (Equipment > Site Services), Angle Grinder (Tool > Machining), Cordless Drill (Tool > Carpentry), Drill Press (Equipment > Machining), Laser Level (Equipment > Measuring), Laser Level (Tool > Measuring), Utility Knife (Tool > Carpentry), Utility Knife (Tool > Cutting), Welding Machine (Equipment > Welding)"
     );
-    check("  narrowed by the category", said(suggestCatalogNames(offered, { filters: { level2: "measuring" } })), "Laser Level (Equipment > Measuring), Laser Level (Tool > Measuring)");
-    check("  and by the type", said(suggestCatalogNames(offered, { filters: { level1: "tool", level2: "measuring" } })), "Laser Level (Tool > Measuring)");
-    check("  to nothing when the filters hold no such name", said(suggestCatalogNames(offered, { filters: { level2: "measuring" }, typed: "grinder" })), "");
-    check("  a name typed in full is offered, since picking it goes on", said(suggestCatalogNames(offered, { typed: "drill press" })), "Drill Press (Equipment > Machining)");
-    check("  and words in another order are not one name", said(suggestCatalogNames(offered, { typed: "press drill" })), "");
+    check("  narrowed by the category", said(searchCatalogNames(offered, { filters: { level2: "measuring" } })), "Laser Level (Equipment > Measuring), Laser Level (Tool > Measuring)");
+    check("  and by the type", said(searchCatalogNames(offered, { filters: { level1: "tool", level2: "measuring" } })), "Laser Level (Tool > Measuring)");
+    check("  to nothing when the filters hold no such name", said(searchCatalogNames(offered, { filters: { level2: "measuring" }, typed: "grinder" })), "");
+    check("  a name typed in full is listed, since picking it goes on", said(searchCatalogNames(offered, { typed: "drill press" })), "Drill Press (Equipment > Machining)");
+    check("  and words in another order are not one name", said(searchCatalogNames(offered, { typed: "press drill" })), "");
     // THE NAME TYPED IN FULL, THEN THOSE BEGINNING WITH IT, THEN THOSE HOLDING IT (#517): the
-    // office's `Wrench` stood sixth among the names holding `wrench`, so the five left it off.
+    // office's `Wrench` stood sixth among the names holding `wrench`, and the first is the one
+    // 1b's Enter takes (#520).
     const wrenches = ["Adjustable Monkey Wrench", "Angle Head Open-End Wrench", "Hex Key Wrench Set", "Open-End Wrench", "Ratchet Wrench", "Wrench", "Wrench Set"].map((level3) => ({
         level1: "Tool",
         level2: "Wrench",
@@ -378,24 +378,35 @@ export function run({ check, assert, log }) {
     }));
     check(
         "  the name typed in full first, then a name beginning with it, then those holding it, each in the names' order",
-        said(suggestCatalogNames(wrenches, { typed: "WRENCH " })).replaceAll(" (Tool > Wrench)", ""),
-        "Wrench, Wrench Set, Adjustable Monkey Wrench, Angle Head Open-End Wrench, Hex Key Wrench Set"
+        said(searchCatalogNames(wrenches, { typed: "WRENCH " })).replaceAll(" (Tool > Wrench)", ""),
+        "Wrench, Wrench Set, Adjustable Monkey Wrench, Angle Head Open-End Wrench, Hex Key Wrench Set, Open-End Wrench, Ratchet Wrench"
     );
     check(
         "  a part beginning names before one holding it elsewhere",
-        said(suggestCatalogNames(wrenches, { typed: "open" })).replaceAll(" (Tool > Wrench)", ""),
+        said(searchCatalogNames(wrenches, { typed: "open" })).replaceAll(" (Tool > Wrench)", ""),
         "Open-End Wrench, Angle Head Open-End Wrench"
     );
-    check("  two names typed in full, in two places, in the names' order", said(suggestCatalogNames(twoPlaces, { typed: "level" })), "Level (Tool > Alpha), Level (Equipment > Zeta)");
-    // ENTER IN THE SEARCH TAKES THE ONE NAME TYPED, or nothing.
-    check("Enter takes the one name typed, in any case and spacing", findCatalogName(offered, { typed: "drill  PRESS" })?.key, "equipment\nmachining\ndrill press");
-    check("  not a part of one", findCatalogName(offered, { typed: "Drill" }), null);
-    check("  not nothing", findCatalogName(offered, { typed: "   " }), null);
-    check("  not a name two types hold, with none chosen", findCatalogName(offered, { typed: "Laser Level" }), null);
-    check("  but that name under the type chosen", findCatalogName(offered, { filters: { level1: "tool" }, typed: "laser level" })?.key, "tool\nmeasuring\nlaser level");
-    check("  not a name two categories hold, under its type alone", findCatalogName(offered, { filters: { level1: "tool" }, typed: "Utility Knife" }), null);
-    check("  but that name under the category chosen", findCatalogName(offered, { filters: { level2: "cutting" }, typed: "utility knife" })?.key, "tool\ncutting\nutility knife");
-    check("  and nothing under a category that does not hold it", findCatalogName(offered, { filters: { level2: "carpentry" }, typed: "Welding Machine" }), null);
+    check("  two names typed in full, in two places, in the names' order", said(searchCatalogNames(twoPlaces, { typed: "level" })), "Level (Tool > Alpha), Level (Equipment > Zeta)");
+    // WHERE A NAME STANDS, SAID ONLY WHERE ITS WORDS STAND TWICE (#520): the category where the
+    // two are in two categories, the type before it where they share one — `Pipe Cutter` on the
+    // office's catalog — and nothing for a name in one place. Asked of the whole catalog, so a
+    // name listed alone under a filter still says it.
+    const placesOf = (names) => names.map((name) => name.place.join(" · ")).join(" | ");
+    check("each name in two categories says its category", placesOf(searchCatalogNames(offered, { typed: "utility" })), "Carpentry | Cutting");
+    check("  in two types under one category, its type and category", placesOf(searchCatalogNames(offered, { typed: "laser" })), "Equipment · Measuring | Tool · Measuring");
+    check("  in one place, nothing", placesOf(searchCatalogNames(offered, { typed: "angle" })), "");
+    check("  and the same under a filter that lists it alone", placesOf(searchCatalogNames(offered, { filters: { level2: "cutting" }, typed: "utility" })), "Cutting");
+    // WHAT EACH NAME LEADS TO (#520): the sizes its rows give, and the makers with their part
+    // numbers — a row with neither no model, and a maker with no part number one.
+    const offersOf = (typed) =>
+        searchCatalogNames(offered, { typed })
+            .map((name) => `${name.level3} ${name.sizes} ${name.models}`)
+            .join(" | ");
+    check("  sizes and models counted, each once in any case", offersOf("grinder"), "Angle Grinder 2 3");
+    check("  one size, two models", offersOf("cordless"), "Cordless Drill 1 2");
+    check("  no size, two models", offersOf("welding"), "Welding Machine 0 2");
+    check("  a generic row beside one model", offersOf("drill press"), "Drill Press 0 1");
+    check("  and one size, no model", offersOf("jigsaw"), "Jigsaw 1 0");
     check("the rows under a name, the second step's to narrow between", ids(catalogRowsOf(offered, "tool\nmachining\nangle grinder")), "g45,g45mk30,g45mk70,g45bo,g5");
     check("  under its type alone, where one name has two", ids(catalogRowsOf(offered, "tool\nmeasuring\nlaser level")), "laserT");
     check("  and a name nothing holds has none", ids(catalogRowsOf(offered, "tool\nnowhere\nnothing")), "");
@@ -476,13 +487,21 @@ export function run({ check, assert, log }) {
     );
     check("  a word for every level and no other", Object.keys(ASSET_CATEGORY_COPY.levelLabel).join(" "), ASSET_PATH_LEVELS.join(" "));
     check("  and the class's", ASSET_CATEGORY_COPY.classLabel, "Class");
-    check("the two filters with nothing chosen, `All jobs`' shape", `${ASSET_CATEGORY_COPY.allOf.level1} | ${ASSET_CATEGORY_COPY.allOf.level2}`, "All types | All categories");
+    // THE SEARCH'S AND THE FILTERS' WORDS ARE THE DESIGN'S, ONE STRING FOR THE CATEGORY LIST'S BAND
+    // AND THE REGISTRATION'S FIRST STEP (1a, 1b; #520). The registration's filters said `All types`
+    // and `All categories` from #514, `All jobs`' shape, and its search `Choose a name`.
     check(
-        "  the search and each level the second step asks while nothing is chosen, `Choose a job`'s",
+        "the search's words and each filter's ×, the band's and the registration's alike",
+        [ASSET_CATEGORY_COPY.searchItems, ASSET_CATEGORY_COPY.clearSearch, ...Object.values(ASSET_CATEGORY_COPY.clearFilter)].join(" | "),
+        "Search items | Clear search | Clear type filter | Clear category filter | Clear class filter"
+    );
+    check("  a × for each filter a chip draws", Object.keys(ASSET_CATEGORY_COPY.clearFilter).join(" "), "level1 level2 assetClass");
+    check(
+        "  each level the second step asks while nothing is chosen, `Choose a job`'s",
         Object.entries(ASSET_CATEGORY_COPY.unchosen)
             .map(([level, word]) => `${level}=${word}`)
             .join(" | "),
-        "level3=Choose a name | size=Choose a size | maker=Choose a maker | partNumber=Choose a part #"
+        "size=Choose a size | maker=Choose a maker | partNumber=Choose a part #"
     );
     check(
         "  each level a row may leave empty, as the option that leaves it so",
@@ -590,7 +609,10 @@ export function run({ check, assert, log }) {
     // way a row is set aside is reached.
     assert("  the fixture is both offered from and set aside from", offered.length > 0 && setAside.length > 0);
     check("  by each of the three reasons", [...new Set(setAside.map((aside) => aside.reason))].sort().join(", "), "incomplete, placeholder, repeated");
-    assert("  and the search offers something for nothing typed", suggestCatalogNames(offered).length === MAX_NAME_SUGGESTIONS);
+    assert("  and the search lists something for nothing typed", searchCatalogNames(offered).length > 0);
+    // The places are seen to be said and left unsaid, the type with them and without.
+    const places = searchCatalogNames(offered).map((name) => name.place.length);
+    assert("  and a name says its place, with its type and without, and most say none", [0, 1, 2].every((n) => places.includes(n)));
     // The walk is seen to make a row and to make none, and to ask and leave a level unasked.
     const walks = [walkDetails(grinder, {}), walkDetails(grinder, { size: '4-1/2"' }), walkDetails(catalogRowsOf(offered, "equipment\nsite services\nair compressor"), {})];
     assert("  the walk both makes a row and makes none", walks.some((w) => w.category) && walks.some((w) => !w.category));

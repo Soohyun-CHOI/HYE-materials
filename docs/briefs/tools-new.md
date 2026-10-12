@@ -42,25 +42,38 @@ under the same row.
 **identity.** The heading, `Add items` (#519; `Add tools` from #485) — the word
 `/asset-categories` and a category's own screen open it with, so the two cannot drift.
 
-**action.** Two steps, and the dialog shows one at a time (#507).
+**action.** Two steps, and the dialog shows one at a time (#507). **It is 480
+wide, and 490 tall while it picks** (0l, 1b; #520): a dialog that searches a list
+and picks from it takes 480, and one whose choices change with what was picked
+holds its height, so going between the steps never moves its edges.
 
-- **The first finds the name (#514).** Two choices side by side over a search:
-  the type reads `All types` and the category `All categories` until one is
-  chosen — as the document lists' choice of job reads `All jobs` — and the
-  categories offered are the type's. The search, `Name`, lists the catalog's
-  names under what is chosen, five at most — the first of them before anything is typed,
-  and those whose name holds what is typed after: **the name typed in full
-  first, then names beginning with it, then names holding it elsewhere**, so
-  `wrench` offers `Wrench` before `Adjustable Monkey Wrench` (#517) — each
-  with the type and the category the choices leave open beside it, `Tool >
-  Gas Control`. One name can stand under two categories or two types, and
-  those are two names: the office's `Band Saw` is under `Equipment >
-  Machining` and `Tool > Power Tool`.
-  **Picking one goes on**; Enter takes the one name the search names.
-- **The second takes the rest.** The name picked and its type and category on
-  the line under the title, and beside them `Change`, which goes back to the
-  first step with the name still in the search — picking it again keeps what
-  was chosen. Then the levels the catalog holds under that name, in order:
+- **The first finds the name (1b, #514, #520).** A search across the dialog,
+  `Search items`, with two chips at its end, `Type` and `Category`, each
+  taking one value and saying it once chosen; the categories offered are the
+  chosen type's, and choosing a type clears a category it does not hold.
+  Under it, every name the catalog holds under what is chosen — the whole list
+  before anything is typed, and those whose name holds what is typed after,
+  the part typed set heavier: **the name typed in full first, then names
+  beginning with it, then names holding it elsewhere**, each group
+  alphabetical, so `wrench` lists `Wrench` before `Adjustable Monkey Wrench`
+  (#517). Each name says at its end what the second step will ask among —
+  `18 sizes`, or `3 models` where it asks one size or none — and nothing
+  where it asks neither. **One name can stand in two places, and those are
+  two names**: the office's `Band Saw` is `Equipment > Machining` and `Tool >
+  Power Tool`, so each of its rows says its category after the name in a
+  lighter ink; `Pipe Cutter` is a `Cutter` of both types, so its rows say the
+  type and the category, `Equipment · Cutter`. A name in one place says
+  neither. **Picking one goes on**, by a press or by Enter, which takes the
+  name shaded: the first listed once something is typed, or the one the
+  arrows moved to. From #514 to #520 the type and the category were two
+  choices over a search field, `All types` and `All categories` until chosen,
+  and the search offered five names with their places beside them.
+- **The second takes the rest.** The name picked on the line under the title —
+  with where it stands, after a dot, for a name in two places — and `Back` at
+  the actions' left, which goes back to the first step with the search as it
+  was left; picking the name again keeps what was chosen. It was `Change`,
+  beside the name and its whole place on that line, from #507 to #520. Then
+  the levels the catalog holds under that name, in order:
   `Size`, `Maker`, `Part #` — **only a level some row under the name gives a
   value**, so most equipment is asked no size, and a name with one row and none
   of the three is asked none of them. Each level's choices are the values the
@@ -78,10 +91,11 @@ under the same row.
   types one anywhere on this axis.** Somebody on one job gets that job without
   being asked; somebody on several picks from their own.
 
-The submit stands on the second step alone, beside `Cancel`; the first goes on
-by a pick. It names what it will add by its count — `Add 1 item`, `Add 5
-items` — and says `Add items` while the count is one a submission would refuse
-(#469).
+The first step has no actions (1b): a pick goes on, and the close and Escape
+stop. The submit stands on the second, after `Cancel`, with `Back` at the
+line's other end. It names what it will add by its count — `Add 1 item`, `Add
+5 items` — and says `Add items` while the count is one a submission would
+refuse (#469).
 
 **evidence.** On the second step, the class of the kind its levels make —
 `Class` over `B` — once each level holds a value. **It is stated, not asked**:
@@ -125,8 +139,10 @@ on that category with its `Add items`, and after a registration that fell short,
 count those words name (#485). **It opens at the second step with that category's
 levels already chosen (#507, #514)**: the category's name is the line under the
 title, each level the category has is a choice holding its one value, chosen, and
-there is no `Change`, so what is added goes under the category that screen is
-about; another is picked from `/asset-categories`. The class is stated as
+there is no `Back`, so what is added goes under the category that screen is
+about; another is picked from `/asset-categories`. It is 480 wide, as the
+dialog sharing its title is, and as tall as what it holds, since it picks
+nothing (#520). The class is stated as
 always. The count starts at the one handed over, and at 1 when none is — where
 it starts on `/asset-categories` too — and is the reader's to change. **The dialog says
 nothing about why the count is filled**: a line saying so would be a second
@@ -173,9 +189,15 @@ page is drawn again under the dialog, so the dialog's levels and class are the
 catalog's as it now stands and can no longer make the row refused. The dialog
 stays open with everything else it held.
 
+**When nothing the search lists holds what is typed (1b, #520):** in the
+list's place, `No item matches saw in any category.` — the words typed in the
+names' ink, the rest lighter — naming where it looked: the category chosen, or
+else the type in lower case, `in tool`, or else any category. It is not a
+refusal: the first step refuses nothing. Until #520 Enter on words naming no
+one row of the catalog was refused under the field, `Choose a name.`
+
 **When a refusal fires:** a refusal about one field is said under that field,
-in the place its help or its note takes, and rings the field — a search that
-names no one name on Enter (`Choose a name.`), a level with no value chosen
+in the place its help or its note takes, and rings the field — a level with no value chosen
 (`Choose a size.`, `Choose a maker.`, `Choose a part #.`, each under its own
 level, and only while it holds none), a count that is not 1 to 100 (`Enter 1
 to 100.`), one over the cap (`Max 100 at a time.`), and a job not chosen or not
@@ -199,7 +221,8 @@ creation date where a registration lands.
 
 **The catalog's words are the same on every screen that shows them (#507,
 #514):** `Type`, `Category`, `Name`, `Size`, `Maker`, `Part #` and `Class`
-here, the category beside each name on the list, and the line under a category's
+here, the category beside each name on the list — and since #520 the search's
+`Search items` and its chips, which the list's band says too — and the line under a category's
 name on its own screen and on an asset's — `Tool · Power tools · Class B` (#519;
 the list's `Class`, `Type` and `Category` columns and a line saying the class and
 the whole path, `Class A · Tool > DEMO Machining > … > GA4570`, until then). An item's name

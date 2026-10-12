@@ -61,6 +61,7 @@ import {
     movedIndex,
     multiSelectKey,
     numberFieldText,
+    searchResultsKey,
     selectOnlyKey,
     stepNumber,
     typeaheadIndex,
@@ -198,6 +199,26 @@ export function run({ check, assert, log }) {
         ["Tab", {}, true, null],
     ])
         check(`  ${open ? "open" : "shut"}, ${JSON.stringify(name)}${mods.altKey ? " with Alt" : ""}`, multiSelectKey(key(name, mods), open), expected);
+    // THE SEARCH A DIALOG IS BUILT AROUND (#520), 1b's: its results always show, the arrows move
+    // through them and wrap, Enter takes the one under visual focus and is stopped either way,
+    // and Escape and Tab are not its — the dialog's, and the filters' after it in the row.
+    log("a dialog's search moves through results that always show, and Enter takes one (#520):");
+    for (const [name, state, expected] of [
+        ["ArrowDown", { active: -1, count: 3 }, { active: 0 }],
+        ["ArrowDown", { active: 0, count: 3 }, { active: 1 }],
+        ["ArrowDown", { active: 2, count: 3 }, { active: 0 }],
+        ["ArrowUp", { active: -1, count: 3 }, { active: 2 }],
+        ["ArrowUp", { active: 0, count: 3 }, { active: 2 }],
+        ["ArrowUp", { active: 2, count: 3 }, { active: 1 }],
+        ["ArrowDown", { active: -1, count: 0 }, null],
+        ["Enter", { active: 1, count: 3 }, { accept: 1 }],
+        ["Enter", { active: -1, count: 3 }, { accept: null }],
+        ["Enter", { active: 4, count: 3 }, { accept: null }],
+        ["Escape", { active: 0, count: 3 }, null],
+        ["Tab", { active: 0, count: 3 }, null],
+        ["a", { active: 0, count: 3 }, null],
+    ])
+        check(`  ${JSON.stringify(name)} at ${state.active} of ${state.count}`, JSON.stringify(searchResultsKey(key(name), state)), JSON.stringify(expected));
     log("and it moves within the list, stopping at its ends:");
     check("  down from nothing reaches the first", movedIndex(-1, 4, "next"), 0);
     check("  down from the last stays", movedIndex(4, 4, "next"), 4);
@@ -325,13 +346,29 @@ export function run({ check, assert, log }) {
     check(
         "a filter chip is the select-only combobox taking several, its list counting each option, and leaving it takes nothing (#520)",
         [
-            calls(functionNamed(controls.ast, "FilterChip") ?? {}).has("multiSelectKey"),
+            /const action = single \? selectOnlyKey\(event, open\) : multiSelectKey\(event, open\);/.test(chipSource),
             /role="combobox"/.test(chipSource) && /aria-haspopup="listbox"/.test(chipSource) && /aria-labelledby=\{labelId\}/.test(chipSource),
-            /rows="sm"\s+multiselectable\s+options=/.test(chipSource) && /detail: option\.count,\s*selected: taken\.has\(option\.value\),/.test(chipSource),
-            /onBlur=\{\(\) => setOpen\(false\)\}/.test(chipSource),
+            /rows="sm"\s+multiselectable=\{!single\}\s+options=/.test(chipSource) && /detail: option\.count,\s*selected: taken\.has\(option\.value\),/.test(chipSource),
+            /onBlur=\{\(\) => \{\s*if \(single && open\) choose\(active\);\s*setOpen\(false\);\s*\}\}/.test(chipSource),
             /setOpen\(false\);\s*onChange\(\[\]\);\s*chipRef\.current\?\.focus\(\);/.test(chipSource),
         ].join(" "),
         "true true true true true"
+    );
+    // ONE TAKING ONE VALUE IS `Choice`'s PATTERN TO THE LETTER (#520), 1b's type and category: its
+    // list checks the value held and draws no box, a pick chooses and closes, leaving chooses what
+    // is under visual focus (above), it opens on the value held, and holding one it says the value
+    // alone — and its list opens where its caller says, at the end of a row.
+    check(
+        "  and one taking one value checks it, chooses and closes, and says the value alone (#520)",
+        [
+            /checked: single && index === chosen,/.test(chipSource),
+            /single\s*\?\s*\(index\) => \{\s*choose\(index\);\s*setOpen\(false\);\s*\}\s*:\s*toggle/.test(chipSource),
+            /case "closeSelect":\s*choose\(active\);\s*setOpen\(false\);/.test(chipSource),
+            /const opening = \(\) => \(single \? chosen :/.test(chipSource),
+            /\{!single && <span className="text-foreground-subtle">\{label\}<\/span>\}/.test(chipSource),
+            /fit=\{fit\}/.test(chipSource),
+        ].join(" "),
+        "true true true true true true"
     );
     const searchSource = sourceOfFunction("SearchField");
     check(
@@ -413,7 +450,7 @@ export function run({ check, assert, log }) {
             ].join(" "),
             textButton: /bordered:\s*"max-sm:in-data-\[sheet\]:border-0 max-sm:in-data-\[sheet\]:bg-transparent max-sm:in-data-\[sheet\]:not-aria-disabled:active:opacity-mobile-pressed"/.test(sheetVariants),
             applied: ["Button", "ButtonLink"].every((name) =>
-                /\$\{BUTTON\} \$\{BUTTON_SIZE\[size\]\} \$\{BUTTON_VARIANT\[variant\]\} \$\{SHEET_BUTTON\} \$\{SHEET_BUTTON_VARIANT\[variant\]\}/.test(functionSource(name))
+                /\$\{BUTTON\} \$\{BUTTON_SIZE\[size\]\} \$\{insetOf\(variant, size\)\} \$\{BUTTON_VARIANT\[variant\]\} \$\{SHEET_BUTTON\} \$\{SHEET_BUTTON_VARIANT\[variant\]\}/.test(functionSource(name))
             ),
             label: /const FIELD_LABEL = "[^"]*max-sm:in-data-\[sheet\]:text-mobile-body-sm"/.test(source),
             refusal: /role="alert"[\s\S]*max-sm:in-data-\[sheet\]:text-mobile-body-sm/.test(functionSource("Refusal")),
@@ -795,6 +832,8 @@ export function run({ check, assert, log }) {
             return text;
         };
         const compact = constant("COMPACT");
+        const width = constant("WIDTH");
+        const fixed = constant("FIXED");
         const withPreview = constant("WITH_PREVIEW");
         const paneSource = (() => {
             let found = "";
@@ -808,7 +847,18 @@ export function run({ check, assert, log }) {
             return found;
         })();
         return {
-            compact: [/\bp-dialog-inset\b/.test(compact), /var\(--container-dialog\)/.test(compact)].join(" "),
+            compact: [/\bp-dialog-inset\b/.test(compact), /compact: "max-w-\[min\(var\(--container-dialog\),/.test(width)].join(" "),
+            // A dialog that searches a list and picks from it (#520): 0l's 480, and 1b's 490 held
+            // while it picks, with no room of its own — the head, the body and the actions each
+            // take their 24 inside it, and what it holds takes the height left.
+            search: [
+                /search: "max-w-\[min\(var\(--container-dialog-search\),/.test(width),
+                /var\(--height-dialog-search\)/.test(fixed) && !/\bp-dialog-inset\b/.test(fixed),
+                /\$\{wide \? WIDTH\.search : WIDTH\.compact\} \$\{fixed \? FIXED : COMPACT\}/.test(source),
+                /data-fixed=\{fixed \? "" : undefined\}/.test(source),
+                (source.match(/\bin-data-fixed:px-dialog-inset\b/g) ?? []).length === 3,
+                /flex min-h-0 flex-col in-data-fixed:grow/.test(source),
+            ].join(" "),
             withPreview: [
                 /var\(--container-dialog-preview\)/.test(withPreview),
                 /var\(--height-dialog-preview\)/.test(withPreview),
@@ -858,6 +908,7 @@ export function run({ check, assert, log }) {
     };
     const builds = buildFacts(frame);
     check("  the Compact build keeps its 24 all round, at 420", builds.compact, "true true");
+    check("  a dialog that searches is 480, held at 490 while it picks, its parts taking their own room (#520)", builds.search, "true true true true true true");
     check("  a preview's build is 780 by 520 with a 440 pane, and no room of its own", builds.withPreview, "true true true true");
     check("  its pane is on the Field ground, scrolls in 0i's reserved lane with its own room, and stops at its end (#495)", builds.pane, "true true true true true");
     check("  and the column beside it takes the Compact build's room, its body scrolling across it (#495)", builds.column, "true true true true");
@@ -866,6 +917,40 @@ export function run({ check, assert, log }) {
     // column is its content's height, so there is none to take and nothing moves.
     check("  the body takes the column's spare room, so the actions stand at its foot", builds.bodyGrows, true);
     check("a dialog's body stops at its end rather than scrolling the page behind it (#495)", builds.bodyContained, true);
+
+    // THE SEARCH A DIALOG IS BUILT AROUND (#520), 1b's first step: the field a combobox over
+    // results that always show — expanded, naming them, pointing at the one under visual focus —
+    // its keys `searchResultsKey`'s, the first result held once something is typed and a keystroke
+    // handing visual focus back to it, a result pressed with its mousedown stopped so focus stays
+    // in the field, and the whole marked as the dialog's body, so focus that falls in the dialog
+    // comes back to the field. A secondary action stands at the actions' left (1b's `Back`), a
+    // ghost pulled out by its side room, and a ghost is its word alone in Ink, 10 either side.
+    const searchFn = functionNamed(frame.ast, "DialogSearch");
+    const searchPart = searchFn ? frame.source.slice(searchFn.start, searchFn.end) : "";
+    check(
+        "a dialog's search is a combobox over results that always show, the first held once something is typed (#520)",
+        [
+            /role="combobox"\s*aria-expanded="true"\s*aria-controls=\{listId\}\s*aria-autocomplete="list"\s*aria-activedescendant=\{active >= 0 \? `\$\{listId\}-\$\{active\}` : undefined\}/.test(searchPart),
+            calls(searchFn ?? {}).has("searchResultsKey"),
+            /const active = moved >= 0 && moved < count \? moved : value\.trim\(\) !== "" && count > 0 \? 0 : -1;/.test(searchPart),
+            /const type = \(next\) => \{\s*setMoved\(-1\);\s*onChange\(next\);/.test(searchPart),
+            /role="option"\s*aria-selected=\{index === active \? "true" : "false"\}\s*onMouseDown=\{\(event\) => event\.preventDefault\(\)\}/.test(searchPart),
+            /<div data-dialog-body="" /.test(searchPart),
+        ].join(" "),
+        "true true true true true true"
+    );
+    const actionsFn = functionNamed(frame.ast, "DialogActions");
+    const actionsPart = actionsFn ? frame.source.slice(actionsFn.start, actionsFn.end) : "";
+    const controlSource = parseFile(CONTROLS).source;
+    check(
+        "  a secondary action stands first at the actions' left, pulled out, and a ghost is its word alone (#520)",
+        [
+            /\{secondary && <div className="mr-auto -ml-ghost-inset-x flex">\{secondary\}<\/div>\}\s*\{children\}/.test(actionsPart),
+            /ghost: "text-foreground-default not-disabled:not-aria-disabled:hover:bg-hover",/.test(controlSource),
+            /const insetOf = \(variant, size\) => \(variant === "ghost" \? "px-ghost-inset-x" : BUTTON_INSET\[size\]\);/.test(controlSource),
+        ].join(" "),
+        "true true true"
+    );
 
     // THE PHONE'S SHEET, 0l's CONFIRM, AND A DIALOG TAKEN AWAY OPEN (#458). Below the phone's
     // edge a dialog marked `sheet` is Tools 0a's: at the screen's foot and its width, the top
@@ -1485,16 +1570,21 @@ export function run({ check, assert, log }) {
     check("  a sentence describing nothing is seen", plantedFrame.describes, "false false false");
     check("  and actions held on one line are seen", plantedFrame.wraps, false);
     // The build reader is seen to fail on a frame that gives a preview the Compact build's
-    // room and width and draws it in a pane on white that does not scroll.
+    // room and width and draws it in a pane on white that does not scroll — and since #520 on
+    // a dialog that searches drawn at 420 with the Compact build's room, no height held, and
+    // nothing marking it for what it holds.
     const plantedBuilds = buildFacts(
         parseSource(
-            'const COMPACT = "max-w-[min(var(--container-dialog),100vw)] flex-col";\n' +
+            'const WIDTH = { compact: "max-w-[min(var(--container-dialog),100vw)]", search: "max-w-[min(var(--container-dialog),100vw)]" };\n' +
+                'const COMPACT = "flex-col";\n' +
+                'const FIXED = "flex-col p-dialog-inset";\n' +
                 'const WITH_PREVIEW = "max-w-[min(var(--container-dialog),100vw)] p-dialog-inset";\n' +
                 'export function DialogFrame({ preview }) { return <dialog><div className="bg-white">{preview}</div></dialog>; }\n',
             "<planted-builds>"
         )
     );
     check("  a Compact build with no room of its own is seen", plantedBuilds.compact, "false true");
+    check("  a dialog that searches at 420, with no height held and nothing marked, is seen", plantedBuilds.search, "false false false false false false");
     check("  a preview's build at the Compact width with its room is seen", plantedBuilds.withPreview, "false false false false");
     check("  a pane on white that does not scroll is seen", plantedBuilds.pane, "false false false false false");
     check("  and a column taking no room is seen", plantedBuilds.column, "false false false false");
