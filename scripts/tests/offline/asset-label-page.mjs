@@ -13,9 +13,9 @@
 // is a dimension nobody checked.
 //
 // ONE LABEL IS ONE PAGE SINCE #467, AND THE SECOND PATH IS THE PARTS ADDING BACK UP
-// TO THE STOCK. The stock is two inputs — the tape's width, which is the label's
-// height, and the length the printer cuts, 11 mm — and everything else is derived
-// from them, the two floors and the face. So what is worth asserting is that the
+// TO THE STOCK. The stock is two inputs — the label's width and height as it reads,
+// 11 and 12 mm, the height running along the tape since #526 and the tape's width
+// until then — and everything else is derived from them, the two floors and the face. So what is worth asserting is that the
 // derived parts come back to the inputs exactly, that the stock carries no derived
 // figure of its own to disagree with them, and that the label is no narrower than the
 // one a print proved (10.87 mm, four equal margins). This file held a Letter sheet of
@@ -31,19 +31,22 @@
 // stop the pane cutting the run, and section 5b holds that nothing but a label page
 // stands in the pane to be printed.
 //
-// AND THREE FACTS NO FIGURE CAN SEE. Which way the two pieces stack, what face and
-// weight the code prints in, and that the code is set by its baseline rather than by a
-// line box are all source: a label drawn upside down adds up to the same sums, a face
-// is a name rather than a number, and a line box and a baseline draw the same box. So
-// they are read off the AST and the stylesheet, each beside a planted counterexample.
+// AND FOUR FACTS NO FIGURE CAN SEE. Which way the two pieces stack, what face and
+// weight the code prints in, that the code is set by its baseline rather than by a
+// line box, and that the print turns the label a quarter turn while the screen does not
+// (#526) are all source: a label drawn upside down adds up to the same sums, a face is a
+// name rather than a number, a line box and a baseline draw the same box, and a turn is
+// a declaration rather than a figure. So they are read off the AST and the stylesheet,
+// each beside a planted counterexample.
 //
 // WHAT IT CANNOT SEE, and the list is longer here than usual because the subject is
 // paper. It never renders, so it cannot see ink inside the quiet zone, a browser's
 // print scaling, whether `@media print` actually took the frame and the page behind off
-// the paper, whether the top layer carried the run from page to page, or whether a page
-// came out the label's size. What it CAN do is add the parts up: if the pieces do not
-// fit the stock, no layout can stop them overlapping, and that is arithmetic. The
-// pages were printed to PDF and measured — by #467, and from the dialog by #457 — and
+// the paper, whether the top layer carried the run from page to page, whether a page
+// came out the label's size, or which way the label lies on it. What it CAN do is add
+// the parts up: if the pieces do not fit the stock, no layout can stop them overlapping,
+// and that is arithmetic. The pages were printed to PDF and measured — by #467, from the
+// dialog by #457, and turned by #526 — and
 // the label a print proved — this symbol, this code and this height, 10.87 mm across —
 // was printed on the label printer and read; both are recorded in docs/notes/tools.md
 // rather than implied here.
@@ -161,6 +164,20 @@ function mediaBlock(css, query) {
     return "";
 }
 
+/** A stylesheet's text, comments stripped, with its first `@media <query>` block cut out. */
+function outsideMedia(css, query) {
+    const text = bare(css);
+    const open = text.indexOf(`@media ${query}`);
+    if (open < 0) return text;
+    const start = text.indexOf("{", open);
+    let depth = 0;
+    for (let at = start; at < text.length; at++) {
+        if (text[at] === "{") depth++;
+        if (text[at] === "}" && --depth === 0) return text.slice(0, open) + text.slice(at + 1);
+    }
+    return text.slice(0, open);
+}
+
 /** The body of the first rule whose selector is exactly `selector`, or null. */
 function cssRule(css, selector) {
     const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -210,16 +227,19 @@ function plantedRun(sides, missing = []) {
 
 export function run({ check, assert, log }) {
     // ── 1: the stock, which is two inputs and nothing else ──────────────────
-    log("the stock the label is cut from:");
-    check("the tape the label printer takes, which is the label's height", LABEL_STOCK.tapeWidthMm, 12);
-    check("the length it cuts one label to, which is the label's width", LABEL_STOCK.labelWidthMm, 11);
+    log("the label on the stock, as it reads:");
+    // ACROSS THE TAPE AND ALONG IT SINCE #526: the label prints turned a quarter turn, so
+    // its 11 mm width lies across the 12 mm tape and its 12 mm height is the length one
+    // label takes. Until then the height was the tape's width, `tapeWidthMm`.
+    check("the label's width, which lies across the tape", LABEL_STOCK.labelWidthMm, 11);
+    check("the label's height, the length of tape one label takes", LABEL_STOCK.labelHeightMm, 12);
     // A DERIVED FIGURE TYPED IN BESIDE ITS INPUTS IS A SECOND PLACE FOR ONE NUMBER, and
     // the two can disagree with nothing to say so. So the stock is read off the AST: its
     // members are exactly the two inputs, each a number typed as itself.
     check(
         "the stock carries its two inputs and nothing derived",
         objectLiteral(parseFile(MODULE_SOURCE), "LABEL_STOCK"),
-        "tapeWidthMm:input, labelWidthMm:input"
+        "labelWidthMm:input, labelHeightMm:input"
     );
     // ANTI-VACUITY: a stock that carries the symbol's box as well — the shape the first
     // design of #467 had — is seen carrying it, and a member computed from another is
@@ -228,13 +248,18 @@ export function run({ check, assert, log }) {
         "  a stock carrying a derived box is seen carrying it",
         objectLiteral(
             parseSource(
-                "const LABEL_STOCK = { tapeWidthMm: 12, labelWidthMm: 11, symbolMm: 9.57, marginMm: (12 - 9.57) / 2 };\n",
+                "const LABEL_STOCK = { labelWidthMm: 11, labelHeightMm: 12, symbolMm: 9.57, marginMm: (12 - 9.57) / 2 };\n",
                 "<planted-stock>"
             ),
             "LABEL_STOCK"
         ),
-        "tapeWidthMm:input, labelWidthMm:input, symbolMm:input, marginMm:BinaryExpression"
+        "labelWidthMm:input, labelHeightMm:input, symbolMm:input, marginMm:BinaryExpression"
     );
+    // AND THE NAME THE TURN RETIRED IS GONE: `tapeWidthMm` said the height was the tape's
+    // width, which it has not been since #526, and an identifier teaches its word to the
+    // next comment written beside it. The same question finds a member that is there.
+    check("  the stock names no tape width", "tapeWidthMm" in LABEL_STOCK, false);
+    assert("  and the same question finds the height", "labelHeightMm" in LABEL_STOCK);
 
     // ── 1a: the label a print proved, and this one against it ───────────────
     log("");
@@ -243,16 +268,16 @@ export function run({ check, assert, log }) {
     check("the symbol it is sized for", printed.widestSymbolMm, 9.57);
     check("  the margin all round it", round4(printed.marginMm), 0.6488);
     check("  its width, rounded up to a hundredth", printed.widthMm, 10.87);
-    check("  and its height, the tape's", printed.heightMm, 12);
+    check("  and its height, the label's", printed.heightMm, 12);
     // THIS LABEL IS THAT ONE WITH A ROUND LENGTH, AND THE ORDER IS THE CLAIM. The side
     // margins may be wider than the print's and never narrower, since a narrower one is a
     // margin nothing has printed.
     assert("this label is at least as wide as the printed one", LABEL_STOCK.labelWidthMm >= printed.widthMm);
     check("  by the length the cut was rounded to", round4(LABEL_STOCK.labelWidthMm - printed.widthMm), 0.13);
-    // THE WIDTH IS THE TAPE LESS THE CODE'S HEIGHT, WHATEVER THE SYMBOL — measured here
+    // THE WIDTH IS THE HEIGHT LESS THE CODE'S HEIGHT, WHATEVER THE SYMBOL — measured here
     // rather than said, because it is what makes a version step a matter of margins
     // alone. A larger symbol takes from the margins exactly what it adds to itself.
-    check("the tape less the code's height", round4(LABEL_STOCK.tapeWidthMm - ID_HEIGHT_MM), 10.8676);
+    check("the label's height less the code's height", round4(LABEL_STOCK.labelHeightMm - ID_HEIGHT_MM), 10.8676);
     const roomier = labelSizeMm({ sideModules: SIDE_MODULES_TODAY, versionsOfHeadroom: 1 });
     check("  a version of headroom leaves that width where it is", roomier.widthMm, printed.widthMm);
     check("  and takes the margin down to", round4(roomier.marginMm), 0.0688);
@@ -287,15 +312,19 @@ export function run({ check, assert, log }) {
     // they were derived from, so a margin computed from the wrong room is a sum that
     // misses its stock.
     check(
-        "across, two margins and the symbol come to the cut",
+        "across, two margins and the symbol come to the label's width",
         round4(budget.marginXMm * 2 + budget.widestSymbolMm),
         LABEL_STOCK.labelWidthMm
     );
     check(
-        "down, two margins, the symbol, the gap and the code come to the tape",
+        "down, two margins, the symbol, the gap and the code come to its height",
         round4(budget.marginYMm * 2 + budget.widestSymbolMm + LABEL_GAP_MM + budget.minIdHeightMm),
-        LABEL_STOCK.tapeWidthMm
+        LABEL_STOCK.labelHeightMm
     );
+    // THE CODE'S MIDDLE IS HALF THE LABEL'S WIDTH, in millimeters (#526). It was `50%`
+    // of the face, which at print is the turned page, 12 mm across — 0.5 mm off the
+    // middle of a label 11 mm wide.
+    check("the code's middle, across", budget.idCenterMm, 5.5);
     assert("the side margins are the wider pair", budget.marginXMm > budget.marginYMm);
     // THE CODE ACROSS, which the symbol's width over it has to clear: ten characters at
     // the floor, in the face's measured advance.
@@ -546,13 +575,15 @@ export function run({ check, assert, log }) {
     // the label pages the name is not taken, since they are in the top layer — measured,
     // Chrome and Edge print them at Letter. docs/notes/tools.md has the PDFs.
     const pageRule = cssRule(css, "@page asset-label");
+    // TURNED SINCE #526: the page runs along the tape for the label's height and across
+    // it for its width, where until then it was the label as it reads, 11 by 12.
     check(
-        "the label's page box is the label: the cut's length across and the tape's width down",
+        "the label's page box is the label turned a quarter: its height along the tape, then its width across",
         cssValue(pageRule, "size"),
-        `${LABEL_STOCK.labelWidthMm}mm ${LABEL_STOCK.tapeWidthMm}mm`
+        `${LABEL_STOCK.labelHeightMm}mm ${LABEL_STOCK.labelWidthMm}mm`
     );
     // By value as well, so the relation above cannot be two wrong numbers agreeing.
-    check("  which is these two", cssValue(pageRule, "size"), "11mm 12mm");
+    check("  which is these two", cssValue(pageRule, "size"), "12mm 11mm");
     check("  and takes no margin, so the label's own margins mean something", cssValue(pageRule, "margin"), "0");
     check("no page box is the whole document's", /@page\s*\{/.test(bare(css)), false);
     const OPEN = ":root:has(dialog[open] .label-page)";
@@ -597,12 +628,96 @@ export function run({ check, assert, log }) {
     // above is a fact about the rest of the file rather than about a matcher that finds
     // nothing; and the rule reader is seen failing on a stylesheet with a page box for
     // the whole document and a print block that hides nothing.
-    check("  and the same matcher finds the page box's two", (bare(css).match(/\d+(?:\.\d+)?(?:mm|pt)\b/g) || []).join(" "), "11mm 12mm");
+    check("  and the same matcher finds the page box's two", (bare(css).match(/\d+(?:\.\d+)?(?:mm|pt)\b/g) || []).join(" "), "12mm 11mm");
     const plantedCss = "@page { size: 11mm 12mm; margin: 0; }\n@media print { .label-page { zoom: 2; } }\n";
     check(
         "  a page box for the whole document and a print that hides nothing are seen",
         [/@page\s*\{/.test(bare(plantedCss)), cssRule(mediaBlock(plantedCss, "print"), `${OPEN} body :has(dialog[open] .label-page)`), cssValue(cssRule(mediaBlock(plantedCss, "print"), ".label-page"), "zoom")].join(" | "),
         "true |  | 2"
+    );
+
+    // ── 5a: the print turns the label a quarter turn, and the screen does not (#526) ──
+    log("");
+    log("the print turns the label a quarter turn clockwise, and the pane draws it the right way up:");
+    // THE TAPE TAKES THE LABEL TURNED, AND ONLY THE PRINT TURNS IT. No sum sees a turn — a
+    // label turned and one upright add up to the same parts — so the rules are read. On
+    // screen the page is the label as it reads, sized by the two properties the dialog
+    // sets; at print, in an open dialog, the page takes them swapped, which is the page
+    // box `@page asset-label` sizes, and the group holding the symbol and the code turns
+    // clockwise about the face's corner and moves along by the label's height, which
+    // lands it back on the page. The turn is inside the face's SVG because a print snaps
+    // a box's corner and not what an SVG holds (#467), and because a turned box would
+    // keep its upright height on a page that breaks at 42 px, 11.11 mm — measured.
+    check(
+        "on screen the page is the label as it reads",
+        ["width", "height"].map((p) => cssValue(cssRule(css, ".label-page"), p)).join(" x "),
+        "var(--label-width) x var(--label-height)"
+    );
+    check(
+        "  and at print, in an open dialog, its height across and its width down",
+        ["width", "height"].map((p) => cssValue(cssRule(print, "dialog[open] .label-page"), p)).join(" x "),
+        "var(--label-height) x var(--label-width)"
+    );
+    const turnRule = cssRule(print, "dialog[open] .label-turn");
+    check(
+        "the group in the face turns clockwise about its corner and moves along by the label's height",
+        `${cssValue(turnRule, "transform")} from ${cssValue(turnRule, "transform-origin")}`,
+        "translateX(var(--label-height)) rotate(90deg) from 0 0"
+    );
+    // ONLY AT PRINT: outside the print block nothing transforms, so the pane draws a label
+    // the right way up — the label as it reads stuck on the asset.
+    const turnsOutsidePrint = (sheet) => (outsideMedia(sheet, "print").match(/\b(?:transform|rotate|translate[XY]?)\b/g) || []).length;
+    check("  and nothing outside the print turns or moves anything", turnsOutsidePrint(css), 0);
+    // ANTI-VACUITY: a stylesheet turning the group on screen as well is seen turning it; a
+    // print keeping the page upright reads as upright; and a counter-clockwise turn reads
+    // as itself rather than as the clockwise one.
+    const plantedTurn =
+        ".label-turn { transform: rotate(90deg); }\n" +
+        "@media print {\n    dialog[open] .label-page { width: var(--label-width); height: var(--label-height); }\n" +
+        "    dialog[open] .label-turn { transform: translateY(var(--label-width)) rotate(-90deg); transform-origin: 0 0; }\n}\n";
+    check("  a turn on screen is seen", turnsOutsidePrint(plantedTurn), 2);
+    check(
+        "  a print keeping the page upright is seen",
+        ["width", "height"].map((p) => cssValue(cssRule(mediaBlock(plantedTurn, "print"), "dialog[open] .label-page"), p)).join(" x "),
+        "var(--label-width) x var(--label-height)"
+    );
+    check(
+        "  and a counter-clockwise turn reads as itself",
+        cssValue(cssRule(mediaBlock(plantedTurn, "print"), "dialog[open] .label-turn"), "transform"),
+        "translateY(var(--label-width)) rotate(-90deg)"
+    );
+    // THE DIALOG SIZES THE PAGE BY THOSE TWO PROPERTIES, FROM THE STOCK, AND BY NOTHING A
+    // PRINT RULE CANNOT SWAP. Each page style sets `--label-width` from the label's width
+    // and `--label-height` from its height; an inline `width` or `height` would outrank
+    // the print's swap and print an upright box 12 mm tall on an 11 mm page.
+    const pageProperties = (ast, source) => {
+        const set = new Set();
+        let inline = 0;
+        walk(ast, (n) => {
+            if (n.type !== "Property") return;
+            if (n.key?.type === "Literal" && /^--label-(?:width|height)$/.test(n.key.value))
+                set.add(`${n.key.value} = ${source.slice(n.value.start, n.value.end)}`);
+            if (n.key?.type === "Identifier" && /^(?:width|height)$/.test(n.key.name)) inline++;
+        });
+        return { set: [...set].sort().join(" | "), inline };
+    };
+    const dialogFile = parseFile(COMPONENT_SOURCE);
+    const sized = pageProperties(dialogFile.ast, dialogFile.source);
+    check(
+        "the dialog sets each property from the stock",
+        sized.set,
+        "--label-height = `${LABEL_STOCK.labelHeightMm}mm` | --label-width = `${LABEL_STOCK.labelWidthMm}mm`"
+    );
+    check("  and sizes no page by an inline width or height", sized.inline, 0);
+    const plantedSizing = parseSource(
+        "const s = { width: `${LABEL_STOCK.labelWidthMm}mm`, \"--label-height\": `${LABEL_STOCK.labelWidthMm}mm` };\n",
+        "<planted-sizing>"
+    );
+    const plantedSized = pageProperties(plantedSizing.ast, plantedSizing.source);
+    check(
+        "  where a height set from the width, beside an inline width, is seen",
+        `${plantedSized.set}; ${plantedSized.inline} inline`,
+        "--label-height = `${LABEL_STOCK.labelWidthMm}mm`; 1 inline"
     );
 
     // ── 5b: nothing but a label stands in the pane ──────────────────────────
@@ -785,11 +900,12 @@ export function run({ check, assert, log }) {
     // sized from something else entirely would fail rather than merely being un-pinned.
     for (const name of [
         "LABEL_STOCK.labelWidthMm",
-        "LABEL_STOCK.tapeWidthMm",
+        "LABEL_STOCK.labelHeightMm",
         "LABEL_PREVIEW_SCALE",
         "budget.marginXMm",
         "budget.marginYMm",
         "boxMm",
+        "budget.idCenterMm",
         "budget.idBaselineMm",
         "MIN_ID_FONT_PT",
     ])
@@ -914,8 +1030,25 @@ export function run({ check, assert, log }) {
     check("the label's page holds one box, its face", childClasses(labelElement).join(", "), "label-face");
     const face = elementWithClass(componentAst, "label-face");
     check("  which is an SVG", face?.openingElement?.name?.name, "svg");
-    // WHAT IS ON TOP IS #431's DECISION, read as the order the face holds them in.
-    check("  holding the symbol and then the code", childClasses(face).join(", "), "label-symbol, label-id");
+    // ONE GROUP IN IT, THE PART THE PRINT TURNS (#526), so the face stays the one box and
+    // the turn is SVG geometry — section 5a reads the rule that turns it.
+    check("  holding one group, the part the print turns", childClasses(face).join(", "), "label-turn");
+    const turnGroup = elementWithClass(componentAst, "label-turn");
+    check("  which is an SVG group", turnGroup?.openingElement?.name?.name, "g");
+    // WHAT IS ON TOP IS #431's DECISION, read as the order the group holds them in.
+    check("  holding the symbol and then the code", childClasses(turnGroup).join(", "), "label-symbol, label-id");
+    // ANTI-VACUITY: the face as it was until #526, the symbol and the code straight inside
+    // it, is seen holding no group.
+    check(
+        "  a face with nothing to turn is seen so",
+        childClasses(
+            elementWithClass(
+                parseSource('const a = <svg className="label-face"><svg className="label-symbol" /><text className="label-id">{c}</text></svg>;\n', "<planted-face>").ast,
+                "label-face"
+            )
+        ).join(", "),
+        "label-symbol, label-id"
+    );
     // AND WHERE EACH IS, which is `labelBudget`'s: the symbol's corner at the two
     // margins, sized by its own box, and the code's BASELINE where the budget puts it —
     // SVG text's `y` is its baseline, so the digits' ink starts exactly where the
@@ -933,7 +1066,7 @@ export function run({ check, assert, log }) {
     check(
         "  the symbol at the margins and the code on its baseline",
         placement(component),
-        "svg | `${budget.marginXMm}mm` | `${budget.marginYMm}mm` | `${boxMm}mm` | `${boxMm}mm` | text | 50% | `${budget.idBaselineMm}mm` | `${MIN_ID_FONT_PT}pt` | middle"
+        "svg | `${budget.marginXMm}mm` | `${budget.marginYMm}mm` | `${boxMm}mm` | `${boxMm}mm` | text | `${budget.idCenterMm}mm` | `${budget.idBaselineMm}mm` | `${MIN_ID_FONT_PT}pt` | middle"
     );
     // The baseline, by value: the margin, the symbol, the gap and the ink above it.
     check("the code's baseline from the label's top edge", round4(budget.idBaselineMm), 11.3318);
@@ -944,7 +1077,7 @@ export function run({ check, assert, log }) {
     );
     check(
         "  and leaves the margin under the ink",
-        round4(LABEL_STOCK.tapeWidthMm - (budget.idBaselineMm - 1.113 + ID_HEIGHT_MM)),
+        round4(LABEL_STOCK.labelHeightMm - (budget.idBaselineMm - 1.113 + ID_HEIGHT_MM)),
         round4(budget.marginYMm)
     );
     // ANTI-VACUITY: the two-box label #467 first drew — a symbol box and a code box beside
@@ -978,7 +1111,7 @@ export function run({ check, assert, log }) {
     // sets one custom property from `LABEL_PREVIEW_SCALE` and the stylesheet zooms the page
     // by it on screen and by 1 at print (section 5).
     check("the scale the pane draws a page at", LABEL_PREVIEW_SCALE, 2);
-    check("  which makes the page the design's", `${LABEL_STOCK.labelWidthMm * LABEL_PREVIEW_SCALE} × ${LABEL_STOCK.tapeWidthMm * LABEL_PREVIEW_SCALE} mm`, "22 × 24 mm");
+    check("  which makes the page the design's", `${LABEL_STOCK.labelWidthMm * LABEL_PREVIEW_SCALE} × ${LABEL_STOCK.labelHeightMm * LABEL_PREVIEW_SCALE} mm`, "22 × 24 mm");
     const scaleSet = (ast) => {
         let found = "none";
         walk(ast, (n) => {
@@ -1258,7 +1391,9 @@ export function run({ check, assert, log }) {
         });
         return found;
     };
-    check("  built from the cut and the tape", sizeBuilt(parseFile(MODULE_SOURCE)), "LABEL_STOCK.labelWidthMm, LABEL_STOCK.tapeWidthMm");
+    // ACROSS AND DOWN AS THE LABEL READS, NOT AS THE PAGE LIES (#526): the pane draws it
+    // the right way up beside these words, while the page prints it turned, 12 × 11.
+    check("  built from the label's width and height as it reads", sizeBuilt(parseFile(MODULE_SOURCE)), "LABEL_STOCK.labelWidthMm, LABEL_STOCK.labelHeightMm");
     check("  where a typed size reads as typed", sizeBuilt(parseSource('const C = { size: "11 × 12 mm" };\n', "<planted-size>")), "Literal");
     check("one code not found", COPY.notFound(1), "1 code not found");
     check("  and several", COPY.notFound(3), "3 codes not found");

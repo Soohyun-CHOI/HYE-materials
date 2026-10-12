@@ -65,6 +65,18 @@ import "./labels.css";
 // symbol and the code are placed in millimeters inside it, where `labelBudget` puts
 // them, and only the label as a whole is a box.
 //
+// AND THE PRINT TURNS IT A QUARTER TURN CLOCKWISE INSIDE THAT SVG (#526). The pane draws
+// a label the right way up, as it reads stuck on the asset; the tape takes it turned,
+// its height along the tape and its width across, so it reads the right way up with the
+// tape held crosswise. `labels.css` makes the turn at print alone: the page's box takes
+// the label's height across and its width down — the two custom properties the page is
+// sized by, swapped — and the group holding the symbol and the code turns about the
+// face's corner and moves along by the label's height, which lands it back on the page.
+// Turning the label's box instead was measured against: a transform moves no layout
+// box, so the box would stay 12 mm tall on a page whose breaks fall at 42 px, 11.11 mm —
+// a box 11.12 mm tall spilled onto a second page in the PDF Chrome and Edge save. Inside
+// the SVG nothing is a box but the face, still the page's own size from its corner.
+//
 // **IT MUST NEVER IMPORT `lib/assetLabelQR.js`** — that module imports `qrcode`, which
 // would put the whole encoder in the browser bundle, and `offline/client-import-safety.mjs`
 // cannot see it because the rule that check enforces is about `lib/airtable/`.
@@ -186,11 +198,12 @@ export default function LabelsDialog({ title, itemName, run: handed, assetIds, d
 function LabelsFrame({ open, onClose, title, itemName, run }) {
     const { budget, pages, printing, named, missing, tooLarge } = describeLabelRun(run);
 
-    // The page is the label: the cut's length wide and the tape's width tall. The pane's
-    // columns are the page as the pane draws it.
+    // The page is the label as it reads, sized through two custom properties so the
+    // stylesheet can turn it at print (#526). The pane's columns are the page as the
+    // pane draws it.
     const pageStyle = {
-        width: `${LABEL_STOCK.labelWidthMm}mm`,
-        height: `${LABEL_STOCK.tapeWidthMm}mm`,
+        "--label-width": `${LABEL_STOCK.labelWidthMm}mm`,
+        "--label-height": `${LABEL_STOCK.labelHeightMm}mm`,
     };
     const listStyle = {
         "--label-preview-scale": LABEL_PREVIEW_SCALE,
@@ -291,11 +304,15 @@ function LabelsFrame({ open, onClose, title, itemName, run }) {
  * over a 1 2 shadow, and the dialog's on 0k's Preview — the Mark corner, a 6% ring over 2 8
  * at 8% — which the spec gives a print shown on the page; the frame takes the spec's, the
  * one the dialog has worn since #457, so the two drawings stay one.
+ *
+ * IT IS NEVER TURNED. The stylesheet turns a label page inside an open dialog at print
+ * (#526), and this one is on the page behind it — off the paper while the dialog prints,
+ * and the right way up in a print of the asset's page.
  */
 export function LabelPreview({ label, budget, name }) {
     const pageStyle = {
-        width: `${LABEL_STOCK.labelWidthMm}mm`,
-        height: `${LABEL_STOCK.tapeWidthMm}mm`,
+        "--label-width": `${LABEL_STOCK.labelWidthMm}mm`,
+        "--label-height": `${LABEL_STOCK.labelHeightMm}mm`,
     };
     return (
         <div
@@ -315,52 +332,62 @@ export function LabelPreview({ label, budget, name }) {
  * The box is that label's own side count INCLUDING its quiet zone, times the label's
  * module. Sizing by the symbol proper would crop the four modules of margin; sizing every
  * box alike would thin the modules of a larger version.
+ *
+ * The symbol and the code are one group, `label-turn`, which the stylesheet turns a
+ * quarter turn at print and nowhere else (#526); everything inside it is placed as the
+ * label reads.
  */
 function LabelPage({ label, budget, pageStyle }) {
     const { boxMm } = symbolBox({ sideModules: label.sideModules, budget });
     return (
         <div className="label-page" style={pageStyle}>
             <svg className="label-face" width="100%" height="100%" aria-hidden="true">
-                <svg
-                    className="label-symbol"
-                    x={`${budget.marginXMm}mm`}
-                    y={`${budget.marginYMm}mm`}
-                    width={`${boxMm}mm`}
-                    height={`${boxMm}mm`}
-                    dangerouslySetInnerHTML={{ __html: label.svg }}
-                />
-                {/* THE CODE IS SET BY ITS BASELINE, AND ITS HEIGHT IS ITS INK
-                    (#467). SVG text's `y` IS the baseline, and `labelBudget`
-                    puts it `ID_INK_ABOVE_EM` below the symbol's box, so the
-                    digits' ink starts exactly where that box ends whatever
-                    ascent and descent the platform takes the face to have. A
-                    CSS line box puts the baseline where those metrics say
-                    instead — measured at 0.600 em rather than 0.631, which
-                    lifts the ink 0.055 mm into the symbol's box. It was a
-                    line box one em tall from #431 until then. Centered on
-                    the label, so a code longer than it is budgeted for
-                    overhangs both side margins alike.
+                <g className="label-turn">
+                    <svg
+                        className="label-symbol"
+                        x={`${budget.marginXMm}mm`}
+                        y={`${budget.marginYMm}mm`}
+                        width={`${boxMm}mm`}
+                        height={`${boxMm}mm`}
+                        dangerouslySetInnerHTML={{ __html: label.svg }}
+                    />
+                    {/* THE CODE IS SET BY ITS BASELINE, AND ITS HEIGHT IS ITS INK
+                        (#467). SVG text's `y` IS the baseline, and `labelBudget`
+                        puts it `ID_INK_ABOVE_EM` below the symbol's box, so the
+                        digits' ink starts exactly where that box ends whatever
+                        ascent and descent the platform takes the face to have. A
+                        CSS line box puts the baseline where those metrics say
+                        instead — measured at 0.600 em rather than 0.631, which
+                        lifts the ink 0.055 mm into the symbol's box. It was a
+                        line box one em tall from #431 until then. Centered on
+                        the label, so a code longer than it is budgeted for
+                        overhangs both side margins alike — at the label's
+                        middle in millimeters since #526, where it was `50%`:
+                        a percentage is the face's, and at print the face is the
+                        turned page, 12 mm across, which would have put the code
+                        0.5 mm off the middle of a label 11 mm wide.
 
-                    THE PRINTED CODE, NOT THE `Asset ID` (#411). It is the
-                    same string the symbol's own path carries, because the
-                    person reading it is reading it in order to type it. The
-                    run computes it (`buildAssetLabel`); nothing here spells
-                    the family token, and `offline/asset-label-page.mjs` reads
-                    this expression off the AST — a value check cannot tell
-                    the two fields apart.
+                        THE PRINTED CODE, NOT THE `Asset ID` (#411). It is the
+                        same string the symbol's own path carries, because the
+                        person reading it is reading it in order to type it. The
+                        run computes it (`buildAssetLabel`); nothing here spells
+                        the family token, and `offline/asset-label-page.mjs` reads
+                        this expression off the AST — a value check cannot tell
+                        the two fields apart.
 
-                    THE CATEGORY'S NAME IS NOT ON THE LABEL (#431). The design
-                    dropped it, and the line under the dialog's title is where
-                    the run's category is named. */}
-                <text
-                    className="label-id"
-                    x="50%"
-                    y={`${budget.idBaselineMm}mm`}
-                    fontSize={`${MIN_ID_FONT_PT}pt`}
-                    textAnchor="middle"
-                >
-                    {label.labelCode}
-                </text>
+                        THE CATEGORY'S NAME IS NOT ON THE LABEL (#431). The design
+                        dropped it, and the line under the dialog's title is where
+                        the run's category is named. */}
+                    <text
+                        className="label-id"
+                        x={`${budget.idCenterMm}mm`}
+                        y={`${budget.idBaselineMm}mm`}
+                        fontSize={`${MIN_ID_FONT_PT}pt`}
+                        textAnchor="middle"
+                    >
+                        {label.labelCode}
+                    </text>
+                </g>
             </svg>
         </div>
     );
