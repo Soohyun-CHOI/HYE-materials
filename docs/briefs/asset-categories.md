@@ -3,9 +3,9 @@
 Route: `/asset-categories`
 Who reaches it: anyone signed in, with no Role and no Job gate (#337).
 Adding items from it is a site manager's (#506); everyone else reads the same
-list without that control. What the list holds first is the reader's (#509):
-the office's is every item, anybody else's the items on the jobs they are
-assigned to.
+list without that control. The list stands on one of the reader's jobs (#509,
+#520): any job for the office, one they are assigned to for anybody else, the
+first by its code until they move.
 Which width comes first: **desktop**, and it is the only one: this screen is
 used at a desk and does not support a phone's width (`_shared.md`).
 
@@ -72,24 +72,34 @@ something the office assigns on request the way a job is, so a disabled control
 with a reason would send them nowhere.
 
 **action.** For a reader on more than one job, a choice of job in the head, 12
-before `Add items` (#509, 1a since #519): a chip saying `Job` and the job it holds
-— `All jobs`, which is the whole of what the reader starts from, then each job
-they may narrow to by its code, every job for the office, their own for anybody
-else, a job with nothing on it included. Choosing one narrows the list to the
-items with an asset on that job, counted over those assets alone, from the
-first page. A reader on one job is drawn no choice: their list is that job's.
-**`All jobs` is not in the design's drawing**, which offers the jobs alone; it
-stays because a list starts from all of the reader's jobs (#509).
+before `Add items` (#509, 1a since #519): a chip saying `Job` and the job the
+list stands on, opening on each job they may stand on by its code — every job
+for the office, their own for anybody else, a job with nothing on it included.
+Choosing one moves the list to that job, from the first page, keeping what the
+band holds. A reader on one job is drawn no choice: their list is that job's.
 
-**What a reader starts from is a fact the list carries, and a design may not
-make it a toggle (#509).** The office — `Is Admin` — starts from every item
-with an asset anywhere. Anybody else starts from the items with an asset
-on their jobs, counted over those assets, and an item with none there is not
-on their list. **An item with nothing under it is on nobody's list (#507)**: it
-is a row of the catalog nobody has bought yet, which the office's list carried
-until then as a registration that had stopped before writing any. An asset off the
-reader's jobs still opens from its label or a link; the list is what they are
-shown first, not what they may see.
+**The list stands on one job (#520), and a design may not make it stand on
+several.** It starts on the first of the reader's jobs by its code — the
+office, `Is Admin`, on the first of every job; anybody else on the first of
+theirs — and holds the items with an asset on that job, counted over those
+assets alone. **From #509 it started from all of the reader's jobs at once**, with
+`All jobs` first in the choice, which the design never drew: a site reads its
+list for what is on the job it stands on, and the counts of several jobs added
+together answered nobody's question. **An item with nothing on the job is on no
+list (#507)**: a row of the catalog nobody has bought yet for it. An asset off the
+job still opens from its label or a link; the list is what a reader is shown,
+not what they may see.
+
+**action.** Under the head, a band of controls held at the top with it (1a,
+0i): a search, `Search items`, over each row's name, its category and its type
+— every word typed must be in one of them — and three chips, `Type`, `Category`
+and `Class`, each listing the values the job's rows hold with how many rows
+each would leave, several taken at once. A chip holding one value says it,
+`Category Power tools`, and one holding several says how many, `2 selected`,
+each with a × that empties it. The categories offered are those under the
+types taken. The band narrows rows already in the browser, so nothing it does
+waits on the base, and what it holds rides the address: a reload, a copied
+link and a step to another page all keep it.
 
 **evidence.** One row per item, ordered by name — a run of digits read as a
 number, so `DEMO Circular Saw 7-1/4"` comes before `DEMO Circular Saw 10"`
@@ -107,7 +117,7 @@ and size apart, and a design must give it the room.
 **evidence.** Beside each name, its category, the catalog's (#507, #514) —
 `Power tools`, in a lighter ink, giving its room up before the name does (1a,
 #519). The type and the class stood beside it as columns of their own from #507
-and #514; the design moves them to the filters #520 draws, and a category's own
+and #514; the band's chips filter by them since #520, and a category's own
 screen says all three under its name.
 
 **verdict.** Three counts on every row: how many of that item are
@@ -128,13 +138,14 @@ A design that adds the three together is making that choice.
 
 ## What it carries only sometimes
 
-**When there are no items at all:** in place of the rows, a heading and a
+**When the job holds no items:** in place of the rows, a heading and a
 sentence, `No items yet` and `Each item shows here with how many are in
 stock, out and retired.`, and under them a second, bordered `Add items`
 (1a, #463, #519). The control in the head is still there, and both are the way to
-make one. No pager stands under an empty list. **For a reader who is not a
-site manager, `No items yet` and who fills it, `Items show here once a site
-manager adds them.` (1a2, #519)**, and no opener: both are a site manager's.
+make one; so is the job's choice, to move to another job. No band and no pager
+stand over or under an empty list. **For a reader who is not a site manager,
+`No items yet` and who fills it, `Items show here once a site manager adds
+them.` (1a2, #519)**, and no opener: both are a site manager's.
 
 **When the reader is on no job** — anybody but the office, with no assignment:
 the head is the heading alone, with no figure, and in place of the rows `No job
@@ -142,17 +153,23 @@ yet` and `Items show here once the office assigns you to a job.` (1a2, #519). A
 site manager among them keeps the head's opener, drawn disabled with `Ask the
 office to assign you to a job` before it, and is drawn no second one.
 
-**The shared brief's three empty states all have a producer here since #509.**
-"Nothing exists yet" is the list with no items; "nothing you can see" a reader on
-no job; "nothing matching your filters" a job chosen with nothing on it, where
-the head reads `0 of 4` with the choice beside it and nothing is drawn under it,
-which the design does not draw.
+**The shared brief's three empty states all have a producer here.** "Nothing
+exists yet" is a job with no items; "nothing you can see" a reader on no job;
+"nothing matching your filters" a band that leaves no row (#520): under the
+column head and a Rule, `No items match` and what was typed, set in the id's
+face — or `No items match these filters` when only chips narrow — and one
+bordered control, `Clear search` when the search is all that narrows and
+`Clear all` otherwise (1a). No pager stands under it. It was a job chosen with
+nothing on it from #509, which the design did not draw.
 
-**When a job narrows the list:** the head's figure reads `N of M`, the document
-lists' words for the same thing, `M` being what the reader started from. The
-pager's steps and every row's way into an item keep the job; the rail's
-`Tools & Equipment` does not. A job in the address the reader may not narrow to is
-answered with their whole list, the choice reading `All jobs`.
+**When the band narrows the list (#520):** the head's figure reads `N of M`, the
+document lists' words for the same thing, `M` being every item on the job — the
+job is where the list stands rather than a narrowing of it. The pager counts
+what the band leaves. The pager's steps, the band's own writes, the job's choice
+and every row's way into an item keep the job; the rail's `Tools & Equipment`
+does not, and a row's way in carries none of the band, which is the list's. A
+job in the address the reader may not stand on is answered with the first of
+theirs, as no job asked is — their whole list from #509.
 
 **An item with nothing under it is on no list (#507)**: a row of the catalog
 nobody has bought yet, whose own screen answers by address. It read as a row of

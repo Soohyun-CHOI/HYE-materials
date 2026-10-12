@@ -4,8 +4,9 @@ Route: `/asset-categories/[categoryRecordId]`
 Who reaches it: anyone signed in, with no Role and no Job gate (#337). What a
 reader DOES here — adding items, and selecting and printing labels — is a site
 manager's (#506); everyone else reads the same screen without those controls.
-What the list holds first is the reader's (#509): the office's is every asset
-under the category, anybody else's those on the jobs they are assigned to.
+The list stands on one of the reader's jobs (#509, #520): any job for the
+office, one they are assigned to for anybody else, the first by its code until
+they move.
 Which width comes first: **desktop**, and it is the only one: this screen is
 used at a desk and does not support a phone's width (`_shared.md`).
 
@@ -71,8 +72,8 @@ until the design drew this one.
 **action.** A way back to `/asset-categories`: the breadcrumb's one level, `Tools & Equipment`
 behind a chevron (#460), the word the asset's screen opens its path with
 for the same trip. **For a reader on more than one job the breadcrumb is a path
-instead, `Tools & Equipment / 26-DEMO-01`**, its second level the job the list is
-narrowed to, which opens the choice of job (1d, #519; below).
+instead, `Tools & Equipment / 26-DEMO-01`**, its second level the job the list
+stands on, which opens the choice of job (1d, #519; below).
 
 **action.** A control that opens the registration dialog on this category,
 `Add items` (#519) — `Add tools` from #485, the design's `New tools` from #456, and
@@ -125,18 +126,16 @@ the label screen with it until #457.
 selected; see below.
 
 **action.** For a reader on more than one job, a choice of job as the
-breadcrumb's second level (1d, #519; in the head until then): it holds `All jobs`,
-the whole of what the reader starts from, or the job chosen, and opens on each job
-they may narrow to by its code — every job for the office, their own for anybody
-else, a job with nothing on it included. Choosing one lists that job's assets
-under this category, from the first page, and keeps whatever is selected. A reader
-on one job is drawn no choice. **`All jobs` is not in the design's drawing**, which
-offers the jobs alone; it stays because a list starts from all of the reader's
-jobs (#509).
+breadcrumb's second level (1d, #519; in the head until then): it holds the job the
+list stands on and opens on each job they may stand on by its code — every job
+for the office, their own for anybody else, a job with nothing on it included.
+Choosing one lists that job's assets under this category, from the first page,
+and keeps whatever is selected. A reader on one job is drawn no choice. It held
+`All jobs` first from #509, the whole of the reader's jobs at once, which the
+design never drew and #520 took away.
 
-**evidence.** How many assets this category has in the reader's scope, `13`,
-on the heading's line (`13 items` to assistive tech) — every one for the office,
-those on the reader's jobs for anybody else (#509). #326 names this as the fact every list in this app is missing: without it nothing on
+**evidence.** How many assets this category has on the job the list stands on,
+`13`, on the heading's line (`13 items` to assistive tech) (#509, #520). #326 names this as the fact every list in this app is missing: without it nothing on
 screen says whether a reader is looking at everything or at the beginning
 of it. **It is a fact about the list rather than about what the company
 holds** — which is why a single figure is right here and deliberately
@@ -232,19 +231,17 @@ acting when there is a page that way and drawn without acting at its own end —
 and that number counts every registration under the category rather than
 one: registering more of a kind adds to the same list, and one registration
 can make up to a hundred. Both steps carry the selection, so what was
-selected on one page is still selected on the next, and the job the list is
-narrowed to (#509).
+selected on one page is still selected on the next, and the job the list
+stands on (#509).
 
-**When a job narrows the list (#509):** the head's figure reads `N of M` — the
-document lists' words for the same thing — `M` being what the reader started
-from; the rows, the pager and the page box are that job's alone, and the
-breadcrumb's `Tools & Equipment` keeps the job. A job with none of this category's items on it
-draws the head and nothing under it, `0 of 91` and the breadcrumb's job saying
-it, which the design does not draw. So does a category whose items are all off the
-reader's jobs, before any job is chosen: `Nothing added yet` would be
-false there. An asset off the reader's jobs is left off this list and still
-opens from its label or a link. A job in the address the reader may not narrow
-to is answered with their whole scope and the choice reading `All jobs`.
+**When the job holds none of this category's items (#509, #520):** the head and
+nothing under it, `0` and the breadcrumb's job saying it, which the design does not
+draw: `Nothing added yet` would be false there. The rows, the pager and the page
+box are always the job's alone, and the breadcrumb's `Tools & Equipment` keeps the
+job. An asset off the job is left off this list and still opens from its label or a
+link. A job in the address the reader may not stand on is answered with the first
+of theirs, as no job asked is. From #509 a list with no job asked stood on all of
+the reader's jobs, and one narrowed to a job counted `N of M`.
 
 **When nothing is selected:** no selection bar, 0b's (#463), where until
 then a sentence, `Nothing is selected, so there is nothing to print.`, stood

@@ -97,9 +97,10 @@ const COLUMNS_WITHOUT_BOX = "grid-cols-[var(--width-table-id)_minmax(0,1fr)_var(
 // to clear one — and it reads no selection off the address either, so a copied link's
 // `id` neither marks a row nor rides the pager's steps.
 //
-// THE JOB THE LIST IS NARROWED TO RIDES EVERY WRITE (#509). `job` is the page's, resolved
-// from the address by `assetListScope` — a job the reader may not narrow to is none — and a
-// press and a step keep it, so the address goes on naming the list the rows came from.
+// THE JOB THE LIST STANDS ON RIDES EVERY WRITE (#509, #520). `job` is the page's, resolved
+// from the address by `assetListScope` — a job the reader may not stand on is the first of
+// theirs — and a press and a step keep it, so the address goes on naming the list the rows
+// came from.
 export default function AssetList({ categoryRecordId, itemName, selects, rows, page, job = null, top, header, children }) {
     const params = useSearchParams();
     const selection = selects ? readAssetIds(params.getAll("id")) : [];

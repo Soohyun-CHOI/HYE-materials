@@ -53,6 +53,8 @@ import { isMain, standalone } from "./_harness.mjs";
 // #324 — the four list bars declare their parameters rather than spelling them, so
 // the read side is read off the declaration. See `readParameters`.
 import { axesFor } from "../../../lib/listFilters.js";
+// #520 — the category list's band declares its parameters the same way.
+import { ASSET_LIST_PARAMS } from "../../../lib/assetRoutes.js";
 
 export const title = "Every URL parameter is read by the screen it lands on, and none confirms (#321)";
 
@@ -144,18 +146,44 @@ const CARRIED = [
     { route: "/invoices", param: "status", note: "#324 — the payment word, `Paid` or `Not paid`. Named for the column it narrows; `Overdue` is a qualifier on the second rather than a third option" },
     { route: "/materials", param: "q", note: "the search term, tokenized by lib/materialPriceView.js; an empty one is the unsearched screen rather than a filter matching everything" },
     // #509 — THE ASSET LISTS' JOB, THE DOCUMENT LISTS' NAME AND VALUE FOR THE SAME NARROWING,
-    // AND ONE OF THEM RATHER THAN SEVERAL. The server reads it, before any asset: the
-    // scope it narrows is what the page reads, so it divides the read as `page` does on a
-    // category's own list. Absence is the reader's whole scope, as #324 settled for the bar.
+    // AND ONE OF THEM RATHER THAN SEVERAL. The server reads it, before any asset: the job is
+    // what the page reads, so it divides the read as `page` does on a category's own list.
+    // A list stands on one job since #520, so absence is the first of the reader's by its
+    // code; it was the reader's whole scope from #509.
     {
         route: "/asset-categories",
         param: "job",
-        note: "#509 — the job the category list is narrowed to; one Job record id, taken only if it is among the jobs this reader may narrow to (`lib/assetListView.js:assetListScope`) and answered with the whole scope otherwise. Written by the head's choice and carried by the pager's steps and each row's link, through `assetCategoriesPath` and `assetCategoryPath`; the rail's link carries none",
+        note: "#509, #520 — the job the category list stands on; one Job record id, taken only if it is among the jobs this reader may stand on (`lib/assetListView.js:assetListScope`) and answered with the first of them otherwise, as no job asked is. Written by the head's choice, which carries what the band holds, and carried by the pager's steps, the band's own writes and each row's link, through `assetCategoriesPath` and `assetCategoryPath`; the rail's link carries none",
     },
     {
         route: "/asset-categories/[categoryRecordId]",
         param: "job",
-        note: "#509 — the same job, on one category's list, read by the same judgment before the page is chosen. Written by the head's choice, which keeps the selection (`id`) and starts at the first page, and carried by every write the list makes — a box, a step — and by the row's link from `/asset-categories`; a registration's landing carries none, since what it wrote is on the registrant's job and may be off the one chosen",
+        note: "#509, #520 — the same job, on one category's list, read by the same judgment before the page is chosen. Written by the breadcrumb's choice, which keeps the selection (`id`) and starts at the first page, carried by every write the list makes — a box, a step — and by the row's link from `/asset-categories`, and by a registration's landing, which lands on the job it wrote to so what it wrote is drawn",
+    },
+    // #520 — THE CATEGORY LIST'S BAND: its search and its three chips, each a filter of the
+    // rows the page already holds. Written by the list itself through `history.replaceState`
+    // on every change — so a change fetches nothing — and carried to another job by the
+    // head's choice; read by the list off the address with `useSearchParams`, through
+    // `readAssetListFilters`, and never by the server render. Absence is the unnarrowed list.
+    {
+        route: "/asset-categories",
+        param: "q",
+        note: "#520 — the text searched, `/materials`' and the document lists' name for it; matched against a row's name, category and type through `lib/searchTokens.js`. Free text with nothing to intersect against, as #325's is",
+    },
+    {
+        route: "/asset-categories",
+        param: "type",
+        note: "#520 — the types chosen on the band's `Type` chip, repeatable, in the base's spelling. A value no row on the job holds narrows nothing, and the band's next write leaves it behind",
+    },
+    {
+        route: "/asset-categories",
+        param: "category",
+        note: "#520 — the categories chosen on the `Category` chip, repeatable; one under no type chosen narrows nothing, as a value no row holds does",
+    },
+    {
+        route: "/asset-categories",
+        param: "class",
+        note: "#520 — the classes chosen on the `Class` chip, repeatable, `A` or `B` as the catalog holds them",
     },
 
     // ── navigation: which record the form opens on ──────────────────────────
@@ -201,7 +229,7 @@ const CARRIED = [
     {
         route: "/asset-categories",
         param: "page",
-        note: "#463 — which page of the categories, 1-based, 0b's 25 to a page. Written by the two steps at the foot of the list through `assetCategoriesPath`, absent on the first page; a value that is not a page resolves to one rather than rendering nothing, by the clamp a category's own list uses (`pageOfAssetCategories`). It slices rows the page has built and divides no read",
+        note: "#463 — which page of the categories the band leaves, 1-based, 0b's 25 to a page. Written by the two steps at the foot of the list through `assetCategoriesPath`, by `history.replaceState` since #520 since the rows are all in the browser, absent on the first page and dropped by every change to the band; a value that is not a page resolves to one rather than rendering nothing, by the clamp a category's own list uses (`pageOfAssetCategories`). Read by the list off the address, and it divides no read",
     },
     // THE FOUR DOCUMENT LISTS TOOK THE SAME NAME IN #326, which is what the reservation
     // in `lib/listFilters.js` was holding it for. One note serves all four because the
@@ -235,7 +263,7 @@ const CARRIED = [
     {
         route: "/asset-categories/[categoryRecordId]",
         param: "id",
-        note: "#443 — which of this category's assets the list has selected for a label run; repeatable, a printed `Asset ID` each, the name and values `/tool-items/labels` took until #457, and the print control opens the labels' dialog on them unchanged. Written by `assetCategoryPath` on every press of a box, through `history.replaceState` so a press costs no render, and on both steps so a selection outlives a page turn — and by a registration's redirect, which lands with every asset it wrote selected (#449); read off the address by the list with `useSearchParams().getAll`, and never by the page's server render, which is what keeps the page at four operations — the dialog's read is a request of its own",
+        note: "#443 — which of this category's assets the list has selected for a label run; repeatable, a printed `Asset ID` each, the name and values `/tool-items/labels` took until #457, and the print control opens the labels' dialog on them unchanged. Written by `assetCategoryPath` on every press of a box, through `history.replaceState` so a press costs no render, and on both steps so a selection outlives a page turn — and by a registration's redirect, which lands with every asset it wrote selected (#449); read off the address by the list with `useSearchParams().getAll`, and never by the page's server render, which is what keeps the page at five operations — the dialog's read is a request of its own",
     },
 
     // ── a one-time account of something the screen does not otherwise say ───
@@ -482,6 +510,15 @@ function writtenParameters(rel, ast, routes) {
                 typeof n.arguments[0].value === "string"
             )
                 deferred.add(n.arguments[0].value);
+            // #520 — the category list's band writes its keys through the names
+            // `lib/assetRoutes.js:ASSET_LIST_PARAMS` declares, one member each.
+            if (
+                n.type === "CallExpression" &&
+                n.callee?.type === "MemberExpression" &&
+                (n.callee.property?.name === "set" || n.callee.property?.name === "append") &&
+                declaredListParam(n.arguments[0])
+            )
+                deferred.add(declaredListParam(n.arguments[0]));
         });
         for (const { param, route } of placed) found.push({ rel, param, route });
         if (!deferred.size) continue;
@@ -579,9 +616,21 @@ function readParameters(ast) {
             n.arguments[0]?.type === "Literal"
         )
             params.add(n.arguments[0].value);
+        // #520 — the fifth shape: the category list's band reads its parameters through one
+        // reader, `lib/assetListView.js:readAssetListFilters`, which takes exactly the names
+        // `ASSET_LIST_PARAMS` declares — the same move as `parseFilters` above.
+        if (n.type === "CallExpression" && n.callee?.name === "readAssetListFilters")
+            for (const name of Object.values(ASSET_LIST_PARAMS)) params.add(name);
     });
 
     return [...params];
+}
+
+/** The parameter a `ASSET_LIST_PARAMS.<facet>` member names, or null for anything else (#520). */
+function declaredListParam(node) {
+    if (node?.type !== "MemberExpression" || node.computed || node.object?.type !== "Identifier") return null;
+    if (node.object.name !== "ASSET_LIST_PARAMS") return null;
+    return ASSET_LIST_PARAMS[node.property?.name] ?? null;
 }
 
 /** Every string literal, template quasi and JSX text in a file. */
@@ -713,6 +762,27 @@ export function run({ check, assert, log }) {
         writtenParameters("lib/assetRoutes.js", viaAppend.ast, routes).some(
             (w) => w.param === "id" && w.route === "/asset-categories/[categoryRecordId]"
         )
+    );
+    // The sixth, and #520's: a key named through `ASSET_LIST_PARAMS`, which is how the
+    // category list's band writes its four. Without it the band would be read and written by
+    // nothing this file can see.
+    const viaDeclared = parseSource(
+        'export const ASSET_CATEGORIES_PATH = "/asset-categories";\n' +
+            "export function assetCategoriesPath(filters) {\n" +
+            "  const query = new URLSearchParams();\n" +
+            "  query.set(ASSET_LIST_PARAMS.q, filters.q);\n" +
+            "  for (const value of filters.assetClass) query.append(ASSET_LIST_PARAMS.assetClass, value);\n" +
+            "  return `${ASSET_CATEGORIES_PATH}?${query}`;\n" +
+            "}\n",
+        "<declared-key>"
+    );
+    check(
+        "  and reads a key the band names through its declaration, on the list",
+        writtenParameters("lib/assetRoutes.js", viaDeclared.ast, routes)
+            .map((w) => `${w.route}?${w.param}`)
+            .sort()
+            .join(" "),
+        "/asset-categories?class /asset-categories?q"
     );
 
     // ── 2: nothing is read that nothing writes ──────────────────────────────

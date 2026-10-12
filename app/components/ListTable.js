@@ -124,10 +124,22 @@ function Figures({ children, className = "" }) {
         );
 }
 
-/** A pager's step: a link while there is a page that way, and a step that does not act at the end (1a, 1d). */
-function PagerStep({ href, label, back }) {
+/**
+ * A pager's step: a link while there is a page that way, and a step that does not act at the
+ * end (1a, 1d). A list whose rows are all in the browser steps by a press instead (`onPress`,
+ * #520) — the category list, whose page is a slice of rows it already holds — so a step
+ * fetches nothing.
+ */
+function PagerStep({ href, onPress, label, back }) {
     const mark = <Icon name={back ? "chevron-left" : "chevron-right"} className="size-icon" />;
     const look = "flex aspect-square h-control items-center justify-center rounded-control";
+    if (onPress) {
+        return (
+            <button type="button" aria-label={label} onClick={onPress} className={`${look} text-foreground-default hover:bg-hover`}>
+                {mark}
+            </button>
+        );
+    }
     if (!href) {
         return (
             <button type="button" disabled aria-label={label} className={`${look} text-foreground-faint`}>

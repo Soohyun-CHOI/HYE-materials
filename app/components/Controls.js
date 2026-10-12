@@ -7,6 +7,7 @@ import {
     buttonBusyState,
     editableComboboxKey,
     movedIndex,
+    multiSelectKey,
     numberFieldText,
     selectOnlyKey,
     stepNumber,
@@ -194,8 +195,10 @@ export function Refusal({ centered = false, children }) {
 const BUTTON = "relative items-center justify-center whitespace-nowrap rounded-control font-ui font-semibold";
 
 // 0a's Commitment, 36, and a sign-in page's action, 40 and its column's width — and below
-// the phone's edge, the phone's 50 at 17 with its rounder corner (Tools 0a Button).
+// the phone's edge, the phone's 50 at 17 with its rounder corner (Tools 0a Button). And 0a's
+// Control, 32 at 13, which 1a draws under a list a band has emptied (#520).
 const BUTTON_SIZE = {
+    md: "inline-flex h-control shrink-0 px-control-md-inset-x text-body-sm",
     lg: "inline-flex h-control-lg shrink-0 px-control-lg-inset-x text-body",
     xl: "flex h-control-xl w-full px-control-lg-inset-x text-body max-sm:h-mobile-button max-sm:rounded-mobile-control max-sm:text-mobile-heading",
 };
@@ -1014,5 +1017,212 @@ export function Combobox({ name, value, onChange, onPick, suggestions, heading, 
                 onPick={accept}
             />
         </>
+    );
+}
+
+/**
+ * A search field (0f, 1a; #520): 32 tall on the Field ground with no border, its words at 13,
+ * a 14 search mark 11 in from its start and the words 32 in, and while it holds anything a
+ * 24 × at its end that empties it. Focus gives it a white face and the Edge focus border. It
+ * says what it searches as its placeholder and as its name (0h), so it takes no label.
+ *
+ * WHAT IT HOLDS IS THE CALLER'S, as every control's here is. The × hands back an empty string
+ * and puts focus in the field, so the next search is typed at once rather than from a page
+ * whose focus fell when the × went.
+ */
+export function SearchField({ label, value, onChange, clearLabel }) {
+    const inputRef = useRef(null);
+    return (
+        <div role="search" className="relative h-control w-list-search shrink-0">
+            <Icon
+                name="search"
+                className="pointer-events-none absolute top-1/2 left-search-icon-inset size-icon-sm -translate-y-1/2 text-foreground-subtle"
+            />
+            <input
+                ref={inputRef}
+                type="text"
+                autoComplete="off"
+                aria-label={label}
+                placeholder={label}
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                className="h-control w-full rounded-control border border-transparent bg-background-muted pr-search-inset-right pl-search-inset-left text-body-sm text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle focus:border-border-focus focus:bg-white"
+            />
+            {value !== "" && (
+                <button
+                    type="button"
+                    aria-label={clearLabel}
+                    onClick={() => {
+                        onChange("");
+                        inputRef.current?.focus();
+                    }}
+                    className="absolute top-px right-px flex h-[calc(var(--height-control)-2px)] w-clear-button items-center justify-center rounded-r-[calc(var(--radius-control)-1px)] text-foreground-subtle hover:bg-hover hover:text-foreground-default"
+                >
+                    <Icon name="x" className="size-clear-icon" />
+                </button>
+            )}
+        </div>
+    );
+}
+
+// A filter chip's two looks (1a, #520). Holding nothing it is a ghost control — its words at
+// 13 and 500 in Ink 3 with a 12 chevron 6 after them — that fills at Hover and lifts to Ink
+// under the pointer and while its list shows (0f). Holding values it stands on the Face with
+// its Edge, its name in Ink 3 and what it holds in Ink, the chevron after them and a 24 × that
+// empties it at its end, each part filling at Face hover.
+const FILTER_CHIP_EMPTY =
+    "flex h-control cursor-pointer items-center gap-control-icon-gap rounded-control border border-transparent pr-filter-chip-inset-right pl-control-inset-x text-body-sm font-medium whitespace-nowrap text-foreground-subtle outline-none hover:bg-hover hover:text-foreground-default focus-visible:border-border-focus aria-expanded:bg-hover aria-expanded:text-foreground-default";
+const FILTER_CHIP_HOLDING = "flex h-control items-center rounded-control border border-selected-border bg-selected";
+const FILTER_CHIP_HELD =
+    "flex h-full cursor-pointer items-center gap-gap rounded-l-[calc(var(--radius-control)-1px)] pr-[calc(var(--spacing-filter-chip-inset-right)-1px)] pl-control-inset-x text-body-sm font-medium whitespace-nowrap outline-none hover:bg-selected-hover focus-visible:bg-selected-hover aria-expanded:bg-selected-hover";
+
+/**
+ * A filter chip and the list it opens (0a, 0c, 0f; 1a, #520) — how a list narrows by a set it
+ * has no tab for (0n). The list takes several values, each marked with a box and its count at
+ * the end, and stays open while values are taken; the chip says its name and, once it holds
+ * any, the one value it holds or how many (`several`), with a × beside it that empties it.
+ *
+ * IT IS `Choice`'s PATTERN, THE SELECT-ONLY COMBOBOX, TAKING SEVERAL. Focus stays on the chip
+ * and `aria-activedescendant` names the option under visual focus; what a key does is
+ * `lib/controls.js:multiSelectKey` — the pattern's keys, with Enter and Space taking or giving
+ * back an option and leaving the list open. Leaving the chip closes the list and takes nothing,
+ * since a list taking several takes as it goes. The chip is one element in both looks, so the ×
+ * hands focus back to it rather than letting focus fall with the × itself.
+ *
+ * WHAT IT HOLDS IS THE CALLER'S: `options` are `{ value, label, count }`, `values` the values
+ * taken, and `onChange` is handed the values taken in the options' order.
+ */
+export function FilterChip({ label, options, values, onChange, clearLabel, several }) {
+    const id = useId();
+    const labelId = `${id}label`;
+    const listId = `${id}list`;
+    const chipRef = useRef(null);
+    const anchorRef = useRef(null);
+    const [open, setOpen] = useState(false);
+    const [active, setActive] = useState(-1);
+    const search = useRef({ text: "", timer: null });
+    const taken = new Set(values);
+    const held = options.filter((option) => taken.has(option.value));
+
+    const toggle = (index) => {
+        const option = options[index];
+        if (!option) return;
+        const next = taken.has(option.value) ? held.filter((each) => each !== option) : [...held, option];
+        onChange(options.filter((each) => next.includes(each)).map((each) => each.value));
+    };
+    const firstHeld = () => Math.max(0, options.findIndex((option) => taken.has(option.value)));
+
+    const onKeyDown = (event) => {
+        const action = multiSelectKey(event, open);
+        if (!action) return;
+        event.preventDefault();
+        switch (action) {
+            case "open":
+                setActive(firstHeld());
+                setOpen(true);
+                return;
+            case "first":
+            case "last":
+            case "next":
+            case "previous":
+            case "pageUp":
+            case "pageDown":
+                if (!open) setOpen(true);
+                setActive(movedIndex(open ? active : firstHeld() - 1, options.length - 1, action));
+                return;
+            case "toggle":
+                toggle(active);
+                return;
+            case "close":
+                event.stopPropagation();
+                setOpen(false);
+                return;
+            case "type": {
+                const typed = search.current;
+                window.clearTimeout(typed.timer);
+                typed.text = event.key.length === 1 ? typed.text + event.key : "";
+                typed.timer = window.setTimeout(() => {
+                    typed.text = "";
+                }, TYPEAHEAD_MS);
+                if (!open) setOpen(true);
+                const found = typeaheadIndex(
+                    options.map((option) => option.label),
+                    typed.text,
+                    (open ? active : -1) + 1
+                );
+                if (found >= 0) setActive(found);
+                return;
+            }
+            default:
+                return;
+        }
+    };
+
+    return (
+        <div className="relative flex shrink-0">
+            <span id={labelId} hidden>
+                {label}
+            </span>
+            <div ref={anchorRef} className={held.length > 0 ? FILTER_CHIP_HOLDING : "flex"}>
+                <div
+                    ref={chipRef}
+                    role="combobox"
+                    tabIndex={0}
+                    aria-haspopup="listbox"
+                    aria-expanded={open}
+                    aria-controls={listId}
+                    aria-labelledby={labelId}
+                    aria-activedescendant={open && active >= 0 ? `${listId}-${active}` : undefined}
+                    onKeyDown={onKeyDown}
+                    onClick={() => {
+                        if (!open) setActive(firstHeld());
+                        setOpen(!open);
+                    }}
+                    onBlur={() => setOpen(false)}
+                    className={held.length > 0 ? FILTER_CHIP_HELD : FILTER_CHIP_EMPTY}
+                >
+                    {held.length > 0 ? (
+                        <>
+                            <span className="text-foreground-subtle">{label}</span>
+                            <span className="text-foreground-default">{held.length === 1 ? held[0].label : several(held.length)}</span>
+                        </>
+                    ) : (
+                        label
+                    )}
+                    <Icon name="chevron-down" className={`size-filter-chip-chevron shrink-0 ${held.length > 0 ? "text-foreground-subtle" : ""}`} />
+                </div>
+                {held.length > 0 && (
+                    <button
+                        type="button"
+                        aria-label={clearLabel}
+                        onClick={() => {
+                            setOpen(false);
+                            onChange([]);
+                            chipRef.current?.focus();
+                        }}
+                        className="flex h-full w-clear-button items-center justify-center rounded-r-[calc(var(--radius-control)-1px)] text-foreground-subtle hover:bg-selected-hover hover:text-foreground-default"
+                    >
+                        <Icon name="x" className="size-clear-icon" />
+                    </button>
+                )}
+            </div>
+            <Menu
+                id={listId}
+                anchorRef={anchorRef}
+                shown={open}
+                labelId={labelId}
+                fit="start"
+                rows="sm"
+                multiselectable
+                options={options.map((option) => ({
+                    key: option.value,
+                    label: option.label,
+                    detail: option.count,
+                    selected: taken.has(option.value),
+                }))}
+                active={active}
+                onPick={toggle}
+            />
+        </div>
     );
 }

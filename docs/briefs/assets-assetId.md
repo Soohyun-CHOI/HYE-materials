@@ -75,9 +75,10 @@ than the whole of it — and at a desk the breadcrumb above the heading ends on
 the printed code itself: `Tools & Equipment / DEMO Angle Grinder 4-1/2" /
 260909-004`. **For a reader on more than one job the path names the job the asset
 is on between the list and the category** (1f, #519), a level that opens the
-reader's jobs, `All jobs` first, and takes them to the category's list on the one
-they choose; the category's own level carries the asset's job when it is one of
-theirs. That is what the seven dropped characters were worth:
+reader's jobs by their code and takes them to the category's list on the one
+they choose — `All jobs` stood first from #519 until #520 stood every list on
+one job; the category's own level carries the asset's job when it is one of
+theirs, and the category's list otherwise stands on the first of them. That is what the seven dropped characters were worth:
 every asset carries them, so they confirmed nothing, and what is left on the
 sticker is exactly the part that tells one asset from another. **A design
 may not close the gap by shortening the id** — this screen names a record and

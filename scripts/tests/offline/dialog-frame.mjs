@@ -59,6 +59,7 @@ import {
     menuIndex,
     menuKey,
     movedIndex,
+    multiSelectKey,
     numberFieldText,
     selectOnlyKey,
     stepNumber,
@@ -180,6 +181,23 @@ export function run({ check, assert, log }) {
         ["Tab", {}, true, null],
     ])
         check(`  ${open ? "open" : "shut"}, ${JSON.stringify(name)}${mods.altKey ? " with Alt" : mods.ctrlKey ? " with Ctrl" : ""}`, selectOnlyKey(key(name, mods), open), expected);
+    // A LIST TAKING SEVERAL (#520), a filter chip's: the same keys, but Enter and Space take or
+    // give back the option and leave the list open, and Alt+Up closes taking nothing.
+    log("a choice taking several values keeps its list open while it takes them (#520):");
+    for (const [name, mods, open, expected] of [
+        ["ArrowDown", {}, false, "open"],
+        ["Enter", {}, false, "open"],
+        [" ", {}, false, "open"],
+        ["Enter", {}, true, "toggle"],
+        [" ", {}, true, "toggle"],
+        ["ArrowUp", { altKey: true }, true, "close"],
+        ["Escape", {}, true, "close"],
+        ["ArrowDown", {}, true, "next"],
+        ["Home", {}, true, "first"],
+        ["p", {}, true, "type"],
+        ["Tab", {}, true, null],
+    ])
+        check(`  ${open ? "open" : "shut"}, ${JSON.stringify(name)}${mods.altKey ? " with Alt" : ""}`, multiSelectKey(key(name, mods), open), expected);
     log("and it moves within the list, stopping at its ends:");
     check("  down from nothing reaches the first", movedIndex(-1, 4, "next"), 0);
     check("  down from the last stays", movedIndex(4, 4, "next"), 4);
@@ -291,8 +309,49 @@ export function run({ check, assert, log }) {
     // dialog around it closing on one press.
     check(
         "  each stopping a key it answers, so a dialog around it stays open",
-        ["Choice", "Combobox"].filter((name) => !calls(functionNamed(controls.ast, name) ?? {}).has("event.stopPropagation")).join(", "),
+        ["Choice", "Combobox", "FilterChip"].filter((name) => !calls(functionNamed(controls.ast, name) ?? {}).has("event.stopPropagation")).join(", "),
         ""
+    );
+    // THE FILTER CHIP AND THE SEARCH FIELD (#520), 1a's band. The chip is `Choice`'s pattern
+    // taking several: a combobox naming its list and its label, the multi-value keys, a list
+    // marked as taking several and counting each option, a blur that takes nothing, and a ×
+    // that empties it and hands focus back to the chip, which is one element in both looks.
+    // The search field says what it searches as its name, and its × keeps the caret in it.
+    const sourceOfFunction = (name) => {
+        const fn = functionNamed(controls.ast, name);
+        return fn ? controls.source.slice(fn.start, fn.end) : "";
+    };
+    const chipSource = sourceOfFunction("FilterChip");
+    check(
+        "a filter chip is the select-only combobox taking several, its list counting each option, and leaving it takes nothing (#520)",
+        [
+            calls(functionNamed(controls.ast, "FilterChip") ?? {}).has("multiSelectKey"),
+            /role="combobox"/.test(chipSource) && /aria-haspopup="listbox"/.test(chipSource) && /aria-labelledby=\{labelId\}/.test(chipSource),
+            /rows="sm"\s+multiselectable\s+options=/.test(chipSource) && /detail: option\.count,\s*selected: taken\.has\(option\.value\),/.test(chipSource),
+            /onBlur=\{\(\) => setOpen\(false\)\}/.test(chipSource),
+            /setOpen\(false\);\s*onChange\(\[\]\);\s*chipRef\.current\?\.focus\(\);/.test(chipSource),
+        ].join(" "),
+        "true true true true true"
+    );
+    const searchSource = sourceOfFunction("SearchField");
+    check(
+        "  and a search field names itself by what it searches, its × emptying it with the caret kept (#520)",
+        [
+            /<div role="search"/.test(searchSource),
+            /aria-label=\{label\}\s*placeholder=\{label\}/.test(searchSource),
+            /onChange\(""\);\s*inputRef\.current\?\.focus\(\);/.test(searchSource),
+        ].join(" "),
+        "true true true"
+    );
+    const multiMenuSource = parseFile(MENU).source;
+    check(
+        "  the list says it takes several and draws each option's box, and a value at its end keeps 0a's 24 (#520)",
+        [
+            /aria-multiselectable=\{multiselectable \|\| undefined\}/.test(multiMenuSource),
+            /\{multiselectable && \(\s*<span\s+aria-hidden="true"/.test(multiMenuSource) && /option\.selected \? "border-primary bg-primary" : "border-checkbox-border bg-white"/.test(multiMenuSource),
+            /pl-\[calc\(var\(--spacing-menu-value-inline\)-var\(--spacing-gap\)\)\]/.test(multiMenuSource),
+        ].join(" "),
+        "true true true"
     );
     const [explainedButton] = elements(functionNamed(controls.ast, "Button") ?? {}, "button");
     assert(
@@ -535,7 +594,7 @@ export function run({ check, assert, log }) {
     // is — in the list as two boxes of the row, and in the field the same way (1b, 1i). A list
     // with a note in it, and a level's, sets each label at 500 in even figures (1b, 1d, 1f, 1i).
     const noteOf = ({ list, choice }) => [
-        /<span className=\{`\$\{option\.note \? "shrink-0" : "min-w-0 truncate"\} \$\{option\.strong \? "font-medium tabular-nums" : ""\}`\}>/.test(list),
+        /<span\s+className=\{`\$\{option\.note \? "shrink-0" : `min-w-0 truncate \$\{multiselectable \? "flex-1" : ""\}`\} \$\{option\.strong \? "font-medium tabular-nums" : ""\}`\}\s*>/.test(list),
         /\{option\.note && <span className="min-w-0 flex-1 truncate text-foreground-subtle">\{option\.note\}<\/span>\}/.test(list),
         /const strong = look === "crumb" \|\| options\.some\(\(option\) => option\.note\);/.test(choice),
         /note: option\.note,\s*strong,/.test(choice),

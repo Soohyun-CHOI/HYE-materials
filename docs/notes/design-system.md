@@ -163,6 +163,8 @@ Each is for the issue that draws it to name, in the same commit as its reader, s
 
 - The job's control in the files of 2026-10-11 carries five, which #519 named with their readers, each declaration saying they are the drawings': 12 between the job's chip and `Add items` in 1a's list header (`--spacing-list-header-control-inline`), where 0b's Gap within a cluster is 8; on 1d and 1f, where the job is a level of the breadcrumb, a 12 chevron (`--size-breadcrumb-chevron`) 6 after the level's word (`--spacing-breadcrumb-chevron-gap`) running 3 into the level's side room (`--spacing-breadcrumb-chevron-bleed`), so the level ends 5 past it; and 1j's 4 from a record's title to the caption under it on a phone (`--spacing-mobile-caption-stack`), where a desk's is the title block's 10. The chip itself is a 36 control's height, side room and words, and its list a 140 menu 6 under it at the chip's right edge with 36 rows, which 0a's Menu row gives; the level's list starts at the level's left with 32 rows. 1d's bar carries three more, which #519 named with their reader the same way: once the category's head has scrolled under the bar, its name comes in after the path behind a 16 Rule (`--height-breadcrumb-title-rule`) with 16 either side (`--spacing-breadcrumb-title-rule-inline`), fading in and out over 160ms (`--transition-duration-breadcrumb-title`). Where a list's column head holds — under 1a's head at its least, 32, a 36 control's line and 18, or under the 48 bar — is said in the names those are already, and takes none of its own.
 
+- 1a's band, the filters and search under the list's head, carries twelve, which #520 named with their readers, each declaration saying they are the drawings': the search 260 wide (`--width-list-search`), its mark 11 in and its words 32 in and 29 from its end (`--spacing-search-icon-inset`, `--spacing-search-inset-left`, `--spacing-search-inset-right`); the × that empties it or a chip, 24 across with a 13 mark (`--width-clear-button`, `--size-clear-icon`); a filter chip's 12 chevron and 8 on that side (`--size-filter-chip-chevron`, `--spacing-filter-chip-inset-right`); a 32 button's 13 either side (`--spacing-control-md-inset-x`); a box 10 before its option's name in a list taking several (`--spacing-menu-box-gap`); and the 60 above and below what an emptied list says, 12 over its control (`--spacing-list-emptied-inset-y`, `--spacing-list-emptied-stack`). The chips, the search and the emptied state's control are a 32 control's height, words and Edge, 0a's; a set chip sits on 0c's Face inside its Edge, and the counts in a chip's list take 0a Menu's 24 before a value at a row's end.
+
 - A date's slashes are at 45% with 1.5 of room either side, and its time 9 past it at a desk and 8 on a phone — every date both files draw, and no row. #463 named the four with `app/components/Instant.js`, which draws every date in the app.
 
 **THE ONE PLACE A DRAWING CONTRADICTED THE SPEC IS SETTLED**: the name sheet's `Done` is 48 now, the phone's Target (answer 11).
@@ -216,6 +218,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0a Side room, an inline summary | `--spacing-control-inline-inset-x` | 0.5rem (8) |
 | 0a Side room, a chip or a menu option | `--spacing-control-inset-x` | 0.625rem (10) |
 | 0a Side room, any 36px button | `--spacing-control-lg-inset-x` | 1rem (16) |
+| 1a's drawing, either side of a 32 button's words — not the spec | `--spacing-control-md-inset-x` | 0.8125rem (13) |
 | 0o Field and Action, 40 tall | `--height-control-xl` | 2.5rem (40) |
 | 0a Side room, inside a form field — a dialog's and a sign-in page's — and 0o Field, its fixed domain from the border | `--spacing-input-inset-x` | 0.75rem (12) |
 | 0l Compact, a field's help under it, and 0o Refusal, one field's | `--spacing-input-message-stack` | 0.375rem (6) |
@@ -224,11 +227,15 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0a Menu, under the control | `--spacing-menu-offset` | 0.375rem (6) |
 | 0a Menu, inside | `--spacing-menu-inset` | 0.3125rem (5) |
 | 0a Menu, a head's room above and below | `--spacing-menu-heading-inset-y` | 0.375rem (6) |
+| 0a Menu, the least room from an option's name to a value at its end | `--spacing-menu-value-inline` | 1.5rem (24) |
+| 1a's drawing, an option's box to its name in a list taking several — not the spec | `--spacing-menu-box-gap` | 0.625rem (10) |
 | 0b Content | `--container-content` | 67.5rem (1080) |
 | 0b Margin | `--spacing-page-gutter` | 2rem (32) |
 | 0b Gap, within a cluster | `--spacing-gap` | 0.5rem (8) |
 | 0b Gap, between clusters | `--spacing-gap-lg` | 0.875rem (14) |
 | 0b Gap, in a nav row | `--spacing-nav-gap` | 0.6875rem (11) |
+| 0b Gap, an icon to its word inside a 32 control | `--spacing-control-icon-gap` | 0.375rem (6) |
+| 0b Band padding, above and below a band of controls | `--spacing-control-band-inset-y` | 0.875rem (14) |
 | 0b Row | `--height-table-row` | 2.5rem (40) |
 | 0b Row, past the text | `--spacing-table-bleed` | 0.75rem (12) |
 | 0b Column head | `--height-table-header` | 2.25rem (36) |
@@ -249,6 +256,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 1a and 1d's drawings, above a list's empty state — not the spec | `--spacing-list-empty-state-inset-top` | 15rem (240) |
 | 0c Face | `--color-selected` | #F0F9FF |
 | 0c Face hover | `--color-selected-hover` | #E6F5FF |
+| 0c Edge, round what sits on the Face — a set filter chip | `--color-selected-border` | #C1DEFD |
 | 0c Accent | `--color-primary` | oklch(0.487 0.216 257) |
 | 0c Accent hover | `--color-primary-hover` | oklch(0.437 0.211 257) |
 | 0f Disabled | `--color-primary-disabled` | the Accent at 40% |
@@ -366,6 +374,16 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0n Header right, the least room from a list header's title to its control | `--spacing-list-header-inline` | 2.5rem (40) |
 | 0n Header right, a list header's title to its count | `--spacing-list-count-inline` | 0.5rem (8) |
 | 1a's drawing, between two controls in a list header — not the spec | `--spacing-list-header-control-inline` | 0.75rem (12) |
+| 1a's drawing, the search field in a list's band — not the spec | `--width-list-search` | 16.25rem (260) |
+| 1a's drawing, that field's mark from its start — not the spec | `--spacing-search-icon-inset` | 0.6875rem (11) |
+| 1a's drawing, its words from its start, past the mark — not the spec | `--spacing-search-inset-left` | 2rem (32) |
+| 1a's drawing, its words from its end, clear of the × — not the spec | `--spacing-search-inset-right` | 1.8125rem (29) |
+| 1a's drawing, the × that empties a search or a filter chip — not the spec | `--width-clear-button` | 1.5rem (24) |
+| 1a's drawing, that ×'s mark — not the spec | `--size-clear-icon` | 0.8125rem (13) |
+| 1a's drawing, a filter chip's chevron — not the spec | `--size-filter-chip-chevron` | 0.75rem (12) |
+| 1a's drawing, a filter chip's room on its chevron's side — not the spec | `--spacing-filter-chip-inset-right` | 0.5rem (8) |
+| 1a's drawing, above and below what a band-emptied list says — not the spec | `--spacing-list-emptied-inset-y` | 3.75rem (60) |
+| 1a's drawing, that sentence to the control under it — not the spec | `--spacing-list-emptied-stack` | 0.75rem (12) |
 | 0n Header stack, from the title | `--spacing-title-stack` | 0.625rem (10) |
 | 0n Header stack, to the status | `--spacing-subtitle-stack` | 0.75rem (12) |
 | 0n Rail blocks, from a block's name | `--spacing-heading-sm-stack` | 0.75rem (12) |

@@ -62,11 +62,15 @@ import { ASSET_EVENT, ASSET_STATUS, ASSET_STATUS_VALUES } from "../../../lib/ass
 import { ASSET_COPY } from "../../../lib/assetView.js";
 import {
     ASSET_LIST_COPY,
+    ASSET_LIST_FACETS,
     ASSET_PAGE_SIZE,
     describeSelection,
+    emptiedListWords,
+    filterAssetCategoryRows,
     idsInScope,
     lastChangeOf,
     latestLogRowIds,
+    readAssetListFilters,
     pageOfAssets,
     pageOfAssetCategories,
     pageSelection,
@@ -131,6 +135,9 @@ const ASSET_LIST = "app/(assets)/asset-categories/[categoryRecordId]/AssetList.j
 
 /** The category list, whose opener of the registration dialog section 2b reads off the AST (#456). */
 const LIST_SCREEN = "app/(assets)/asset-categories/page.js";
+
+/** The rows that page hands the browser, which the band narrows and the pager divides (#520). */
+const CATEGORY_LIST = "app/(assets)/asset-categories/AssetCategoryList.js";
 
 /** The frame both lists are drawn in, its parts, the box and the rail's column (#463). */
 const LIST_FRAME = "app/components/ListFrame.js";
@@ -323,7 +330,8 @@ export function run({ check, assert, log }) {
     // EACH ROW CARRIES ITS KIND'S CATEGORY AND TYPE (#507, #514), each under its level's name,
     // and two kinds of one name are told apart by the category and then the type, so a page
     // reads the same on every read. The category stands beside the name (1a, #519); the class
-    // rode here while the list drew it as a column, and does not since.
+    // rode here while the list drew it as a column, from #507 to #519, and rides again since
+    // #520 for the band's filter by it.
     const kinds = summarizeAssetCategories(
         [
             { id: "recLaserT", itemName: "Laser Level", assetClass: "B", level1: "Tool", level2: "Measuring", assets: [] },
@@ -338,7 +346,7 @@ export function run({ check, assert, log }) {
         kinds.map((r) => `${r.id} ${r.level1}/${r.level2}`).join(" | "),
         "recLaserE Equipment/Measuring | recLaserT Tool/Measuring | recKnifeC Tool/Carpentry | recKnifeX Tool/Cutting"
     );
-    check("  and no class rides a row", kinds.filter((r) => "assetClass" in r).length, 0);
+    check("  and its class, for the band (#520)", kinds.map((r) => r.assetClass).join(","), "A,B,B,B");
     check("  and a kind without them says nothing for them", `${rowFor(rows, "angle grinder").level1}|${rowFor(rows, "angle grinder").level2}|`, "||");
     // THE LIST'S COLUMNS, OFF ITS SOURCE (#519): the name, then a count per status (1a). The
     // class, the type and the category were columns between them from #507 and #514.
@@ -354,7 +362,7 @@ export function run({ check, assert, log }) {
     };
     check(
         "the list heads its columns the name and each status",
-        columnHeads(parseFile(LIST_SCREEN)),
+        columnHeads(parseFile(CATEGORY_LIST)),
         "COPY.nameLabel, status"
     );
     check(
@@ -1164,7 +1172,7 @@ export function run({ check, assert, log }) {
     check(
         "  the empty list's the same opener, bordered, under the empty branch and the same reader",
         `${listOpeners[1]?.handed} | ${listOpeners[1]?.asks} | ${listOpeners[1]?.under}`,
-        "canRegister: canRegisterAssets(user, allJobs), catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | canRegisterAssets | rows.length === 0, !(narrowed), recorder && !onNoJob"
+        "canRegister: canRegisterAssets(user, allJobs), catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | canRegisterAssets | rows.length === 0, recorder && !onNoJob"
     );
     // The count a suggested tool carried, its link array's length (#456), was held here until
     // #507: a suggestion is a name of the catalog now, beside its category, and how many of a
@@ -1392,24 +1400,26 @@ export function run({ check, assert, log }) {
         }
     check("  and the two lists' windows agree at every length and page asked", disagreements.join(), "");
 
-    // THE LIST PAGE READS ITS PAGE OFF THE ADDRESS AND DRAWS THAT PAGE'S ROWS, its steps
-    // through `assetCategoriesPath`, and no pager over an empty list.
-    const listScreen = parseFile(LIST_SCREEN);
+    // THE LIST CUTS THE ROWS THE BAND LEFT BY THE PAGE THE ADDRESS ASKS FOR (#520), in the
+    // browser, and steps by writing the address with what the band holds and the job — a press
+    // that fetches nothing. No pager stands under a list the band has emptied.
+    const listScreen = parseFile(CATEGORY_LIST);
     let pagedWith = "none";
     walk(listScreen.ast, (n) => {
         if (n.type === "CallExpression" && n.callee?.name === "pageOfAssetCategories") pagedWith = n.arguments.map((a) => listScreen.source.slice(a.start, a.end)).join(", ");
     });
-    check("the category list cuts its built rows by the page asked for", pagedWith, "rows, sp.page");
+    check("the category list cuts the rows the band left by the page asked for", pagedWith, 'reading.rows, params.get("page")');
     check(
-        "  draws the page's rows, and steps through assetCategoriesPath, keeping the job (#509)",
-        `${/\{page\.rows\.map\(\(row\) =>/.test(listScreen.source)} ${propSources(listScreen, "Pager", "previous").join()} ${propSources(listScreen, "Pager", "next").join()}`,
-        "true {{ href: page.page > 1 ? assetCategoriesPath(page.page - 1, job) : null, label: COPY.previous }} {{ href: page.page < page.pageCount ? assetCategoriesPath(page.page + 1, job) : null, label: COPY.next }}"
+        "  draws the page's rows, and steps by writing the address with the band and the job (#520)",
+        `${/\{page\.rows\.map\(\(row\) =>/.test(listScreen.source)} ${propSources(listScreen, "Pager", "previous").join()} ${propSources(listScreen, "Pager", "next").join()} ${/const write = \(filters, toPage = 1\) => window\.history\.replaceState\(null, "", assetCategoriesPath\(toPage, job, filters\)\);/.test(listScreen.source)}`,
+        "true {{ onPress: page.page > 1 ? () => write(reading.held, page.page - 1) : undefined, label: COPY.previous }} {{ onPress: page.page < page.pageCount ? () => write(reading.held, page.page + 1) : undefined, label: COPY.next }} true"
     );
     check(
-        "  and draws no pager over an empty list",
-        propSources(listScreen, "ListFrame", "footer").map((f) => /^\{\s*rows\.length > 0 && \(\s*<Pager/.test(f)).join(),
+        "  and draws no pager under a list the band has emptied",
+        propSources(listScreen, "ListFrame", "footer").map((f) => /^\{\s*!emptied && \(\s*<Pager/.test(f)).join(),
         "true"
     );
+    check("  nor a list on a job with nothing on it, which the page draws without a band (1a2)", /if \(rows\.length === 0\) \{\s*return \(\s*<ListFrame\s+header=/.test(parseFile(LIST_SCREEN).source) && !/band=/.test(parseFile(LIST_SCREEN).source), true);
 
     // A CATEGORY'S LIST FLOATS THE BAR WHILE ANYTHING IS SELECTED, and hands the print control
     // what the selection makes of it, the reason with it.
@@ -1664,78 +1674,78 @@ export function run({ check, assert, log }) {
     check("  a clear that keeps Ink 3 is seen", plantedHead.clear, false);
     check("  and a level that lifts is seen", plantedHead.level, "true true false");
 
-    // ── 2f: what a reader's lists start from, and what a job narrows (#509) ─
+    // ── 2f: which job a reader's lists stand on (#509, #520) ─────────────────
     log("");
-    log("a list starts from the reader's jobs, or everything for the office, and a job narrows it:");
-    // Three jobs, the third with nothing on it, over the three categories above — the third of
-    // those with nothing under it at all. `i1`–`i4` are the assets `ITEMS` holds.
+    log("a list stands on one job, the first of the reader's by its code until they move:");
+    // Three jobs out of their codes' order, the third with nothing on it, over the three
+    // categories above — the third of those with nothing under it at all. `i1`–`i4` are the
+    // assets `ITEMS` holds.
     const JOBS = [
-        { id: "recJ1", jobCode: "26-A", assets: ["i1", "i2"] },
         { id: "recJ2", jobCode: "26-B", assets: ["i3", "i4"] },
         { id: "recJ3", jobCode: "26-C", assets: [] },
+        { id: "recJ1", jobCode: "26-A", assets: ["i1", "i2"] },
     ];
-    const office = { isAdmin: true, assignedJobs: ["recJ1"] };
-    const site = { isAdmin: false, assignedJobs: ["recJ1", "recJ3"] };
-    const said = (scope) => (scope === null ? "every" : [...scope].join(","));
+    const office = { isAdmin: true, assignedJobs: ["recJ2"] };
+    const site = { isAdmin: false, assignedJobs: ["recJ3", "recJ1"] };
+    const said = (scope) => [...scope].join(",");
     const named = (categories) => categories.map((category) => category.id).join(",");
     const jobsOf = (scope) => scope.jobs.map((job) => job.jobCode).join(",");
 
-    // THE OFFICE, ASSIGNED OR NOT, STARTS FROM EVERYTHING — every asset, and so every
-    // category with one. A category with nothing under it was listed for the office until #507, as a
-    // registration the office puts right; it is a catalog row nobody has bought yet now, and
-    // left off for everybody.
+    // THE OFFICE MAY STAND ON EVERY JOB AND STARTS ON THE FIRST BY ITS CODE, its own assignment
+    // notwithstanding. #509 started it from every asset there was, `null`, which went with
+    // `All jobs` (#520).
     const whole = assetListScope(office, JOBS, undefined);
-    check("the office may narrow to every job, one with nothing on it included", jobsOf(whole), "26-A,26-B,26-C");
-    check("  starts from every asset, its assignment notwithstanding", `${said(whole.start)} ${said(whole.shown)} ${whole.job}`, "every every null");
-    check("  and lists every category with an asset, the one with none left off (#507)", named(assetCategoriesInScope(CATEGORIES, whole.shown)), "recGrinder,recDriver");
-    // ANYBODY ELSE STARTS FROM THEIR JOBS' ASSETS, TOGETHER.
+    check("the office may stand on every job, by its code, one with nothing on it included", jobsOf(whole), "26-A,26-B,26-C");
+    check("  starts on the first, its assignment notwithstanding", `${whole.job?.jobCode} ${said(whole.shown)}`, "26-A i1,i2");
+    check("  and lists the categories with an asset there, the one with none left off (#507)", named(assetCategoriesInScope(CATEGORIES, whole.shown)), "recGrinder");
+    // ANYBODY ELSE MAY STAND ON THEIR OWN JOBS, AND STARTS ON THE FIRST OF THOSE.
     const own = assetListScope(site, JOBS, undefined);
-    check("anybody else may narrow to their own jobs, one with nothing on it included", jobsOf(own), "26-A,26-C");
-    check("  starts from those jobs' assets together", `${said(own.start)} | ${said(own.shown)}`, "i1,i2 | i1,i2");
-    check("  and lists only the categories with one in it — no empty category", named(assetCategoriesInScope(CATEGORIES, own.shown)), "recGrinder");
-    // A JOB NARROWS EITHER, TO THE CATEGORIES WITH AN ASSET THERE.
+    check("anybody else may stand on their own jobs, by their code, one with nothing on it included", jobsOf(own), "26-A,26-C");
+    check("  starts on the first of them, not on their jobs together", `${own.job?.jobCode} ${said(own.shown)}`, "26-A i1,i2");
+    // A CODE'S FIGURES ARE READ AS NUMBERS, so a tenth job comes after a ninth.
+    const tenth = assetListScope({ isAdmin: true }, [
+        { id: "recT", jobCode: "26-USA-10", assets: [] },
+        { id: "recN", jobCode: "26-USA-9", assets: [] },
+    ]);
+    check("  a code's figures read as a number", jobsOf(tenth), "26-USA-9,26-USA-10");
+    // A JOB ASKED FOR IS STOOD ON, ONE WITH NOTHING ON IT INCLUDED.
     const officeOnB = assetListScope(office, JOBS, "recJ2");
-    check("the office narrowed to a job holds that job's assets", `${officeOnB.job?.jobCode} ${said(officeOnB.shown)}`, "26-B i3,i4");
-    check("  lists the categories with one there, the empty category left off", named(assetCategoriesInScope(CATEGORIES, officeOnB.shown)), "recGrinder,recDriver");
-    check("  and counts out of every category with an asset, the empty one left off (#507)", assetCategoriesInScope(CATEGORIES, officeOnB.start).length, 2);
-    const onEmpty = assetListScope(office, JOBS, "recJ3");
-    check("a job with nothing on it is chosen, and lists no category", `${onEmpty.job?.jobCode} ${named(assetCategoriesInScope(CATEGORIES, onEmpty.shown))}|`, "26-C |");
+    check("the office on a job holds that job's assets", `${officeOnB.job?.jobCode} ${said(officeOnB.shown)}`, "26-B i3,i4");
+    check("  and lists the categories with one there, the empty category left off", named(assetCategoriesInScope(CATEGORIES, officeOnB.shown)), "recGrinder,recDriver");
     const siteOnC = assetListScope(site, JOBS, "recJ3");
-    check("  for anybody else too, out of their own start", `${siteOnC.job?.jobCode} ${assetCategoriesInScope(CATEGORIES, siteOnC.shown).length} of ${assetCategoriesInScope(CATEGORIES, siteOnC.start).length}`, "26-C 0 of 1");
-    // THE JOB ASKED FOR IS A REQUEST: one outside the reader's, one that is no job and a
-    // repeated parameter are all the whole scope, answered alike.
+    check("a job with nothing on it is stood on, and lists no category", `${siteOnC.job?.jobCode} ${named(assetCategoriesInScope(CATEGORIES, siteOnC.shown))}|`, "26-C |");
+    // THE JOB ASKED FOR IS A REQUEST: one off the reader's list, one that is no job and a
+    // repeated parameter are all answered with the first job, as no job asked is (#520) — the
+    // whole of the reader's jobs from #509.
     const asked = (raw) => {
         const scope = assetListScope(site, JOBS, raw);
-        return `${scope.job === null} ${said(scope.shown)}`;
+        return `${scope.job?.jobCode} ${said(scope.shown)}`;
     };
-    check("a job outside the reader's is the whole scope", asked("recJ2"), "true i1,i2");
-    check("  so is one that is no job", asked("recNope"), "true i1,i2");
-    check("  and a repeated parameter", asked(["recJ1"]), "true i1,i2");
-    // THE FLAG ALONE: a President who is not marked Admin starts from their own jobs.
-    check(
-        "a President not marked Admin starts from their own jobs",
-        said(assetListScope({ role: "President", isAdmin: false, assignedJobs: ["recJ2"] }, JOBS).start),
-        "i3,i4"
-    );
-    check("  and a reader on no job from nothing", `${said(assetListScope({ isAdmin: false }, JOBS).start)}|${jobsOf(assetListScope({ isAdmin: false }, JOBS))}|`, "||");
+    check("a job off the reader's list is answered with the first", asked("recJ2"), "26-A i1,i2");
+    check("  so is one that is no job", asked("recNope"), "26-A i1,i2");
+    check("  and a repeated parameter", asked(["recJ3"]), "26-A i1,i2");
+    // THE FLAG ALONE: a President who is not marked Admin stands on their own jobs.
+    const president = assetListScope({ role: "President", isAdmin: false, assignedJobs: ["recJ2"] }, JOBS);
+    check("a President not marked Admin stands on their own jobs", `${jobsOf(president)} ${said(president.shown)}`, "26-B i3,i4");
+    const nobody = assetListScope({ isAdmin: false }, JOBS);
+    check("  and a reader on no job on nothing", `${nobody.job}|${jobsOf(nobody)}|${said(nobody.shown)}|`, "null|||");
     // A CATEGORY'S OWN LIST IS CUT IN THE LINK ARRAY'S ORDER, BEFORE ANY READ.
-    check("ids in scope keep their own order", idsInScope(["i2", "i9", "i1"], own.shown).join(), "i2,i1");
-    check("  and every one for the office's whole list", idsInScope(["i2", "i9"], null).join(), "i2,i9");
+    check("ids on the job keep their own order", idsInScope(["i2", "i9", "i1"], own.shown).join(), "i2,i1");
     check("  so a category's page counts only those", pageOfAssets(idsInScope(["i1", "i3", "i2"], own.shown), 1).total, 2);
-    // THE COUNTS ARE OVER THE SCOPE'S ASSETS ALONE.
+    // THE COUNTS ARE OVER THE JOB'S ASSETS ALONE.
     const narrowedRows = summarizeAssetCategories(
         assetCategoriesInScope(CATEGORIES, officeOnB.shown),
         ITEMS.filter((item) => officeOnB.shown.has(item.id))
     );
     check(
-        "a narrowed list counts that job's assets and no other",
+        "a list counts its job's assets and no other",
         narrowedRows.map((row) => `${row.itemName}:${row.counts.map((c) => c.count).join("/")}`).join(" "),
         "angle grinder:1/0/0 Impact Driver:0/0/1"
     );
 
     // BOTH SCREENS ASK THE ONE JUDGMENT, BEFORE ANY ASSET IS READ — the list for which
-    // categories and which of their assets, a category's page for which of its assets, both
-    // counting out of `start` — which no figure shows, so it is read off the source.
+    // categories and which of their assets, a category's page for which of its assets — which
+    // no figure shows, so it is read off the source.
     const scopeUse = (parsed) => {
         const calls = {};
         walk(parsed.ast, (n) => {
@@ -1753,12 +1763,12 @@ export function run({ check, assert, log }) {
     check(
         "the tool list asks the one judgment, and reads and counts by it",
         scopeUse(parseFile(LIST_SCREEN)),
-        "assetCategoriesInScope(categories, scope.shown | categories, scope.start) assetListScope(user, allJobs, sp.job) idsInScope(category.assets, scope.shown)"
+        "assetCategoriesInScope(categories, scope.shown) assetListScope(user, allJobs, sp.job) idsInScope(category.assets, scope.shown)"
     );
     check(
         "  and a tool's page the same one, cutting its page from it",
         scopeUse(parseFile(CATEGORY_SCREEN)),
-        "assetListScope(user, jobs, sp.job) idsInScope(category.assets, scope.shown | category.assets, scope.start) pageOfAssets(idsInScope(category.assets, scope.shown), sp.page)"
+        "assetListScope(user, jobs, sp.job) idsInScope(category.assets, scope.shown) pageOfAssets(idsInScope(category.assets, scope.shown), sp.page)"
     );
     // ANTI-VACUITY: a planted page paging the whole link array and counting with no scope is
     // seen doing it.
@@ -1919,9 +1929,10 @@ export function run({ check, assert, log }) {
     const categorySource = parseFile(CATEGORY_SCREEN).source;
     const assetSource = parseFile("app/(assets)/assets/[assetId]/page.js").source;
     const listFrameSource = parseFile("app/(assets)/asset-categories/[categoryRecordId]/AssetList.js").source;
+    const categoryListSource = parseFile(CATEGORY_LIST).source;
     check(
         "  and both pagers ask it",
-        `${/position=\{pagerPosition\(page\)\}/.test(listSource)} ${/position=\{pagerPosition\(page\)\}/.test(listFrameSource)} ${/pagePosition\(/.test(listSource + listFrameSource)}`,
+        `${/position=\{pagerPosition\(page\)\}/.test(categoryListSource)} ${/position=\{pagerPosition\(page\)\}/.test(listFrameSource)} ${/pagePosition\(/.test(categoryListSource + listFrameSource)}`,
         "true true false"
     );
     // The job is a choice only for a reader with more than one (1a, 1d, 1f): the list's chip, a
@@ -1935,7 +1946,9 @@ export function run({ check, assert, log }) {
     check(
         "  the list's in its head as a chip, a category's and an asset's as a breadcrumb level",
         [
-            /scope\.jobs\.length > 1 \? \(\s*<JobChoice /.test(listSource),
+            /const choosable = scope\.jobs\.length > 1 \?/.test(listSource) &&
+                /\{choosable && <JobChoice jobs=\{choosable\} job=\{job\} \/>\}/.test(listSource) &&
+                /\{jobs && <JobChoice jobs=\{jobs\} job=\{job\} filters=\{reading\.held\} \/>\}/.test(categoryListSource),
             /key: "job",\s*control: \(\s*<CategoryJobChoice/.test(categorySource) && !/<ListHeader[\s\S]*?<CategoryJobChoice[\s\S]*?<\/ListHeader>/.test(categorySource),
             /key: "job",\s*control: \(\s*<JobChoice\s+look="crumb"/.test(assetSource),
         ].join(" "),
@@ -1951,8 +1964,8 @@ export function run({ check, assert, log }) {
     check(
         "  the list: no figure and no job's words but for a reader on no job, the sentence by who reads it, no opener under a reader on no job",
         [
-            /const onNoJob = scope\.jobs\.length === 0;/.test(listSource),
-            /const count = onNoJob \? null :/.test(listSource),
+            /const onNoJob = scope\.job === null;/.test(listSource),
+            /count=\{onNoJob \? null : 0\}/.test(listSource),
             /\{onNoJob \? COPY\.noJobHeading : COPY\.noItemsHeading\}/.test(listSource),
             /\{onNoJob \? COPY\.untilAssigned : recorder \? COPY\.noItems : COPY\.untilASiteManagerAdds\}/.test(listSource),
             /\{recorder && !onNoJob && \(/.test(listSource),
@@ -1979,8 +1992,11 @@ export function run({ check, assert, log }) {
         };
         return [
             inLane(/<div ref=\{topRef\} className="sticky top-0 z-10">\s*\{top\}\s*<\/div>\s*<div ref=\{headerRef\}>\{header\}<\/div>/),
-            inLane(/<div className="sticky top-0 z-10 bg-background-translucent backdrop-blur-sm">\{header\}<\/div>/),
-            /\$\{\s*top \? UNDER_BAR : UNDER_HEAD\s*\}/.test(frameFn),
+            inLane(
+                /<div className="sticky top-0 z-10 bg-background-translucent backdrop-blur-sm">\s*\{header\}\s*\{band && <div className=\{`\$\{LIST_MEASURE\} flex items-center gap-gap pb-control-band-inset-y`\}>\{band\}<\/div>\}\s*<\/div>/
+            ),
+            /\$\{\s*top \? UNDER_BAR : band \? UNDER_HEAD_AND_BAND : UNDER_HEAD\s*\}/.test(frameFn),
+            /const UNDER_HEAD_AND_BAND =\s*"\[--table-head-top:calc\(var\(--spacing-list-header-inset-top\)\+var\(--height-control-lg\)\+var\(--spacing-list-header-inset-bottom\)\+var\(--height-control\)\+var\(--spacing-control-band-inset-y\)\)\] scroll-pt-\[calc\(var\(--table-head-top\)\+var\(--height-table-header\)\)\]";/.test(source),
             /const UNDER_HEAD =\s*"\[--table-head-top:calc\(var\(--spacing-list-header-inset-top\)\+var\(--height-control-lg\)\+var\(--spacing-list-header-inset-bottom\)\)\] scroll-pt-\[calc\(var\(--table-head-top\)\+var\(--height-table-header\)\)\]";/.test(source),
             /const UNDER_BAR = "\[--table-head-top:var\(--height-breadcrumb\)\] scroll-pt-\[calc\(var\(--table-head-top\)\+var\(--height-table-header\)\)\]";/.test(source),
             /\$\{footer \? \(overlayShown \? KEEP_CLEAR_OF_BAR : KEEP_CLEAR_OF_PAGER\) : ""\}/.test(frameFn),
@@ -1989,9 +2005,9 @@ export function run({ check, assert, log }) {
         ].join(" ");
     };
     check(
-        "  one scroll: 1a's head and 1d's bar held at the top inside the lane, the column head under either, focus clear of them, the pager after the lane",
+        "  one scroll: 1a's head and its band and 1d's bar held at the top inside the lane, the column head under each, focus clear of them, the pager after the lane",
         oneScroll(frameWhole),
-        "true true true true true true true"
+        "true true true true true true true true"
     );
     check(
         "  and the column head reads where the frame holds it",
@@ -2003,7 +2019,7 @@ export function run({ check, assert, log }) {
         oneScroll(
             'export default function ListFrame() { return <div>{top && <div className="shrink-0 pr-scrollbar-gutter">{top}</div>}<div className="shrink-0">{header}</div><div ref={laneRef} className={`${SCROLL_LANE}`} /><div className={PAGER_OVER_ROWS} /></div>; }'
         ),
-        "false false false false false false false"
+        "false false false false false false false false"
     );
     // 1d's NAME IN THE BAR once its head has scrolled under it: measured by the frame, marked on
     // the lane, drawn by the bar under the mark behind a 16 rule 16 either side at 13 and 600,
@@ -2211,6 +2227,108 @@ export function run({ check, assert, log }) {
             /<span role="cell" className="text-foreground-muted">\s*<Instant at=\{row\.updatedAt\} format=\{DAY_FORMAT\} \/>/.test(assetListSource),
         ].join(" "),
         "true true"
+    );
+
+    // ── #520: the category list's band ──────────────────────────────────────
+    log("");
+    log("the category list's band filters by type, category and class and searches the rows on the job (#520):");
+    // Five rows on one job: one category under two types, spelled two ways, and one name a
+    // search reaches by two words.
+    const BAND = [
+        { id: "r1", itemName: "TIG Welder, Lincoln Electric (TIG 205)", level1: "Equipment", level2: "Welding", assetClass: "A" },
+        { id: "r2", itemName: "Band Saw, Makita (2107FW)", level1: "Equipment", level2: "Machining", assetClass: "A" },
+        { id: "r3", itemName: "Band Saw, DeWalt", level1: "Tool", level2: "Power Tool", assetClass: "B" },
+        { id: "r4", itemName: "End Mill, Orbitalum", level1: "Tool", level2: "machining ", assetClass: "B" },
+        { id: "r5", itemName: "Drill, Hilti", level1: "Tool", level2: "Power Tool", assetClass: "A" },
+    ];
+    const ids = (reading) => reading.rows.map((row) => row.id).join(",");
+    const offered = (reading, facet) => reading.facets[facet].map((o) => `${o.value}${o.chosen ? "*" : ""} ${o.count}`).join(" | ");
+    const unbanded = filterAssetCategoryRows(BAND, {});
+    check("nothing held is every row, narrowing nothing", `${ids(unbanded)} ${unbanded.narrowed}`, "r1,r2,r3,r4,r5 false");
+    check("  each facet offers what the rows hold, counted, in order", ASSET_LIST_FACETS.map((f) => offered(unbanded, f)).join(" / "), "Equipment 2 | Tool 3 / Machining 2 | Power Tool 2 | Welding 1 / A 3 | B 2");
+    const onTools = filterAssetCategoryRows(BAND, { level1: ["Tool"] });
+    check("a type narrows to its rows", `${ids(onTools)} ${onTools.narrowed}`, "r3,r4,r5 true");
+    check("  its own facet still counts each type on its own", offered(onTools, "level1"), "Equipment 2 | Tool* 3");
+    check("  and the categories offered are the type's, in the first row's spelling", offered(onTools, "level2"), "machining 1 | Power Tool 2");
+    const stale = filterAssetCategoryRows(BAND, { level1: ["Tool"], level2: ["Welding"] });
+    check("a category under no type chosen narrows nothing, and is not held", `${ids(stale)} ${stale.held.level2.length}`, "r3,r4,r5 0");
+    check("several values on one facet are any of them", ids(filterAssetCategoryRows(BAND, { level2: ["Power Tool", "welding"] })), "r1,r3,r5");
+    check("  facets compose with and", ids(filterAssetCategoryRows(BAND, { level1: ["Tool"], assetClass: ["A"] })), "r5");
+    check("a search takes every word, across the name", ids(filterAssetCategoryRows(BAND, { q: "band  DEWALT" })), "r3");
+    check("  the category", ids(filterAssetCategoryRows(BAND, { q: "power" })), "r3,r5");
+    check("  and the type", ids(filterAssetCategoryRows(BAND, { q: "equipment" })), "r1,r2");
+    const searched = filterAssetCategoryRows(BAND, { q: "band" });
+    check("  and the counts are under the search", `${offered(searched, "level1")} / ${offered(searched, "assetClass")}`, "Equipment 1 | Tool 1 / A 1 | B 1");
+    check("  a search alone narrows, and spaces alone do not", `${searched.narrowed} ${filterAssetCategoryRows(BAND, { q: "   " }).narrowed}`, "true false");
+    check("a value no row holds is no choice", `${ids(filterAssetCategoryRows(BAND, { level1: ["Vehicle"] }))} ${filterAssetCategoryRows(BAND, { level1: ["Vehicle"] }).narrowed}`, "r1,r2,r3,r4,r5 false");
+    check(
+        "what the band holds is the values taken, in their spelling, and the search as typed",
+        JSON.stringify(filterAssetCategoryRows(BAND, { q: " saw ", level1: ["tool"], assetClass: ["b", "A"] }).held),
+        JSON.stringify({ q: " saw ", level1: ["Tool"], level2: [], assetClass: ["A", "B"] })
+    );
+    check(
+        "the address is read under the chips' words, each value once",
+        JSON.stringify(readAssetListFilters(new URLSearchParams("q=tig&type=Tool&type=Tool&category=%20Power%20%20Tool&class=A&job=recX&page=2"))),
+        JSON.stringify({ q: "tig", level1: ["Tool"], level2: ["Power Tool"], assetClass: ["A"] })
+    );
+    check("  and nothing in it reads as nothing", JSON.stringify(readAssetListFilters(new URLSearchParams(""))), JSON.stringify({ q: "", level1: [], level2: [], assetClass: [] }));
+    const emptiedSays = (reading) => {
+        const words = emptiedListWords(reading);
+        return `${words.sentence} | ${words.typed} | ${words.clear} ${words.clearsAll}`;
+    };
+    check("a search that empties the list names what was typed, and clears the search alone", emptiedSays(filterAssetCategoryRows(BAND, { q: " zzz  " })), "No items match | zzz | Clear search false");
+    check("  with a chip held too, everything", emptiedSays(filterAssetCategoryRows(BAND, { q: "zzz", level1: ["Tool"] })), "No items match | zzz | Clear all true");
+    check("  and chips alone say these filters", emptiedSays(filterAssetCategoryRows(BAND, { level1: ["Equipment"], assetClass: ["B"] })), "No items match these filters | null | Clear all true");
+    check(
+        "the band's words: the search, each chip's own word and its clear, and the two sentences",
+        [
+            ASSET_LIST_COPY.searchLabel,
+            ASSET_LIST_COPY.clearSearch,
+            ASSET_LIST_FACETS.map((f) => `${ASSET_LIST_COPY.facetLabel[f]}: ${ASSET_LIST_COPY.clearFacet[f]}`).join(", "),
+            ASSET_LIST_COPY.noneMatch,
+            ASSET_LIST_COPY.noneMatchFilters,
+            ASSET_LIST_COPY.clearAll,
+        ].join(" | "),
+        "Search items | Clear search | Type: Clear type filter, Category: Clear category filter, Class: Clear class filter | No items match | No items match these filters | Clear all"
+    );
+
+    // WHERE THE BAND LIVES, off the sources: the list reads it off the address through the one
+    // reader, keeps what is typed while it is typed, narrows once, counts out of the job's rows,
+    // and writes every change back with what the band holds; the page reads none of it, and the
+    // job's choice offers the jobs alone and carries what the list hands it.
+    const bandSource = parseFile(CATEGORY_LIST).source;
+    check(
+        "the list reads the band off the address, narrows once and counts out of the job's rows",
+        [
+            /const asked = readAssetListFilters\(params\);\s*const \[typed, setTyped\] = useState\(asked\.q\);\s*const reading = filterAssetCategoryRows\(rows, \{ \.\.\.asked, q: typed \}\);/.test(bandSource),
+            /const count = reading\.narrowed \? FILTER_BAR_COPY\.count\(reading\.rows\.length, rows\.length\) : rows\.length;/.test(bandSource),
+            /setTyped\(text\);\s*write\(\{ \.\.\.reading\.held, q: text \}\);/.test(bandSource),
+            /const choose = \(facet, values\) => write\(\{ \.\.\.reading\.held, \[facet\]: values \}\);/.test(bandSource),
+            /if \(!clearsAll\) return search\(""\);\s*setTyped\(""\);\s*write\(\{\}\);/.test(bandSource),
+        ].join(" "),
+        "true true true true true"
+    );
+    check(
+        "  and draws the search and a chip per facet, each handed its options, its values and its words",
+        [
+            /<SearchField label=\{COPY\.searchLabel\} value=\{typed\} onChange=\{search\} clearLabel=\{COPY\.clearSearch\} \/>/.test(bandSource),
+            /\{ASSET_LIST_FACETS\.map\(\(facet\) => \(\s*<FilterChip/.test(bandSource),
+            /options=\{reading\.facets\[facet\]\.map\(/.test(bandSource) && /values=\{reading\.held\[facet\]\}/.test(bandSource),
+            /clearLabel=\{COPY\.clearFacet\[facet\]\}\s*several=\{COPY\.selectedCount\}/.test(bandSource),
+        ].join(" "),
+        "true true true true"
+    );
+    const pageSource = parseFile(LIST_SCREEN).source;
+    const jobChoiceSource = parseFile("app/(assets)/JobChoice.js").source;
+    check(
+        "the page reads only the job off the address, and the job's choice offers the jobs alone, carrying the band",
+        [
+            !/readAssetListFilters|sp\.(q|type|category|class|page)\b/.test(pageSource),
+            /const options = jobs\.map\(\(\{ id, jobCode \}\) => \(\{ value: id, label: jobCode \}\)\);/.test(jobChoiceSource),
+            !/ALL_JOBS|\.words\.all|useSearchParams\(|value: "", label/.test(jobChoiceSource),
+            /assetCategoriesPath\(1, next, filters\)/.test(jobChoiceSource),
+        ].join(" "),
+        "true true true true"
     );
 }
 

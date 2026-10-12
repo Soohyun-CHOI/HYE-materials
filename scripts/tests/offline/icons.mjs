@@ -105,6 +105,11 @@ const DESIGN_SHAPES = {
         ["path", { d: "M16 8h-6a2 2 0 0 0 0 4h4a2 2 0 0 1 0 4H8" }],
         ["path", { d: "M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z" }],
     ],
+    // 1a and 1b: the search field leads with it (#520).
+    search: [
+        ["path", { d: "m21 21-4.34-4.34" }],
+        ["circle", { cx: "11", cy: "11", r: "8" }],
+    ],
     "search-x": [
         ["path", { d: "m13.5 8.5-5 5" }],
         ["path", { d: "m8.5 8.5 5 5" }],
@@ -142,7 +147,7 @@ const MARKS_BY_FILE = {
     "app/(assets)/assets/[assetId]/TransitionBar.js": ["map-pin", "user"],
     "app/(assets)/assets/[assetId]/page.js": ["map-pin", "search-x", "user"],
     "app/components/Breadcrumb.js": ["chevron-left"],
-    "app/components/Controls.js": ["check", "chevron-down", "circle-alert", "info", "minus", "plus", "x"],
+    "app/components/Controls.js": ["check", "chevron-down", "circle-alert", "info", "minus", "plus", "search", "x"],
     "app/components/DialogFrame.js": ["check", "x"],
     "app/components/ListFrame.js": ["x"],
     "app/components/ListTable.js": ["chevron-left", "chevron-right"],

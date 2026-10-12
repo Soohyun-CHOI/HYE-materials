@@ -599,6 +599,8 @@ export async function run({ check, assert, log }) {
                 ? `${nameOf(unwritten.left)} ${unwritten.operator} ${nameOf(unwritten.right)}`
                 : nameOf(unwritten ?? {});
         facts.unlogged = nameOf(propertyOf("unlogged") ?? {});
+        // #520: the job the list stands on, which is the job the registration wrote to.
+        facts.job = nameOf(propertyOf("job") ?? {});
         // THE REFUSAL FOR A BATCH THAT WROTE NOTHING, and that it stands before the
         // redirect in the source — which is not execution order, and is what this tier has.
         facts.guardBefore = false;
@@ -640,6 +642,7 @@ export async function run({ check, assert, log }) {
     check("  to a category's page", land.target, "assetCategoryPath");
     check("  the category the reading admitted", `${land.record} from ${land.categoryFrom}`, "category.id from reading.registration");
     check("  on the list's first page, where what it wrote begins (#463)", land.page, "1");
+    check("  standing on the job it wrote to, where what it wrote is drawn (#520)", land.job, "job.id");
     check("  selecting every asset it created, by printed id", land.selected, "created → asset.assetId");
     check("  carrying as asked what the submission asked for (#455)", land.asked, "count");
     check("  counting as unwritten what was asked for less what was created", land.unwritten, "count - created.length");
@@ -687,6 +690,7 @@ export async function run({ check, assert, log }) {
     check("  a log pass after the redirect is seen", plantedLanding.logBetween, false);
     check("  a redirect to another record is seen", `${plantedLanding.record} from ${plantedLanding.categoryFrom}`, "job.id from upsertTool(…)");
     check("  a page from another figure is seen", plantedLanding.page, "2");
+    check("  and a landing on no job is seen", plantedLanding.job, "none");
     check("  a selection of anything but what was created is seen", plantedLanding.selected, "logged");
     check("  an asked figure that is what was created is seen", plantedLanding.asked, "created.length");
     check("  a shortfall of the whole count is seen", plantedLanding.unwritten, "count");

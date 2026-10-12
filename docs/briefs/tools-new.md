@@ -46,9 +46,9 @@ under the same row.
 
 - **The first finds the name (#514).** Two choices side by side over a search:
   the type reads `All types` and the category `All categories` until one is
-  chosen — as the lists' choice of job reads `All jobs` — and the categories
-  offered are the type's. The search, `Name`, lists the catalog's names under
-  what is chosen, five at most — the first of them before anything is typed,
+  chosen — as the document lists' choice of job reads `All jobs` — and the
+  categories offered are the type's. The search, `Name`, lists the catalog's
+  names under what is chosen, five at most — the first of them before anything is typed,
   and those whose name holds what is typed after: **the name typed in full
   first, then names beginning with it, then names holding it elsewhere**, so
   `wrench` offers `Wrench` before `Adjustable Monkey Wrench` (#517) — each
