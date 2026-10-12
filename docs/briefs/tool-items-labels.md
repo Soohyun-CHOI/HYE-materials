@@ -178,16 +178,20 @@ with its length.
 
 **The stock's dimensions live in one place, and since #467 they are two.** The
 labels print on a label printer that takes 12 mm tape and cuts after every page,
-so the stock is the tape's width and the length of tape one label takes, and
-every other dimension is derived from those and the floors. Until then no
-printer had been confirmed at the site and the stock was a sheet nobody had
-bought. **A design must not assume a particular label size** — it should take
-the label's dimensions from where they live, as it took the grid's.
+so the stock is the label's width and its height, and every other dimension is
+derived from those and the floors. Until then no printer had been confirmed at
+the site and the stock was a sheet nobody had bought. **A design must not assume
+a particular label size** — it should take the label's dimensions from where
+they live, as it took the grid's.
 
-**The label is 11 mm wide by 12 mm tall: the length of tape a label takes
-across, and the tape's width down (#467).** The symbol and the code are at their
-floors, and what the tape leaves is margin — 0.6488 mm above and below, 0.715 mm
-either side. **The label a print proved was 10.87 mm across with 0.65 mm on all
+**The label is 11 mm wide by 12 mm tall as it reads, and it prints turned a
+quarter turn clockwise (#526):** its 12 mm runs along the tape, the length one
+label takes, and its 11 mm across the 12 mm tape, so it reads the right way up
+with the tape held crosswise, the way it is held to stick it on. From #467 until
+then the page ran the other way — the 11 mm along the tape and the 12 mm the
+tape's width — and the label read the right way up only with the tape held
+lengthwise. The symbol and the code are at their floors, and what the label
+leaves is margin — 0.6488 mm above and below, 0.715 mm either side. **The label a print proved was 10.87 mm across with 0.65 mm on all
 four sides**; 11 mm is a round length for the cut, and the extra went to the
 side margins alone. Before it, the label was sized from the symbol to fit a
 sheet — 15.2 by 17.32 mm and 143 to a Letter sheet by #453 — and before #412 it
@@ -205,8 +209,9 @@ perfectly placed; and a 0.4 mm module quoted rather than measured. On tape the
 inset went with the die-cut and the module is the 0.29 mm a print proved.
 
 **The code sits under the symbol (#431), and the order is part of the
-geometry.** On tape the two stack across the tape's width: the symbol, the
-code's ink and the margins above and below them are its 12 mm (#467). On a sheet,
+geometry.** On tape the two stack along the tape since #526, and across it from
+#467: the symbol, the code's ink and the margins above and below them are the
+label's 12 mm. On a sheet,
 beside the symbol, the long side was the symbol and ten characters, 30.3 mm, and
 a sheet held 78; under it, the symbol and one line of code, 17.32 mm, and a
 sheet held 143. What kept the code beside the symbol was the tool's name, which
@@ -235,10 +240,11 @@ read.
 **The readable code has a floor and no ceiling.** Its minimum size is a functional
 constraint — it is the fallback path when the symbol is unreadable — and it is
 set in code, at 5 pt (#467). **Everything above that floor is the design's**,
-and the cost of going above it is now fixed: on tape the label's height is the
-tape's, so a larger code takes its height out of the margins above and below,
-and past about 5.4 pt ten characters outgrow the symbol and take from the side
-margins too. It renders at the floor, which is the size the print proved.
+and the cost of going above it is known: at this label's size a larger code
+takes its height out of the margins above and below — or, since the height runs
+along the tape (#526), out of a longer label — and past about 5.4 pt ten
+characters outgrow the symbol and take from the side margins too, which the
+tape's 12 mm bounds. It renders at the floor, which is the size the print proved.
 
 **The code is set in Inconsolata, and the face is part of the label's
 arithmetic (#431).** The design chose it. The label's width budget is that
@@ -262,7 +268,7 @@ both floors though it cannot open the address, and that a Vercel domain draws no
 label does not mean the measurement has become impossible.
 
 **What is left over is margin (#467).** The widest symbol the label takes is
-today's, 9.57 mm, and with the code's ink, 1.13 mm, it takes all of the tape's
+today's, 9.57 mm, and with the code's ink, 1.13 mm, it takes all of the label's
 12 mm but 0.6488 mm above and below; 11 mm leaves 0.715 mm either side of the
 symbol, and ten characters at the floor take 8.82 mm of the 9.57 mm under it.
 On a sheet nothing was left over for the symbol and next to nothing under the
@@ -313,7 +319,11 @@ there would be asking for a read that page divided on purpose.**
 
 **Each label is drawn at twice its printed size and printed at its own
 (#457)** — 1e's 22 × 24 mm on screen, by a zoom the print takes back to 1, so
-nothing inside a label moves between the two. At a 375px width the dialog stacks
+nothing inside a label moves between the two. **The dialog draws a label the
+right way up, and the print turns it a quarter turn clockwise (#526)**: what a
+reader sees in the pane is the label as it reads stuck on the asset, and the page
+that comes off the tape is that label turned, 12 mm along the tape and 11 mm
+across. The size beside the count, `11 × 12 mm`, is the drawing's. At a 375px width the dialog stacks
 — the head, the pane, then the rest — and two labels fit across the pane with
 nothing scrolling sideways, measured. Until then each was drawn at its true size,
 11 mm across, about 42 px, which fitted a phone as well. While a sheet was drawn

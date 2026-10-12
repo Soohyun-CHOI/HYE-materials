@@ -13,22 +13,39 @@
  *
  * THE PAGE IS A NAMED ONE, AND ONLY WHILE THE DIALOG IS OPEN (#457). This stylesheet is
  * on every page that can open the dialog — a tool's and an asset's — so a page rule
- * for the whole document would print either of them at 11 x 12 mm whenever somebody
- * printed it with the dialog shut. The size is `@page asset-label`'s, and the root takes
- * that name only while a dialog holding label pages is open. **The name has to be the
- * root's, measured**: given to the label pages themselves, Chrome and Edge printed every
- * page at Letter, since the pages are inside the dialog and the dialog is in the top
- * layer, which no page name is taken from; given to the root, they printed one page per
- * label at the label's size, and with the dialog shut they printed the page at Letter.
+ * for the whole document would print either of them at the label's size whenever
+ * somebody printed it with the dialog shut. The size is `@page asset-label`'s, and the
+ * root takes that name only while a dialog holding label pages is open. **The name has
+ * to be the root's, measured**: given to the label pages themselves, Chrome and Edge
+ * printed every page at Letter, since the pages are inside the dialog and the dialog is
+ * in the top layer, which no page name is taken from; given to the root, they printed
+ * one page per label at the label's size, and with the dialog shut they printed the page
+ * at Letter.
  *
  * `@page size` IS THE ONE FIGURE SPELLED TWICE, and the reason is the language: the
  * page box cannot read a custom property, so the label's two dimensions are literals
  * here while `lib/assetLabelPage.js:LABEL_STOCK` is what says what they must be —
- * the cut's length across and the tape's width down. `offline/asset-label-page.mjs`
- * compares this file against that constant, the same arrangement `LABEL_REWRITE` has
- * with `next.config.mjs` (#348). Every OTHER dimension arrives as an inline style
- * computed from that module, and the check fails a millimeter or a point anywhere
- * else in this file.
+ * the label's height along the tape and its width across it, the label turned (#526).
+ * `offline/asset-label-page.mjs` compares this file against that constant, the same
+ * arrangement `LABEL_REWRITE` has with `next.config.mjs` (#348). Every OTHER dimension
+ * arrives as an inline style computed from that module, and the check fails a
+ * millimeter or a point anywhere else in this file.
+ *
+ * THE TAPE TAKES THE LABEL TURNED A QUARTER TURN CLOCKWISE, AND ONLY THE PRINT TURNS IT
+ * (#526). The dialog draws a label the right way up — as it reads stuck on the asset —
+ * and the page runs 12 mm along the tape and 11 mm across, so the label reads the right
+ * way up with the tape held crosswise; it ran 11 along and 12 across from #467, and read
+ * the right way up only with the tape held lengthwise. At print the page's box takes
+ * the label's height across and its width down, the two custom properties the dialog
+ * sizes it by, swapped; and the one group inside the face holding the symbol and the
+ * code turns clockwise about the face's corner and moves along by the label's height,
+ * which puts the label's bottom-left corner at the page's and its top edge on the
+ * page's far edge. **The turn is inside the SVG for #467's reason below**: the face is
+ * still the one box, the page's size from the page's corner, and nothing inside it is
+ * snapped. Turning the label's box instead would leave a box 12 mm tall on the page —
+ * a transform moves no layout box — and a box past 11.11 mm tall printed as two pages,
+ * measured. The pane is never turned, so the page a reader looks at is the label and
+ * the page that prints is that label a quarter turn round.
  *
  * AND ONE NAME IS SPELLED TWICE BESIDE IT (#431): `--font-label-code`, the property
  * the dialog's face loader defines and `.label-id` reads. `next/font` takes the name
@@ -41,17 +58,23 @@
  * them to mean anything.
  *
  * THE PAGE CHROME AND EDGE PRINT IS NOT QUITE THIS ONE, MEASURED IN THE PDF EACH
- * SAVES (#467). Both round a page box to whole points and then to a three-hundredth of
- * an inch, so 11 x 12 mm comes out 10.922 x 12.023 — 31 points across where 11 mm is
- * 31.18 — and no width near 11 mm survives the rounding: 10.87 mm comes out the same,
- * 11.2 mm 11.261. Across, the page is 0.078 mm short of the label's face, which comes
- * off the right margin; down, the page is 0.023 mm taller than the label.
+ * SAVES (#467, #526). Both round a page box to whole points and then to a
+ * three-hundredth of an inch, so 12 x 11 mm comes out 12.023 x 10.922 — 31 points
+ * across the tape where 11 mm is 31.18 — and no figure near 11 mm survives the
+ * rounding: 10.87 mm comes out the same, 11.2 mm 11.261. Across the tape the page is
+ * 0.078 mm short of the label, which comes off the label's right margin as it reads;
+ * along it the page is 0.023 mm longer, past the label's top edge. Before #526 the
+ * same two figures were the page's width and height.
  *
- * A LABEL IS EXACTLY ONE PAGE ONLY WHILE THE PAGE IS NOT SHORTER THAN THE LABEL.
- * **Not observed.** The whole points on the way are 34 down, which is 11.994 mm — a
- * driver that kept that size would leave 0.006 mm of every label for a page of its
- * own, and the tape would come out one label, one blank. Nothing here can refuse that,
- * which is why it is said where somebody reading a strange print will look.
+ * A LABEL IS EXACTLY ONE PAGE THOUGH THE PAGE IS SHORTER THAN IT, BECAUSE THE BREAKS ARE
+ * NOT WHERE THE PDF'S EDGE IS. Measured in both, on an 11 mm page: layout breaks at a
+ * whole CSS pixel, 42 px, 11.11 mm — a box 11.1 mm tall printed one to a page and one
+ * 11.12 mm tall spilled onto a second — and the 31 points come after it, so the 11 mm
+ * label is one page whose last 0.078 mm the PDF leaves off. Until #526 the short side
+ * lay across the page and nothing was in the way of a break. **Not observed**: a print
+ * sent to the label printer rather than saved as a PDF, whose driver may size the page
+ * its own way — whether that comes off the tape one label a page is the print's to show,
+ * and nothing here can refuse a driver that does otherwise.
  *
  * A BROWSER WITH NO NAMED PAGES PRINTS THE LABELS ON ITS OWN PAPER. **Not observed**:
  * Chrome and Edge are what printed and were measured, and the site prints from one of
@@ -73,15 +96,19 @@
  */
 
 @page asset-label {
-    size: 11mm 12mm;
+    size: 12mm 11mm;
     margin: 0;
 }
 
 /* One label, which is one page. Until #467 labels were placed onto a page-sized sheet
    from its corner. The dialog draws it larger on screen by the scale it sets, and the
    print below takes the scale back to 1, so the page that prints is this page at its
-   own size and nothing inside it is drawn a second time. */
+   own size and nothing inside it is drawn a second time. Its size is the label as it
+   reads, through the two properties the dialog sets from `LABEL_STOCK`, which the print
+   swaps when it turns the label (#526). */
 .label-page {
+    width: var(--label-width);
+    height: var(--label-height);
     overflow: hidden;
     box-sizing: border-box;
     background: #fff;
@@ -92,9 +119,10 @@
    box's corner to a whole CSS pixel, and the page's corner is one on every page, so
    the symbol and the code are placed in millimeters inside this and nothing inside it
    moves — `LabelsDialog.js` has the measurement. A block, so no line box adds a strut's
-   descent under it. The symbol is a viewport inside it sized from that symbol's own
-   side count, quiet zone included, which is `symbolBox`; nothing may be drawn over it,
-   and the code sits under it. */
+   descent under it. Inside it one group, `.label-turn`, holds the symbol and the code,
+   and only the print turns it (#526). The symbol is a viewport inside that, sized from
+   that symbol's own side count, quiet zone included, which is `symbolBox`; nothing may
+   be drawn over it, and the code sits under it. */
 .label-face {
     display: block;
 }
@@ -215,5 +243,21 @@
 
     .label-page {
         zoom: 1;
+    }
+
+    /* THE TAPE TAKES THE LABEL TURNED A QUARTER TURN CLOCKWISE (#526) — the header says
+       why inside the face. The page's box takes the label's height across and its width
+       down, the page `@page asset-label` sizes; and the group holding the symbol and the
+       code turns clockwise about the face's corner and moves along by the label's height,
+       which puts it back on the page. Only a page in an open dialog goes to the tape, so
+       the label an asset's page draws behind it prints the right way up with that page. */
+    dialog[open] .label-page {
+        width: var(--label-height);
+        height: var(--label-width);
+    }
+
+    dialog[open] .label-turn {
+        transform: translateX(var(--label-height)) rotate(90deg);
+        transform-origin: 0 0;
     }
 }
