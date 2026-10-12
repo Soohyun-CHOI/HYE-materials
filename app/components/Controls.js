@@ -751,6 +751,11 @@ const TYPEAHEAD_MS = 500;
  * level (1d, 1f): the level's 26, its side room pulled back and its 13 at 600 in Ink 2, a 12
  * chevron 6 after the word, and its list from the level's left with 32 rows. In both the label
  * the chip shows is hidden from a screen reader, which hears the field's label as the name.
+ *
+ * AN OPTION MAY CARRY A `note`, SAID AFTER ITS LABEL (#519): a job's name after its code, at Ink
+ * 3 and 8 on, in the field and in its list, as 1b and 1i draw a dialog's job. A list with a
+ * note in it, and a level's list, sets each label at 500 (`Menu.js`). The type-ahead reads the
+ * label alone, so a key goes to the code it starts.
  */
 export function Choice({ name, options, value, onChange, placeholder, look = "field", label }) {
     const field = useField();
@@ -761,6 +766,7 @@ export function Choice({ name, options, value, onChange, placeholder, look = "fi
     const [active, setActive] = useState(chosen);
     const anchorRef = useRef(null);
     const search = useRef({ text: "", timer: null });
+    const strong = look === "crumb" || options.some((option) => option.note);
 
     const choose = (index) => {
         if (index >= 0 && index < options.length) onChange(options[index].value);
@@ -850,9 +856,16 @@ export function Choice({ name, options, value, onChange, placeholder, look = "fi
                         {label}
                     </span>
                 )}
-                <span className={`min-w-0 truncate ${look === "crumb" ? "" : chosen >= 0 ? "text-foreground-default" : "text-foreground-subtle"}`}>
-                    {chosen >= 0 ? options[chosen].label : placeholder}
-                </span>
+                {chosen >= 0 && options[chosen].note ? (
+                    <span className="flex min-w-0 flex-1 gap-gap text-foreground-default">
+                        <span className="shrink-0">{options[chosen].label}</span>
+                        <span className="min-w-0 truncate text-foreground-subtle">{options[chosen].note}</span>
+                    </span>
+                ) : (
+                    <span className={`min-w-0 truncate ${look === "crumb" ? "" : chosen >= 0 ? "text-foreground-default" : "text-foreground-subtle"}`}>
+                        {chosen >= 0 ? options[chosen].label : placeholder}
+                    </span>
+                )}
                 <Icon
                     name="chevron-down"
                     className={look === "crumb" ? "-mr-breadcrumb-chevron-bleed size-breadcrumb-chevron shrink-0" : "size-icon-sm shrink-0 text-foreground-subtle"}
@@ -869,6 +882,8 @@ export function Choice({ name, options, value, onChange, placeholder, look = "fi
                 options={options.map((option, index) => ({
                     key: option.value,
                     label: option.label,
+                    note: option.note,
+                    strong,
                     selected: index === chosen,
                     checked: index === chosen,
                 }))}

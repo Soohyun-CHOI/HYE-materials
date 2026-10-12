@@ -202,7 +202,7 @@ async function renderCategoryPage({ params, searchParams }) {
     // site manager may register, which is the one predicate every opener asks, and the
     // jobs its choice offers.
     const canRegister = canRegisterAssets(user, jobs);
-    const assignedJobs = assignedJobsFor(user, jobs).map(({ id, jobCode }) => ({ id, jobCode }));
+    const assignedJobs = assignedJobsFor(user, jobs).map(({ id, jobCode, jobName }) => ({ id, jobCode, jobName }));
 
     // The way back is the breadcrumb's one level since #460, the list's own heading behind a
     // chevron (1d) — and for a reader on several jobs a path, the list's heading and then the job
@@ -211,7 +211,7 @@ async function renderCategoryPage({ params, searchParams }) {
     // Registering more under this category (#451) is the head's one control, so a category with
     // nothing under it keeps it — there it is the way to write what a registration did not. It
     // opens the dialog on this category (#456). The way back keeps the job the list is narrowed
-    // to (#509).
+    // to (#509). The bar names the category once its heading has scrolled under it (1d, #519).
     const top = (
         <Breadcrumb
             levels={[
@@ -232,6 +232,7 @@ async function renderCategoryPage({ params, searchParams }) {
                       ]
                     : []),
             ]}
+            title={category.itemName}
         />
     );
     // The dialog on this kind (#507): the row as the page read it, and the catalog it may pick

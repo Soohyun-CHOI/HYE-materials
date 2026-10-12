@@ -41,10 +41,13 @@ reader recognizes, which is why the browser tab says only `Item` (`Tool` until #
 **It is used at a desk, and the asset's screen is the one on this axis a
 phone shows** (#336). The width container lives in the layout with no width,
 no padding, no type and no color of a screen's own. Since #460 it holds the
-design's rail, and **since #463 this screen is drawn as 1d**: the breadcrumb
-and the list's head held still over a table whose column head holds while the
-rows scroll, the pager pinned at the foot and the selection bar floating over
-it while anything is selected.
+design's rail, and **since #463 this screen is drawn as 1d**: the breadcrumb,
+the list's head and a table, the pager pinned at the foot and the selection bar
+floating over it while anything is selected. **Since #519 the page is one
+scroll** (0i): the breadcrumb holds at the top, the head scrolls away under it
+and the column head holds under the bar, and once the head has gone the bar
+names the category after the path, as 1d draws it; until then the bar and the
+head stood still and the rows scrolled alone.
 
 ## What it always carries
 

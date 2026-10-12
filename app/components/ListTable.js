@@ -14,7 +14,8 @@ import Icon from "@/app/components/Icon";
  *
  * WHAT STANDS OVER WHAT (#501). A row is its own stacking context, so what it lifts — its
  * box, over the link that covers the row — rises inside the row and never past it. Over the
- * rows stands the column head. The pager stands over the head where a short window brings
+ * rows stands the column head, and over that what heads the list in its scroll — 1a's head,
+ * 1d's bar (#519). The pager stands over the head where a short window brings
  * them together, at the head's z-index and later in the document, with the selection bar
  * floating on it (`ListFrame.js`); the rail's Panel covers all three; and a tooltip, a menu
  * or a dialog opens in the top layer over everything. Until #501 a row was no context of its
@@ -26,13 +27,14 @@ import Icon from "@/app/components/Icon";
 export const LIST_MEASURE = "mx-auto box-content max-w-content px-page-gutter";
 
 /**
- * 0b's Column head: 36 tall on the Sticky ground, held at the top of the rows. A Band runs
- * under it, which it owns with -1 so the first row's rule goes under it, and one over it,
- * drawn inside the 36, since no tab band sits above (0k). Its text is 12 in from the content's
- * edge, as a row's is.
+ * 0b's Column head: 36 tall on the Sticky ground, held under what heads the list as the rows
+ * pass beneath it — where that is, `--table-head-top`, is `ListFrame.js`'s (0i Chain, #519). A
+ * Band runs under it, which it owns with -1 so the first row's rule goes under it, and one over
+ * it, drawn inside the 36, since no tab band sits above (0k). Its text is 12 in from the
+ * content's edge, as a row's is.
  */
 export const TABLE_HEAD =
-    "sticky top-0 z-10 -mb-px box-content grid h-table-header items-center gap-x-table-column-inline border-b border-divider-strong bg-background-translucent px-table-bleed text-heading-sm text-foreground-subtle shadow-[inset_0_1px_0_var(--color-divider-strong)] backdrop-blur-sm";
+    "sticky top-(--table-head-top) z-10 -mb-px box-content grid h-table-header items-center gap-x-table-column-inline border-b border-divider-strong bg-background-translucent px-table-bleed text-heading-sm text-foreground-subtle shadow-[inset_0_1px_0_var(--color-divider-strong)] backdrop-blur-sm";
 
 /**
  * 0b's Row: 40 under its 1px Rule, its text 12 in from the content's edge where the rule
@@ -66,37 +68,39 @@ export const TABLE_ROW_LINK = "after:absolute after:inset-0 after:rounded-contro
  *
  * TWO CONTROLS IN ONE HEAD STAND 12 APART (1a, #519): the job's chip and `Add items`.
  *
+ * A HEAD WITH NO BAR OVER IT IS AT LEAST A 36 CONTROL'S LINE TALL (1a, #519), whatever it holds,
+ * since it holds at the top of the list's one scroll and the column head holds under it at that
+ * height (`ListFrame.js`). It stands in the scroll, so the lane's 8 is already its own.
+ *
  * A HEAD WITH NOTHING TO COUNT DRAWS NO FIGURE (#519): `count` left out, the title stands alone,
  * as 1a2 draws the category list for a reader on no job, whose list holds nothing it could
  * hold. A list that holds nothing yet still says `0`.
  */
 export function ListHeader({ title, count, noun, caption, underBreadcrumb = false, children }) {
     return (
-        <div className="pr-scrollbar-gutter">
+        <div
+            className={`${LIST_MEASURE} flex justify-between gap-list-header-inline pb-list-header-inset-bottom ${caption ? "items-start" : "items-center"} ${
+                underBreadcrumb ? "pt-breadcrumb-stack" : "min-h-(--height-control-lg) pt-list-header-inset-top"
+            }`}
+        >
+            <div className="flex min-w-0 flex-col gap-title-stack">
+                <div className="flex min-w-0 items-baseline gap-list-count-inline">
+                    <h1 className="min-w-0 text-heading-lg">{title}</h1>
+                    {count != null && (
+                        <p className="shrink-0 text-body tabular-nums text-foreground-subtle">
+                            {count}
+                            <span className="sr-only">{` ${noun}`}</span>
+                        </p>
+                    )}
+                </div>
+                {caption}
+            </div>
             <div
-                className={`${LIST_MEASURE} flex justify-between gap-list-header-inline pb-list-header-inset-bottom ${
-                    caption ? "items-start" : "items-center"
-                } ${underBreadcrumb ? "pt-breadcrumb-stack" : "pt-list-header-inset-top"}`}
+                className={`flex shrink-0 items-center gap-list-header-control-inline ${
+                    caption ? "-mt-[calc((var(--height-control-lg)-var(--text-heading-lg--line-height))/2)]" : ""
+                }`}
             >
-                <div className="flex min-w-0 flex-col gap-title-stack">
-                    <div className="flex min-w-0 items-baseline gap-list-count-inline">
-                        <h1 className="min-w-0 text-heading-lg">{title}</h1>
-                        {count != null && (
-                            <p className="shrink-0 text-body tabular-nums text-foreground-subtle">
-                                {count}
-                                <span className="sr-only">{` ${noun}`}</span>
-                            </p>
-                        )}
-                    </div>
-                    {caption}
-                </div>
-                <div
-                    className={`flex shrink-0 items-center gap-list-header-control-inline ${
-                        caption ? "-mt-[calc((var(--height-control-lg)-var(--text-heading-lg--line-height))/2)]" : ""
-                    }`}
-                >
-                    {children}
-                </div>
+                {children}
             </div>
         </div>
     );

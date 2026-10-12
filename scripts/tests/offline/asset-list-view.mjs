@@ -1443,7 +1443,7 @@ export function run({ check, assert, log }) {
     const frame = parseFile(LIST_FRAME);
     const frameSource = functionSource(frame, "ListFrame");
     check(
-        "the frame marks its root for the column, and scrolls its rows in a lane of their own that stops at its end",
+        "the frame marks its root for the column, and scrolls the list in a lane of its own that stops at its end",
         `${/data-list-frame=""/.test(frameSource)} ${/overflow-y-auto overscroll-y-contain \[scrollbar-gutter:stable\] \$\{SCROLL_LANE\}/.test(frameSource)}`,
         "true true"
     );
@@ -1553,12 +1553,14 @@ export function run({ check, assert, log }) {
         const pager = classesOf(frameFile, holding(frameFile, "PAGER_OVER_ROWS"));
         const lane = classesOf(frameFile, holding(frameFile, "ref={laneRef}"));
         const nav = classesOf(railFile, named("nav"));
+        // What holds at the top of the lane (#519): 1d's bar and 1a's head.
+        const held = [classesOf(frameFile, holding(frameFile, "ref={topRef}")), classesOf(frameFile, holding(frameFile, 'backdrop-blur-sm">'))];
         return {
             row: constant(tableFile, "TABLE_ROW").includes("isolate"),
             box: `${box.tokens.includes("relative")} ${layer(box.tokens) > 0} ${cover.includes("after:absolute")} ${cover.some((t) => /(^|:)z-/.test(t))}`,
             head: `${head.includes("sticky")} ${layer(head) > 0}`,
             pager: `${pager.tokens.includes("relative")} ${layer(pager.tokens) === layer(head)} ${lane.start >= 0 && pager.start > lane.start}`,
-            panel: layer(nav.tokens) > Math.max(layer(head), layer(pager.tokens)),
+            panel: layer(nav.tokens) > Math.max(layer(head), layer(pager.tokens), ...held.map((h) => layer(h.tokens) || 0)),
         };
     };
     const stack = stackingOf({ table, frame, rail, controls: parseFile(CONTROLS) });
@@ -1566,7 +1568,7 @@ export function run({ check, assert, log }) {
     check("  where the box stands over the link that covers the row, which lifts nothing", stack.box, "true true true false");
     check("the column head holds at the top of the rows, over them", stack.head, "true true");
     check("  the pager over it at its z-index, after the lane, so on top where the two meet", stack.pager, "true true true");
-    check("  and the rail's Panel over all of them", stack.panel, true);
+    check("  and the rail's Panel over all of them, what holds at the top of the list too (#519)", stack.panel, true);
     // Anti-vacuity: the reading sees each of those undone in a planted list. The lifted cover
     // is assembled while this runs, so no whole class of it is in a file Tailwind scans.
     const liftedCover = ["after:", "z-10"].join("");
@@ -1615,7 +1617,7 @@ export function run({ check, assert, log }) {
                 /caption \? "items-start" : "items-center"/.test(header) &&
                 /caption \? "-mt-\[calc\(\(var\(--height-control-lg\)-var\(--text-heading-lg--line-height\)\)\/2\)\]" : ""/.test(header),
             figure: /<p className="shrink-0 text-body tabular-nums text-foreground-subtle">\s*\{count\}\s*<span className="sr-only">\{` \$\{noun\}`\}<\/span>\s*<\/p>/.test(header),
-            top: /underBreadcrumb \? "pt-breadcrumb-stack" : "pt-list-header-inset-top"/.test(header) && /pb-list-header-inset-bottom/.test(header),
+            top: /underBreadcrumb \? "pt-breadcrumb-stack" : "min-h-\(--height-control-lg\) pt-list-header-inset-top"/.test(header) && /pb-list-header-inset-bottom/.test(header),
             under: `${propSources(categoryScreen, "ListHeader", "underBreadcrumb").join()}|${propSources(listFile, "ListHeader", "underBreadcrumb").join()}`,
             pager: /pt-\[calc\(var\(--spacing-pager-inset-top\)-1px\)\] pb-pager-inset-bottom/.test(pager),
             endRoom: /const END_ROOM = "h-\[calc\(var\(--spacing-pager-inset-top\)\+var\(--height-control\)\+var\(--spacing-pager-inset-bottom\)\)\]";/.test(frameFile.source),
@@ -1629,7 +1631,7 @@ export function run({ check, assert, log }) {
     check("  its control centered on the title's line, a caption or not (#507)", head.centered, true);
     check("  the figure alone at Ink 3, its noun said to assistive tech alone", head.figure, true);
     check("  and drawn only where the page hands one, a head with nothing to count its title alone (#519)", head.countGiven, true);
-    check("  32 above it, or the breadcrumb's 14, and 18 under it", head.top, true);
+    check("  32 above it, or the breadcrumb's 14, and 18 under it — and with no bar over it at least a 36 control's line (#519)", head.top, true);
     check("  the breadcrumb's on the category's page and not on the list", head.under, "true|");
     check("the pager is 60, its rule counted in the 12 above its controls (#505)", head.pager, true);
     check("  and the rows end on that", head.endRoom, true);
@@ -1959,6 +1961,105 @@ export function run({ check, assert, log }) {
         "  a category's page: who fills it, by who reads it",
         /\{recorder \? COPY\.untilYouAdd : COPY\.untilASiteManagerAdds\}/.test(categorySource),
         true
+    );
+    // ONE SCROLL (0i Chain, #519). The lane holds the whole list: on 1a the head held at the top
+    // on the Sticky ground, on 1d the bar held and the head scrolling away under it; the column
+    // head holds where the frame says, under the head's least height or under the bar; focus
+    // scrolls clear of both and of the pager; and the pager stands outside the lane, after it.
+    const frameWhole = parseFile(LIST_FRAME).source;
+    const oneScroll = (source) => {
+        const frameFn = source.slice(source.indexOf("export default function ListFrame"));
+        const lane = frameFn.indexOf("ref={laneRef}");
+        const pager = frameFn.indexOf("PAGER_OVER_ROWS");
+        const inLane = (pattern) => {
+            const at = frameFn.search(pattern);
+            return at > lane && at < pager;
+        };
+        return [
+            inLane(/<div ref=\{topRef\} className="sticky top-0 z-10">\s*\{top\}\s*<\/div>\s*<div ref=\{headerRef\}>\{header\}<\/div>/),
+            inLane(/<div className="sticky top-0 z-10 bg-background-translucent backdrop-blur-sm">\{header\}<\/div>/),
+            /\$\{\s*top \? UNDER_BAR : UNDER_HEAD\s*\}/.test(frameFn),
+            /const UNDER_HEAD =\s*"\[--table-head-top:calc\(var\(--spacing-list-header-inset-top\)\+var\(--height-control-lg\)\+var\(--spacing-list-header-inset-bottom\)\)\] scroll-pt-\[calc\(var\(--table-head-top\)\+var\(--height-table-header\)\)\]";/.test(source),
+            /const UNDER_BAR = "\[--table-head-top:var\(--height-breadcrumb\)\] scroll-pt-\[calc\(var\(--table-head-top\)\+var\(--height-table-header\)\)\]";/.test(source),
+            /\$\{footer \? \(overlayShown \? KEEP_CLEAR_OF_BAR : KEEP_CLEAR_OF_PAGER\) : ""\}/.test(frameFn),
+            // Nothing before the pager gives the lane's 8 back: what heads the list stands in it.
+            lane >= 0 && pager > lane && !/pr-scrollbar-gutter/.test(frameFn.slice(0, frameFn.lastIndexOf("className", pager))),
+        ].join(" ");
+    };
+    check(
+        "  one scroll: 1a's head and 1d's bar held at the top inside the lane, the column head under either, focus clear of them, the pager after the lane",
+        oneScroll(frameWhole),
+        "true true true true true true true"
+    );
+    check(
+        "  and the column head reads where the frame holds it",
+        /export const TABLE_HEAD =\s*"sticky top-\(--table-head-top\) z-10 /.test(parseFile(LIST_TABLE).source),
+        true
+    );
+    check(
+        "  and a frame holding its head outside the lane, as #463's did, is seen (anti-vacuity)",
+        oneScroll(
+            'export default function ListFrame() { return <div>{top && <div className="shrink-0 pr-scrollbar-gutter">{top}</div>}<div className="shrink-0">{header}</div><div ref={laneRef} className={`${SCROLL_LANE}`} /><div className={PAGER_OVER_ROWS} /></div>; }'
+        ),
+        "false false false false false false false"
+    );
+    // 1d's NAME IN THE BAR once its head has scrolled under it: measured by the frame, marked on
+    // the lane, drawn by the bar under the mark behind a 16 rule 16 either side at 13 and 600,
+    // and handed by the category's page alone.
+    const crumbSource = parseFile("app/components/Breadcrumb.js").source;
+    const nameInBar = ({ frameSource: f, crumb, category, asset }) =>
+        [
+            /setTitleGone\(head\.getBoundingClientRect\(\)\.bottom <= bar\.getBoundingClientRect\(\)\.bottom\)/.test(f),
+            /data-title-gone=\{titleGone \? "" : undefined\}/.test(f) && /group\/list-frame/.test(f),
+            /className="pointer-events-none invisible flex min-w-0 items-center opacity-0 transition-\[opacity,visibility\] duration-breadcrumb-title ease-out group-data-title-gone\/list-frame:visible group-data-title-gone\/list-frame:opacity-100"/.test(crumb),
+            /<span aria-hidden="true" className="mx-breadcrumb-title-rule-inline h-breadcrumb-title-rule w-px shrink-0 bg-divider" \/>\s*<span className="min-w-0 truncate text-body-sm font-semibold text-foreground-default">\{title\}<\/span>/.test(crumb),
+            /title=\{category\.itemName\}\s*\/>/.test(category),
+            !/<Breadcrumb[^>]*\btitle=/.test(asset),
+        ].join(" ");
+    check(
+        "  1d's name comes into the bar once its head has gone under it, and an asset's page hands the bar none",
+        nameInBar({ frameSource: frameWhole, crumb: crumbSource, category: categorySource, asset: assetSource }),
+        "true true true true true true"
+    );
+    check(
+        "  and a name always shown, measured off the title alone, or handed by an asset's page is seen (anti-vacuity)",
+        nameInBar({
+            frameSource: "setTitleGone(title.getBoundingClientRect().top < 0)",
+            crumb: '<div className="flex min-w-0 items-center"><span>{title}</span></div>',
+            category: "<Breadcrumb levels={levels} />",
+            asset: "<Breadcrumb levels={levels} title={category.itemName} />",
+        }),
+        "false false false false false false"
+    );
+    // A DIALOG'S JOB SAYS THE JOB'S NAME AFTER ITS CODE (1b, 1i): the registration from both
+    // pages that open it, and the check-out and check-in at a desk — the phone's sheet and foot
+    // bar keep the code alone, as 1j draws them.
+    const registrationSource = parseFile("app/(assets)/asset-categories/RegistrationDialog.js").source;
+    const transitionSource = parseFile("app/(assets)/assets/[assetId]/TransitionDialog.js").source;
+    const barSourceForJobs = parseFile("app/(assets)/assets/[assetId]/TransitionBar.js").source;
+    const jobNames = ({ registration, transition, bar, list, category }) =>
+        [
+            /options=\{jobs\.map\(\(job\) => \(\{ value: job\.id, label: job\.jobCode, note: job\.jobName \}\)\)\}/.test(registration),
+            /const options = plan\.jobs\.map\(\(job\) => \(\{ value: job\.id, label: job\.jobCode, note: job\.jobName \}\)\);/.test(transition),
+            /const options = plan\.jobs\.map\(\(job\) => \(\{ value: job\.id, label: job\.jobCode \}\)\);/.test(bar),
+            /jobs: assignedJobsFor\(user, allJobs\)\.map\(\(\{ id, jobCode, jobName \}\) => \(\{ id, jobCode, jobName \}\)\),/.test(list),
+            /const assignedJobs = assignedJobsFor\(user, jobs\)\.map\(\(\{ id, jobCode, jobName \}\) => \(\{ id, jobCode, jobName \}\)\);/.test(category),
+        ].join(" ");
+    check(
+        "  a dialog's job says the job's name after its code, the phone's foot bar the code alone, and both pages hand the registration the names",
+        jobNames({ registration: registrationSource, transition: transitionSource, bar: barSourceForJobs, list: listSource, category: categorySource }),
+        "true true true true true"
+    );
+    check(
+        "  and a dialog offering codes alone, and pages handing no name, are seen (anti-vacuity)",
+        jobNames({
+            registration: "options={jobs.map((job) => ({ value: job.id, label: job.jobCode }))}",
+            transition: "const options = plan.jobs.map((job) => ({ value: job.id, label: job.jobCode }));",
+            bar: "const options = plan.jobs.map((job) => ({ value: job.id, label: job.jobCode, note: job.jobName }));",
+            list: "jobs: assignedJobsFor(user, allJobs).map(({ id, jobCode }) => ({ id, jobCode })),",
+            category: "const assignedJobs = assignedJobsFor(user, jobs).map(({ id, jobCode }) => ({ id, jobCode }));",
+        }),
+        "false false false false false"
     );
     // THE CAPTION: the type, the category and the class (1d, 1f, 1j), the asset's id first at a
     // desk, and the path the caption said from #507 nowhere in it.

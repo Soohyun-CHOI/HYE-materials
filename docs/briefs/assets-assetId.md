@@ -246,7 +246,10 @@ the job with no sheet to open (#458, #463). Nobody types a job anywhere on this
 axis, and the two cases must not become two layouts. **If the office takes away
 the job a reader chose before they press**, the press is refused and the job
 starts again as it started — the one job left already chosen, or none of
-several (#469) — in the dialog and in the foot bar alike.
+several (#469) — in the dialog and in the foot bar alike. **At a desk a job is
+said by its code and its name** (1i, #519), the name after the code in Ink 3 in
+the field and in its list, as the registration's is; the phone's pill and its
+sheet say the code alone, as 1j draws them.
 
 **The transition has no heading.** The two blocks below it name things —
 `History`, `Label` — and a heading over the act would have to name it in the

@@ -897,8 +897,8 @@ rather than a layout — so it is #258's to make.
 a screen's measure, room and type are its own, read from the names the design's
 values are declared under. **Every asset screen is drawn the design's way since
 #463** — the asset's as 0n's record page at a desk and 1j's app screen on a
-phone, the category list and a category's screen as 1a and 1d's lists, which hold their
-head still and scroll their rows under it.
+phone, the category list and a category's screen as 1a and 1d's lists, each one scroll
+with what heads it held at the top as its rows pass under (0i, #519).
 
 **The navigation shell is the asset screens' alone (#460).** The design drew a
 rail with every section on it and a breadcrumb above a record; the asset screens

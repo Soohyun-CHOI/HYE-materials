@@ -260,6 +260,9 @@
     --size-breadcrumb-chevron: 0.75rem; /* 1d, 12: the chevron after a breadcrumb level that opens a list, the job's — from the drawings, not the spec */
     --spacing-breadcrumb-chevron-gap: 0.375rem; /* 1d, 6: from that level's word to its chevron — from the drawings, not the spec */
     --spacing-breadcrumb-chevron-bleed: 0.1875rem; /* 1d, 3: how far that chevron runs into the level's side room — from the drawings, not the spec */
+    --height-breadcrumb-title-rule: 1rem; /* 1d, 16: the rule before a record's name in the bar, once its title has scrolled away — from the drawings, not the spec */
+    --spacing-breadcrumb-title-rule-inline: 1rem; /* 1d, 16: either side of that rule — from the drawings, not the spec */
+    --transition-duration-breadcrumb-title: 160ms; /* 1d: that name fading in and out — from the drawings, not the spec */
 
     /* 0n · Record page — the header a detail page opens with. */
     --spacing-record-header-stack: 1.5rem; /* Record header, 24: above and below its rule */

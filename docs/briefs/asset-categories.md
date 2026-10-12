@@ -40,8 +40,10 @@ gloves. The phone is this axis's problem and no other's.
 the page**, and no width, no padding, no type, no color was chosen for it,
 deliberately (#336). Since #460 it holds the design's rail and still nothing
 of a screen's own; **since #463 this screen is drawn as 1a** — the list's head
-over a table whose column head holds while the rows scroll, and a pager pinned
-at the foot.
+over a table's column head, and a pager pinned at the foot. **Since #519 the
+list is one scroll from the top of the column**, its bar the column's height,
+the head and the column head held at the top while only the rows pass under
+them (0i); until then the rows scrolled alone between the head and the pager.
 
 ## What it always carries
 

@@ -114,6 +114,11 @@ in a choice holding that one job.
 **When the reader is assigned to more than one:** a choice among their own jobs,
 and no other job is offered.
 
+**A job is said by its code and its name** (1b, #519): each option the code at
+500 and the job's name after it in Ink 3, cut before the code is, and the field
+holding a job the same way. The code is what every list on this axis says and
+the name is what tells two codes apart for a reader choosing between them.
+
 **When it is opened on a category (#449, #451, #456):** a category's own screen opens it
 on that category with its `Add items`, and after a registration that fell short, its
 `Add 2 more` opens it on that category with the count that was not written — the

@@ -531,6 +531,29 @@ export function run({ check, assert, log }) {
         ""
     );
     check("  and a chip with no look of its own is seen (anti-vacuity)", looksOf("const X = 1;").length, 0);
+    // AN OPTION'S NOTE (#519): a job's name after its code, at Ink 3 and 8 on, cut before the code
+    // is — in the list as two boxes of the row, and in the field the same way (1b, 1i). A list
+    // with a note in it, and a level's, sets each label at 500 in even figures (1b, 1d, 1f, 1i).
+    const noteOf = ({ list, choice }) => [
+        /<span className=\{`\$\{option\.note \? "shrink-0" : "min-w-0 truncate"\} \$\{option\.strong \? "font-medium tabular-nums" : ""\}`\}>/.test(list),
+        /\{option\.note && <span className="min-w-0 flex-1 truncate text-foreground-subtle">\{option\.note\}<\/span>\}/.test(list),
+        /const strong = look === "crumb" \|\| options\.some\(\(option\) => option\.note\);/.test(choice),
+        /note: option\.note,\s*strong,/.test(choice),
+        /\{chosen >= 0 && options\[chosen\]\.note \? \(\s*<span className="flex min-w-0 flex-1 gap-gap text-foreground-default">\s*<span className="shrink-0">\{options\[chosen\]\.label\}<\/span>\s*<span className="min-w-0 truncate text-foreground-subtle">\{options\[chosen\]\.note\}<\/span>/.test(choice),
+    ].join(" ");
+    check(
+        "an option's note: after its label at Ink 3, 8 on and cut first, in the list and in the field, and labels at 500 beside one or under a level",
+        noteOf({ list: fieldListSource, choice: choiceLooks }),
+        "true true true true true"
+    );
+    check(
+        "  and a note drawn as the label's own text, a label strong only under a level, and a field that drops it are seen (anti-vacuity)",
+        noteOf({
+            list: '<span className="min-w-0 truncate">{option.label} {option.note}</span>',
+            choice: 'const strong = look === "crumb";\nnote: option.note,\n{chosen >= 0 ? options[chosen].label : placeholder}',
+        }),
+        "false false false false false"
+    );
     check(
         "the account's menu is 224, the expanded rail's inside, and grows in from the corner by its button (0m, #495)",
         [

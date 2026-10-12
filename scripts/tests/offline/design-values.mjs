@@ -395,6 +395,9 @@ const VALUES = [
     ["--size-breadcrumb-chevron", "0.75rem", null],
     ["--spacing-breadcrumb-chevron-gap", "0.375rem", null],
     ["--spacing-breadcrumb-chevron-bleed", "0.1875rem", null],
+    ["--height-breadcrumb-title-rule", "1rem", null],
+    ["--spacing-breadcrumb-title-rule-inline", "1rem", null],
+    ["--transition-duration-breadcrumb-title", "160ms", null],
     // 0n · Record page
     ["--spacing-record-header-stack", "1.5rem", null],
     ["--spacing-breadcrumb-stack", "0.875rem", null],

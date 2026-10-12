@@ -98,11 +98,12 @@ const SECTION_ICONS = {
 // phone's edge the document scrolls instead, and the column is at least the screen's height
 // and lays out down it, so a screen's foot bar can stand at the foot of a short page (#463).
 //
-// A LIST SCROLLS ITS OWN ROWS, SO THE COLUMN STEPS ASIDE FOR ONE (#463). 1a and 1d hold
-// their head still and scroll the rows under it in a lane of their own (`ListFrame.js`), so
-// a column holding one scrolls nothing and reserves no lane — the list's is the one at the
-// window's edge. It is the column's to decide because only the column scrolls itself; the
-// list marks its root, and this reads the mark.
+// A LIST IS A SCROLL OF ITS OWN, SO THE COLUMN STEPS ASIDE FOR ONE (#463). 1a and 1d scroll
+// in a lane of their own, the whole list with its head held at the top since #519, and pin the
+// pager at its foot outside it (`ListFrame.js`) — which the column's own scroll would carry
+// away. So a column holding one scrolls nothing and reserves no lane — the list's is the one
+// at the window's edge. It is the column's to decide because only the column scrolls itself;
+// the list marks its root, and this reads the mark.
 const COLUMN = [
     "min-w-0 flex-1 sm:overflow-y-auto sm:overscroll-y-contain sm:[scrollbar-gutter:stable] print:overflow-visible max-sm:flex max-sm:min-h-dvh max-sm:flex-col",
     "sm:has-[>[data-list-frame]]:overflow-y-hidden sm:has-[>[data-list-frame]]:[scrollbar-gutter:auto]",

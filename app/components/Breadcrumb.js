@@ -34,6 +34,12 @@ import Icon from "./Icon";
  * 26-USA-06` on a category's page, the job before the category on an asset's. A path with such
  * a level is a path whatever its length, so a category's page with one draws `/` rather than
  * the chevron, and a path need not end on the screen's own name: 1d's ends on the job.
+ *
+ * A CATEGORY'S PAGE NAMES ITSELF IN THE BAR ONCE ITS TITLE HAS SCROLLED UNDER IT (1d, #519):
+ * `title`, after the path behind a 16 Rule 16 either side, at 13 and 600 in Ink, fading in over
+ * 160ms and out the same way. Whether it has is `ListFrame.js`'s to measure, which marks its
+ * lane; until then the name is hidden, from assistive tech too, which has the heading. An
+ * asset's page scrolls its title away with no name coming in (1f), so it hands none.
  */
 
 const LEVEL =
@@ -48,7 +54,7 @@ function Separator() {
     );
 }
 
-export default function Breadcrumb({ levels, current, phone = true }) {
+export default function Breadcrumb({ levels, current, title, phone = true }) {
     return (
         <nav
             aria-label={COPY.breadcrumb}
@@ -85,6 +91,12 @@ export default function Breadcrumb({ levels, current, phone = true }) {
                         </>
                     )}
                 </ol>
+            )}
+            {title && (
+                <div className="pointer-events-none invisible flex min-w-0 items-center opacity-0 transition-[opacity,visibility] duration-breadcrumb-title ease-out group-data-title-gone/list-frame:visible group-data-title-gone/list-frame:opacity-100">
+                    <span aria-hidden="true" className="mx-breadcrumb-title-rule-inline h-breadcrumb-title-rule w-px shrink-0 bg-divider" />
+                    <span className="min-w-0 truncate text-body-sm font-semibold text-foreground-default">{title}</span>
+                </div>
             )}
         </nav>
     );

@@ -35,6 +35,11 @@ const MENU_HEADING = "shrink-0 truncate px-control-inset-x py-menu-heading-inset
  * opens in, where it was the field's own 14. An option may name the part of it a typed value
  * matched (`match`), which stands at 600 inside it (1f, 1i).
  *
+ * AN OPTION MAY CARRY A NOTE AFTER ITS LABEL (#519): a job's name after its code, at Ink 3 and
+ * 8 on, cut before the code is, as 1b and 1i draw the jobs a dialog offers. A label marked
+ * `strong` is set at 500 in even figures, as those lists and 1d's and 1f's draw a job's code.
+ * Label and note are two boxes of the row, so assistive tech reads a space between them.
+ *
  * IN THE TOP LAYER, THROUGH THE POPOVER API, SO NO DIALOG CLIPS IT. A dialog's body scrolls
  * when the screen is short (0l), and a list positioned inside it would be cut at the body's
  * edge or would push the dialog's height. `popover="manual"` puts it above the dialog and
@@ -130,7 +135,7 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
                         index === active ? "bg-hover" : ""
                     }`}
                 >
-                    <span className="min-w-0 truncate">
+                    <span className={`${option.note ? "shrink-0" : "min-w-0 truncate"} ${option.strong ? "font-medium tabular-nums" : ""}`}>
                         {option.match ? (
                             <>
                                 {option.match.before}
@@ -141,6 +146,7 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
                             option.label
                         )}
                     </span>
+                    {option.note && <span className="min-w-0 flex-1 truncate text-foreground-subtle">{option.note}</span>}
                     {option.detail && (
                         <span className="shrink-0 text-body-sm text-foreground-subtle tabular-nums">{option.detail}</span>
                     )}

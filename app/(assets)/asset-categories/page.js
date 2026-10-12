@@ -91,7 +91,8 @@ const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(3,var(--width-table-count))]";
  * nothing. docs/notes/tools.md carries the arithmetic.
  *
  * DRAWN AS 1a (#463): the list's head with how many categories there are, the table under a
- * column head that holds while the rows scroll, and the pager pinned at the foot —
+ * column head, the two held at the top as the rows scroll under them in the list's one scroll
+ * (#519), and the pager pinned at the foot —
  * `ListFrame.js` and `ListTable.js` for the parts. **It pages at 25 since that issue**,
  * 0b's page of rows, and paging costs nothing: every category's counts need every asset,
  * so the page reads them all whichever page it draws and slices what it built
@@ -163,7 +164,7 @@ async function renderCategoriesPage({ searchParams }) {
     const registration = {
         opener: ASSET_REGISTRATION_COPY.heading,
         canRegister: canRegisterAssets(user, allJobs),
-        jobs: assignedJobsFor(user, allJobs).map(({ id, jobCode }) => ({ id, jobCode })),
+        jobs: assignedJobsFor(user, allJobs).map(({ id, jobCode, jobName }) => ({ id, jobCode, jobName })),
         catalog: registrationCatalog(categories),
     };
 

@@ -18,32 +18,59 @@ const END_ROOM = "h-[calc(var(--spacing-pager-inset-top)+var(--height-control)+v
 const END_ROOM_WITH_BAR =
     "h-[calc(var(--spacing-pager-inset-top)+var(--height-control)+var(--spacing-pager-inset-bottom)+var(--spacing-selection-bar-offset)+var(--height-control-lg)+2*var(--spacing-selection-bar-inset)+2px)]";
 
+// Where the column head holds, and what focus scrolls clear of at the top: 1a's head at its
+// least — 32 above, a 36 control's line, 18 under — or 1d's 48 bar, the column head's 36
+// under either. And at the foot, the pager, and the selection bar over it while it stands.
+const UNDER_HEAD =
+    "[--table-head-top:calc(var(--spacing-list-header-inset-top)+var(--height-control-lg)+var(--spacing-list-header-inset-bottom))] scroll-pt-[calc(var(--table-head-top)+var(--height-table-header))]";
+const UNDER_BAR = "[--table-head-top:var(--height-breadcrumb)] scroll-pt-[calc(var(--table-head-top)+var(--height-table-header))]";
+const KEEP_CLEAR_OF_PAGER = "scroll-pb-[calc(var(--spacing-pager-inset-top)+var(--height-control)+var(--spacing-pager-inset-bottom))]";
+const KEEP_CLEAR_OF_BAR =
+    "scroll-pb-[calc(var(--spacing-pager-inset-top)+var(--height-control)+var(--spacing-pager-inset-bottom)+var(--spacing-selection-bar-offset)+var(--height-control-lg)+2*var(--spacing-selection-bar-inset)+2px)]";
+
 /**
- * The frame a list is drawn in (1a, 1d; #463): its head held still and its rows scrolled
- * under it in a lane of their own, the column head held at the top of the rows, and the pager
+ * The frame a list is drawn in (1a, 1d; #463, #519): one scroll from the top of the column to
+ * its foot, what heads the list held at the top as the rows pass beneath it, and the pager
  * pinned at the foot over them.
  *
- * WHAT SCROLLS AND WHAT HOLDS IS 0i's AND 0k's. The breadcrumb bar and the list's head stand
- * outside the scroll; the rows scroll in a lane whose 8 is reserved whether or not the bar
- * shows (0i Gutter), so everything above and below it gives that 8 back to keep one right
- * edge. The rows stop at their end rather than scrolling the window behind them (0i Chain,
- * `contain`), and the column the list sits in steps aside (`Rail.js`), so only one lane is
- * ever drawn.
+ * WHAT SCROLLS AND WHAT HOLDS IS 0i's AND 0k's. "A list on 1080 is one scroll, its bar running
+ * the full height: the page head, the filter band and the column head hold at the top as one
+ * Sticky surface, and only the rows pass beneath" — 1a, whose head is `header`. "A record page
+ * is one scroll: the breadcrumb bar holds at the top, the header scrolls away with the body" —
+ * 1d, a category's page, whose bar is `top`; its column head holds under the bar. The lane's
+ * 8 is reserved whether or not the bar shows (0i Gutter), and the scroll stops at its end
+ * rather than scrolling the window behind it (0i Chain, `contain`); the column the list sits in
+ * steps aside (`Rail.js`), so only one lane is ever drawn. From #463 to #519 the head and the
+ * bar stood outside the scroll and the rows scrolled in a lane of their own between the head
+ * and the pager, which 0i now gives a list on Fill only.
+ *
+ * WHERE THE COLUMN HEAD HOLDS IS THE FRAME'S (`--table-head-top`), since only the frame knows
+ * what stands over it: 1a's head — its 32 above, a 36 control's line and its 18 under, which is
+ * the head's least height — or 1d's 48 bar. The lane keeps what holds at the top, and the pager
+ * at the foot, out of the way of what keyboard focus scrolls to (`scroll-padding`).
+ *
+ * 1d's NAME COMES INTO THE BAR ONCE ITS HEADER HAS SCROLLED UNDER IT, and goes as it comes back
+ * (1d): the frame marks the lane `data-title-gone`, and `Breadcrumb.js` draws the name it is
+ * handed under that mark. Measured on every scroll, as the pager's ground is.
  *
  * THE PAGER IS THE ENDING, SO THE ROWS END ON NO 40 (0i End). They end on the pager's own
  * height instead, so the last row scrolls clear of it — and on the selection bar's as well
- * while it stands (0b), so no row stays under the bar either.
+ * while it stands (0b), so no row stays under the bar either. It stands outside the scroll,
+ * over its foot, clear of the lane's 8.
  *
  * THE PAGER STANDS OVER THE ROWS AND THE COLUMN HEAD (#501). It takes the head's z-index and
  * comes after the lane, so where a short window brings the two together it is the one on
  * top, as 1d ties them; the selection bar is drawn inside it, so it floats over both; and
- * the rail's Panel covers them all. `ListTable.js` has the order whole.
+ * the rail's Panel covers them all. What holds at the top of the lane takes the same z-index,
+ * since nothing it holds over is the column head, and one above it would draw over the Panel,
+ * which comes earlier in the document. `ListTable.js` has the order whole.
  *
  * THE PAGER'S GROUND SAYS WHETHER ROWS RUN BENEATH IT (0k Sticky, 0e Band): white at 0.82
  * over the blur and a Band over it while they do, plain white with no rule once the list has
  * ended above it. That is a fact about the scroll position, so it is measured — on every
  * scroll and whenever the lane or the rows change size — and the server renders the ended
- * state, which the first measure corrects.
+ * state, which the first measure corrects. What holds at the top is drawn on the Sticky ground
+ * throughout, which over nothing is plain white.
  *
  * `overlay` stands 12 above the pager, centered on the list — the selection bar — and is
  * drawn only with a pager; `overlayShown` is whether it is showing, which the end room
@@ -51,12 +78,20 @@ const END_ROOM_WITH_BAR =
  */
 export default function ListFrame({ top, header, footer, overlay, overlayShown = false, children }) {
     const laneRef = useRef(null);
+    const topRef = useRef(null);
+    const headerRef = useRef(null);
     const [beneath, setBeneath] = useState(false);
+    const [titleGone, setTitleGone] = useState(false);
 
     useEffect(() => {
         const lane = laneRef.current;
         if (!lane) return undefined;
-        const measure = () => setBeneath(lane.scrollTop + lane.clientHeight < lane.scrollHeight - 1);
+        const measure = () => {
+            setBeneath(lane.scrollTop + lane.clientHeight < lane.scrollHeight - 1);
+            const bar = topRef.current;
+            const head = headerRef.current;
+            if (bar && head) setTitleGone(head.getBoundingClientRect().bottom <= bar.getBoundingClientRect().bottom);
+        };
         measure();
         lane.addEventListener("scroll", measure, { passive: true });
         const resized = new ResizeObserver(measure);
@@ -70,9 +105,23 @@ export default function ListFrame({ top, header, footer, overlay, overlayShown =
 
     return (
         <div data-list-frame="" className="flex h-full flex-col font-ui text-foreground-default">
-            {top && <div className="shrink-0 pr-scrollbar-gutter">{top}</div>}
-            <div className="shrink-0">{header}</div>
-            <div ref={laneRef} className={`min-h-0 flex-1 overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable] ${SCROLL_LANE}`}>
+            <div
+                ref={laneRef}
+                data-title-gone={titleGone ? "" : undefined}
+                className={`group/list-frame min-h-0 flex-1 overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable] ${SCROLL_LANE} ${
+                    top ? UNDER_BAR : UNDER_HEAD
+                } ${footer ? (overlayShown ? KEEP_CLEAR_OF_BAR : KEEP_CLEAR_OF_PAGER) : ""}`}
+            >
+                {top ? (
+                    <>
+                        <div ref={topRef} className="sticky top-0 z-10">
+                            {top}
+                        </div>
+                        <div ref={headerRef}>{header}</div>
+                    </>
+                ) : (
+                    <div className="sticky top-0 z-10 bg-background-translucent backdrop-blur-sm">{header}</div>
+                )}
                 <div className={LIST_MEASURE}>{children}</div>
                 {footer && <div aria-hidden="true" className={overlayShown ? END_ROOM_WITH_BAR : END_ROOM} />}
             </div>

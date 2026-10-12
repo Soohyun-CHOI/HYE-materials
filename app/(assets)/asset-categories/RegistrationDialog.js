@@ -393,7 +393,7 @@ export function RegistrationForm({ open, onClose, jobs, category, catalog = [], 
                             <Field label={COPY.jobLabel} labelAs="span" refusal={refusalFor("jobId")}>
                                 <Choice
                                     name="jobId"
-                                    options={jobs.map((job) => ({ value: job.id, label: job.jobCode }))}
+                                    options={jobs.map((job) => ({ value: job.id, label: job.jobCode, note: job.jobName }))}
                                     value={jobId}
                                     onChange={edit("jobId", setJobId)}
                                     placeholder={COPY.jobUnchosen}
