@@ -200,26 +200,22 @@ carrying it never reaches the dialog.
 
 ---
 
-## Where a screen says other than the design's files (#520)
+## Where a screen says other than the design's files (#520, #522)
 
-What the design's files of 2026-10-12 draw or state, and what the screens say
-instead, each by a decision taken with the issue. **This is the list the next
-sending is held against**: a file that draws one of these the old way again is
-not a change to take.
+What #520 found the design's files drawing or stating otherwise than the
+screens, and where each stands in the files #522 read. **The latest files
+decide what a screen draws (#522)**, and a decision taken with an earlier issue
+does not outrank them: an entry here is a question for the next sending, never a
+reason to keep a screen as it is.
 
-| The files | The screen | Where |
+| The files #520 read | The files #522 read | The screen |
 |---|---|---|
-| 0h: a date in a table column reads `MM/DD` | `09/22/2026`, the year written out, as 1d draws it | a category's list, `Updated` |
-| 1b lists the names holding what is typed alphabetically | the name typed in full, then those beginning with it, then those holding it elsewhere, each group alphabetical | the registration's search |
-| 1b draws every name alone on its row and under the title | a name in two places says where: `Band Saw` `Machining`; `Pipe Cutter` `Equipment · Cutter` | the registration's search, and its line under the title |
+| 0h: a date in a table column reads `MM/DD` | 0h: a date reads `MM/DD/YYYY` | `09/22/2026`, a category's list, `Updated` |
+| 1b lists the names holding what is typed alphabetically | 0h: the exact name, then names starting with what was typed, then names holding it, each group alphabetical | the registration's search, in that order |
+| 1b draws every name alone on its row and under the title | the same, over a catalog holding no name twice | a name in two places says where |
 
-**The year stays** because an item can sit on a shelf from one year to the
-next, and `09/22` would not say which; 1d draws the year, so the spec and the
-drawing disagreed and the drawing's reading was taken.
-
-**The ranking stays #517's** because the office's commonest name is a word many
-others hold: alphabetically `wrench` lists `Adjustable Monkey Wrench` and four
-more before `Wrench`, and the first listed is the one Enter takes.
+**In the first two rows the files now say what the screens say**, so neither
+is a difference any more; they stay as the record of what #520 asked about.
 
 **A name in two places says where it stands**, in Ink 3 after the name, because
 the catalog holds two `Band Saw`s — one a machining machine, one a power tool —
@@ -227,4 +223,7 @@ and two `Pipe Cutter`s, and 1b's rows would draw each pair as the same row twice
 The category tells the band saws apart; the pipe cutters share theirs, `Cutter`,
 so they say the type before it. A name in one place says neither, as 1b draws
 it. The line under the title says the same after a dot, since the second step
-is where the reader confirms which of the two was picked.
+is where the reader confirms which of the two was picked. **The files #522 read
+draw no case of it**: their catalog holds every name once, so they say nothing
+about how two rows of one name are told apart, and the first file that draws
+the case decides it.
