@@ -62,7 +62,7 @@ import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "Material categories — the committed tree and its label (#354)";
 
-const CSV_PATH = "scripts/import/material_categories.csv";
+const CSV_PATH = "scripts/import/sources/material_categories.csv";
 
 // Resolved here rather than through `_ast.mjs:repoPath`, which would pull acorn
 // in for a check that parses no JavaScript.

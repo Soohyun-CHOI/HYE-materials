@@ -218,10 +218,12 @@ reason to keep a screen as it is.
 is a difference any more; they stay as the record of what #520 asked about.
 
 **A name in two places says where it stands**, in Ink 3 after the name, because
-the catalog holds two `Band Saw`s — one a machining machine, one a power tool —
+#517's catalog held two `Band Saw`s — one a machining machine, one a power tool —
 and two `Pipe Cutter`s, and 1b's rows would draw each pair as the same row twice.
-The category tells the band saws apart; the pipe cutters share theirs, `Cutter`,
-so they say the type before it. A name in one place says neither, as 1b draws
+The category tells the band saws apart; the pipe cutters shared theirs, `Cutter`,
+so they say the type before it. #528's revised catalog keeps the two band saws,
+one a cutting machine, and no pipe cutter, so no row on the base draws the type
+before a shared category now. A name in one place says neither, as 1b draws
 it. The line under the title says the same after a dot, since the second step
 is where the reader confirms which of the two was picked. **The files #522 read
 draw no case of it**: their catalog holds every name once, so they say nothing

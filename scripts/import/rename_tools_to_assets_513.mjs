@@ -38,7 +38,7 @@
 // the old token after this, and the fix for that is a decision rather than a rewrite.
 // #313 made the same scan before moving `HYE-PO`.
 //
-// THE LEDGER IS A TRACKED FILE BESIDE THIS SCRIPT, `rewrite_po_year_313.mjs`'s reason: a
+// THE LEDGER IS A TRACKED FILE IN `ledgers/`, `rewrite_po_year_313.mjs`'s reason: a
 // rollback on one machine is not a rollback. Each change is appended before the write that
 // makes it, and `--revert` puts back every recorded change whose value still reads as this
 // run left it, newest first.
@@ -69,7 +69,7 @@ import { ID_KINDS } from "../../lib/idSequence.js";
 const API_ROOT = "https://api.airtable.com/v0";
 const META_ROOT = `${API_ROOT}/meta`;
 
-/** Beside this script, named for it — `rewrite_po_year_313.mjs` has the reason. */
+/** In `ledgers/` under this script, named for it — `rewrite_po_year_313.mjs` has the reason. */
 const HERE = dirname(fileURLToPath(import.meta.url));
 const LEDGER_PREFIX = "rename_tools_to_assets_513-";
 
@@ -481,7 +481,7 @@ async function write(air, change) {
 }
 
 async function apply(air, changes) {
-    const ledger = join(HERE, `${LEDGER_PREFIX}${new Date().toISOString().replace(/[:.]/g, "-")}.jsonl`);
+    const ledger = join(HERE, "ledgers", `${LEDGER_PREFIX}${new Date().toISOString().replace(/[:.]/g, "-")}.jsonl`);
     log(`\nledger: ${ledger}  (commit it — rewrite_po_year_313.mjs has the reason)`);
     for (const c of changes.filter((x) => x.kind !== "record")) {
         appendFileSync(ledger, `${JSON.stringify(c)}\n`, "utf8");

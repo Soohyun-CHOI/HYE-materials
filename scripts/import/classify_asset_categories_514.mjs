@@ -33,6 +33,16 @@
 // row already names. That list is how a row the office typed and the app does not offer gets
 // found, and the judgment is `readCatalog`'s, the one the registration reads.
 //
+// AND SINCE #528 IT MAKES AND CHECKS `Asset Category Groups`, the types and categories the
+// catalog files under: one row a pair, `Level 2` the category — the primary, since a select
+// cannot be one and a formula cannot be created — and `Level 1` the type, the catalog's own
+// two fields, its select's options and colors. Created whole in one call when it is missing,
+// as `create_tools_334.py` creates a table; its rows are `replace_asset_catalog_528.mjs`'s to
+// load. The check reads them: each row that does not stand as a group, with why, and every
+// row a registration may pick whose type and category no group holds, which fails the run —
+// a group with nothing under it yet is said and is no fault. The pairing is
+// `lib/assetCategory.js:groupCatalog`'s, the same the load judged its two lists by.
+//
 // IT WRITES NO RECORD, SO IT KEEPS NO LEDGER. What it changes is schema, each step printed as
 // it is made; the demo catalog #514 rewrote is `scripts/demo/seed_asset_catalog_514.mjs`'s,
 // which carries its own way back.
@@ -56,10 +66,14 @@
 import {
     ASSET_CATEGORY_FIELDS,
     ASSET_CLASS_VALUES,
+    ASSET_GROUP_LEVELS,
     ASSET_TYPE_VALUES,
     ITEM_NAME_FORMULA,
     composeItemName,
+    groupCatalog,
+    pathOf,
     readCatalog,
+    readCategoryGroups,
 } from "../../lib/assetCategory.js";
 
 const API_ROOT = "https://api.airtable.com/v0";
@@ -67,6 +81,9 @@ const META_ROOT = `${API_ROOT}/meta`;
 
 const TABLE_NAME = "Asset Categories";
 const NAME_FIELD = "Item Name";
+
+/** The types and categories the catalog files under (#528). */
+const GROUPS_TABLE = "Asset Category Groups";
 
 /**
  * The two renames, by field id, in the order they must run: `Level 2` out of the way first.
@@ -117,7 +134,8 @@ const FIELDS = [
         type: "singleLineText",
         description:
             "The category, the catalog's second level, said Category on screen: a field of work such as machining or " +
-            "welding. A registration filters the names by it. Level 1 until #514, which renamed it with its values.",
+            "welding. A registration filters the names by it. Level 1 until #514, which renamed it with its values. " +
+            "A row's Level 1 and Level 2 are a row of Asset Category Groups (#528): add a new category there first.",
     },
     {
         name: ASSET_CATEGORY_FIELDS.level3,
@@ -158,6 +176,41 @@ const FIELDS = [
     },
 ];
 
+const GROUPS_DESCRIPTION =
+    "The types and categories the asset catalog files under (#528): one row per category, Level 1 the type, " +
+    "Equipment or Tool, and Level 2 the category, a field of work such as welding or machining — the two fields " +
+    "Asset Categories names them by. A category can stand here before anything is filed under it. Every type and " +
+    "category a row of Asset Categories carries is a row here: no link joins the two tables, the values do, " +
+    "compared without regard to case or spacing, and scripts/import/classify_asset_categories_514.mjs fails on a " +
+    "catalog row whose pair is missing — so add a new category here before typing an item under it. Loaded from " +
+    "scripts/import/sources/asset_category_groups_528.csv by scripts/import/replace_asset_catalog_528.mjs; the app " +
+    "writes no row of it.";
+
+/**
+ * The table's two fields, the primary first: the category, since a select cannot be a primary
+ * and a formula cannot be created (docs/notes/airtable-access.md), and then the type, the same
+ * select as the catalog's `Level 1`, options and colors. Both are the catalog's own fields'
+ * names, the two levels of the same path.
+ */
+const GROUP_FIELDS = [
+    {
+        name: ASSET_CATEGORY_FIELDS.level2,
+        type: "singleLineText",
+        description:
+            "The category, said Category on screen — the same value as Level 2 on every Asset Categories row filed " +
+            "under it. The primary, and no key on its own: a group is a type and a category together, and one category " +
+            "name may stand under both types.",
+    },
+    {
+        name: ASSET_CATEGORY_FIELDS.level1,
+        type: "singleSelect",
+        options: { choices: choicesOf(ASSET_TYPE_VALUES) },
+        description:
+            "The type, said Type on screen: Equipment or Tool, the same two options as Level 1 on Asset Categories. A " +
+            "row without one is no group.",
+    },
+];
+
 class Airtable {
     constructor(token, baseId) {
         this.baseId = baseId;
@@ -177,9 +230,14 @@ class Airtable {
         return text === "" ? null : JSON.parse(text);
     }
 
-    async table() {
+    async table(name = TABLE_NAME) {
         const { tables } = await this.request("GET", `${META_ROOT}/bases/${this.baseId}/tables`);
-        return tables.find((t) => t.name === TABLE_NAME) ?? null;
+        return tables.find((t) => t.name === name) ?? null;
+    }
+
+    /** A whole table in one call — its name, description, fields and a select's options and colors (#334). */
+    createTable(spec) {
+        return this.request("POST", `${META_ROOT}/bases/${this.baseId}/tables`, spec);
     }
 
     createField(tableId, field) {
@@ -242,6 +300,14 @@ function categoryOf(record) {
         ...Object.fromEntries(Object.entries(ASSET_CATEGORY_FIELDS).map(([key, name]) => [key, f[name] ?? ""])),
     };
 }
+
+/** A row of `Asset Category Groups` in the shape lib/assetCategory.js reads, from a REST record. */
+function groupOf(record) {
+    return { id: record.id, ...Object.fromEntries(ASSET_GROUP_LEVELS.map((level) => [level, record.fields[ASSET_CATEGORY_FIELDS[level]] ?? ""])) };
+}
+
+/** A row's type and category as a path says them. */
+const pairOf = (row) => pathOf({ level1: row.level1, level2: row.level2 }) || "(neither)";
 
 /** Why a row is not offered, in the words of the fields the office types into. */
 function whyAside({ reason, missing, levels, of }) {
@@ -361,6 +427,53 @@ async function main() {
             log(`  [PATCH]  the table's description`);
         }
     }
+
+    // --- the groups the catalog files under (#528) --------------------------
+    log(`\n${GROUPS_TABLE}, the types and categories the catalog files under:`);
+    const groupsTable = await air.table(GROUPS_TABLE);
+    if (!groupsTable) {
+        due++;
+        if (!apply) log(`  [WOULD]  create it with ${GROUP_FIELDS.map((f) => `${f.name} (${f.type}${f.options ? ` ${JSON.stringify(f.options)}` : ""})`).join(", ")}`);
+        else {
+            const made = await air.createTable({ name: GROUPS_TABLE, description: GROUPS_DESCRIPTION, fields: GROUP_FIELDS });
+            log(`  [CREATE] ${made.id}: ${made.fields.map((f) => `${f.name} (${f.id}) a ${f.type}`).join(", ")}`);
+        }
+    } else {
+        for (const spec of GROUP_FIELDS) {
+            const live = groupsTable.fields.find((f) => f.name === spec.name);
+            if (live && live.type !== spec.type) {
+                log(`  ${spec.name} exists as a ${live.type}, not the ${spec.type} this needs; a type cannot be PATCHed — stopping.`);
+                return finish(air, 1, "a field is in the way");
+            }
+            if (!live) {
+                due++;
+                if (!apply) log(`  [WOULD]  create ${spec.name} as a ${spec.type}`);
+                else {
+                    const made = await air.createField(groupsTable.id, spec);
+                    log(`  [CREATE] ${spec.name} (${made.id}) as a ${made.type}`);
+                }
+                continue;
+            }
+            if ((live.description ?? "") === spec.description) {
+                log(`  [SKIP]   ${spec.name} (${live.id}) is a ${live.type}`);
+                continue;
+            }
+            due++;
+            if (!apply) log(`  [WOULD]  update ${spec.name}'s description`);
+            else {
+                await air.patchField(groupsTable.id, live.id, { description: spec.description });
+                log(`  [PATCH]  ${spec.name}'s description`);
+            }
+        }
+        if ((groupsTable.description ?? "") !== GROUPS_DESCRIPTION) {
+            due++;
+            if (!apply) log(`  [WOULD]  update the table's description`);
+            else {
+                await air.patchTable(groupsTable.id, { description: GROUPS_DESCRIPTION });
+                log(`  [PATCH]  the table's description`);
+            }
+        }
+    }
     if (!apply && due > 0) return finish(air, 2, `dry run — ${due} change(s) due, nothing was written`);
 
     // --- verification is part of the run, and on a matching base it is the run ----
@@ -398,12 +511,38 @@ async function main() {
         for (const aside of setAside) log(`    ${aside.category.id}  ${JSON.stringify(aside.category.itemName)} — ${whyAside(aside)}`);
     }
 
+    // The groups (#528): the table's shape, each row that stands as a group, and every row a
+    // registration may pick filed under one. A group with nothing under it is said, not failed.
+    const groupsLive = await air.table(GROUPS_TABLE);
+    if (!groupsLive) failures.push(`${GROUPS_TABLE} is missing`);
+    else {
+        const groupField = (name) => groupsLive.fields.find((f) => f.name === name);
+        for (const spec of GROUP_FIELDS) {
+            const live = groupField(spec.name);
+            if (!live) failures.push(`${GROUPS_TABLE}.${spec.name} is missing`);
+            else if (live.type !== spec.type) failures.push(`${GROUPS_TABLE}.${spec.name} is ${live.type}, not ${spec.type}`);
+            else if (spec.options && choiceList(live) !== choiceList(spec)) failures.push(`${GROUPS_TABLE}.${spec.name}'s choices are ${choiceList(live)}, not ${choiceList(spec)}`);
+        }
+        if (groupField(GROUP_FIELDS[0].name)?.id !== groupsLive.primaryFieldId) failures.push(`${GROUPS_TABLE}'s primary is not ${GROUP_FIELDS[0].name}`);
+
+        const groups = (await air.listRecords(groupsLive.id, GROUP_FIELDS.map((f) => f.name))).map(groupOf);
+        const standing = readCategoryGroups(groups);
+        log(`  ${groups.length} ${GROUPS_TABLE} row(s); ${standing.offered.length} stand as a group.`);
+        if (standing.setAside.length > 0) {
+            log(`  ${standing.setAside.length} row(s) that are no group, for the office to fill or put right:`);
+            for (const aside of standing.setAside) log(`    ${aside.group.id}  ${pairOf(aside.group)} — ${whyAside(aside)}`);
+        }
+        const { ungrouped, withoutItems } = groupCatalog(categories, groups);
+        for (const category of ungrouped) failures.push(`${category.id} ${JSON.stringify(category.itemName)}: no group holds ${pairOf(category)}`);
+        if (withoutItems.length > 0) log(`  ${withoutItems.length} group(s) with nothing filed under them yet: ${withoutItems.map(pairOf).join(", ")}`);
+    }
+
     if (failures.length > 0) {
         log(`  ${failures.length} problem(s):`);
         for (const line of failures) log(`    ${line}`);
         return finish(air, 1, "the base does not match the spec");
     }
-    log(`  the fields, both selects' choices, the expression and every name match.`);
+    log(`  the fields, both selects' choices, the expression and every name match, and every type and category a registration offers is a group.`);
     return finish(air, 0, "the base matches the spec");
 }
 

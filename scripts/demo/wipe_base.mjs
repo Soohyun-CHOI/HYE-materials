@@ -119,8 +119,10 @@ const KEPT = [
     // would also cost 78 write requests for rows that never changed.
     TABLES.MATERIAL_CATEGORIES,
     // The assets axis (#334-#362). `Asset Categories` is the office's catalog since
-    // #517 — loaded from scripts/import/asset_categories.csv and edited by hand
-    // after, a hand edit being in no file — so it is reference data, as #354's is.
+    // #517, revised by #528 from scripts/import/sources/asset_categories_528.csv,
+    // and edited by hand after, a hand edit being in no file — so it is reference
+    // data, as #354's is. `Asset Category Groups` (#528) is in no `TABLES` entry
+    // until a screen reads it, so this script never reaches it.
     // An asset is registered through the app and is the row a printed label
     // points at, which nothing in this directory rebuilds. None of the three sits
     // on a screen the document demo shows, so clearing them would cost real work to

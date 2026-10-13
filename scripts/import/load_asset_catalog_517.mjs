@@ -1,6 +1,14 @@
 // Loads the office's catalog of tools and equipment into `Asset Categories` (issue #517).
 //
-// WHAT IT LOADS. `asset_categories.csv` beside this file is the company's list as the office
+// THE LIST IS THE EARLIER ONE SINCE #528, AND THIS REFUSES TO WRITE IT AGAIN. The office
+// revised its catalog, and `replace_asset_catalog_528.mjs` replaced this list with it: the 20
+// paths the two share kept their rows, and the 165 this list alone names were removed. Run
+// with `--apply` against that base, this would create the 165 again, so it stops before
+// reading the catalog once `Asset Category Groups` — the table #528 made — is on the base, as
+// `create_tool_catalog_507.mjs` stops on #514's. It stays as the record of how the first list
+// was loaded, and its list stays because #528's removal takes no row the list does not name.
+//
+// WHAT IT LOADS. `sources/asset_categories_517.csv` is the company's list as the office
 // handed it over — every value, and its UTF-8 byte-order mark — with its line endings alone
 // changed: the file came with CRLF and Git on Windows committed it with LF, and the reader
 // below drops a carriage return, so it reads either the same. It has six columns, `Level 1
@@ -60,12 +68,15 @@ import { fileURLToPath } from "node:url";
 import { ASSET_CATEGORY_FIELDS, ASSET_PATH_LEVELS, catalogPathKey, composeItemName, readCatalog } from "../../lib/assetCategory.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const CSV_PATH = join(HERE, "asset_categories.csv");
+const CSV_PATH = join(HERE, "sources", "asset_categories_517.csv");
 
 const API_ROOT = "https://api.airtable.com/v0";
 const META_ROOT = `${API_ROOT}/meta`;
 const TABLE_NAME = "Asset Categories";
 const NAME_FIELD = "Item Name";
+
+/** The table #528 made beside the catalog; while it is on the base, this list is the earlier one. */
+const REVISED_MARK = "Asset Category Groups";
 
 /** Airtable's own ceiling on one record-write request. */
 const RECORDS_PER_REQUEST = 10;
@@ -99,9 +110,9 @@ class Airtable {
         return text === "" ? null : JSON.parse(text);
     }
 
-    async table() {
+    async tables() {
         const { tables } = await this.request("GET", `${META_ROOT}/bases/${this.baseId}/tables`);
-        return tables.find((t) => t.name === TABLE_NAME) ?? null;
+        return tables;
     }
 
     async listRecords(tableId, fields) {
@@ -232,7 +243,12 @@ async function main() {
     }
     const air = new Airtable(token, baseId);
 
-    const table = await air.table();
+    const tables = await air.tables();
+    if (tables.some((t) => t.name === REVISED_MARK)) {
+        log(`${REVISED_MARK} is on base ${baseId}: the catalog is #528's revised list, and this one is the earlier — scripts/import/replace_asset_catalog_528.mjs loads the catalog now.`);
+        return finish(air, 1, "refused: this list was replaced");
+    }
+    const table = tables.find((t) => t.name === TABLE_NAME) ?? null;
     const missing = table ? [NAME_FIELD, ...Object.values(ASSET_CATEGORY_FIELDS)].filter((name) => !table.fields.some((f) => f.name === name)) : ["the table"];
     if (missing.length > 0) {
         log(`${TABLE_NAME} on base ${baseId} lacks ${missing.join(", ")} — run scripts/import/classify_asset_categories_514.mjs --apply first.`);

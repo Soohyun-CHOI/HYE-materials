@@ -397,7 +397,7 @@ async function main() {
     // 4. The write, and the ledger before it
     // ---------------------------------------------------------------------
     const planned = TRIAL_AT === -1 ? toWrite : pickTrial(toWrite, TRIAL_ROWS);
-    const ledger = join(HERE, `${LEDGER_PREFIX}${new Date().toISOString().replace(/[:.]/g, "-")}.jsonl`);
+    const ledger = join(HERE, "ledgers", `${LEDGER_PREFIX}${new Date().toISOString().replace(/[:.]/g, "-")}.jsonl`);
     writeFileSync(ledger, planned.map((e) => JSON.stringify(e)).join("\n") + "\n", "utf8");
     log("");
     log(`ledger: ${ledger}  (commit it — see this file's header)`);

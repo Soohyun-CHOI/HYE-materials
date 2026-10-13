@@ -55,8 +55,8 @@ holds its height, so going between the steps never moves its edges.
   before anything is typed, and those whose name holds what is typed after,
   the part typed set heavier: **the name typed in full first, then names
   beginning with it, then names holding it elsewhere**, each group
-  alphabetical, so `wrench` lists `Wrench` before `Adjustable Monkey Wrench`
-  (#517). Each name says at its end what the second step will ask among —
+  alphabetical, so on #517's catalog `wrench` listed `Wrench` before
+  `Adjustable Monkey Wrench`, which #528's holds neither of. Each name says at its end what the second step will ask among —
   `18 sizes`, or `3 models` where it asks one size or none — and nothing
   where it asks neither. **One name can stand in two places, and those are
   two names**: the office's `Band Saw` is `Equipment > Machining` and `Tool >
