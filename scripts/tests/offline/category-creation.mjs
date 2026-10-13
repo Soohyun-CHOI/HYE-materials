@@ -77,7 +77,7 @@ import {
 
 export const title = "Adding a path to the catalog from the app (#368)";
 
-const CSV_PATH = "scripts/import/material_categories.csv";
+const CSV_PATH = "scripts/import/sources/material_categories.csv";
 const FORM = "app/admin/categories/new/CategoryForm.js";
 const PAGE = "app/admin/categories/new/page.js";
 const ACTION = "app/admin/categories/new/actions.js";

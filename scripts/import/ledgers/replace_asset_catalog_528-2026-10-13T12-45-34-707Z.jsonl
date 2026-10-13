@@ -1,0 +1,15 @@
+{"table":"Asset Categories","field":"Class","id":"recnp4VPgh9EmKggj","name":"Impact Drill, Milwaukee","before":"A","after":"B"}
+{"table":"Asset Categories","field":"Class","id":"recbfpGIFkKddPUK1","name":"Drill, Milwaukee","before":"A","after":"B"}
+{"table":"Asset Categories","field":"Class","id":"recSyMbTNosXrpK9e","name":"Band Saw, DeWalt","before":"A","after":"B"}
+{"table":"Asset Categories","field":"Class","id":"rec8q6bBByoYNNipv","name":"Jigsaw, DeWalt","before":"A","after":"B"}
+{"table":"Asset Categories","field":"Class","id":"recEUTqBXJooSLeZf","name":"Heat Gun, DeWalt","before":"A","after":"B"}
+{"table":"Asset Categories","field":"Class","id":"recQNQRE0hAoxSahK","name":"Drill, DeWalt","before":"A","after":"B"}
+{"table":"Asset Categories","field":"Class","id":"recmSjcTeZMMhL2aW","name":"Drill, Hilti","before":"A","after":"B"}
+{"table":"Asset Categories","field":"Class","id":"rec9Lpur74F1hEhE4","name":"Plastic Pipe and Tubing Cutter","before":"A","after":"B"}
+{"table":"Asset Categories","field":"Class","id":"recjse8gINcGp8sWb","name":"Tube Bender 1/4\" (10xR=2.50\")","before":"A","after":"B"}
+{"table":"Asset Categories","field":"Class","id":"recKUOM8m8lNNYY68","name":"Tube Bender 3/8\"","before":"A","after":"B"}
+{"table":"Asset Categories","field":"Class","id":"recU4tAEZvofVHv75","name":"Tube Bender 1/2\" (5xR=2.50\")","before":"A","after":"B"}
+{"table":"Asset Categories","field":"Class","id":"recBayh4HATi6AgJf","name":"Laser, DeWalt","before":"A","after":"B"}
+{"table":"Asset Categories","field":"Class","id":"recs3nnNjFmGrUxmi","name":"Band Saw, Milwaukee","before":"A","after":"B"}
+{"table":"Asset Categories","field":"Class","id":"recd3AvEgZc10xPtc","name":"Hammer Drill, Milwaukee","before":"A","after":"B"}
+{"table":"Assets","field":"Category","id":"recxHnC52u30K18X1","assetId":"HYE-AST-261009-007","before":["recvuckVI3NxX18Sv"],"after":["rec7E1CMZomLgvkGB"],"beforeLevels":{"level1":"Equipment","level2":"Welding","level3":"TIG Welder","size":"","maker":"Lincoln Electric","partNumber":"TIG 205"},"afterLevels":{"level1":"Equipment","level2":"Welding Equipment","level3":"TIG Welder","size":"","maker":"Lincoln Electric","partNumber":"TIG 205"}}

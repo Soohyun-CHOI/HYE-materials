@@ -38,7 +38,7 @@ const ids = (set) => [...set].sort().join(",");
 // Resolved the way `material-categories.mjs` resolves it, and for its reason:
 // `_ast.mjs:repoPath` would pull acorn in for a check that parses no JavaScript.
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-const CSV_PATH = "scripts/import/material_categories.csv";
+const CSV_PATH = "scripts/import/sources/material_categories.csv";
 
 /**
  * The composed path of every committed category, as `Material Label` carries it

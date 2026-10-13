@@ -1,5 +1,5 @@
 // Adds `Material Categories."Item Name"` and fills all 777 rows from the CSV
-// beside this file (issue #415).
+// in `sources/` (issue #415; beside this file until #528).
 //
 // WHY A SCRIPT FOR THIS. A schema edit leaves no diff of its own, so the only
 // record that it happened is here — the reason `docs/notes/verification.md` puts
@@ -33,7 +33,7 @@
 // side holds a leaf the other does not. A partial backfill against a half-matched
 // set is the state that survives looking fine.
 //
-// THE LEDGER IS A TRACKED FILE BESIDE THIS SCRIPT, which is #313's shape and its
+// THE LEDGER IS A TRACKED FILE IN `ledgers/`, which is #313's shape and its
 // reason: a reverting run needs the values, and a value that lives only in
 // somebody's terminal is not a value. Every entry is `{table, field, id, before,
 // after}`, written BEFORE the first PATCH. On a first run every `before` is the
@@ -74,7 +74,7 @@ import { fileURLToPath } from "node:url";
 import { CATEGORY_ITEM_NAME, CATEGORY_LEAF_CODE } from "../../lib/materialCategory.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const CSV_PATH = join(HERE, "material_categories.csv");
+const CSV_PATH = join(HERE, "sources", "material_categories.csv");
 
 const META_ROOT = "https://api.airtable.com/v0/meta";
 const DATA_ROOT = "https://api.airtable.com/v0";
@@ -94,7 +94,7 @@ const FIELD_DESCRIPTION =
     "\"Tube, SUS 304, AP\" where Category Label beside it composes the path " +
     "\"Stainless Steel (SUS) > Tube > SUS 304 > AP\". STORED TEXT AND NOT A " +
     "FORMULA: HQ writes these with eight templates, so no expression computes " +
-    "them and scripts/import/material_categories.csv is the source. A path added " +
+    "them and scripts/import/sources/material_categories.csv is the source. A path added " +
     "by hand therefore gets a Category Label for free and does NOT get one of " +
     "these — fill it from the row's own CSV line, or leave it and read the label. " +
     "Filled by scripts/import/add_category_item_name_415.mjs, which matches on " +
@@ -397,7 +397,7 @@ async function main() {
     // 4. The write, and the ledger before it
     // ---------------------------------------------------------------------
     const planned = TRIAL_AT === -1 ? toWrite : toWrite.slice(0, TRIAL_ROWS);
-    const ledger = join(HERE, `${LEDGER_PREFIX}${new Date().toISOString().replace(/[:.]/g, "-")}.jsonl`);
+    const ledger = join(HERE, "ledgers", `${LEDGER_PREFIX}${new Date().toISOString().replace(/[:.]/g, "-")}.jsonl`);
     writeFileSync(ledger, planned.map((e) => JSON.stringify(e)).join("\n") + "\n", "utf8");
     log("");
     log(`ledger: ${ledger}  (commit it — see this file's header)`);

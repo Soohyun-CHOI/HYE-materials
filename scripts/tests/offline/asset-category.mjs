@@ -7,7 +7,9 @@
 // pure and held here by value — the walk on a catalog typed the way an office types one by
 // hand, with a category in another case and spacing, a generic row beside rows by a maker,
 // equipment with no size, one name under two categories and under two types, every way a row
-// can be incomplete, a placeholder typed for an empty level, and a path named twice.
+// can be incomplete, a placeholder typed for an empty level, and a path named twice. And since
+// #528 the groups a row's type and category stand in: which rows of `Asset Category Groups`
+// stand, on a list typed the same way, and which catalog rows no group holds.
 //
 // AND THAT NOTHING UNDER `app/` OR `lib/` WRITES AN `Asset Categories` ROW. The office fills the
 // catalog in Airtable — its first rows loaded from its own list by a script (#517) — and a
@@ -16,11 +18,12 @@
 // is read off the source, and each has to be a read.
 //
 // AND ONE SPELLING OF EACH FIELD. The reader in `lib/airtable/assetCategories.js`, the catalog's
-// script, the demo catalog's, the office catalog's load and the demo's removal (#517) take the
-// fields' names from `ASSET_CATEGORY_FIELDS`, and the catalog's script the type's and the
-// class's values, the expression and the catalog's reading from the module too, as the load
-// and the removal take the reading and the path's key; a literal of one of the seven names in
-// any of them fails, since a second spelling is what a rename would miss. The one exception is
+// script, the demo catalog's, the office catalog's load and the demo's removal (#517) and the
+// revised list's replacement (#528) take the fields' names from `ASSET_CATEGORY_FIELDS`, and
+// the catalog's script the type's and the class's values, the expression and the readings from
+// the module too, as the load, the removal and the replacement take the readings and the keys;
+// a literal of one of the seven names in any of them fails, since a second spelling is what a
+// rename would miss. The one exception is
 // read by value: the names #514's two renames start FROM, which are #507's and are what a field
 // holding them is renamed from.
 //
@@ -37,6 +40,7 @@ import {
     ASSET_CATEGORY_COPY,
     ASSET_CATEGORY_FIELDS,
     ASSET_CLASS_VALUES,
+    ASSET_GROUP_LEVELS,
     ASSET_MODEL_LEVELS,
     ASSET_PATH_LEVELS,
     ASSET_PATH_SEPARATOR,
@@ -47,12 +51,15 @@ import {
     catalogNames,
     catalogPathKey,
     catalogRowsOf,
+    categoryGroupKey,
     compareCatalogText,
     compareSizes,
     composeItemName,
+    groupCatalog,
     isPlaceholder,
     pathOf,
     readCatalog,
+    readCategoryGroups,
     registrationCatalog,
     searchCatalogNames,
     walkDetails,
@@ -60,7 +67,7 @@ import {
 import { REPO_ROOT, listJsFiles, parentMap, parseFile, parseSource, repoPath, toPosix, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "The catalog an asset is chosen from, in six levels, and nothing writing a row of it (#507, #514, #517)";
+export const title = "The catalog an asset is chosen from, in six levels, its groups, and nothing writing a row of it (#507, #514, #517, #528)";
 
 /**
  * The reader of the table; the two scripts that write the catalog's schema and its demo rows;
@@ -71,6 +78,7 @@ const SCRIPT = "scripts/import/classify_asset_categories_514.mjs";
 const SEED = "scripts/demo/seed_asset_catalog_514.mjs";
 const LOAD = "scripts/import/load_asset_catalog_517.mjs";
 const REMOVAL = "scripts/demo/remove_demo_catalog_517.mjs";
+const REPLACEMENT = "scripts/import/replace_asset_catalog_528.mjs";
 
 /** A row as `recordToAssetCategory` returns it, named as the base would name it. */
 const row = (id, [level1, level2, level3, size, maker, partNumber], assetClass) => ({
@@ -121,6 +129,28 @@ const ROWS = [
     row("dash", ["Equipment", "Welding", "Welding Machine", "-", "Lincoln", "POWER MIG 256"], "A"),
     row("none", ["Tool", "Carpentry", "Cordless Drill", "18V", "DeWalt", "None"], "B"),
     row("again", ["Tool", "machining", "angle  grinder", '4-1/2" ', "makita", "ga4530"], "B"),
+];
+
+/**
+ * `Asset Category Groups` typed by hand (#528). The first seven stand: four pairs the catalog
+ * above files under, one of them typed another way (`machining `); `Measuring` under one type
+ * of its two; `Lift Equipment`, under which nothing is filed; and `Concrete`, under which the
+ * one row is set aside. The six after are each a way a row is no group.
+ */
+const GROUP_ROWS = [
+    { id: "gMach", level1: "Tool", level2: "Machining" },
+    { id: "gCarp", level1: "Tool", level2: "Carpentry" },
+    { id: "gWeld", level1: "Equipment", level2: "Welding" },
+    { id: "gEqMach", level1: "Equipment", level2: "machining " },
+    { id: "gMeasT", level1: "Tool", level2: "Measuring" },
+    { id: "gLift", level1: "Equipment", level2: "Lift Equipment" },
+    { id: "gConcrete", level1: "Tool", level2: "Concrete" },
+    { id: "gNoType", level1: "", level2: "Pressure" },
+    { id: "gVehicle", level1: "Vehicle", level2: "Transport" },
+    { id: "gNoCat", level1: "Tool", level2: "  " },
+    { id: "gBare", level1: "", level2: "" },
+    { id: "gNA", level1: "Tool", level2: "N/A" },
+    { id: "gAgain", level1: "Tool", level2: "MACHINING" },
 ];
 
 /** Ids, for a list of rows. */
@@ -199,6 +229,43 @@ function importedFromModule({ ast }) {
 }
 
 export function run({ check, assert, log }) {
+    // ── 0: the groups the catalog files under (#528) ─────────────────────────
+    log("the groups a catalog row's type and category stand in (#528):");
+    check("the two levels a group is, the type first", ASSET_GROUP_LEVELS.join(", "), "level1, level2");
+    check(
+        "a group's key is the type and the category as typed text is compared",
+        JSON.stringify(categoryGroupKey({ level1: "Tool", level2: " Welding  Equipment", level3: "Drill" })),
+        JSON.stringify("tool\nwelding equipment")
+    );
+    assert("  so a row typed `machining ` stands in `Machining`", categoryGroupKey(ROWS[2]) === categoryGroupKey({ level1: "Tool", level2: "Machining" }));
+    assert("  the name and the levels after it are no part of it", categoryGroupKey(ROWS[0]) === categoryGroupKey(ROWS[4]) && categoryGroupKey(ROWS[0]) === categoryGroupKey({ level1: "Tool", level2: "Machining" }));
+    assert("  and the type is: one category under two types is two groups", categoryGroupKey({ level1: "Tool", level2: "Measuring" }) !== categoryGroupKey({ level1: "Equipment", level2: "Measuring" }));
+    const groupsRead = readCategoryGroups(GROUP_ROWS);
+    check("the rows that stand as a group, in the order read", ids(groupsRead.offered), "gMach,gCarp,gWeld,gEqMach,gMeasT,gLift,gConcrete");
+    check(
+        "  and those that do not, with why: no type, a type not one of the two, no category, a placeholder, the pair again",
+        groupsRead.setAside.map(({ group, reason, missing, levels, of }) => `${group.id}:${reason}:${reason === "incomplete" ? missing.join("+") : reason === "placeholder" ? levels.join("+") : of.id}`).join(" "),
+        "gNoType:incomplete:level1 gVehicle:incomplete:level1 gNoCat:incomplete:level2 gBare:incomplete:level1+level2 gNA:placeholder:level2 gAgain:repeated:gMach"
+    );
+    const filed = groupCatalog(ROWS, GROUP_ROWS);
+    check("the rows a registration may pick that no group holds", ids(filed.ungrouped), "air,laserE,knifeX");
+    check("  and the groups nothing a registration may pick is filed under — a row set aside is not filed", ids(filed.withoutItems), "gLift,gConcrete");
+    check(
+        "  a group set aside holds nothing: its pair's rows are ungrouped",
+        ids(groupCatalog(ROWS, [...GROUP_ROWS.filter((group) => group.id !== "gMeasT"), { id: "gMeasLower", level1: "tool", level2: "Measuring" }]).ungrouped),
+        "air,laserT,laserE,knifeX"
+    );
+    // THE REVISED LIST'S REPLACEMENT judges a path, a group and the pairing by the module, and
+    // spells no field; the catalog's script is held below, with the other scripts.
+    const replacement = parseFile(REPLACEMENT);
+    check(
+        "the revised list's replacement takes the fields, the levels, the keys, the name's rule, the path and the three readings from the module",
+        importedFromModule(replacement),
+        "ASSET_CATEGORY_FIELDS, ASSET_GROUP_LEVELS, ASSET_PATH_LEVELS, catalogPathKey, categoryGroupKey, composeItemName, groupCatalog, pathOf, readCatalog, readCategoryGroups"
+    );
+    check("  and the replacement spells none of the fields", `${fieldLiterals(replacement).spelled}|${fieldLiterals(replacement).renamedFrom}`, "|");
+    log("");
+
     // ── 1: the columns, the type, the class and the name ────────────────────
     log("the catalog's columns, the type's and the class's values and the name the base gives a row:");
     check(
@@ -389,8 +456,8 @@ export function run({ check, assert, log }) {
     );
     check("  two names typed in full, in two places, in the names' order", said(searchCatalogNames(twoPlaces, { typed: "level" })), "Level (Tool > Alpha), Level (Equipment > Zeta)");
     // WHERE A NAME STANDS, SAID ONLY WHERE ITS WORDS STAND TWICE (#520): the category where the
-    // two are in two categories, the type before it where they share one — `Pipe Cutter` on the
-    // office's catalog — and nothing for a name in one place. Asked of the whole catalog, so a
+    // two are in two categories, the type before it where they share one — `Pipe Cutter` on
+    // #517's catalog — and nothing for a name in one place. Asked of the whole catalog, so a
     // name listed alone under a filter still says it.
     const placesOf = (names) => names.map((name) => name.place.join(" · ")).join(" | ");
     check("each name in two categories says its category", placesOf(searchCatalogNames(offered, { typed: "utility" })), "Carpentry | Cutting");
@@ -567,9 +634,9 @@ export function run({ check, assert, log }) {
     check("  and spelling none of them", fieldLiterals(reader).spelled, "");
     const script = parseFile(SCRIPT);
     check(
-        "the catalog's script takes the fields, both selects' values, the expression and the reading from the module",
+        "the catalog's script takes the fields, both selects' values, the expression, the path and the readings from the module",
         importedFromModule(script),
-        "ASSET_CATEGORY_FIELDS, ASSET_CLASS_VALUES, ASSET_TYPE_VALUES, ITEM_NAME_FORMULA, composeItemName, readCatalog"
+        "ASSET_CATEGORY_FIELDS, ASSET_CLASS_VALUES, ASSET_GROUP_LEVELS, ASSET_TYPE_VALUES, ITEM_NAME_FORMULA, composeItemName, groupCatalog, pathOf, readCatalog, readCategoryGroups"
     );
     check("  and spells none of the fields", fieldLiterals(script).spelled, "");
     // THE TWO NAMES IT RENAMES FROM ARE #507's, in the order they must run: `Level 2` out of the way first.

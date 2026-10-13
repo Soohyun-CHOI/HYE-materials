@@ -35,7 +35,7 @@ import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "A demo seed picks its categories and proves it (#358)";
 
-const CSV = "scripts/import/material_categories.csv";
+const CSV = "scripts/import/sources/material_categories.csv";
 const HELPER = "scripts/demo/_seed_categories.mjs";
 const VERIFY_HELPER = "scripts/tests/_categories.mjs";
 const VERIFIER = "assertItemsHaveCategories";

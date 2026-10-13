@@ -1,4 +1,4 @@
-// Creates `Material Categories` and fills it from the CSV beside this file
+// Creates `Material Categories` and fills it from the CSV in `sources/`
 // (issue #354).
 //
 // WHAT THE TABLE IS FOR. A material's identity has been the name a requester
@@ -68,7 +68,7 @@ import {
 } from "../../lib/materialCategory.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const CSV_PATH = join(HERE, "material_categories.csv");
+const CSV_PATH = join(HERE, "sources", "material_categories.csv");
 
 const TABLE_NAME = "Material Categories";
 const LABEL_FIELD = "Category Label";
@@ -81,7 +81,7 @@ const RECORDS_PER_REQUEST = 10;
 
 const TABLE_DESCRIPTION =
     "HQ's four-level material category tree, one row per path (#354). Reference " +
-    "data rather than demo data: loaded from scripts/import/" +
+    "data rather than demo data: loaded from scripts/import/sources/" +
     "material_categories.csv by scripts/import/create_material_categories_354.mjs, " +
     "which is re-runnable and keyed on Level 4 Code. Category Label is a formula " +
     "and is the only place a label is computed; the rule is mirrored in " +
