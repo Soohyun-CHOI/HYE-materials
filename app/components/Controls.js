@@ -88,7 +88,9 @@ const FormBusyContext = createContext(false);
  * The controls of a form whose submission is in flight (0f Working, #469) — what the dialog
  * frame wraps around everything it holds, with its own `busy`. Inside it the form's submit
  * draws Working and every other control locks, keeping its look and taking no press and no
- * keystroke; none is disabled, so focus stays where the submission found it.
+ * keystroke; none is disabled, so focus stays where the submission found it. `busy` is
+ * `"action"` while the form waits on an action other than its submit (#527,
+ * `lib/controls.js:buttonBusyState`), and then the submit locks with the rest.
  */
 export function FormBusy({ busy, children }) {
     return <FormBusyContext.Provider value={busy}>{children}</FormBusyContext.Provider>;
@@ -209,11 +211,16 @@ export function Notice({ children }) {
  * steps drew it as a line of their own from #148, `role="status"` as the drawing has it, and
  * it moved here when a dialog came to draw the same line — the move a part shared by a second
  * screen waits on, as the Notice's did (#463).
+ *
+ * A LINE THAT REFUSES NOTHING TAKES THE SAME LOOK AS `role="status"` (#527): 1l sets what an edit
+ * will do — `Its 10 items take the new name.` — as this line before the press, which is a note
+ * the reader reads rather than an answer to a press, so it is heard when it changes and not as
+ * an alert. `DialogActions`' `note` is its one caller.
  */
-export function Refusal({ centered = false, children }) {
+export function Refusal({ centered = false, role = "alert", children }) {
     return (
         <p
-            role="alert"
+            role={role}
             className={`flex items-start gap-refusal-gap text-body-sm text-foreground-muted ${
                 centered
                     ? "justify-center max-sm:justify-start max-sm:gap-mobile-input-message-gap max-sm:px-mobile-input-message-inset-x max-sm:text-mobile-body-sm"
@@ -243,7 +250,13 @@ const BUTTON_SIZE = {
 
 // The room either side of the words, by size — and a ghost's own, whatever its size (#520).
 const BUTTON_INSET = { md: "px-control-md-inset-x", lg: "px-control-lg-inset-x", xl: "px-control-lg-inset-x" };
-const insetOf = (variant, size) => (variant === "ghost" ? "px-ghost-inset-x" : BUTTON_INSET[size]);
+const GHOSTS = ["ghost", "ghostDanger"];
+const insetOf = (variant, size) => (GHOSTS.includes(variant) ? "px-ghost-inset-x" : BUTTON_INSET[size]);
+
+// A ghost is "one step under what stands around it — 32 with 10 in a row of 36 buttons" (0f
+// Ghost), so one standing with 0a's 36 is the Control's 32 and keeps the row's 14 (1l, #527);
+// at `md` it is 32 at 13, as 1b draws its `Back` among 32s' words.
+const sizeOf = (variant, size) => (GHOSTS.includes(variant) && size === "lg" ? "inline-flex h-control shrink-0 text-body" : BUTTON_SIZE[size]);
 
 // 0f: a filled action hovers to its Accent hover and keeps its white ink, and one that
 // cannot act yet keeps its fill at 40% and takes no hover; a bordered one fills at Wash
@@ -253,12 +266,14 @@ const insetOf = (variant, size) => (variant === "ghost" ? "px-ghost-inset-x" : B
 // busy one of any kind takes no hover (0f Working), and neither does one locked with it
 // (#469): both are `aria-disabled`, which is what the hover is written against. It is written
 // against what is NOT disabled rather than what is enabled, so a link drawn as an action
-// hovers too.
+// hovers too. A ghost that removes or reverses the record is 0f's Destructive at a ghost's
+// size: transparent at rest, red on red's Face under the pointer — 1l's `Discontinue` (#527).
 const BUTTON_VARIANT = {
     filled: "bg-primary text-white not-disabled:not-aria-disabled:hover:bg-primary-hover disabled:bg-primary-disabled",
     bordered: "border border-border bg-white text-foreground-default not-disabled:not-aria-disabled:hover:bg-hover-subtle",
     danger: "bg-danger text-white not-disabled:not-aria-disabled:hover:bg-danger-hover",
     ghost: "text-foreground-default not-disabled:not-aria-disabled:hover:bg-hover",
+    ghostDanger: "text-foreground-default not-disabled:not-aria-disabled:hover:bg-danger-subtle not-disabled:not-aria-disabled:hover:text-danger",
 };
 
 // In a sheet below the phone's edge (Tools 0a Button, #458): full width, 48, 17 at 600, at
@@ -273,6 +288,7 @@ const SHEET_BUTTON_VARIANT = {
         "max-sm:in-data-[sheet]:border-0 max-sm:in-data-[sheet]:bg-transparent max-sm:in-data-[sheet]:not-aria-disabled:active:opacity-mobile-pressed",
     danger: "max-sm:in-data-[sheet]:not-aria-disabled:active:bg-danger-hover",
     ghost: "",
+    ghostDanger: "",
 };
 
 /**
@@ -326,8 +342,8 @@ function ButtonLabel({ size, busyLabel, children }) {
 /**
  * An action (0a's Commitment, 36, or `size="xl"`, a sign-in page's 40): `filled` for the
  * one a screen or a dialog exists for, `danger` for a dialog's commitment that cannot be
- * undone, `ghost` for one that is its word alone — a dialog's `Back`, at `md` (#520) — and
- * `bordered` for the rest.
+ * undone, `ghost` for one that is its word alone — a dialog's `Back`, at `md` (#520) — its
+ * Destructive kind `ghostDanger` (1l's `Discontinue`, #527), and `bordered` for the rest.
  *
  * A DISABLED ACTION SAYS WHY BEFORE IT, ON ITS OWN LINE (0f Disabled): the reason sits 14
  * before the button at 13 and Ink 3, and the button names it as its description, so a
@@ -359,8 +375,9 @@ function ButtonLabel({ size, busyLabel, children }) {
  */
 export function Button({ variant = "filled", size = "lg", type = "button", disabled = false, disabledReason, describedBy, busy = false, busyLabel, holdWidthOf, onClick, children }) {
     const reasonId = useId();
-    const formBusy = useContext(FormBusyContext);
-    const state = buttonBusyState({ busy, formBusy, submits: type === "submit", disabled });
+    // What the form waits on, as the frame said it: its submit, or `"action"` (#527).
+    const formWaits = useContext(FormBusyContext);
+    const state = buttonBusyState({ busy, formBusy: formWaits, submits: type === "submit", disabled });
     const working = state === "working";
     const explained = disabled && Boolean(disabledReason);
     const button = (
@@ -372,7 +389,7 @@ export function Button({ variant = "filled", size = "lg", type = "button", disab
             aria-busy={working || undefined}
             aria-disabled={state ? true : undefined}
             data-busy={working || undefined}
-            className={`group/button ${BUTTON} ${BUTTON_SIZE[size]} ${insetOf(variant, size)} ${BUTTON_VARIANT[variant]} ${SHEET_BUTTON} ${SHEET_BUTTON_VARIANT[variant]}`}
+            className={`group/button ${BUTTON} ${sizeOf(variant, size)} ${insetOf(variant, size)} ${BUTTON_VARIANT[variant]} ${SHEET_BUTTON} ${SHEET_BUTTON_VARIANT[variant]}`}
         >
             <ButtonLabel size={size} busyLabel={busyLabel}>
                 {holdWidthOf ? (
@@ -410,7 +427,7 @@ const FIELD_MESSAGE =
  */
 export function ButtonLink({ variant = "filled", size = "lg", href, children }) {
     return (
-        <Link href={href} className={`${BUTTON} ${BUTTON_SIZE[size]} ${insetOf(variant, size)} ${BUTTON_VARIANT[variant]} ${SHEET_BUTTON} ${SHEET_BUTTON_VARIANT[variant]}`}>
+        <Link href={href} className={`${BUTTON} ${sizeOf(variant, size)} ${insetOf(variant, size)} ${BUTTON_VARIANT[variant]} ${SHEET_BUTTON} ${SHEET_BUTTON_VARIANT[variant]}`}>
             {children}
         </Link>
     );
@@ -435,8 +452,12 @@ export function ButtonLink({ variant = "filled", size = "lg", href, children }) 
  * no label and keeps it for assistive tech, and its refusal is centered under it at a desk.
  * `size="xl"` is a sign-in page's field, which below the phone's edge takes the phone's
  * label at 15 and its refusal behind the alert mark, 4 in (Tools 0a Field label, Field error).
+ *
+ * `labelNote` IS A WORD BESIDE THE LABEL, 8 AFTER IT AT 400 IN INK 3 (1l, #527) — the catalog's
+ * `Optional` beside a level a row may leave empty. It is part of the label, so the field is named
+ * `Size Optional` and assistive tech hears that it may be left empty.
  */
-export function Field({ label, labelAs = "label", labelHidden = false, size = "lg", help, note, refusal, reserveMessage = false, children }) {
+export function Field({ label, labelNote, labelAs = "label", labelHidden = false, size = "lg", help, note, refusal, reserveMessage = false, children }) {
     const base = useId();
     const control = `${base}control`;
     const labelId = `${base}label`;
@@ -454,10 +475,12 @@ export function Field({ label, labelAs = "label", labelHidden = false, size = "l
                 {labelAs === "label" ? (
                     <label id={labelId} htmlFor={control} className={labelClass}>
                         {label}
+                        {labelNote && <span className="ml-gap font-normal text-foreground-subtle">{labelNote}</span>}
                     </label>
                 ) : (
                     <span id={labelId} onClick={() => document.getElementById(control)?.focus()} className={labelClass}>
                         {label}
+                        {labelNote && <span className="ml-gap font-normal text-foreground-subtle">{labelNote}</span>}
                     </span>
                 )}
                 {children}
@@ -522,7 +545,7 @@ const TEXT_INPUT_SIZE = {
  */
 export function TextInput({ size = "lg", suffix, value, onChange, readOnly = false, inputRef, placeholder, ...input }) {
     const field = useField();
-    const formBusy = useContext(FormBusyContext);
+    const formBusy = Boolean(useContext(FormBusyContext));
     const locked = readOnly || formBusy;
     const ownRef = useRef(null);
     const ref = inputRef ?? ownRef;
@@ -613,7 +636,7 @@ function ClearButton({ onClear }) {
  */
 export function SheetField({ value, placeholder, onOpen, chevron = false, icon }) {
     const field = useField();
-    const formBusy = useContext(FormBusyContext);
+    const formBusy = Boolean(useContext(FormBusyContext));
     const valueId = useId();
     const look = `flex h-mobile-input w-full items-center gap-mobile-input-gap rounded-mobile-control border bg-white px-mobile-input-inset-x text-mobile-body sm:hidden ${
         field.refused ? "border-danger" : "border-border"
@@ -665,7 +688,7 @@ export function SheetField({ value, placeholder, onOpen, chevron = false, icon }
  */
 export function SheetChip({ value, placeholder, onOpen, icon }) {
     const field = useField();
-    const formBusy = useContext(FormBusyContext);
+    const formBusy = Boolean(useContext(FormBusyContext));
     const valueId = useId();
     const pill = `inline-flex h-mobile-chip max-w-full items-center gap-gap rounded-full border pl-mobile-chip-inset-x text-mobile-body-sm ${
         onOpen ? "pr-mobile-chip-inset-right" : "pr-mobile-chip-inset-x"
@@ -757,7 +780,7 @@ const STEP =
  */
 export function NumberField({ name, value, onChange, min, max }) {
     const field = useField();
-    const formBusy = useContext(FormBusyContext);
+    const formBusy = Boolean(useContext(FormBusyContext));
     const step = (delta) => () => {
         if (!formBusy) onChange(stepNumber(value, delta, { min, max }));
     };
@@ -831,7 +854,7 @@ const TYPEAHEAD_MS = 500;
  */
 export function Choice({ name, options, value, onChange, placeholder, look = "field", label }) {
     const field = useField();
-    const formBusy = useContext(FormBusyContext);
+    const formBusy = Boolean(useContext(FormBusyContext));
     const listId = `${field.control}list`;
     const chosen = options.findIndex((option) => option.value === value);
     const [open, setOpen] = useState(false);
@@ -987,6 +1010,85 @@ const CHOICE_LOOK = {
 };
 
 /**
+ * 0f's segmented row (1l, #527) — "a choice is the bordered list with its chevron, or a
+ * segmented row; which of the two is a design call" (0l), and 1l calls it for the catalog's
+ * type and class. A white track on an Edge border, 36 tall, 2 inside, at the Group radius, its
+ * options sharing its width, each at 14 and 500 with 6 either side; the chosen one a pill on the
+ * Face at the Control radius with its word in Accent, the rest at Ink 3, lifting to Ink under
+ * the pointer. A new choice slides the pill across, at once with reduced motion. A field that
+ * refuses turns the track Red, and the keyboard's focus turns it Edge focus, as a field's.
+ *
+ * A RADIO GROUP, AS 0l's CHIPS ARE (`ChipChoice`): one stop for Tab, on the option chosen or the
+ * first while none is, the arrows moving and choosing as they go (`lib/controls.js:radioKey`).
+ * It is named by the field around it, and the field's label puts focus on that stop. What it
+ * submits is the hidden input under `name`. Inside a busy form it takes no press and no key.
+ */
+export function SegmentedChoice({ name, options, value, onChange }) {
+    const field = useField();
+    const formBusy = Boolean(useContext(FormBusyContext));
+    const groupRef = useRef(null);
+    const chosen = options.findIndex((option) => option.value === value);
+    const stop = chosen < 0 ? 0 : chosen;
+
+    const choose = (index) => {
+        if (!formBusy && index >= 0 && index < options.length) onChange(options[index].value);
+    };
+    const onKeyDown = (index) => (event) => {
+        const action = radioKey(event);
+        if (!action) return;
+        event.preventDefault();
+        if (formBusy) return;
+        const next = action === "check" ? index : menuIndex(index, options.length, action);
+        choose(next);
+        groupRef.current?.querySelector(`[data-index="${next}"]`)?.focus();
+    };
+
+    return (
+        <div
+            ref={groupRef}
+            role="radiogroup"
+            aria-labelledby={field.labelId}
+            aria-describedby={field.messageId}
+            aria-invalid={field.refused || undefined}
+            style={{ "--segmented-count": options.length, "--segmented-at": stop }}
+            className={`relative flex h-control-lg rounded-card border bg-white p-segmented-inset ${
+                field.refused ? "border-danger" : "border-border has-focus-visible:border-border-focus"
+            }`}
+        >
+            <span
+                aria-hidden="true"
+                className={`pointer-events-none absolute inset-y-segmented-inset left-[calc(var(--spacing-segmented-inset)+(100%-2*var(--spacing-segmented-inset))/var(--segmented-count)*var(--segmented-at))] w-[calc((100%-2*var(--spacing-segmented-inset))/var(--segmented-count))] rounded-control bg-selected transition-[left] duration-segmented ease-segmented motion-reduce:transition-none ${
+                    chosen < 0 ? "opacity-0" : ""
+                }`}
+            />
+            {options.map((option, index) => {
+                const on = index === chosen;
+                return (
+                    <button
+                        key={option.value}
+                        id={index === stop ? field.control : undefined}
+                        type="button"
+                        role="radio"
+                        aria-checked={on}
+                        aria-disabled={formBusy || undefined}
+                        data-index={index}
+                        tabIndex={index === stop ? 0 : -1}
+                        onClick={() => choose(index)}
+                        onKeyDown={onKeyDown(index)}
+                        className={`relative min-w-0 flex-1 truncate rounded-control px-segmented-option-inset-x text-body font-medium outline-none ${
+                            on ? "text-primary" : "text-foreground-subtle not-aria-disabled:hover:text-foreground-default"
+                        }`}
+                    >
+                        {option.label}
+                    </button>
+                );
+            })}
+            {name && <input type="hidden" name={name} value={value ?? ""} />}
+        </div>
+    );
+}
+
+/**
  * A typed value with suggestions under it — WAI-ARIA's editable combobox with list
  * autocomplete and manual selection, opening `Menu`.
  *
@@ -1007,11 +1109,18 @@ const CHOICE_LOOK = {
  * search picks a tool from the catalog, and one name can stand under two categories, so the
  * label alone would not say which was meant. A suggestion's `key` is what tells two of one
  * label apart in the list, and its label when it has none.
+ *
+ * A FIELD THAT ALSO TAKES A VALUE NOT AMONG ITS SUGGESTIONS MARKS ONE (0l, 1l; #527): "New at its
+ * right end, 12 inside, at Ink 3, so the dialog keeps its height while typing" — `mark`, its
+ * `word` drawn and what it means, `said`, for assistive tech alone: the drawing gives the mark
+ * that sentence and no line to set it on. The sentence is the field's description and is heard
+ * as it comes, so typing a category the type does not hold says once that it will be added.
  */
-export function Combobox({ name, value, onChange, onPick, suggestions, heading, placeholder, listOpen, onListOpenChange }) {
+export function Combobox({ name, value, onChange, onPick, suggestions, heading, placeholder, listOpen, onListOpenChange, mark }) {
     const field = useField();
-    const formBusy = useContext(FormBusyContext);
+    const formBusy = Boolean(useContext(FormBusyContext));
     const listId = `${field.control}list`;
+    const markId = `${field.control}mark`;
     const [active, setActive] = useState(-1);
     const anchorRef = useRef(null);
     const shown = listOpen && suggestions.length > 0 && !formBusy;
@@ -1040,7 +1149,7 @@ export function Combobox({ name, value, onChange, onPick, suggestions, heading, 
     };
 
     return (
-        <>
+        <div className="relative min-w-0">
             <input
                 ref={anchorRef}
                 id={field.control}
@@ -1051,7 +1160,7 @@ export function Combobox({ name, value, onChange, onPick, suggestions, heading, 
                 aria-expanded={shown}
                 aria-controls={listId}
                 aria-activedescendant={shown && active >= 0 ? `${listId}-${active}` : undefined}
-                aria-describedby={field.messageId}
+                aria-describedby={[field.messageId, mark !== undefined ? markId : null].filter(Boolean).join(" ") || undefined}
                 aria-invalid={field.refused || undefined}
                 autoComplete="off"
                 placeholder={placeholder}
@@ -1072,8 +1181,21 @@ export function Combobox({ name, value, onChange, onPick, suggestions, heading, 
                 onKeyDown={onKeyDown}
                 className={`h-control-lg w-full rounded-control border bg-white px-input-inset-x text-body text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle ${
                     field.refused ? "border-danger" : "border-border focus:border-border-focus"
-                }`}
+                } ${mark?.word ? "pr-input-mark-inset-right" : ""}`}
             />
+            {mark?.word && (
+                <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute top-1/2 right-[calc(var(--spacing-input-inset-x)+1px)] -translate-y-1/2 text-body text-foreground-subtle"
+                >
+                    {mark.word}
+                </span>
+            )}
+            {mark !== undefined && (
+                <span id={markId} aria-live="polite" className="sr-only">
+                    {mark?.said ?? ""}
+                </span>
+            )}
             <Menu
                 id={listId}
                 anchorRef={anchorRef}
@@ -1090,7 +1212,7 @@ export function Combobox({ name, value, onChange, onPick, suggestions, heading, 
                 active={active}
                 onPick={accept}
             />
-        </>
+        </div>
     );
 }
 
@@ -1144,8 +1266,9 @@ export function SearchField({ label, value, onChange, clearLabel }) {
 // under the pointer and while its list shows (0f). Holding values it stands on the Face with
 // its Edge, its name in Ink 3 and what it holds in Ink, the chevron after them and a 24 × that
 // empties it at its end, each part filling at Face hover.
-const FILTER_CHIP_EMPTY =
-    "flex h-control cursor-pointer items-center gap-control-icon-gap rounded-control border border-transparent pr-filter-chip-inset-right pl-control-inset-x text-body-sm font-medium whitespace-nowrap text-foreground-subtle outline-none hover:bg-hover hover:text-foreground-default focus-visible:border-border-focus aria-expanded:bg-hover aria-expanded:text-foreground-default";
+const FILTER_CHIP_GHOST =
+    "flex h-control cursor-pointer items-center gap-control-icon-gap rounded-control border border-transparent text-body-sm font-medium whitespace-nowrap text-foreground-subtle outline-none hover:bg-hover hover:text-foreground-default focus-visible:border-border-focus aria-expanded:bg-hover aria-expanded:text-foreground-default";
+const FILTER_CHIP_EMPTY = `${FILTER_CHIP_GHOST} pr-filter-chip-inset-right pl-control-inset-x`;
 const FILTER_CHIP_HOLDING = "flex h-control items-center rounded-control border border-selected-border bg-selected";
 const FILTER_CHIP_HELD =
     "flex h-full cursor-pointer items-center gap-gap rounded-l-[calc(var(--radius-control)-1px)] pr-[calc(var(--spacing-filter-chip-inset-right)-1px)] pl-control-inset-x text-body-sm font-medium whitespace-nowrap outline-none hover:bg-selected-hover focus-visible:bg-selected-hover aria-expanded:bg-selected-hover";
@@ -1338,6 +1461,49 @@ export function FilterChip({ label, options, values, onChange, clearLabel, sever
     );
 }
 
+/**
+ * A filter that narrows by one condition and holds no value (1l, #527) — the catalog's
+ * `Discontinued only`. Off, it is a filter chip's ghost with no chevron and 10 either side, since
+ * it opens nothing; on, it is a held filter chip's two parts: its words in Ink on the Face inside
+ * the Edge, and a 24 × at its end that turns it off.
+ *
+ * A TOGGLE BUTTON IN BOTH LOOKS (`aria-pressed`), so assistive tech hears one control that is on
+ * or off and turns it either way with the same press; the × is a pointer's second way off, named
+ * for the filter as a chip's is, and hands focus back to the toggle rather than letting it fall
+ * with itself.
+ */
+export function ToggleChip({ label, on, onChange, clearLabel }) {
+    const toggleRef = useRef(null);
+    const toggle = (
+        <button
+            ref={toggleRef}
+            type="button"
+            aria-pressed={on}
+            onClick={() => onChange(!on)}
+            className={on ? `${FILTER_CHIP_HELD} text-foreground-default` : `${FILTER_CHIP_GHOST} px-control-inset-x`}
+        >
+            {label}
+        </button>
+    );
+    if (!on) return <div className="flex shrink-0">{toggle}</div>;
+    return (
+        <div className={`${FILTER_CHIP_HOLDING} shrink-0`}>
+            {toggle}
+            <button
+                type="button"
+                aria-label={clearLabel}
+                onClick={() => {
+                    onChange(false);
+                    toggleRef.current?.focus();
+                }}
+                className="flex h-full w-clear-button items-center justify-center rounded-r-[calc(var(--radius-control)-1px)] text-foreground-subtle hover:bg-selected-hover hover:text-foreground-default"
+            >
+                <Icon name="x" className="size-clear-icon" />
+            </button>
+        </div>
+    );
+}
+
 // A chip of 0l's chips: 36 tall, its option at 14 and 400 like a field's value, 12 either side,
 // on white inside the Edge, filling at Wash under the pointer (0f Bordered); the one chosen on
 // the Face inside its Edge, filling at Face hover. Neither moves while a form waits (#469).
@@ -1371,7 +1537,7 @@ export function ChipChoice({ label, options, value, onChange, refusal }) {
     const labelId = useId();
     const refusalId = useId();
     const gridRef = useRef(null);
-    const formBusy = useContext(FormBusyContext);
+    const formBusy = Boolean(useContext(FormBusyContext));
     const chosen = options.findIndex((option) => option.value === value);
     const labels = options.map((option) => option.label).join("\n");
 

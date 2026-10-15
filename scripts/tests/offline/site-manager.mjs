@@ -17,7 +17,10 @@
 //   2. THE SERVER. Every export of a `"use server"` file on the assets axis is
 //      `withSiteManagerAction(handler)`, found by walking the tree rather than listed — so
 //      a fifth action fails until it is wrapped and this inventory says so — and no handler
-//      is exported, so the wrapper cannot be stepped round. lib/authz.js binds that wrapper
+//      is exported, so the wrapper cannot be stepped round. The catalog's page's are the one
+//      exception and are held file by file: the catalog is the office's (#527), so each of its
+//      five is `withAdminAction` round a handler kept in, and no action of a site manager's
+//      stands in that file or one of the office's in theirs. lib/authz.js binds that wrapper
 //      to `createFlagGuard` over a gate whose verdict is `isSiteManager`, with a refusal that
 //      re-renders the page and says nothing.
 //   3. THE SCREENS. Each asset page asks `isSiteManager` once, into `recorder`, and every
@@ -58,6 +61,15 @@ const ASSET_ACTIONS = [
     "app/(assets)/assets/[assetId]/actions.js::retireAssetAction",
     "app/(assets)/assets/actions.js::readAssetLabelsAction",
     "app/(assets)/asset-categories/actions.js::registerAssetsAction",
+];
+
+/** The catalog's page's actions (#527), the office's, in a file of their own. */
+const CATALOG_ACTIONS = [
+    "app/(assets)/asset-catalog/actions.js::saveAssetCategoryAction",
+    "app/(assets)/asset-catalog/actions.js::addAssetCategoryGroupAction",
+    "app/(assets)/asset-catalog/actions.js::setAssetCategoryDiscontinuedAction",
+    "app/(assets)/asset-catalog/actions.js::removeAssetCategoryAction",
+    "app/(assets)/asset-catalog/actions.js::setAssetCategoriesClassAction",
 ];
 
 /**
@@ -316,14 +328,19 @@ export function run({ check, assert, log }) {
     });
     const actions = entries.filter((e) => e.kind !== "page" && (e.file.startsWith("app/(assets)/") || e.file.startsWith("app/l/")));
     check(
-        "the axis's server actions are the four this gate is for, found by walking",
+        "the axis's server actions are the four this gate is for and the catalog's five, found by walking",
         actions.map((e) => `${e.file}::${e.name}`).sort().join(" | "),
-        [...ASSET_ACTIONS].sort().join(" | ")
+        [...ASSET_ACTIONS, ...CATALOG_ACTIONS].sort().join(" | ")
     );
     check(
-        "  each withSiteManagerAction around a handler nobody can call round it",
+        "  each withSiteManagerAction around a handler nobody can call round it, the catalog's withAdminAction",
         actions.map((e) => `${e.name}: ${wrappingOf(e.ast, e.name)}`).sort().join(" | "),
-        ASSET_ACTIONS.map((key) => `${key.split("::")[1]}: withSiteManagerAction(1 arg), handler not exported`).sort().join(" | ")
+        [
+            ...ASSET_ACTIONS.map((key) => `${key.split("::")[1]}: withSiteManagerAction(1 arg), handler not exported`),
+            ...CATALOG_ACTIONS.map((key) => `${key.split("::")[1]}: withAdminAction(2 args), handler not exported`),
+        ]
+            .sort()
+            .join(" | ")
     );
     // ANTI-VACUITY: the classifier tells the right wrapper from another, a handler kept in from
     // one exported beside it, and a plain export from a wrapped one.

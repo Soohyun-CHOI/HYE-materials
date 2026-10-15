@@ -1185,11 +1185,13 @@ export function run({ check, assert, log }) {
     const listOpeners = dialogOpeners(parseFile(LIST_SCREEN).ast);
     check("the category list opens it from its head, and from an empty list", listOpeners.length, 2);
     // THE CATALOG IS THE WHOLE READ'S (#507), and never the scope's (#509): a kind is the
-    // company's, and one off the reader's jobs or with nothing under it is one to add to.
+    // company's, and one off the reader's jobs or with nothing under it is one to add to. And
+    // a key since #527, since the page hands it to the list, a client component, among the
+    // head's children there.
     check(
         "  on no tool, in the same title, with the whole catalog to pick from — whatever the list's scope (#509, #507)",
         listOpeners[0]?.handed,
-        "canRegister: canRegisterAssets(user, allJobs), catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), opener: ASSET_REGISTRATION_COPY.heading"
+        "canRegister: canRegisterAssets(user, allJobs), catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), key: registration, opener: ASSET_REGISTRATION_COPY.heading"
     );
     check("  asking the same predicate", listOpeners[0]?.asks, "canRegisterAssets");
     // A READER ON NO JOB MEETS NO OPENER IN THE HEAD (1a2, #522): the design draws the no-job
@@ -2025,9 +2027,10 @@ export function run({ check, assert, log }) {
         };
         return [
             inLane(/<div ref=\{topRef\} className="sticky top-0 z-10">\s*\{top\}\s*<\/div>\s*<div ref=\{headerRef\}>\{header\}<\/div>/),
-            inLane(
-                /<div className="sticky top-0 z-10 bg-background-translucent backdrop-blur-sm">\s*\{header\}\s*\{band && <div className=\{`\$\{LIST_MEASURE\} flex items-center gap-gap pb-control-band-inset-y`\}>\{band\}<\/div>\}\s*<\/div>/
-            ),
+            inLane(/<div className="sticky top-0 z-10 bg-background-translucent backdrop-blur-sm">\s*\{header\}\s*\{band && <div className=\{BAND\}>\{band\}<\/div>\}\s*<\/div>/),
+            // 1l's band under its head, both scrolling away under the bar (#527).
+            inLane(/<div ref=\{headerRef\}>\{header\}<\/div>\s*\{band && <div className=\{BAND\}>\{band\}<\/div>\}/),
+            /const BAND = `\$\{LIST_MEASURE\} flex items-center gap-gap pb-control-band-inset-y`;/.test(source),
             /\$\{\s*top \? UNDER_BAR : band \? UNDER_HEAD_AND_BAND : UNDER_HEAD\s*\}/.test(frameFn),
             /const UNDER_HEAD_AND_BAND =\s*"\[--table-head-top:calc\(var\(--spacing-list-header-inset-top\)\+var\(--height-control-lg\)\+var\(--spacing-list-header-inset-bottom\)\+var\(--height-control\)\+var\(--spacing-control-band-inset-y\)\)\] scroll-pt-\[calc\(var\(--table-head-top\)\+var\(--height-table-header\)\)\]";/.test(source),
             /const UNDER_HEAD =\s*"\[--table-head-top:calc\(var\(--spacing-list-header-inset-top\)\+var\(--height-control-lg\)\+var\(--spacing-list-header-inset-bottom\)\)\] scroll-pt-\[calc\(var\(--table-head-top\)\+var\(--height-table-header\)\)\]";/.test(source),
@@ -2038,9 +2041,9 @@ export function run({ check, assert, log }) {
         ].join(" ");
     };
     check(
-        "  one scroll: 1a's head and its band and 1d's bar held at the top inside the lane, the column head under each, focus clear of them, the pager after the lane",
+        "  one scroll: 1a's head and its band and 1d's bar held at the top inside the lane, 1l's band under its head below the bar, the column head under each, focus clear of them, the pager after the lane",
         oneScroll(frameWhole),
-        "true true true true true true true true"
+        "true true true true true true true true true true"
     );
     check(
         "  and the column head reads where the frame holds it",
@@ -2052,7 +2055,7 @@ export function run({ check, assert, log }) {
         oneScroll(
             'export default function ListFrame() { return <div>{top && <div className="shrink-0 pr-scrollbar-gutter">{top}</div>}<div className="shrink-0">{header}</div><div ref={laneRef} className={`${SCROLL_LANE}`} /><div className={PAGER_OVER_ROWS} /></div>; }'
         ),
-        "false false false false false false false false"
+        "false false false false false false false false false false"
     );
     // 1d's NAME IN THE BAR once its head has scrolled under it: measured by the frame, marked on
     // the lane, drawn by the bar under the mark behind a 16 rule 16 either side at 13 and 600,

@@ -1,4 +1,4 @@
-import { requireUser } from "@/lib/authz";
+import { requireAdmin } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllAssetCategories } from "@/lib/airtable/assetCategories";
 import { getAssetsByRecordIds } from "@/lib/airtable/assets";
@@ -11,9 +11,12 @@ import {
     assetCategoriesInScope,
 } from "@/lib/assetListView";
 import { registrationCatalog } from "@/lib/assetCategory";
+import { ASSET_CATALOG_COPY } from "@/lib/assetCatalog";
 import { ASSET_REGISTRATION_COPY, canRegisterAssets } from "@/lib/assetRegistration";
+import { ASSET_CATALOG_PATH } from "@/lib/assetRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
 import { isSiteManager } from "@/lib/siteManager";
+import { ButtonLink } from "@/app/components/Controls";
 import ListFrame from "@/app/components/ListFrame";
 import { ListHeader } from "@/app/components/ListTable";
 import JobChoice from "../JobChoice";
@@ -83,6 +86,11 @@ export const metadata = { title: COPY.heading };
  * THE JOB IS A CHOICE ONLY FOR A READER WITH MORE THAN ONE (#519): 1a draws the chip for a
  * reader on several jobs and nothing for one on one, whose list is that job's.
  *
+ * THE OFFICE IS OFFERED THE CATALOG (1a, #527): `Catalog`, bordered, in the head after the job's
+ * chip and 12 before `Add items`, in every state the list takes. The office is asked through
+ * `requireAdmin`, the gate the catalog's page and its actions ask — one read, since a render reads
+ * the person once — and nothing here reads the flag itself (`offline/site-manager.mjs`).
+ *
  * NO WIDTH OF ITS OWN AND NO TEXT IN THE MARKUP — #336 put this axis's only container
  * in the layout, the 1080 here is the content's measure inside it (0b), and every
  * string comes from a constant so a vocabulary sweep can reach it.
@@ -99,7 +107,9 @@ export default async function AssetCategoriesPage(props) {
 // here is narrower since #506 — adding assets is a site manager's — and what a reader is
 // SHOWN is one of their jobs since #520; neither closes anything to them.
 async function renderCategoriesPage({ searchParams }) {
-    const user = await requireUser();
+    // The gate that admits every signed-in reader, and the office's answer with it (#527): a
+    // reader who is not the office still reads the list, without the catalog's opener.
+    const { user, authorized: office } = await requireAdmin();
     const sp = (await searchParams) ?? {};
     // Whether this reader adds assets (#506) — the one question every opener below is drawn
     // under.
@@ -132,7 +142,18 @@ async function renderCategoriesPage({ searchParams }) {
     };
     // A reader on no job meets no opener in the head (1a2, #522): the design draws its no-job
     // state with the heading alone, where #509 drew the opener locked with why before it.
-    const opener = recorder && !onNoJob && <RegistrationDialog {...registration} />;
+    //
+    // EACH OF THE HEAD'S CONTROLS MADE HERE CARRIES A KEY (#527). Handed to the list, a client
+    // component, they arrive as elements this page made and stand among the head's children
+    // there, where React asked a key of them and warned on every load of the list without one —
+    // the registration's opener alone did, measured for a reader the catalog's is not drawn for.
+    const opener = recorder && !onNoJob && <RegistrationDialog key="registration" {...registration} />;
+    // The way to the catalog, the office's alone (#527) and in every state of the head.
+    const catalog = office && (
+        <ButtonLink key="catalog" variant="bordered" href={ASSET_CATALOG_PATH}>
+            {ASSET_CATALOG_COPY.heading}
+        </ButtonLink>
+    );
 
     // Nothing on the job, or no job at all: the words where the rows would be (1a2, #519) —
     // a reader on no job's, a site manager's with the opener under them, or who fills it for
@@ -143,6 +164,7 @@ async function renderCategoriesPage({ searchParams }) {
                 header={
                     <ListHeader title={COPY.heading} count={onNoJob ? null : 0} noun={COPY.itemNoun(0)}>
                         {choosable && <JobChoice jobs={choosable} job={job} />}
+                        {catalog}
                         {opener}
                     </ListHeader>
                 }
@@ -162,5 +184,5 @@ async function renderCategoriesPage({ searchParams }) {
         );
     }
 
-    return <AssetCategoryList rows={rows} job={job} jobs={choosable} opener={opener} />;
+    return <AssetCategoryList rows={rows} job={job} jobs={choosable} catalog={catalog} opener={opener} />;
 }

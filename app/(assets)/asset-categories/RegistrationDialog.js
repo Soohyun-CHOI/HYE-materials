@@ -32,7 +32,7 @@ import { registerAssetsAction } from "./actions";
  * size and its model since #520, the maker and part number together, each only where the rows
  * give a choice — the count and the job, and submits. Nothing here creates a kind: the
  * name typed on this dialog from #338 was found or created as it was written, and the office
- * keeps the catalog in Airtable now.
+ * keeps the catalog now, on its own page (#527) and in Airtable.
  *
  * THE FIRST STEP IS 1b's SINCE #520: the search the dialog is built around (`DialogSearch`,
  * 0f Field), the type and the category as chips taking one value at its row's end, and every

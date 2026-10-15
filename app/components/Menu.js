@@ -1,7 +1,7 @@
 "use client";
 
-import { Fragment, useId, useLayoutEffect, useRef } from "react";
-import { menuIndex, menuKey, typeaheadIndex } from "@/lib/controls";
+import { Fragment, useId, useLayoutEffect, useRef, useState } from "react";
+import { menuButtonKey, menuIndex, menuKey, typeaheadIndex } from "@/lib/controls";
 import Icon from "./Icon";
 
 // 0a Menu's head, a line that names what follows and answers no pointer: 12 at Ink 3 and
@@ -238,8 +238,30 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
  * — `Sign out` over the reader's email. It is named by its word and described by its detail.
  * An item marked `separated` stands under a full-width Inner rule when anything stands above
  * it, and alone, with none, when nothing does.
+ *
+ * `look="end"` IS A MENU SET FLUSH AGAINST ITS OPENER'S RIGHT END (1l, #527), at least as wide as
+ * the opener and up to 280 inside its room and its Edge — a dialog's `More actions`, whose 28 has
+ * no ink to meet the content's edge as the asset page's 32 does, and the selection bar's `Set
+ * class`, which opens above itself. Its items are as tall as the control that opens it, 0a's rule
+ * and 1l's drawing: `rows="close"` under a dialog head's 28, and `rows="lg"` under a 36. **Its
+ * least width is 1l's for each**, as #522 took every menu's from its drawing: `More actions`
+ * 140 inside its room and its Edge, as the record's is, and `Set class` 140 with both counted
+ * (`outerLeast`), as 1a's lists are.
  */
-export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "below", look = "account", focusOn = "first", heading, items, onClose }) {
+export function ActionMenu({
+    id,
+    anchorRef,
+    shown,
+    labelledBy,
+    placement = "below",
+    look = "account",
+    rows = "lg",
+    outerLeast = false,
+    focusOn = "first",
+    heading,
+    items,
+    onClose,
+}) {
     const listRef = useRef(null);
     const headingId = useId();
 
@@ -257,9 +279,13 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
             // A record's menu is set against its opener's right end, the class's margin
             // pulling it in from there; one beside its opener from the opener's right edge;
             // every other from its left.
-            if (look === "record") {
+            if (look === "record" || look === "end") {
                 list.style.left = "auto";
                 list.style.right = `${document.documentElement.clientWidth - box.right}px`;
+                if (look === "end")
+                    list.style.minWidth = outerLeast
+                        ? `max(var(--min-width-menu), ${box.width}px)`
+                        : `max(calc(var(--min-width-menu) + 2 * var(--spacing-menu-inset) + 2px), ${box.width}px)`;
             } else {
                 list.style.left = `${placement === "beside" ? box.right : box.left}px`;
             }
@@ -283,7 +309,7 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
             window.removeEventListener("resize", place);
             document.removeEventListener("scroll", place, true);
         };
-    }, [shown, anchorRef, placement, look, focusOn]);
+    }, [shown, anchorRef, placement, look, outerLeast, focusOn]);
 
     const onKeyDown = (event) => {
         const action = menuKey(event);
@@ -345,7 +371,7 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
                             onClick={item.onSelect}
                             aria-labelledby={item.detail ? labelId : undefined}
                             aria-describedby={item.detail ? detailId : undefined}
-                            className={`flex w-full shrink-0 text-left outline-none ${item.detail ? DETAIL_ITEM : `items-center ${ITEM_LOOK[look]}`} ${
+                            className={`flex w-full shrink-0 text-left outline-none ${item.detail ? DETAIL_ITEM : `items-center ${ITEM_LOOK[look]} ${look === "end" ? ITEM_ROWS[rows] : ""}`} ${
                                 item.tone === "danger" ? DANGER_ITEM[look] : item.detail ? "focus-visible:bg-hover active:bg-hover" : "hover:bg-hover focus-visible:bg-hover"
                             }`}
                         >
@@ -368,6 +394,97 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
         </div>
     );
 }
+
+/**
+ * A button that opens a menu set flush at its end (1l, #527) — WAI-ARIA's menu button, as the
+ * asset page's `More actions` and the rail's account are: it says it opens a menu and whether it
+ * is open, Enter, Space and Down open it on its first item and Up on its last, and Escape hands
+ * focus back here. Choosing an item hands focus here before the item acts, so whatever the item
+ * opens returns it here as the browser's modal dialog does.
+ *
+ * TWO LOOKS. `icon` is a dialog's head button: 28 square at the Control radius, its 14 dots in
+ * Ink 3, taking Hover and Ink under the pointer and while its menu is open — 1l's `More actions`,
+ * named by `label` alone. `bordered` is 0a's Commitment in its bordered kind with its word, a 14
+ * chevron 8 after it in Ink 3, 16 before the word and 12 after the chevron, and the Wash while its
+ * menu is open — 1l's `Set class`, which opens above itself from the selection bar. `locked` is a
+ * busy dialog's (#469): its look kept, no press taken.
+ */
+export function MenuButton({ label, look = "icon", placement = "below", locked = false, items }) {
+    const [open, setOpen] = useState(false);
+    const [focusOn, setFocusOn] = useState("first");
+    const buttonRef = useRef(null);
+    const id = useId();
+    const buttonId = `${id}-button`;
+    const menuId = `${id}-menu`;
+
+    const openOn = (where) => {
+        if (locked) return;
+        setFocusOn(where);
+        setOpen(true);
+    };
+    const close = (how) => {
+        setOpen(false);
+        if (how === "escape") buttonRef.current?.focus();
+    };
+
+    return (
+        <div className="flex">
+            <button
+                ref={buttonRef}
+                id={buttonId}
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={open}
+                aria-controls={open ? menuId : undefined}
+                aria-label={look === "icon" ? label : undefined}
+                aria-disabled={locked || undefined}
+                onClick={() => (open ? close("toggle") : openOn("first"))}
+                onKeyDown={(event) => {
+                    const where = menuButtonKey(event);
+                    if (!where || open) return;
+                    event.preventDefault();
+                    openOn(where);
+                }}
+                className={MENU_BUTTON_LOOK[look]}
+            >
+                {look === "icon" ? (
+                    <Icon name="ellipsis" className="size-icon-sm" />
+                ) : (
+                    <>
+                        {label}
+                        <Icon name="chevron-down" className="size-icon-sm shrink-0 text-foreground-subtle" />
+                    </>
+                )}
+            </button>
+            <ActionMenu
+                id={menuId}
+                anchorRef={buttonRef}
+                shown={open}
+                labelledBy={buttonId}
+                placement={placement}
+                look="end"
+                rows={look === "icon" ? "close" : "lg"}
+                outerLeast={look === "bordered"}
+                focusOn={focusOn}
+                items={items.map((item) => ({
+                    ...item,
+                    onSelect: () => {
+                        buttonRef.current?.focus();
+                        setOpen(false);
+                        item.onSelect();
+                    },
+                }))}
+                onClose={close}
+            />
+        </div>
+    );
+}
+
+const MENU_BUTTON_LOOK = {
+    icon: "flex aspect-square h-dialog-close shrink-0 items-center justify-center rounded-control text-foreground-subtle not-aria-disabled:hover:bg-hover not-aria-disabled:hover:text-foreground-default aria-expanded:bg-hover aria-expanded:text-foreground-default",
+    bordered:
+        "flex h-control-lg shrink-0 items-center gap-gap rounded-control border border-border bg-white pr-input-inset-x pl-control-lg-inset-x font-ui text-body font-semibold whitespace-nowrap text-foreground-default not-aria-disabled:hover:bg-hover-subtle aria-expanded:bg-hover-subtle",
+};
 
 // Where each placement sets the menu from its opener: under it at 0a's 6, above it at the
 // same 6, or beside the collapsed rail's account at 0m's 8, where the rows run on one line.
@@ -396,6 +513,7 @@ const MENU_LOOK = {
         "max-sm:w-[calc(var(--width-mobile-menu)+2px)] max-sm:min-w-0 max-sm:max-w-none max-sm:overflow-hidden max-sm:rounded-mobile-control max-sm:p-0 " +
         "max-sm:mt-[calc(var(--spacing-mobile-menu-offset)+(var(--height-mobile-top-bar)-var(--spacing-mobile-touch-target))/2)] " +
         "max-sm:mr-[calc(var(--spacing-mobile-menu-gutter)-var(--spacing-mobile-top-bar-inset-right))]",
+    end: "mx-0 w-max min-w-[calc(var(--min-width-menu)+2*var(--spacing-menu-inset)+2px)] max-w-[calc(var(--max-width-menu)+2*var(--spacing-menu-inset)+2px)] rounded-card p-menu-inset",
 };
 
 // An item at each look: the Control's height and the Group corner at a desk, at 13 and 400,
@@ -405,7 +523,11 @@ const ITEM_LOOK = {
     record:
         "h-control rounded-control px-control-inset-x text-body-sm " +
         "max-sm:h-mobile-touch-target max-sm:rounded-none max-sm:px-mobile-menu-row-inset-x max-sm:text-mobile-heading",
+    end: "rounded-control px-control-inset-x text-body-sm whitespace-nowrap",
 };
+
+// How tall an item of a menu set flush at its opener's end is: its opener's height (0a).
+const ITEM_ROWS = { close: "h-dialog-close", lg: "h-control-lg" };
 
 // The account a phone's menu ends on (Tools 0a Menu, #495): a row at least 56 tall, 8 above
 // and below and 16 either side, its word over its detail. It takes the Hover face while held,
@@ -421,4 +543,5 @@ const DANGER_ITEM = {
     record:
         "hover:bg-danger-subtle hover:text-danger focus-visible:bg-danger-subtle focus-visible:text-danger " +
         "max-sm:text-danger max-sm:hover:bg-transparent max-sm:focus-visible:bg-transparent max-sm:active:bg-danger-subtle",
+    end: "hover:bg-danger-subtle hover:text-danger focus-visible:bg-danger-subtle focus-visible:text-danger",
 };

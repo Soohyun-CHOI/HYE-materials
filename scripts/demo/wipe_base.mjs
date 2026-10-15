@@ -121,13 +121,16 @@ const KEPT = [
     // The assets axis (#334-#362). `Asset Categories` is the office's catalog since
     // #517, revised by #528 from scripts/import/sources/asset_categories_528.csv,
     // and edited by hand after, a hand edit being in no file — so it is reference
-    // data, as #354's is. `Asset Category Groups` (#528) is in no `TABLES` entry
-    // until a screen reads it, so this script never reaches it.
+    // data, as #354's is. `Asset Category Groups` (#528) is the same list's types
+    // and categories, kept for the same reason: loaded from its own CSV and edited
+    // by hand since, and a category waiting for its first item is in no file at
+    // all. Its first reader is the catalog's page (#527).
     // An asset is registered through the app and is the row a printed label
-    // points at, which nothing in this directory rebuilds. None of the three sits
+    // points at, which nothing in this directory rebuilds. None of the four sits
     // on a screen the document demo shows, so clearing them would cost real work to
     // make a set of pages tidier that never render them.
     TABLES.ASSET_CATEGORIES,
+    TABLES.ASSET_CATEGORY_GROUPS,
     TABLES.ASSETS,
     TABLES.ASSET_LOG,
 ];

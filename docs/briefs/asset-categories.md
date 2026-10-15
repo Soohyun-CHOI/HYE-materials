@@ -80,6 +80,12 @@ for the office, their own for anybody else, a job with nothing on it included.
 Choosing one moves the list to that job, from the first page, keeping what the
 band holds. A reader on one job is drawn no choice: their list is that job's.
 
+**action.** For the office, `Catalog`, bordered, between the job's choice and
+`Add items` (1a, #527): the way to the catalog's own screen, `/asset-catalog`,
+where the office keeps what a registration picks from. It is drawn in every
+state the head takes and for nobody else — a reader who is not the office is
+drawn none, since keeping the catalog is a role and not something asked for.
+
 **The list stands on one job (#520), and a design may not make it stand on
 several.** It starts on the first of the reader's jobs by its code — the
 office, `Is Admin`, on the first of every job; anybody else on the first of

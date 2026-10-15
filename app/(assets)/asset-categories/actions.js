@@ -52,8 +52,8 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * names, or never had is refused above the actions, and the page is drawn again with the
  * refusal (`refresh()`, #378), so the dialog's two steps offer what the catalog holds now
  * while it keeps what was chosen. **Nothing here writes an `Asset Categories` row**: a kind
- * is the office's to add in Airtable, where the name typed on this dialog was found or
- * created from #338 (`upsertTool`, gone).
+ * is the office's to add, on the catalog's page since #527 or in Airtable, where the name
+ * typed on this dialog was found or created from #338 (`upsertTool`, gone).
  *
  * WHAT IT WROTE IS SAID BY LANDING ON IT (#449). A registration that writes an asset
  * redirects to its category's page, on the list's first page, with every one it wrote

@@ -27,6 +27,8 @@ const UNDER_HEAD =
 const UNDER_HEAD_AND_BAND =
     "[--table-head-top:calc(var(--spacing-list-header-inset-top)+var(--height-control-lg)+var(--spacing-list-header-inset-bottom)+var(--height-control)+var(--spacing-control-band-inset-y))] scroll-pt-[calc(var(--table-head-top)+var(--height-table-header))]";
 const UNDER_BAR = "[--table-head-top:var(--height-breadcrumb)] scroll-pt-[calc(var(--table-head-top)+var(--height-table-header))]";
+// A list's band (#520): its controls in a row 8 apart, 14 over the column head.
+const BAND = `${LIST_MEASURE} flex items-center gap-gap pb-control-band-inset-y`;
 const KEEP_CLEAR_OF_PAGER = "scroll-pb-[calc(var(--spacing-pager-inset-top)+var(--height-control)+var(--spacing-pager-inset-bottom))]";
 const KEEP_CLEAR_OF_BAR =
     "scroll-pb-[calc(var(--spacing-pager-inset-top)+var(--height-control)+var(--spacing-pager-inset-bottom)+var(--spacing-selection-bar-offset)+var(--height-control-lg)+2*var(--spacing-selection-bar-inset)+2px)]";
@@ -82,6 +84,9 @@ const KEEP_CLEAR_OF_BAR =
  * `band` IS 1a's FILTER BAND (#520): the list's controls in a row 8 apart under the head, 14
  * over the column head, held at the top with the head as the one Sticky surface 0i draws — so
  * the column head holds under both. A list with no band holds its column head under the head.
+ * **A list with a bar draws its band under the head and scrolls it away with it (1l, #527)** —
+ * the catalog, which 1l draws as 1d is drawn, its column head held under the bar — so the
+ * name comes into the bar once the head has gone, the band still below it.
  */
 export default function ListFrame({ top, header, band, footer, overlay, overlayShown = false, children }) {
     const laneRef = useRef(null);
@@ -125,11 +130,12 @@ export default function ListFrame({ top, header, band, footer, overlay, overlayS
                             {top}
                         </div>
                         <div ref={headerRef}>{header}</div>
+                        {band && <div className={BAND}>{band}</div>}
                     </>
                 ) : (
                     <div className="sticky top-0 z-10 bg-background-translucent backdrop-blur-sm">
                         {header}
-                        {band && <div className={`${LIST_MEASURE} flex items-center gap-gap pb-control-band-inset-y`}>{band}</div>}
+                        {band && <div className={BAND}>{band}</div>}
                     </div>
                 )}
                 <div className={LIST_MEASURE}>{children}</div>

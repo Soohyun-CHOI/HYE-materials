@@ -12,13 +12,16 @@ used at a desk and does not support a phone's width (`_shared.md`).
 We bought some tools. Get them onto the system so each one can be labeled.
 
 **It picks a kind from the catalog and creates one tracked object per unit
-bought (#507).** The office keeps the catalog of tools and equipment in
-Airtable — every kind the company buys, named by a type (`Equipment` or
+bought (#507).** The office keeps the catalog of tools and equipment, on its
+own screen (`asset-catalog.md`, #527) and in Airtable — every kind the company
+buys, named by a type (`Equipment` or
 `Tool`), a category (a field of work, such as machining or welding) and a name,
 then a size, a maker and a part number where those apply (#514), and marked
 with a class — and this dialog never adds to it: it picks one of its rows and
 creates one `Assets` row per unit, each with its own minted id. A kind missing
-from the catalog is the office's to add. It created the kind as well until
+from the catalog is the office's to add, and **a kind the office has marked
+discontinued is not offered (#527)** — the items already under it stay where
+they are on every list and page. It created the kind as well until
 #507, from a name typed here. **The type changes nothing an asset does**: a
 piece of equipment is labeled, checked out, checked in and retired as a tool
 is.
@@ -199,8 +202,8 @@ chosen and typed stays with it** — the name, its size and model, the count and
 because what the sentence asks for is the same submit again.
 
 **When the catalog no longer offers the row picked (#507):** the office has
-emptied one of its levels or its class, or a second row names the same path,
-since the page was drawn. The submission is refused whole, with one sentence on
+emptied one of its levels or its class, marked it discontinued (#527), or a
+second row names the same path, since the page was drawn. The submission is refused whole, with one sentence on
 the line above the actions — `That item isn't available any more.` — and the
 page is drawn again under the dialog, so the dialog's names, sizes and models
 are the catalog's as it now stands and can no longer make the row refused. The dialog

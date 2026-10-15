@@ -55,6 +55,7 @@ const ROOT_PAGE = "app/page.js";
 const ASSETS_LAYOUT = "app/(assets)/layout.js";
 const CATEGORY_PAGE = "app/(assets)/asset-categories/[categoryRecordId]/page.js";
 const ASSET_PAGE = "app/(assets)/assets/[assetId]/page.js";
+const CATALOG_LIST = "app/(assets)/asset-catalog/CatalogList.js";
 const MORE_ACTIONS = "app/(assets)/assets/[assetId]/MoreActions.js";
 
 /** The design's sections less `Office`: key, word, address, in its order. */
@@ -98,6 +99,7 @@ const SECTION_OF_ROUTE = {
     "/assets/[assetId]": "assets",
     "/asset-categories": "assets",
     "/asset-categories/[categoryRecordId]": "assets",
+    "/asset-catalog": "assets",
 };
 
 /** An address a route template answers: each dynamic segment given a plain value. */
@@ -258,7 +260,7 @@ export async function run({ check, assert, log }) {
     check(
         "  and owns the first segment of every asset screen",
         NAVIGATION_SECTIONS.find((s) => s.key === "assets").segments.join(" "),
-        "asset-categories assets"
+        "asset-categories assets asset-catalog"
     );
     assert(
         "  and ASSET_ROUTES really starts with those, the printed address not among them",
@@ -325,12 +327,12 @@ export async function run({ check, assert, log }) {
 
     // ── 4: who calls the rail and the breadcrumb ─────────────────────────────
     log("");
-    log("only the assets layout calls the rail, and only the two pages the design draws one on call the breadcrumb:");
+    log("only the assets layout calls the rail, and only the three pages the design draws one on call the breadcrumb:");
     const appFiles = ["app", "components", "lib"].flatMap((d) => listJsFiles(repoPath(d))).map(repoRelative);
     const importers = (target) =>
         appFiles.filter((rel) => [...importedPairs(rel, parseFile(rel).ast)].some((p) => p.startsWith(`${target}::`))).sort();
     check("  the rail's callers", importers(RAIL).join(" "), ASSETS_LAYOUT);
-    check("  the breadcrumb's callers", importers(BREADCRUMB).join(" "), [ASSET_PAGE, CATEGORY_PAGE].sort().join(" "));
+    check("  the breadcrumb's callers", importers(BREADCRUMB).join(" "), [ASSET_PAGE, CATALOG_LIST, CATEGORY_PAGE].sort().join(" "));
     assert("  and the walk finds a component's callers at all", importers("app/components/DialogFrame.js").length > 2);
 
     // The asset page ends its path on the code its label prints (1f).

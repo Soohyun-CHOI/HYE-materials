@@ -9,13 +9,18 @@
 // equipment with no size, one name under two categories and under two types, every way a row
 // can be incomplete, a placeholder typed for an empty level, and a path named twice. And since
 // #528 the groups a row's type and category stand in: which rows of `Asset Category Groups`
-// stand, on a list typed the same way, and which catalog rows no group holds.
+// stand, on a list typed the same way, and which catalog rows no group holds. And since #527 the
+// mark a row the office no longer buys carries, `Discontinued`: such a row is not offered and
+// still holds its path, on a small catalog of its own so the fixture above reads as it did.
 //
-// AND THAT NOTHING UNDER `app/` OR `lib/` WRITES AN `Asset Categories` ROW. The office fills the
-// catalog in Airtable — its first rows loaded from its own list by a script (#517) — and a
-// registration picks a row, where until #507 it found or created one under a lock. No figure
-// on a screen says whether a write is gone, so every use of the table under `app/` and `lib/`
-// is read off the source, and each has to be a read.
+// AND THAT ONE MODULE WRITES AN `Asset Categories` ROW, FOR ONE PAGE (#527). The office keeps the
+// catalog — its first rows loaded from its own list by a script (#517), and since #527 on the
+// catalog's own page — and a registration picks a row, where until #507 it found or created one
+// under a lock. No figure on a screen says whether a write is gone or a second writer has come,
+// so every use of the table under `app/` and `lib/` is read off the source: each outside
+// `lib/airtable/assetCategories.js` has to be a read, the writes inside it are the five the
+// catalog's page makes, and nothing but that page's actions imports one. From #507 until #527
+// every use had to be a read.
 //
 // AND ONE SPELLING OF EACH FIELD. The reader in `lib/airtable/assetCategories.js`, the catalog's
 // script, the demo catalog's, the office catalog's load and the demo's removal (#517) and the
@@ -46,6 +51,7 @@ import {
     ASSET_PATH_SEPARATOR,
     ASSET_REQUIRED_LEVELS,
     ASSET_TYPE_VALUES,
+    DISCONTINUED_FIELD,
     ITEM_NAME_FORMULA,
     catalogLevelValues,
     catalogNames,
@@ -67,13 +73,18 @@ import {
 import { REPO_ROOT, listJsFiles, parentMap, parseFile, parseSource, repoPath, toPosix, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "The catalog an asset is chosen from, in six levels, its groups, and nothing writing a row of it (#507, #514, #517, #528)";
+export const title = "The catalog an asset is chosen from, in six levels, its groups, and one writer of its rows (#507, #514, #517, #527, #528)";
 
 /**
- * The reader of the table; the two scripts that write the catalog's schema and its demo rows;
- * and the two that load the office's rows and remove the demo's (#517).
+ * The module that reads the table and, since #527, writes it; the two scripts that write the
+ * catalog's schema and its demo rows; and the two that load the office's rows and remove the
+ * demo's (#517).
  */
 const READER = "lib/airtable/assetCategories.js";
+// The one file that may import a writer of `READER`'s, the catalog page's actions (#527), and
+// the writers it may import.
+const CATALOG_ACTIONS = "app/(assets)/asset-catalog/actions.js";
+const WRITERS = ["createAssetCategory", "removeAssetCategory", "setAssetCategoriesClass", "setAssetCategoryDiscontinued", "updateAssetCategory"];
 const SCRIPT = "scripts/import/classify_asset_categories_514.mjs";
 const SEED = "scripts/demo/seed_asset_catalog_514.mjs";
 const LOAD = "scripts/import/load_asset_catalog_517.mjs";
@@ -159,10 +170,17 @@ const ids = (categories) => categories.map((category) => category.id).join(",");
 /** Names as a reader of the search sees them: the name, and its place beside it. */
 const said = (names) => names.map((name) => `${name.level3} (${name.level1} > ${name.level2})`).join(", ");
 
-/** A row set aside, with why: the fields it lacks, the levels holding a placeholder, or the row whose path it repeats. */
+/**
+ * A row set aside, with why: the fields it lacks, the levels holding a placeholder, or the row
+ * whose path it repeats — and for a discontinued row (#527), which carries nothing more, the
+ * reason alone.
+ */
 const asideOf = (setAside) =>
     setAside
-        .map(({ category, reason, missing, levels, of }) => `${category.id}:${reason}:${reason === "incomplete" ? missing.join("+") : reason === "placeholder" ? levels.join("+") : of.id}`)
+        .map(({ category, reason, missing, levels, of }) => {
+            const why = reason === "incomplete" ? missing.join("+") : reason === "placeholder" ? levels.join("+") : reason === "repeated" ? of.id : "";
+            return why ? `${category.id}:${reason}:${why}` : `${category.id}:${reason}`;
+        })
         .join(" ");
 
 /** The second step as a reader sees it: each level it asks, its options and what it holds, then the row they make. */
@@ -196,8 +214,25 @@ function categoriesTableUses({ ast }) {
     return uses;
 }
 
-/** What may be done with the table: read it. */
+/** What may be done with the table anywhere: read it. */
 const READS = new Set(["base(…).select", "base(…).find", "findByRecordIds", "getLinkedRecords", "findChildRecords"]);
+
+/**
+ * The files in `files` that import one of `names` from a module whose specifier ends in
+ * `module` — `@/lib/airtable/assetCategories` and a relative path alike — each with what it
+ * imports.
+ */
+export function importersOf(files, module, names) {
+    const found = [];
+    for (const { file, ast } of files) {
+        walk(ast, (n) => {
+            if (n.type !== "ImportDeclaration" || !String(n.source?.value ?? "").replace(/\.js$/, "").endsWith(module)) return;
+            const taken = n.specifiers.map((s) => s.imported?.name).filter((name) => names.includes(name));
+            if (taken.length > 0) found.push(`${file}: ${taken.sort().join(" ")}`);
+        });
+    }
+    return found.sort();
+}
 
 /**
  * The string literals in a parsed file that spell one of the catalog's field names — and, apart,
@@ -205,7 +240,7 @@ const READS = new Set(["base(…).select", "base(…).find", "findByRecordIds", 
  * starts from (#514).
  */
 function fieldLiterals({ ast }) {
-    const names = new Set(Object.values(ASSET_CATEGORY_FIELDS));
+    const names = new Set([...Object.values(ASSET_CATEGORY_FIELDS), DISCONTINUED_FIELD]);
     const parents = parentMap(ast);
     const spelled = [];
     const renamedFrom = [];
@@ -274,6 +309,11 @@ export function run({ check, assert, log }) {
             .map(([key, field]) => `${key}=${field}`)
             .join(", "),
         "level1=Level 1, level2=Level 2, level3=Level 3, size=Size, maker=Maker, partNumber=Part Number, assetClass=Class"
+    );
+    check(
+        "  and the mark a row the office no longer buys carries, apart from what a kind is (#527)",
+        `${DISCONTINUED_FIELD} ${Object.values(ASSET_CATEGORY_FIELDS).includes(DISCONTINUED_FIELD)}`,
+        "Discontinued false"
     );
     check("  the path outermost first: type, category, name, then size, maker, part number", ASSET_PATH_LEVELS.join(" > "), "level1 > level2 > level3 > size > maker > partNumber");
     check("  the three every row a registration may pick fills", ASSET_REQUIRED_LEVELS.join(", "), "level1, level2, level3");
@@ -362,6 +402,31 @@ export function run({ check, assert, log }) {
     const completed = readCatalog([na, { ...na, id: "naFixed", maker: "Metabo" }, { ...na, id: "naEmpty", maker: "" }]);
     check("a set-aside row names no path: the whole ones after it are offered", `${ids(completed.offered)} | ${asideOf(completed.setAside)}`, "naFixed,naEmpty | na:placeholder:maker");
     check("  and no catalog offers nothing", `${readCatalog(undefined).offered.length} ${readCatalog(undefined).setAside.length}`, "0 0");
+    // A DISCONTINUED ROW (#527) is set aside and still the row its path is: a second row on that
+    // path repeats it rather than taking its place, and clearing the mark offers it again. Only
+    // the box's own `true` marks one, so a row read with no mark — a script reading the path
+    // alone — is offered.
+    const press = ROWS.find((r) => r.id === "press");
+    const air = ROWS.find((r) => r.id === "air");
+    const marked = readCatalog([{ ...press, discontinued: true }, { ...press, id: "pressAgain" }, air]);
+    check(
+        "a discontinued row is not offered, and a second row on its path repeats it (#527)",
+        `${ids(marked.offered)} | ${asideOf(marked.setAside)}`,
+        "air | press:discontinued pressAgain:repeated:press"
+    );
+    check("  with the mark cleared it is offered again", ids(readCatalog([{ ...press, discontinued: false }, { ...press, id: "pressAgain" }, air]).offered), "press,air");
+    check(
+        "  and only `true` marks one, nothing merely truthy",
+        ["true", 1, "yes", undefined].map((discontinued) => readCatalog([{ ...press, discontinued }]).offered.length).join(","),
+        "1,1,1,1"
+    );
+    check("  an incomplete row is incomplete whatever its mark", asideOf(readCatalog([{ ...ROWS.find((r) => r.id === "classC"), discontinued: true }]).setAside), "classC:incomplete:assetClass");
+    check("  the dialog is not handed it", ids(registrationCatalog([{ ...press, discontinued: true }, air])), "air");
+    check(
+        "  and its pair is no fault when no group holds it, since nobody may pick it",
+        ids(groupCatalog([{ ...press, level2: "Nowhere", discontinued: true }, { ...air, level2: "Nowhere" }], GROUP_ROWS).ungrouped),
+        "air"
+    );
     // WHAT THE DIALOG IS HANDED: the offered rows, their levels and class and nothing of their assets.
     const handed = registrationCatalog(ROWS);
     check("the dialog is handed the offered rows", ids(handed), ids(offered));
@@ -595,30 +660,51 @@ export function run({ check, assert, log }) {
         "Class A | A"
     );
 
-    // ── 6: nothing writes an `Asset Categories` row, and each field has one spelling ──────
+    // ── 6: one module writes an `Asset Categories` row, and each field has one spelling ──────
     log("");
-    log("every use of the table is a read, and the catalog's fields are spelled once:");
+    log("every use of the table outside its module is a read, its writes are the catalog page's, and the catalog's fields are spelled once:");
     const uses = [];
+    const parsed = [];
     for (const abs of [...listJsFiles(repoPath("app")), ...listJsFiles(repoPath("lib"))]) {
         const file = toPosix(relative(REPO_ROOT, abs));
-        for (const use of categoriesTableUses(parseFile(file))) uses.push({ file, use });
+        const source = parseFile(file);
+        parsed.push({ file, ast: source.ast });
+        for (const use of categoriesTableUses(source)) uses.push({ file, use });
     }
     log(`  ${uses.map(({ file, use }) => `${file} ${use}`).join("; ")}`);
     assert(`the table's uses under app/ and lib/ are found (${uses.length})`, uses.length >= 3);
     check(
-        "  and every one is a read",
+        "  and every one outside its module is a read",
         uses
-            .filter(({ use }) => !READS.has(use))
+            .filter(({ file, use }) => file !== READER && !READS.has(use))
             .map(({ file, use }) => `${file} ${use}`)
             .join("; "),
         ""
     );
-    // THE READER READS: its two exports, and no writer beside them.
+    // THE MODULE'S WRITES ARE THE CATALOG PAGE'S FIVE (#527): a row added, a row saved over, its
+    // mark, a class given several rows, and a row removed — each a batch form (#444).
+    check(
+        "  and inside it the writes are an add, three saves over and a removal",
+        uses
+            .filter(({ file, use }) => file === READER && !READS.has(use))
+            .map(({ use }) => use)
+            .sort()
+            .join(", "),
+        "base(…).create, base(…).destroy, base(…).update, base(…).update, base(…).update"
+    );
+    // ITS EXPORTS: the two readers and the five writers, and nothing else.
     const exported = [];
     walk(parseFile(READER).ast, (n) => {
         if (n.type === "ExportNamedDeclaration" && n.declaration?.id) exported.push(n.declaration.id.name);
     });
-    check(`${READER} exports its two readers and nothing else`, exported.sort().join(", "), "getAllAssetCategories, getAssetCategoriesByRecordIds");
+    check(
+        `${READER} exports its two readers and the catalog page's five writers`,
+        exported.sort().join(", "),
+        ["getAllAssetCategories", "getAssetCategoriesByRecordIds", ...WRITERS].sort().join(", ")
+    );
+    // AND ONLY THE CATALOG PAGE'S ACTIONS TAKE A WRITER — every one of them, so a writer nothing
+    // calls fails here as well as in `offline/unread-exports.mjs`.
+    check("  whose writers the catalog page's actions alone import, every one", importersOf(parsed, "lib/airtable/assetCategories", WRITERS).join(" | "), `${CATALOG_ACTIONS}: ${WRITERS.join(" ")}`);
     // ONE SPELLING: each field the reader takes off a record is the module's, beside the two
     // fields that are not the catalog's own.
     const got = [];
@@ -629,14 +715,14 @@ export function run({ check, assert, log }) {
     check(
         "  reading each catalog field by the module's name for it",
         got.sort().join(", "),
-        '"Assets", "Item Name", ASSET_CATEGORY_FIELDS.assetClass, ASSET_CATEGORY_FIELDS.level1, ASSET_CATEGORY_FIELDS.level2, ASSET_CATEGORY_FIELDS.level3, ASSET_CATEGORY_FIELDS.maker, ASSET_CATEGORY_FIELDS.partNumber, ASSET_CATEGORY_FIELDS.size'
+        '"Assets", "Item Name", ASSET_CATEGORY_FIELDS.assetClass, ASSET_CATEGORY_FIELDS.level1, ASSET_CATEGORY_FIELDS.level2, ASSET_CATEGORY_FIELDS.level3, ASSET_CATEGORY_FIELDS.maker, ASSET_CATEGORY_FIELDS.partNumber, ASSET_CATEGORY_FIELDS.size, DISCONTINUED_FIELD'
     );
     check("  and spelling none of them", fieldLiterals(reader).spelled, "");
     const script = parseFile(SCRIPT);
     check(
-        "the catalog's script takes the fields, both selects' values, the expression, the path and the readings from the module",
+        "the catalog's script takes the fields, the mark (#527), both selects' values, the expression, the path and the readings from the module",
         importedFromModule(script),
-        "ASSET_CATEGORY_FIELDS, ASSET_CLASS_VALUES, ASSET_GROUP_LEVELS, ASSET_TYPE_VALUES, ITEM_NAME_FORMULA, composeItemName, groupCatalog, pathOf, readCatalog, readCategoryGroups"
+        "ASSET_CATEGORY_FIELDS, ASSET_CLASS_VALUES, ASSET_GROUP_LEVELS, ASSET_TYPE_VALUES, DISCONTINUED_FIELD, ITEM_NAME_FORMULA, composeItemName, groupCatalog, pathOf, readCatalog, readCategoryGroups"
     );
     check("  and spells none of the fields", fieldLiterals(script).spelled, "");
     // THE TWO NAMES IT RENAMES FROM ARE #507's, in the order they must run: `Level 2` out of the way first.
@@ -682,6 +768,20 @@ export function run({ check, assert, log }) {
         "base(…).create:not, createRecords:not, VariableDeclarator:not, base(…).select:read"
     );
     check("  two spelled fields are seen, and a rename's field apart", `${fieldLiterals(planted).spelled} / ${fieldLiterals(planted).renamedFrom}`, "Level 1, Part Number / Level 3");
+    // A screen importing a writer, by the alias and by a relative path, is seen; a reader is not one.
+    check(
+        "  a writer imported anywhere is seen, whatever the path's spelling",
+        importersOf(
+            [
+                { file: "<planted-alias>", ast: parseSource('import { removeAssetCategory, getAllAssetCategories } from "@/lib/airtable/assetCategories";', "<planted-alias>").ast },
+                { file: "<planted-relative>", ast: parseSource('import { createAssetCategory } from "../../lib/airtable/assetCategories.js";', "<planted-relative>").ast },
+                { file: "<planted-reader>", ast: parseSource('import { getAllAssetCategories } from "@/lib/airtable/assetCategories";', "<planted-reader>").ast },
+            ],
+            "lib/airtable/assetCategories",
+            WRITERS
+        ).join(" | "),
+        "<planted-alias>: removeAssetCategory | <planted-relative>: createAssetCategory"
+    );
     // The catalog's reading is seen to tell rows apart, since "every row offered" and "every
     // row set aside" are also what a reading answering one way for all would give — and every
     // way a row is set aside is reached.

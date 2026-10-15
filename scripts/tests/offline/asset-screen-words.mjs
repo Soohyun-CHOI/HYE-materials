@@ -77,6 +77,11 @@ const STILL_CREATE = new Map([
         "the creation date, in the notice's sentence for one",
     ],
     ["Only the creation date wasn't saved for these", "the creation date, in the notice's sentence for several"],
+    // 1l's word for a category added alone, which adds no asset (#527): the commitment, what it
+    // says while it works, and the refusal of a press that wrote nothing.
+    ["Create category", "1l's commitment for a category added alone, which puts no asset into stock"],
+    ["Creating…", "that commitment while it works"],
+    ["Couldn't create the category. Try again.", "that commitment's press when it wrote nothing"],
 ]);
 
 /** The noun #519 replaced, as a word in either number. */
@@ -95,12 +100,13 @@ const staleEntries = (rendered) => [...STILL_CREATE.keys()].filter((text) => !re
  * The assets axis's screens, typed out — what this file covers, pinned by value. The labels'
  * screen left the list in #457; its words are the dialog's, which the two pages that open
  * it render, so they are covered through those. The address a label prints left it in
- * #478; it draws nothing, so it says nothing.
+ * #478; it draws nothing, so it says nothing. The catalog joined it in #527.
  */
 const ROUTES = [
     "/asset-categories",
     "/asset-categories/[categoryRecordId]",
     "/assets/[assetId]",
+    "/asset-catalog",
 ];
 
 export function run({ check, assert, log }) {
@@ -163,8 +169,9 @@ export function run({ check, assert, log }) {
     for (const passed of ["Add items", "Add 5 items", "Adding…", "Add 2 more", "Created"])
         assert(`  and passes ${JSON.stringify(passed)}`, !REGISTER.test(passed));
     // The second matcher and the list, on what the screens said for the act until #485 — each
-    // caught and named nowhere, so each would fail above — and on its words now.
-    for (const planted of ["Create tools", "Creating…", "tools created", "couldn't be created.", "Create the rest"])
+    // caught and named nowhere, so each would fail above — and on its words now. The working
+    // word carries the act's noun since #527, which names a category's bare `Creating…`.
+    for (const planted of ["Create tools", "Creating tools…", "tools created", "couldn't be created.", "Create the rest"])
         assert(`  the create matcher catches ${JSON.stringify(planted)}, which the list does not name`, CREATE.test(planted) && !STILL_CREATE.has(planted));
     for (const passed of ["Add items", "Add 1 item", "Adding…", "tools added", "couldn't be added.", "Add 2 more"])
         assert(`  and the create matcher passes ${JSON.stringify(passed)}`, !CREATE.test(passed));

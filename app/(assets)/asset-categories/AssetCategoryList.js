@@ -51,11 +51,12 @@ const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(3,var(--width-table-count))]";
  * rows stood, naming what was typed, with one control that clears the search alone when that
  * is all that narrows and everything otherwise (`emptiedListWords`); no pager stands under it.
  *
- * THE HEAD HOLDS THE JOB'S CHIP AND THE OPENER. `jobs` are the jobs the chip offers, for a
+ * THE HEAD HOLDS THE JOB'S CHIP AND THE OPENERS. `jobs` are the jobs the chip offers, for a
  * reader on several, and the chip is drawn here so it can carry what the band holds to the job
- * chosen; `opener` is a site manager's, drawn by the page, which reads what it needs.
+ * chosen; `catalog` is the office's way to the catalog (#527) and `opener` a site manager's, each
+ * drawn by the page, which reads what it needs.
  */
-export default function AssetCategoryList({ rows, job, jobs, opener }) {
+export default function AssetCategoryList({ rows, job, jobs, catalog, opener }) {
     const params = useSearchParams();
     const asked = readAssetListFilters(params);
     const [typed, setTyped] = useState(asked.q);
@@ -82,6 +83,7 @@ export default function AssetCategoryList({ rows, job, jobs, opener }) {
             header={
                 <ListHeader title={COPY.heading} count={count} noun={COPY.itemNoun(reading.rows.length)}>
                     {jobs && <JobChoice jobs={jobs} job={job} filters={reading.held} />}
+                    {catalog}
                     {opener}
                 </ListHeader>
             }
