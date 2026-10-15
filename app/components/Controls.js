@@ -1144,8 +1144,9 @@ export function SearchField({ label, value, onChange, clearLabel }) {
 // under the pointer and while its list shows (0f). Holding values it stands on the Face with
 // its Edge, its name in Ink 3 and what it holds in Ink, the chevron after them and a 24 × that
 // empties it at its end, each part filling at Face hover.
-const FILTER_CHIP_EMPTY =
-    "flex h-control cursor-pointer items-center gap-control-icon-gap rounded-control border border-transparent pr-filter-chip-inset-right pl-control-inset-x text-body-sm font-medium whitespace-nowrap text-foreground-subtle outline-none hover:bg-hover hover:text-foreground-default focus-visible:border-border-focus aria-expanded:bg-hover aria-expanded:text-foreground-default";
+const FILTER_CHIP_GHOST =
+    "flex h-control cursor-pointer items-center gap-control-icon-gap rounded-control border border-transparent text-body-sm font-medium whitespace-nowrap text-foreground-subtle outline-none hover:bg-hover hover:text-foreground-default focus-visible:border-border-focus aria-expanded:bg-hover aria-expanded:text-foreground-default";
+const FILTER_CHIP_EMPTY = `${FILTER_CHIP_GHOST} pr-filter-chip-inset-right pl-control-inset-x`;
 const FILTER_CHIP_HOLDING = "flex h-control items-center rounded-control border border-selected-border bg-selected";
 const FILTER_CHIP_HELD =
     "flex h-full cursor-pointer items-center gap-gap rounded-l-[calc(var(--radius-control)-1px)] pr-[calc(var(--spacing-filter-chip-inset-right)-1px)] pl-control-inset-x text-body-sm font-medium whitespace-nowrap outline-none hover:bg-selected-hover focus-visible:bg-selected-hover aria-expanded:bg-selected-hover";
@@ -1334,6 +1335,49 @@ export function FilterChip({ label, options, values, onChange, clearLabel, sever
                         : toggle
                 }
             />
+        </div>
+    );
+}
+
+/**
+ * A filter that narrows by one condition and holds no value (1l, #527) — the catalog's
+ * `Discontinued only`. Off, it is a filter chip's ghost with no chevron and 10 either side, since
+ * it opens nothing; on, it is a held filter chip's two parts: its words in Ink on the Face inside
+ * the Edge, and a 24 × at its end that turns it off.
+ *
+ * A TOGGLE BUTTON IN BOTH LOOKS (`aria-pressed`), so assistive tech hears one control that is on
+ * or off and turns it either way with the same press; the × is a pointer's second way off, named
+ * for the filter as a chip's is, and hands focus back to the toggle rather than letting it fall
+ * with itself.
+ */
+export function ToggleChip({ label, on, onChange, clearLabel }) {
+    const toggleRef = useRef(null);
+    const toggle = (
+        <button
+            ref={toggleRef}
+            type="button"
+            aria-pressed={on}
+            onClick={() => onChange(!on)}
+            className={on ? `${FILTER_CHIP_HELD} text-foreground-default` : `${FILTER_CHIP_GHOST} px-control-inset-x`}
+        >
+            {label}
+        </button>
+    );
+    if (!on) return <div className="flex shrink-0">{toggle}</div>;
+    return (
+        <div className={`${FILTER_CHIP_HOLDING} shrink-0`}>
+            {toggle}
+            <button
+                type="button"
+                aria-label={clearLabel}
+                onClick={() => {
+                    onChange(false);
+                    toggleRef.current?.focus();
+                }}
+                className="flex h-full w-clear-button items-center justify-center rounded-r-[calc(var(--radius-control)-1px)] text-foreground-subtle hover:bg-selected-hover hover:text-foreground-default"
+            >
+                <Icon name="x" className="size-clear-icon" />
+            </button>
         </div>
     );
 }

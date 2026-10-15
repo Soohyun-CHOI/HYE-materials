@@ -169,6 +169,8 @@ Each is for the issue that draws it to name, in the same commit as its reader, s
 
 - 1b's second step, the size and the model as 0l's chips, carries one more, which #520 named the same way: the 72 a chip stands at however short its longest option (`--min-width-dialog-chip`). The rest is the spec's: each chip a 36 Commitment with a field's 12 either side and its value at 14 and 400, as wide as the longest option and 8 apart, the chosen one on 0c's Face in its Edge; the word 8 above at 13 and 500 and a refusal at the end of its line at 13 in red (0l Compact); the chips scrolling in 0i's lane 20 under the title's line and 14 over the fields always asked, which sit 24 over the actions. The width each chip takes is measured from its longest label in the browser, as the drawing measures it, and handed to the grid; it lays out at 72 until then, before the first paint.
 
+- 1l's catalog carries seven, which #527 named with their reader, each declaration saying they are the drawings': its columns after the name, 72, 128, 136, 112, 88, 44 and 52 — the size, the maker, the part number, the category, the type, the class and the items under a row (`--width-catalog-size` to `--width-catalog-items`). They are named for the catalog rather than as table widths of a kind, since nothing but its columns stands at any of them; the 20 between columns, the row, the column head, the bar and the band are 1a's and 1d's names already, and `Discontinued only` is a filter chip's two looks with no chevron, 10 either side.
+
 - A date's slashes are at 45% with 1.5 of room either side, and its time 9 past it at a desk and 8 on a phone — every date both files draw, and no row. #463 named the four with `app/components/Instant.js`, which draws every date in the app.
 
 **THE ONE PLACE A DRAWING CONTRADICTED THE SPEC IS SETTLED**: the name sheet's `Done` is 48 now, the phone's Target (answer 11).
@@ -269,6 +271,13 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 1a's drawing, a column of counts — not the spec | `--width-table-count` | 6rem (96) |
 | 1d's drawing, a column of printed ids — not the spec | `--width-table-id` | 15rem (240) |
 | 1d's drawing, a column of days — not the spec; the status's 160 until #520 gave the status the room left | `--width-table-date` | 7.5rem (120) |
+| 1l's drawing, the catalog's size column — not the spec | `--width-catalog-size` | 4.5rem (72) |
+| 1l's drawing, the catalog's maker column — not the spec | `--width-catalog-maker` | 8rem (128) |
+| 1l's drawing, the catalog's part number column — not the spec | `--width-catalog-part-number` | 8.5rem (136) |
+| 1l's drawing, the catalog's category column — not the spec | `--width-catalog-category` | 7rem (112) |
+| 1l's drawing, the catalog's type column — not the spec | `--width-catalog-type` | 5.5rem (88) |
+| 1l's drawing, the catalog's class column — not the spec | `--width-catalog-class` | 2.75rem (44) |
+| 1l's drawing, the catalog's count of items under a row — not the spec | `--width-catalog-items` | 3.25rem (52) |
 | 0b Pager, above its controls, its 1px rule counted | `--spacing-pager-inset-top` | 0.75rem (12) |
 | 0b Pager, under them, 60 in all | `--spacing-pager-inset-bottom` | 1rem (16) |
 | 1a and 1d's drawings, the least room between the rows a pager counts and its page — not the spec | `--spacing-pager-inline` | 1.5rem (24) |

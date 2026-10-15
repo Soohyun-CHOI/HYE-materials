@@ -95,12 +95,13 @@ const staleEntries = (rendered) => [...STILL_CREATE.keys()].filter((text) => !re
  * The assets axis's screens, typed out — what this file covers, pinned by value. The labels'
  * screen left the list in #457; its words are the dialog's, which the two pages that open
  * it render, so they are covered through those. The address a label prints left it in
- * #478; it draws nothing, so it says nothing.
+ * #478; it draws nothing, so it says nothing. The catalog joined it in #527.
  */
 const ROUTES = [
     "/asset-categories",
     "/asset-categories/[categoryRecordId]",
     "/assets/[assetId]",
+    "/asset-catalog",
 ];
 
 export function run({ check, assert, log }) {

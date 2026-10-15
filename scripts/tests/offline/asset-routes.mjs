@@ -41,8 +41,10 @@ import { ID_KINDS, dailyIdPrefix, formatSequentialId } from "../../../lib/idSequ
 import {
     LABEL_REWRITE,
     LABEL_ROUTE,
+    ASSET_CATALOG_PATH,
     ASSET_CATEGORIES_PATH,
     ASSET_ROUTES,
+    assetCatalogPath,
     canonicalAssetId,
     labelCodeFor,
     labelPath,
@@ -313,6 +315,19 @@ export function run({ check, assert, log }) {
         "  and a band holding nothing writes nothing",
         assetCategoriesPath(1, "recJob1", { q: "   ", level1: [], level2: [], assetClass: [] }),
         "/asset-categories?job=recJob1"
+    );
+    // THE CATALOG (#527): its own first segment, the category list's band under the same names
+    // and the toggle as the literal `1`, before the page, and no job.
+    check("the catalog", ASSET_CATALOG_PATH, "/asset-catalog");
+    check(
+        "  with what its band holds, the toggle after the chips and before the page",
+        assetCatalogPath(3, { q: " band saw ", level1: ["Tool"], level2: ["Power Tool"], assetClass: ["B", "A"], discontinued: true }),
+        "/asset-catalog?q=band+saw&type=Tool&category=Power+Tool&class=B&class=A&discontinued=1&page=3"
+    );
+    check(
+        "  and holding nothing, or a toggle merely truthy, is the plain catalog",
+        `${assetCatalogPath()} ${assetCatalogPath(1, { q: "  ", discontinued: false })} ${assetCatalogPath(1, { discontinued: "1" })}`,
+        "/asset-catalog /asset-catalog /asset-catalog"
     );
     check(
         "a tool's list narrowed, with a page and a selection",

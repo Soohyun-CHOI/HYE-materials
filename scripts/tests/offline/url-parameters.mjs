@@ -185,6 +185,35 @@ const CARRIED = [
         param: "class",
         note: "#520 — the classes chosen on the `Class` chip, repeatable, `A` or `B` as the catalog holds them",
     },
+    // #527 — THE CATALOG'S BAND: the category list's search and three chips under the same names,
+    // read through the same `readAssetListFilters` and written through `assetCatalogPath` by
+    // `history.replaceState`, so a change fetches nothing — and its toggle. No job: the catalog is
+    // the company's, whatever job a list stands on.
+    {
+        route: "/asset-catalog",
+        param: "q",
+        note: "#527 — the text searched, the category list's; matched against a row's whole name, category and type through `lib/searchTokens.js`, the name typed in full ranked first",
+    },
+    {
+        route: "/asset-catalog",
+        param: "type",
+        note: "#527 — the types chosen on the `Type` chip, repeatable; both types are offered whatever the rows hold",
+    },
+    {
+        route: "/asset-catalog",
+        param: "category",
+        note: "#527 — the categories chosen on the `Category` chip, repeatable; every group's category is offered, one nothing is filed under at a count of none",
+    },
+    {
+        route: "/asset-catalog",
+        param: "class",
+        note: "#527 — the classes chosen on the `Class` chip, repeatable; both classes are offered whatever the rows hold",
+    },
+    {
+        route: "/asset-catalog",
+        param: "discontinued",
+        note: "#527 — `1` narrows to the discontinued rows, the document lists' shape for a toggle; absence is every row",
+    },
 
     // ── navigation: which record the form opens on ──────────────────────────
     { route: "/prs/new", param: "draft", note: "the saved Draft to resume (#72/#74); written by a Link on the drafts list and by both actions that raise one" },
@@ -230,6 +259,11 @@ const CARRIED = [
         route: "/asset-categories",
         param: "page",
         note: "#463 — which page of the categories the band leaves, 1-based, 0b's 25 to a page. Written by the two steps at the foot of the list through `assetCategoriesPath`, by `history.replaceState` since #520 since the rows are all in the browser, absent on the first page and dropped by every change to the band; a value that is not a page resolves to one rather than rendering nothing, by the clamp a category's own list uses (`pageOfAssetCategories`). Read by the list off the address, and it divides no read",
+    },
+    {
+        route: "/asset-catalog",
+        param: "page",
+        note: "#527 — which page of the rows the catalog's band leaves, 1-based, 25 to a page by the clamp the category list uses (`pageOfAssetCategories`). Written by the pager's two steps through `assetCatalogPath` by `history.replaceState`, absent on the first page and dropped by every change to the band; it divides no read",
     },
     // THE FOUR DOCUMENT LISTS TOOK THE SAME NAME IN #326, which is what the reservation
     // in `lib/listFilters.js` was holding it for. One note serves all four because the
