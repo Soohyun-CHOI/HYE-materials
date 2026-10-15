@@ -553,12 +553,22 @@ export function run({ check, assert, log }) {
         ])
     );
     // THE TWO MENUS' ROWS ARE THEIR OPENERS' HEIGHT (0a, 1l): the dialog's `More actions` is the
-    // close's 28 and its row 28, and `Set class` a 36 with rows of 36.
+    // close's 28 and its row 28, and `Set class` a 36 with rows of 36. AND EACH IS AT LEAST AS WIDE
+    // AS 1l DRAWS IT: `More actions` 140 inside its room and its Edge, `Set class` 140 with both
+    // counted, each at least its opener.
     const menuSource = parseFile("app/components/Menu.js").source;
     check(
         "the dialog's menu has rows of its 28 and `Set class` rows of its 36",
         `${/const ITEM_ROWS = \{ close: "h-dialog-close", lg: "h-control-lg" \};/.test(menuSource)} ${/rows=\{look === "icon" \? "close" : "lg"\}/.test(menuSource)} ${/flex aspect-square h-dialog-close /.test(menuSource)}`,
         "true true true"
+    );
+    check(
+        "  and `Set class`'s least width is 140 in all, the dialog's 140 inside, each at least its opener",
+        [
+            /outerLeast=\{look === "bordered"\}/.test(menuSource),
+            /list\.style\.minWidth = outerLeast\s*\? `max\(var\(--min-width-menu\), \$\{box\.width\}px\)`\s*: `max\(calc\(var\(--min-width-menu\) \+ 2 \* var\(--spacing-menu-inset\) \+ 2px\), \$\{box\.width\}px\)`;/.test(menuSource),
+        ].join(" "),
+        "true true"
     );
     // WHAT A NEW ENTRY OPENS ON IS 1l's: the first type and the first class, nothing typed.
     check(

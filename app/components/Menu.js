@@ -240,12 +240,28 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
  * it, and alone, with none, when nothing does.
  *
  * `look="end"` IS A MENU SET FLUSH AGAINST ITS OPENER'S RIGHT END (1l, #527), at least as wide as
- * the opener and 0a's 140 to 280 inside its room and its Edge — a dialog's `More actions`, whose
- * 28 has no ink to meet the content's edge as the asset page's 32 does, and the selection bar's
- * `Set class`, which opens above itself. Its items are as tall as the control that opens it, 0a's
- * rule and 1l's drawing: `rows="close"` under a dialog head's 28, and `rows="lg"` under a 36.
+ * the opener and up to 280 inside its room and its Edge — a dialog's `More actions`, whose 28 has
+ * no ink to meet the content's edge as the asset page's 32 does, and the selection bar's `Set
+ * class`, which opens above itself. Its items are as tall as the control that opens it, 0a's rule
+ * and 1l's drawing: `rows="close"` under a dialog head's 28, and `rows="lg"` under a 36. **Its
+ * least width is 1l's for each**, as #522 took every menu's from its drawing: `More actions`
+ * 140 inside its room and its Edge, as the record's is, and `Set class` 140 with both counted
+ * (`outerLeast`), as 1a's lists are.
  */
-export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "below", look = "account", rows = "lg", focusOn = "first", heading, items, onClose }) {
+export function ActionMenu({
+    id,
+    anchorRef,
+    shown,
+    labelledBy,
+    placement = "below",
+    look = "account",
+    rows = "lg",
+    outerLeast = false,
+    focusOn = "first",
+    heading,
+    items,
+    onClose,
+}) {
     const listRef = useRef(null);
     const headingId = useId();
 
@@ -266,7 +282,10 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
             if (look === "record" || look === "end") {
                 list.style.left = "auto";
                 list.style.right = `${document.documentElement.clientWidth - box.right}px`;
-                if (look === "end") list.style.minWidth = `max(calc(var(--min-width-menu) + 2 * var(--spacing-menu-inset) + 2px), ${box.width}px)`;
+                if (look === "end")
+                    list.style.minWidth = outerLeast
+                        ? `max(var(--min-width-menu), ${box.width}px)`
+                        : `max(calc(var(--min-width-menu) + 2 * var(--spacing-menu-inset) + 2px), ${box.width}px)`;
             } else {
                 list.style.left = `${placement === "beside" ? box.right : box.left}px`;
             }
@@ -290,7 +309,7 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
             window.removeEventListener("resize", place);
             document.removeEventListener("scroll", place, true);
         };
-    }, [shown, anchorRef, placement, look, focusOn]);
+    }, [shown, anchorRef, placement, look, outerLeast, focusOn]);
 
     const onKeyDown = (event) => {
         const action = menuKey(event);
@@ -445,6 +464,7 @@ export function MenuButton({ label, look = "icon", placement = "below", locked =
                 placement={placement}
                 look="end"
                 rows={look === "icon" ? "close" : "lg"}
+                outerLeast={look === "bordered"}
                 focusOn={focusOn}
                 items={items.map((item) => ({
                     ...item,
