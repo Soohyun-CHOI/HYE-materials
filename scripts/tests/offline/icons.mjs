@@ -151,7 +151,7 @@ const MARKS_BY_FILE = {
     "app/components/DialogFrame.js": ["check", "search", "x"],
     "app/components/ListFrame.js": ["x"],
     "app/components/ListTable.js": ["chevron-left", "chevron-right"],
-    "app/components/Menu.js": ["check"],
+    "app/components/Menu.js": ["check", "chevron-down", "ellipsis"],
     "app/components/Rail.js": ["clipboard-list", "file-text", "panel-left", "receipt", "tag", "truck", "wrench"],
     "app/components/RailAccount.js": ["chevron-up"],
 };

@@ -612,10 +612,13 @@ export function run({ check, assert, log }) {
             ].join(" "),
             textButton: /bordered:\s*"max-sm:in-data-\[sheet\]:border-0 max-sm:in-data-\[sheet\]:bg-transparent max-sm:in-data-\[sheet\]:not-aria-disabled:active:opacity-mobile-pressed"/.test(sheetVariants),
             applied: ["Button", "ButtonLink"].every((name) =>
-                /\$\{BUTTON\} \$\{BUTTON_SIZE\[size\]\} \$\{insetOf\(variant, size\)\} \$\{BUTTON_VARIANT\[variant\]\} \$\{SHEET_BUTTON\} \$\{SHEET_BUTTON_VARIANT\[variant\]\}/.test(functionSource(name))
+                /\$\{BUTTON\} \$\{sizeOf\(variant, size\)\} \$\{insetOf\(variant, size\)\} \$\{BUTTON_VARIANT\[variant\]\} \$\{SHEET_BUTTON\} \$\{SHEET_BUTTON_VARIANT\[variant\]\}/.test(functionSource(name))
             ),
             label: /const FIELD_LABEL = "[^"]*max-sm:in-data-\[sheet\]:text-mobile-body-sm"/.test(source),
-            refusal: /role="alert"[\s\S]*max-sm:in-data-\[sheet\]:text-mobile-body-sm/.test(functionSource("Refusal")),
+            // An alert unless its caller says it answers nothing (#527, `DialogActions`' note).
+            refusal:
+                /export function Refusal\(\{ centered = false, role = "alert", children \}\)/.test(source) &&
+                /role=\{role\}[\s\S]*max-sm:in-data-\[sheet\]:text-mobile-body-sm/.test(functionSource("Refusal")),
             // A refusal of the whole dialog is a message in Ink 2 behind the 16 info mark, 6 from
             // it, since 0l's final drawing (#495): Red is a field's refusal, and none is here.
             refusalMessage: [
@@ -1110,9 +1113,28 @@ export function run({ check, assert, log }) {
         [
             /\{secondary && <div className="mr-auto -ml-ghost-inset-x flex">\{secondary\}<\/div>\}\s*\{children\}/.test(actionsPart),
             /ghost: "text-foreground-default not-disabled:not-aria-disabled:hover:bg-hover",/.test(controlSource),
-            /const insetOf = \(variant, size\) => \(variant === "ghost" \? "px-ghost-inset-x" : BUTTON_INSET\[size\]\);/.test(controlSource),
+            /const GHOSTS = \["ghost", "ghostDanger"\];/.test(controlSource) &&
+                /const insetOf = \(variant, size\) => \(GHOSTS\.includes\(variant\) \? "px-ghost-inset-x" : BUTTON_INSET\[size\]\);/.test(controlSource),
         ].join(" "),
         "true true true"
+    );
+    // ITS DESTRUCTIVE KIND, AND ITS SIZE BESIDE 36s (0f Ghost and Destructive, 1l; #527): at rest
+    // its word in Ink on nothing, red on red's Face under the pointer; and among 36s one step
+    // under, the Control's 32, keeping the row's 14.
+    check(
+        "  a ghost that removes is transparent at rest and red on red's Face under the pointer, and one among 36s is 32 at 14 (#527)",
+        [
+            /ghostDanger: "text-foreground-default not-disabled:not-aria-disabled:hover:bg-danger-subtle not-disabled:not-aria-disabled:hover:text-danger",/.test(controlSource),
+            /const sizeOf = \(variant, size\) => \(GHOSTS\.includes\(variant\) && size === "lg" \? "inline-flex h-control shrink-0 text-body" : BUTTON_SIZE\[size\]\);/.test(controlSource),
+        ].join(" "),
+        "true true"
+    );
+    // A NOTE ON THE REFUSAL'S LINE (#527): what a press will do, said before it, as a status, and
+    // a refusal taking the line from it.
+    check(
+        "  and the line over the actions carries a note before any press, heard as a status, a refusal taking its place",
+        /\{refusal \? <Refusal>\{refusal\}<\/Refusal> : note && <Refusal role="status">\{note\}<\/Refusal>\}/.test(actionsPart),
+        true
     );
     // 0l's CHIPS (#520), 1b's size and model: a radio group named by its label, one stop for Tab on
     // the chip chosen or the first, the arrows moving and choosing through `radioKey`, an equal-width
@@ -1321,6 +1343,8 @@ export function run({ check, assert, log }) {
             "app/(assets)/asset-categories/RegistrationDialog.js",
             "app/(assets)/asset-categories/[categoryRecordId]/RegistrationShortfall.js",
             "app/(assets)/asset-categories/[categoryRecordId]/RegistrationUnlogged.js",
+            // The catalog's entry and its removal's question (#527).
+            "app/(assets)/asset-catalog/CatalogDialogs.js",
         ]
             .sort()
             .join(", ")
@@ -1341,6 +1365,11 @@ export function run({ check, assert, log }) {
         [{ busy: true, formBusy: true }, "working", "  a button its caller says is busy works in one too"],
         [{ formBusy: true, submits: true, disabled: true }, null, "  and a disabled one is neither, even a busy form's submit"],
         [{ busy: true, disabled: true }, null, "  nor one its caller says is busy"],
+        // A dialog waiting on an action that is not its submit (#527): that action works by its
+        // own `busy`, and the submit, which did nothing, locks with the rest.
+        [{ formBusy: "action", submits: true }, "locked", "  a form waiting on another action locks its submit, which did nothing"],
+        [{ formBusy: "action" }, "locked", "    and every other button"],
+        [{ formBusy: "action", busy: true }, "working", "    but the action it waits on works"],
     ])
         check(why, buttonBusyState(args), expected);
 
@@ -1377,7 +1406,9 @@ export function run({ check, assert, log }) {
             const fn = functionNamed(ast, name);
             return fn ? source.slice(fn.start, fn.end) : "";
         };
-        const reads = (name) => /const formBusy = useContext\(FormBusyContext\);/.test(fnSource(name));
+        // A control that locks asks whether the form waits on anything at all; the button asks
+        // what it waits on, its submit or another action (#527).
+        const reads = (name) => /const formBusy = Boolean\(useContext\(FormBusyContext\)\);/.test(fnSource(name));
         const button = fnSource("Button");
         const text = fnSource("TextInput");
         const number = fnSource("NumberField");
@@ -1396,8 +1427,8 @@ export function run({ check, assert, log }) {
         return {
             provider: /export function FormBusy\(\{ busy, children \}\) \{\s*return <FormBusyContext\.Provider value=\{busy\}>\{children\}<\/FormBusyContext\.Provider>;/.test(source),
             button: [
-                reads("Button"),
-                /buttonBusyState\(\{ busy, formBusy, submits: type === "submit", disabled \}\)/.test(button),
+                /const formWaits = useContext\(FormBusyContext\);/.test(button),
+                /buttonBusyState\(\{ busy, formBusy: formWaits, submits: type === "submit", disabled \}\)/.test(button),
                 /onClick=\{state \? \(event\) => event\.preventDefault\(\) : onClick\}/.test(button),
                 /aria-disabled=\{state \? true : undefined\}/.test(button),
                 /aria-busy=\{working \|\| undefined\}/.test(button) && /data-busy=\{working \|\| undefined\}/.test(button),
@@ -1499,7 +1530,7 @@ export function run({ check, assert, log }) {
     const closeTag = frame.source.match(/<button[^>]*aria-label=\{COPY\.close\}[^>]*>/)?.[0] ?? "";
     check(
         "  which is what a disabled action, a busy or locked one and a close held while its dialog sends say",
-        [/disabled=\{disabled\}/.test(controlsText), /aria-disabled=\{state \? true : undefined\}/.test(controlsText), /aria-disabled=\{busy \|\| undefined\}/.test(closeTag)].join(" "),
+        [/disabled=\{disabled\}/.test(controlsText), /aria-disabled=\{state \? true : undefined\}/.test(controlsText), /aria-disabled=\{busy \? true : undefined\}/.test(closeTag)].join(" "),
         "true true true"
     );
     // Anti-vacuity: a planted rule outside the layer, withholding the hand from disabled alone,
@@ -1535,7 +1566,7 @@ export function run({ check, assert, log }) {
         const bodyMarked = returned?.openingElement?.attributes.some((a) => a.name?.name === "data-dialog-body") ?? false;
         return {
             handsBusy: /<FormBusy busy=\{busy\}>\{children\}<\/FormBusy>/.test(frameSource),
-            close: [/aria-disabled=\{busy \|\| undefined\}/.test(frameSource), !/\sdisabled=\{busy\}/.test(frameSource), /not-aria-disabled:hover:bg-hover/.test(frameSource)].join(" "),
+            close: [/aria-disabled=\{busy \? true : undefined\}/.test(frameSource), !/\sdisabled=\{busy\}/.test(frameSource), /not-aria-disabled:hover:bg-hover/.test(frameSource)].join(" "),
             keeper: [
                 /if \(!open \|\| !dialog\) return undefined;/.test(keeper),
                 /observer\.observe\(dialog, \{ subtree: true, childList: true, attributes: true, attributeFilter: \["disabled", "hidden", "inert"\] \}\);/.test(keeper),
@@ -1628,7 +1659,10 @@ export function run({ check, assert, log }) {
         "every dialog on the axis that submits hands its frame its busy state and its commitment a word, with nothing disabled for it",
         dialogs.filter((d) => d.includes(": submits")).join(" | "),
         [
+            // The catalog's entry hands its frame what it waits on, its submit or `"action"` (#527).
+            "EntryDialog: submits · busy {busy} · named · 0 disabled by sending",
             "RegistrationForm: submits · busy {pending} · named · 0 disabled by sending",
+            "RemoveDialog: submits · busy {pending} · named · 0 disabled by sending",
             "RetirementConfirm: submits · busy {pending} · named · 0 disabled by sending",
             "TransitionForm: submits · busy {pending} · named · 0 disabled by sending",
         ].join(" | ")
@@ -1638,7 +1672,13 @@ export function run({ check, assert, log }) {
         dialogs.filter((d) => d.includes(": asks nothing") && !d.includes("busy none")).join(" | "),
         ""
     );
-    check("  across the dialogs drawn on the frame", dialogs.length, onNewFrame.length);
+    // Every file importing the frame draws a dialog on it — the catalog's file two (#527).
+    check(
+        "  across the dialogs drawn on the frame, in every file that imports it",
+        onNewFrame.filter((rel) => submitFacts(parseFile(rel)).length > 0).length,
+        onNewFrame.length
+    );
+    check("    a dialog each, and the catalog's file its two", dialogs.length, onNewFrame.length + 1);
 
     // AND EVERY FORM THAT SUBMITS OUTSIDE A FRAME IS HELD TO THE SAME (#463): the asset
     // page's foot bar, which wraps what it holds in `FormBusy` itself, and the desk's press,
@@ -1675,6 +1715,9 @@ export function run({ check, assert, log }) {
         "every form on the axis that submits outside a frame, and every press that waits on a read, says it is busy and names its word (#495)",
         forms.join(" | "),
         [
+            // The catalog entry's `Restore` and `Discontinue`, each working by its own `busy` while
+            // the rest of the dialog locks (#527).
+            'EntryDialog: button {pending && working === "restore"}, button {pending && working === "discontinue"} · named, named, named · 0 disabled by sending',
             "LabelsDialog: button {pending} · named · 0 disabled by sending",
             "TransitionBar: form {pending} · named · 0 disabled by sending",
             "TransitionDialog: button {!asks && pending} · named · 0 disabled by sending",
@@ -1829,8 +1872,8 @@ export function run({ check, assert, log }) {
                 "export function Button({ busy }) { return <button disabled={busy} aria-busy={busy}>{x}</button>; }\n" +
                 "export function TextInput({ readOnly }) { return <input readOnly={readOnly} />; }\n" +
                 'const STEP = "hover:bg-hover";\n' +
-                "export function NumberField() { const formBusy = useContext(FormBusyContext); return <input readOnly={formBusy} />; }\n" +
-                'export function Choice() { const formBusy = useContext(FormBusyContext); return <div aria-readonly={formBusy || undefined} className="hover:bg-hover-subtle" />; }\n' +
+                "export function NumberField() { const formBusy = Boolean(useContext(FormBusyContext)); return <input readOnly={formBusy} />; }\n" +
+                'export function Choice() { const formBusy = Boolean(useContext(FormBusyContext)); return <div aria-readonly={formBusy || undefined} className="hover:bg-hover-subtle" />; }\n' +
                 "export function Combobox() { const shown = listOpen; return <input />; }\n" +
                 "export function SheetField({ onOpen }) { return <button onClick={onOpen} />; }\n" +
                 'function Spinner({ size }) { return <span className={size === "xl" ? "max-sm:size-mobile-spinner" : ""} />; }\n',

@@ -143,6 +143,43 @@ const ACTIONS = {
         binding: "useActionState",
         why: "two call sites, the request page and the /pos strip, and both bind and render",
     },
+    // THE CATALOG'S FIVE (#527), each refusing with the page's own sentence, held in its copy
+    // constant and pinned by value in `offline/asset-catalog.mjs`.
+    saveAssetCategoryAction: {
+        text: "COPY.noAccess",
+        file: "app/(assets)/asset-catalog/actions.js",
+        shape: "return",
+        binding: "awaited",
+        why: "CatalogDialogs.js awaits it and sets the refusal over the dialog's actions",
+    },
+    addAssetCategoryGroupAction: {
+        text: "COPY.noAccess",
+        file: "app/(assets)/asset-catalog/actions.js",
+        shape: "return",
+        binding: "awaited",
+        why: "the same dialog, opened on a category alone",
+    },
+    setAssetCategoryDiscontinuedAction: {
+        text: "COPY.noAccess",
+        file: "app/(assets)/asset-catalog/actions.js",
+        shape: "return",
+        binding: "awaited",
+        why: "the same dialog's secondary action, its refusal on the same line",
+    },
+    removeAssetCategoryAction: {
+        text: "COPY.noAccess",
+        file: "app/(assets)/asset-catalog/actions.js",
+        shape: "return",
+        binding: "awaited",
+        why: "the removal's question awaits it and sets the refusal over its actions",
+    },
+    setAssetCategoriesClassAction: {
+        text: "COPY.noAccess",
+        file: "app/(assets)/asset-catalog/actions.js",
+        shape: "return",
+        binding: "awaited",
+        why: "CatalogList.js awaits it and sets the refusal in the selection bar's own column",
+    },
 };
 
 /** Bindings that can observe a return. The third, `form-action`, cannot. */

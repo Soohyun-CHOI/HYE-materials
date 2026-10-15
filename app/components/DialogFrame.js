@@ -262,7 +262,8 @@ function laidOutAsSheet(dialog) {
  *
  * `onSubmit` makes what it holds a form, which is how a dialog of fields submits: its
  * actions are inside the form with the fields they submit, and `busy` says its submission
- * is in flight, which the frame hands to all of them (#469). `unprompted` is for a dialog
+ * is in flight, which the frame hands to all of them (#469) — or `"action"`, an action that is
+ * not the submit, which says so itself (#527). `unprompted` is for a dialog
  * no press opened, which hands focus to the page's heading when it closes. `preview` is
  * the second build (#457): what it holds is drawn in a pane beside the column, which is
  * the Compact build's inside — see the header. `recordId` is 0l's Confirm, and `sheet`,
@@ -271,6 +272,8 @@ function laidOutAsSheet(dialog) {
  * `wide` is 0l's 480, a dialog that searches a list and picks from it, and `fixed` holds it at
  * 1b's 490 while what it asks changes with what was picked (#520): what it holds then takes
  * the rest of its height, `DialogSearch` or `DialogBody` scrolling and the actions at its foot.
+ * `menu` is a 28 button standing before the close with nothing between them — 1l's `More
+ * actions` on a catalog row nothing stands under (#527) — on the close's line.
  */
 export function DialogFrame({
     open,
@@ -289,6 +292,7 @@ export function DialogFrame({
     closesOnBackdrop = false,
     onHandlePress,
     done,
+    menu,
     children,
 }) {
     const dialogRef = useRef(null);
@@ -426,10 +430,11 @@ export function DialogFrame({
                 </div>
             ) : (
                 <div className="-mr-dialog-close-bleed flex h-[var(--text-heading--line-height)] shrink-0 items-center max-sm:in-data-[sheet]:hidden">
+                    {menu}
                     <button
                         type="button"
                         aria-label={COPY.close}
-                        aria-disabled={busy || undefined}
+                        aria-disabled={busy ? true : undefined}
                         onClick={ask}
                         className="flex h-dialog-close aspect-square items-center justify-center rounded-control text-foreground-subtle not-aria-disabled:hover:bg-hover not-aria-disabled:hover:text-foreground-default"
                     >
@@ -782,11 +787,15 @@ export function SheetRows({ rows }) {
  * A SECONDARY ACTION STANDS ON THE LEFT (0l Actions, 1b; #520) — `secondary`, the
  * registration's `Back` — a ghost pulled out by its side room so its ink meets the edge, and
  * first in the order a keyboard meets them, as it stands first on the line.
+ *
+ * A `note` IS WHAT A PRESS WILL DO, SET ON THE REFUSAL'S LINE BEFORE ANY PRESS (1l, #527): an
+ * edit's `Its 10 items take the new name.`, the same mark and words, heard as a status rather
+ * than an alert since it answers nothing. A refusal takes the line from it while there is one.
  */
-export function DialogActions({ refusal, secondary, children }) {
+export function DialogActions({ refusal, note, secondary, children }) {
     return (
         <div className="flex shrink-0 flex-col gap-gap-lg pt-dialog-inset in-data-preview:px-dialog-inset in-data-fixed:px-dialog-inset in-data-fixed:pb-dialog-inset max-sm:in-data-[sheet]:px-mobile-gutter max-sm:in-data-[sheet]:pt-mobile-drawer-body-stack">
-            {refusal && <Refusal>{refusal}</Refusal>}
+            {refusal ? <Refusal>{refusal}</Refusal> : note && <Refusal role="status">{note}</Refusal>}
             <div className="flex flex-wrap items-center justify-end gap-gap max-sm:in-data-[sheet]:flex-col-reverse max-sm:in-data-[sheet]:gap-mobile-drawer-action-stack">
                 {secondary && <div className="mr-auto -ml-ghost-inset-x flex">{secondary}</div>}
                 {children}

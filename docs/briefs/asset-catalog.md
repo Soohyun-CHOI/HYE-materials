@@ -38,6 +38,11 @@ a dot.
 **context.** The head: `Catalog`, and how many rows the catalog holds — the
 figure alone, or `N of M` while the band narrows, `M` every row.
 
+**action.** In the head, `New category` and `Add to catalog` (1l). Each opens
+the catalog's dialog: `Add to catalog` asks a whole row, and `New category` a
+type and a category alone, which it adds to the categories the office keeps and
+to nothing else.
+
 **action.** Under the head, the category list's band (1a, #520): a search,
 `Search catalog`, over each row's whole name, its category and its type, the
 name typed in full first; three chips, `Type`, `Category` and `Class`, each
@@ -55,11 +60,46 @@ number, category, type and class, and how many items stand under it — every
 status counted, since a retired item still stands under its row — with a zero in
 a lighter ink. A level a row leaves empty is an empty cell.
 
+**action.** A row's name opens `Edit item` over it, the whole row its target;
+a box before it selects it, and one in the column head selects the page. The
+selection outlives a page and a narrowing.
+
+**The dialog (1l)** asks the type and the class as two segmented rows, opening
+on `Equipment` and `A` for a new row; the category, suggesting the categories
+its type holds and marking one it does not `New`; the name, suggesting the names
+under that category and marking a new one the same way; and the size, the maker
+and the part number, each `Optional`. Under them, `Shows as` and the name the
+row will have — the base's own rule — or `Item name` in a faint ink before a
+name is typed. A press is refused field by field under each field: a type or a
+class not chosen, a category or a name empty or a placeholder, `N/A` and its
+kind in a level that is left empty instead (`Leave it empty.`), and a path
+another row holds already, said on the name with that row's category — a
+discontinued one included. A category typed new is added with the row, first.
+
 ## What it carries only sometimes
 
 **When a row is discontinued (#527):** `Discontinued` after its name, in a
 lighter ink. A registration no longer offers such a row, and the items already
 under it stay where they are on every other screen.
+
+**When a row is edited:** under the title, how many items stand under it,
+after `Discontinued` and a dot for a discontinued row. On the left of the
+actions `Discontinue`, or `Restore` for a discontinued row, each writing that
+alone and closing. While an edit would give the items under the row a new
+name, a line over the actions says so — `Its 10 items take the new name.`
+
+**When nothing stands under the edited row:** `More actions` beside the close,
+whose one item, `Remove from catalog`, asks `Remove … from catalog?` — `It
+comes out of the catalog. No items use it.` — before the row goes. A row items
+came to stand under since stays, and the question says why.
+
+**When rows are selected:** a bar over the pager with how many, how many are on
+other pages, a way to clear them, and `Set class`, whose menu gives every row
+selected `Class A` or `Class B` and clears the selection.
+
+**When a press wrote nothing:** its reason over the dialog's actions, or in the
+bar's own column for `Set class`. A category written before the row that failed
+after it stands, and the dialog says so.
 
 **When the band leaves no row:** under the column head, `Nothing in the catalog
 matches` and a `Clear all` that empties the search, the chips and the toggle at

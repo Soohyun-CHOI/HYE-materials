@@ -171,6 +171,8 @@ Each is for the issue that draws it to name, in the same commit as its reader, s
 
 - 1l's catalog carries seven, which #527 named with their reader, each declaration saying they are the drawings': its columns after the name, 72, 128, 136, 112, 88, 44 and 52 — the size, the maker, the part number, the category, the type, the class and the items under a row (`--width-catalog-size` to `--width-catalog-items`). They are named for the catalog rather than as table widths of a kind, since nothing but its columns stands at any of them; the 20 between columns, the row, the column head, the bar and the band are 1a's and 1d's names already, and `Discontinued only` is a filter chip's two looks with no chevron, 10 either side.
 
+- 1l's dialog carries three more, which #527 named the same way: the 132 the class stands at beside the type (`--width-catalog-class-field`), the 2 from `Shows as` to the name under it (`--spacing-catalog-preview-stack`), and the 52 a field keeps clear at its end while it marks a value `New` (`--spacing-input-mark-inset-right`), where the spec says only "at its right end, 12 inside". The rest is the spec's. **0f's segmented row** is four names of its own, said in 0f's words — the track's 2 inside (`--spacing-segmented-inset`), an option's 6 either side (`--spacing-segmented-option-inset-x`), and the pill's 200ms on "the rail's curve" (`--transition-duration-segmented`, `--ease-segmented`) — the curve declared again for the row rather than read off `--ease-rail`, so neither moves with the other. Its track is a field's 36 and Edge at the Group radius, its pill the Control radius on 0c's Face. **0f's Destructive at a ghost's size** is 1l's `Discontinue`, Ghost's 32 and 10 among 36s with the row's 14 and red on red's Face under the pointer; `Restore` is the plain ghost. The dialog's `More actions` is the close's 28 with a 14 mark, and its menu and `Set class`'s are 0a's — 140 to 280 inside the room and the Edge, rows the height of the opener, 28 under the 28 and 36 under the 36 — as 1l draws them, but for `Set class`'s least width, which 1l draws at 140 with the room and the Edge counted; the bar's `Set class` is a 36 bordered button with a 14 chevron 8 after its word, 16 before it and 12 after.
+
 - A date's slashes are at 45% with 1.5 of room either side, and its time 9 past it at a desk and 8 on a phone — every date both files draw, and no row. #463 named the four with `app/components/Instant.js`, which draws every date in the app.
 
 **THE ONE PLACE A DRAWING CONTRADICTED THE SPEC IS SETTLED**: the name sheet's `Done` is 48 now, the phone's Target (answer 11).
@@ -278,6 +280,13 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 1l's drawing, the catalog's type column — not the spec | `--width-catalog-type` | 5.5rem (88) |
 | 1l's drawing, the catalog's class column — not the spec | `--width-catalog-class` | 2.75rem (44) |
 | 1l's drawing, the catalog's count of items under a row — not the spec | `--width-catalog-items` | 3.25rem (52) |
+| 1l's drawing, the class beside the type in the catalog's dialog — not the spec | `--width-catalog-class-field` | 8.25rem (132) |
+| 1l's drawing, from `Shows as` to the name under it — not the spec | `--spacing-catalog-preview-stack` | 0.125rem (2) |
+| 1l's drawing, what a field keeps clear at its end while it marks a value `New` — not the spec | `--spacing-input-mark-inset-right` | 3.25rem (52) |
+| 0f segmented row, inside its track | `--spacing-segmented-inset` | 0.125rem (2) |
+| 0f segmented row, either side of an option's word | `--spacing-segmented-option-inset-x` | 0.375rem (6) |
+| 0f segmented row, the pill sliding to a new choice | `--transition-duration-segmented` | 200ms |
+| 0f segmented row, how it slides — the rail's curve | `--ease-segmented` | cubic-bezier(0.2, 0, 0, 1) |
 | 0b Pager, above its controls, its 1px rule counted | `--spacing-pager-inset-top` | 0.75rem (12) |
 | 0b Pager, under them, 60 in all | `--spacing-pager-inset-bottom` | 1rem (16) |
 | 1a and 1d's drawings, the least room between the rows a pager counts and its page — not the spec | `--spacing-pager-inline` | 1.5rem (24) |

@@ -12,8 +12,9 @@ used at a desk and does not support a phone's width (`_shared.md`).
 We bought some tools. Get them onto the system so each one can be labeled.
 
 **It picks a kind from the catalog and creates one tracked object per unit
-bought (#507).** The office keeps the catalog of tools and equipment in
-Airtable — every kind the company buys, named by a type (`Equipment` or
+bought (#507).** The office keeps the catalog of tools and equipment, on its
+own screen (`asset-catalog.md`, #527) and in Airtable — every kind the company
+buys, named by a type (`Equipment` or
 `Tool`), a category (a field of work, such as machining or welding) and a name,
 then a size, a maker and a part number where those apply (#514), and marked
 with a class — and this dialog never adds to it: it picks one of its rows and

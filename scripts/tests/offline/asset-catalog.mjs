@@ -21,9 +21,26 @@
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
-import { ASSET_CATALOG_COPY, catalogOffers, catalogRows, filterCatalogRows } from "../../../lib/assetCatalog.js";
-import { callsTo, parseFile, parseSource, walk } from "./_ast.mjs";
+import { relative } from "path";
+import {
+    ASSET_CATALOG_COPY,
+    catalogOffers,
+    catalogRows,
+    categorySuggestions,
+    classChanges,
+    filterCatalogRows,
+    isNewCategory,
+    isNewName,
+    nameSuggestions,
+    readCatalogEntry,
+    readCategoryEntry,
+    renamesItems,
+    shownName,
+} from "../../../lib/assetCatalog.js";
+import { ASSET_CLASS_VALUES, ASSET_TYPE_VALUES } from "../../../lib/assetCategory.js";
+import { REPO_ROOT, callsTo, listJsFiles, parseFile, parseSource, repoPath, toPosix, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
+import { importersOf } from "./asset-category.mjs";
 import { conditionsOf } from "./site-manager.mjs";
 
 export const title = "The catalog the office keeps on a page of its own (#527)";
@@ -34,6 +51,8 @@ const CATEGORY_LIST_PAGE = "app/(assets)/asset-categories/page.js";
 const CATEGORY_LIST = "app/(assets)/asset-categories/AssetCategoryList.js";
 const GROUPS_READER = "lib/airtable/assetCategoryGroups.js";
 const CONTROLS = "app/components/Controls.js";
+const ACTIONS = "app/(assets)/asset-catalog/actions.js";
+const DIALOGS = "app/(assets)/asset-catalog/CatalogDialogs.js";
 
 /** A row as `recordToAssetCategory` returns it, with `n` items standing under it. */
 const category = (id, [level1, level2, level3, size, maker, partNumber], assetClass, n = 0, discontinued = false) => ({
@@ -299,22 +318,34 @@ export function run({ check, assert, log }) {
     );
     assert("the list on the page reads its band through the category list's reader", /readAssetListFilters\(params\)/.test(parseFile(LIST).source));
 
-    // ── 6: the groups' reader ────────────────────────────────────────────────
+    // ── 6: the groups' module ────────────────────────────────────────────────
     log("");
-    log("the groups' reader reads, and spells no field:");
+    log("the groups' module reads them and adds one, for the catalog's page alone, and spells no field:");
     const reader = parseFile(GROUPS_READER);
     const exported = [];
     walk(reader.ast, (n) => {
         if (n.type === "ExportNamedDeclaration" && n.declaration?.id) exported.push(n.declaration.id.name);
     });
-    check("its one export", exported.join(", "), "getAllAssetCategoryGroups");
+    check("its reader and its one writer", exported.join(", "), "getAllAssetCategoryGroups, createAssetCategoryGroup");
     const uses = [];
     walk(reader.ast, (n) => {
         if (n.type === "CallExpression" && n.callee?.type === "MemberExpression" && n.callee.object?.callee?.name === "base")
             uses.push(`${reader.source.slice(n.callee.object.arguments[0].start, n.callee.object.arguments[0].end)}.${n.callee.property.name}`);
     });
-    check("  a select of the table", uses.join(", "), "TABLES.ASSET_CATEGORY_GROUPS.select");
+    check("  a select of the table, and a create", uses.join(", "), "TABLES.ASSET_CATEGORY_GROUPS.select, TABLES.ASSET_CATEGORY_GROUPS.create");
     check("  taking each level's field from the catalog's names", /record\.get\(ASSET_CATEGORY_FIELDS\[level\]\)/.test(reader.source) && !/"Level [12]"/.test(reader.source), true);
+    // THE CREATE READS AGAIN UNDER THE PAIR'S LOCK, so two presses naming one new category in a
+    // process add one group — and the pair is `categoryGroupKey`'s, the key the reading compares by.
+    check(
+        "  the create reads again under the pair's lock, by the reading's key",
+        /withKeyLock\(`asset-category-group::\$\{categoryGroupKey\(group\)\}`, async \(\) => \{\s*const standing = readCategoryGroups\(await getAllAssetCategoryGroups\(\)\)/.test(reader.source),
+        true
+    );
+    const parsedApp = listJsFiles(repoPath("app")).map((abs) => {
+        const file = toPosix(relative(REPO_ROOT, abs));
+        return { file, ast: parseFile(file).ast };
+    });
+    check("  and the catalog page's actions alone import the writer", importersOf(parsedApp, "lib/airtable/assetCategoryGroups", ["createAssetCategoryGroup"]).join(" | "), `${ACTIONS}: createAssetCategoryGroup`);
 
     // ── 7: the toggle ───────────────────────────────────────────────────────
     log("");
@@ -330,6 +361,210 @@ export function run({ check, assert, log }) {
             /aria-label=\{clearLabel\}/.test(toggle),
         ].join(" "),
         "true true true true"
+    );
+
+    // ── 8: what an add or an edit may save ──────────────────────────────────
+    log("");
+    log("what an add, an edit and a category alone may save, asked of the rows and the groups, by value:");
+    const said = (reading) =>
+        reading.fields
+            ? Object.entries(reading.fields)
+                  .map(([field, words]) => `${field}=${words}`)
+                  .join(" | ")
+            : "saves";
+    const entry = (over) => ({ level1: "Tool", assetClass: "A", level2: "Wrench", level3: "Torque Wrench", size: "", maker: "", partNumber: "", ...over });
+    check(
+        "nothing typed is refused field by field, all at once",
+        said(readCatalogEntry({}, { rows, groups: GROUPS })),
+        "level1=Choose a type. | assetClass=Choose a class. | level2=Enter a category. | level3=Enter a name."
+    );
+    check("  a type and a class are one of their two values", said(readCatalogEntry(entry({ level1: "Tools", assetClass: "C" }), { rows, groups: GROUPS })), "level1=Choose a type. | assetClass=Choose a class.");
+    check(
+        "  a placeholder is no category and no name, and a level a row may leave empty is left so",
+        said(readCatalogEntry(entry({ level2: "N/A", level3: "tbd", size: "n.a.", maker: "-", partNumber: "None" }), { rows, groups: GROUPS })),
+        "level2=Enter a category. | level3=Enter a name. | size=Leave it empty. | maker=Leave it empty. | partNumber=Leave it empty."
+    );
+    const saved = readCatalogEntry(entry({ level2: "  power   tool ", level3: "battery", size: " M18 ", maker: "milwaukee " }), { rows, groups: GROUPS });
+    check(
+        "a path another row holds is refused on the name, in that row's category — case and spacing aside",
+        said(saved),
+        "level3=This item already exists in Power Tool."
+    );
+    check(
+        "  a discontinued row's path too, which it keeps",
+        said(readCatalogEntry(entry({ level1: "Equipment", level2: "Cutting Equipment", level3: "Cutting Machine", maker: "AXXAIR", partNumber: "172" }), { rows, groups: GROUPS })),
+        "level3=This item already exists in Cutting Equipment."
+    );
+    check(
+        "  but not the row an edit saves over",
+        said(readCatalogEntry(entry({ level2: "Power Tool", level3: "Battery", size: "M18", maker: "Milwaukee" }), { rows, groups: GROUPS, editing: "bat18" })),
+        "saves"
+    );
+    const spelled = readCatalogEntry(entry({ level2: " power   tool", level3: "battery", size: "M14" }), { rows, groups: GROUPS });
+    check(
+        "a category and a name the type holds are saved as it spells them, every field normalized",
+        `${Object.values(spelled.entry ?? {}).join("/")} | new ${spelled.newCategory}`,
+        "Tool/A/Power Tool/Battery/M14// | new false"
+    );
+    const lift = readCatalogEntry(entry({ level2: "Lift Equipment", level3: "Scissor Lift" }), { rows, groups: GROUPS });
+    const pipe = readCatalogEntry(entry({ level1: "Equipment", level2: "wrench", level3: "Pipe Wrench" }), { rows, groups: GROUPS });
+    check(
+        "  a category the other type holds is a new one for this type",
+        `${lift.entry?.level2} | new ${lift.newCategory} || ${pipe.entry?.level2} | new ${pipe.newCategory}`,
+        "Lift Equipment | new true || wrench | new true"
+    );
+    check(
+        "a category alone: refused when the type holds it, case aside, and saved as typed when it does not",
+        [
+            said(readCategoryEntry({ level1: "Tool", level2: "power tool" }, GROUPS)),
+            said(readCategoryEntry({ level1: "", level2: "" }, GROUPS)),
+            said(readCategoryEntry({ level1: "Tool", level2: "N/A" }, GROUPS)),
+            JSON.stringify(readCategoryEntry({ level1: "Tool", level2: " Lift   Equipment " }, GROUPS).group),
+        ].join(" || "),
+        'level2=This category already exists. || level1=Choose a type. | level2=Enter a category. || level2=Enter a category. || {"level1":"Tool","level2":"Lift Equipment"}'
+    );
+    check(
+        "the field marks a category new for the type chosen, and a name new under the category",
+        [
+            isNewCategory(entry({ level2: "power tool" }), GROUPS),
+            isNewCategory(entry({ level2: "Lift Equipment" }), GROUPS),
+            isNewCategory(entry({ level2: "N/A" }), GROUPS),
+            isNewName(entry({ level2: "Power Tool", level3: "battery" }), rows),
+            isNewName(entry({ level2: "Power Tool", level3: "Drill" }), rows),
+            isNewName(entry({ level2: "Wrench", level3: "Battery" }), rows),
+            isNewName(entry({ level2: "Power Tool", level3: "" }), rows),
+        ].join(" "),
+        "false true false false true true false"
+    );
+    check(
+        "the categories suggested are the type's own, what is typed found in them and the one typed whole left out",
+        [
+            categorySuggestions({ level1: "Tool", level2: "" }, GROUPS).join(", "),
+            categorySuggestions({ level1: "Tool", level2: "w" }, GROUPS).join(", "),
+            categorySuggestions({ level1: "Tool", level2: "wrench" }, GROUPS).join(", "),
+            categorySuggestions({ level1: "Equipment", level2: "" }, GROUPS).join(", "),
+        ].join(" | "),
+        "Power Tool, Wrench | Wrench, Power Tool |  | Cutting Equipment, Lift Equipment"
+    );
+    check(
+        "  and the names, those under the type and the category, each once",
+        [nameSuggestions(entry({ level2: "Power Tool", level3: "" }), rows).join(", "), nameSuggestions(entry({ level2: "power tool", level3: "ba" }), rows).join(", ")].join(" | "),
+        "Band Saw, Battery, Saw Blade | Band Saw, Battery"
+    );
+    check(
+        "what the row shows as is the base's rule over what is typed, and nothing before a name",
+        [shownName(entry({ level3: " Battery ", size: "M18", maker: "Milwaukee", partNumber: "48-11" })), shownName(entry({ level3: "  ", size: "M18" }))].join(" | "),
+        "Battery M18, Milwaukee (48-11) | "
+    );
+    const bat12 = rows.find((row) => row.id === "bat12");
+    check(
+        "an edit says it renames the items under the row only when their name moves and items stand under it",
+        [
+            renamesItems(bat12, { ...bat12, size: "M12 " }),
+            renamesItems(bat12, { ...bat12, size: "M12 XC" }),
+            renamesItems(bat12, { ...bat12, assetClass: "B" }),
+            renamesItems(rows.find((row) => row.id === "blade"), { level3: "Saw Blade", size: '10"' }),
+        ].join(" "),
+        "false true false false"
+    );
+    check("`Set class` writes the rows selected whose class differs, and no row it does not hold", classChanges(rows, ["bat12", "rat10", "gone"], "B").join(","), "bat12");
+
+    // ── 9: the actions ──────────────────────────────────────────────────────
+    log("");
+    log("the actions ask the same reading of the base, and write a new category before its item:");
+    const actions = parseFile(ACTIONS);
+    check(
+        "the save asks readCatalogEntry and the category alone readCategoryEntry, each once, of a fresh read",
+        `${callsTo(actions.ast, "readCatalogEntry").length} ${callsTo(actions.ast, "readCategoryEntry").length} ${/const \[rows, groups\] = await Promise\.all\(\[getAllAssetCategories\(\), getAllAssetCategoryGroups\(\)\]\)/.test(actions.source)}`,
+        "1 1 true"
+    );
+    const groupWrite = callsTo(actions.ast, "createAssetCategoryGroup")[0];
+    const rowWrites = [...callsTo(actions.ast, "updateAssetCategory"), ...callsTo(actions.ast, "createAssetCategory")];
+    const saveBody = actions.source.slice(actions.source.indexOf("async function saveAssetCategoryHandler"), actions.source.indexOf("export const addAssetCategoryGroupAction"));
+    check(
+        "  the group written first, the item after it, and an item that fails after its group said so",
+        [
+            Boolean(groupWrite) && rowWrites.length === 2 && rowWrites.every((call) => call.start > groupWrite.start),
+            /return \{ error: addedCategory \? COPY\.categoryOnly : COPY\.notSaved \};/.test(saveBody),
+            !/destroy|remove/i.test(saveBody),
+        ].join(" "),
+        "true true true"
+    );
+
+    // ── 10: the dialogs' words ──────────────────────────────────────────────
+    log("");
+    log("every word the dialogs say, by value, and what they open holding:");
+    const C = ASSET_CATALOG_COPY;
+    check(
+        "the titles, the commitments and their working words",
+        JSON.stringify([C.addTitle, C.editTitle, C.newCategoryTitle, C.submit, C.working, C.cancel]),
+        JSON.stringify([
+            "Add to catalog",
+            "Edit item",
+            "New category",
+            { add: "Add to catalog", edit: "Save changes", category: "Create category" },
+            { add: "Adding…", edit: "Saving…", category: "Creating…", discontinue: "Discontinuing…", restore: "Restoring…", remove: "Removing…" },
+            "Cancel",
+        ])
+    );
+    check(
+        "  the fields, their examples, and what marks one new",
+        JSON.stringify([C.fields, C.optional, C.placeholders, C.newMark, C.newCategory, C.newCategoryAlone, C.newName, C.showsAs, C.noName]),
+        JSON.stringify([
+            { level1: "Type", assetClass: "Class", level2: "Category", level3: "Name", size: "Size", maker: "Maker", partNumber: "Part #" },
+            "Optional",
+            { level2: "e.g. Wrench", level3: "e.g. Flexible Ratchet", size: "e.g. 16 mm", maker: "e.g. Milwaukee", partNumber: "e.g. 2767-20" },
+            "New",
+            "New category. It is added with this entry.",
+            "New category.",
+            "New name in this category.",
+            "Shows as",
+            "Item name",
+        ])
+    );
+    check(
+        "  an edit's line, its note, its secondary actions and its menu",
+        [C.itemCount(0), C.itemCount(1), C.itemCount(10), C.renames(1), C.renames(10), C.discontinue, C.restore, C.moreActions, C.remove, C.removeTitle("Wrench 16 mm"), C.removeSays].join(" | "),
+        "No items | 1 item | 10 items | Its 1 item takes the new name. | Its 10 items take the new name. | Discontinue | Restore | More actions | Remove from catalog | Remove Wrench 16 mm from catalog? | It comes out of the catalog. No items use it."
+    );
+    check(
+        "  a row's two controls, the bar and its menu",
+        [C.editRow("Battery M12, Milwaukee"), C.selectRow("Battery M12, Milwaukee"), C.selectionBar, C.setClass, C.classOption("A")].join(" | "),
+        "Edit Battery M12, Milwaukee | Select Battery M12, Milwaukee | Selected rows | Set class | Class A"
+    );
+    check(
+        "  each refusal",
+        JSON.stringify([C.refusal.level1, C.refusal.assetClass, C.refusal.level2, C.refusal.level3, C.refusal.leaveEmpty, C.refusal.exists("Wrench"), C.refusal.categoryExists, C.notSaved, C.categoryOnly, C.categoryNotCreated, C.notRemoved, C.classNotSet, C.gone, C.hasItems]),
+        JSON.stringify([
+            "Choose a type.",
+            "Choose a class.",
+            "Enter a category.",
+            "Enter a name.",
+            "Leave it empty.",
+            "This item already exists in Wrench.",
+            "This category already exists.",
+            "Couldn't save the item. Try again.",
+            "The category was added, but the item wasn't. Try again.",
+            "Couldn't create the category. Try again.",
+            "Couldn't remove the item. Try again.",
+            "Couldn't set the class. Try again.",
+            "This item isn't in the catalog any more.",
+            "Items use it now, so it stays in the catalog.",
+        ])
+    );
+    // THE TWO MENUS' ROWS ARE THEIR OPENERS' HEIGHT (0a, 1l): the dialog's `More actions` is the
+    // close's 28 and its row 28, and `Set class` a 36 with rows of 36.
+    const menuSource = parseFile("app/components/Menu.js").source;
+    check(
+        "the dialog's menu has rows of its 28 and `Set class` rows of its 36",
+        `${/const ITEM_ROWS = \{ close: "h-dialog-close", lg: "h-control-lg" \};/.test(menuSource)} ${/rows=\{look === "icon" \? "close" : "lg"\}/.test(menuSource)} ${/flex aspect-square h-dialog-close /.test(menuSource)}`,
+        "true true true"
+    );
+    // WHAT A NEW ENTRY OPENS ON IS 1l's: the first type and the first class, nothing typed.
+    check(
+        "a new entry opens on 1l's first type and class",
+        `${ASSET_TYPE_VALUES[0]} ${ASSET_CLASS_VALUES[0]} ${/level1: ASSET_TYPE_VALUES\[0\], assetClass: ASSET_CLASS_VALUES\[0\]/.test(parseFile(DIALOGS).source)}`,
+        "Equipment A true"
     );
 }
 
