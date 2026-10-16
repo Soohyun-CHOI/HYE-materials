@@ -6,6 +6,12 @@
 // `scripts/protectedTables.mjs` first and stops before its first write. This holds the module's
 // answer by value, and that every script that could write them asks it.
 //
+// A DESCRIPTION ALONE IS THE ONE WRITE THAT GOES THROUGH (#531), and a script that makes one is
+// classified `describes`: it imports `refusesBeyondDescriptions`, every `fetch` it makes has that
+// guard deciding before it, it names no address but the Metadata API's, and it imports nothing but
+// built-ins and the guard's module — so no row request and no record writer of the app is in it.
+// The guard's answer is held by value here too, a name beside a description refused among it.
+//
 // WHICH SCRIPTS COULD, FOUND RATHER THAN LISTED. Every `.mjs`, `.js` and `.py` file under
 // `scripts/` is read, and one REACHES the two tables when it names either as a whole string —
 // `"Assets"`, `"Asset Log"` — or by `TABLES.ASSETS` / `TABLES.ASSET_LOG`, or by its id on this
@@ -37,13 +43,17 @@ import { readdirSync, readFileSync } from "fs";
 import { join, relative } from "path";
 import { REPO_ROOT, calleeName, isFunctionNode, parentMap, parseSource, toPosix, walk } from "./_ast.mjs";
 import { tableEntriesFromSource } from "./table-field-names.mjs";
-import { PROTECTED_LINK_TARGETS, PROTECTED_TABLES, refusesProtectedWrite } from "../../protectedTables.mjs";
+import { PROTECTED_LINK_TARGETS, PROTECTED_TABLES, refusesBeyondDescriptions, refusesProtectedWrite } from "../../protectedTables.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "No script writes Assets or Asset Log (#531)";
 
 const GUARD = "refusesProtectedWrite";
+const DESCRIPTION_GUARD = "refusesBeyondDescriptions";
 const GUARD_MODULE = "scripts/protectedTables.mjs";
+
+/** The one address a `describes` script may name. */
+const META_ROOT = "https://api.airtable.com/v0/meta";
 
 /** The two tables' ids on this base, read off its Metadata API on 2026-10-15 (#531). */
 const PROTECTED_TABLE_IDS = ["tblXtmDonSyOyOvV3", "tblrox7y4akPKdbpF"];
@@ -66,6 +76,7 @@ const CLASSIFIED = {
     "scripts/demo/remove_demo_catalog_517.mjs": { writes: ["deleteRecords", "create"] },
     "scripts/demo/wipe_base.mjs": { writes: ["destroy"] },
     "scripts/import/create_tools_334.py": { python: true },
+    "scripts/import/describe_repair_531.mjs": { describes: true },
 };
 
 /** Every `.mjs`, `.js` and `.py` file under `scripts/`, but this tier's and the module's own. */
@@ -111,14 +122,14 @@ export function reachesPy(source) {
     return PROTECTED_TABLES.some((table) => new RegExp(`["']${table}["']`).test(source));
 }
 
-/** Whether the guard is imported from the module, by its path resolved from the file. */
-function importsGuard(ast, fromPath) {
+/** Whether a guard is imported from the module, by its path resolved from the file. */
+function importsGuard(ast, fromPath, guard = GUARD) {
     let found = false;
     walk(ast, (node) => {
         if (node.type !== "ImportDeclaration") return;
         const target = toPosix(join(fromPath, "..", node.source.value)).replace(/^\.\//, "");
         if (target !== GUARD_MODULE) return;
-        if (node.specifiers.some((s) => s.imported?.name === GUARD)) found = true;
+        if (node.specifiers.some((s) => s.imported?.name === guard)) found = true;
     });
     return found;
 }
@@ -162,13 +173,13 @@ function decides(call, parents, root) {
  * scope, as `name at offset` — and every listed write the source never makes, which is a stale
  * listing rather than a safe one.
  */
-export function unguardedWrites(ast, writes) {
+export function unguardedWrites(ast, writes, guard = GUARD) {
     const parents = parentMap(ast);
     const guards = [];
     const calls = [];
     walk(ast, (node) => {
         const name = calleeName(node);
-        if (name === GUARD) guards.push(node);
+        if (name === guard) guards.push(node);
         else if (writes.includes(name)) calls.push(node);
     });
     const findings = [];
@@ -178,6 +189,32 @@ export function unguardedWrites(ast, writes) {
         if (!covered) findings.push(`${calleeName(call)} at ${call.start}`);
     }
     for (const name of writes) if (!calls.some((call) => calleeName(call) === name)) findings.push(`${name} is never called`);
+    return findings;
+}
+
+/**
+ * What is wrong with a `describes` script (#531): a `fetch` with no deciding description guard
+ * before it, an address that is not the Metadata API's, or an import of anything but a built-in
+ * and the guard's module.
+ */
+export function describerFindings(ast, fromPath) {
+    const findings = unguardedWrites(ast, ["fetch"], DESCRIPTION_GUARD);
+    walk(ast, (node) => {
+        const texts =
+            node.type === "Literal" && typeof node.value === "string"
+                ? [node.value]
+                : node.type === "TemplateLiteral"
+                  ? node.quasis.map((q) => q.value.cooked ?? "")
+                  : [];
+        for (const text of texts) {
+            if (text.includes("://") && !text.startsWith(META_ROOT)) findings.push(`names ${text}`);
+        }
+        if (node.type === "ImportDeclaration" && typeof node.source.value === "string") {
+            const source = node.source.value;
+            const target = toPosix(join(fromPath, "..", source)).replace(/^\.\//, "");
+            if (!source.startsWith("node:") && target !== GUARD_MODULE) findings.push(`imports ${source}`);
+        }
+    });
     return findings;
 }
 
@@ -234,6 +271,44 @@ export function run({ check, assert, log }) {
     check("  a run let through says nothing", ask({ writes: ["Vendors"] }).lines.length, 0);
     check("  a wipe names the linked table it reaches", ask({ wipes: ["Vendors", "Jobs"] }).lines[0], "REFUSED, before any write: probe would write Jobs.");
 
+    // ── a description alone, by value (#531) ────────────────────────────────
+    log("");
+    log("refusesBeyondDescriptions, by value:");
+    const BASE = "https://api.airtable.com/v0/meta/bases/appAbc123";
+    const FIELD = `${BASE}/tables/tblXtmDonSyOyOvV3/fields/fldMpl1xR9Sdwvehg`;
+    const TABLE = `${BASE}/tables/tblXtmDonSyOyOvV3`;
+    const send = (input) => {
+        const lines = [];
+        const refused = refusesBeyondDescriptions({ script: "probe", ...input, log: (line) => lines.push(line) });
+        return { refused, lines };
+    };
+    check("  a read of the base's schema goes", send({ method: "GET", url: `${BASE}/tables` }).refused, false);
+    check("  a field's description alone goes", send({ method: "PATCH", url: FIELD, body: { description: "x" } }).refused, false);
+    check("  a table's description alone goes", send({ method: "PATCH", url: TABLE, body: { description: "x" } }).refused, false);
+    check("  an empty description goes, as text", send({ method: "PATCH", url: FIELD, body: { description: "" } }).refused, false);
+    check("  a name beside a description is refused", send({ method: "PATCH", url: FIELD, body: { name: "Status", description: "x" } }).refused, true);
+    check("  a name alone is refused", send({ method: "PATCH", url: TABLE, body: { name: "Assets" } }).refused, true);
+    check("  options are refused", send({ method: "PATCH", url: FIELD, body: { description: "x", options: {} } }).refused, true);
+    check("  a body with no description is refused", send({ method: "PATCH", url: FIELD, body: {} }).refused, true);
+    check("  a description that is not text is refused", send({ method: "PATCH", url: FIELD, body: { description: null } }).refused, true);
+    check("  no body is refused", send({ method: "PATCH", url: FIELD }).refused, true);
+    check("  a GET carrying a body is refused", send({ method: "GET", url: `${BASE}/tables`, body: {} }).refused, true);
+    check("  a row read is refused", send({ method: "GET", url: "https://api.airtable.com/v0/appAbc123/Assets" }).refused, true);
+    check("  a row write is refused", send({ method: "PATCH", url: "https://api.airtable.com/v0/appAbc123/tblXtmDonSyOyOvV3", body: { description: "x" } }).refused, true);
+    check("  a field created is refused", send({ method: "POST", url: `${TABLE}/fields`, body: { description: "x" } }).refused, true);
+    // A body and an address that would go, so the method alone is what refuses these two.
+    check("  a DELETE is refused", send({ method: "DELETE", url: FIELD, body: { description: "x" } }).refused, true);
+    check("  a POST carrying a description alone is refused", send({ method: "POST", url: FIELD, body: { description: "x" } }).refused, true);
+    check("  the field list itself is refused", send({ method: "PATCH", url: `${TABLE}/fields`, body: { description: "x" } }).refused, true);
+    check("  another host is refused", send({ method: "GET", url: "https://example.com/v0/meta/bases/appAbc123/tables" }).refused, true);
+    check("  a query on the schema read is refused", send({ method: "GET", url: `${BASE}/tables?include=x` }).refused, true);
+    check("  no address is refused, and says so", send({ method: "GET" }).lines[0], "REFUSED, before sending: probe would send a request with no address.");
+    const named = send({ method: "PATCH", url: FIELD, body: { name: "Status", description: "x" } }).lines;
+    check("  a refusal says two lines", named.length, 2);
+    check("  the first names what went beyond the description", named[0], "REFUSED, before sending: probe would send name beside a description.");
+    assert("  the second says nothing was sent", /descriptions alone/.test(named[1] ?? "") && /Nothing was sent\.$/.test(named[1] ?? ""));
+    check("  a request let through says nothing", send({ method: "PATCH", url: FIELD, body: { description: "x" } }).lines.length, 0);
+
     // ── the inventory, both ways ─────────────────────────────────────────────
     log("");
     log("every script that reaches the two tables is classified:");
@@ -260,6 +335,11 @@ export function run({ check, assert, log }) {
             continue;
         }
         const { ast } = parseSource(source, path);
+        if (entry.describes) {
+            assert(`  ${path} imports ${DESCRIPTION_GUARD} from ${GUARD_MODULE}`, importsGuard(ast, path, DESCRIPTION_GUARD));
+            check("    and sends descriptions alone, through it, to the Metadata API", describerFindings(ast, path).join("; "), "");
+            continue;
+        }
         assert(`  ${path} imports ${GUARD} from ${GUARD_MODULE}`, importsGuard(ast, path));
         check(`    and asks before ${entry.writes.join(", ")}`, unguardedWrites(ast, entry.writes).join("; "), "");
     }
@@ -304,6 +384,37 @@ export function run({ check, assert, log }) {
     const negated = `async function f() { if (!refusesProtectedWrite({ writes: ["Jobs"] })) await air.createRecords("x", []); }`;
     check("  a negated guard still decides", unguardedWrites(planted(negated), ["createRecords"]).join("; "), "");
     check("  a listed write never made is found", unguardedWrites(planted(good), ["create", "destroy"]).join("; "), "destroy is never called");
+
+    const describer = `import { refusesBeyondDescriptions } from "../protectedTables.mjs";
+const META_ROOT = "https://api.airtable.com/v0/meta";
+async function request(method, path, body) {
+    const url = \`\${META_ROOT}\${path}\`;
+    if (refusesBeyondDescriptions({ script: "x", method, url, body })) throw new Error("refused");
+    return fetch(url, { method });
+}`;
+    const describerAt = "scripts/import/x.mjs";
+    check("  a describer sending through the guard passes", describerFindings(planted(describer), describerAt).join("; "), "");
+    check(
+        "  a fetch with no guard is found",
+        describerFindings(planted(describer.replace(/ {4}if \(refusesBeyondDescriptions[^\n]*\n/, "")), describerAt).join("; "),
+        `fetch at ${describer.replace(/ {4}if \(refusesBeyondDescriptions[^\n]*\n/, "").indexOf("fetch(")}`
+    );
+    check(
+        "  a fetch outside the guarded function is found",
+        describerFindings(planted(`${describer}\nawait fetch("https://api.airtable.com/v0/meta/bases");`), describerAt).length,
+        1
+    );
+    check(
+        "  a row address is found",
+        describerFindings(planted(`${describer}\nconst ROWS = "https://api.airtable.com/v0/appAbc/Assets";`), describerAt).join("; "),
+        "names https://api.airtable.com/v0/appAbc/Assets"
+    );
+    check(
+        "  an import of the app's client is found",
+        describerFindings(planted(`import { base } from "../../lib/airtable/client.js";\n${describer}`), describerAt).join("; "),
+        "imports ../../lib/airtable/client.js"
+    );
+    check("  a built-in import is not", describerFindings(planted(`import { join } from "node:path";\n${describer}`), describerAt).join("; "), "");
 
     const pyGood = `RENAMED_BY_513 = ("Asset Categories", "Assets", "Asset Log")\ndef main():\n    renamed = [name for name in RENAMED_BY_513 if find_table(tables, name)]\n    if renamed:\n        return 1\n    client.create_table(TOOLS)\n`;
     check("  a Python stop before its write passes", pythonStopFindings(pyGood).join("; "), "");

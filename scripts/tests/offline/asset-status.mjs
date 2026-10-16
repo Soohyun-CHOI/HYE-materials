@@ -99,9 +99,9 @@ export function run({ check, log, assert }) {
     // `Created` WAS `Registered` UNTIL #455, and the two scans were `Checked Out` and
     // `Checked In` until #463, each renamed in the Airtable UI with the rows
     // following it — see lib/assetStatus.js's header.
-    // The two repair events (#531) follow `Retired`, where the base holds them.
+    // The two repair events (#531) stand before `Retired`, where the base holds them.
     check("ASSET_EVENT_VALUES", ASSET_EVENT_VALUES.join(" | "),
-        "Created | Checked out | Checked in | Retired | Sent for repair | Returned from repair");
+        "Created | Checked out | Checked in | Sent for repair | Returned from repair | Retired");
     check("six and no more", ASSET_EVENT_VALUES.length, 6);
     assert("no duplicates", new Set(ASSET_EVENT_VALUES).size === ASSET_EVENT_VALUES.length);
 
@@ -549,8 +549,8 @@ export function run({ check, log, assert }) {
     );
     const eventRule = [
         ["Created", "blueLight2"], ["Checked out", "cyanLight2"],
-        ["Checked in", "tealLight2"], ["Retired", "grayLight2"],
-        ["Sent for repair", "yellowLight2"], ["Returned from repair", "orangeLight2"],
+        ["Checked in", "tealLight2"], ["Sent for repair", "yellowLight2"],
+        ["Returned from repair", "orangeLight2"], ["Retired", "grayLight2"],
     ];
     check("event colors do the same", JSON.stringify(pyEvent), JSON.stringify(eventRule));
     check("  gray marks the terminal value and nothing else",

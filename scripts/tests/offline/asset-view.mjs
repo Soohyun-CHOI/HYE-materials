@@ -143,7 +143,7 @@ export function run({ check, assert, log }) {
         "Dana K"
     );
     const others = Object.values(ASSET_EVENT).filter((e) => e !== ASSET_EVENT.CHECKED_OUT);
-    check("  and the other events do not, even handed one", others.join(" | "), "Created | Checked in | Retired | Sent for repair | Returned from repair");
+    check("  and the other events do not, even handed one", others.join(" | "), "Created | Checked in | Sent for repair | Returned from repair | Retired");
     for (const event of others) check(`  ${event} carries four`, withName(event).join(","), "event,eventAt,job,recordedBy");
     // THE EVENT DECIDES, NOT THE VALUE. A check-out with no name renders the pair
     // empty rather than dropping it — the same treatment the four above get, and

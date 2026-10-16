@@ -295,18 +295,18 @@ export function run({ check, assert, log }) {
             read(away, { event: ASSET_EVENT.RETURNED_FROM_REPAIR, jobId: "", currentJobRecordId: "recJobZ" }),
             "Returned from repair/recJobZ/null/false/null"
         );
-        const nothingSaved = ASSET_TRANSITION_COPY.scannedFirst({ attempted: ASSET_EVENT.SENT_FOR_REPAIR });
+        const nothingSaved = ASSET_TRANSITION_COPY.someoneFirst({ attempted: ASSET_EVENT.SENT_FOR_REPAIR });
         check("an item that is out may not be sent: a stale page", read(outPlan, { event: ASSET_EVENT.SENT_FOR_REPAIR, currentJobRecordId: "recJobZ" }), `null/null/null/true/${nothingSaved}`);
         check("  nor one already in repair", read(away, { event: ASSET_EVENT.SENT_FOR_REPAIR, currentJobRecordId: "recJobZ" }), `null/null/null/true/${nothingSaved}`);
         check(
             "  nor may one in repair be checked out",
             read(away, { ...CHECKING_OUT, jobId: JOB_A.id, currentJobRecordId: "recJobZ" }),
-            `null/null/null/true/${ASSET_TRANSITION_COPY.scannedFirst({ attempted: ASSET_EVENT.CHECKED_OUT })}`
+            `null/null/null/true/${ASSET_TRANSITION_COPY.someoneFirst({ attempted: ASSET_EVENT.CHECKED_OUT })}`
         );
         check(
             "  nor one in stock returned",
             read(fromStock, { event: ASSET_EVENT.RETURNED_FROM_REPAIR, currentJobRecordId: "recJobZ" }),
-            `null/null/null/true/${ASSET_TRANSITION_COPY.scannedFirst({ attempted: ASSET_EVENT.RETURNED_FROM_REPAIR })}`
+            `null/null/null/true/${ASSET_TRANSITION_COPY.someoneFirst({ attempted: ASSET_EVENT.RETURNED_FROM_REPAIR })}`
         );
         check(
             "  while a check-out from stock still takes the reader's chosen job",
@@ -352,7 +352,24 @@ export function run({ check, assert, log }) {
             JSON.stringify(ASSET_TRANSITION_COPY.moved({ by: "Jisoo Park", event: ASSET_EVENT.RETURNED_FROM_REPAIR, at: "2026-10-15T14:00:00.000Z", attempted: ASSET_EVENT.RETURNED_FROM_REPAIR })),
             JSON.stringify(["Jisoo Park already returned this from repair on ", { at: "2026-10-15T14:00:00.000Z" }, ". Nothing was saved."])
         );
-        check("  and a sending refused with no entry read", nothingSaved, "Someone else scanned this first. Nothing was saved.");
+        // NOT `scanned`: in this app a scan is a check-out or a check-in, and whoever got in
+        // front of a repair's press may have done either, sent it or retired it.
+        check("  and a sending refused with no entry read", nothingSaved, "Someone else recorded this first. Nothing was saved.");
+        check(
+            "  and a return",
+            ASSET_TRANSITION_COPY.someoneFirst({ attempted: ASSET_EVENT.RETURNED_FROM_REPAIR }),
+            "Someone else recorded this first. Nothing was saved."
+        );
+        check(
+            "  the same sentence when the latest entry did not resolve",
+            JSON.stringify(ASSET_TRANSITION_COPY.moved({ by: "Jisoo Park", attempted: ASSET_EVENT.SENT_FOR_REPAIR })),
+            JSON.stringify(["Someone else recorded this first. Nothing was saved."])
+        );
+        check(
+            "  while a scan's still says it was scanned",
+            ASSET_TRANSITION_COPY.someoneFirst({ attempted: ASSET_EVENT.CHECKED_OUT }),
+            "Someone else scanned this first. Your check-out wasn't saved."
+        );
 
         log("");
         log("the action, off its source:");
@@ -499,7 +516,7 @@ export function run({ check, assert, log }) {
     // AND IT SAYS IT IS THE STALE ONE (#463), which is what the action reads the latest entry
     // for: the design names who recorded first and when (1k), which this function cannot know.
     check("  marked as the stale refusal", stale.stale, true);
-    check("  naming the press it refused", stale.refusal, ASSET_TRANSITION_COPY.scannedFirst({ attempted: ASSET_EVENT.CHECKED_IN }));
+    check("  naming the press it refused", stale.refusal, ASSET_TRANSITION_COPY.someoneFirst({ attempted: ASSET_EVENT.CHECKED_IN }));
     assert(
         "  and asking for no reload, because the action refreshes as it refuses",
         !/(reload|refresh|open it again|out of date)/i.test(stale.refusal)
@@ -511,6 +528,11 @@ export function run({ check, assert, log }) {
     check("  never falling through to the derived event", stale.jobRecordId, null);
 
     check("an event the vocabulary does not hold is refused", readSubmission(inStock, { ...CHECKING_OUT, event: "Job Changed", jobId: JOB_A.id }).event, null);
+    check(
+        "  saying someone else recorded it first, as no press names it (#531)",
+        readSubmission(inStock, { ...CHECKING_OUT, event: "Job Changed", jobId: JOB_A.id }).refusal,
+        "Someone else recorded this first. Nothing was saved."
+    );
     check("an empty event is refused", readSubmission(inStock, { ...CHECKING_OUT, event: "", jobId: JOB_A.id }).event, null);
 
     const otherJob = readSubmission(inStock, { ...CHECKING_OUT, jobId: JOB_B.id });
@@ -577,7 +599,7 @@ export function run({ check, assert, log }) {
     check(
         "a stale page is answered before a missing name",
         readSubmission(inStock, { event: ASSET_EVENT.CHECKED_IN, jobId: JOB_A.id, checkedOutTo: "" }).refusal,
-        ASSET_TRANSITION_COPY.scannedFirst({ attempted: ASSET_EVENT.CHECKED_IN })
+        ASSET_TRANSITION_COPY.someoneFirst({ attempted: ASSET_EVENT.CHECKED_IN })
     );
     check(
         "  and so is a job that is not the actor's",
@@ -769,7 +791,7 @@ export function run({ check, assert, log }) {
         JSON.stringify(["Someone else scanned this first. Your check-in wasn't saved."])
     );
     check("  nor an event read with its moment", JSON.stringify(ASSET_TRANSITION_COPY.moved({ by: "Jisoo Park", at: "2026-10-05T13:50:00.000Z", attempted: ASSET_EVENT.CHECKED_OUT })), JSON.stringify(["Someone else scanned this first. Your check-out wasn't saved."]));
-    check("  that last the one sentence the action answers with", ASSET_TRANSITION_COPY.scannedFirst({ attempted: ASSET_EVENT.CHECKED_IN }), "Someone else scanned this first. Your check-in wasn't saved.");
+    check("  that last the one sentence the action answers with", ASSET_TRANSITION_COPY.someoneFirst({ attempted: ASSET_EVENT.CHECKED_IN }), "Someone else scanned this first. Your check-in wasn't saved.");
     check(
         "  and the one for a move",
         ASSET_TRANSITION_COPY.movesJob({ from: "26-DEMO-02", to: "26-DEMO-01" }),
@@ -823,6 +845,17 @@ export function run({ check, assert, log }) {
     // A NOUN FOR THE SCANS ALONE (#531): a refused repair says `Nothing was saved.`, which
     // names no noun the repair has none for.
     check("  and the scans a noun", Object.keys(ASSET_TRANSITION_COPY.eventNoun).join(" | "), "Checked out | Checked in");
+    // WHAT GOT IN FRONT WITH NO ENTRY READ (#531), keyed by the press as the act is.
+    check(
+        "every offerable event says what got in front of it",
+        offerable.filter((e) => !ASSET_TRANSITION_COPY.firstVerb[e]).join(", "),
+        ""
+    );
+    check(
+        "  the scans `scanned` and the repair's `recorded`",
+        Object.entries(ASSET_TRANSITION_COPY.firstVerb).map(([e, verb]) => `${e}: ${verb}`).join(" | "),
+        "Checked out: scanned | Checked in: scanned | Sent for repair: recorded | Returned from repair: recorded"
+    );
     check("  the noun hyphenated, as the design writes it since 2026-10-05", Object.values(ASSET_TRANSITION_COPY.eventNoun).join(" | "), "check-out | check-in");
     check(
         "  and the act a verb with none",

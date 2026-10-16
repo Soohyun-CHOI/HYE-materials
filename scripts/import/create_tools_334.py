@@ -165,8 +165,9 @@ DATETIME_OPTIONS = {
 #
 # #531 ADDED THE REPAIR'S THREE BY HAND IN THE AIRTABLE UI, in the colors given
 # there, and this script never ran for them — it refuses beside the renamed
-# tables. They are here so the list stays the one the base holds, the status in
-# the order the category list draws (1a).
+# tables. They are here so the list stays the one the base holds, in the order it
+# holds them: the status before `Retired`, as the category list draws it (1a), and
+# the two events before `Retired` too.
 TOOL_STATUS_CHOICES = [
     {"name": "In stock", "color": "blueLight2"},
     {"name": "Out", "color": "cyanLight2"},
@@ -178,9 +179,9 @@ TOOL_EVENT_CHOICES = [
     {"name": "Created", "color": "blueLight2"},
     {"name": "Checked out", "color": "cyanLight2"},
     {"name": "Checked in", "color": "tealLight2"},
-    {"name": "Retired", "color": "grayLight2"},
     {"name": "Sent for repair", "color": "yellowLight2"},
     {"name": "Returned from repair", "color": "orangeLight2"},
+    {"name": "Retired", "color": "grayLight2"},
 ]
 
 # ----------------------------------------------------------------------------

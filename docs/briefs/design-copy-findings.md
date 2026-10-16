@@ -245,6 +245,7 @@ follows a rule the design already states, and the next sending decides each.
 | `Returning from repair…` | the return's press, busy, heard and not seen | draw no busy press |
 | `… already sent this for repair on …`, `… already returned this from repair on …` | a refused press, under the status | draw no repair refusal |
 | `Nothing was saved.` | a refused press on either repair control | the same |
+| `Someone else recorded this first. Nothing was saved.` | a refused repair press, no entry read | the same |
 
 **The empty sentence names all four statuses**, Soo's ruling over the drawing's
 three: the list counts four. **The two working words are 0f's rule** — the
@@ -253,12 +254,15 @@ since the menu that sent it has closed; while it is on its way the button is
 busy, its spinner over its dots, which the files do not draw either. **A refused
 repair follows 1k's sentence** with the event's own words, and ends on
 `Nothing was saved.` because neither event has a noun that reads as one: `Your
-send-for-repair wasn't saved.` is not English. Where the latest entry cannot be
-read, a refused repair says `Someone else scanned this first. Nothing was
-saved.`, the action's one sentence for every press, though a sending is not a
-scan.
+send-for-repair wasn't saved.` is not English. **Where the latest entry cannot
+be read, a refused repair says who got in front and not what they did**:
+`Someone else recorded this first. Nothing was saved.` In this app a scan is a
+check-out or a check-in, and whoever got in front of a sending may have checked
+the item out, sent it or retired it. A refused scan keeps `Someone else scanned
+this first.`
 
-The keys are `ASSET_TRANSITION_COPY.working`, `.movedAct` and `.notSaved` in
+The keys are `ASSET_TRANSITION_COPY.working`, `.movedAct`, `.firstVerb`,
+`.someoneFirst` and `.notSaved` in
 `lib/assetTransition.js` and `ASSET_LIST_COPY.noItems` in
 `lib/assetListView.js`, each held by value in `offline/asset-transition.mjs`
 or `asset-list-view.mjs`. The base's words are its own: `In repair`,

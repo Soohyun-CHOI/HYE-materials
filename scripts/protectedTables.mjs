@@ -6,7 +6,8 @@
 // its row, and an event is true of a moment that is gone. So the app's own screens are their
 // one writer, and a script — a credentialed check, an import, a demo seed, a revert — that would
 // create, update or delete a row of either, or rename or redescribe either table or its fields,
-// asks this module first and stops before its first write. The check for a run's own fixtures
+// asks this module first and stops before its first write — a description alone excepted, below.
+// The check for a run's own fixtures
 // does not change that: a fixture created in one of these tables is a row on the site's list
 // for as long as the run lasts, and a run killed before its cleanup leaves it there.
 //
@@ -20,6 +21,14 @@
 // NO FLAG LETS A RUN PAST IT, and that is the point rather than an omission: a way round is a
 // write waiting for the run that takes it. The day these tables stop being the site's records
 // is a change to this module, made in its own commit.
+//
+// A DESCRIPTION ALONE IS NOT A RECORD, AND IS THE ONE THING THAT GOES THROUGH (#531). A table's
+// or a field's description says what the column holds and touches no row, so Soo allowed
+// `describe_repair_531.mjs` to correct the six that #531 made false. A script that writes one asks
+// `refusesBeyondDescriptions` before every request it sends, and that answers true — stop — for
+// anything but a read of a base's schema or a PATCH of one table or one field carrying a
+// `description` and nothing else: a name, a type, options, a row read or a row write are each
+// refused before they are sent.
 //
 // WHAT IT CANNOT SEE. It answers about the tables a script names to it; a script that writes
 // without asking is caught by `offline/protected-tables.mjs`, which finds every script under
@@ -55,6 +64,42 @@ export function refusesProtectedWrite({ script, writes = [], wipes = [], log = c
         "Assets and Asset Log hold the site's records since #531 — every item registered and every event " +
             "recorded against one — so no script writes, deletes or reshapes either, or empties a table they link to. " +
             "Nothing was written."
+    );
+    return true;
+}
+
+/** A read of one base's schema, the one GET a description's script sends. */
+const SCHEMA_READ = /^https:\/\/api\.airtable\.com\/v0\/meta\/bases\/app[A-Za-z0-9]+\/tables$/;
+
+/** One table, or one field of it, on the Metadata API: what a description is written to. */
+const DESCRIBED = /^https:\/\/api\.airtable\.com\/v0\/meta\/bases\/app[A-Za-z0-9]+\/tables\/tbl[A-Za-z0-9]+(?:\/fields\/fld[A-Za-z0-9]+)?$/;
+
+/** What a request would do beyond a schema read or a description alone, or null when nothing. */
+function beyondDescriptions({ method, url, body }) {
+    if (typeof url !== "string") return "send a request with no address";
+    if (method === "GET") return SCHEMA_READ.test(url) && body === undefined ? null : `send GET ${url}`;
+    if (method !== "PATCH") return `send ${method} ${url}`;
+    if (!DESCRIBED.test(url)) return `send PATCH ${url}`;
+    if (body === null || typeof body !== "object" || Array.isArray(body)) return "send a PATCH with no body";
+    const others = Object.keys(body).filter((key) => key !== "description");
+    if (others.length > 0) return `send ${others.join(", ")} beside a description`;
+    if (typeof body.description !== "string") return "send a PATCH with no description";
+    return null;
+}
+
+/**
+ * Whether a request to Airtable must not be sent, saying so (#531): false, saying nothing, for a
+ * GET of a base's schema or a PATCH of one table or one field whose body is `{ description }`
+ * alone; true for anything else — a name, a type, options, any row — after printing the refusal
+ * through `log`. The caller stops on true, before the request leaves.
+ */
+export function refusesBeyondDescriptions({ script, method, url, body, log = console.log }) {
+    const beyond = beyondDescriptions({ method, url, body });
+    if (beyond === null) return false;
+    log(`REFUSED, before sending: ${script} would ${beyond}.`);
+    log(
+        "A script that writes a description of Assets or Asset Log sends a schema read and descriptions alone " +
+            "since #531, and nothing a row holds. Nothing was sent."
     );
     return true;
 }
