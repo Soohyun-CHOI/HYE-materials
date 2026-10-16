@@ -692,12 +692,12 @@ this document with it.
 Recorded rather than resolved, because settling either is a copy decision and
 this document only writes down what is there.
 
-The purchase order list's own heading is `Purchase Orders` and the link to it
-from the root screen says `Purchase orders`. One screen, two casings. Every
-other list heading is `Title Case` except `Material prices`, which is sentence
-case. The rail the asset screens carry (#460) says the design's words,
-`Purchase requests` and `Purchase orders`, so the request list's heading
-disagrees with its section too.
+The purchase order list's own heading is `Purchase Orders` and the rail's
+section for it says `Purchase orders`, the design's word (#460), as the root
+screen's link did until #542 removed that screen. One screen, two casings.
+Every other list heading is `Title Case` except `Material prices`, which is
+sentence case. The request list's heading disagrees with its section,
+`Purchase requests`, too.
 
 `WITHDRAW_COPY` uses contractions (`hasn't`, `can't`) and `DELETE_COPY` uses
 `cannot`, in two modals that a reader can meet in the same week.
@@ -715,7 +715,7 @@ office. Invoicing is Admin because invoicing is office work.
 
 | Screen | Who |
 |---|---|
-| `/`, `/login`, `/login/confirm` | anyone, signed in or not |
+| `/login`, `/login/confirm` | anyone, signed in or not |
 | `/prs`, `/prs/[prId]`, `/pos`, `/pos/[poId]` | row-scoped by `canViewPR` |
 | `/invoices`, `/invoices/[invoiceId]` | row-scoped, reaching `canViewPR` through the orders the invoice charges (#211) |
 | `/prs/new` | anyone signed in |
@@ -903,9 +903,12 @@ with what heads it held at the top as its rows pass under (0i, #519).
 **The navigation shell is the asset screens' alone (#460).** The design drew a
 rail with every section on it and a breadcrumb above a record; the asset screens
 carry both, and the screens above them carry neither until #258 gathers them
-into one layout. There the root screen carries five links because a new route
-is otherwise reachable only by typing its URL, and every "back" affordance is a
-per-page link written by whoever added the page.
+into one layout. There every "back" affordance is a per-page link written by
+whoever added the page. **And while the site uses Tools & Equipment alone, those
+screens are closed (#542)**: the rail carries no section for them and an address
+on one leads to the Tools & Equipment list, which is also where `/` and a
+sign-in with nowhere else to go land. One switch in `lib/openScreens.js` opens
+them; until #542 a root screen of links was the way in.
 
 ## How a screen brief reads
 

@@ -100,7 +100,8 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `app/login/askForEmail.js` — the one request all four sign-in controls ask for an email with (#148), and its three answers.
 - `lib/crossOrigin.js` — the login-CSRF refusal every sign-in POST makes.
 - `lib/cookieLifetime.js` — each sealed cookie's lifetime, one value for its seal and its cookie. A session lasts 30 days from sign-in and is never extended.
-- `lib/loginDestination.js` — where a signed-out reader was headed (#373).
+- `lib/loginDestination.js` — where a signed-out reader was headed (#373), and where a reader with nowhere to go lands (#542).
+- `lib/openScreens.js` — whether the materials screens are open (#542): the one switch the rail and `next.config.mjs` read. **No page, link or action asks it.**
 - `lib/units.js` — `CANONICAL_UNITS`, the JS source of truth for the Unit select list.
 - `lib/editLogFields.js` — the labels a `PR Edit Log` row can be about. No call site may pass `createEditLogEntry` a string literal.
 - `lib/variance.js` — invoice/PO variance checks and `VARIANCE_COPY` (#179), plus the cent rule (#254, #308, #405). **Nothing writes a quantity or a currency figure into an item, a document total, or either side of the invoice header comparison without asking them.**

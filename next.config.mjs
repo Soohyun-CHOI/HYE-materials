@@ -1,3 +1,6 @@
+import { DEFAULT_DESTINATION } from "./lib/loginDestination.js";
+import { CLOSED_SEGMENTS } from "./lib/openScreens.js";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // pdf-parse (issue #46) wraps pdfjs-dist, which resolves its worker
@@ -32,6 +35,33 @@ const nextConfig = {
   // this repository can see a rewrite.
   async rewrites() {
     return [{ source: "/L/:labelCode", destination: "/l/:labelCode" }];
+  },
+
+  // THE ADDRESSES THAT LEAD ELSEWHERE (#542). `/` is no page: it leads to the Tools &
+  // Equipment list, `DEFAULT_DESTINATION`, where a sign-in with nowhere else to go lands
+  // too. And while the materials screens are closed, every address under one of their first
+  // segments leads there as well — `lib/openScreens.js` decides which, and this reads it,
+  // so opening them is that module's switch and nothing here.
+  //
+  // HERE RATHER THAN IN `proxy.js`, A LAYOUT OR EACH PAGE. The proxy and a layout gate
+  // nothing (CLAUDE.md), and a line in each of twenty pages would outlive the switch. Next
+  // runs these before the proxy, so a signed-out reader at a closed address is stamped at
+  // the list and a closed address never becomes a sign-in's destination.
+  //
+  // NEVER PERMANENT. A browser keeps a 308, so a reader who once followed one would still be
+  // sent away the day the screens open. Next carries the query across — read in its
+  // `prepare-destination.js` rather than chosen — so `/invoices?q=x` lands on the list
+  // searching for `x`: `q` and `job` are the two names the documents' lists and the
+  // category list both read.
+  async redirects() {
+    return [
+      { source: "/", destination: DEFAULT_DESTINATION, permanent: false },
+      ...CLOSED_SEGMENTS.map((segment) => ({
+        source: `/${segment}/:path*`,
+        destination: DEFAULT_DESTINATION,
+        permanent: false,
+      })),
+    ];
   },
 };
 

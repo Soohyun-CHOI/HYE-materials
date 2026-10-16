@@ -29,7 +29,7 @@ import NameForm from "./NameForm";
  * edit until an issue decides that.
  *
  * IT CARRIES THE DESTINATION THROUGH, so a reader who was scanning an asset's label
- * lands on the asset rather than on the root screen. Judged here so a
+ * lands on the asset rather than on the Tools & Equipment list. Judged here so a
  * refused value never reaches the form, and judged again in the action, which is
  * the call that protects anything — a Server Action is reachable directly.
  */

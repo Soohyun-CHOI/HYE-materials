@@ -50,7 +50,7 @@ function Dots({ phone }) {
  * ON A PHONE ITS MENU ENDS ON THE ACCOUNT, AND EVERY SCREEN WITH A TOP BAR CARRIES IT (Tools
  * 0a Menu, #495). A phone has no rail, so this is where the reader is named and signs out:
  * under a full-width Inner rule, `Sign out` over the reader's email, posting where the rail's
- * account and the root screen do. Where the record takes no action — a retired asset, a code
+ * account does. Where the record takes no action — a retired asset, a code
  * no asset carries, a reader on no job, a reader who is not a site manager (#506) — the menu
  * holds the account alone, with no rule, and
  * there it needs no transition: the screen saying a code is on no asset has none. The desk's
