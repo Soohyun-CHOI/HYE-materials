@@ -23,7 +23,7 @@
 //
 // What stays here needs credentials: Part A2 reads lib/blobIngest.js, which
 // imports the Airtable client and therefore throws at module load without
-// AIRTABLE_API_KEY, and Part B calls the real helper against real records. Part
+// AIRTABLE_TEST_API_KEY, and Part B calls the real helper against real records. Part
 // A3 read the same module for isOurBlobUrl until #438 moved the predicate out.
 //
 // Run with (from the repo root):

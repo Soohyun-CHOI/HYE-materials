@@ -76,6 +76,11 @@ import { base, TABLES } from "../../lib/airtable/client.js";
 import { CANONICAL_UNITS } from "../../lib/units.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { printProvenance } from "./_provenance.mjs";
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
+
+// The base this run reaches (#534) — the client's own, read from the same environment —
+// for the Metadata API, which the client does not reach.
+const airtable = resolveAirtableBase();
 
 let pass = true;
 let incomplete = null;
@@ -254,8 +259,8 @@ console.log("\nPart A — the schema is there and wired as the code assumes:");
     // createDeliveryItem does not use typecast.
     try {
         const meta = await fetch(
-            `https://api.airtable.com/v0/meta/bases/${process.env.AIRTABLE_BASE_ID}/tables`,
-            { headers: { Authorization: `Bearer ${process.env.AIRTABLE_API_KEY}` } }
+            `https://api.airtable.com/v0/meta/bases/${airtable.baseId}/tables`,
+            { headers: { Authorization: `Bearer ${airtable.apiKey}` } }
         ).then((r) => r.json());
         const field = meta.tables
             ?.find((t) => t.name === TABLES.DELIVERY_ITEMS)

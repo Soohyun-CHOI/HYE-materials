@@ -64,6 +64,7 @@ import { fileURLToPath } from "node:url";
 
 import { ASSET_CATEGORY_FIELDS, catalogPathKey, readCatalog } from "../../lib/assetCategory.js";
 import { refusesProtectedWrite } from "../protectedTables.mjs";
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const LEDGER_PREFIX = "remove_demo_catalog_517-";
@@ -223,7 +224,7 @@ async function remove(air, apply) {
         ...(plan.assets.length ? [ASSETS.name] : []),
         ...(plan.categories.length ? [CATEGORIES.name] : []),
     ];
-    if (refusesProtectedWrite({ script: "remove_demo_catalog_517", writes: removes, log })) {
+    if (refusesProtectedWrite({ script: "remove_demo_catalog_517", baseId: air.baseId, writes: removes, log })) {
         return finish(air, 1, "refused before removing anything");
     }
     if (!apply) return finish(air, 2, `dry run — ${plan.categories.length + plan.assets.length + plan.log.length} row(s) would go, nothing was removed`);
@@ -295,7 +296,7 @@ async function revert(air, apply, ledgerPath) {
         ...(rows.assets.length ? [ASSETS.name] : []),
         ...(rows.log.length ? [LOG.name] : []),
     ];
-    if (refusesProtectedWrite({ script: "remove_demo_catalog_517 --revert", writes: creates, log })) {
+    if (refusesProtectedWrite({ script: "remove_demo_catalog_517 --revert", baseId: air.baseId, writes: creates, log })) {
         return finish(air, 1, "refused before writing anything");
     }
     if (!apply) return finish(air, 2, `dry run — ${lines.length} row(s) would be created again, nothing was written`);
@@ -337,12 +338,14 @@ async function main() {
     const apply = process.argv.includes("--apply");
     const at = process.argv.indexOf("--revert");
     const ledgerPath = at === -1 ? null : process.argv[at + 1];
-    const token = process.env.AIRTABLE_API_KEY;
-    const baseId = process.env.AIRTABLE_BASE_ID;
-    if (!token || !baseId) {
-        log("AIRTABLE_API_KEY and AIRTABLE_BASE_ID must be set — run with --env-file=.env.local");
+    let airtable;
+    try {
+        airtable = resolveAirtableBase();
+    } catch (error) {
+        log(`${error.message} — run with --env-file=.env.local`);
         return 1;
     }
+    const { apiKey: token, baseId } = airtable;
     if (at !== -1 && !ledgerPath) {
         log("--revert takes the ledger's path");
         return 1;

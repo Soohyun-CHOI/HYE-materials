@@ -71,6 +71,7 @@
 
 import { EDIT_LOG_FIELD_LABELS } from "../../lib/editLogFields.js";
 import { printProvenance } from "./_provenance.mjs";
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
 
 const TABLE = "PR Edit Log";
 const FIELD = "Field";
@@ -99,8 +100,10 @@ printProvenance({ title: `verify-edit-log-fields-181 — ${TABLE}."${FIELD}" cho
 console.log(`\nLabels the code can write (${EDIT_LOG_FIELD_LABELS.length}): ${EDIT_LOG_FIELD_LABELS.join(", ")}\n`);
 
 try {
-    const baseId = process.env.AIRTABLE_BASE_ID;
-    const key = process.env.AIRTABLE_API_KEY;
+    // The base this run reaches (#534): the test base unless the run names the live one.
+    // Resolved inside the schema read's try, so an environment that names no base is a part
+    // that could not run (2) rather than a stack trace.
+    let airtable = null;
 
     // -----------------------------------------------------------------------
     // Schema read. The Metadata API is the only way to see a select's option
@@ -108,15 +111,16 @@ try {
     // precisely how an unheld option stays hidden.
     let tables = null;
     try {
-        const res = await fetch(`https://api.airtable.com/v0/meta/bases/${baseId}/tables`, {
-            headers: { Authorization: `Bearer ${key}` },
+        airtable = resolveAirtableBase();
+        const res = await fetch(`https://api.airtable.com/v0/meta/bases/${airtable.baseId}/tables`, {
+            headers: { Authorization: `Bearer ${airtable.apiKey}` },
         });
         if (!res.ok) throw new Error(`${res.status} ${res.statusText} — ${await res.text()}`);
         tables = (await res.json()).tables;
     } catch (err) {
         incomplete = true;
         log(`  SKIP  could not read the base schema: ${err.message}`);
-        log("        needs AIRTABLE_API_KEY + AIRTABLE_BASE_ID (schema.bases:read scope).");
+        log(`        needs ${airtable?.apiKeyVariable ?? "the base's key"} with the schema.bases:read scope.`);
     }
 
     if (tables) {
@@ -159,8 +163,8 @@ try {
             let records = null;
             try {
                 const res = await fetch(
-                    `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(TABLE)}?pageSize=100`,
-                    { headers: { Authorization: `Bearer ${key}` } }
+                    `https://api.airtable.com/v0/${airtable.baseId}/${encodeURIComponent(TABLE)}?pageSize=100`,
+                    { headers: { Authorization: `Bearer ${airtable.apiKey}` } }
                 );
                 if (!res.ok) throw new Error(`${res.status} ${res.statusText} — ${await res.text()}`);
                 records = (await res.json()).records;

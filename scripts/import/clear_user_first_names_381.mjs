@@ -52,6 +52,11 @@
 // 1 something failed, 2 nothing failed but something is incomplete (a dry run,
 // or `Last Name` is not on the table yet).
 
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
+
+/** The base this run reaches (#534), resolved at the top of main(): the test base unless the run names the live one. */
+let airtable = null;
+
 const META_ROOT = "https://api.airtable.com/v0/meta";
 const DATA_ROOT = "https://api.airtable.com/v0";
 
@@ -85,7 +90,7 @@ async function api(root, method, path, body) {
     const res = await fetch(`${root}${path}`, {
         method,
         headers: {
-            Authorization: `Bearer ${process.env.AIRTABLE_API_KEY}`,
+            Authorization: `Bearer ${airtable.apiKey}`,
             "Content-Type": "application/json",
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -123,11 +128,13 @@ async function readRows(baseId, tableId, fieldIds) {
 
 async function main() {
     const dryRun = process.argv.includes("--dry-run");
-    if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
-        log("AIRTABLE_API_KEY and AIRTABLE_BASE_ID must be set — run with --env-file=.env.local");
+    try {
+        airtable = resolveAirtableBase();
+    } catch (error) {
+        log(`${error.message} — run with --env-file=.env.local`);
         return 1;
     }
-    const baseId = process.env.AIRTABLE_BASE_ID;
+    const baseId = airtable.baseId;
 
     const schema = await must(META_ROOT, "GET", `/bases/${baseId}/tables`);
     const table = schema.tables.find((t) => t.name === TABLE_NAME);

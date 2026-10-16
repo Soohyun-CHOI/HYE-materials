@@ -98,6 +98,7 @@ import {
 } from "../../lib/assetCategory.js";
 import { textMatchKey } from "../../lib/itemNaming.js";
 import { refusesProtectedWrite } from "../protectedTables.mjs";
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SOURCES = join(HERE, "sources");
@@ -415,7 +416,7 @@ async function load(air, apply, sources) {
         ...(p.toCreate.length + p.classes.length ? [CATALOG_TABLE] : []),
         ...(p.moves.length ? [ASSETS_TABLE] : []),
     ];
-    if (refusesProtectedWrite({ script: "replace_asset_catalog_528", writes: loadWrites, log })) {
+    if (refusesProtectedWrite({ script: "replace_asset_catalog_528", baseId: air.baseId, writes: loadWrites, log })) {
         return finish(air, 1, "refused before writing anything");
     }
     if (!apply && due > 0) return finish(air, 2, `dry run — ${due} write(s) due, nothing was written`);
@@ -483,7 +484,7 @@ async function remove(air, apply, sources) {
     if (p.going.length === 0) return finish(air, 0, "nothing of the earlier list is left");
     // Catalog rows alone, none of them under an asset (refused above), so this answers no
     // (#531) — asked all the same, so every write this script makes is asked.
-    if (refusesProtectedWrite({ script: "replace_asset_catalog_528 --remove", writes: [CATALOG_TABLE], log })) {
+    if (refusesProtectedWrite({ script: "replace_asset_catalog_528 --remove", baseId: air.baseId, writes: [CATALOG_TABLE], log })) {
         return finish(air, 1, "refused before removing anything");
     }
     if (!apply) return finish(air, 2, `dry run — ${p.going.length} row(s) would go, nothing was removed`);
@@ -535,7 +536,7 @@ async function revert(air, apply, ledgerPath) {
     // A move back writes an asset's `Category`, which no script may since #531, so a ledger
     // holding one is refused whole, the dry run included.
     const revertWrites = [...(removed.length + classes.length ? [CATALOG_TABLE] : []), ...(moves.length ? [ASSETS_TABLE] : [])];
-    if (refusesProtectedWrite({ script: "replace_asset_catalog_528 --revert", writes: revertWrites, log })) {
+    if (refusesProtectedWrite({ script: "replace_asset_catalog_528 --revert", baseId: air.baseId, writes: revertWrites, log })) {
         return finish(air, 1, "refused before writing anything");
     }
     if (!apply) return finish(air, 2, `dry run — ${lines.length} line(s) would be put back, nothing was written`);
@@ -576,12 +577,14 @@ async function main() {
     }
     log(`${REVISED.file}: ${sources.revised.length} row(s), each one a registration may pick, each in one of the ${sources.groups.length} groups of ${GROUPS.file}; ${EARLIER.file}: ${sources.earlier.length} row(s).\n`);
 
-    const token = process.env.AIRTABLE_API_KEY;
-    const baseId = process.env.AIRTABLE_BASE_ID;
-    if (!token || !baseId) {
-        log("AIRTABLE_API_KEY and AIRTABLE_BASE_ID must be set — run with --env-file=.env.local");
+    let airtable;
+    try {
+        airtable = resolveAirtableBase();
+    } catch (error) {
+        log(`${error.message} — run with --env-file=.env.local`);
         return 1;
     }
+    const { apiKey: token, baseId } = airtable;
     const air = new Airtable(token, baseId);
     if (ledgerPath) return revert(air, apply, ledgerPath);
     return removal ? remove(air, apply, sources) : load(air, apply, sources);

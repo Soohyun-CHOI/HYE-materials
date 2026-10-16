@@ -40,6 +40,11 @@
 // 1 something failed, 2 nothing failed but something is incomplete (a dry run,
 // or a hand step is still outstanding).
 
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
+
+/** The base this run reaches (#534), resolved at the top of main(): the test base unless the run names the live one. */
+let airtable = null;
+
 const META_ROOT = "https://api.airtable.com/v0/meta";
 
 const TABLE_NAME = "Users";
@@ -81,7 +86,7 @@ async function api(method, path, body) {
     const res = await fetch(`${META_ROOT}${path}`, {
         method,
         headers: {
-            Authorization: `Bearer ${process.env.AIRTABLE_API_KEY}`,
+            Authorization: `Bearer ${airtable.apiKey}`,
             "Content-Type": "application/json",
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -105,11 +110,13 @@ async function readUsersTable(baseId) {
 
 async function main() {
     const dryRun = process.argv.includes("--dry-run");
-    if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
-        log("AIRTABLE_API_KEY and AIRTABLE_BASE_ID must be set — run with --env-file=.env.local");
+    try {
+        airtable = resolveAirtableBase();
+    } catch (error) {
+        log(`${error.message} — run with --env-file=.env.local`);
         return 1;
     }
-    const baseId = process.env.AIRTABLE_BASE_ID;
+    const baseId = airtable.baseId;
 
     log("=".repeat(72));
     log(`Users."${OLD_PRIMARY_NAME}" -> "${FIRST_NAME}", plus a new "${LAST_NAME}" (#381)`);

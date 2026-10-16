@@ -1,4 +1,4 @@
-// Adding a path to the catalog, against the live base — credentialed tier (#368).
+// Adding a path to the catalog, against the base this run reaches — credentialed tier (#368).
 //
 // WHAT ONLY THIS CAN SEE, and it is more than usual. `offline/category-creation.mjs`
 // holds the arithmetic, the resolution and the copy, all in JavaScript over a

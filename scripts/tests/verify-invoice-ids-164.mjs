@@ -76,6 +76,11 @@ import { prefixMatch } from "../../lib/airtableFormula.js";
 import { CHILD_KINDS, ID_KINDS, childKind, dailyIdPrefix, nextSequence } from "../../lib/idSequence.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { printProvenance } from "./_provenance.mjs";
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
+
+// The base this run reaches (#534) — the client's own, read from the same environment —
+// for the Metadata API, which the client does not reach.
+const airtable = resolveAirtableBase();
 
 let pass = true;
 let incomplete = null;
@@ -157,8 +162,8 @@ let complete = false;
 try {
     // -----------------------------------------------------------------------
     console.log("\nPart A — the live schema still holds the fields the counters count:");
-    const metaRes = await fetch(`https://api.airtable.com/v0/meta/bases/${process.env.AIRTABLE_BASE_ID}/tables`, {
-        headers: { Authorization: `Bearer ${process.env.AIRTABLE_API_KEY}` },
+    const metaRes = await fetch(`https://api.airtable.com/v0/meta/bases/${airtable.baseId}/tables`, {
+        headers: { Authorization: `Bearer ${airtable.apiKey}` },
     });
     const { tables } = await metaRes.json();
 

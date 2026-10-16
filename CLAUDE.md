@@ -18,7 +18,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 | `app/addresses/**`, `lib/address*.js` | `docs/notes/addresses.md` |
 | `app/(assets)/**`, `lib/asset*.js` | `docs/notes/tools.md` |
 | `app/designValues.css`, `app/globals.css`, `app/components/Icon.js` | `docs/notes/design-system.md` |
-| `lib/airtable/**`, `lib/airtableFormula.js`, `lib/airtableOps.js`, `lib/airtableBatch.js` | `docs/notes/airtable-access.md` **and** `docs/notes/naming.md` |
+| `lib/airtable/**`, `lib/airtableBase.js`, `lib/airtableFormula.js`, `lib/airtableOps.js`, `lib/airtableBatch.js` | `docs/notes/airtable-access.md` **and** `docs/notes/naming.md` |
 | `lib/airtable/**`, `scripts/import/**`, `scripts/demo/**`, `scripts/tests/verify-*.mjs`, adding or changing a field or a table | `docs/notes/data-model.md` |
 | `lib/ids.js`, `lib/idSequence.js` | `docs/notes/id-generation.md` |
 | `lib/auth.js`, `lib/authz*.js`, `lib/signInLimit.js`, `lib/prVisibility.js`, `lib/invoiceVisibility.js`, `lib/siteManager.js`, `app/login/**`, `app/api/**` | `docs/notes/authorization.md` |
@@ -72,7 +72,7 @@ What that boundary implies keeps coming up: a decision made before a PR exists c
 
 ### Editing the Airtable schema
 
-**The schema is editable by either of us, and a schema change ships in the SAME COMMIT as the code that reads it.** No production data exists yet, so the moment to fix a name or a shape is now.
+**The schema is editable by either of us, and a schema change ships in the SAME COMMIT as the code that reads it.** Outside `Assets` and `Asset Log` (#531) no production data exists yet, so the moment to fix a name or a shape is now.
 
 **Renaming a field is safe and the procedure is mechanical**: a rename carries every formula, rollup and view filter with it, so the only thing it breaks is a string literal here — and a grep coming back empty does not finish it. `airtable-access.md` has the mechanism, the read-every-hunk step and the near-miss behind them.
 
@@ -84,7 +84,8 @@ What that boundary implies keeps coming up: a decision made before a PR exists c
 
 One module per rule, and **one rule, one implementation** — see below. Each entry is the path and what it owns; why it owns it is in the `docs/notes/` file for its area.
 
-- `lib/airtable/client.js` — the shared connection, the table names, the batched readers, the batched create and `withKeyLock()`. Throws at module load without `AIRTABLE_API_KEY`.
+- `lib/airtable/client.js` — the shared connection, the table names, the batched readers, the batched create and `withKeyLock()`. Throws at module load without its base's key.
+- `lib/airtableBase.js` — which base a run reaches (#534), and the live base's id, written nowhere else.
 - `lib/airtable/{table}.js` — one file per table, plain async functions.
 - `lib/airtableOps.js` — the Airtable operation counter and its attribution scope. Server-only; a forbidden root for client bundles.
 - `lib/airtableFormula.js` — `formulaString`, the one escape for an interpolated value, and the whole-formula builders.
@@ -276,9 +277,10 @@ Read `docs/notes/authorization.md` before adding an endpoint, an exemption or a 
 ## Utility scripts (scripts/)
 
 - `npm test` runs the whole offline tier and CI runs it on every push; `npx eslint .` is a second CI job and stays clean, a rule this repo deliberately breaks taking a scoped disable with its reason rather than a tolerated error (#187). **It resolves names under `scripts/` since #426** — `no-undef` and, since #427, `no-unused-vars`, against Node's globals alone, since flat config MERGES globals and the wide set would leave a rule reporting 0 while blind. **An unread binding may still be load-bearing**, so read one before deleting it.
+- **Every run reaches the test base unless it names the live one (#534)**: `AIRTABLE_BASE=live` per command, or the production deployment. A schema change goes to the test base first and to the live one once Soo approves.
 - **Do not run a `verify-*.mjs` casually** — one run costs hundreds of Airtable operations.
 - **Dummy records already in the base are deliberate, not leftovers.** Nothing in this base is to be removed as tidying-up.
-- **`Assets` and `Asset Log` are the site's real records (#531)**: no script, check or browser walk writes or deletes a row of either, and a script that could asks `scripts/protectedTables.mjs` and stops first.
+- **`Assets` and `Asset Log` on the live base are the site's real records (#531)**: no script, check or browser walk writes or deletes a row of either, and a script that could asks `scripts/protectedTables.mjs` and stops first.
 - **What a green CI run does NOT mean:** that authorization is enforced, or that anything rendered. Source shape is not execution — a gate inside `if (false)` satisfies a structural check — and this tier never opens a page, so a column that does not appear, a width that wraps and a field that reaches the browser are all invisible to it. Those are checked in a browser with the two fixture accounts and the finding written into the PR. Green means nothing cheap regressed.
 
 Read `docs/notes/verification.md` before adding a check, a script or a seed — it holds the directory map, the tier boundary and where a new check goes, the exit codes, the fixture-cleanup contract and its run tag, the two permanent fixture accounts, the anti-vacuity rule, and why an Airtable formula or rollup is outside CI entirely.

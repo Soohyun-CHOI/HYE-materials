@@ -7,11 +7,11 @@
 #
 # What is NOT here, and why:
 #   - scripts/tests/verify-*.mjs — they need .env.local and write fixtures to
-#     the one shared Airtable base. Running them per-commit would have several
+#     the shared test base (#534). Running them per-commit would have several
 #     workflows creating and deleting records in the same base at once. They
 #     stay human-initiated.
 #   - npm run build — `next build` loads lib/airtable/client.js, which throws
-#     without AIRTABLE_API_KEY. It needs repository secrets configured first.
+#     without AIRTABLE_TEST_API_KEY. It needs repository secrets configured first.
 
 name: checks
 

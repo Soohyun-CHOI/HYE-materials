@@ -4,7 +4,7 @@
 //
 // WHY A SCRIPT FOR THIS. A schema edit leaves no diff of its own, so the only
 // record that it happened is here — `docs/notes/verification.md` puts a one-time
-// run against the live base in this directory for exactly that reason, and
+// run against each base in this directory for exactly that reason, and
 // `add_pr_item_category_355.mjs` is the neighbour that did the same job for the
 // link this one points at from the other side. Idempotent throughout: a second
 // run finds the field, finds every row already linked, and writes nothing.
@@ -56,6 +56,10 @@
 // count — the same cost `create_material_categories_354.mjs` states.
 
 import { CATEGORY_LEAF_CODE } from "../../lib/materialCategory.js";
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
+
+/** The base this run reaches (#534), resolved at the top of main(): the test base unless the run names the live one. */
+let airtable = null;
 
 const META_ROOT = "https://api.airtable.com/v0/meta";
 const DATA_ROOT = "https://api.airtable.com/v0";
@@ -92,7 +96,7 @@ async function api(root, method, path, body) {
     const res = await fetch(`${root}${path}`, {
         method,
         headers: {
-            Authorization: `Bearer ${process.env.AIRTABLE_API_KEY}`,
+            Authorization: `Bearer ${airtable.apiKey}`,
             "Content-Type": "application/json",
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -115,7 +119,7 @@ async function listAll(tableId, fields) {
         for (const f of fields) params.append("fields[]", f);
         params.set("pageSize", "100");
         if (offset) params.set("offset", offset);
-        const page = await must(DATA_ROOT, "GET", `/${process.env.AIRTABLE_BASE_ID}/${tableId}?${params}`);
+        const page = await must(DATA_ROOT, "GET", `/${airtable.baseId}/${tableId}?${params}`);
         out.push(...page.records);
         offset = page.offset;
     } while (offset);
@@ -128,11 +132,13 @@ function log(m = "") {
 
 async function main() {
     const dryRun = process.argv.includes("--dry-run");
-    if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
-        log("AIRTABLE_API_KEY and AIRTABLE_BASE_ID must be set — run with --env-file=.env.local");
+    try {
+        airtable = resolveAirtableBase();
+    } catch (error) {
+        log(`${error.message} — run with --env-file=.env.local`);
         return 1;
     }
-    const baseId = process.env.AIRTABLE_BASE_ID;
+    const baseId = airtable.baseId;
 
     log(`${PARENT_TABLE}."${LINK_FIELD}" -> ${TARGET_TABLE}, and the backfill behind it`);
     log(dryRun ? "DRY RUN: nothing will be written.\n" : "");

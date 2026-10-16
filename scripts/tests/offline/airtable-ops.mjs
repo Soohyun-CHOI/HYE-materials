@@ -5,7 +5,7 @@
 // installOpsCounter() throws when it cannot find airtable's request funnel, which
 // makes a blind instrument an app that does not boot. But that throw fires at
 // lib/airtable/client.js's MODULE LOAD, and this tier never loads that file — by
-// construction, it is the file whose `Missing AIRTABLE_API_KEY` defines the tier
+// construction, it is the file whose `Missing AIRTABLE_TEST_API_KEY` defines the tier
 // boundary. So a PR bumping `airtable` would pass CI green and land the throw on
 // the first production request instead. Comparing the pin against package.json
 // here turns that runtime mine into a build failure.

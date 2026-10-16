@@ -1,4 +1,4 @@
-// How often a sign-in email may be asked for (#148) — what only the live base and
+// How often a sign-in email may be asked for (#148) — what only the base and
 // the running app can answer.
 //
 // WHY THIS FILE EXISTS. `offline/sign-in-limit.mjs` calls the judgment and reads the
@@ -54,6 +54,11 @@ import { ipKeyOf, mailboxOf, SIGN_IN_LOOKBACK_MS } from "../../lib/signInLimit.j
 import { createFixtures } from "./_fixtures.mjs";
 import { DEFAULT_BASE_URL } from "./_liveApp.mjs";
 import { printProvenance } from "./_provenance.mjs";
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
+
+// The base this run reaches (#534) — the client's own, read from the same environment —
+// for the Metadata API, which the client does not reach.
+const airtable = resolveAirtableBase();
 
 let pass = true;
 let incomplete = null;
@@ -148,8 +153,8 @@ try {
 
     // -----------------------------------------------------------------------
     console.log("\nPart A — the two fields exist as the code writes them");
-    const schemaRes = await fetch(`https://api.airtable.com/v0/meta/bases/${process.env.AIRTABLE_BASE_ID}/tables`, {
-        headers: { Authorization: `Bearer ${process.env.AIRTABLE_API_KEY}` },
+    const schemaRes = await fetch(`https://api.airtable.com/v0/meta/bases/${airtable.baseId}/tables`, {
+        headers: { Authorization: `Bearer ${airtable.apiKey}` },
     });
     const schema = await schemaRes.json();
     const table = schema.tables?.find((t) => t.name === TABLES.AUTH_TOKENS);

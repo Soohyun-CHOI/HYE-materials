@@ -18,7 +18,7 @@ import {
 // EVERY IMPORT HERE MUST BE CLIENT-SAFE. lib/deliveryInvoiceLink.js is pure and
 // dependency-free for exactly this reason; its credentialed half is a separate
 // module (lib/deliveryInvoiceCandidates.js), because importing a module EXECUTES it
-// and anything reaching lib/airtable/client.js throws `Missing AIRTABLE_API_KEY` in
+// and anything reaching lib/airtable/client.js throws `Missing AIRTABLE_TEST_API_KEY` in
 // the browser. scripts/tests/offline/client-import-safety.mjs fails on the mistake.
 
 /**

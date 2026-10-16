@@ -3,16 +3,16 @@ Syncs Job data from monthly "Material Purchase Closing Report" Excel files
 into the Airtable "Jobs" table.
 
 Usage examples:
-    # 1) Set the Airtable token as an environment variable
-    export AIRTABLE_TOKEN="patXXXXXXXXXXXXXX"
+    # 1) .env.local at the repo root supplies the key and the base, through
+    #    airtable_base.py -- the test base unless AIRTABLE_BASE=live (#534)
 
     # 2) Process every "Material Purchase Closing Report (YYYY-MM)" file
     #    in a folder, newest month -> oldest month (dry-run recommended first)
-    python3 sync_jobs.py --folder ./data --dry-run
-    python3 sync_jobs.py --folder ./data
+    python3 scripts/import/import_jobs.py --folder ./data --dry-run
+    python3 scripts/import/import_jobs.py --folder ./data
 
     # Or target specific files only
-    python3 sync_jobs.py --files "2026-06.xlsx" "2026-05.xlsx"
+    python3 scripts/import/import_jobs.py --files "2026-06.xlsx" "2026-05.xlsx"
 
 How it works:
   - Extracts (YYYY, MM) from the filename. Works with any year (2024, 2025,
@@ -67,6 +67,8 @@ import openpyxl
 import requests
 from dotenv import load_dotenv
 
+from airtable_base import resolve_airtable_base
+
 # ----------------------------------------------------------------------------
 # Environment
 # ----------------------------------------------------------------------------
@@ -78,8 +80,10 @@ if not load_dotenv(PROJECT_ROOT / ".env.local"):
 # ----------------------------------------------------------------------------
 # Config
 # ----------------------------------------------------------------------------
-AIRTABLE_API_KEY = os.environ["AIRTABLE_API_KEY"]
-AIRTABLE_BASE_ID = os.environ["AIRTABLE_BASE_ID"]
+# The base this run reaches (#534): the test base unless AIRTABLE_BASE=live names the
+# live one -- lib/airtableBase.js's answer, asked through node (airtable_base.py).
+AIRTABLE_BASE_ID, AIRTABLE_API_KEY, AIRTABLE_BASE = resolve_airtable_base()
+print(f"Airtable: {AIRTABLE_BASE}")
 
 AIRTABLE_TABLE_NAME = "Jobs"  # table name or table ID (tblXXXXXXXX) both work
 
@@ -403,7 +407,6 @@ def main():
     parser = argparse.ArgumentParser(description="Sync Material Purchase Closing Report data into Airtable Jobs")
     parser.add_argument("--folder", help="Folder containing the Excel files")
     parser.add_argument("--files", nargs="*", help="Specific Excel file paths to process (alternative to --folder)")
-    parser.add_argument("--base-id", default=AIRTABLE_BASE_ID, help="Airtable Base ID")
     parser.add_argument("--table", default=AIRTABLE_TABLE_NAME, help="Airtable table name/ID")
     parser.add_argument("--dry-run", action="store_true", help="Preview only, without writing to Airtable")
     args = parser.parse_args()
@@ -423,7 +426,7 @@ def main():
     # Fetch existing Job Codes regardless of --dry-run: this is a read-only
     # call, and skipping it during dry-run would make the preview's
     # create/skip counts diverge from what a real run would actually do.
-    client = AirtableClient(token, args.base_id, args.table)
+    client = AirtableClient(token, AIRTABLE_BASE_ID, args.table)
     print("Fetching existing Job Codes from Airtable...")
     existing_jobs = client.fetch_existing_jobs()
     print(f"Found {len(existing_jobs)} existing Job Codes.\n")

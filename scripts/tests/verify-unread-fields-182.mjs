@@ -45,18 +45,19 @@
 import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { printProvenance } from "./_provenance.mjs";
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
 
 printProvenance({ title: "verify-unread-fields-182 — which Airtable fields nothing reads (questions, not a verdict)" });
 
-const BASE_ID = process.env.AIRTABLE_BASE_ID;
-const API_KEY = process.env.AIRTABLE_API_KEY;
+/** The base this run reaches (#534), resolved at the top of main(): the test base unless the run names the live one. */
+let airtable = null;
 
 /** Tiers whose mention of a field name counts as a reader. */
 const READER_DIRS = [(f) => f.startsWith("app/"), (f) => f.startsWith("lib/")];
 
 async function readSchema() {
-    const res = await fetch(`https://api.airtable.com/v0/meta/bases/${BASE_ID}/tables`, {
-        headers: { Authorization: `Bearer ${API_KEY}` },
+    const res = await fetch(`https://api.airtable.com/v0/meta/bases/${airtable.baseId}/tables`, {
+        headers: { Authorization: `Bearer ${airtable.apiKey}` },
     });
     if (!res.ok) throw new Error(`Metadata API ${res.status}: ${await res.text()}`);
     return (await res.json()).tables;
@@ -92,8 +93,10 @@ function repoReader(name, blob) {
 }
 
 async function main() {
-    if (!BASE_ID || !API_KEY) {
-        console.error("Missing AIRTABLE_BASE_ID / AIRTABLE_API_KEY — run with --env-file=.env.local");
+    try {
+        airtable = resolveAirtableBase();
+    } catch (error) {
+        console.error(`${error.message} — run with --env-file=.env.local`);
         process.exit(2);
     }
 

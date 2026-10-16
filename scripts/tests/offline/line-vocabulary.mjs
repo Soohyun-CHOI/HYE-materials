@@ -291,7 +291,7 @@ const BEATEN_BY_RULE = {
 /**
  * The table names, PARSED rather than imported.
  *
- * `lib/airtable/client.js` throws at module load without `AIRTABLE_API_KEY`, which
+ * `lib/airtable/client.js` throws at module load without `AIRTABLE_TEST_API_KEY`, which
  * is what puts anything importing it in the credentialed tier — so this reads the
  * object literal out of the source instead. Returns [] on a parse failure or a
  * missing declaration, which the anti-vacuity assertion below is what catches.

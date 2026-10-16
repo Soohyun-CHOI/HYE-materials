@@ -22,9 +22,16 @@ against what was billed was manual and after the fact.
 npm run dev
 ```
 
-Needs a `.env.local` with `AIRTABLE_API_KEY`, `SESSION_SECRET`, `RESEND_API_KEY`
-and `ALLOWED_EMAIL_DOMAIN`. Sign-in is magic-link only and restricted to the
-company email domain.
+Needs a `.env.local` — copy `.env.example` and fill it in. Sign-in is
+magic-link only and restricted to the company email domain.
+
+Local development and every script reach the **test base**, a copy of the
+live Airtable base, through `AIRTABLE_TEST_API_KEY` and `AIRTABLE_TEST_BASE_ID`.
+The live base is the production deployment's: a command reaches it only by
+naming it, `AIRTABLE_BASE=live` in front of that one command, and with
+`AIRTABLE_API_KEY` set — a machine without that key cannot reach it at all.
+The secrets are not in what `vercel env pull` writes, so each machine's
+`.env.local` is filled by hand.
 
 ## Checks
 
@@ -34,8 +41,8 @@ npm test
 
 Runs the offline verification tier — no credentials, no network, no dev server.
 It is a required status check on `main`. Checks that need Airtable live in
-`scripts/tests/verify-*.mjs` and are run by hand, because one shared base means
-concurrent runs would create and delete records against each other.
+`scripts/tests/verify-*.mjs` and are run by hand, because one shared test base
+means concurrent runs would create and delete records against each other.
 
 ## Where the reasoning is
 

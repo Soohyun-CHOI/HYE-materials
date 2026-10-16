@@ -68,9 +68,20 @@
 // run with no provenance look exactly like a run with good provenance. So both
 // fields print UNKNOWN in capitals with the cost spelled out beside them, and
 // the exit code is untouched — the header is provenance and never a verdict.
+//
+// ── WHICH BASE (#534) ───────────────────────────────────────────────────────
+//
+// A run reaches the test base unless it names the live one, and a run of this
+// tier writes fixtures wherever it lands — so the header says which, read from
+// the environment by `lib/airtableBase.js`, the same answer the client takes.
+// `LIVE base` in capitals is the line to look for: a name a shell kept from an
+// earlier command is the one way a run reaches it unmeant. An environment that
+// names no base prints NONE with the reason, and the run goes on to fail where
+// it would have anyway — this header still judges nothing.
 
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { describeAirtableBase, resolveAirtableBase } from "../../lib/airtableBase.js";
 
 const REPO_ROOT = fileURLToPath(new URL("../../", import.meta.url));
 
@@ -187,6 +198,14 @@ export function printProvenance({ title, extra = [] } = {}) {
             }
         }
     }
+
+    let base;
+    try {
+        base = describeAirtableBase(resolveAirtableBase());
+    } catch (err) {
+        base = `NONE — ${err.message}`;
+    }
+    console.log(`base      ${base}`);
 
     for (const row of extra) console.log(row);
     console.log(`ran at    ${new Date().toISOString()}`);

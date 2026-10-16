@@ -41,6 +41,11 @@ import { hasUninvoicedQty, hasUninvoicedItems } from "../../lib/poItemQty.js";
 import { snapshot, resetOps } from "../../lib/airtableOps.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { printProvenance } from "./_provenance.mjs";
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
+
+// The base this run reaches (#534) — the client's own, read from the same environment —
+// for the Metadata API, which the client does not reach.
+const airtable = resolveAirtableBase();
 
 printProvenance({ title: "verify-open-orders-244 — the invoice form's purchase order picker" });
 
@@ -131,8 +136,8 @@ try {
     // -------------------------------------------------------------------
     console.log("\nPart A — the two fields, read off the live schema:");
     const meta = await fetch(
-        `https://api.airtable.com/v0/meta/bases/${process.env.AIRTABLE_BASE_ID}/tables`,
-        { headers: { Authorization: `Bearer ${process.env.AIRTABLE_API_KEY}` } }
+        `https://api.airtable.com/v0/meta/bases/${airtable.baseId}/tables`,
+        { headers: { Authorization: `Bearer ${airtable.apiKey}` } }
     ).then((r) => r.json());
     const tableByName = new Map(meta.tables.map((t) => [t.name, t]));
     const fieldOn = (table, name) => tableByName.get(table)?.fields.find((f) => f.name === name);

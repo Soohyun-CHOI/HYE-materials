@@ -84,6 +84,10 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { CATEGORY_ITEM_NAME } from "../../lib/materialCategory.js";
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
+
+/** The base this run reaches (#534), resolved at the top of main(): the test base unless the run names the live one. */
+let airtable = null;
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const META_ROOT = "https://api.airtable.com/v0/meta";
@@ -132,7 +136,7 @@ async function api(root, method, path, body) {
     const res = await fetch(`${root}${path}`, {
         method,
         headers: {
-            Authorization: `Bearer ${process.env.AIRTABLE_API_KEY}`,
+            Authorization: `Bearer ${airtable.apiKey}`,
             "Content-Type": "application/json",
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -158,7 +162,7 @@ async function listAll(table, fields) {
         const page = await must(
             DATA_ROOT,
             "GET",
-            `/${process.env.AIRTABLE_BASE_ID}/${encodeURIComponent(table)}?${params}`
+            `/${airtable.baseId}/${encodeURIComponent(table)}?${params}`
         );
         out.push(...page.records);
         offset = page.offset;
@@ -169,7 +173,7 @@ async function listAll(table, fields) {
 /** Ten per request, which is Airtable's ceiling for a record PATCH. */
 async function writeBatches(table, updates) {
     for (let i = 0; i < updates.length; i += 10) {
-        await must(DATA_ROOT, "PATCH", `/${process.env.AIRTABLE_BASE_ID}/${encodeURIComponent(table)}`, {
+        await must(DATA_ROOT, "PATCH", `/${airtable.baseId}/${encodeURIComponent(table)}`, {
             records: updates.slice(i, i + 10),
         });
     }
@@ -219,11 +223,13 @@ async function revert(file, { quiet = false } = {}) {
 }
 
 async function main() {
-    if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
-        log("AIRTABLE_API_KEY and AIRTABLE_BASE_ID must be set — run with --env-file=.env.local");
+    try {
+        airtable = resolveAirtableBase();
+    } catch (error) {
+        log(`${error.message} — run with --env-file=.env.local`);
         return 1;
     }
-    const baseId = process.env.AIRTABLE_BASE_ID;
+    const baseId = airtable.baseId;
 
     if (REVERT_FILE) {
         const report = await revert(REVERT_FILE);

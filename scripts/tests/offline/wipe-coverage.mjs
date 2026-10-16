@@ -40,7 +40,7 @@ const LISTS = ["ORDER", "KEPT", "KEPT_FOR_THEIR_LINKS"];
  *
  * Read off the AST rather than by importing the script, for this tier's own
  * reason: `wipe_base.mjs` imports `lib/airtable/client.js`, which throws
- * `Missing AIRTABLE_API_KEY` at module load.
+ * `Missing AIRTABLE_TEST_API_KEY` at module load.
  */
 function keysInList(ast, name) {
     const keys = [];

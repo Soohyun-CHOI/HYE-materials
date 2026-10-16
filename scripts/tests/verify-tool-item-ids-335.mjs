@@ -1,4 +1,5 @@
-// The tool item ID, against the live base (#335).
+// The tool item ID, against the base this run reaches (#335) — the test base unless
+// the run names the live one (`lib/airtableBase.js`, #534).
 //
 // WHY THIS TIER. `offline/id-sequence.mjs` pins the pure half — the width, the
 // batch arithmetic, the round trip — and that is everything a file can say. What
@@ -32,9 +33,11 @@
 //      Deleting the TOP row is the case that is different in kind, and it had
 //      never been measured. Part D measures it rather than assuming either way.
 //
-// Fixtures are deleted within the run through scripts/tests/_fixtures.mjs. **Since #531 the
-// run is refused before its first write**: `Assets` holds the site's records, which no script
-// writes (`scripts/protectedTables.mjs`), so it ends on 2 having run nothing.
+// Fixtures are deleted within the run through scripts/tests/_fixtures.mjs. **On the live base
+// the run is refused before its first write** (#531): `Assets` holds the site's records there,
+// which no script writes (`scripts/protectedTables.mjs`), so a run that names the live base ends
+// on 2 having run nothing. On the test base, every run's unless it names the live one (#534),
+// all four parts run.
 // Roughly 40-45 operations until #470, which took seven creates off Parts A and B;
 // that is arithmetic on the old figure, not a measurement.
 //
@@ -56,7 +59,7 @@ import { createFixtures } from "./_fixtures.mjs";
 import { printProvenance } from "./_provenance.mjs";
 import { refusesProtectedWrite } from "../protectedTables.mjs";
 
-printProvenance({ title: "verify-tool-item-ids-335 — the tool item ID, against the live base" });
+printProvenance({ title: "verify-tool-item-ids-335 — the tool item ID, against the base this run reaches" });
 
 let pass = true;
 let incomplete = false;
@@ -107,16 +110,18 @@ const seqOf = (id) => Number(id.slice(id.lastIndexOf("-") + 1));
 let complete = false;
 
 try {
-    // REFUSED SINCE #531: every part mints an `Asset ID` into `Assets`, which holds the site's
-    // records (`scripts/protectedTables.mjs`), and Part D deletes one — so nothing runs and the
-    // script ends on 2.
+    // REFUSED ON THE LIVE BASE SINCE #531: every part mints an `Asset ID` into `Assets`, which
+    // holds the site's records there (`scripts/protectedTables.mjs`), and Part D deletes one — so
+    // on the live base nothing runs and the script ends on 2. The base is the client's own, read
+    // off the SDK, so the guard judges where the writes below would land (#534).
     const refused = refusesProtectedWrite({
         script: "verify-tool-item-ids-335",
+        baseId: base.getId(),
         writes: [TABLES.ASSET_CATEGORIES, TABLES.ASSETS],
     });
     const job = refused ? null : await getJobByCode("26-DEMO-01");
     if (refused) {
-        log("SKIPPED — every part writes into Assets, the site's records since #531.");
+        log("SKIPPED — every part writes into Assets, the site's records on the live base since #531.");
         incomplete = true;
     } else if (!job) {
         log("SKIPPED — needs Job 26-DEMO-01.");

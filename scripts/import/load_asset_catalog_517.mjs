@@ -66,6 +66,7 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { ASSET_CATEGORY_FIELDS, ASSET_PATH_LEVELS, catalogPathKey, composeItemName, readCatalog } from "../../lib/assetCategory.js";
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CSV_PATH = join(HERE, "sources", "asset_categories_517.csv");
@@ -235,12 +236,14 @@ async function main() {
     }
     log(`${source}: ${rows.length} row(s), every one a row a registration may pick.`);
 
-    const token = process.env.AIRTABLE_API_KEY;
-    const baseId = process.env.AIRTABLE_BASE_ID;
-    if (!token || !baseId) {
-        log("AIRTABLE_API_KEY and AIRTABLE_BASE_ID must be set — run with --env-file=.env.local");
+    let airtable;
+    try {
+        airtable = resolveAirtableBase();
+    } catch (error) {
+        log(`${error.message} — run with --env-file=.env.local`);
         return 1;
     }
+    const { apiKey: token, baseId } = airtable;
     const air = new Airtable(token, baseId);
 
     const tables = await air.tables();
