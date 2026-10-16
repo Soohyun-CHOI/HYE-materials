@@ -262,17 +262,17 @@ are the overage claim's guards and the strip's own offering rule decides them.
 
 ## Screens with nothing here
 
-`/`, `/login/confirm`, `/materials`, `/materials/[materialId]`, `/invoices` and
-`/deliveries` hold no refusal at all. Every state on those six is a consequence of the
+`/login/confirm`, `/materials`, `/materials/[materialId]`, `/invoices` and
+`/deliveries` hold no refusal at all. Every state on those five is a consequence of the
 data or of who is reading, and all of it is reachable **between the two fixture
 accounts and `soo@`** — which is what the sentence here should always have said. It
 said "with the two fixture accounts", and both of those are non-Admin, so on
 `/invoices` it was false twice: of the `New invoice` control, which only an Admin is
 offered, and — until #309 — of the whole `Status` column with the payment word in
 it. **The column is open now and the control is not**, so what the two fixture
-accounts cannot reach on these six screens is exactly two strings: `New invoice`, and
-`, Admin` on `/`. Corrected per #181 by #309, which needed to know what those accounts
-could see.
+accounts cannot reach on these five screens is one string, `New invoice` — and
+`, Admin` on `/` was a second until #542 removed that screen. Corrected per #181 by
+#309, which needed to know what those accounts could see.
 
 **And one string on `/invoices/[invoiceId]` was unreachable and is not listed above,
 which #309 found and did not add.** `Paid on {date}` / `Not paid yet.` — the

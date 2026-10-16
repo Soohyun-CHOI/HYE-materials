@@ -9,11 +9,11 @@ sees.
 
 Which requests are mine, or waiting on me, or still moving?
 
-Worth knowing about how it is reached: **the home screen does not link here.** Its
-four links go to the new-request form, the price list, the deliveries list and the
-purchase order list, so this screen is currently arrived at by typing its URL or by
-backing out of a request. That is a gap in the navigation rather than a decision
-about this list.
+Worth knowing about how it is reached: **nothing reaches it while the materials
+screens are closed (#542)** — the rail carries no section for it and its address
+leads to the Tools & Equipment list. Open, the rail's `Purchase requests` is the
+way in. Before #542 the root screen linked four other screens and not this one,
+so it was arrived at by typing its URL or by backing out of a request.
 
 ## What it always carries
 

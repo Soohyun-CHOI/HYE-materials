@@ -32,8 +32,8 @@ import { NAVIGATION_COPY as COPY } from "@/lib/navigation";
  * THE MENU IS WAI-ARIA'S MENU BUTTON. The button says that it opens a menu and whether the
  * menu is open; Enter, Space and Down open it on its first item and Up on its last; the
  * menu (`ActionMenu`) takes focus and the keys from there, and Escape hands focus back
- * here. Its one item submits the same `POST /api/auth/logout` the root screen's control
- * does, which ends the session and lands on `/login`.
+ * here. Its one item submits `POST /api/auth/logout`, which ends the session and lands on
+ * `/login`.
  *
  * ITS MENU IS 0m's ACCOUNT MENU SINCE #495: a head holding the reader's email over `Sign out`,
  * 224 wide whatever the button. Expanded, it stands 6 above the row and as wide as it;

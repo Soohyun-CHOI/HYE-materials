@@ -35,6 +35,7 @@
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
+import { posix } from "node:path";
 import {
     CONFIRM_PATH,
     DEFAULT_DESTINATION,
@@ -44,6 +45,7 @@ import {
     safeDestination,
     signInPath,
 } from "../../../lib/loginDestination.js";
+import { ASSET_CATEGORIES_PATH } from "../../../lib/assetRoutes.js";
 // The namespace as well, so "the owner still exports this name" is a claim about
 // the export list rather than about a binding nothing reads — see section 2.
 import * as loginDestination from "../../../lib/loginDestination.js";
@@ -207,7 +209,10 @@ export function run({ check, assert, log }) {
     );
     check("  a refusal with no token keeps it", confirmPath({ destination: "/prs" }), `${CONFIRM_PATH}?${DESTINATION_PARAM}=%2Fprs`);
     check("  and a bare confirmation stays bare", confirmPath({}), CONFIRM_PATH);
-    assert("the fallback is the root screen", DEFAULT_DESTINATION === "/");
+    // THE LANDING IS THE TOOLS & EQUIPMENT LIST SINCE #542, where `/` and every closed
+    // materials screen lead too; `offline/open-screens.mjs` holds those two and that the
+    // landing is open, and `offline/user-name.mjs` that it asks a nameless reader.
+    check("the fallback is the Tools & Equipment list", DEFAULT_DESTINATION, ASSET_CATEGORIES_PATH);
 
     // ── 2: the address is stamped onto the request ──────────────────────────
     log("");
@@ -269,6 +274,27 @@ export function run({ check, assert, log }) {
         0
     );
     assert("  which leaves two imports", proxyImports.length === 2);
+
+    // AND WHAT IT IMPORTS IMPORTS NOTHING THAT COULD EITHER (#542). The landing is
+    // `ASSET_CATEGORIES_PATH`, so the module the proxy takes the header's name from
+    // imports `lib/assetRoutes.js` — and `next.config.mjs` imports it too, under plain
+    // Node before anything is built. So every module it reaches is walked: none may
+    // read a record or a session, or need the bundler's alias or Next's runtime.
+    const reached = new Map();
+    const reach = (rel) => {
+        if (reached.has(rel)) return;
+        const sources = importSources(parseFile(rel).ast);
+        reached.set(rel, sources);
+        for (const src of sources) if (src.startsWith("./")) reach(posix.join(posix.dirname(rel), src));
+    };
+    reach("lib/loginDestination.js");
+    const impure = [...reached].flatMap(([rel, sources]) =>
+        sources
+            .filter((src) => src.includes("airtable") || src.includes("session") || src.startsWith("@/") || src.startsWith("next"))
+            .map((src) => `${rel} -> ${src}`)
+    );
+    check("  nor does anything the owner of its header's name reaches", impure.join(", "), "");
+    assert("  and the walk reached the asset routes", reached.has("lib/assetRoutes.js"));
 
     // THE MATCHER'S GROUND, HELD FROM THE OTHER SIDE. `/api` is excluded because
     // a Route Handler cannot call `requireUser()` at all, so the day one does,

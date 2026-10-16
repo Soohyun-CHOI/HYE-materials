@@ -20,9 +20,10 @@ import { useTooltip } from "./Tooltip";
  * WRITTEN WHERE ANY SCREEN COULD CALL IT, AND ONLY THE ASSETS LAYOUT DOES. The screens
  * above the assets axis each hold a width container inside their own page — twenty-four
  * of them across twenty pages (`docs/notes/tools.md`) — and a rail beside them would
- * fight every one. So the materials sections are on it and their screens are not under
- * it: pressing one leaves the rail behind, which is the state until #258. **What moves
- * it is #258**, which gathers those screens into one layout: the call moves from
+ * fight every one. So their screens are not under it, and while they are closed
+ * (`lib/openScreens.js`, #542) their sections are not on it either; opened before #258,
+ * pressing one leaves the rail behind. **What moves it is #258**, which gathers those
+ * screens into one layout: the call moves from
  * `app/(assets)/layout.js` to `app/layout.js`, the design's faces move with it, and
  * `offline/design-values.mjs` widens its boundary to every route file, in one commit.
  * Nothing in this file changes, which is why it reads its section off the address
