@@ -168,12 +168,21 @@ function PagerStep({ href, onPress, label, back }) {
  * THE PAGE AND ITS STEPS STAND ONLY WHEN THERE IS A SECOND PAGE (0b Pager, #519): `position`
  * left out, the pager is its count alone, still 60, the count holding the controls' height.
  * The caller decides, since it knows how many pages there are.
+ *
+ * THE COUNT'S PIECES SIT IN ONE SPAN, SO THE BOX THAT CENTERS THEM KEEPS THEIR SPACES (#538).
+ * `Figures` hands back the figures and the words between them as siblings, and a flex box
+ * makes each run of words an item of its own and drops the spaces at its ends: `1–25 of 25`
+ * read `1–25of25` from #519 to #538. The span is the one item, and inside it the pieces are
+ * one line of text again; `offline/flex-whitespace.mjs` fails `Figures` placed straight in a
+ * flex or grid box.
  */
 export function Pager({ range, position, previous, next }) {
     return (
         <div className="flex items-center justify-between gap-pager-inline px-table-bleed pt-[calc(var(--spacing-pager-inset-top)-1px)] pb-pager-inset-bottom">
             <p className="flex h-control items-center text-body-sm text-foreground-subtle">
-                <Figures className="text-foreground-default">{range}</Figures>
+                <span>
+                    <Figures className="text-foreground-default">{range}</Figures>
+                </span>
             </p>
             {position && (
                 <div className="flex items-center gap-pager-step-gap">

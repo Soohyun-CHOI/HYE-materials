@@ -431,15 +431,15 @@ export function run({ check, assert, log }) {
 
     // ── 2: the paging ───────────────────────────────────────────────────────
     log("");
-    log("a page holds twenty-five assets, and the pages are the whole list:");
+    log("a page holds fifty assets, and the pages are the whole list:");
 
     // PINNED BY VALUE SINCE #442, where this held only that the size was a whole
     // number under fifty. Every length in the loop was derived from the constant,
     // and the one thing that tied the size down was a twelve-row fixture, by the
-    // accident of twelve rows being two pages at ten. It is the design's figure and
-    // the design may move it (docs/briefs/asset-categories-categoryRecordId.md); moving it is an edit
-    // to these literals in the same commit.
-    check("a page holds this many assets", ASSET_PAGE_SIZE, 25);
+    // accident of twelve rows being two pages at ten. Twenty-five from #442 and fifty
+    // since #538 (docs/briefs/asset-categories-categoryRecordId.md); moving it is an
+    // edit to these literals in the same commit.
+    check("a page holds this many assets", ASSET_PAGE_SIZE, 50);
     // Above 50 a page would cost two `findChildRecords` queries instead of one,
     // which is a boundary on this number that is not the design's.
     assert("  and stays inside one batched read of fifty", ASSET_PAGE_SIZE <= 50);
@@ -454,16 +454,16 @@ export function run({ check, assert, log }) {
 
     const idsOfLength = (n) => Array.from({ length: n }, (_, i) => `rec${String(i).padStart(3, "0")}`);
     // Literal lengths and literal page counts, on both sides of both edges a page of
-    // twenty-five has inside a hundred.
+    // fifty has inside two hundred.
     for (const [n, pages] of [
         [0, 1],
         [1, 1],
-        [24, 1],
-        [25, 1],
-        [26, 2],
-        [50, 2],
-        [51, 3],
-        [100, 4],
+        [49, 1],
+        [50, 1],
+        [51, 2],
+        [100, 2],
+        [101, 3],
+        [200, 4],
     ]) {
         const all = idsOfLength(n);
         const first = pageOfAssets(all, 1);
@@ -478,22 +478,21 @@ export function run({ check, assert, log }) {
     }
 
     // A LIST THAT REALLY SPANS PAGES AT THIS SIZE (#442). This was twelve, which was
-    // two pages at ten and is one at twenty-five: its page-2 assertions fail at this
-    // size, and any version of them bent to pass would be asking about a list with
-    // no second page. Fifty-two is three pages — two full and two left over, which
-    // puts a middle page between the two ends. Its page count is pinned first, so a
-    // fixture that stopped spanning pages fails here rather than quietly asking about
-    // page 1 three times.
-    const fiftyTwo = idsOfLength(52);
-    check("fifty-two assets make three pages", pageOfAssets(fiftyTwo, 1).pageCount, 3);
+    // two pages at ten and one at twenty-five, and fifty-two from #442 to #538, which is
+    // two pages at fifty with no middle one. A hundred and two is three pages — two full
+    // and two left over, which puts a middle page between the two ends. Its page count is
+    // pinned first, so a fixture that stopped spanning pages fails here rather than
+    // quietly asking about page 1 three times.
+    const hundredTwo = idsOfLength(102);
+    check("a hundred and two assets make three pages", pageOfAssets(hundredTwo, 1).pageCount, 3);
     // NEWEST FIRST (#463): the array's last opens page 1, and its first closes the list.
-    check("  page 1 holds the newest twenty-five", pageOfAssets(fiftyTwo, 1).ids.length, 25);
-    check("  opening on the newest of all", pageOfAssets(fiftyTwo, 1).ids[0], "rec051");
-    check("  page 2 opens on the twenty-sixth newest", pageOfAssets(fiftyTwo, 2).ids[0], "rec026");
-    check("  and closes on the fiftieth", pageOfAssets(fiftyTwo, 2).ids.at(-1), "rec002");
-    check("  and page 3 holds the remaining two", pageOfAssets(fiftyTwo, 3).ids.length, 2);
-    check("  which are the oldest two, newest first", pageOfAssets(fiftyTwo, 3).ids.join(), "rec001,rec000");
-    check("  and the link array it was handed is left as it was", fiftyTwo[0], "rec000");
+    check("  page 1 holds the newest fifty", pageOfAssets(hundredTwo, 1).ids.length, 50);
+    check("  opening on the newest of all", pageOfAssets(hundredTwo, 1).ids[0], "rec101");
+    check("  page 2 opens on the fifty-first newest", pageOfAssets(hundredTwo, 2).ids[0], "rec051");
+    check("  and closes on the hundredth", pageOfAssets(hundredTwo, 2).ids.at(-1), "rec002");
+    check("  and page 3 holds the remaining two", pageOfAssets(hundredTwo, 3).ids.length, 2);
+    check("  which are the oldest two, newest first", pageOfAssets(hundredTwo, 3).ids.join(), "rec001,rec000");
+    check("  and the link array it was handed is left as it was", hundredTwo[0], "rec000");
 
     log("");
     log("a page nobody can be on resolves to one they can:");
@@ -508,7 +507,7 @@ export function run({ check, assert, log }) {
         ["3", 3, "the last one"],
         ["999", 3, "one past the end"],
     ])
-        check(`  ${why} lands on page ${want}`, pageOfAssets(fiftyTwo, raw).page, want);
+        check(`  ${why} lands on page ${want}`, pageOfAssets(hundredTwo, raw).page, want);
     check("an empty category has one page, not none", pageOfAssets([], 1).pageCount, 1);
     check("  and that page is empty", pageOfAssets([], 1).ids.length, 0);
 
@@ -521,7 +520,7 @@ export function run({ check, assert, log }) {
     // was `pageHolding`'s page, held here by its edges.
     log("");
     log("what a registration wrote opens the first page, newest first:");
-    const before = idsOfLength(30);
+    const before = idsOfLength(60);
     const written = Array.from({ length: 14 }, (_, i) => `new${String(i).padStart(3, "0")}`);
     check("  the category already fills a page", pageOfAssets(before, 1).pageCount, 2);
     check(
@@ -529,8 +528,8 @@ export function run({ check, assert, log }) {
         pageOfAssets([...before, ...written], 1).ids.slice(0, 14).join(),
         [...written].reverse().join()
     );
-    check("  and the category's newest before them follows", pageOfAssets([...before, ...written], 1).ids[14], "rec029");
-    const run = Array.from({ length: 30 }, (_, i) => `run${String(i).padStart(3, "0")}`);
+    check("  and the category's newest before them follows", pageOfAssets([...before, ...written], 1).ids[14], "rec059");
+    const run = Array.from({ length: 55 }, (_, i) => `run${String(i).padStart(3, "0")}`);
     check(
         "  a run longer than a page fills page 1 and goes on to page 2",
         `${pageOfAssets([...before, ...run], 1).ids.every((id) => id.startsWith("run"))} ${pageOfAssets([...before, ...run], 2).ids.slice(0, 5).join()}`,
@@ -1269,12 +1268,14 @@ export function run({ check, assert, log }) {
     // ── 2c: this list's page and the document lists' page stay two constants ─
     log("");
     log("the asset lists' page size and the document lists' are two numbers, not one:");
-    // SINCE #442 BOTH ARE 25, AND THAT IS WHAT MAKES THIS WORTH A CHECK. They are set
-    // for different readers — a phone and three short facts against a monitor and six
-    // columns — and this one is also how many labels a press prints. Folding them into
-    // one constant makes a design change to either move the other, and two equal
-    // numbers in two files is the first thing a pass that names the design's values
-    // reaches for. So each has to be declared as a number in its own module, and
+    // FROM #442 BOTH WERE 25, AND #538 IS WHAT THIS CHECK KEPT ONE EDIT: it moved this one
+    // to fifty and left the document lists' at 25. They are set for different lists —
+    // three short facts a press of the page box selects for printing, against six columns
+    // a gate admitted (this said a phone against a monitor, which stopped being true when
+    // the asset lists' briefs made them a desk's; corrected per #181). Folding them into
+    // one constant makes a change to either move the other, and two numbers that agree
+    // are the first thing a pass that names the design's values reaches for — as they
+    // may again. So each has to be declared as a number in its own module, and
     // neither module may reach the other: a shared token, an alias and a re-export all
     // fail here. **What retires this** is a design decision that the two are one
     // reader's page, taken where #258 names the design's values — and then this
@@ -1431,21 +1432,21 @@ export function run({ check, assert, log }) {
     // ── 2e: the category list's pages, and the frame both lists are drawn in (#463)
     log("");
     log("the category list pages its rows as a category's own list does, and both are drawn in one frame:");
-    // THE CATEGORY LIST PAGES AT THE SAME 25 BY THE SAME CLAMP, over rows the page already built:
+    // THE CATEGORY LIST PAGES AT THE SAME SIZE BY THE SAME CLAMP, over rows the page already built:
     // reassembly over the lengths around both edges, and the window both lists share.
     const rowsOf = (n) => Array.from({ length: n }, (_, at) => ({ id: `rec${at}` }));
-    const listLengths = [0, 1, 24, 25, 26, 49, 50, 51];
+    const listLengths = [0, 1, 49, 50, 51, 99, 100, 101];
     const reassembled = listLengths.filter((n) => {
         const first = pageOfAssetCategories(rowsOf(n), 1);
         const pages = Array.from({ length: first.pageCount }, (_, at) => pageOfAssetCategories(rowsOf(n), at + 1).rows.map((row) => row.id));
-        return pages.flat().join() === rowsOf(n).map((row) => row.id).join() && first.pageCount === Math.max(1, Math.ceil(n / 25));
+        return pages.flat().join() === rowsOf(n).map((row) => row.id).join() && first.pageCount === Math.max(1, Math.ceil(n / 50));
     });
     check("the category list's pages are the whole list, at every length around the edges", reassembled.join(), listLengths.join());
-    const second = pageOfAssetCategories(rowsOf(40), "2");
-    check("  page 2 of 40 shows the 26th to the 40th", `${second.page}/${second.pageCount} ${second.from}–${second.to} of ${second.total}`, "2/2 25–40 of 40");
-    check("  a page past the end is the last, and an unreadable one the first", `${pageOfAssetCategories(rowsOf(26), "9").page} ${pageOfAssetCategories(rowsOf(26), "x").page}`, "2 1");
+    const second = pageOfAssetCategories(rowsOf(80), "2");
+    check("  page 2 of 80 shows the 51st to the 80th", `${second.page}/${second.pageCount} ${second.from}–${second.to} of ${second.total}`, "2/2 50–80 of 80");
+    check("  a page past the end is the last, and an unreadable one the first", `${pageOfAssetCategories(rowsOf(51), "9").page} ${pageOfAssetCategories(rowsOf(51), "x").page}`, "2 1");
     const disagreements = [];
-    for (const n of [0, 1, 25, 26, 51])
+    for (const n of [0, 1, 50, 51, 101])
         for (const asked of ["1", "2", "3", "x"]) {
             const categories = pageOfAssetCategories(rowsOf(n), asked);
             const items = pageOfAssets(rowsOf(n).map((row) => row.id), asked);

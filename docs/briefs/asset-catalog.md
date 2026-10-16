@@ -53,7 +53,7 @@ a toggle that narrows to the discontinued rows, with a × that turns it off.
 What the band holds rides the address, so a reload and a copied link keep it,
 and it narrows rows already in the browser.
 
-**evidence.** One row per catalog row, twenty-five to a page with the category
+**evidence.** One row per catalog row, fifty to a page with the category
 list's pager under them, in order of name, then size, maker and part number, a
 run of digits read as a number. Each row says its name, size, maker, part
 number, category, type and class, and how many items stand under it — every
