@@ -20,6 +20,17 @@ import { SCROLL_LANE } from "./scrollLane";
  * which in this frame is the close. So the frame moves it. A dialog no press opened asks
  * one thing more, below.
  *
+ * A SHEET HOLDING NO FIELD OPENS ON ITS TITLE (#531). Below the phone's edge a sheet draws no
+ * close, so in 1j's job sheet the first thing the browser can focus is its first row, and a
+ * row draws focus as `focus-visible`. A press that leaves the browser's keyboard modality in
+ * place opened the sheet with that row shaded beside the one checked as chosen: measured at
+ * 375, a press on the job pill after `Escape` had handed it focus; and seen on a phone at every
+ * opening, which a desk browser's phone mode does not reproduce — Safari gives a tapped button
+ * no focus, so a tap has no focus of its own to set the modality by. So a
+ * sheet laid out as one that holds no field — not a Confirm, which asks its own question — puts
+ * focus on its title, where the sheet begins and which draws no ring, and Tab goes on to the
+ * rows, which draw focus as they did. A desk keeps the browser's choice, the close.
+ *
  * A DIALOG CLOSES ONLY WHEN ITS OWNER SAYS SO. Escape and the close ask `onClose`, and the
  * browser's own closing is turned down, so the owner's `open` stays the one account of
  * whether the dialog shows. While `busy` — a submission in flight — neither asks: pulling
@@ -308,14 +319,16 @@ export function DialogFrame({
         if (open && !dialog.open) {
             openerRef.current = unprompted || document.activeElement === document.body ? null : document.activeElement;
             dialog.showModal();
-            dialog.querySelector("input:not([type=hidden])")?.focus();
+            const field = dialog.querySelector("input:not([type=hidden])");
+            if (field) field.focus();
+            else if (sheet && recordId === undefined && laidOutAsSheet(dialog)) focusHeading(titleRef.current);
         } else if (!open && dialog.open) {
             const opener = openerRef.current;
             dialog.close();
             // An opener its page has hidden cannot take focus back (#495 — the header).
             if (unprompted || (opener !== null && document.activeElement !== opener)) focusPageHeading();
         }
-    }, [open, unprompted]);
+    }, [open, unprompted, sheet, recordId]);
 
     // Drawn no longer, it closes (#495 — the header). A modal dialog is drawn unless a box
     // around it is not, which only the window's size changes on these pages.
@@ -407,7 +420,7 @@ export function DialogFrame({
             className={`flex shrink-0 items-start justify-between gap-dialog-header-inline ${withPreview ? "px-dialog-inset pt-dialog-inset sm:col-start-2 sm:row-start-1" : ""} in-data-fixed:px-dialog-inset in-data-fixed:pt-dialog-inset max-sm:in-data-[sheet=drawer]:px-mobile-gutter max-sm:in-data-[sheet=drawer]:py-mobile-drawer-title-inset-y max-sm:in-data-[sheet=confirm]:px-mobile-gutter max-sm:in-data-[sheet=confirm]:pt-mobile-confirm-inset-top`}
         >
             <div className="flex min-w-0 flex-col gap-dialog-title-stack max-sm:in-data-[sheet=confirm]:gap-mobile-confirm-title-stack">
-                <h2 ref={titleRef} id={titleId} className="text-heading font-semibold tabular-nums max-sm:in-data-[sheet]:text-mobile-heading">
+                <h2 ref={titleRef} id={titleId} className="text-heading font-semibold tabular-nums outline-none max-sm:in-data-[sheet]:text-mobile-heading">
                     {title}
                 </h2>
                 {confirm ? (

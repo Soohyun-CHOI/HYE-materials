@@ -155,7 +155,68 @@ function markupCopy(ast) {
     return found;
 }
 
+/**
+ * Where a frame's opening puts focus (#531), read off its source: the caret in the first field
+ * that takes typing, right after `showModal`, and — with none — a sheet laid out as one and not
+ * a Confirm on its title, the branch after the field's and that one alone.
+ */
+function openingFocus(source) {
+    const opening = source.match(/if \(open && !dialog\.open\) \{([\s\S]*?)\n\s*\} else if \(!open && dialog\.open\)/)?.[1] ?? "";
+    const shownAt = opening.indexOf("dialog.showModal();");
+    const fieldAt = opening.search(/const field = dialog\.querySelector\("input:not\(\[type=hidden\]\)"\);\s*if \(field\) field\.focus\(\);/);
+    const titleAt = opening.search(/\n\s*else if \(sheet && recordId === undefined && laidOutAsSheet\(dialog\)\) focusHeading\(titleRef\.current\);/);
+    const headings = (opening.match(/focusHeading\(/g) ?? []).length;
+    return {
+        read: opening !== "",
+        fieldFirst: shownAt !== -1 && fieldAt > shownAt,
+        titleForSheet: fieldAt !== -1 && titleAt > fieldAt && headings === 1,
+    };
+}
+
 export function run({ check, assert, log }) {
+    // ── #531: a sheet holding no field opens on its title ──────────────────
+    // At the head of the check, as #522's block below is, so nothing older that throws keeps
+    // these from printing. What a browser showed is in `tools.md`.
+    {
+        log("a sheet holding no field opens on its title, and its rows draw focus for the keyboard (#531):");
+        const { ast, source } = parseFile(FRAME);
+        const opens = openingFocus(source);
+        assert("  the frame's opening was read", opens.read);
+        assert("  showModal, then the caret in the first field that takes typing", opens.fieldFirst);
+        assert("  with no field, a sheet laid out as one and not a Confirm puts focus on its title", opens.titleForSheet);
+        assert("  and the opening asks again when what it is changes", /\}, \[open, unprompted, sheet, recordId\]\);/.test(source));
+        assert("  the title draws no ring", /<h2 ref=\{titleRef\} id=\{titleId\} className="[^"]*\boutline-none\b[^"]*"/.test(source));
+        const rows = functionNamed(ast, "SheetRows");
+        const rowsSource = rows ? source.slice(rows.start, rows.end) : "";
+        assert("  SheetRows was found", rowsSource !== "");
+        assert("  a sheet's row is shaded under focus-visible", /\bfocus-visible:bg-hover-subtle\b/.test(rowsSource));
+        assert("  and under no bare focus", !/(^|[\s"`])focus:/.test(rowsSource));
+        const jobSheet = parseFile("app/(assets)/assets/[assetId]/JobSheet.js").source;
+        const nameSheet = parseFile("app/(assets)/assets/[assetId]/NameSheet.js").source;
+        assert("  the job sheet is a sheet of rows", /<DialogFrame[^>]*\bsheet\b/.test(jobSheet) && /<SheetRows\b/.test(jobSheet));
+        assert("  holding no field, so it opens on its title", !/<input\b|<TextInput\b|<Combobox\b/.test(jobSheet));
+        assert("  the name sheet holds a field, which takes the caret instead", /<input\b/.test(nameSheet) && /<SheetRows\b/.test(nameSheet));
+
+        log("");
+        log("anti-vacuity — the opening's reader on planted frames:");
+        const planted = (body) => `useLayoutEffect(() => {\n        if (open && !dialog.open) {\n${body}\n        } else if (!open && dialog.open) {\n            dialog.close();\n        }\n    }, [open]);`;
+        const field = `            dialog.showModal();\n            const field = dialog.querySelector("input:not([type=hidden])");\n            if (field) field.focus();`;
+        const good = openingFocus(planted(`${field}\n            else if (sheet && recordId === undefined && laidOutAsSheet(dialog)) focusHeading(titleRef.current);`));
+        assert("  a frame that does both reads as both", good.fieldFirst && good.titleForSheet);
+        assert("  a frame focusing nothing more is found", !openingFocus(planted(field)).titleForSheet);
+        assert("  a frame focusing every dialog's title is found", !openingFocus(planted(`${field}\n            else focusHeading(titleRef.current);`)).titleForSheet);
+        assert(
+            "  a frame not asking whether it is laid out as a sheet is found",
+            !openingFocus(planted(`${field}\n            else if (sheet && recordId === undefined) focusHeading(titleRef.current);`)).titleForSheet
+        );
+        assert(
+            "  a frame focusing the title over a field is found",
+            !openingFocus(planted(`${field}\n            else if (sheet && recordId === undefined && laidOutAsSheet(dialog)) focusHeading(titleRef.current);\n            focusHeading(titleRef.current);`)).titleForSheet
+        );
+        assert("  a frame focusing before it shows is found", !openingFocus(planted(`            const field = dialog.querySelector("input:not([type=hidden])");\n            if (field) field.focus();\n            dialog.showModal();`)).fieldFirst);
+        log("");
+    }
+
     // ── 0: the design of 2026-10-11 (#522) ─────────────────────────────────
     // At the head of the check, so an older assertion that throws cannot keep these from
     // printing. Each is read off the source; what a browser showed is in `tools.md`.
