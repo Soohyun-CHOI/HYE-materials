@@ -46,6 +46,7 @@ import {
     logRowFacts,
     newestFirst,
     retiredAt,
+    sentForRepairAt,
 } from "../../../lib/assetView.js";
 import { callsTo, parseFile, parseSource, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
@@ -127,11 +128,11 @@ export function run({ check, assert, log }) {
     // NOT `Notes` COMING BACK, AND THE DIFFERENCE IS WHAT MAKES THIS CHECKABLE AT
     // ALL. That field was optional on every event and no row ever filled it, so
     // there was no rule to assert — only the absence above. `Checked Out To` is a
-    // function of the event: present on exactly one of the four and absent on the
-    // other three, held in both directions by `createAssetLogEntry`. So this asks
-    // over the WHOLE vocabulary rather than about the one row it was added for,
-    // and a fifth event cannot arrive without this failing until somebody decides
-    // which side it is on.
+    // function of the event: present on exactly one of them and absent on every
+    // other, held in both directions by `createAssetLogEntry`. So this asks over the
+    // WHOLE vocabulary rather than about the one row it was added for, and a new event
+    // cannot arrive without this failing until somebody decides which side it is on —
+    // as #531's two repair events did.
     log("");
     log("and a fifth on a check-out, on no other event:");
     const withName = (event) => keysOf({ ...FULL_ROW, event, checkedOutTo: "Dana K" });
@@ -142,7 +143,7 @@ export function run({ check, assert, log }) {
         "Dana K"
     );
     const others = Object.values(ASSET_EVENT).filter((e) => e !== ASSET_EVENT.CHECKED_OUT);
-    assert(`  and the other ${others.length} events do not, even handed one`, others.length === 3);
+    check("  and the other events do not, even handed one", others.join(" | "), "Created | Checked in | Sent for repair | Returned from repair | Retired");
     for (const event of others) check(`  ${event} carries four`, withName(event).join(","), "event,eventAt,job,recordedBy");
     // THE EVENT DECIDES, NOT THE VALUE. A check-out with no name renders the pair
     // empty rather than dropping it — the same treatment the four above get, and
@@ -155,10 +156,10 @@ export function run({ check, assert, log }) {
     );
     // ANTI-VACUITY FOR THE LOOP ABOVE: the vocabulary really is what it is read
     // from, so a check that iterated an empty list would fail here rather than
-    // reporting three silent passes.
+    // reporting five silent passes.
     assert(
         "the vocabulary this is asked over is the real one",
-        Object.values(ASSET_EVENT).length === 4 && Object.values(ASSET_EVENT).includes(ASSET_EVENT.CHECKED_OUT)
+        Object.values(ASSET_EVENT).length === 6 && Object.values(ASSET_EVENT).includes(ASSET_EVENT.CHECKED_OUT)
     );
 
     // ── 2c: the order the history stands in, and the values only one state has (#463) ─
@@ -185,17 +186,43 @@ export function run({ check, assert, log }) {
     check("a retired asset was retired at its retirement's moment", retiredAt(retiredHistory, ASSET_STATUS.RETIRED), "2026-09-18T17:12:00.000Z");
     check("  and an asset in any other status was not", retiredAt(retiredHistory, ASSET_STATUS.IN_STOCK), null);
     check("  nor one whose latest entry is not the retirement", retiredAt(history, ASSET_STATUS.RETIRED), null);
+    // AN ITEM IN REPAIR WAS SENT AT ITS SENDING'S MOMENT (#531), off the latest entry alone.
+    const repairHistory = newestFirst([...oldestFirst.slice(0, 3), row(ASSET_EVENT.SENT_FOR_REPAIR, "2026-10-02T14:15:00.000Z")]);
+    check("an item in repair was sent at its sending's moment (#531)", sentForRepairAt(repairHistory, ASSET_STATUS.IN_REPAIR), "2026-10-02T14:15:00.000Z");
+    check("  and an item in any other status was not", ASSET_STATUS_VALUES.filter((s) => s !== ASSET_STATUS.IN_REPAIR).map((s) => sentForRepairAt(repairHistory, s)).join(","), ",,");
+    check("  nor one whose latest entry is not the sending", sentForRepairAt(history, ASSET_STATUS.IN_REPAIR), null);
+    check(
+        "  nor one returned since, whose latest entry is the return",
+        sentForRepairAt(newestFirst([...oldestFirst.slice(0, 3), row(ASSET_EVENT.SENT_FOR_REPAIR, "2026-10-02T14:15:00.000Z"), row(ASSET_EVENT.RETURNED_FROM_REPAIR, "2026-10-09T09:00:00.000Z")]), ASSET_STATUS.IN_REPAIR),
+        null
+    );
+    check("  and nobody holds an item in repair", currentHolder(repairHistory, ASSET_STATUS.IN_REPAIR), null);
 
     // ── 2d: the mark each status is drawn with (#463) ──────────────────────
     log("");
     log("each status has its mark, and the map is total over the vocabulary:");
-    check("in stock is settled, out is open, retired is ended", ASSET_STATUS_VALUES.map((s) => STATUS_MARK[s]).join(" "), "settled open ended");
+    check("in stock is settled, out is open, in repair away, retired is ended", ASSET_STATUS_VALUES.map((s) => STATUS_MARK[s]).join(" "), "settled open away ended");
     check("  with no mark for a status that does not exist", Object.keys(STATUS_MARK).filter((s) => !ASSET_STATUS_VALUES.includes(s)).length, 0);
     const markFile = parseFile(STATUS_MARK_FILE);
     // THE COMPONENT DRAWS EACH SHAPE AT EACH WIDTH AND ASKS THE MAP, so a status the map
     // names draws, and a fourth shape in the map draws nothing until the file draws it.
     assert("  drawn from the map, at the desk's 9 and the phone's 10", /const shape = STATUS_MARK\[status\];/.test(markFile.source) && /box: 9,/.test(markFile.source) && /box: 10,/.test(markFile.source));
-    assert("  its ring 1.5 on both", (markFile.source.match(/className="stroke-status-ring"/g) ?? []).length === 4);
+    check("  its ring 1.5 on both, dashed or not, and the slash", (markFile.source.match(/className="stroke-status-ring"/g) ?? []).length, 6);
+    // 0g's AWAY, AT EACH WIDTH'S OWN FIGURES (#531): the Invoices file's 9 ring dashed 2.36
+    // and 1.57 at a desk, Tools 1j-e's 10 ring 2.67 and 1.78 on a phone, each turned 75° back.
+    assert(
+        "  the desk's dashed ring is 0g's Away",
+        /dashed: \(\s*<circle\s+cx="4\.5"\s+cy="4\.5"\s+r="3\.75"\s+fill="none"\s+stroke="currentColor"\s+strokeDasharray="2\.36 1\.57"\s+transform="rotate\(-75 4\.5 4\.5\)"/.test(markFile.source)
+    );
+    assert(
+        "  the phone's is 1j-e's",
+        /dashed: \(\s*<circle\s+cx="5"\s+cy="5"\s+r="4\.25"\s+fill="none"\s+stroke="currentColor"\s+strokeDasharray="2\.67 1\.78"\s+transform="rotate\(-75 5 5\)"/.test(markFile.source)
+    );
+    check(
+        "  each shape takes its own drawing",
+        markFile.source.match(/const FACE = \{([^}]*)\}/)?.[1].replace(/\s+/g, " ").trim(),
+        'settled: "settled", open: "ring", away: "dashed", ended: "ring"'
+    );
 
     // ── 3: all four are on every row ───────────────────────────────────────
     log("");
@@ -352,6 +379,13 @@ export function run({ check, assert, log }) {
     check("the history is drawn newest first", initOf("history"), "newestFirst(log)");
     check("  who holds an asset that is out is the module's answer", initOf("holder"), "currentHolder(history, asset.status)");
     check("  and when a retired one was retired", initOf("retired"), "retiredAt(history, asset.status)");
+    check("  and when one in repair was sent (#531)", initOf("sentForRepair"), "sentForRepairAt(history, asset.status)");
+    // DRAWN AT BOTH WIDTHS, THE DAY AT THE HOLDER'S SIZE (1f, 1j-e) — where the retirement's
+    // day is the desk's alone.
+    assert(
+        "  the sending's day is drawn at both widths, at the holder's size",
+        /\{sentForRepair && \(\s*<span className="text-body-sm text-foreground-subtle max-sm:text-mobile-body-sm">\s*<Instant at=\{sentForRepair\} format=\{DAY_FORMAT\} \/>/.test(page.source)
+    );
     // WHO RECORDED AN ENTRY IS NAMED FOR WHAT THEY DID (#463), in full.
     assert("each entry names its recorder in full", /people\.map\(\(person\) => \[person\.id, actorName\(person\)\]\)/.test(page.source));
     check("  and the facts it places are logRowFacts'", callsTo(page.ast, "logRowFacts").length, 1);

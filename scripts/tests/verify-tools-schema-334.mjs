@@ -29,7 +29,10 @@
 //      remove the option afterwards.
 //
 // Part A is safe at any time. Parts B and C create records, cleaned up within the
-// run through scripts/tests/_fixtures.mjs. Cost is roughly 20 operations.
+// run through scripts/tests/_fixtures.mjs. Cost is roughly 20 operations. **Since #531
+// they are refused before their first write**: `Assets` and `Asset Log` hold the site's
+// records, which no script writes (`scripts/protectedTables.mjs`), so a run is Part A and
+// ends on 2.
 //
 // `Asset Categories` IS THE CATALOG SINCE #507, so Part A reads its fields — seven since
 // #514 — and the type's and the class's options against lib/assetCategory.js, and Part B
@@ -64,6 +67,7 @@ import {
 import { ASSET_CATEGORY_FIELDS, ASSET_CLASS_VALUES, ASSET_TYPE_VALUES, composeItemName } from "../../lib/assetCategory.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { printProvenance } from "./_provenance.mjs";
+import { refusesProtectedWrite } from "../protectedTables.mjs";
 
 printProvenance({ title: "verify-tools-schema-334 — the three tools tables, against the live base" });
 
@@ -251,9 +255,19 @@ try {
     log();
     log("Part B — one row per table, read back through the mappers");
 
-    const job = await getJobByCode("26-DEMO-01");
-    const users = await getActiveUsers();
-    if (!job || users.length === 0) {
+    // REFUSED SINCE #531, AND PART C WITH IT: both write a row into `Assets` and `Asset Log`,
+    // which hold the site's records (`scripts/protectedTables.mjs`), so Part A is all this
+    // script runs and it ends on 2.
+    const refused = refusesProtectedWrite({
+        script: "verify-tools-schema-334",
+        writes: [TABLES.ASSET_CATEGORIES, TABLES.ASSETS, TABLES.ASSET_LOG],
+    });
+    const job = refused ? null : await getJobByCode("26-DEMO-01");
+    const users = refused ? [] : await getActiveUsers();
+    if (refused) {
+        log("  SKIPPED — Parts B and C write into Assets and Asset Log, the site's records since #531.");
+        incomplete = true;
+    } else if (!job || users.length === 0) {
         log("  SKIPPED — needs Job 26-DEMO-01 and at least one active user.");
         incomplete = true;
     } else {

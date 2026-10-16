@@ -114,7 +114,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/addressChoice.js` — how a form asks where material goes, on both screens that ask (#385, #387). **A request stores an ADDRESS and not a choice.**
 - `lib/materialIdentity.js` — what makes two ordered items the same material (#356). The lock key, the cache's grouping key and `getMaterialByKey`'s values all come from here.
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
-- `lib/assetStatus.js` — the assets axis's two closed vocabularies and the three maps over them (#334, #335, #362, #363). No call site passes `createAssetLogEntry` a string literal.
+- `lib/assetStatus.js` — the assets axis's two closed vocabularies and the five maps over them (#334, #335, #362, #363, #531). No call site passes `createAssetLogEntry` a string literal.
 - `lib/assetJob.js` — the job an `Asset Log` row is filed against (#363), the one assignment used without asking (#458), and the picker's words.
 - `lib/assetCategory.js` — the asset categories a registration picks from (#507): their six levels (#514), the type and the class, the name's formula, which rows a registration may pick and the walk to one, the `Asset Category Groups` row each type and category is (#528), and the catalog's words. **Only the catalog's page writes an `Asset Categories` row (#527).**
 - `lib/assetRegistration.js` — registering assets (#338): the ceiling, what the dialog opens with and may submit (#456), a landing's account (#449), and every word a registration says.
@@ -122,7 +122,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/assetRoutes.js` — every address on the assets axis (#348), and the code a label prints (#411). **That code and the printed path's segment are one string.**
 - `lib/assetLabelQR.js` — the QR symbol an asset's label carries (#351).
 - `lib/assetLabelPage.js` — the page an asset's label prints as (#353, #467).
-- `lib/assetTransition.js` — what a person may record against an asset (#362, #363): the two transitions, which of them asks first (#458), the refusals, and every word it says.
+- `lib/assetTransition.js` — what a person may record against an asset (#362, #363, #531): the press, the menu's two, which asks first (#458), the refusals, and every word it says.
 - `lib/assetListView.js` — the two asset list screens (#339), the app's first paging, which assets a label run is for (#443), the one job they stand on (#509, #520), what the category list's band narrows by (#520), and their own words.
 - `lib/assetCatalog.js` — the office's catalog page (#527): every row, that band with a toggle, what an add or an edit may save, and its words.
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
@@ -278,6 +278,7 @@ Read `docs/notes/authorization.md` before adding an endpoint, an exemption or a 
 - `npm test` runs the whole offline tier and CI runs it on every push; `npx eslint .` is a second CI job and stays clean, a rule this repo deliberately breaks taking a scoped disable with its reason rather than a tolerated error (#187). **It resolves names under `scripts/` since #426** — `no-undef` and, since #427, `no-unused-vars`, against Node's globals alone, since flat config MERGES globals and the wide set would leave a rule reporting 0 while blind. **An unread binding may still be load-bearing**, so read one before deleting it.
 - **Do not run a `verify-*.mjs` casually** — one run costs hundreds of Airtable operations.
 - **Dummy records already in the base are deliberate, not leftovers.** Nothing in this base is to be removed as tidying-up.
+- **`Assets` and `Asset Log` are the site's real records (#531)**: no script, check or browser walk writes or deletes a row of either, and a script that could asks `scripts/protectedTables.mjs` and stops first.
 - **What a green CI run does NOT mean:** that authorization is enforced, or that anything rendered. Source shape is not execution — a gate inside `if (false)` satisfies a structural check — and this tier never opens a page, so a column that does not appear, a width that wraps and a field that reaches the browser are all invisible to it. Those are checked in a browser with the two fixture accounts and the finding written into the PR. Green means nothing cheap regressed.
 
 Read `docs/notes/verification.md` before adding a check, a script or a seed — it holds the directory map, the tier boundary and where a new check goes, the exit codes, the fixture-cleanup contract and its run tag, the two permanent fixture accounts, the anti-vacuity rule, and why an Airtable formula or rollup is outside CI entirely.

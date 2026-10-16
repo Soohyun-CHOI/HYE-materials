@@ -20,12 +20,15 @@ import { assetCategoriesPath, assetCategoryPath } from "@/lib/assetRoutes";
 import { ASSET_STATUS_VALUES } from "@/lib/assetStatus";
 import JobChoice from "../JobChoice";
 
-// 1a's columns since #519: the name, then a count for each status at 96, right-aligned. The
+// 1a's columns since #519: the name, then a count for each status at 96, right-aligned — four
+// since #531, `In repair` between `Out` and `Retired`, the order `ASSET_STATUS_VALUES` holds
+// them in. The repeat is a literal a stylesheet can be built from, so the count in it is
+// written here and `offline/asset-list-view.mjs` holds it to the vocabulary's length. The
 // category stands in the name's cell, 20 after the name at Ink 3, and gives its room up first,
 // so a long name is cut last. From #507 to #519 the class, the type and the category were
 // columns of their own between the name and the counts; the band's chips filter by all three
 // since #520, and the category page's caption says them.
-const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(3,var(--width-table-count))]";
+const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(4,var(--width-table-count))]";
 
 /**
  * The category list on the job it stands on (1a, #520): its head with how many items the job
@@ -135,7 +138,7 @@ export default function AssetCategoryList({ rows, job, jobs, catalog, opener }) 
                             </span>
                             {row.level2 && <span className="min-w-0 shrink-[1000] truncate text-foreground-subtle">{row.level2}</span>}
                         </span>
-                        {/* All three statuses on every row, a zero included: an absent one
+                        {/* Every status on every row, a zero included: an absent one
                             would read as "not known" where a `0` reads as "none", and a zero
                             takes Ink 3. The column head is the label, so a count is never
                             carried by color alone. */}

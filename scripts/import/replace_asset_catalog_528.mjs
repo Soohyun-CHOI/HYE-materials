@@ -49,6 +49,12 @@
 // that row under a new id; each refusing before a write unless the base still reads as the run
 // left it. So the way back from both runs is the removal's ledger first, then the load's.
 //
+// SINCE #531 A RUN THAT WOULD MOVE AN ASSET IS REFUSED WHOLE, before its first write and in the
+// dry run too — a load whose plan holds a move, a revert whose ledger does. `Assets` holds the
+// site's records, which no script writes (`scripts/protectedTables.mjs`), and refusing only the
+// moves would leave the catalog revised over assets still on the rows it replaces. A load with
+// no move and the removal, whose rows no asset stands on, run as before.
+//
 // IT TALKS TO THE REST API DIRECTLY, as the catalog's other scripts do, and counts its calls,
 // which lib/airtableOps.js cannot see. The CSV reader is load_asset_catalog_517.mjs', which is
 // create_material_categories_354.mjs' with the byte-order mark taken off first.
@@ -91,6 +97,7 @@ import {
     readCategoryGroups,
 } from "../../lib/assetCategory.js";
 import { textMatchKey } from "../../lib/itemNaming.js";
+import { refusesProtectedWrite } from "../protectedTables.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SOURCES = join(HERE, "sources");
@@ -400,6 +407,17 @@ async function load(air, apply, sources) {
     printLoadPlan(p);
     const due = p.groupsToCreate.length + p.toCreate.length + p.classes.length + p.moves.length;
     if (due === 0) log("\nnothing to load: the base holds the revised list and its groups.");
+    // A move writes an asset's `Category`, and since #531 no script writes `Assets`
+    // (`scripts/protectedTables.mjs`) — so a plan holding one is refused whole, the dry run
+    // included, before the groups and the catalog rows it would write first.
+    const loadWrites = [
+        ...(p.groupsToCreate.length ? [GROUPS_TABLE] : []),
+        ...(p.toCreate.length + p.classes.length ? [CATALOG_TABLE] : []),
+        ...(p.moves.length ? [ASSETS_TABLE] : []),
+    ];
+    if (refusesProtectedWrite({ script: "replace_asset_catalog_528", writes: loadWrites, log })) {
+        return finish(air, 1, "refused before writing anything");
+    }
     if (!apply && due > 0) return finish(air, 2, `dry run — ${due} write(s) due, nothing was written`);
 
     if (due > 0) {
@@ -463,6 +481,11 @@ async function remove(air, apply, sources) {
         return finish(air, 1, "refused before removing anything");
     }
     if (p.going.length === 0) return finish(air, 0, "nothing of the earlier list is left");
+    // Catalog rows alone, none of them under an asset (refused above), so this answers no
+    // (#531) — asked all the same, so every write this script makes is asked.
+    if (refusesProtectedWrite({ script: "replace_asset_catalog_528 --remove", writes: [CATALOG_TABLE], log })) {
+        return finish(air, 1, "refused before removing anything");
+    }
     if (!apply) return finish(air, 2, `dry run — ${p.going.length} row(s) would go, nothing was removed`);
 
     const ledger = writeLedger(base.catalogRecords.filter((record) => p.going.some((category) => category.id === record.id)).map((record) => ({ table: CATALOG_TABLE, removed: true, id: record.id, createdTime: record.createdTime, fields: record.fields })));
@@ -509,6 +532,12 @@ async function revert(air, apply, ledgerPath) {
     for (const line of moves) log(`  [MOVE]   ${line.assetId} back to ${pathOf(line.beforeLevels)} (${onPath(line.beforeLevels)[0].id})`);
     for (const line of classes) log(`  [CLASS]  ${line.id} ${JSON.stringify(line.name)} ${line.after} → ${line.before}`);
     if (removed.length) log(`  [CREATE] ${removed.length} catalog row(s) again`);
+    // A move back writes an asset's `Category`, which no script may since #531, so a ledger
+    // holding one is refused whole, the dry run included.
+    const revertWrites = [...(removed.length + classes.length ? [CATALOG_TABLE] : []), ...(moves.length ? [ASSETS_TABLE] : [])];
+    if (refusesProtectedWrite({ script: "replace_asset_catalog_528 --revert", writes: revertWrites, log })) {
+        return finish(air, 1, "refused before writing anything");
+    }
     if (!apply) return finish(air, 2, `dry run — ${lines.length} line(s) would be put back, nothing was written`);
 
     for (const chunk of inChunks(removed)) {

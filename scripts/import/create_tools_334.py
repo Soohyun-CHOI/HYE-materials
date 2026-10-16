@@ -156,14 +156,22 @@ DATETIME_OPTIONS = {
 # ----------------------------------------------------------------------------
 # The two closed vocabularies
 # ----------------------------------------------------------------------------
-# DUPLICATED FROM lib/toolStatus.js BECAUSE PYTHON CANNOT IMPORT JS -- the same
-# structural duplication `add_unit_options.py` carries for CANONICAL_UNITS, and
-# closed the same way: `scripts/tests/offline/tool-status.mjs` parses these two
-# lists out of THIS FILE and asserts they are the JS values, in order, with the
-# colors. Editing one without the other fails CI.
+# DUPLICATED FROM lib/assetStatus.js (lib/toolStatus.js until #513) BECAUSE PYTHON
+# CANNOT IMPORT JS -- the same structural duplication `add_unit_options.py` carries
+# for CANONICAL_UNITS, and closed the same way:
+# `scripts/tests/offline/asset-status.mjs` parses these two lists out of THIS FILE
+# and asserts they are the JS values, in order, with the colors. Editing one
+# without the other fails CI.
+#
+# #531 ADDED THE REPAIR'S THREE BY HAND IN THE AIRTABLE UI, in the colors given
+# there, and this script never ran for them — it refuses beside the renamed
+# tables. They are here so the list stays the one the base holds, in the order it
+# holds them: the status before `Retired`, as the category list draws it (1a), and
+# the two events before `Retired` too.
 TOOL_STATUS_CHOICES = [
     {"name": "In stock", "color": "blueLight2"},
     {"name": "Out", "color": "cyanLight2"},
+    {"name": "In repair", "color": "yellowLight2"},
     {"name": "Retired", "color": "grayLight2"},
 ]
 
@@ -171,6 +179,8 @@ TOOL_EVENT_CHOICES = [
     {"name": "Created", "color": "blueLight2"},
     {"name": "Checked out", "color": "cyanLight2"},
     {"name": "Checked in", "color": "tealLight2"},
+    {"name": "Sent for repair", "color": "yellowLight2"},
+    {"name": "Returned from repair", "color": "orangeLight2"},
     {"name": "Retired", "color": "grayLight2"},
 ]
 
@@ -683,6 +693,10 @@ class AirtableSchemaClient:
 
 
 # The three tables' names since #513, which this script refuses to run beside.
+# SINCE #531 THIS IS ALSO WHAT KEEPS IT OFF `Assets` AND `Asset Log`, the site's
+# records, which no script writes (scripts/protectedTables.mjs, which Python cannot
+# import): it stops on reading the schema, before its first request that writes.
+# scripts/tests/offline/protected-tables.mjs holds the two names here and the stop.
 RENAMED_BY_513 = ("Asset Categories", "Assets", "Asset Log")
 
 

@@ -7,7 +7,7 @@ import { getAssetCategoriesByRecordIds } from "@/lib/airtable/assetCategories";
 import { getRecentCheckOuts, getAssetLogByAsset } from "@/lib/airtable/assetLog";
 import { getUsersByRecordIds } from "@/lib/airtable/users";
 import { DAY_FORMAT } from "@/lib/format";
-import { ASSET_COPY as COPY, currentHolder, logRowFacts, newestFirst, retiredAt } from "@/lib/assetView";
+import { ASSET_COPY as COPY, currentHolder, logRowFacts, newestFirst, retiredAt, sentForRepairAt } from "@/lib/assetView";
 import Breadcrumb from "@/app/components/Breadcrumb";
 import { ButtonLink } from "@/app/components/Controls";
 import Icon from "@/app/components/Icon";
@@ -99,7 +99,8 @@ const ID_IN_TEXT = "font-id leading-none tracking-id text-foreground-default";
  * its `Asset Log` link array, so the walk skips the parent find (#193). People and
  * jobs are read once for the whole history rather than per row, so a long history
  * adds no cost on either. #463 added no read: who holds an asset that is out and when
- * a retired one was retired are both on the history's latest row, already in hand.
+ * a retired one was retired are both on the history's latest row, already in hand, and so
+ * is when one in repair was sent (#531).
  *
  * `Status` AND `Job` ARE READ FROM THE ASSET. They are caches of the last log
  * row, and this page has that row in hand — but it shows the cached values,
@@ -112,12 +113,12 @@ const ID_IN_TEXT = "font-id leading-none tracking-id text-foreground-default";
  * names a check-out offers are other assets' history on the reader's own jobs,
  * so nothing already in hand can answer it; `getRecentCheckOuts` is one operation
  * and stays one whatever a job's history grows to. Every other path — a check-in,
- * a retired asset, a reader with no job, a reader who is not a site manager
- * (#506) — asks nothing and pays nothing.
+ * an item in repair, a retired asset, a reader with no job, a reader who is not a site
+ * manager (#506) — asks nothing and pays nothing.
  *
- * IT OFFERS WHAT THAT STATUS ALLOWS (#362, #363), AND FOR NO OPERATIONS AT ALL.
+ * IT OFFERS WHAT THAT STATUS ALLOWS (#362, #363, #531), AND FOR NO OPERATIONS AT ALL.
  * The session and the whole job list are already read for the history's names,
- * so `planTransition` decides both offers from facts in hand and the figure
+ * so `planTransition` decides every offer from facts in hand and the figure
  * above is unchanged — measured, before #362 and again after #363. This is where
  * a scan lands, so a read added here is the read that would matter most on this
  * axis; there is none.
@@ -222,6 +223,7 @@ async function renderAssetPage({ params }) {
     const history = newestFirst(log);
     const holder = currentHolder(history, asset.status);
     const retired = retiredAt(history, asset.status);
+    const sentForRepair = sentForRepairAt(history, asset.status);
 
     // The transition costs NOTHING here (#362): the session and the whole job
     // list are both already read above, so the offer is decided from facts in
@@ -344,8 +346,9 @@ async function renderAssetPage({ params }) {
                                 <CategoryCaption category={category} className="text-mobile-body-xs text-foreground-subtle sm:hidden" />
                             </div>
                             {/* THE STATUS, AND THE VALUE ONLY ONE STATE HAS 14 AFTER IT (0n):
-                                who holds an asset that is out, and at a desk when a retired one
-                                was retired. */}
+                                who holds an asset that is out, at a desk when a retired one
+                                was retired, and at both widths when one in repair was sent
+                                (#531; 1f, 1j-e), the day at the holder's size. */}
                             <div className="flex items-baseline gap-gap-lg">
                                 <span className="inline-flex items-baseline gap-gap text-body max-sm:text-mobile-body">
                                     <StatusMark status={asset.status} />
@@ -357,29 +360,34 @@ async function renderAssetPage({ params }) {
                                         <Instant at={retired} format={DAY_FORMAT} />
                                     </span>
                                 )}
+                                {sentForRepair && (
+                                    <span className="text-body-sm text-foreground-subtle max-sm:text-mobile-body-sm">
+                                        <Instant at={sentForRepair} format={DAY_FORMAT} />
+                                    </span>
+                                )}
                             </div>
                             <TransitionRefusal />
                         </div>
-                        {/* WHAT MAY BE RECORDED, AT A DESK (#362, #363, #463): the transition and
-                            `More actions`, which holds the retirement. A REFUSAL STANDS WHERE
-                            BOTH CONTROLS WOULD BE, never beside them — a reader on no job reads
-                            why — except a status that allows nothing, where 1f draws nothing at
-                            all; a phone's foot bar says that one. The two controls must not read
-                            as the same weight: one is pressed dozens of times a day and is the
-                            filled button, the other is that asset's last act and is a menu
-                            item behind an icon. Each is asked for separately, because the two
-                            answers come from two maps and agree only on today's three
-                            statuses. A READER WHO IS NOT A SITE MANAGER IS OFFERED NEITHER AND
-                            TOLD NOTHING (#506), so the place holds nothing, as it does for a
-                            retired asset. */}
+                        {/* WHAT MAY BE RECORDED, AT A DESK (#362, #363, #463, #531): the press
+                            and `More actions`, which holds sending for repair and the
+                            retirement. A REFUSAL STANDS WHERE BOTH CONTROLS WOULD BE, never
+                            beside them — a reader on no job reads why — except a status that
+                            allows nothing, where 1f draws nothing at all; a phone's foot bar
+                            says that one. The two controls must not read as the same weight:
+                            one is pressed dozens of times a day and is the filled button, the
+                            other holds that asset's last act and is a menu behind an icon.
+                            Each is asked for separately, because the answers come from three
+                            maps (`lib/assetStatus.js`). A READER WHO IS NOT A SITE MANAGER IS
+                            OFFERED NONE AND TOLD NOTHING (#506), so the place holds nothing, as
+                            it does for a retired asset. */}
                         {transition.refusal
                             ? transition.refusal !== TRANSITION_COPY.noTransition && (
                                   <p className="max-w-empty-state text-body-sm text-pretty text-foreground-subtle max-sm:hidden">{transition.refusal}</p>
                               )
-                            : (transition.event || transition.mayRetire) && (
+                            : (transition.event || transition.maySendForRepair || transition.mayRetire) && (
                                   <div className="-mt-[calc((var(--height-control-lg)-var(--text-heading-lg--line-height))/2)] flex shrink-0 items-center gap-gap max-sm:hidden">
                                       {transition.event && <TransitionDialog currentJobCode={jobCode} recentCheckOuts={recentCheckOuts} />}
-                                      {transition.mayRetire && <MoreActions />}
+                                      {(transition.maySendForRepair || transition.mayRetire) && <MoreActions />}
                                   </div>
                               )}
                     </header>

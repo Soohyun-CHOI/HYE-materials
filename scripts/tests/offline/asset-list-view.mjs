@@ -3,11 +3,12 @@
 // THREE THINGS LIVE HERE AND THE THIRD IS WIDER THAN THE OTHER TWO.
 //
 //   THE COUNT PER STATUS IS DERIVED FROM THE VOCABULARY, NOT WRITTEN OUT. A category's
-//   row carries `In stock`, `Out` and `Retired` whatever the assets under it
-//   are, so a status nobody has designated reads `0` rather than going missing —
-//   the app's own distinction between nothing and no measurement. Writing the
-//   three out would make a fourth status appear on no screen and fail nothing;
-//   asserting the row's keys ARE `ASSET_STATUS_VALUES` is what closes that.
+//   row carries `In stock`, `Out`, `In repair` and `Retired` whatever the assets
+//   under it are, so a status nobody has designated reads `0` rather than going
+//   missing — the app's own distinction between nothing and no measurement. Writing
+//   them out would make a new status appear on no screen and fail nothing; asserting
+//   the row's keys ARE `ASSET_STATUS_VALUES` is what closes that, and #531's
+//   `In repair` arrived through it.
 //
 //   THE PAGING IS THE FIRST IN THIS APP, so there is no second implementation to
 //   compare it against and the assertions have to be properties rather than
@@ -332,7 +333,25 @@ export function run({ check, assert, log }) {
     // (`assetCategoriesInScope`, #507), so this holds the function alone.
     const nothing = rowFor(rows, "Cordless Drill");
     assert("a category with no assets is still a row", Boolean(nothing));
-    check("  and its counts are three zeros", nothing.counts.map((c) => c.count).join(), "0,0,0");
+    check("  and its counts are a zero per status", nothing.counts.map((c) => c.count).join(), "0,0,0,0");
+
+    // AN ITEM IN REPAIR IS COUNTED IN ITS OWN COLUMN AND NOT IN STOCK (#531): one status at a
+    // time, so `In stock` leaves out what is away at its maker, as 1a draws it.
+    const repairs = summarizeAssetCategories(
+        [{ id: "recWelder", itemName: "TIG Welder", assets: [] }],
+        [
+            { id: "w1", category: ["recWelder"], status: "In stock" },
+            { id: "w2", category: ["recWelder"], status: "In repair" },
+            { id: "w3", category: ["recWelder"], status: "In repair" },
+            { id: "w4", category: ["recWelder"], status: "Out" },
+            { id: "w5", category: ["recWelder"], status: "Retired" },
+        ]
+    )[0];
+    check(
+        "an item in repair is counted in its own column and not in stock (#531)",
+        repairs.counts.map((c) => `${c.status} ${c.count}`).join(" | "),
+        "In stock 1 | Out 1 | In repair 2 | Retired 1"
+    );
 
     check(
         "the order is by name, case-insensitively",
@@ -389,6 +408,12 @@ export function run({ check, assert, log }) {
         columnHeads(parseFile(CATEGORY_LIST)),
         "COPY.nameLabel, status"
     );
+    // ONE TRACK PER STATUS, AND THE COUNT IN THE REPEAT IS A LITERAL (#531): a class a
+    // stylesheet is built from cannot be computed, so the repeat says 4 and is held to the
+    // vocabulary's length — a new status fails here until its track is drawn.
+    const countTracks = Number(parseFile(CATEGORY_LIST).source.match(/const COLUMNS = "grid-cols-\[minmax\(0,1fr\)_repeat\((\d+),var\(--width-table-count\)\)\]";/)?.[1]);
+    check("  one 96 track per status, four", countTracks, 4);
+    check("  as many as the vocabulary holds", countTracks, ASSET_STATUS_VALUES.length);
     check(
         "  and a list with the type left out is seen (anti-vacuity)",
         columnHeads(parseSource('<div><span role="columnheader">{COPY.nameLabel}</span><span role="columnheader">{ASSET_CATEGORY_COPY.levelLabel.level2}</span></div>', "<planted-heads>")),
@@ -1775,7 +1800,7 @@ export function run({ check, assert, log }) {
     check(
         "a list counts its job's assets and no other",
         narrowedRows.map((row) => `${row.itemName}:${row.counts.map((c) => c.count).join("/")}`).join(" "),
-        "angle grinder:1/0/0 Impact Driver:0/0/1"
+        "angle grinder:1/0/0/0 Impact Driver:0/0/0/1"
     );
 
     // BOTH SCREENS ASK THE ONE JUDGMENT, BEFORE ANY ASSET IS READ — the list for which
@@ -1869,7 +1894,8 @@ export function run({ check, assert, log }) {
     check(
         "no item at all, a heading and a sentence (1a)",
         `${ASSET_LIST_COPY.noItemsHeading} | ${ASSET_LIST_COPY.noItems}`,
-        "No items yet | Each item shows here with how many are in stock, out and retired."
+        // `in repair` since #531, where the files of 2026-10-15 still say the three.
+        "No items yet | Each item shows here with how many are in stock, out, in repair and retired."
     );
     check(
         "  and a category with nothing under it, its heading (1d, #507)",

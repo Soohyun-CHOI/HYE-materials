@@ -20,14 +20,21 @@ import { assetPath } from "@/lib/assetRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 /**
- * Check one asset out, or back in (#362) — one `Asset Log` row and the two
- * cached fields that follow it.
+ * Check one asset out, or back in (#362), or send it for repair or take it back (#531) —
+ * one `Asset Log` row and the two cached fields that follow it.
  *
- * ONE ACTION FOR BOTH DIRECTIONS, BECAUSE THE EVENT IS DERIVED RATHER THAN
- * CHOSEN. `eventOfferedBy` reads it off the stored status, so two actions would
- * be two places applying one rule and one of them could be called against a
- * status that does not offer it. What the form sends is compared, never used —
- * see `readSubmission`.
+ * ONE ACTION FOR EVERY EVENT BUT THE RETIREMENT, BECAUSE THE EVENT IS DERIVED RATHER THAN
+ * CHOSEN. `planTransition` reads what may be recorded off the stored status — the page's
+ * press, and from stock the menu's `Send for repair` — so a second action would be a
+ * second place applying one rule and could be called against a status that does not
+ * offer it. What the form sends is compared, never used — see `readSubmission`. The
+ * retirement has an action of its own because it holds its own answer in its own
+ * question; a repair asks nothing, so its answer stands where a scan's does, under the
+ * status (1k).
+ *
+ * A REPAIR'S ROW TAKES THE ASSET'S JOB, which `readSubmission` hands back from the job the
+ * asset holds: an item goes to its maker and comes back to the job it left, as a
+ * retirement moves nothing (`lib/assetStatus.js:JOB_SOURCE_OF_EVENT`).
  *
  * ONLY A SITE MANAGER RECORDS, AND THE WRAPPER DECIDES THAT BEFORE THIS BODY RUNS
  * (#506). `withSiteManagerAction` refuses anybody else — the page they pressed on,
@@ -117,23 +124,25 @@ async function recordAssetEventHandler(prevState, formData) {
             jobs: await getAllJobs(),
             status: asset.status,
         });
-        const { event, job, checkedOutTo, refusal, stale } = readSubmission(plan, {
+        const { event, jobRecordId, checkedOutTo, refusal, stale } = readSubmission(plan, {
             event: String(formData.get("event") ?? ""),
             jobId: String(formData.get("jobId") ?? ""),
             checkedOutTo: String(formData.get("checkedOutTo") ?? ""),
+            currentJobRecordId: asset.job?.[0],
         });
         // The page was looking at a status somebody else has moved since: say who, and
         // when, and what the press was (#463).
         if (stale) return refuseStale({ asset, refusal, attempted: String(formData.get("event") ?? "") });
         if (refusal) return refuse(refusal);
 
-        // The actor's own job, because a scan is the actor handling the asset. The
-        // name is the reader's answer rather than the form's (#376) — normalized,
-        // and null on a check-in whatever the form sent.
+        // The actor's own job for a scan, which is the actor handling the asset, and the
+        // asset's for a repair (#531). The name is the reader's answer rather than the
+        // form's (#376) — normalized, and null on every event but a check-out whatever the
+        // form sent.
         const failed = await writeEvent({
             asset,
             event,
-            jobRecordId: job.id,
+            jobRecordId,
             checkedOutTo,
             user,
             from: plan.status,
@@ -340,12 +349,12 @@ async function refuseStale({ asset, refusal, attempted }) {
  * on — because that is what the sentence has to tell them, not the one the event
  * was meant to leave behind.
  *
- * IT TAKES A JOB RECORD ID RATHER THAN A JOB, BECAUSE THE TWO CALLERS FIND ONE
+ * IT TAKES A JOB RECORD ID RATHER THAN A JOB, BECAUSE THE EVENTS FIND ONE
  * DIFFERENTLY. A scan resolves a job object out of the actor's own assignments;
- * a retirement reads the asset's cached link and never sees a job object at
- * all. Narrowing the parameter to the thing both actually have keeps this
- * function ignorant of which kind of event it is writing, which is what lets it
- * be one implementation.
+ * a retirement and a repair read the asset's cached link and never see a job
+ * object at all. Narrowing the parameter to the thing every caller actually has
+ * keeps this function ignorant of which kind of event it is writing, which is what
+ * lets it be one implementation.
  */
 async function writeEvent({ asset, event, jobRecordId, checkedOutTo, user, from }) {
     await createAssetLogEntry({

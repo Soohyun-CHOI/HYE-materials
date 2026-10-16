@@ -32,7 +32,7 @@ export const metadata = { title: COPY.heading };
  *
  * WHAT IT ANSWERS IS A QUESTION ABOUT THE FLEET rather than about any one asset:
  * how many of each kind of asset there are, and how many of them are out. That is
- * why the row carries three counts and no total — see `summarizeAssetCategories` for why a
+ * why the row carries a count per status and no total — see `summarizeAssetCategories` for why a
  * single figure cannot be written without deciding whether a retired asset is
  * still owned.
  *
@@ -56,7 +56,7 @@ export const metadata = { title: COPY.heading };
  * jobs` first in the choice, which the design never drew; docs/notes/tools.md has the turn.
  *
  * EVERY ROW ON THE JOB GOES TO THE BROWSER, WHICH FILTERS, SEARCHES AND PAGES THEM (#520). Every
- * category's three counts need every asset on the job, so the page reads them all whichever page
+ * category's counts need every asset on the job, so the page reads them all whichever page
  * it draws, and the band's narrowing and the paging are of rows already in hand
  * (`AssetCategoryList.js`), so neither fetches anything. **The page reads no filter off the
  * address**: what the band holds is the list's to read there, as a category's selection is.

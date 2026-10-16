@@ -85,11 +85,13 @@ may not close the gap by shortening the id** — this screen names a record and
 the base holds the long form — **and it may not close it by lengthening the
 sticker**, which is the whole of #411.
 
-**verdict.** Where the asset is: its status, one of `In stock`, `Out` or
-`Retired`, behind the mark 0g gives it — a solid dot, a ring, the ring struck
-through. This is what the reader came for. **A value only one state has stands
-after it**: who holds a tool that is out — the name its latest entry checked it
-out to — at both widths, and at a desk the day a retired one was retired.
+**verdict.** Where the asset is: its status, one of `In stock`, `Out`,
+`In repair` or `Retired`, behind the mark 0g gives it — a solid dot, a ring,
+the ring dashed (0g's Away, #531), the ring struck through. This is what the
+reader came for. **A value only one state has stands after it**: who holds a
+tool that is out — the name its latest entry checked it out to — at both
+widths, the day one in repair was sent at both widths (#531), and at a desk the
+day a retired one was retired.
 
 **evidence.** The category it is one of, which is the heading, and the job it is
 on, which every history entry states at both widths and the phone's foot bar
@@ -100,8 +102,12 @@ the design dropped. Both are single values, never lists — an asset is one unit
 one category and sits on one job.
 
 **action.** For a site manager (#506), the one transition the status allows — `Check out` from `In stock`,
-`Check in` from `Out` — and the job the event will be recorded on. There is
-never a choice of transition: the status decides which one. **A desk asks it in
+`Check in` from `Out`, `Return from repair` from `In repair` (#531) — and
+the job the event will be recorded on. There is never a choice of transition:
+the status decides which one. **The return asks nothing and records on the
+press**: its row takes the item's own job, since it comes back to the job it
+left, so a phone's foot bar is the press alone (1j-e) and a desk's header the
+press beside `More actions` (1f). An item in repair cannot be checked out. **A desk asks it in
 the header**, on the right and centered on the heading's line: the press or
 the dialog it opens (1f, 1g). **A phone asks it in the foot bar** (1j): the job
 as a pill, for a check-out a field for who it goes to, and the press, at the
@@ -178,15 +184,21 @@ both were given.
 
 **action.** For a site manager (#506), `Retire this item` (#519; `Retire this tool` until then), behind `More actions` — at a desk a 32 icon
 button beside the transition, named by its tooltip, and on a phone the 48
-button at the top bar's right end (1f, 1j). At a desk it is the menu's one
-item, in 0f's destructive red, and opens a dialog. **On a phone the menu ends on
+button at the top bar's right end (1f, 1j). It is in 0f's destructive red, and
+opens a dialog. **From `In stock` alone, `Send for repair` stands above it
+(#531; 1f, 1j-a)**, in Ink: it asks nothing and sends at once, as the return
+that undoes it does, so its answer stands under the status as a press's does,
+and `More actions` is busy while it is on its way. An item that is out is
+checked in before it is sent; one in repair offers its return, and its menu the
+retirement alone. **On a phone the menu ends on
 the reader's account** — `Sign out` over their email, under a rule — since a
 phone has no rail to name the reader in, and where the page offers no
 retirement — a retired tool, or a reader who is not a site manager — it holds
 the account alone (Tools 0a, #495). It is offered from
-`In stock` and from `Out` alike — a tool that broke on a site is retired from
-there, and requiring a check-in first would put an event in the history that
-did not happen.
+`In stock`, from `Out` and from `In repair` alike — a tool that broke on a
+site is retired from there, one its maker gives up on is retired while it is
+away, and requiring a check-in or a return first would put an event in the
+history that did not happen.
 
 **THE TWO CONTROLS MUST NOT READ AS THE SAME WEIGHT, AND THREE THINGS STOP
 THEM.** One of them is pressed dozens of times a day and the other is that
@@ -318,7 +330,8 @@ recorded it is named in full, first and last name, as a place naming who did
 something is (#463).
 
 **The event is printed as the base stores it: `Created`, `Checked out`,
-`Checked in` or `Retired`.** Each is the design's word: `Created` was
+`Checked in`, `Sent for repair`, `Returned from repair` or `Retired`.**
+The two repair events are #531's, the past of their controls' own words. Each is the design's word: `Created` was
 `Registered` until #455, and the two scans were `Checked Out` and `Checked In`
 until #463 took the design's sentence case. The base renamed each value in
 place, so every entry says the new word and none says an old one. **The case

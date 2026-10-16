@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Choice, Combobox, Field, SheetField, useRefusalFocus } from "@/app/components/Controls";
+import { Button, Choice, Combobox, Field, FormBusy, SheetField, useRefusalFocus } from "@/app/components/Controls";
 import { DialogActions, DialogBody, DialogFrame } from "@/app/components/DialogFrame";
 import { chosenJobId, onlyJob } from "@/lib/assetJob";
 import { ASSET_EVENT } from "@/lib/assetStatus";
@@ -13,6 +13,7 @@ import {
     matchedPart,
     namesAreRecent,
     offeredNames,
+    pressTakesJob,
     readSubmission,
     recentNamesFor,
 } from "@/lib/assetTransition";
@@ -53,6 +54,11 @@ import { useRefusalSentence, useAssetTransition } from "./AssetTransition";
  * header, where the design says a refused press (1k). A job taken away takes the opening's
  * start again (#469), by `chosenJobId`, which the foot bar asks too.
  *
+ * AN ITEM IN REPAIR OFFERS ITS RETURN AS A PRESS (#531, 1f): it records on the press for
+ * a person on any number of jobs, since its row takes the asset's own job, so the press
+ * posts no job. While the menu's `Send for repair` is on its way the press locks — its look
+ * kept, its press turned away — rather than drawing a wait it is not doing.
+ *
  * A PRESS THAT LANDS LEAVES FOCUS ON THE DOCUMENT, as #362's form did: the redirect remounts
  * the page and brings nothing back. A dialog's landing reaches the heading only because the
  * frame's dialog was open as the tree went.
@@ -83,7 +89,7 @@ import { useRefusalSentence, useAssetTransition } from "./AssetTransition";
  * failing on any JSX text under app/(assets)/.
  */
 export default function TransitionDialog({ currentJobCode, recentCheckOuts }) {
-    const { plan, assetId, answer, formAction, pending, send, open, opening, openDialog, closeDialog, carry } = useAssetTransition();
+    const { plan, assetId, answer, formAction, pending, repairPending, send, sends, open, opening, openDialog, closeDialog, carry } = useAssetTransition();
     const refusal = useRefusalSentence(answer);
     const asks = asksBeforeRecording(plan);
     const one = onlyJob(plan.jobs);
@@ -93,24 +99,30 @@ export default function TransitionDialog({ currentJobCode, recentCheckOuts }) {
             <form
                 action={asks ? undefined : formAction}
                 onSubmit={(event) => {
-                    if (!asks) return;
+                    if (!asks) {
+                        sends(plan.event);
+                        return;
+                    }
                     event.preventDefault();
                     openDialog();
                 }}
             >
                 {/* THE PRESS POSTS WHAT IT RECORDS: the event the page offered, which the action
-                    compares and never writes, and the one job there is. The opener posts
-                    nothing — what it opens asks first. */}
+                    compares and never writes, and the one job there is — none for a return
+                    from repair, whose row takes the asset's (#531). The opener posts nothing —
+                    what it opens asks first. */}
                 {!asks && (
                     <>
                         <input type="hidden" name="assetId" value={assetId} />
                         <input type="hidden" name="event" value={plan.event} />
-                        <input type="hidden" name="jobId" value={one.id} />
+                        {pressTakesJob(plan) && <input type="hidden" name="jobId" value={one.id} />}
                     </>
                 )}
-                <Button type="submit" busy={!asks && pending} busyLabel={asks ? undefined : COPY.working[plan.event]}>
-                    {COPY.control[plan.event]}
-                </Button>
+                <FormBusy busy={repairPending ? "action" : false}>
+                    <Button type="submit" busy={!asks && pending} busyLabel={asks ? undefined : COPY.working[plan.event]}>
+                        {COPY.control[plan.event]}
+                    </Button>
+                </FormBusy>
             </form>
             {asks && (
                 <TransitionForm

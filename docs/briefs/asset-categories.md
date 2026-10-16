@@ -25,7 +25,7 @@ its own screen, and an item in every sentence about any one of them. This brief 
 the word is `item`.
 
 **The question is about the fleet rather than about any one item**, which
-is why a row carries three counts and no total. A reader looking for one
+is why a row carries a count per status and no total. A reader looking for one
 particular unit is looking for its printed id, and that is the asset's
 own screen, reached by scanning it or from its category's page one level down.
 
@@ -128,27 +128,30 @@ and size apart, and a design must give it the room.
 and #514; the band's chips filter by them since #520, and a category's own
 screen says all three under its name.
 
-**verdict.** Three counts on every row: how many of that item are
-`In stock`, how many are `Out`, how many are `Retired`. This is what the
-reader came for.
+**verdict.** Four counts on every row: how many of that item are
+`In stock`, how many are `Out`, how many are `In repair` — away at their
+maker (#531) — and how many are `Retired`. This is what the reader came for.
+An item in repair is counted there and not in stock: an item holds one status
+at a time.
 
-**All three are always there, a zero included, and a design may not drop
+**All four are always there, a zero included, and a design may not drop
 one.** A count of nothing is a measurement — "none out" — and an absent
 row would read as "not known", which is the distinction between nothing
-and no comparison the shared brief already draws. It also means the three
+and no comparison the shared brief already draws. It also means the four
 words appear on every row whatever the base holds.
 
 **There is no total per item, and that is a decision rather than an
 omission.** A single figure would have to count a retired one or not
 count it, and both readings are wanted: what the company holds now, and
-what it has ever bought. The three counts answer both without choosing.
-A design that adds the three together is making that choice.
+what it has ever bought. The counts answer both without choosing.
+A design that adds them together is making that choice.
 
 ## What it carries only sometimes
 
 **When the job holds no items:** in place of the rows, a heading and a
 sentence, `No items yet` and `Each item shows here with how many are in
-stock, out and retired.`, and under them a second, bordered `Add items`
+stock, out, in repair and retired.` — `in repair` since #531, where the files
+of 2026-10-15 still name three — and under them a second, bordered `Add items`
 (1a, #463, #519). The control in the head is still there, and both are the way to
 make one; so is the job's choice, to move to another job. No band and no pager
 stand over or under an empty list. **For a reader who is not a site manager,
@@ -193,21 +196,22 @@ is `Tools & Equipment`. That agreement is worth keeping — `Purchase orders` an
 `Purchase Orders` are the pair on the same screen that does not have it,
 and the shared brief records the disagreement.
 
-**The three counts read the same status the asset's own screen
+**The counts read the same status the asset's own screen
 shows.** `Assets."Status"` is maintained by the app, not computed on
 either screen, so this list and `/assets/[assetId]` cannot disagree
 about where an asset is.
 
-**`In stock`, `Out` and `Retired` are the three statuses this axis has,
-and they are not status tones.** The tones in the shared brief are one
+**`In stock`, `Out`, `In repair` and `Retired` are the four statuses this
+axis has (`In repair` since #531), and they are not status tones.** The tones in the shared brief are one
 closed vocabulary for how far something has got on an axis; reusing one
 here would make a word mean a stage on one screen and a location on
 another. The words appear as themselves on this screen, so the count is
 never carried by color alone.
 
-**All three counts carry figures.** A check-out, a check-in and a
-retirement each write the status they show (#362, #363), so a row can read
-any mix of the three and a design draws for all of them. This said `Out`
+**Every count can carry a figure.** A check-out, a check-in, a sending for
+repair and a retirement each write the status they show (#362, #363, #531),
+so a row can read any mix of them and a design draws for all of them. No item
+was in repair when #531 merged, so `In repair` read zero on every row then. This said `Out`
 and `Retired` would read zero on every row until a later phase, which
 stopped being true when those issues wrote the other two events; corrected
 by #449.

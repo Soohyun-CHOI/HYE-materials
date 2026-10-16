@@ -32,7 +32,9 @@
 //      Deleting the TOP row is the case that is different in kind, and it had
 //      never been measured. Part D measures it rather than assuming either way.
 //
-// Fixtures are deleted within the run through scripts/tests/_fixtures.mjs.
+// Fixtures are deleted within the run through scripts/tests/_fixtures.mjs. **Since #531 the
+// run is refused before its first write**: `Assets` holds the site's records, which no script
+// writes (`scripts/protectedTables.mjs`), so it ends on 2 having run nothing.
 // Roughly 40-45 operations until #470, which took seven creates off Parts A and B;
 // that is arithmetic on the old figure, not a measurement.
 //
@@ -52,6 +54,7 @@ import { ASSET_CATEGORY_FIELDS } from "../../lib/assetCategory.js";
 import { resetOps, snapshot } from "../../lib/airtableOps.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { printProvenance } from "./_provenance.mjs";
+import { refusesProtectedWrite } from "../protectedTables.mjs";
 
 printProvenance({ title: "verify-tool-item-ids-335 — the tool item ID, against the live base" });
 
@@ -104,8 +107,18 @@ const seqOf = (id) => Number(id.slice(id.lastIndexOf("-") + 1));
 let complete = false;
 
 try {
-    const job = await getJobByCode("26-DEMO-01");
-    if (!job) {
+    // REFUSED SINCE #531: every part mints an `Asset ID` into `Assets`, which holds the site's
+    // records (`scripts/protectedTables.mjs`), and Part D deletes one — so nothing runs and the
+    // script ends on 2.
+    const refused = refusesProtectedWrite({
+        script: "verify-tool-item-ids-335",
+        writes: [TABLES.ASSET_CATEGORIES, TABLES.ASSETS],
+    });
+    const job = refused ? null : await getJobByCode("26-DEMO-01");
+    if (refused) {
+        log("SKIPPED — every part writes into Assets, the site's records since #531.");
+        incomplete = true;
+    } else if (!job) {
         log("SKIPPED — needs Job 26-DEMO-01.");
         incomplete = true;
     } else {
