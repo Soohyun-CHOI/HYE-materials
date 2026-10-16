@@ -1515,7 +1515,7 @@ export function run({ check, assert, log }) {
     );
     check(
         "  rows run beneath the pager until the lane is at its end",
-        /setBeneath\(lane\.scrollTop \+ lane\.clientHeight < lane\.scrollHeight - 1\)/.test(frameSource),
+        /function rowsRunBeneath\(lane\) \{\s*return lane\.scrollTop \+ lane\.clientHeight < lane\.scrollHeight - 1;\s*\}/.test(frame.source) && /setBeneath\(rowsRunBeneath\(lane\)\)/.test(frameSource),
         true
     );
     check(
@@ -2055,8 +2055,6 @@ export function run({ check, assert, log }) {
         return [
             inLane(/<div ref=\{topRef\} className="sticky top-0 z-10">\s*\{top\}\s*<\/div>\s*<div ref=\{headerRef\}>\{header\}<\/div>/),
             inLane(/<div className="sticky top-0 z-10 bg-background-translucent backdrop-blur-sm">\s*\{header\}\s*\{band && <div className=\{BAND\}>\{band\}<\/div>\}\s*<\/div>/),
-            // 1l's band under its head, both scrolling away under the bar (#527).
-            inLane(/<div ref=\{headerRef\}>\{header\}<\/div>\s*\{band && <div className=\{BAND\}>\{band\}<\/div>\}/),
             /const BAND = `\$\{LIST_MEASURE\} flex items-center gap-gap pb-control-band-inset-y`;/.test(source),
             /\$\{\s*top \? UNDER_BAR : band \? UNDER_HEAD_AND_BAND : UNDER_HEAD\s*\}/.test(frameFn),
             /const UNDER_HEAD_AND_BAND =\s*"\[--table-head-top:calc\(var\(--spacing-list-header-inset-top\)\+var\(--height-control-lg\)\+var\(--spacing-list-header-inset-bottom\)\+var\(--height-control\)\+var\(--spacing-control-band-inset-y\)\)\] scroll-pt-\[calc\(var\(--table-head-top\)\+var\(--height-table-header\)\)\]";/.test(source),
@@ -2068,9 +2066,9 @@ export function run({ check, assert, log }) {
         ].join(" ");
     };
     check(
-        "  one scroll: 1a's head and its band and 1d's bar held at the top inside the lane, 1l's band under its head below the bar, the column head under each, focus clear of them, the pager after the lane",
+        "  one scroll: 1a's head and its band and 1d's bar held at the top inside the lane, the column head under each, focus clear of them, the pager after the lane",
         oneScroll(frameWhole),
-        "true true true true true true true true true true"
+        "true true true true true true true true true"
     );
     check(
         "  and the column head reads where the frame holds it",
@@ -2082,7 +2080,72 @@ export function run({ check, assert, log }) {
         oneScroll(
             'export default function ListFrame() { return <div>{top && <div className="shrink-0 pr-scrollbar-gutter">{top}</div>}<div className="shrink-0">{header}</div><div ref={laneRef} className={`${SCROLL_LANE}`} /><div className={PAGER_OVER_ROWS} /></div>; }'
         ),
-        "false false false false false false false false false false"
+        "false false false false false false false false false"
+    );
+    // A LIST ON FILL SCROLLS IN A REGION OF ITS OWN (0i, 1l, #538): the bar, the head and the band
+    // outside the lane and holding still, the column head outside it too and laid over its first
+    // 36, the lane scrolling up and down only, its track from under the column head to over the
+    // pager, and the pager after the lane with the selection bar centered off the lane's 8.
+    const fillFrame = (source) => {
+        const fn = source.slice(source.indexOf("export function ListFrameFill"));
+        const lane = fn.indexOf("ref={laneRef}");
+        const pager = fn.indexOf("PAGER_OVER_ROWS");
+        const beforeLane = (pattern) => {
+            const at = fn.search(pattern);
+            return at >= 0 && at < lane;
+        };
+        return [
+            beforeLane(/\{top && <div className="shrink-0">\{top\}<\/div>\}\s*<div className="shrink-0">\{header\}<\/div>\s*\{band && <div className=\{BAND_FILL\}>\{band\}<\/div>\}/),
+            beforeLane(/<div role="rowgroup" className=\{`shrink-0 \$\{empty \? "-mb-px" : HEAD_OVER_LANE\}`\}>\s*\{columnHead\}\s*<\/div>/),
+            /const HEAD_OVER_LANE = "-mb-\[calc\(var\(--height-table-header\)\+1px\)\]";/.test(source) && /<div aria-hidden="true" className="h-table-header" \/>\s*\{children\}/.test(fn),
+            /className=\{`min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain \[scrollbar-gutter:stable\] \$\{SCROLL_LANE\} \$\{TRACK_UNDER_HEAD\}/.test(fn),
+            /const TRACK_UNDER_HEAD = "\[&::-webkit-scrollbar-track\]:mt-\(--height-table-header\) scroll-pt-\(--height-table-header\)";/.test(source) &&
+                /footer \? `\$\{TRACK_OVER_PAGER\} \$\{overlayShown \? KEEP_CLEAR_OF_BAR : KEEP_CLEAR_OF_PAGER\}`/.test(fn),
+            lane >= 0 && pager > lane && /<div className="relative mr-scrollbar-gutter">\{overlay\}<\/div>/.test(fn.slice(pager)),
+            /const BAND_FILL = `\$\{LIST_FILL\} flex shrink-0 items-center gap-gap pb-control-band-inset-y`;/.test(source),
+        ].join(" ");
+    };
+    check(
+        "  a list on Fill: the head and the band still, the column head over the lane's top, the lane up and down only, its track between the two, the pager after it",
+        fillFrame(frameWhole),
+        "true true true true true true true"
+    );
+    check(
+        "  and a Fill frame scrolling its head with the rows, as 1d's does, is seen (anti-vacuity)",
+        fillFrame(
+            "export function ListFrameFill() { return <div><div ref={laneRef} className={`overflow-auto ${SCROLL_LANE}`}>{top}{header}<div className={BAND}>{band}</div>{columnHead}{children}</div><div className={PAGER_OVER_ROWS}>{overlay}</div></div>; }"
+        ),
+        "false false false false false false false"
+    );
+    // 1l DRAWS ITS ROWS ON FILL: Fill's column head and rows, the head and the pager on the
+    // Margin, and no name handed to the bar, since nothing scrolls the head away under it.
+    const catalogOnFill = (source) =>
+        [
+            /<ListFrameFill\b/.test(source) && !/<ListFrame\b/.test(source),
+            /className=\{`\$\{TABLE_HEAD_FILL\} \$\{COLUMNS\}`\}/.test(source),
+            /className=\{`\$\{TABLE_ROW_FILL\} \$\{COLUMNS\}/.test(source),
+            /<ListHeader\b[^>]*\bfill\b/.test(source) && /<Pager\s+fill\b/.test(source),
+            !/<Breadcrumb[^>]*\btitle=/.test(source),
+        ].join(" ");
+    check(
+        "  Fill's pager: its count on the Margin and its steps on the rows' text edge, as Fill's row ends its text",
+        [
+            /\$\{fill \? "pl-page-gutter pr-fill-table-inset-right" : "px-table-bleed"\}/.test(parseFile(LIST_TABLE).source),
+            /export const TABLE_ROW_FILL =\s*"[^"]*\bpl-page-gutter pr-\[calc\(var\(--spacing-fill-table-inset-right\)-var\(--spacing-scrollbar-gutter\)\)\]/.test(parseFile(LIST_TABLE).source),
+        ].join(" "),
+        "true true"
+    );
+    check(
+        "  the catalog is that list: Fill's column head and rows, its head and pager, and no name in its bar",
+        catalogOnFill(parseFile("app/(assets)/asset-catalog/CatalogList.js").source),
+        "true true true true true"
+    );
+    check(
+        "  and the catalog at the measure under a bar that takes its name is seen (anti-vacuity)",
+        catalogOnFill(
+            "<ListFrame top={<Breadcrumb levels={l} title={t} />}><div className={`${TABLE_HEAD} ${COLUMNS}`} /><div className={`${TABLE_ROW} ${COLUMNS}`} /><ListHeader title={t} /><Pager range={r} /></ListFrame>"
+        ),
+        "false false false false false"
     );
     // 1d's NAME IN THE BAR once its head has scrolled under it: measured by the frame, marked on
     // the lane, drawn by the bar under the mark behind a 16 rule 16 either side at 13 and 600,

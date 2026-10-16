@@ -1119,8 +1119,13 @@ export function SegmentedChoice({ name, options, value, onChange }) {
  * `word` drawn and what it means, `said`, for assistive tech alone: the drawing gives the mark
  * that sentence and no line to set it on. The sentence is the field's description and is heard
  * as it comes, so typing a category the type does not hold says once that it will be added.
+ *
+ * `onBlur` IS ASKED ONCE FOCUS LEAVES THE FIELD, after its list has shut (#538): the catalog's
+ * Category field puts what a save would spell in place of what was typed then, so the field shows
+ * what is saved. A press on a suggestion keeps focus in the field (`Menu.js`), so it is not asked
+ * before a pick, and what it is asked of later is the suggestion's own spelling.
  */
-export function Combobox({ name, value, onChange, onPick, suggestions, heading, placeholder, listOpen, onListOpenChange, mark }) {
+export function Combobox({ name, value, onChange, onPick, onBlur, suggestions, heading, placeholder, listOpen, onListOpenChange, mark }) {
     const field = useField();
     const formBusy = Boolean(useContext(FormBusyContext));
     const listId = `${field.control}list`;
@@ -1181,6 +1186,7 @@ export function Combobox({ name, value, onChange, onPick, suggestions, heading, 
                 onBlur={() => {
                     setActive(-1);
                     onListOpenChange(false);
+                    onBlur?.();
                 }}
                 onKeyDown={onKeyDown}
                 className={`h-control-lg w-full rounded-control border bg-white px-input-inset-x text-body text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle ${

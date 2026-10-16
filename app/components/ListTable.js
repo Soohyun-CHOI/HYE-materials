@@ -27,6 +27,13 @@ import Icon from "@/app/components/Icon";
 export const LIST_MEASURE = "mx-auto box-content max-w-content px-page-gutter";
 
 /**
+ * A list on Fill (0b, 0i; 1l since #538): the column's whole width, the Margin either side. Its
+ * table stands 4 further in on the right — `--spacing-fill-table-inset-right` from the window's
+ * edge, the lane's 8 within it — as every Fill list the files of 2026-10-16 draw has it.
+ */
+export const LIST_FILL = "px-page-gutter";
+
+/**
  * 0b's Column head: 36 tall on the Sticky ground, held under what heads the list as the rows
  * pass beneath it — where that is, `--table-head-top`, is `ListFrame.js`'s (0i Chain, #519). A
  * Band runs under it, which it owns with -1 so the first row's rule goes under it, and one over
@@ -49,6 +56,19 @@ export const TABLE_ROW =
 
 /** A selected row's Face (0c), over the hover's Wash. */
 export const TABLE_ROW_SELECTED = "bg-selected hover:bg-selected";
+
+/**
+ * The column head and the row of a list on Fill (1l, #538). The head stands outside the rows'
+ * lane, over its top, so its ground and its rules reach the window's edge across the lane (0i
+ * Track), and holds still while the rows pass beneath; a row runs the lane's width, its face and
+ * its rule to the lane's edge, its text 32 in from the left and as far in from the right as the
+ * head's, which counts the lane. Otherwise each is the measure's own, above.
+ */
+export const TABLE_HEAD_FILL =
+    "relative z-10 box-content grid h-table-header items-center gap-x-table-column-inline border-b border-divider-strong bg-background-translucent pl-page-gutter pr-fill-table-inset-right text-heading-sm text-foreground-subtle shadow-[inset_0_1px_0_var(--color-divider-strong)] backdrop-blur-sm";
+
+export const TABLE_ROW_FILL =
+    "relative isolate box-content grid h-table-row content-center items-baseline gap-x-table-column-inline pt-px pl-page-gutter pr-[calc(var(--spacing-fill-table-inset-right)-var(--spacing-scrollbar-gutter))] text-body text-foreground-default before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-divider hover:bg-hover-subtle";
 
 /**
  * A row that is one link: the link's own box stretched over the row, so the row is the target,
@@ -79,11 +99,13 @@ export const TABLE_ROW_LINK = "after:absolute after:inset-0";
  * A HEAD WITH NOTHING TO COUNT DRAWS NO FIGURE (#519): `count` left out, the title stands alone,
  * as 1a2 draws the category list for a reader on no job, whose list holds nothing it could
  * hold. A list that holds nothing yet still says `0`.
+ *
+ * `fill` IS A LIST ON FILL'S HEAD (1l, #538): the column's whole width rather than the measure.
  */
-export function ListHeader({ title, count, noun, caption, underBreadcrumb = false, children }) {
+export function ListHeader({ title, count, noun, caption, underBreadcrumb = false, fill = false, children }) {
     return (
         <div
-            className={`${LIST_MEASURE} flex justify-between gap-list-header-inline pb-list-header-inset-bottom ${caption ? "items-start" : "items-center"} ${
+            className={`${fill ? LIST_FILL : LIST_MEASURE} flex justify-between gap-list-header-inline pb-list-header-inset-bottom ${caption ? "items-start" : "items-center"} ${
                 underBreadcrumb ? "pt-breadcrumb-stack" : "min-h-(--height-control-lg) pt-list-header-inset-top"
             }`}
         >
@@ -175,10 +197,17 @@ function PagerStep({ href, onPress, label, back }) {
  * read `1–25of25` from #519 to #538. The span is the one item, and inside it the pieces are
  * one line of text again; `offline/flex-whitespace.mjs` fails `Figures` placed straight in a
  * flex or grid box.
+ *
+ * `fill` IS A LIST ON FILL'S PAGER (1l, #538): its count on the Margin, 32 in, and its steps on
+ * the rows' text edge, 36 in from the window's — where the measure's stands on its rows' text 12
+ * past the measure's edge. 1l draws the last step 12 past that edge where 1d draws it 13; the
+ * bleed is one value, 1d's.
  */
-export function Pager({ range, position, previous, next }) {
+export function Pager({ range, position, previous, next, fill = false }) {
     return (
-        <div className="flex items-center justify-between gap-pager-inline px-table-bleed pt-[calc(var(--spacing-pager-inset-top)-1px)] pb-pager-inset-bottom">
+        <div
+            className={`flex items-center justify-between gap-pager-inline ${fill ? "pl-page-gutter pr-fill-table-inset-right" : "px-table-bleed"} pt-[calc(var(--spacing-pager-inset-top)-1px)] pb-pager-inset-bottom`}
+        >
             <p className="flex h-control items-center text-body-sm text-foreground-subtle">
                 <span>
                     <Figures className="text-foreground-default">{range}</Figures>

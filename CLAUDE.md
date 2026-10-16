@@ -105,7 +105,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/units.js` — `CANONICAL_UNITS`, the JS source of truth for the Unit select list.
 - `lib/editLogFields.js` — the labels a `PR Edit Log` row can be about. No call site may pass `createEditLogEntry` a string literal.
 - `lib/variance.js` — invoice/PO variance checks and `VARIANCE_COPY` (#179), plus the cent rule (#254, #308, #405). **Nothing writes a quantity or a currency figure into an item, a document total, or either side of the invoice header comparison without asking them.**
-- `lib/itemNaming.js` — `normalizeItemText`: trim, collapse internal whitespace, case untouched.
+- `lib/itemNaming.js` — `normalizeItemText`: trim, collapse internal whitespace, case untouched; and `capitalizeWords`, how the catalog spells a word it does not hold (#538).
 - `lib/searchTokens.js` — how a typed query becomes match tokens (#325), for both of the app's search boxes.
 - `lib/prItemMerge.js` — identical PR item rows are one item on save (#170), and `PR_ITEM_MERGE_COPY`.
 - `lib/rollbackReport.js` — what a failed rollback in the signing chain reports (#188).
@@ -180,7 +180,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `app/components/Rail.js`, `RailAccount.js`, `Breadcrumb.js` — the rail, its account (#478) and the column a screen scrolls in, which hands focus to the heading when the control holding it goes (#519), and the bar above a record's title (#460); `lib/navigation.js`, the sections, which one an address is in, what the account says, and their words. **Only the assets layout calls the rail until #258.**
 - `app/components/TopBar.js`, `BottomBar.js`, `Tooltip.js`, `Space.js`, `Dot.js` — a phone screen's top bar and foot bar (#463, #473), 0k's tooltip, a space the text holds at a design width, and 0e's dot.
 - `app/components/keyboardViewport.js` — `KEYBOARD_VIEWPORT`, what every screen drawing the foot bar asks of a phone's keyboard (#495), held by `offline/keyboard-viewport.mjs`.
-- `app/components/ListFrame.js`, `ListTable.js`, `scrollLane.js` — a list's frame and parts (#463), and the bar every lane draws. **A row is its own stacking context, so nothing in it rises over the column head (#501).**
+- `app/components/ListFrame.js`, `ListTable.js`, `scrollLane.js` — a list's frame and parts (#463), a list on Fill's (#538), and the bar every lane draws. **A row is its own stacking context, so nothing in it rises over the column head (#501).**
 - `app/components/listTableWidth.js` — `LIST_TABLE_CLASS`, the width the list tables are held to (#183). **A table on a different page shell declares its own and is not a stale copy.**
 - `app/components/FileFrame.js` — how an uploaded file is drawn, and what is said when it cannot be (#331, #422, #433). **A screen showing a file calls it; a second frame or `<img>` for one is a duplication.**
 - `app/components/PdfPages.js` — a PDF's pages, drawn by the app (#433). **The one module that draws a page, and the only one that loads PDF.js.**

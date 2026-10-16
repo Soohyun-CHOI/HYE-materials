@@ -109,14 +109,15 @@
     --width-table-count: 6rem; /* 1a, 96: a column of counts — from the drawings, not the spec */
     --width-table-id: 15rem; /* 1d, 240: a column of printed ids — from the drawings, not the spec */
     --width-table-date: 7.5rem; /* 1d, 120: a column of days — from the drawings, not the spec */
-    --width-catalog-size: 4.5rem; /* 1l, 72: the catalog's size column — from the drawings, not the spec */
-    --width-catalog-maker: 8rem; /* 1l, 128: the catalog's maker column — from the drawings, not the spec */
-    --width-catalog-part-number: 8.5rem; /* 1l, 136: the catalog's part number column — from the drawings, not the spec */
-    --width-catalog-category: 7rem; /* 1l, 112: the catalog's category column — from the drawings, not the spec */
-    --width-catalog-type: 5.5rem; /* 1l, 88: the catalog's type column — from the drawings, not the spec */
+    --width-catalog-size: 8rem; /* 1l, 128: the catalog's size column — from the drawings, not the spec */
+    --width-catalog-maker: 8.5rem; /* 1l, 136: the catalog's maker column — from the drawings, not the spec */
+    --width-catalog-part-number: 9rem; /* 1l, 144: the catalog's part number column — from the drawings, not the spec */
+    --width-catalog-category: 11rem; /* 1l, 176: the catalog's category column — from the drawings, not the spec */
+    --width-catalog-type: 6rem; /* 1l, 96: the catalog's type column — from the drawings, not the spec */
     --width-catalog-class: 2.75rem; /* 1l, 44: the catalog's class column — from the drawings, not the spec */
-    --width-catalog-items: 3.25rem; /* 1l, 52: the catalog's column of how many items stand under a row — from the drawings, not the spec */
+    --width-catalog-items: 3rem; /* 1l, 48: the catalog's column of how many items stand under a row — from the drawings, not the spec */
     --width-catalog-class-field: 8.25rem; /* 1l, 132: the class beside the type in the catalog's dialog — from the drawings, not the spec */
+    --spacing-fill-table-inset-right: 2.25rem; /* 1l, 36: how far in from the window's edge a list on Fill sets its table, the lane's 8 within it — from the drawings, not the spec */
     --spacing-catalog-preview-stack: 0.125rem; /* 1l, 2: from Shows as to the name under it in the catalog's dialog — from the drawings, not the spec */
     --spacing-pager-inset-top: 0.75rem; /* Pager, 12: above its controls, counting its 1px rule */
     --spacing-pager-inset-bottom: 1rem; /* Pager, 16: under them, so 60 in all */

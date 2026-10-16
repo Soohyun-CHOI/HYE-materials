@@ -8,11 +8,15 @@
 // person reads it here instead of assuming the normalizer is smarter than it is.
 //
 // lib/itemNaming.js imports nothing, which is what lets this be offline.
+//
+// `capitalizeWords` (#538) is pinned here too, beside the function whose case it
+// does not share: the one rule in the module that changes case, which only the
+// asset catalog's page asks.
 
-import { normalizeItemText } from "../../../lib/itemNaming.js";
+import { capitalizeWords, normalizeItemText } from "../../../lib/itemNaming.js";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Item text normalization — normalizeItemText (#18)";
+export const title = "Item text normalization — normalizeItemText (#18), capitalizeWords (#538)";
 
 export function run({ check, log }) {
     log("what it unifies:");
@@ -76,6 +80,15 @@ export function run({ check, log }) {
         normalizeItemText("Coupling") === normalizeItemText("Couplng"),
         false
     );
+
+    log("");
+    log("capitalizeWords — the one rule here that changes case, for the asset catalog's new words (#538):");
+    check("the text is normalized and each word's first letter raised", capitalizeWords("  pipe   cutter "), "Pipe Cutter");
+    check("the rest of a word is as typed, and nothing is lowered", capitalizeWords("mIG welder PVC"), "MIG Welder PVC");
+    check("a hyphen starts no word", capitalizeWords("high-speed cut-off saw"), "High-speed Cut-off Saw");
+    check("a word opening on no lower-case letter is left so, and a letter past ASCII is raised", capitalizeWords("2nd (blue) é-clamp"), "2nd (blue) É-clamp");
+    check("nullish and blank stay empty", `${capitalizeWords(undefined)}|${capitalizeWords("  ")}`, "|");
+    check("raising a raised text changes nothing further", capitalizeWords(capitalizeWords("band saw")), "Band Saw");
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

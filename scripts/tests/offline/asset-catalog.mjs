@@ -35,6 +35,7 @@ import {
     readCatalogEntry,
     readCategoryEntry,
     renamesItems,
+    savedCategory,
     shownName,
 } from "../../../lib/assetCatalog.js";
 import { ASSET_CLASS_VALUES, ASSET_TYPE_VALUES } from "../../../lib/assetCategory.js";
@@ -411,17 +412,55 @@ export function run({ check, assert, log }) {
     check(
         "  a category the other type holds is a new one for this type",
         `${lift.entry?.level2} | new ${lift.newCategory} || ${pipe.entry?.level2} | new ${pipe.newCategory}`,
-        "Lift Equipment | new true || wrench | new true"
+        "Lift Equipment | new true || Wrench | new true"
+    );
+    // A CATEGORY OR A NAME THE CATALOG DOES NOT HOLD IS SAVED WITH EACH WORD'S FIRST LETTER IN
+    // CAPITALS (#538), the rest as typed and a hyphen's second half untouched; the size, the maker
+    // and the part number as typed; one it holds in its spelling; and an edit keeps a value its row
+    // spells, whatever its case, so leaving a name alone renames no item.
+    const fresh = readCatalogEntry(entry({ level2: "pipe   tools", level3: "high-speed cut-off sAW", size: "10 mm", maker: "milwaukee", partNumber: "abc-1" }), { rows, groups: GROUPS });
+    check(
+        "a new category and a new name are saved with each word's first letter in capitals, the rest as typed",
+        `${Object.values(fresh.entry ?? {}).join(" / ")} | new ${fresh.newCategory}`,
+        "Tool / A / Pipe Tools / High-speed Cut-off SAW / 10 mm / milwaukee / abc-1 | new true"
+    );
+    const held = readCatalogEntry(entry({ level2: "POWER tool", level3: "band   SAW", maker: "Bosch" }), { rows, groups: GROUPS });
+    check("  and a category and a name the catalog holds keep its spelling", `${held.entry?.level2} / ${held.entry?.level3} | new ${held.newCategory}`, "Power Tool / Band Saw | new false");
+    const handRows = catalogRows([...CATEGORIES, category("hand", ["Tool", "hand tool", "torque wrench", "", "", ""], "B", 3)]);
+    const hand = handRows.find((row) => row.id === "hand");
+    const kept = readCatalogEntry({ ...hand, size: "1/2 in" }, { rows: handRows, groups: GROUPS, editing: "hand" });
+    const moved = readCatalogEntry({ ...hand, level2: "hand tools", level3: "torque wrench xl" }, { rows: handRows, groups: GROUPS, editing: "hand" });
+    check(
+        "  an edit keeps the category and the name its row spells, and spells what it changes",
+        `${kept.entry?.level2} / ${kept.entry?.level3} || ${moved.entry?.level2} / ${moved.entry?.level3}`,
+        "hand tool / torque wrench || Hand Tools / Torque Wrench Xl"
     );
     check(
-        "a category alone: refused when the type holds it, case aside, and saved as typed when it does not",
+        "the Category field takes a save's spelling as focus leaves it: the type's group, a new one raised, a refused one as typed",
+        [
+            savedCategory({ level1: "Tool", level2: " POWER   tool " }, GROUPS),
+            savedCategory({ level1: "Equipment", level2: "wrench" }, GROUPS),
+            savedCategory({ level1: "Tool", level2: "lift   equipment" }, GROUPS),
+            savedCategory({ level1: "Tool", level2: " n/a " }, GROUPS),
+            savedCategory({ level1: "Tool", level2: "  " }, GROUPS),
+        ].join(" | "),
+        "Power Tool | Wrench | Lift Equipment | n/a | "
+    );
+    check(
+        "  and in an edit, its row's own spelling while it is left so",
+        `${savedCategory(hand, GROUPS, { rows: handRows, editing: "hand" })} | ${savedCategory(hand, GROUPS, { rows: handRows })}`,
+        "hand tool | Hand Tool"
+    );
+    check(
+        "a category alone: refused when the type holds it, case aside, and saved with each word raised when it does not",
         [
             said(readCategoryEntry({ level1: "Tool", level2: "power tool" }, GROUPS)),
             said(readCategoryEntry({ level1: "", level2: "" }, GROUPS)),
             said(readCategoryEntry({ level1: "Tool", level2: "N/A" }, GROUPS)),
             JSON.stringify(readCategoryEntry({ level1: "Tool", level2: " Lift   Equipment " }, GROUPS).group),
+            JSON.stringify(readCategoryEntry({ level1: "Tool", level2: "high-speed  tools" }, GROUPS).group),
         ].join(" || "),
-        'level2=This category already exists. || level1=Choose a type. | level2=Enter a category. || level2=Enter a category. || {"level1":"Tool","level2":"Lift Equipment"}'
+        'level2=This category already exists. || level1=Choose a type. | level2=Enter a category. || level2=Enter a category. || {"level1":"Tool","level2":"Lift Equipment"} || {"level1":"Tool","level2":"High-speed Tools"}'
     );
     check(
         "the field marks a category new for the type chosen, and a name new under the category",
@@ -456,6 +495,15 @@ export function run({ check, assert, log }) {
         [shownName(entry({ level3: " Battery ", size: "M18", maker: "Milwaukee", partNumber: "48-11" })), shownName(entry({ level3: "  ", size: "M18" }))].join(" | "),
         "Battery M18, Milwaukee (48-11) | "
     );
+    check(
+        "  its name spelled as a save spells it: the catalog's, a new one raised, an edit's own left so",
+        [
+            shownName(entry({ level2: "Wrench", level3: "FLEXIBLE  ratchet", size: "12 mm", maker: "snap-on" }), { rows }),
+            shownName(entry({ level2: "Wrench", level3: "pipe wrench" }), { rows }),
+            shownName({ ...hand, size: "1/2 in" }, { rows: handRows, editing: "hand" }),
+        ].join(" | "),
+        "Flexible Ratchet 12 mm, snap-on | Pipe Wrench | torque wrench 1/2 in"
+    );
     const bat12 = rows.find((row) => row.id === "bat12");
     check(
         "an edit says it renames the items under the row only when their name moves and items stand under it",
@@ -466,6 +514,11 @@ export function run({ check, assert, log }) {
             renamesItems(rows.find((row) => row.id === "blade"), { level3: "Saw Blade", size: '10"' }),
         ].join(" "),
         "false true false false"
+    );
+    check(
+        "  and a name left as its row spells it moves nothing, where one retyped in another case is raised and does",
+        [renamesItems(hand, { ...hand, level3: " torque  wrench" }, { rows: handRows }), renamesItems(hand, { ...hand, level3: "Torque wrench" }, { rows: handRows })].join(" "),
+        "false true"
     );
     check("`Set class` writes the rows selected whose class differs, and no row it does not hold", classChanges(rows, ["bat12", "rat10", "gone"], "B").join(","), "bat12");
 
@@ -575,6 +628,38 @@ export function run({ check, assert, log }) {
         "a new entry opens on 1l's first type and class",
         `${ASSET_TYPE_VALUES[0]} ${ASSET_CLASS_VALUES[0]} ${/level1: ASSET_TYPE_VALUES\[0\], assetClass: ASSET_CLASS_VALUES\[0\]/.test(parseFile(DIALOGS).source)}`,
         "Equipment A true"
+    );
+    // WHAT IS SAVED IS SHOWN BEFORE THE PRESS (#538): the one Category field both dialogs draw takes
+    // a save's spelling as focus leaves it, the combobox asking its caller once its list has shut,
+    // and `Shows as` spells the name from the same rows and the same row an edit saves over.
+    const spelledBeforePress = (dialogs, controls) =>
+        [
+            /const spellCategory = \(\) => \{\s*const spelled = savedCategory\(values, groups, \{ rows, editing \}\);\s*if \(spelled !== values\.level2\) set\("level2"\)\(spelled\);\s*\};/.test(dialogs),
+            (dialogs.match(/<Combobox\b[^>]*name="level2"[^>]*onBlur=\{spellCategory\}/g) ?? []).length === 1 && (dialogs.match(/onBlur=/g) ?? []).length === 1,
+            /const shown = shownName\(values, \{ rows, editing \}\);/.test(dialogs),
+            /onBlur=\{\(\) => \{\s*setActive\(-1\);\s*onListOpenChange\(false\);\s*onBlur\?\.\(\);\s*\}\}/.test(controls),
+        ].join(" ");
+    check("the Category field takes a save's spelling as focus leaves it, in both dialogs, and `Shows as` the name's", spelledBeforePress(parseFile(DIALOGS).source, controls), "true true true true");
+    // A VALUE ITS COLUMN CUTS SHOWS WHOLE ABOVE ITS CELL (1l, #538): every row hands the tooltip the
+    // pointer, each column but the count marks its text as one that may be cut, and the tooltip
+    // shows only what its column cut.
+    const cutShown = (list, tooltip) =>
+        [
+            /<div key=\{row\.id\} role="row" \{\.\.\.tip\.cutProps\(\)\}/.test(list),
+            (list.match(/data-cut=""/g) ?? []).length === 2 &&
+                /const CUT_CELLS = \[\s*\{ key: "size", figures: true \},\s*\{ key: "maker" \},\s*\{ key: "partNumber", figures: true \},\s*\{ key: "level2" \},\s*\{ key: "level1" \},\s*\{ key: "assetClass" \},\s*\];/.test(list),
+            /if \(!cell \|\| cell\.scrollWidth <= cell\.clientWidth \+ 1\) \{\s*if \(shownOn\.current\) hide\(\);\s*return;\s*\}/.test(tooltip),
+        ].join(" ");
+    check("a cut value shows whole above its cell, the row handing the tooltip the pointer, a cell whole showing none", cutShown(parseFile(LIST).source, parseFile("app/components/Tooltip.js").source), "true true true");
+    check(
+        "  and rows that hand nothing, a column left unmarked, or a tooltip over every cell are seen (anti-vacuity)",
+        cutShown('<div key={row.id} role="row" className={c}><span data-cut="" /></div> const CUT_CELLS = [{ key: "size" }];', "if (!cell) return;"),
+        "false false false"
+    );
+    check(
+        "  and a field spelling nothing, or `Shows as` spelled from no rows, is seen (anti-vacuity)",
+        spelledBeforePress('<Combobox name="level2" value={values.level2} /><Combobox name="level3" onBlur={spellName} /> const shown = shownName(values);', "onBlur={() => onListOpenChange(false)}"),
+        "false false false false"
     );
 }
 

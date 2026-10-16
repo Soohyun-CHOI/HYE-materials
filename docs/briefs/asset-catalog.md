@@ -31,9 +31,9 @@ three sizes and makers, where the category list joins them into one name each.
 ## What it always carries
 
 **evidence.** A bar at the top, `Tools & Equipment` with a chevron back to the
-category list, held as the screen scrolls; once the head has scrolled under it,
-`Catalog` comes into it, and while the band narrows, the head's `N of M` after
-a dot.
+category list. The list lies across the column's whole width (#538): the bar,
+the head and the band hold still, and only the rows scroll, between the column
+head and the pager, so no name comes into the bar.
 
 **context.** The head: `Catalog`, and how many rows the catalog holds — the
 figure alone, or `N of M` while the band narrows, `M` every row.
@@ -58,7 +58,8 @@ list's pager under them, in order of name, then size, maker and part number, a
 run of digits read as a number. Each row says its name, size, maker, part
 number, category, type and class, and how many items stand under it — every
 status counted, since a retired item still stands under its row — with a zero in
-a lighter ink. A level a row leaves empty is an empty cell.
+a lighter ink. A level a row leaves empty is an empty cell. A value its column
+cuts ends in an ellipsis, and under the pointer shows whole above its cell.
 
 **action.** A row's name opens `Edit item` over it, the whole row its target;
 a box before it selects it, and one in the column head selects the page. The
@@ -75,6 +76,14 @@ class not chosen, a category or a name empty or a placeholder, `N/A` and its
 kind in a level that is left empty instead (`Leave it empty.`), and a path
 another row holds already, said on the name with that row's category — a
 discontinued one included. A category typed new is added with the row, first.
+
+**What a press saves is spelled before it (#538).** A category or a name the
+catalog does not hold is saved with each word's first letter in capitals and the
+rest as typed, a hyphen's second half untouched; one it holds keeps its
+spelling, and an edit keeps what its row spells while it is left so. The size,
+the maker and the part number are saved as typed. The Category field takes that
+spelling once focus leaves it, in both dialogs, and `Shows as` gives the
+name's; `New category` draws no `Shows as`.
 
 ## What it carries only sometimes
 
