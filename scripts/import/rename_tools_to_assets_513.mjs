@@ -43,6 +43,11 @@
 // makes it, and `--revert` puts back every recorded change whose value still reads as this
 // run left it, newest first.
 //
+// SINCE #531 A RUN THAT WOULD WRITE `Assets` OR `Asset Log` IS REFUSED BEFORE ITS FIRST WRITE,
+// the dry run included, `--revert` too: the two hold the site's records, and no script writes
+// a row, a name or a description of either (`scripts/protectedTables.mjs`). The dry run still
+// reads the base and says what is left to do.
+//
 // IT TALKS TO THE REST API DIRECTLY, for `create_tool_catalog_507.mjs`'s reason: the schema
 // half has no SDK, and `lib/airtable/client.js` names tables by the names this changes.
 // `lib/airtableOps.js` cannot see these calls, so the run counts them.
@@ -65,6 +70,7 @@ import { appendFileSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ID_KINDS } from "../../lib/idSequence.js";
+import { refusesProtectedWrite } from "../protectedTables.mjs";
 
 const API_ROOT = "https://api.airtable.com/v0";
 const META_ROOT = `${API_ROOT}/meta`;
@@ -84,6 +90,23 @@ const T = {
     JOBS: "tblGwgHuhTX6rwF1M",
     USERS: "tblisLwTKXyKtsTcy",
 };
+
+/**
+ * Each of the five by the name it has since #513, which is how `scripts/protectedTables.mjs` is
+ * asked whether a run may write it — since #531 a run writing `Assets` or `Asset Log` may not.
+ */
+const NAME_OF = {
+    [T.CATEGORIES]: "Asset Categories",
+    [T.ASSETS]: "Assets",
+    [T.LOG]: "Asset Log",
+    [T.JOBS]: "Jobs",
+    [T.USERS]: "Users",
+};
+
+/** The names of the tables a set of changes or ledger entries writes. */
+function tablesWritten(entries) {
+    return [...new Set(entries.map((entry) => NAME_OF[entry.table] ?? entry.table))];
+}
 
 /** Every rename, a table's when `field` is absent. */
 const RENAMES = [
@@ -542,6 +565,10 @@ async function main() {
     const air = new Airtable(token, baseId);
 
     if (REVERT_FILE) {
+        const entries = readFileSync(REVERT_FILE, "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line));
+        if (refusesProtectedWrite({ script: "rename_tools_to_assets_513 --revert", writes: tablesWritten(entries), log })) {
+            return finish(air, 1, "nothing was written");
+        }
         await revert(air, REVERT_FILE);
         return finish(air, 2, "reverted — run with no flags to see what is left");
     }
@@ -560,6 +587,11 @@ async function main() {
 
     log(`\n${changes.length} change(s):`);
     describe(tables, changes);
+    // Asked of the dry run too, so the run that would be refused says so before anyone types
+    // `--apply` (#531).
+    if (refusesProtectedWrite({ script: "rename_tools_to_assets_513", writes: tablesWritten(changes), log })) {
+        return finish(air, 1, "nothing was written");
+    }
     if (!APPLY) return finish(air, 2, `dry run — re-run with --apply to write these ${changes.length}`);
 
     await apply(air, changes);

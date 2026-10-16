@@ -1,4 +1,11 @@
-// Empties every table on the base except Users.
+// Empties every table on the base but the ones it keeps — Users, the material and asset
+// catalogs, the jobs and their disciplines, and the assets and their log (`KEPT`,
+// `KEPT_FOR_THEIR_LINKS`). This said every table but Users, which stopped being true when #358
+// began keeping more.
+//
+// SINCE #531 IT REFUSES TO RUN IF ITS ORDER EVER REACHES `Assets` OR `Asset Log`, or a table
+// they link to: the two hold the site's records, which no script writes, and emptying a table
+// they link to would empty their links (`scripts/protectedTables.mjs`).
 //
 // WHY IT EXISTS. The base carries dummy data raised one issue at a time since Phase 0
 // — four demo seeds, a handful of hand-entered rows, and somebody's TESTQA fixtures —
@@ -48,6 +55,7 @@
 // Exit codes: 0 all clear, 1 something survived that should not have.
 
 import { base, TABLES } from "../../lib/airtable/client.js";
+import { refusesProtectedWrite } from "../protectedTables.mjs";
 
 const CONFIRM = process.argv.includes("--confirm");
 
@@ -170,6 +178,10 @@ if (missing.length) {
     console.error("Add each to ORDER at the right depth, or to KEPT with a reason.");
     process.exit(1);
 }
+
+// Every table in ORDER is emptied, so ORDER is what is asked (#531): it holds none of them today,
+// and the day it does this stops before the first read.
+if (refusesProtectedWrite({ script: "wipe_base", wipes: ORDER, log: console.error })) process.exit(1);
 
 console.log("=".repeat(72));
 console.log(`wipe_base — ${CONFIRM ? "DELETING" : "dry run, nothing will be deleted"}`);

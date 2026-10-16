@@ -683,6 +683,10 @@ class AirtableSchemaClient:
 
 
 # The three tables' names since #513, which this script refuses to run beside.
+# SINCE #531 THIS IS ALSO WHAT KEEPS IT OFF `Assets` AND `Asset Log`, the site's
+# records, which no script writes (scripts/protectedTables.mjs, which Python cannot
+# import): it stops on reading the schema, before its first request that writes.
+# scripts/tests/offline/protected-tables.mjs holds the two names here and the stop.
 RENAMED_BY_513 = ("Asset Categories", "Assets", "Asset Log")
 
 

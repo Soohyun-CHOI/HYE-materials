@@ -35,6 +35,11 @@
 // assets under one id are two labels with one code. A revert that stops part way says what it
 // had created; nothing resumes it.
 //
+// SINCE #531 A RUN THAT WOULD DELETE OR CREATE AN ASSET OR A LOG ROW IS REFUSED WHOLE, before
+// its first write and in the dry run too: `Assets` and `Asset Log` hold the site's records, which
+// no script writes (`scripts/protectedTables.mjs`). The demo went on 2026-10-09; a revert of its
+// ledger would put demo assets among the site's.
+//
 // IT TALKS TO THE REST API DIRECTLY, as the catalog's scripts do, and counts its calls, which
 // lib/airtableOps.js cannot see.
 //
@@ -58,6 +63,7 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { ASSET_CATEGORY_FIELDS, catalogPathKey, readCatalog } from "../../lib/assetCategory.js";
+import { refusesProtectedWrite } from "../protectedTables.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const LEDGER_PREFIX = "remove_demo_catalog_517-";
@@ -210,6 +216,16 @@ async function remove(air, apply) {
     const plan = planRemoval(axis);
     if (plan.categories.length === 0) return finish(air, plan.assets.length + plan.log.length > 0 ? 1 : 0, "nothing of the demo is on the base");
     printPlan(plan);
+    // Since #531 the assets and their log rows are the site's records, which no script deletes
+    // (`scripts/protectedTables.mjs`): a plan holding one is refused whole, the dry run included.
+    const removes = [
+        ...(plan.log.length ? [LOG.name] : []),
+        ...(plan.assets.length ? [ASSETS.name] : []),
+        ...(plan.categories.length ? [CATEGORIES.name] : []),
+    ];
+    if (refusesProtectedWrite({ script: "remove_demo_catalog_517", writes: removes, log })) {
+        return finish(air, 1, "refused before removing anything");
+    }
     if (!apply) return finish(air, 2, `dry run — ${plan.categories.length + plan.assets.length + plan.log.length} row(s) would go, nothing was removed`);
 
     const ledger = join(HERE, `${LEDGER_PREFIX}${new Date().toISOString().replace(/[:.]/g, "-")}.jsonl`);
@@ -272,6 +288,16 @@ async function revert(air, apply, ledgerPath) {
         return finish(air, 1, "refused before writing anything");
     }
     log(`none of the ledger's paths, asset ids or log ids is on the base.`);
+    // Creating an asset or a log row again is a write to the site's records, refused since #531
+    // whole, the dry run included.
+    const creates = [
+        ...(rows.categories.length ? [CATEGORIES.name] : []),
+        ...(rows.assets.length ? [ASSETS.name] : []),
+        ...(rows.log.length ? [LOG.name] : []),
+    ];
+    if (refusesProtectedWrite({ script: "remove_demo_catalog_517 --revert", writes: creates, log })) {
+        return finish(air, 1, "refused before writing anything");
+    }
     if (!apply) return finish(air, 2, `dry run — ${lines.length} row(s) would be created again, nothing was written`);
 
     const minted = new Map();
