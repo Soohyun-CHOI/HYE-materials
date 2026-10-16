@@ -5,7 +5,10 @@
 //   1. THE SECTIONS ARE THE DESIGN'S, IN ITS ORDER, LESS THE ONE WITH NO SCREEN. Typed
 //      out here — word, address and order — and every address one the app serves.
 //      `Office` is not among them: `app/admin/` holds four forms and no page listing
-//      them, so the section would have nowhere to open.
+//      them, so the section would have nowhere to open. AND LESS THE MATERIALS SCREENS'
+//      WHILE THEY ARE CLOSED (#542): which five those are is typed out here too, and
+//      what the rail is expected to carry follows `MATERIALS_SCREENS_OPEN`, so the
+//      switch opens them without an edit here.
 //   2. EVERY ROUTE THE APP SERVES IS IN ONE SECTION OR NONE, AND THE TABLE BELOW SAYS
 //      WHICH. `currentOf` reads a section off an address, and the table is literal, so
 //      a page added without a line here fails rather than landing in whatever section
@@ -26,7 +29,7 @@
 //      (#478). What it says, by value, for each kind of reader the base holds; its
 //      button's name and tooltip one expression, read off its AST as the icons' are;
 //      the assets layout handing it `takePageUser()` and reading no user of its own; and
-//      its one item posting where the root screen's `Sign out` posts.
+//      its one item posting to the sign-out route, as the phone's top-bar menu does.
 //
 // WHAT IT CANNOT SEE: anything rendered — a width, the Panel over the screen, the
 // tooltip's delay, focus, a print — and the order the account's take depends on, which
@@ -41,6 +44,7 @@
 import { NAVIGATION_COPY, NAVIGATION_SECTIONS, accountOf, currentOf } from "../../../lib/navigation.js";
 import { ASSET_CATEGORIES_PATH, ASSET_ROUTES } from "../../../lib/assetRoutes.js";
 import { ASSET_LIST_COPY } from "../../../lib/assetListView.js";
+import { MATERIALS_SCREENS_OPEN } from "../../../lib/openScreens.js";
 import { listJsFiles, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
 import { isPageFile, routeTemplate } from "./_entrypoints.mjs";
 import { isMain, standalone } from "./_harness.mjs";
@@ -51,26 +55,29 @@ export const title = "The navigation the design settled — sections, the curren
 const RAIL = "app/components/Rail.js";
 const ACCOUNT = "app/components/RailAccount.js";
 const BREADCRUMB = "app/components/Breadcrumb.js";
-const ROOT_PAGE = "app/page.js";
+const SIGN_OUT_ROUTE = "app/api/auth/logout/route.js";
 const ASSETS_LAYOUT = "app/(assets)/layout.js";
 const CATEGORY_PAGE = "app/(assets)/asset-categories/[categoryRecordId]/page.js";
 const ASSET_PAGE = "app/(assets)/assets/[assetId]/page.js";
 const CATALOG_LIST = "app/(assets)/asset-catalog/CatalogList.js";
 const MORE_ACTIONS = "app/(assets)/assets/[assetId]/MoreActions.js";
 
-/** The design's sections less `Office`: key, word, address, in its order. */
+/** The design's sections less `Office`: key, word, address, in its order, and whether
+ * it is one of the materials screens' (#542). */
 const SECTIONS = [
-    ["purchase-requests", "Purchase requests", "/prs"],
-    ["purchase-orders", "Purchase orders", "/pos"],
-    ["invoices", "Invoices", "/invoices"],
-    ["deliveries", "Deliveries", "/deliveries"],
-    ["assets", "Tools & Equipment", "/asset-categories"],
-    ["material-prices", "Material prices", "/materials"],
+    ["purchase-requests", "Purchase requests", "/prs", "materials"],
+    ["purchase-orders", "Purchase orders", "/pos", "materials"],
+    ["invoices", "Invoices", "/invoices", "materials"],
+    ["deliveries", "Deliveries", "/deliveries", "materials"],
+    ["assets", "Tools & Equipment", "/asset-categories", "assets"],
+    ["material-prices", "Material prices", "/materials", "materials"],
 ];
+
+/** The sections the rail carries: all of them once the materials screens are open. */
+const ON_RAIL = SECTIONS.filter(([, , , axis]) => MATERIALS_SCREENS_OPEN || axis !== "materials");
 
 /** Every route the app serves, and the section it is in — `null` for none. */
 const SECTION_OF_ROUTE = {
-    "/": null,
     "/addresses/new": null,
     "/admin/categories/new": null,
     "/admin/disciplines/new": null,
@@ -247,11 +254,19 @@ export async function run({ check, assert, log }) {
     const cls = (...parts) => parts.join("");
 
     // ── 1: the sections ──────────────────────────────────────────────────────
-    log("the sections are the design's, in its order, less the one with no screen:");
+    log(
+        `the sections are the design's, in its order, less the one with no screen${MATERIALS_SCREENS_OPEN ? "" : " and the closed materials screens'"}:`
+    );
     check(
         "  key, word and address, in order",
         JSON.stringify(NAVIGATION_SECTIONS.map((s) => [s.key, NAVIGATION_COPY.sections[s.key], s.href])),
-        JSON.stringify(SECTIONS)
+        JSON.stringify(ON_RAIL.map(([key, word, href]) => [key, word, href]))
+    );
+    // Anti-vacuity: the table names both kinds, so the filter above has something to keep
+    // and something to leave out.
+    assert(
+        "  the table names the assets section and the five materials ones",
+        SECTIONS.filter(([, , , axis]) => axis === "materials").length === 5 && SECTIONS.some(([, , , axis]) => axis === "assets")
     );
     check("  every word belongs to a section", Object.keys(NAVIGATION_COPY.sections).join(" "), SECTIONS.map(([k]) => k).join(" "));
     check("  no section says Office", JSON.stringify(NAVIGATION_COPY).includes("Office"), false);
@@ -284,10 +299,12 @@ export async function run({ check, assert, log }) {
     log("every route the app serves is in one section or none, and the table says which:");
     check("  no route the table does not classify", routes.filter((r) => !(r in SECTION_OF_ROUTE)).join(" "), "");
     check("  no route the table names that the app does not serve", Object.keys(SECTION_OF_ROUTE).filter((r) => !routes.includes(r)).join(" "), "");
+    // A route in a section the rail does not carry makes nothing current: there is no link
+    // to mark.
     for (const route of routes) {
         const want = SECTION_OF_ROUTE[route];
-        const href = want && SECTIONS.find(([k]) => k === want)[2];
-        const mark = want ? `${want}:${route === href ? "page" : "true"}` : "";
+        const shown = want && ON_RAIL.find(([k]) => k === want);
+        const mark = shown ? `${want}:${route === shown[2] ? "page" : "true"}` : "";
         check(`  ${route}`, marksFor(addressOf(route)).join(" "), mark);
     }
     check("  a query does not move the page", marksFor("/asset-categories?page=2&id=HYE-AST-260909-001").join(" "), "assets:page");
@@ -506,7 +523,9 @@ export async function run({ check, assert, log }) {
         ""
     );
 
-    // Its one item posts where the root screen's `Sign out` does.
+    // Its one item posts to the sign-out route, which the phone's top-bar menu does too. The
+    // root screen's `Sign out` was the other form posting there until #542 removed it, so the
+    // address is held against the route that answers it.
     const formActions = (rel) => {
         const out = [];
         walk(parseFile(rel).ast, (n) => {
@@ -519,8 +538,16 @@ export async function run({ check, assert, log }) {
         return out;
     };
     check("  the account's form", formActions(ACCOUNT).join(" | "), "POST /api/auth/logout");
-    check("  is the root screen's", formActions(ROOT_PAGE).join(" | "), formActions(ACCOUNT).join(" | "));
-    check("  and the phone's top-bar menu posts there too (#495)", formActions(MORE_ACTIONS).join(" | "), formActions(ROOT_PAGE).join(" | "));
+    const signOutMethods = parseFile(SIGN_OUT_ROUTE)
+        .ast.body.filter((n) => n.type === "ExportNamedDeclaration")
+        .flatMap((n) => [n.declaration?.id?.name, ...(n.declaration?.declarations ?? []).map((d) => d.id?.name)])
+        .filter(Boolean);
+    check(
+        "  is the route that answers it",
+        `${signOutMethods.includes("POST") ? "POST" : "none"} ${routeTemplate(SIGN_OUT_ROUTE)}`,
+        formActions(ACCOUNT).join(" | ")
+    );
+    check("  and the phone's top-bar menu posts there too (#495)", formActions(MORE_ACTIONS).join(" | "), formActions(ACCOUNT).join(" | "));
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

@@ -13,8 +13,8 @@ worklist and the closest thing the app has to a dashboard.
 
 ## What it always carries
 
-**identity.** The heading. It reads `Purchase Orders` here, while the link to
-this screen from the root screen says `Purchase orders`. One screen, two casings —
+**identity.** The heading. It reads `Purchase Orders` here, while the rail's
+section for this screen says `Purchase orders`. One screen, two casings —
 see the shared brief's note on where the app disagrees with itself.
 
 **action — a filter bar:** the same component all four document lists carry

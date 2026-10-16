@@ -22,11 +22,12 @@
 // it is asserted against the generator: the ids this check compares are the ones
 // `formatSequentialId` produces, not literals someone typed here.
 //
-// AND THE THIRD IS A FILE NOTHING ELSE IN THIS TIER READS. A rewrite lives in
-// `next.config.mjs`, which no check parses and no test renders — so the uppercase
-// alias `/L/` could be deleted, or point at a route that does not exist, and every
-// other check would stay green. This one compares that file's literals against the
-// module's.
+// AND THE THIRD IS A FILE NO OTHER CHECK READS FOR IT. A rewrite lives in
+// `next.config.mjs`, which no test renders — so the uppercase alias `/L/` could be
+// deleted, or point at a route that does not exist, and every other check would stay
+// green. This one compares that file's literals against the module's, and asks the
+// config itself that the alias is a rewrite and no redirect takes its address
+// (`offline/open-screens.mjs` reads the redirects for #542's own reasons).
 //
 // WHAT IT CANNOT SEE. Whether the rewrite works, which is a fact about the running
 // server; whether a redirect is 307 or 308, which is a fact about the response; and
@@ -37,6 +38,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { posix } from "node:path";
+import { pathToFileURL } from "node:url";
 import { ID_KINDS, dailyIdPrefix, formatSequentialId } from "../../../lib/idSequence.js";
 import {
     LABEL_REWRITE,
@@ -118,7 +120,7 @@ function allText(ast) {
     return out;
 }
 
-export function run({ check, assert, log }) {
+export async function run({ check, assert, log }) {
     // ── 1: the routes the module names are the routes the app serves ────────
     log("the builders and the page files name the same routes:");
 
@@ -457,7 +459,16 @@ export function run({ check, assert, log }) {
     const config = readFileSync(repoPath("next.config.mjs"), "utf8");
     assert(`the rewrite source is \`${LABEL_REWRITE.source}\``, config.includes(`"${LABEL_REWRITE.source}"`));
     assert(`  and it lands on \`${LABEL_REWRITE.destination}\``, config.includes(`"${LABEL_REWRITE.destination}"`));
-    assert("  through rewrites() rather than redirects()", /async rewrites\(\)/.test(config) && !/redirects\(\)/.test(config));
+    // Asked of the config itself since #542 gave it redirects of its own: the alias is one
+    // of its rewrites, and no redirect takes either spelling of the printed address.
+    const { default: nextConfig } = await import(pathToFileURL(repoPath("next.config.mjs")).href);
+    const rewrites = await nextConfig.rewrites();
+    const configRedirects = (await nextConfig.redirects?.()) ?? [];
+    assert(
+        "  through rewrites() rather than redirects()",
+        rewrites.some((r) => r.source === LABEL_REWRITE.source && r.destination === LABEL_REWRITE.destination) &&
+            !configRedirects.some((r) => /^\/l(\/|$)/i.test(r.source))
+    );
     // The destination has to be a route the app serves, or the alias is a 404 that
     // only a scan of an uppercase label would ever find.
     check(

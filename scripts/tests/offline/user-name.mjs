@@ -38,9 +38,10 @@
 //
 // EXIT CODES, per `docs/notes/verification.md`: 0 all clear, 1 something failed.
 
-import { callsTo, listJsFiles, parseFile, parseSource, repoPath, toPosix, walk } from "./_ast.mjs";
-import { isPageFile } from "./_entrypoints.mjs";
+import { callsTo, listJsFiles, parseFile, parseSource, repoPath, resolveFunction, toPosix, walk } from "./_ast.mjs";
+import { isPageFile, routeTemplate } from "./_entrypoints.mjs";
 import { isMain, standalone } from "./_harness.mjs";
+import { DEFAULT_DESTINATION } from "../../../lib/loginDestination.js";
 import { FULL_NAME_SURFACES, actorName, fullUserName, isNameStep, judgeName, namePath, needsName, selfName, userName } from "../../../lib/userName.js";
 
 export const title = "One rule for a person's name, and two audiences (#381)";
@@ -241,18 +242,21 @@ export function run({ check, assert, log }) {
     check("  and the step is not a place to land", isNameStep("/login/name?destination=/prs"), true);
     check("  where an ordinary address is not", isNameStep("/prs"), false);
 
-    // ── 3b: every page asks, including the one that cannot use requireUser ──
+    // ── 3b: every page asks, and so does the landing ────────────────────────
     // THE GAP THIS CLOSES WAS FOUND IN A BROWSER, not here. `requireUser()` asks
     // for a name, so every page that calls it is covered by construction — but the
-    // root screen resolves the session itself, because it draws a signed-OUT state
-    // of its own, and a first sign-in with no destination lands exactly there. So
-    // the one page outside the gate was the first page a new colleague sees.
+    // root screen resolved the session itself, because it drew a signed-OUT state
+    // of its own, and a first sign-in with no destination landed exactly there. So
+    // the one page outside the gate was the first page a new colleague saw.
     //
-    // THE RULE IS MECHANICAL AND NEEDS NO LIST: a page that resolves a session
-    // without `requireUser` must call `askForNameIfMissing`. One page does that
-    // today; a second one added later fails until it asks.
+    // #542 TOOK THAT PAGE AWAY, AND THE QUESTION MOVED TO THE LANDING. A sign-in with
+    // nowhere else to go lands on `DEFAULT_DESTINATION`, the Tools & Equipment list,
+    // and `/` leads there too. So the two halves held now: no page resolves a session
+    // outside the gate — `askForNameIfMissing` is no longer exported, so a page that
+    // has to draw a signed-out state again exports it and calls it, and this fails
+    // until it does — and the landing's own gate is one that reaches the question.
     log("");
-    log("every page that resolves a session asks for a name:");
+    log("every page that resolves a session asks for a name, and the landing asks:");
     const SESSION_RESOLVERS = ["getCurrentUser", "getActiveUser"];
     const pages = files.filter((rel) => isPageFile(rel));
     assert(`${pages.length} pages are enumerated`, pages.length > 15);
@@ -271,30 +275,38 @@ export function run({ check, assert, log }) {
     }
     for (const rel of outsideTheGate) log(`  ${rel} resolves a session and never asks`);
     check("pages resolving a session without asking for a name", outsideTheGate.length, 0);
-    // Anti-vacuity: the page that takes this path is seen to, or "none outside" is
-    // what a walk finding no pages at all reports.
-    const selfResolving = pages.filter((rel) => {
-        try {
-            const { ast } = parseFile(rel);
-            return (
-                callsTo(ast, "requireUser").length === 0 &&
-                SESSION_RESOLVERS.some((name) => callsTo(ast, name).length > 0)
-            );
-        } catch {
-            return false;
-        }
-    });
+    // Anti-vacuity: the resolvers named above are what the gate itself resolves with, so
+    // a rename there is not a walk that quietly finds no page.
+    const requireUserFn = resolveFunction(authz.ast, "requireUser");
     assert(
-        `  ${selfResolving.length} page(s) resolve a session themselves, and each is seen`,
-        selfResolving.length >= 1
+        "  the resolvers named are the ones requireUser calls",
+        Boolean(requireUserFn) && SESSION_RESOLVERS.some((name) => callsTo(requireUserFn, name).length > 0)
     );
-    assert("  and one gated page is seen to use requireUser instead", pages.some((rel) => {
-        try {
-            return callsTo(parseFile(rel).ast, "requireUser").length > 0;
-        } catch {
-            return false;
-        }
-    }));
+    assert("  and requireUser asks for the name", Boolean(requireUserFn) && callsTo(requireUserFn, "askForNameIfMissing").length === 1);
+
+    // THE LANDING ASKS THROUGH ITS GATE. The page answering `DEFAULT_DESTINATION` calls a
+    // gate `lib/authz.js` exports, and that gate is `requireUser` or calls it.
+    const landing = pages.filter((rel) => routeTemplate(rel) === DEFAULT_DESTINATION);
+    log(`  the landing, ${DEFAULT_DESTINATION}, is ${landing.join(", ") || "no page"}`);
+    check("  one page answers the landing", landing.length, 1);
+    const gatesReaching = new Set(["requireUser"]);
+    for (const node of authz.ast.body) {
+        const fn = node.type === "ExportNamedDeclaration" ? node.declaration : null;
+        if (fn?.type === "FunctionDeclaration" && callsTo(fn, "requireUser").length > 0) gatesReaching.add(fn.id.name);
+    }
+    log(`  the gates that reach the question: ${[...gatesReaching].join(", ")}`);
+    assert("  the gates read off lib/authz.js include requireAdmin", gatesReaching.has("requireAdmin"));
+    const landingGates = landing.flatMap((rel) => {
+        const { ast } = parseFile(rel);
+        const fromAuthz = new Set(
+            ast.body
+                .filter((n) => n.type === "ImportDeclaration" && String(n.source.value).endsWith("lib/authz"))
+                .flatMap((n) => n.specifiers.map((spec) => spec.local.name))
+        );
+        return [...fromAuthz].filter((name) => gatesReaching.has(name) && callsTo(ast, name).length > 0);
+    });
+    log(`  the landing calls ${landingGates.join(", ") || "none of them"}`);
+    assert("  and the landing calls one of them", landingGates.length > 0);
 
     // ── 4: a row is created nameless ────────────────────────────────────────
     log("");

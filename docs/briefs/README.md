@@ -53,8 +53,9 @@ design work, and the design conversation is what brings the new reasoning back.
 `_shared.md` first. Then one per page, named after its route: the leading slash
 dropped, `/` replaced by `-`, and brackets stripped from a dynamic segment. So
 `/pos/[poId]` is `pos-poId.md` and `/invoices/[invoiceId]/edit` is
-`invoices-invoiceId-edit.md`. The home screen at `/` is `root.md`, which is the one
-name that is not mechanical.
+`invoices-invoiceId-edit.md`. A page at `/` would be `root.md`, the one name that is
+not mechanical; there is none since #542, which leads `/` to the Tools & Equipment
+list.
 
 Every page gets a file. There is no exemption list, and length follows what the
 screen carries — the three admin create forms are short because a brief saying
