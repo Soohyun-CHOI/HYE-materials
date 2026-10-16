@@ -325,8 +325,12 @@ function Spinner({ size }) {
  * reading that 0a draws Busy only for a step; a sheet's button is 0a's Button already — its
  * height, width and type are the phone's — and the design hands the app frame's Busy to the
  * phone (`docs/notes/design-system.md` has the argument).
+ *
+ * AN ICON BUTTON TAKES IT TOO (#531): the asset page's `More actions` is busy while the
+ * `Send for repair` chosen from its menu is on its way, and lays the spinner over its dots
+ * the same way, in a button that is `group/button`, positioned and marked `data-busy`.
  */
-function ButtonLabel({ size, busyLabel, children }) {
+export function ButtonLabel({ size, busyLabel, children }) {
     if (!busyLabel) return children;
     return (
         <>

@@ -6,7 +6,7 @@ import { Button, Field, FormBusy, SheetChip, SheetField, useRefusalFocus } from 
 import Icon from "@/app/components/Icon";
 import { chosenJobId, onlyJob } from "@/lib/assetJob";
 import { ASSET_EVENT } from "@/lib/assetStatus";
-import { ASSET_TRANSITION_COPY as COPY, fieldRefusals, offeredNames, readSubmission, recentNamesFor } from "@/lib/assetTransition";
+import { ASSET_TRANSITION_COPY as COPY, fieldRefusals, offeredNames, pressTakesJob, readSubmission, recentNamesFor } from "@/lib/assetTransition";
 import JobSheet from "./JobSheet";
 import NameSheet from "./NameSheet";
 import { useAssetTransition } from "./AssetTransition";
@@ -42,6 +42,11 @@ import { useAssetTransition } from "./AssetTransition";
  * (`chosenJobId`, #469). The bar draws no move notice under its pill: the design draws the
  * pill alone (1j), and a desk's dialog is where the two `Job` values meet.
  *
+ * AN ITEM IN REPAIR IS THE PRESS ALONE (#531, 1j-e): `Return from repair`, with no pill,
+ * since its row takes the asset's own job and nothing is chosen. While the menu's
+ * `Send for repair` is on its way the bar locks, every control in it, rather than drawing
+ * a wait it is not doing.
+ *
  * WITH NOTHING TO RECORD THE BAR SAYS WHY, in the press's place: a retired asset (1j-c), or a
  * reader on no job. **Below the phone's edge and nowhere else**, which the bar's own class
  * decides, so the sticky bar is not held inside a wrapper of its own. **A reader who is not a
@@ -57,7 +62,7 @@ import { useAssetTransition } from "./AssetTransition";
  * and the bar hides — what it held is the bar's already.
  */
 export default function TransitionBar({ recentCheckOuts }) {
-    const { plan, assetId, pending, send, carried } = useAssetTransition();
+    const { plan, assetId, pending, repairPending, send, carried } = useAssetTransition();
     const [jobId, setJobId] = useState(() => onlyJob(plan.jobs)?.id ?? "");
     const [name, setName] = useState("");
     const [taken, setTaken] = useState(null);
@@ -86,7 +91,8 @@ export default function TransitionBar({ recentCheckOuts }) {
     if (!plan.event) return null;
 
     const asksName = plan.event === ASSET_EVENT.CHECKED_OUT;
-    const several = onlyJob(plan.jobs) === null;
+    const asksJob = pressTakesJob(plan);
+    const several = asksJob && onlyJob(plan.jobs) === null;
     const chosen = plan.jobs.find((job) => job.id === kept) ?? null;
     const options = plan.jobs.map((job) => ({ value: job.id, label: job.jobCode }));
     const recent = recentNamesFor(recentCheckOuts, { jobCode: chosen?.jobCode });
@@ -115,17 +121,19 @@ export default function TransitionBar({ recentCheckOuts }) {
             <form onSubmit={submit} className="flex flex-col gap-mobile-bottom-bar-stack">
                 <input type="hidden" name="assetId" value={assetId} />
                 <input type="hidden" name="event" value={plan.event} />
-                <input type="hidden" name="jobId" value={kept} />
+                {asksJob && <input type="hidden" name="jobId" value={kept} />}
                 {asksName && <input type="hidden" name="checkedOutTo" value={name} />}
-                <FormBusy busy={pending}>
-                    <Field label={COPY.jobLabel} labelAs="span" labelHidden size="xl" refusal={pressed ? refusals.jobRefusal : null}>
-                        <SheetChip
-                            value={chosen?.jobCode}
-                            placeholder={COPY.jobUnchosen}
-                            icon={<Icon name="map-pin" className="size-full" />}
-                            onOpen={several ? () => setSheet("job") : undefined}
-                        />
-                    </Field>
+                <FormBusy busy={repairPending ? "action" : pending}>
+                    {asksJob && (
+                        <Field label={COPY.jobLabel} labelAs="span" labelHidden size="xl" refusal={pressed ? refusals.jobRefusal : null}>
+                            <SheetChip
+                                value={chosen?.jobCode}
+                                placeholder={COPY.jobUnchosen}
+                                icon={<Icon name="map-pin" className="size-full" />}
+                                onOpen={several ? () => setSheet("job") : undefined}
+                            />
+                        </Field>
+                    )}
                     {asksName && (
                         <Field label={COPY.checkedOutToLabel} labelAs="span" labelHidden size="xl" refusal={pressed ? refusals.nameRefusal : null}>
                             <SheetField value={name} placeholder={COPY.checkedOutToLabel} icon={<Icon name="user" className="size-full" />} onOpen={() => setSheet("name")} />

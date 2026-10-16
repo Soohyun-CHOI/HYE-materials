@@ -123,7 +123,7 @@ later sweep needs to know.
 | `1 item has no creation date`, `5 items have no creation date` | the notice's title | assets |
 | `That item isn't available any more.` | registration dialog | a category |
 | `No items yet` | the category list, empty | categories |
-| `Each item shows here with how many are in stock, out and retired.` | the category list, empty | a category |
+| `Each item shows here with how many are in stock, out, in repair and retired.` | the category list, empty | a category |
 | `Name` | the category list: the name column's head | a category |
 | `item`, `items` after the head's figure | both lists, assistive tech only | categories, assets |
 | `Item` | a category's page: the tab | a category |
@@ -229,3 +229,38 @@ is where the reader confirms which of the two was picked. **The files #522 read
 draw no case of it**: their catalog holds every name once, so they say nothing
 about how two rows of one name are told apart, and the first file that draws
 the case decides it.
+
+---
+
+## What #531's screens say that the files of 2026-10-15 do not (#531)
+
+The files draw an item sent for repair and taken back (1a, 1d, 1f, 1j-a, 1j-e)
+and none of the moments around either press. What a screen says in their place
+follows a rule the design already states, and the next sending decides each.
+
+| String | Where | The files |
+|---|---|---|
+| `Each item shows here with how many are in stock, out, in repair and retired.` | the category list, empty (1a) | `… in stock, out and retired.` over four columns |
+| `Sending for repair…` | `More actions`, busy, heard and not seen | draw no wait for it |
+| `Returning from repair…` | the return's press, busy, heard and not seen | draw no busy press |
+| `… already sent this for repair on …`, `… already returned this from repair on …` | a refused press, under the status | draw no repair refusal |
+| `Nothing was saved.` | a refused press on either repair control | the same |
+
+**The empty sentence names all four statuses**, Soo's ruling over the drawing's
+three: the list counts four. **The two working words are 0f's rule** — the
+control's verb in its `-ing` form — and `More actions` carries the sending's,
+since the menu that sent it has closed; while it is on its way the button is
+busy, its spinner over its dots, which the files do not draw either. **A refused
+repair follows 1k's sentence** with the event's own words, and ends on
+`Nothing was saved.` because neither event has a noun that reads as one: `Your
+send-for-repair wasn't saved.` is not English. Where the latest entry cannot be
+read, a refused repair says `Someone else scanned this first. Nothing was
+saved.`, the action's one sentence for every press, though a sending is not a
+scan.
+
+The keys are `ASSET_TRANSITION_COPY.working`, `.movedAct` and `.notSaved` in
+`lib/assetTransition.js` and `ASSET_LIST_COPY.noItems` in
+`lib/assetListView.js`, each held by value in `offline/asset-transition.mjs`
+or `asset-list-view.mjs`. The base's words are its own: `In repair`,
+`Sent for repair` and `Returned from repair`, which the controls say in the
+imperative.

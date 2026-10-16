@@ -1780,8 +1780,10 @@ export function run({ check, assert, log }) {
             // the rest of the dialog locks (#527).
             'EntryDialog: button {pending && working === "restore"}, button {pending && working === "discontinue"} · named, named, named · 0 disabled by sending',
             "LabelsDialog: button {pending} · named · 0 disabled by sending",
-            "TransitionBar: form {pending} · named · 0 disabled by sending",
-            "TransitionDialog: button {!asks && pending} · named · 0 disabled by sending",
+            // Both lock while the menu's `Send for repair` is on its way, the wait being the
+            // menu's, and work for their own press otherwise (#531).
+            'TransitionBar: form {repairPending ? "action" : pending} · named · 0 disabled by sending',
+            'TransitionDialog: form {repairPending ? "action" : false}, button {!asks && pending} · named · 0 disabled by sending',
         ].join(" | ")
     );
 

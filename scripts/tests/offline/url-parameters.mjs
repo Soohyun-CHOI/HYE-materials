@@ -518,6 +518,15 @@ function scopes(ast) {
 function writtenParameters(rel, ast, routes) {
     const consts = moduleStrings(ast);
     const found = [];
+    // A FORM BODY IS NOT A QUERY (#531). `set` and `append` on a `FormData` fill what a
+    // Server Action is handed — the asset page's `Send for repair` builds one — and reach no
+    // address, so a local made by `new FormData()` writes no parameter.
+    const formBodies = new Set();
+    walk(ast, (n) => {
+        if (n.type === "VariableDeclarator" && n.id?.type === "Identifier" && n.init?.type === "NewExpression" && n.init.callee?.name === "FormData")
+            formBodies.add(n.id.name);
+    });
+    const isFormBody = (call) => call.callee?.object?.type === "Identifier" && formBodies.has(call.callee.object.name);
     for (const scope of scopes(ast)) {
         const targets = new Set();
         const deferred = new Set();
@@ -541,7 +550,8 @@ function writtenParameters(rel, ast, routes) {
                 n.callee?.type === "MemberExpression" &&
                 (n.callee.property?.name === "set" || n.callee.property?.name === "append") &&
                 n.arguments[0]?.type === "Literal" &&
-                typeof n.arguments[0].value === "string"
+                typeof n.arguments[0].value === "string" &&
+                !isFormBody(n)
             )
                 deferred.add(n.arguments[0].value);
             // #520 — the category list's band writes its keys through the names
@@ -762,6 +772,19 @@ export function run({ check, assert, log }) {
         ["recorded", "a key in a plain string"],
     ])
         assert(`  the detector reads ${why}`, shapeWrites.some((w) => w.param === param));
+    // A FORM BODY IS NOT A QUERY (#531): a `FormData`'s keys reach a Server Action and no
+    // address, while a `URLSearchParams` beside it still writes its own.
+    const formBody = parseSource(
+        "const formData = new FormData();\n" +
+            'formData.set("event", "Sent for repair");\n' +
+            'formData.append("assetId", id);\n' +
+            "const query = new URLSearchParams();\n" +
+            'query.set("over", "1");\n' +
+            'router.replace(`${pathname}?${query}`);\n',
+        "<form-body>"
+    );
+    const formBodyWrites = writtenParameters("app/deliveries/DeliveriesListClient.js", formBody.ast, routes).map((w) => w.param);
+    check("  and reads no FormData key as a parameter, beside a query it does", formBodyWrites.join(","), "over");
     // The fourth shape, and the one #348 added: a path assembled from an EXPORTED
     // module constant. Starred out, the key beside it has no route and reads as
     // written by nothing — which is a failure that names the wrong thing.

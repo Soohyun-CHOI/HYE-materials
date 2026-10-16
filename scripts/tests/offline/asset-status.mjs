@@ -1,5 +1,5 @@
-// The assets track's two closed vocabularies, and the three mappings over them
-// (#334; the second added by #362 and the third by #363).
+// The assets track's two closed vocabularies, and the five mappings over them
+// (#334; the second added by #362, the third by #363, the last two by #531).
 //
 // WHAT THIS GUARDS AND WHY IT IS WORTH A CHECK. `Assets."Status"` and
 // `Asset Log."Event"` are singleSelect fields, and an existing select's option
@@ -19,13 +19,13 @@
 // docs/notes/tools.md. What this file pins in its place is that no status is a
 // dead option, and the assertion says at length what that does NOT prove.
 //
-// #362 AND #363 ADDED THE OTHER TWO AND THEY ARE PINNED HERE RATHER THAN BESIDE
-// THE SCREEN THAT READS THEM. Both are vocabulary — total over the statuses,
-// closed over the events — so a fourth status has to visit all three maps, and
-// a check living next to the transition screen would leave them half guarded.
-// The two status maps agree on today's three values and the agreement is
-// asserted rather than derived, because they answer different questions and
-// would part on a fourth. What is NOT here is anything about that screen: which
+// #362, #363 AND #531 ADDED THE OTHER FOUR AND THEY ARE PINNED HERE RATHER THAN BESIDE
+// THE SCREEN THAT READS THEM. All are vocabulary — total over the statuses or over the
+// events — so a new status or event has to visit every map, and a check living next to
+// the transition screen would leave them half guarded. The press's map and the
+// retirement's agree on today's four statuses and the agreement is asserted rather than
+// derived, because they answer different questions; the repair's parts from both, and
+// where it parts is asserted too. What is NOT here is anything about that screen: which
 // words it says and which refusals it produces are
 // offline/asset-transition.mjs's.
 //
@@ -42,19 +42,24 @@ import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import {
     EVENT_OFFERED_BY_STATUS,
+    JOB_SOURCE,
+    JOB_SOURCE_OF_EVENT,
     MAY_RETIRE_FROM_STATUS,
+    MAY_SEND_FOR_REPAIR_FROM_STATUS,
     STATUS_AFTER_EVENT,
     ASSET_EVENT,
     ASSET_EVENT_VALUES,
     ASSET_STATUS,
     ASSET_STATUS_VALUES,
     eventOfferedBy,
+    jobSourceOf,
     mayRetireFrom,
+    maySendForRepairFrom,
     statusAfterEvent,
 } from "../../../lib/assetStatus.js";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Tool status and event vocabularies, and the maps between them (#334, #362, #363)";
+export const title = "Tool status and event vocabularies, and the maps between them (#334, #362, #363, #531)";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PY_PATH = resolve(HERE, "../../import/create_tools_334.py");
@@ -82,19 +87,22 @@ export function run({ check, log, assert }) {
     // Spelled out rather than derived from the module: this is the pin, and a pin
     // that reads its subject asserts nothing. These are the strings printed into
     // Airtable's option lists, and after field CREATE no API can change them.
-    log("the three statuses, in order:");
-    check("ASSET_STATUS_VALUES", ASSET_STATUS_VALUES.join(" | "), "In stock | Out | Retired");
-    check("three and no more", ASSET_STATUS_VALUES.length, 3);
+    // `In repair` WAS ADDED BY #531, by hand in the Airtable UI, and stands before
+    // `Retired` because the category list draws its counts in this order (1a).
+    log("the four statuses, in order:");
+    check("ASSET_STATUS_VALUES", ASSET_STATUS_VALUES.join(" | "), "In stock | Out | In repair | Retired");
+    check("four and no more", ASSET_STATUS_VALUES.length, 4);
     assert("no duplicates", new Set(ASSET_STATUS_VALUES).size === ASSET_STATUS_VALUES.length);
 
     log("");
-    log("the four events, in order:");
+    log("the six events, in order:");
     // `Created` WAS `Registered` UNTIL #455, and the two scans were `Checked Out` and
     // `Checked In` until #463, each renamed in the Airtable UI with the rows
     // following it — see lib/assetStatus.js's header.
+    // The two repair events (#531) follow `Retired`, where the base holds them.
     check("ASSET_EVENT_VALUES", ASSET_EVENT_VALUES.join(" | "),
-        "Created | Checked out | Checked in | Retired");
-    check("four and no more", ASSET_EVENT_VALUES.length, 4);
+        "Created | Checked out | Checked in | Retired | Sent for repair | Returned from repair");
+    check("six and no more", ASSET_EVENT_VALUES.length, 6);
     assert("no duplicates", new Set(ASSET_EVENT_VALUES).size === ASSET_EVENT_VALUES.length);
 
     // ── sentence case, the design's (#463) ──────────────────────────────────
@@ -153,9 +161,11 @@ export function run({ check, log, assert }) {
     //
     // WHAT IT DOES NOT HOLD, AND THIS IS THE PART TO READ BEFORE TRUSTING A PASS:
     // it is NOT the rule #335 applied. What that issue removed was statuses nobody
-    // would ever DESIGNATE — an asset here is thrown away rather than repaired, and
+    // would ever DESIGNATE — an asset was thrown away rather than repaired then, and
     // nobody reports one lost — and `In Repair` was perfectly reachable, from
-    // `Sent to Repair`, right up until it was deleted. So this assertion would have
+    // `Sent to Repair`, right up until it was deleted. #531 brought it back as
+    // `In repair` because the sites now send broken items to their maker, which is
+    // the same kind of fact: true of the work, and invisible here. So this assertion would have
     // passed on the old vocabulary and passes on the new one, and it cannot tell
     // which of the two is right. Whether an event describes something that actually
     // happens on a site is not a property of this source tree; it is a question for
@@ -184,15 +194,15 @@ export function run({ check, log, assert }) {
     // is produced" is the vacuous truth of an empty vocabulary.
     assert(
         "  and the reachability set rejects a status that is not in the map",
-        !produced.has("In Repair") && produced.size > 0
+        !produced.has("Lost") && produced.size > 0
     );
 
     // ── the one string both vocabularies share ──────────────────────────────
-    // Worth pinning now that it is 1 of 4 rather than 2 of 8: an event and a status
-    // spelling the same word is a deliberate coincidence, not drift. `Retired` is a
-    // transition a person designates, so it is named for the state it arrives at;
-    // everything else is either a scan (named for the act) or `Created` (named
-    // for an act with no status of its own).
+    // Worth pinning at 1 of 6: an event and a status spelling the same word is a
+    // deliberate coincidence, not drift. `Retired` is named for the state it arrives
+    // at; every other event is named for the act — the two scans, and since #531 the
+    // repair's two, whose status `In repair` is neither of them — or is `Created`
+    // (named for an act with no status of its own).
     log("");
     log("`Retired` is the one string both vocabularies carry:");
     const shared = ASSET_EVENT_VALUES.filter((e) => ASSET_STATUS_VALUES.includes(e));
@@ -209,6 +219,10 @@ export function run({ check, log, assert }) {
         statusAfterEvent(ASSET_EVENT.CHECKED_IN), ASSET_STATUS.IN_STOCK);
     check("retiring is the only end",
         statusAfterEvent(ASSET_EVENT.RETIRED), ASSET_STATUS.RETIRED);
+    check("sending one for repair puts it in repair (#531)",
+        statusAfterEvent(ASSET_EVENT.SENT_FOR_REPAIR), "In repair");
+    check("its return puts it back in stock",
+        statusAfterEvent(ASSET_EVENT.RETURNED_FROM_REPAIR), "In stock");
     // The signature took a second argument until #335 — the current status, so a
     // null entry could leave the field alone. With no null entry nothing reads it.
     check("it takes one argument", statusAfterEvent.length, 1);
@@ -234,8 +248,9 @@ export function run({ check, log, assert }) {
     log("what each status offers next, by value:");
     check("In stock offers", EVENT_OFFERED_BY_STATUS["In stock"], "Checked out");
     check("Out offers", EVENT_OFFERED_BY_STATUS["Out"], "Checked in");
+    check("In repair offers its return (#531)", EVENT_OFFERED_BY_STATUS["In repair"], "Returned from repair");
     check("Retired offers", EVENT_OFFERED_BY_STATUS["Retired"], null);
-    check("three entries and no more", Object.keys(EVENT_OFFERED_BY_STATUS).length, 3);
+    check("four entries and no more", Object.keys(EVENT_OFFERED_BY_STATUS).length, 4);
 
     // TOTAL OVER THE STATUS VOCABULARY. A fourth status with no entry is what this
     // catches, and it is the whole reason `Retired`'s `null` is written out rather
@@ -256,7 +271,7 @@ export function run({ check, log, assert }) {
     );
     check("entries offering an event that does not exist", badOffer.length, 0);
 
-    // THE TWO MAPS ARE NOT INVERSES, WHICH IS WHY BOTH EXIST. Two events land on
+    // THE TWO MAPS ARE NOT INVERSES, WHICH IS WHY BOTH EXIST. Three events land on
     // `In stock`, so inverting `STATUS_AFTER_EVENT` is not a function; and
     // `Created` is offered by no status, because creating an asset makes the row
     // rather than moving one. A later pass tempted to derive one map from the other
@@ -266,9 +281,13 @@ export function run({ check, log, assert }) {
     const intoInStock = Object.entries(STATUS_AFTER_EVENT)
         .filter(([, s]) => s === ASSET_STATUS.IN_STOCK)
         .map(([e]) => e);
-    check("events landing on In stock", intoInStock.length, 2);
+    check("events landing on In stock", intoInStock.join(" | "), "Created | Checked in | Returned from repair");
     const offered = new Set(Object.values(EVENT_OFFERED_BY_STATUS).filter(Boolean));
-    assert("  so no status can offer both of them", offered.size === 2);
+    check(
+        "  two of them offered, each by a status of its own",
+        ["Out", "In repair"].map((status) => EVENT_OFFERED_BY_STATUS[status]).join(" | "),
+        "Checked in | Returned from repair"
+    );
     assert("`Created` is offered by no status", !offered.has(ASSET_EVENT.CREATED));
 
     // AND EVERY OFFER MOVES THE ASSET. An offer whose event leaves the status
@@ -305,13 +324,14 @@ export function run({ check, log, assert }) {
 
     let statusThrew = null;
     try {
-        eventOfferedBy("In Repair");
+        eventOfferedBy("Lost");
     } catch (err) {
         statusThrew = err.message;
     }
-    // `In Repair` on purpose: it was a real status until #335 and is exactly the
-    // shape of the mistake this guards — a value left behind by a narrowed
-    // vocabulary, or a fourth one added to the base by hand.
+    // `Lost` on purpose: it was a real status until #335 and is exactly the shape of
+    // the mistake this guards — a value left behind by a narrowed vocabulary, or one
+    // added to the base by hand with no code for it. (`In Repair` was the probe until
+    // #531 brought the repair back.)
     assert("a status outside the vocabulary throws rather than offering nothing", Boolean(statusThrew));
     assert("  and the throw names the module to edit", (statusThrew || "").includes("lib/assetStatus.js"));
     // ANTI-VACUITY FOR THE `null`: "offers nothing" and "is not a status" have to be
@@ -326,8 +346,9 @@ export function run({ check, log, assert }) {
     log("which statuses a person may retire from, by value:");
     check("In stock", MAY_RETIRE_FROM_STATUS["In stock"], true);
     check("Out", MAY_RETIRE_FROM_STATUS["Out"], true);
+    check("In repair (#531)", MAY_RETIRE_FROM_STATUS["In repair"], true);
     check("Retired", MAY_RETIRE_FROM_STATUS["Retired"], false);
-    check("three entries and no more", Object.keys(MAY_RETIRE_FROM_STATUS).length, 3);
+    check("four entries and no more", Object.keys(MAY_RETIRE_FROM_STATUS).length, 4);
     const unretirable = ASSET_STATUS_VALUES.filter(
         (s) => !Object.prototype.hasOwnProperty.call(MAY_RETIRE_FROM_STATUS, s)
     );
@@ -356,11 +377,11 @@ export function run({ check, log, assert }) {
     // THE TWO STATUS MAPS AGREE TODAY AND THAT IS A MEASUREMENT, NOT A
     // DERIVATION. `eventOfferedBy` returns null for exactly the status this one
     // refuses, so `!eventOfferedBy(s)` would answer today's question — and would
-    // be wrong for a fourth status that offers no scan and can still be retired.
+    // be wrong for a status that offers no press and can still be retired.
     // Asserting the agreement rather than deriving one from the other is what
     // makes that a visible change instead of a silent one.
     log("");
-    log("the two status maps agree on all three values, which is measured rather than assumed:");
+    log("the press's map and the retirement's agree on all four values, which is measured rather than assumed:");
     for (const status of ASSET_STATUS_VALUES) {
         check(
             `  ${status}: offers ${eventOfferedBy(status) ?? "nothing"}, retirable ${mayRetireFrom(status)}`,
@@ -368,7 +389,7 @@ export function run({ check, log, assert }) {
             mayRetireFrom(status)
         );
     }
-    assert("  and they are two objects, so a fourth status has to answer both", EVENT_OFFERED_BY_STATUS !== MAY_RETIRE_FROM_STATUS);
+    assert("  and they are two objects, so a new status has to answer both", EVENT_OFFERED_BY_STATUS !== MAY_RETIRE_FROM_STATUS);
 
     // EXACTLY ONE TERMINAL STATUS, which is what the screen's single sentence in
     // place of every control is about.
@@ -377,13 +398,100 @@ export function run({ check, log, assert }) {
 
     let retireThrew = null;
     try {
-        mayRetireFrom("In Repair");
+        mayRetireFrom("Lost");
     } catch (err) {
         retireThrew = err.message;
     }
     assert("a status outside the vocabulary throws rather than reading false", Boolean(retireThrew));
     assert("  and the throw names the module to edit", (retireThrew || "").includes("lib/assetStatus.js"));
     assert("  so false is not how an unknown status is reported", mayRetireFrom("Retired") === false);
+
+    // ── the fourth map: which statuses may be sent for repair (#531) ───────
+    // By value, as the other two are. From stock alone: an item that is out is checked
+    // in first, one in repair offers its return, and a retired one offers nothing.
+    log("");
+    log("which statuses may be sent for repair, by value (#531):");
+    check("In stock", MAY_SEND_FOR_REPAIR_FROM_STATUS["In stock"], true);
+    check("Out", MAY_SEND_FOR_REPAIR_FROM_STATUS["Out"], false);
+    check("In repair", MAY_SEND_FOR_REPAIR_FROM_STATUS["In repair"], false);
+    check("Retired", MAY_SEND_FOR_REPAIR_FROM_STATUS["Retired"], false);
+    check("four entries, one per status", Object.keys(MAY_SEND_FOR_REPAIR_FROM_STATUS).sort().join(" | "), "In repair | In stock | Out | Retired");
+    check(
+        "every entry is a boolean",
+        Object.values(MAY_SEND_FOR_REPAIR_FROM_STATUS).filter((v) => typeof v !== "boolean").length,
+        0
+    );
+    check("maySendForRepairFrom applies it", ASSET_STATUS_VALUES.map((s) => maySendForRepairFrom(s)).join(","), "true,false,false,false");
+    let repairThrew = null;
+    try {
+        maySendForRepairFrom("Lost");
+    } catch (err) {
+        repairThrew = err.message;
+    }
+    assert("a status outside the vocabulary throws rather than reading false", Boolean(repairThrew));
+    assert("  and the throw names the module to edit", (repairThrew || "").includes("lib/assetStatus.js"));
+
+    // IT PARTS FROM THE OTHER TWO, WHICH IS WHY IT IS A MAP OF ITS OWN. `In stock` offers a
+    // press and may be sent for repair; `Out` and `In repair` may be retired and not sent.
+    log("");
+    log("and it is not a reading of the press's map or the retirement's:");
+    check(
+        "  statuses offering a press that may not be sent for repair",
+        ASSET_STATUS_VALUES.filter((s) => eventOfferedBy(s) && !maySendForRepairFrom(s)).join(" | "),
+        "Out | In repair"
+    );
+    check(
+        "  statuses that may be retired and not sent for repair",
+        ASSET_STATUS_VALUES.filter((s) => mayRetireFrom(s) && !maySendForRepairFrom(s)).join(" | "),
+        "Out | In repair"
+    );
+    // A ROUND TRIP, AS THE SCANS ARE: what sending one for repair leaves offers the press
+    // that brings it back to stock, where it may be sent again.
+    check(
+        "  sending one leaves it offering its return",
+        eventOfferedBy(statusAfterEvent(ASSET_EVENT.SENT_FOR_REPAIR)),
+        "Returned from repair"
+    );
+    check(
+        "  and the return leaves it where it may be sent again",
+        maySendForRepairFrom(statusAfterEvent(eventOfferedBy(statusAfterEvent(ASSET_EVENT.SENT_FOR_REPAIR)))),
+        true
+    );
+
+    // ── the fifth map: where each event's row takes its job from (#531) ─────
+    // By value: an event that moves the asset between jobs takes the job from the person
+    // recording, one that leaves it on its job takes it from the asset (docs/notes/tools.md).
+    log("");
+    log("where each event's row takes its job from, by value (#531):");
+    check("the two sources", Object.values(JOB_SOURCE).join(" | "), "actor | asset");
+    check("Created", JOB_SOURCE_OF_EVENT["Created"], "actor");
+    check("Checked out", JOB_SOURCE_OF_EVENT["Checked out"], "actor");
+    check("Checked in", JOB_SOURCE_OF_EVENT["Checked in"], "actor");
+    check("Retired", JOB_SOURCE_OF_EVENT["Retired"], "asset");
+    check("Sent for repair", JOB_SOURCE_OF_EVENT["Sent for repair"], "asset");
+    check("Returned from repair", JOB_SOURCE_OF_EVENT["Returned from repair"], "asset");
+    check("six entries, one per event", Object.keys(JOB_SOURCE_OF_EVENT).length, 6);
+    check(
+        "events with no entry",
+        ASSET_EVENT_VALUES.filter((e) => !Object.prototype.hasOwnProperty.call(JOB_SOURCE_OF_EVENT, e)).length,
+        0
+    );
+    check("jobSourceOf applies it", ASSET_EVENT_VALUES.map((e) => jobSourceOf(e)).join(","), "actor,actor,actor,asset,asset,asset");
+    let jobThrew = null;
+    try {
+        jobSourceOf("Job Changed");
+    } catch (err) {
+        jobThrew = err.message;
+    }
+    assert("an event outside the vocabulary throws rather than reading as neither", Boolean(jobThrew));
+    assert("  and the throw names the module to edit", (jobThrew || "").includes("lib/assetStatus.js"));
+    // The press's own events are where the split matters on one screen: the scans take the
+    // reader's job, the return the item's.
+    check(
+        "  of the events a press offers, the ones taking the asset's job",
+        ASSET_STATUS_VALUES.map((s) => eventOfferedBy(s)).filter((e) => e && jobSourceOf(e) === "asset").join(" | "),
+        "Returned from repair"
+    );
 
     // ── the Python creation payload says the same thing ─────────────────────
     // The half that cannot be fixed after the fact. `create_tools_334.py` sends
@@ -401,8 +509,8 @@ export function run({ check, log, assert }) {
     // before anything is compared with it.
     assert("the parser found TOOL_STATUS_CHOICES in the Python source", Array.isArray(pyStatus));
     assert("the parser found TOOL_EVENT_CHOICES in the Python source", Array.isArray(pyEvent));
-    check("  status choices parsed", (pyStatus || []).length, 3);
-    check("  event choices parsed", (pyEvent || []).length, 4);
+    check("  status choices parsed", (pyStatus || []).length, 4);
+    check("  event choices parsed", (pyEvent || []).length, 6);
     assert(
         "  and the parser is seen to say NO on a name that is not there",
         pythonChoiceList(py, "TOOL_NOT_A_CONSTANT") === null
@@ -429,9 +537,11 @@ export function run({ check, log, assert }) {
     // `In Repair` and `Lost` gone there is no negative value on either axis. What is
     // left is the walk plus gray for the end, and red being ABSENT is now part of
     // the rule rather than an accident: a red option would claim a meaning this
-    // vocabulary does not have.
+    // vocabulary does not have. #531's three were added by hand in the UI, in the
+    // colors given there — yellow for the repair, orange for the return — read off the
+    // base on 2026-10-15, and held here as the base holds them.
     const paletteRule = [
-        ["In stock", "blueLight2"], ["Out", "cyanLight2"], ["Retired", "grayLight2"],
+        ["In stock", "blueLight2"], ["Out", "cyanLight2"], ["In repair", "yellowLight2"], ["Retired", "grayLight2"],
     ];
     check(
         "status colors walk the palette, gray for the end",
@@ -440,6 +550,7 @@ export function run({ check, log, assert }) {
     const eventRule = [
         ["Created", "blueLight2"], ["Checked out", "cyanLight2"],
         ["Checked in", "tealLight2"], ["Retired", "grayLight2"],
+        ["Sent for repair", "yellowLight2"], ["Returned from repair", "orangeLight2"],
     ];
     check("event colors do the same", JSON.stringify(pyEvent), JSON.stringify(eventRule));
     check("  gray marks the terminal value and nothing else",

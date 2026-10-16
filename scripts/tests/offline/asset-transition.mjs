@@ -51,7 +51,7 @@
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
-import { ASSET_EVENT, ASSET_STATUS, ASSET_STATUS_VALUES, EVENT_OFFERED_BY_STATUS } from "../../../lib/assetStatus.js";
+import { ASSET_EVENT, ASSET_STATUS, ASSET_STATUS_VALUES, EVENT_OFFERED_BY_STATUS, MAY_SEND_FOR_REPAIR_FROM_STATUS } from "../../../lib/assetStatus.js";
 import { ASSET_COPY } from "../../../lib/assetView.js";
 import { ASSET_JOB_COPY, chosenJobId } from "../../../lib/assetJob.js";
 import {
@@ -65,6 +65,7 @@ import {
     narrowNames,
     offeredNames,
     planTransition,
+    pressTakesJob,
     readRetirement,
     readSubmission,
     recentNamesFor,
@@ -72,7 +73,7 @@ import {
 import { callsBefore, callsTo, insideTry, parseFile, parseSource, resolveFunction, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "What a person may record against an asset (#362, #363, #458, #463)";
+export const title = "What a person may record against an asset (#362, #363, #458, #463, #531)";
 
 const ACTION = "app/(assets)/assets/[assetId]/actions.js";
 const DIALOG = "app/(assets)/assets/[assetId]/TransitionDialog.js";
@@ -246,6 +247,155 @@ function inlineErrorReturns({ ast }) {
 }
 
 export function run({ check, assert, log }) {
+    // ── #531: sending an item for repair and taking it back ────────────────
+    // At the head of the check, so nothing older that throws keeps these from printing.
+    // The plan, the submission, the words and where each control stands, by value and off
+    // the sources; the vocabulary and its maps are `offline/asset-status.mjs`'s.
+    {
+        log("sending an item for repair and taking it back (#531):");
+        const site = actor(JOB_A, JOB_B);
+        const planOf = (user, status) => planTransition({ user, jobs: ALL_JOBS, status });
+        const shape = (plan) => `${plan.event}/${plan.maySendForRepair}/${plan.mayRetire}/${plan.jobs.length}/${plan.refusal}`;
+        check(
+            "a site manager on two jobs is offered, status by status",
+            ASSET_STATUS_VALUES.map((status) => `${status}: ${shape(planOf(site, status))}`).join(", "),
+            "In stock: Checked out/true/true/2/null, Out: Checked in/false/true/2/null, In repair: Returned from repair/false/true/2/null, " +
+                `Retired: null/false/false/0/${ASSET_TRANSITION_COPY.noTransition}`
+        );
+        check(
+            "  a reader who is not a site manager is offered no sending, on any status",
+            ASSET_STATUS_VALUES.map((status) => planOf(nonSiteManager(JOB_A, JOB_B), status).maySendForRepair).join(","),
+            "false,false,false,false"
+        );
+        check("  and a site manager on no job is refused an item in repair, as a retirement is", shape(planOf(actor(), ASSET_STATUS.IN_REPAIR)), `null/false/false/0/${ASSET_TRANSITION_COPY.noJob}`);
+        check("  and refused the sending from stock", shape(planOf(actor(), ASSET_STATUS.IN_STOCK)), `null/false/false/0/${ASSET_TRANSITION_COPY.noJob}`);
+
+        const fromStock = planOf(site, ASSET_STATUS.IN_STOCK);
+        const away = planOf(site, ASSET_STATUS.IN_REPAIR);
+        const outPlan = planOf(site, ASSET_STATUS.OUT);
+        const read = (plan, input) => {
+            const r = readSubmission(plan, input);
+            return `${r.event}/${r.jobRecordId}/${r.checkedOutTo}/${r.stale}/${r.refusal}`;
+        };
+        log("");
+        log("what a repair's submission may be, and which job its row takes:");
+        check(
+            "a sending from stock takes the asset's job, whatever the reader's",
+            read(fromStock, { event: ASSET_EVENT.SENT_FOR_REPAIR, currentJobRecordId: "recJobZ" }),
+            "Sent for repair/recJobZ/null/false/null"
+        );
+        check(
+            "  a submitted job and name beside it are dropped",
+            read(fromStock, { event: ASSET_EVENT.SENT_FOR_REPAIR, jobId: JOB_A.id, checkedOutTo: "Dana K", currentJobRecordId: "recJobZ" }),
+            "Sent for repair/recJobZ/null/false/null"
+        );
+        check("  and with no job on the asset it hands back none, for the writer to refuse", read(fromStock, { event: ASSET_EVENT.SENT_FOR_REPAIR }), "Sent for repair/null/null/false/null");
+        check(
+            "the return takes the asset's job too, for a reader on two jobs who chose none",
+            read(away, { event: ASSET_EVENT.RETURNED_FROM_REPAIR, jobId: "", currentJobRecordId: "recJobZ" }),
+            "Returned from repair/recJobZ/null/false/null"
+        );
+        const nothingSaved = ASSET_TRANSITION_COPY.scannedFirst({ attempted: ASSET_EVENT.SENT_FOR_REPAIR });
+        check("an item that is out may not be sent: a stale page", read(outPlan, { event: ASSET_EVENT.SENT_FOR_REPAIR, currentJobRecordId: "recJobZ" }), `null/null/null/true/${nothingSaved}`);
+        check("  nor one already in repair", read(away, { event: ASSET_EVENT.SENT_FOR_REPAIR, currentJobRecordId: "recJobZ" }), `null/null/null/true/${nothingSaved}`);
+        check(
+            "  nor may one in repair be checked out",
+            read(away, { ...CHECKING_OUT, jobId: JOB_A.id, currentJobRecordId: "recJobZ" }),
+            `null/null/null/true/${ASSET_TRANSITION_COPY.scannedFirst({ attempted: ASSET_EVENT.CHECKED_OUT })}`
+        );
+        check(
+            "  nor one in stock returned",
+            read(fromStock, { event: ASSET_EVENT.RETURNED_FROM_REPAIR, currentJobRecordId: "recJobZ" }),
+            `null/null/null/true/${ASSET_TRANSITION_COPY.scannedFirst({ attempted: ASSET_EVENT.RETURNED_FROM_REPAIR })}`
+        );
+        check(
+            "  while a check-out from stock still takes the reader's chosen job",
+            read(fromStock, { ...CHECKING_OUT, jobId: JOB_B.id, currentJobRecordId: "recJobZ" }),
+            "Checked out/recJobB/Dana K/false/null"
+        );
+        check("a refused plan refuses a sending too", read(planOf(actor(), ASSET_STATUS.IN_STOCK), { event: ASSET_EVENT.SENT_FOR_REPAIR, currentJobRecordId: "recJobZ" }), `null/null/null/false/${ASSET_TRANSITION_COPY.noJob}`);
+
+        log("");
+        log("what the press asks before it records:");
+        check(
+            "the return records on the press however many jobs the reader holds, and the scans as before",
+            `${asksBeforeRecording(away)} ${asksBeforeRecording(planOf(actor(JOB_A), ASSET_STATUS.IN_REPAIR))} ${asksBeforeRecording(fromStock)} ${asksBeforeRecording(outPlan)} ${asksBeforeRecording(planOf(actor(JOB_A), ASSET_STATUS.OUT))}`,
+            "false false true true false"
+        );
+        check(
+            "  the press takes the reader's job for a scan alone",
+            ASSET_STATUS_VALUES.map((status) => pressTakesJob(planOf(site, status))).join(","),
+            "true,true,false,false"
+        );
+        const awayFields = fieldRefusals(away, { jobId: "", checkedOutTo: "" });
+        check("  and the return's fields refuse nothing", `${awayFields.jobRefusal}|${awayFields.nameRefusal}`, "null|null");
+
+        log("");
+        log("the words, by value:");
+        check(
+            "the two controls, the design's",
+            `${ASSET_TRANSITION_COPY.control[ASSET_EVENT.SENT_FOR_REPAIR]} | ${ASSET_TRANSITION_COPY.control[ASSET_EVENT.RETURNED_FROM_REPAIR]}`,
+            "Send for repair | Return from repair"
+        );
+        check(
+            "  their working words",
+            `${ASSET_TRANSITION_COPY.working[ASSET_EVENT.SENT_FOR_REPAIR]} | ${ASSET_TRANSITION_COPY.working[ASSET_EVENT.RETURNED_FROM_REPAIR]}`,
+            "Sending for repair… | Returning from repair…"
+        );
+        check(
+            "a press a sending got in front of",
+            JSON.stringify(ASSET_TRANSITION_COPY.moved({ by: "Jisoo Park", event: ASSET_EVENT.SENT_FOR_REPAIR, at: "2026-10-15T14:00:00.000Z", attempted: ASSET_EVENT.CHECKED_OUT })),
+            JSON.stringify(["Jisoo Park already sent this for repair on ", { at: "2026-10-15T14:00:00.000Z" }, ". Your check-out wasn't saved."])
+        );
+        check(
+            "  a return a return got in front of, which names no noun",
+            JSON.stringify(ASSET_TRANSITION_COPY.moved({ by: "Jisoo Park", event: ASSET_EVENT.RETURNED_FROM_REPAIR, at: "2026-10-15T14:00:00.000Z", attempted: ASSET_EVENT.RETURNED_FROM_REPAIR })),
+            JSON.stringify(["Jisoo Park already returned this from repair on ", { at: "2026-10-15T14:00:00.000Z" }, ". Nothing was saved."])
+        );
+        check("  and a sending refused with no entry read", nothingSaved, "Someone else scanned this first. Nothing was saved.");
+
+        log("");
+        log("the action, off its source:");
+        const action = parseFile(ACTION);
+        const recordFn = resolveFunction(action.ast, "recordAssetEventAction");
+        check("the submission is read with the asset's own job beside it", argumentSource({ ast: recordFn, source: action.source }, "readSubmission", "currentJobRecordId"), "asset.job?.[0]");
+        check("  and the row takes the job the submission hands back", argumentSource({ ast: recordFn, source: action.source }, "writeEvent", "jobRecordId"), "jobRecordId");
+
+        log("");
+        log("where each control stands, off the sources:");
+        const provider = parseFile(PROVIDER).source;
+        assert("the provider holds which event is on its way, set by every send", /const send = \(formData\) => \{\s*setSending\(String\(formData\.get\("event"\) \?\? ""\)\);\s*startTransition\(\(\) => formAction\(formData\)\);\s*\};/.test(provider));
+        assert("  and splits the wait: the press's, and the menu's sending", /pending: pending && !repairing,\s*repairPending: pending && repairing,/.test(provider) && /const repairing = sending === ASSET_EVENT\.SENT_FOR_REPAIR;/.test(provider));
+        assert(
+            "  the menu's sending posts the asset and the event alone",
+            /sendForRepair: \(\) => \{\s*const formData = new FormData\(\);\s*formData\.set\("assetId", assetId\);\s*formData\.set\("event", ASSET_EVENT\.SENT_FOR_REPAIR\);\s*send\(formData\);\s*\},/.test(provider)
+        );
+        const opener = parseFile(OPENER).source;
+        assert("More actions offers it only where the plan does", /const maySendForRepair = Boolean\(transition\?\.plan\.maySendForRepair\);/.test(opener) && /\.\.\.\(maySendForRepair\s*\?/.test(opener));
+        assert(
+            "  above the retirement, in the control's words, handing focus to its button and sending",
+            /key: "repair",\s*label: ASSET_TRANSITION_COPY\.control\[ASSET_EVENT\.SENT_FOR_REPAIR\],\s*onSelect: \(\) => \{\s*buttonRef\.current\?\.focus\(\);\s*setOpen\(false\);\s*transition\.sendForRepair\(\);/.test(opener) &&
+                opener.indexOf('key: "repair"') < opener.indexOf('key: "retire"')
+        );
+        assert("  in the menu's plain tone, the retirement alone Destructive", (opener.match(/tone: "danger"/g) ?? []).length === 1 && !/key: "repair",[^}]*tone:/.test(opener));
+        assert(
+            "  and the button busy while it is on its way: said, turned away, and the spinner over its dots",
+            /const busy = Boolean\(transition\?\.repairPending\);/.test(opener) &&
+                /aria-busy=\{busy \|\| undefined\}\s*aria-disabled=\{busy \|\| undefined\}\s*data-busy=\{busy \|\| undefined\}/.test(opener) &&
+                /if \(busy\) return;/.test(opener) &&
+                /<ButtonLabel size=\{phone \? "xl" : "lg"\} busyLabel=\{ASSET_TRANSITION_COPY\.working\[ASSET_EVENT\.SENT_FOR_REPAIR\]\}>/.test(opener)
+        );
+        const dialogSource = parseFile(DIALOG).source;
+        assert("the desk's press posts a job only for a scan", /\{pressTakesJob\(plan\) && <input type="hidden" name="jobId" value=\{one\.id\} \/>\}/.test(dialogSource));
+        assert("  says which event it sends", /if \(!asks\) \{\s*sends\(plan\.event\);\s*return;\s*\}/.test(dialogSource));
+        assert("  and locks while the menu's sending is on its way", /<FormBusy busy=\{repairPending \? "action" : false\}>/.test(dialogSource));
+        const barSource = parseFile(BAR).source;
+        assert("the foot bar draws the pill and posts a job only for a scan", /const asksJob = pressTakesJob\(plan\);/.test(barSource) && /\{asksJob && <input type="hidden" name="jobId" value=\{kept\} \/>\}/.test(barSource) && /\{asksJob && \(\s*<Field label=\{COPY\.jobLabel\}/.test(barSource));
+        const pageSource = parseFile(PAGE).source;
+        assert("the desk's header draws More actions for a sending or a retirement", /\{\(transition\.maySendForRepair \|\| transition\.mayRetire\) && <MoreActions \/>\}/.test(pageSource) && /\(transition\.event \|\| transition\.maySendForRepair \|\| transition\.mayRetire\) && \(/.test(pageSource));
+        log("");
+    }
+
     // ── 0: whether this reader records at all (#506) ──────────────────────
     // A READER WHO IS NOT A SITE MANAGER IS OFFERED NOTHING AND TOLD NOTHING, on every status
     // and whatever their jobs: no event, no retirement, no job and no refusal, which is what
@@ -270,7 +420,7 @@ export function run({ check, assert, log }) {
     check(
         "  while the same reader marked a site manager is offered each status's own",
         offeredTo({ ...nonSiteManager(JOB_A, JOB_B), isSiteManager: true }),
-        `${ASSET_STATUS.IN_STOCK}: ${ASSET_EVENT.CHECKED_OUT}/true/2/null, ${ASSET_STATUS.OUT}: ${ASSET_EVENT.CHECKED_IN}/true/2/null, ${ASSET_STATUS.RETIRED}: null/false/0/${ASSET_TRANSITION_COPY.noTransition}`
+        `${ASSET_STATUS.IN_STOCK}: ${ASSET_EVENT.CHECKED_OUT}/true/2/null, ${ASSET_STATUS.OUT}: ${ASSET_EVENT.CHECKED_IN}/true/2/null, ${ASSET_STATUS.IN_REPAIR}: ${ASSET_EVENT.RETURNED_FROM_REPAIR}/true/2/null, ${ASSET_STATUS.RETIRED}: null/false/0/${ASSET_TRANSITION_COPY.noTransition}`
     );
 
     // ── 1: what a status and a person are offered ──────────────────────────
@@ -322,7 +472,7 @@ export function run({ check, assert, log }) {
     // nothing, which is lib/assetStatus.js's guarantee reaching this caller.
     let threw = null;
     try {
-        planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: "In Repair" });
+        planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: "Lost" });
     } catch (err) {
         threw = err.message;
     }
@@ -334,7 +484,7 @@ export function run({ check, assert, log }) {
     const good = readSubmission(inStock, { ...CHECKING_OUT, jobId: JOB_A.id });
     check("the offered event and the actor's own job pass", good.refusal, null);
     check("  and what comes back is the PLAN's event", good.event, ASSET_EVENT.CHECKED_OUT);
-    check("  with the job resolved from the plan's list", good.job.jobCode, "26-DEMO-01");
+    check("  with the job resolved from the plan's list", good.jobRecordId, "recJobA");
 
     const stale = readSubmission(inStock, { ...CHECKING_OUT, event: ASSET_EVENT.CHECKED_IN, jobId: JOB_A.id });
     check("a submission naming the other event is refused", stale.event, null);
@@ -358,7 +508,7 @@ export function run({ check, assert, log }) {
     // THE POINT OF THAT REFUSAL, stated as an assertion rather than only in prose:
     // without it the action would derive `Checked in` from the stored status and
     // record the opposite of what the button said.
-    check("  never falling through to the derived event", stale.job, null);
+    check("  never falling through to the derived event", stale.jobRecordId, null);
 
     check("an event the vocabulary does not hold is refused", readSubmission(inStock, { ...CHECKING_OUT, event: "Job Changed", jobId: JOB_A.id }).event, null);
     check("an empty event is refused", readSubmission(inStock, { ...CHECKING_OUT, event: "", jobId: JOB_A.id }).event, null);
@@ -560,8 +710,18 @@ export function run({ check, assert, log }) {
         );
     });
     const success = returns.filter((r) => r.refusal === "null");
-    check("it has one return that is not a refusal", success.length, 1);
-    check("  and that one hands back the PLAN's event", success[0]?.event, "plan.event");
+    // TWO SINCE #531: a repair's, with the asset's job, and a scan's, with the chosen one.
+    check("it has two returns that are not a refusal, a repair's and a scan's", success.length, 2);
+    check("  and both hand back the PLAN's offer", success.map((r) => r.event).join(" "), "offered offered");
+    assert(
+        "  which is the plan's press or its repair, matched to the submission and never taken from it (#531)",
+        /const offered = \[plan\.event, plan\.maySendForRepair \? ASSET_EVENT\.SENT_FOR_REPAIR : null\]\.find\(\s*\(candidate\) => candidate !== null && candidate === event\s*\);/.test(module_.source)
+    );
+    check(
+        "  the repair's carrying the asset's job, the scan's the one chosen",
+        success.map((r) => r.jobRecordId).join(" | "),
+        "currentJobRecordId ?? null | fields.job.id"
+    );
     assert(`  never the submitted one (${returns.length} returns read)`, returns.length >= 3);
 
     // ── 4: the sentence for a transition that moves the asset ──────────
@@ -623,8 +783,15 @@ export function run({ check, assert, log }) {
 
     // THE CONTROL IS BUILT FROM THE VOCABULARY, so an event a status can offer
     // cannot arrive without a word for it. That is `summarizeAssetCategories`' argument for
-    // drawing all three counts, and it is the assertion a fifth event would fail.
-    const offerable = [...new Set(Object.values(EVENT_OFFERED_BY_STATUS).filter(Boolean))];
+    // drawing every count, and it is the assertion a new event fails. What is offered is the
+    // press's event of each status and, since #531, `Sent for repair` from the menu.
+    const offerable = [
+        ...new Set([
+            ...Object.values(EVENT_OFFERED_BY_STATUS).filter(Boolean),
+            ...(Object.values(MAY_SEND_FOR_REPAIR_FROM_STATUS).some(Boolean) ? [ASSET_EVENT.SENT_FOR_REPAIR] : []),
+        ]),
+    ];
+    check("the events a person may be offered", offerable.join(" | "), "Checked out | Checked in | Returned from repair | Sent for repair");
     const wordless = offerable.filter((e) => !ASSET_TRANSITION_COPY.control[e]);
     check(`every offerable event has a control word${wordless.length ? ` (${wordless})` : ""}`, wordless.length, 0);
     const spare = Object.keys(ASSET_TRANSITION_COPY.control).filter((e) => !offerable.includes(e));
@@ -649,12 +816,19 @@ export function run({ check, assert, log }) {
     // WHAT THE LATEST ENTRY DID AND WHAT THE PRESS WAS (#463), keyed by the event as the
     // control is, so a fifth event cannot arrive without them.
     check(
-        "every offerable event has an act and a noun",
-        offerable.filter((e) => !ASSET_TRANSITION_COPY.movedAct[e] || !ASSET_TRANSITION_COPY.eventNoun[e]).join(", "),
+        "every offerable event has an act",
+        offerable.filter((e) => !ASSET_TRANSITION_COPY.movedAct[e]).join(", "),
         ""
     );
+    // A NOUN FOR THE SCANS ALONE (#531): a refused repair says `Nothing was saved.`, which
+    // names no noun the repair has none for.
+    check("  and the scans a noun", Object.keys(ASSET_TRANSITION_COPY.eventNoun).join(" | "), "Checked out | Checked in");
     check("  the noun hyphenated, as the design writes it since 2026-10-05", Object.values(ASSET_TRANSITION_COPY.eventNoun).join(" | "), "check-out | check-in");
-    check("  and the act a verb with none", Object.values(ASSET_TRANSITION_COPY.movedAct).join(" | "), "checked this out | checked this in");
+    check(
+        "  and the act a verb with none",
+        Object.values(ASSET_TRANSITION_COPY.movedAct).join(" | "),
+        "checked this out | checked this in | sent this for repair | returned this from repair"
+    );
 
     // IMPORTED RATHER THAN RE-SPELLED. Three words are the same control and the
     // same rule on two screens, so a second copy is a second word for one fact the
@@ -1036,7 +1210,7 @@ export function run({ check, assert, log }) {
     });
     assert("both controls stand in the branch where there is no refusal", guarded);
     // AND EACH IS THEN ASKED FOR SEPARATELY, because the two answers come from two
-    // maps that agree only on today's three statuses. Deriving one control's
+    // maps that agree only on today's four statuses. Deriving one control's
     // presence from the other's would be the coincidence lib/assetStatus.js records.
     assert("the transition control is gated on the offered event", /\{transition\.event && <TransitionDialog /.test(page.source));
     // `More actions` holds the retirement beside the transition at a desk, asked of the plan's
@@ -1044,7 +1218,7 @@ export function run({ check, assert, log }) {
     // code no asset carries, since its menu ends on the account (#495).
     check(
         "  and More actions holds the retirement at a desk on its own answer, and stands in every phone top bar (#495)",
-        `${(page.source.match(/\{transition\.mayRetire && <MoreActions \/>\}/g) ?? []).length} ${(page.source.match(/<MoreActions phone account=\{account\} \/>/g) ?? []).length}`,
+        `${(page.source.match(/\{\(transition\.maySendForRepair \|\| transition\.mayRetire\) && <MoreActions \/>\}/g) ?? []).length} ${(page.source.match(/<MoreActions phone account=\{account\} \/>/g) ?? []).length}`,
         "1 2"
     );
     // A RETIRED ASSET SHOWS NOTHING IN THE ACTIONS' PLACE AT A DESK (1f); any other refusal is
@@ -1277,7 +1451,7 @@ export function run({ check, assert, log }) {
     check("  where pressed is a press for the event offered now", initSource(barFn ?? {}, bar.source, "pressed"), "pressedFor === plan.event");
     check("its press submits, is never disabled, and says its event's working word", `${attributeSources(barFn ?? {}, bar.source, "Button", "type").join()} ${attributeSources(barFn ?? {}, bar.source, "Button", "disabled").length} ${attributeSources(barFn ?? {}, bar.source, "Button", "busyLabel").join()}`, '"submit" 0 {COPY.working[plan.event]}');
     check("  at the phone's size", attributeSources(barFn ?? {}, bar.source, "Button", "size").join(), '"xl"');
-    check("  while what it holds is busy with it", attributeSources(barFn ?? {}, bar.source, "FormBusy", "busy").join(), "{pending}");
+    check("  while what it holds is busy with it, or locked while the menu's sending is on its way (#531)", attributeSources(barFn ?? {}, bar.source, "FormBusy", "busy").join(), '{repairPending ? "action" : pending}');
     check("its job takes the dialog's rule", initSource(barFn ?? {}, bar.source, "kept"), "chosenJobId(plan.jobs, jobId)");
     assert("  restarted whenever the plan stops holding it, before the choice is read", /if \(kept !== jobId\) setJobId\(kept\);/.test(barSource) && barSource.indexOf("setJobId(kept)") < barSource.indexOf("const chosen ="));
     check("it draws no move notice, which is the desk's dialog's", callsTo(barFn ?? {}, "jobMoveNotice").length, 0);

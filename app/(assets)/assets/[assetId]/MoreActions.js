@@ -1,11 +1,13 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
+import { ButtonLabel } from "@/app/components/Controls";
 import Icon from "@/app/components/Icon";
 import { ActionMenu } from "@/app/components/Menu";
 import { useTooltip } from "@/app/components/Tooltip";
 import { menuButtonKey } from "@/lib/controls";
 import { NAVIGATION_COPY } from "@/lib/navigation";
+import { ASSET_EVENT } from "@/lib/assetStatus";
 import { ASSET_COPY } from "@/lib/assetView";
 import { ASSET_TRANSITION_COPY } from "@/lib/assetTransition";
 import { useAssetTransition } from "./AssetTransition";
@@ -22,12 +24,21 @@ function Dots({ phone }) {
  * one press away; the question it opens is the retirement's own (`RetirementConfirm`), as
  * #458 built it to be opened.
  *
+ * AND SINCE #531 IT HOLDS `Send for repair` ABOVE IT, from stock alone (1f, 1j-a): an item
+ * to its maker, in Ink at both widths, where the retirement is 0f's Destructive. It asks
+ * nothing — the return undoes it — so choosing it hands focus to this button, as the
+ * retirement does, and sends at once through the page's one answer; a refusal stands under
+ * the status as a press's does (1k). While it is on its way this button is 0f's Working: busy
+ * to assistive tech, its press turned away, the spinner laid over its dots after the wait,
+ * and its `-ing` word heard and not seen. The design draws no wait for it; that is 0f's rule
+ * that a wait is said in what sent it, and the menu has closed.
+ *
  * WAI-ARIA'S MENU BUTTON, AS THE ACCOUNT AT THE RAIL'S FOOT IS (#478). The button says it opens
  * a menu and whether the menu is open; Enter, Space and Down open it on its first item and Up
  * on its last; the menu takes focus and the keys from there, and Escape hands focus back here.
- * Its one item, `Retire this item`, is 0f's Destructive, and choosing it hands focus to this
- * button before the question opens — so the question's every way out comes back here, which
- * the browser's modal dialog does for whatever held focus as it opened.
+ * `Retire this item` is 0f's Destructive, and choosing it hands focus to this button before
+ * the question opens — so the question's every way out comes back here, which the browser's
+ * modal dialog does for whatever held focus as it opened.
  *
  * ONE NAME AT BOTH WIDTHS, `More actions`, and at a desk its tooltip — one string, as the
  * rail's icons have (0k: 6 above, not while its menu shows). The design names the phone's
@@ -43,11 +54,14 @@ function Dots({ phone }) {
  * no asset carries, a reader on no job, a reader who is not a site manager (#506) — the menu
  * holds the account alone, with no rule, and
  * there it needs no transition: the screen saying a code is on no asset has none. The desk's
- * menu stays the retirement alone, since the rail's foot holds the account there.
+ * menu holds the record's acts alone — `Send for repair` from stock and the retirement —
+ * since the rail's foot holds the account there.
  */
 export default function MoreActions({ phone = false, account = null }) {
     const transition = useAssetTransition();
+    const maySendForRepair = Boolean(transition?.plan.maySendForRepair);
     const mayRetire = Boolean(transition?.plan.mayRetire);
+    const busy = Boolean(transition?.repairPending);
     const [open, setOpen] = useState(false);
     const [focusOn, setFocusOn] = useState("first");
     const buttonRef = useRef(null);
@@ -78,21 +92,30 @@ export default function MoreActions({ phone = false, account = null }) {
                 aria-expanded={open}
                 aria-controls={open ? menuId : undefined}
                 aria-label={word}
-                onClick={() => (open ? close("toggle") : openOn("first"))}
+                aria-busy={busy || undefined}
+                aria-disabled={busy || undefined}
+                data-busy={busy || undefined}
+                onClick={() => {
+                    if (busy) return;
+                    if (open) close("toggle");
+                    else openOn("first");
+                }}
                 onKeyDown={(event) => {
                     const where = menuButtonKey(event);
-                    if (!where || open) return;
+                    if (!where || open || busy) return;
                     event.preventDefault();
                     openOn(where);
                 }}
                 {...(open ? {} : tip.targetProps(word))}
                 className={
                     phone
-                        ? "flex aspect-square h-mobile-touch-target shrink-0 items-center justify-center rounded-full text-foreground-muted aria-expanded:bg-background-muted aria-expanded:text-foreground-default"
-                        : "flex aspect-square h-control shrink-0 items-center justify-center rounded-control text-foreground-default hover:bg-hover"
+                        ? "group/button relative flex aspect-square h-mobile-touch-target shrink-0 items-center justify-center rounded-full text-foreground-muted aria-expanded:bg-background-muted aria-expanded:text-foreground-default"
+                        : "group/button relative flex aspect-square h-control shrink-0 items-center justify-center rounded-control text-foreground-default not-aria-disabled:hover:bg-hover"
                 }
             >
-                <Dots phone={phone} />
+                <ButtonLabel size={phone ? "xl" : "lg"} busyLabel={ASSET_TRANSITION_COPY.working[ASSET_EVENT.SENT_FOR_REPAIR]}>
+                    <Dots phone={phone} />
+                </ButtonLabel>
             </button>
             <ActionMenu
                 id={menuId}
@@ -102,6 +125,19 @@ export default function MoreActions({ phone = false, account = null }) {
                 look="record"
                 focusOn={focusOn}
                 items={[
+                    ...(maySendForRepair
+                        ? [
+                              {
+                                  key: "repair",
+                                  label: ASSET_TRANSITION_COPY.control[ASSET_EVENT.SENT_FOR_REPAIR],
+                                  onSelect: () => {
+                                      buttonRef.current?.focus();
+                                      setOpen(false);
+                                      transition.sendForRepair();
+                                  },
+                              },
+                          ]
+                        : []),
                     ...(mayRetire
                         ? [
                               {

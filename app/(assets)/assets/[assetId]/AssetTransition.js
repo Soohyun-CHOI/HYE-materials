@@ -2,6 +2,7 @@
 
 import { Fragment, createContext, startTransition, useActionState, useContext, useState } from "react";
 import Instant from "@/app/components/Instant";
+import { ASSET_EVENT } from "@/lib/assetStatus";
 import { ASSET_TRANSITION_COPY as COPY } from "@/lib/assetTransition";
 import { recordAssetEventAction } from "./actions";
 import RetirementConfirm from "./RetirementConfirm";
@@ -29,6 +30,15 @@ import RetirementConfirm from "./RetirementConfirm";
  * beside the transition and the phone's in its top bar (1f, 1j), one question for both. It
  * holds its own answer (`RetirementConfirm`), and whatever opened it gets focus back: the
  * menu hands focus to its button before it opens the question.
+ *
+ * SENDING AN ITEM FOR REPAIR IS THE SAME ACTION FROM THE MENU, AND ITS WAIT IS THE MENU'S
+ * (#531). `More actions` sends `Sent for repair` through the one answer, so a refusal stands
+ * where the press's does, under the status (1k). The design draws no confirmation and no
+ * wait for it, so 0f's rule says it in what sent it: the menu has closed, focus is on its
+ * button, and the button is busy while the sending is on its way — so this holds which event
+ * is on its way (`sending`), set by every submission as it goes, and `pending` is the press's
+ * and its dialog's alone. While the menu's is on its way the press locks rather than
+ * drawing a wait it is not doing.
  *
  * WHAT A DESK'S DIALOG HELD GOES TO THE FOOT BAR WHEN THE WINDOW CROSSES THE PHONE'S EDGE
  * (#495). The header row the dialog opens from is not drawn below the edge, so the frame
@@ -66,6 +76,13 @@ export default function AssetTransition({ plan, assetId, itemName, children }) {
     const [opening, setOpening] = useState(0);
     const [retiring, setRetiring] = useState(false);
     const [carried, setCarried] = useState(null);
+    // Which event the latest submission sent (#531), so the wait is drawn on what sent it.
+    const [sending, setSending] = useState(null);
+    const repairing = sending === ASSET_EVENT.SENT_FOR_REPAIR;
+    const send = (formData) => {
+        setSending(String(formData.get("event") ?? ""));
+        startTransition(() => formAction(formData));
+    };
     // The opening ends with the event it was for. A landing takes it away with the page's
     // state and a refusal does not, so two refusals that flip the status out and back would
     // otherwise find it naming the event again and open the dialog with nobody asking.
@@ -77,8 +94,19 @@ export default function AssetTransition({ plan, assetId, itemName, children }) {
         assetId,
         answer,
         formAction,
-        pending,
-        send: (formData) => startTransition(() => formAction(formData)),
+        // The press's and its dialog's wait, and the menu's (#531): one action, two places it
+        // is drawn.
+        pending: pending && !repairing,
+        repairPending: pending && repairing,
+        send,
+        // A press that posts its own form says which event it sends, as `send` does.
+        sends: (event) => setSending(event),
+        sendForRepair: () => {
+            const formData = new FormData();
+            formData.set("assetId", assetId);
+            formData.set("event", ASSET_EVENT.SENT_FOR_REPAIR);
+            send(formData);
+        },
         open,
         opening,
         openDialog: () => {

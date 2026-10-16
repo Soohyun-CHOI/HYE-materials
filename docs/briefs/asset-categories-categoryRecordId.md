@@ -144,7 +144,7 @@ retired one still counts.
 
 **evidence.** One entry per asset, **newest first** (1d), each carrying
 three facts: its printed `Asset ID`, which is the way into that asset's
-own screen; its status, one of `In stock`, `Out` or `Retired`, and after an
+own screen; its status, one of `In stock`, `Out`, `In repair` (#531) or `Retired`, and after an
 `Out` who it was checked out to, `Out · Hyunwoo Kang`; and the day it last
 changed, `09/22/2026` — the day of its latest scan, retirement or registration,
 in the reader's own zone (1d, #520). Each carries its box as well, for a site
@@ -376,9 +376,10 @@ nothing from either.
 either screen, so this page, the category list and the asset's own screen
 cannot disagree about where an asset is.
 
-**All three statuses reach this column.** A check-out, a check-in and a
-retirement each write the status it shows (#362, #363), so an entry reads
-`In stock`, `Out` or `Retired`, and a design draws for three. This said every
+**Every status reaches this column.** A check-out, a check-in, a sending for
+repair and a retirement each write the status it shows (#362, #363, #531), so an
+entry reads `In stock`, `Out`, `In repair` or `Retired`, and a design draws
+for four — `In repair` behind 0g's Away, the dashed ring. This said every
 entry would read `In Stock` until a later phase, which stopped being true
 when those issues wrote the other two; corrected by #443.
 
