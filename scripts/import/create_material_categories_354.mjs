@@ -59,6 +59,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
 
 import {
     CATEGORY_LABEL_FORMULA,
@@ -322,13 +323,14 @@ function log(message = "") {
 
 async function main() {
     const dryRun = process.argv.includes("--dry-run");
-    const token = process.env.AIRTABLE_API_KEY;
-    const baseId = process.env.AIRTABLE_BASE_ID;
-
-    if (!token || !baseId) {
-        log("AIRTABLE_API_KEY and AIRTABLE_BASE_ID must be set — run with --env-file=.env.local");
+    let airtable;
+    try {
+        airtable = resolveAirtableBase();
+    } catch (error) {
+        log(`${error.message} — run with --env-file=.env.local`);
         return 1;
     }
+    const { apiKey: token, baseId } = airtable;
 
     log(`${TABLE_NAME} — create and fill from ${CSV_PATH}`);
     log(dryRun ? "DRY RUN: nothing will be written.\n" : "");

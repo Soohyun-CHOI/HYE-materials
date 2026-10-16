@@ -81,6 +81,7 @@ import {
     readCatalog,
     readCategoryGroups,
 } from "../../lib/assetCategory.js";
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
 
 const API_ROOT = "https://api.airtable.com/v0";
 const META_ROOT = `${API_ROOT}/meta`;
@@ -338,12 +339,14 @@ function whyAside({ reason, missing, levels, of }) {
 
 async function main() {
     const apply = process.argv.includes("--apply");
-    const token = process.env.AIRTABLE_API_KEY;
-    const baseId = process.env.AIRTABLE_BASE_ID;
-    if (!token || !baseId) {
-        log("AIRTABLE_API_KEY and AIRTABLE_BASE_ID must be set — run with --env-file=.env.local");
+    let airtable;
+    try {
+        airtable = resolveAirtableBase();
+    } catch (error) {
+        log(`${error.message} — run with --env-file=.env.local`);
         return 1;
     }
+    const { apiKey: token, baseId } = airtable;
 
     const air = new Airtable(token, baseId);
     log(`classify_asset_categories_514 — base ${baseId}${apply ? "" : "  (DRY RUN — nothing is written; --apply writes)"}\n`);
@@ -497,7 +500,7 @@ async function main() {
     if (!apply && due > 0) return finish(air, 2, `dry run — ${due} change(s) due, nothing was written`);
 
     // --- verification is part of the run, and on a matching base it is the run ----
-    log(`\nverifying against the live base:`);
+    log(`\nverifying against the base it wrote:`);
     table = await air.table();
     const failures = [];
     const field = (name) => table.fields.find((f) => f.name === name);

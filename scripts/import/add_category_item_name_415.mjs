@@ -3,7 +3,7 @@
 //
 // WHY A SCRIPT FOR THIS. A schema edit leaves no diff of its own, so the only
 // record that it happened is here — the reason `docs/notes/verification.md` puts
-// a one-time run against the live base in this directory, and the reason
+// a one-time run against each base in this directory, and the reason
 // `add_material_category_356.mjs` next door exists in the shape this one copies.
 // Idempotent throughout: a second run finds the field, finds every row already
 // carrying its name, and writes nothing.
@@ -72,6 +72,10 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { CATEGORY_ITEM_NAME, CATEGORY_LEAF_CODE } from "../../lib/materialCategory.js";
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
+
+/** The base this run reaches (#534), resolved at the top of main(): the test base unless the run names the live one. */
+let airtable = null;
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CSV_PATH = join(HERE, "sources", "material_categories.csv");
@@ -115,7 +119,7 @@ async function api(root, method, path, body) {
     const res = await fetch(`${root}${path}`, {
         method,
         headers: {
-            Authorization: `Bearer ${process.env.AIRTABLE_API_KEY}`,
+            Authorization: `Bearer ${airtable.apiKey}`,
             "Content-Type": "application/json",
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -138,7 +142,7 @@ async function listAll(tableId, fields) {
         for (const f of fields) params.append("fields[]", f);
         params.set("pageSize", "100");
         if (offset) params.set("offset", offset);
-        const page = await must(DATA_ROOT, "GET", `/${process.env.AIRTABLE_BASE_ID}/${tableId}?${params}`);
+        const page = await must(DATA_ROOT, "GET", `/${airtable.baseId}/${tableId}?${params}`);
         out.push(...page.records);
         offset = page.offset;
     } while (offset);
@@ -148,7 +152,7 @@ async function listAll(tableId, fields) {
 /** Ten per request, which is Airtable's ceiling for a record PATCH. */
 async function writeBatches(tableId, updates) {
     for (let i = 0; i < updates.length; i += 10) {
-        await must(DATA_ROOT, "PATCH", `/${process.env.AIRTABLE_BASE_ID}/${tableId}`, {
+        await must(DATA_ROOT, "PATCH", `/${airtable.baseId}/${tableId}`, {
             records: updates.slice(i, i + 10),
         });
     }
@@ -202,7 +206,7 @@ function log(m = "") {
 
 async function revert(file) {
     const entries = readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
-    const tables = (await must(META_ROOT, "GET", `/bases/${process.env.AIRTABLE_BASE_ID}/tables`)).tables;
+    const tables = (await must(META_ROOT, "GET", `/bases/${airtable.baseId}/tables`)).tables;
     const table = tables.find((t) => t.name === TABLE);
     if (!table) { log(`  ${TABLE} not found in this base.`); return 1; }
 
@@ -217,11 +221,13 @@ async function revert(file) {
 }
 
 async function main() {
-    if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
-        log("AIRTABLE_API_KEY and AIRTABLE_BASE_ID must be set — run with --env-file=.env.local");
+    try {
+        airtable = resolveAirtableBase();
+    } catch (error) {
+        log(`${error.message} — run with --env-file=.env.local`);
         return 1;
     }
-    const baseId = process.env.AIRTABLE_BASE_ID;
+    const baseId = airtable.baseId;
 
     if (REVERT_FILE) return revert(REVERT_FILE);
     if (TRIAL_AT !== -1 && !(Number.isInteger(TRIAL_ROWS) && TRIAL_ROWS > 0)) {

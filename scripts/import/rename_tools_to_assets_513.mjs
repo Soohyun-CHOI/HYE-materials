@@ -71,6 +71,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ID_KINDS } from "../../lib/idSequence.js";
 import { refusesProtectedWrite } from "../protectedTables.mjs";
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
 
 const API_ROOT = "https://api.airtable.com/v0";
 const META_ROOT = `${API_ROOT}/meta`;
@@ -556,17 +557,19 @@ function finish(air, code, verdict) {
 }
 
 async function main() {
-    const token = process.env.AIRTABLE_API_KEY;
-    const baseId = process.env.AIRTABLE_BASE_ID;
-    if (!token || !baseId) {
-        log("AIRTABLE_API_KEY and AIRTABLE_BASE_ID must be set — run with --env-file=.env.local");
+    let airtable;
+    try {
+        airtable = resolveAirtableBase();
+    } catch (error) {
+        log(`${error.message} — run with --env-file=.env.local`);
         return 1;
     }
+    const { apiKey: token, baseId } = airtable;
     const air = new Airtable(token, baseId);
 
     if (REVERT_FILE) {
         const entries = readFileSync(REVERT_FILE, "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line));
-        if (refusesProtectedWrite({ script: "rename_tools_to_assets_513 --revert", writes: tablesWritten(entries), log })) {
+        if (refusesProtectedWrite({ script: "rename_tools_to_assets_513 --revert", baseId: air.baseId, writes: tablesWritten(entries), log })) {
             return finish(air, 1, "nothing was written");
         }
         await revert(air, REVERT_FILE);
@@ -589,14 +592,14 @@ async function main() {
     describe(tables, changes);
     // Asked of the dry run too, so the run that would be refused says so before anyone types
     // `--apply` (#531).
-    if (refusesProtectedWrite({ script: "rename_tools_to_assets_513", writes: tablesWritten(changes), log })) {
+    if (refusesProtectedWrite({ script: "rename_tools_to_assets_513", baseId: air.baseId, writes: tablesWritten(changes), log })) {
         return finish(air, 1, "nothing was written");
     }
     if (!APPLY) return finish(air, 2, `dry run — re-run with --apply to write these ${changes.length}`);
 
     await apply(air, changes);
 
-    log(`\nverifying against the live base:`);
+    log(`\nverifying against the base it wrote:`);
     const after = await plan(air);
     if (after.problems.length > 0 || after.changes.length > 0) {
         for (const p of after.problems) log(`  ${p}`);

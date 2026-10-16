@@ -662,7 +662,7 @@ export function run({ check, log, assert }) {
 
     // A call site names its parent as `TABLES.PURCHASE_REQUESTS`, so the composite
     // key cannot be read straight off the AST. lib/airtable/client.js cannot be
-    // imported here — it throws without AIRTABLE_API_KEY, which is the whole
+    // imported here — it throws without AIRTABLE_TEST_API_KEY, which is the whole
     // reason this tier exists — so TABLES is read from its own object literal
     // instead. That gives the check a second property for free: a call site whose
     // TABLES.X does not exist is caught rather than silently resolving to

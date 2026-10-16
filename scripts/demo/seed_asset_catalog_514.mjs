@@ -50,6 +50,7 @@
 
 import { ASSET_CATEGORY_FIELDS, composeItemName, readCatalog } from "../../lib/assetCategory.js";
 import { textMatchKey } from "../../lib/itemNaming.js";
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
 
 const API_ROOT = "https://api.airtable.com/v0";
 const META_ROOT = `${API_ROOT}/meta`;
@@ -173,12 +174,14 @@ async function inChunks(items, write) {
 async function main() {
     const apply = process.argv.includes("--apply");
     const revert = process.argv.includes("--revert");
-    const token = process.env.AIRTABLE_API_KEY;
-    const baseId = process.env.AIRTABLE_BASE_ID;
-    if (!token || !baseId) {
-        log("AIRTABLE_API_KEY and AIRTABLE_BASE_ID must be set — run with --env-file=.env.local");
+    let airtable;
+    try {
+        airtable = resolveAirtableBase();
+    } catch (error) {
+        log(`${error.message} — run with --env-file=.env.local`);
         return 1;
     }
+    const { apiKey: token, baseId } = airtable;
     const writing = apply || revert;
     const air = new Airtable(token, baseId);
     log(`seed_asset_catalog_514 — base ${baseId}${revert ? "  (REVERT)" : writing ? "" : "  (DRY RUN — nothing is written; --apply writes)"}\n`);

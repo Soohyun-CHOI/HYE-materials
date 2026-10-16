@@ -3,7 +3,7 @@
 //
 // WHY A SCRIPT FOR ONE FIELD. A schema edit leaves no diff of its own, so the
 // only record that it happened is here — `docs/notes/verification.md` puts a
-// one-time run against the live base in this directory for exactly that reason,
+// one-time run against each base in this directory for exactly that reason,
 // and `create_material_categories_354.mjs` is the neighbour doing the same job
 // for the table this field points at. It is idempotent: a second run finds the
 // field and creates nothing.
@@ -35,6 +35,11 @@
 // something failed, 2 nothing failed but something is incomplete (a dry run, or
 // the hand toggle is still outstanding).
 
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
+
+/** The base this run reaches (#534), resolved at the top of main(): the test base unless the run names the live one. */
+let airtable = null;
+
 const META_ROOT = "https://api.airtable.com/v0/meta";
 
 const PARENT_TABLE = "PR Items";
@@ -57,7 +62,7 @@ async function api(method, path, body) {
     const res = await fetch(`${META_ROOT}${path}`, {
         method,
         headers: {
-            Authorization: `Bearer ${process.env.AIRTABLE_API_KEY}`,
+            Authorization: `Bearer ${airtable.apiKey}`,
             "Content-Type": "application/json",
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -73,11 +78,13 @@ function log(m = "") {
 
 async function main() {
     const dryRun = process.argv.includes("--dry-run");
-    if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
-        log("AIRTABLE_API_KEY and AIRTABLE_BASE_ID must be set — run with --env-file=.env.local");
+    try {
+        airtable = resolveAirtableBase();
+    } catch (error) {
+        log(`${error.message} — run with --env-file=.env.local`);
         return 1;
     }
-    const baseId = process.env.AIRTABLE_BASE_ID;
+    const baseId = airtable.baseId;
 
     log(`${PARENT_TABLE}."${FIELD}" -> ${TARGET_TABLE}`);
     log(dryRun ? "DRY RUN: nothing will be written.\n" : "");

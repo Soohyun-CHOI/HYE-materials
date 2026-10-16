@@ -215,7 +215,7 @@ try {
     // by the sales tax, and `checkHeaderVariance` below then reports that gap as
     // the vendor's own arithmetic error, which is precisely the false accusation
     // #283 exists to remove. So this is the one thing that has to be checked
-    // against the LIVE base, and it is checked before anything else is claimed.
+    // against the base itself, and it is checked before anything else is claimed.
     const expected =
         (invoiceAfterItems.itemsSubtotal || 0) + 0 + TARIFF + SALES_TAX;
     // ANTI-VACUITY: what the total would be under the PRE-#283 formula. If the two

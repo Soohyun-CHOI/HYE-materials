@@ -1,15 +1,23 @@
-// No script writes `Assets` or `Asset Log` (#531).
+// No script writes `Assets` or `Asset Log` on the live base (#531).
 //
-// THE RULE. The two tables hold the site's records — every item registered and every event
-// recorded against one — and the app's own screens are their one writer. A script that would
-// write a row, a name or a description of either, or empty a table they link to, asks
-// `scripts/protectedTables.mjs` first and stops before its first write. This holds the module's
-// answer by value, and that every script that could write them asks it.
+// THE RULE. The two tables hold the site's records on the live base — every item registered and
+// every event recorded against one — and the app's own screens are their one writer there. A
+// script that would write a row, a name or a description of either, or empty a table they link
+// to, asks `scripts/protectedTables.mjs` first and stops before its first write. This holds the
+// module's answer by value, and that every script that could write them asks it.
+//
+// ON THE LIVE BASE ALONE, AND EVERY QUESTION NAMES ITS BASE (#534). The answer is judged by the
+// id of the base the run writes to, so it is held here on both bases by value — refused on
+// `LIVE_BASE_ID` and on no base at all, let through on any other — and every call a guarded
+// script makes passes a `baseId`, since a call that names none is refused wherever it runs and a
+// script that forgot would be a script that could not run on the test base either. A
+// description's question reads the base off the address, which it already carries.
 //
 // A DESCRIPTION ALONE IS THE ONE WRITE THAT GOES THROUGH (#531), and a script that makes one is
 // classified `describes`: it imports `refusesBeyondDescriptions`, every `fetch` it makes has that
 // guard deciding before it, it names no address but the Metadata API's, and it imports nothing but
-// built-ins and the guard's module — so no row request and no record writer of the app is in it.
+// built-ins, the guard's module and `lib/airtableBase.js` — so no row request and no record writer
+// of the app is in it.
 // The guard's answer is held by value here too, a name beside a description refused among it.
 //
 // WHICH SCRIPTS COULD, FOUND RATHER THAN LISTED. Every `.mjs`, `.js` and `.py` file under
@@ -44,6 +52,7 @@ import { join, relative } from "path";
 import { REPO_ROOT, calleeName, isFunctionNode, parentMap, parseSource, toPosix, walk } from "./_ast.mjs";
 import { tableEntriesFromSource } from "./table-field-names.mjs";
 import { PROTECTED_LINK_TARGETS, PROTECTED_TABLES, refusesBeyondDescriptions, refusesProtectedWrite } from "../../protectedTables.mjs";
+import { LIVE_BASE_ID } from "../../../lib/airtableBase.js";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "No script writes Assets or Asset Log (#531)";
@@ -51,11 +60,18 @@ export const title = "No script writes Assets or Asset Log (#531)";
 const GUARD = "refusesProtectedWrite";
 const DESCRIPTION_GUARD = "refusesBeyondDescriptions";
 const GUARD_MODULE = "scripts/protectedTables.mjs";
+const BASE_MODULE = "lib/airtableBase.js";
+
+/** A base that is not the live one, as a test base's id is shaped. */
+const OTHER_BASE_ID = "appTestBase00000";
 
 /** The one address a `describes` script may name. */
 const META_ROOT = "https://api.airtable.com/v0/meta";
 
-/** The two tables' ids on this base, read off its Metadata API on 2026-10-15 (#531). */
+/**
+ * The two tables' ids, read off the live base's Metadata API on 2026-10-15 (#531) — and the test
+ * base's too, which was made by duplicating it and kept every table and field id (#534).
+ */
 const PROTECTED_TABLE_IDS = ["tblXtmDonSyOyOvV3", "tblrox7y4akPKdbpF"];
 
 /** The app's actions that write the two tables, which a script driving the live app would name. */
@@ -193,6 +209,24 @@ export function unguardedWrites(ast, writes, guard = GUARD) {
 }
 
 /**
+ * Every guard call in a parsed source that names no `baseId`, as `at offset` (#534): its first
+ * argument must be an object literal carrying that property, by key, so a spread hiding it is a
+ * finding too.
+ */
+export function guardCallsWithoutBase(ast, guard = GUARD) {
+    const findings = [];
+    walk(ast, (node) => {
+        if (calleeName(node) !== guard) return;
+        const arg = node.arguments[0];
+        const named =
+            arg?.type === "ObjectExpression" &&
+            arg.properties.some((prop) => prop.type === "Property" && prop.key?.name === "baseId");
+        if (!named) findings.push(`at ${node.start}`);
+    });
+    return findings;
+}
+
+/**
  * What is wrong with a `describes` script (#531): a `fetch` with no deciding description guard
  * before it, an address that is not the Metadata API's, or an import of anything but a built-in
  * and the guard's module.
@@ -212,7 +246,7 @@ export function describerFindings(ast, fromPath) {
         if (node.type === "ImportDeclaration" && typeof node.source.value === "string") {
             const source = node.source.value;
             const target = toPosix(join(fromPath, "..", source)).replace(/^\.\//, "");
-            if (!source.startsWith("node:") && target !== GUARD_MODULE) findings.push(`imports ${source}`);
+            if (!source.startsWith("node:") && target !== GUARD_MODULE && target !== BASE_MODULE) findings.push(`imports ${source}`);
         }
     });
     return findings;
@@ -247,9 +281,10 @@ export function run({ check, assert, log }) {
     // ── the answer, by value ─────────────────────────────────────────────────
     log("");
     log("refusesProtectedWrite, by value:");
+    // On the live base unless a case names another — the base #531's answers were about.
     const ask = (input) => {
         const lines = [];
-        const refused = refusesProtectedWrite({ script: "probe", ...input, log: (line) => lines.push(line) });
+        const refused = refusesProtectedWrite({ script: "probe", baseId: LIVE_BASE_ID, ...input, log: (line) => lines.push(line) });
         return { refused, lines };
     };
     check("  a write to Assets is refused", ask({ writes: ["Assets"] }).refused, true);
@@ -266,15 +301,32 @@ export function run({ check, assert, log }) {
     check("  a name in another case is not one of them", ask({ writes: ["assets", "asset log"] }).refused, false);
     const said = ask({ writes: ["Assets", "Asset Log", "Assets"] }).lines;
     check("  a refusal says two lines", said.length, 2);
-    check("  the first names the script and each table once", said[0], "REFUSED, before any write: probe would write Assets and Asset Log.");
+    check("  the first names the script, each table once and the base", said[0], "REFUSED, before any write: probe would write Assets and Asset Log on the live base.");
     assert("  the second says why and that nothing was written", /site's records since #531/.test(said[1] ?? "") && /Nothing was written\.$/.test(said[1] ?? ""));
     check("  a run let through says nothing", ask({ writes: ["Vendors"] }).lines.length, 0);
-    check("  a wipe names the linked table it reaches", ask({ wipes: ["Vendors", "Jobs"] }).lines[0], "REFUSED, before any write: probe would write Jobs.");
+    check("  a wipe names the linked table it reaches", ask({ wipes: ["Vendors", "Jobs"] }).lines[0], "REFUSED, before any write: probe would write Jobs on the live base.");
+
+    log("");
+    log("refusesProtectedWrite, by the base it is asked about (#534):");
+    check("  a write to Assets on another base goes", ask({ baseId: OTHER_BASE_ID, writes: ["Assets"] }).refused, false);
+    check("  a write to Asset Log on another base goes", ask({ baseId: OTHER_BASE_ID, writes: ["Asset Log"] }).refused, false);
+    check("  emptying Jobs on another base goes", ask({ baseId: OTHER_BASE_ID, wipes: ["Jobs"] }).refused, false);
+    check("  and says nothing", ask({ baseId: OTHER_BASE_ID, writes: ["Assets"] }).lines.length, 0);
+    check("  a write to Assets on no named base is refused", ask({ baseId: undefined, writes: ["Assets"] }).refused, true);
+    check("  as on an empty one", ask({ baseId: "", writes: ["Assets"] }).refused, true);
+    check("  as on one that is not text", ask({ baseId: 0, writes: ["Asset Log"] }).refused, true);
+    check(
+        "  and says the base is not named",
+        ask({ baseId: undefined, writes: ["Assets"] }).lines[0],
+        "REFUSED, before any write: probe would write Assets on a base it does not name."
+    );
+    check("  no base and no protected table is not refused", ask({ baseId: undefined, writes: ["Vendors"] }).refused, false);
+    check("  the live id in another case is another base", ask({ baseId: LIVE_BASE_ID.toLowerCase(), writes: ["Assets"] }).refused, false);
 
     // ── a description alone, by value (#531) ────────────────────────────────
     log("");
     log("refusesBeyondDescriptions, by value:");
-    const BASE = "https://api.airtable.com/v0/meta/bases/appAbc123";
+    const BASE = `https://api.airtable.com/v0/meta/bases/${LIVE_BASE_ID}`;
     const FIELD = `${BASE}/tables/tblXtmDonSyOyOvV3/fields/fldMpl1xR9Sdwvehg`;
     const TABLE = `${BASE}/tables/tblXtmDonSyOyOvV3`;
     const send = (input) => {
@@ -293,14 +345,14 @@ export function run({ check, assert, log }) {
     check("  a description that is not text is refused", send({ method: "PATCH", url: FIELD, body: { description: null } }).refused, true);
     check("  no body is refused", send({ method: "PATCH", url: FIELD }).refused, true);
     check("  a GET carrying a body is refused", send({ method: "GET", url: `${BASE}/tables`, body: {} }).refused, true);
-    check("  a row read is refused", send({ method: "GET", url: "https://api.airtable.com/v0/appAbc123/Assets" }).refused, true);
-    check("  a row write is refused", send({ method: "PATCH", url: "https://api.airtable.com/v0/appAbc123/tblXtmDonSyOyOvV3", body: { description: "x" } }).refused, true);
+    check("  a row read is refused", send({ method: "GET", url: `https://api.airtable.com/v0/${LIVE_BASE_ID}/Assets` }).refused, true);
+    check("  a row write is refused", send({ method: "PATCH", url: `https://api.airtable.com/v0/${LIVE_BASE_ID}/tblXtmDonSyOyOvV3`, body: { description: "x" } }).refused, true);
     check("  a field created is refused", send({ method: "POST", url: `${TABLE}/fields`, body: { description: "x" } }).refused, true);
     // A body and an address that would go, so the method alone is what refuses these two.
     check("  a DELETE is refused", send({ method: "DELETE", url: FIELD, body: { description: "x" } }).refused, true);
     check("  a POST carrying a description alone is refused", send({ method: "POST", url: FIELD, body: { description: "x" } }).refused, true);
     check("  the field list itself is refused", send({ method: "PATCH", url: `${TABLE}/fields`, body: { description: "x" } }).refused, true);
-    check("  another host is refused", send({ method: "GET", url: "https://example.com/v0/meta/bases/appAbc123/tables" }).refused, true);
+    check("  another host is refused", send({ method: "GET", url: `https://example.com/v0/meta/bases/${LIVE_BASE_ID}/tables` }).refused, true);
     check("  a query on the schema read is refused", send({ method: "GET", url: `${BASE}/tables?include=x` }).refused, true);
     check("  no address is refused, and says so", send({ method: "GET" }).lines[0], "REFUSED, before sending: probe would send a request with no address.");
     const named = send({ method: "PATCH", url: FIELD, body: { name: "Status", description: "x" } }).lines;
@@ -308,6 +360,39 @@ export function run({ check, assert, log }) {
     check("  the first names what went beyond the description", named[0], "REFUSED, before sending: probe would send name beside a description.");
     assert("  the second says nothing was sent", /descriptions alone/.test(named[1] ?? "") && /Nothing was sent\.$/.test(named[1] ?? ""));
     check("  a request let through says nothing", send({ method: "PATCH", url: FIELD, body: { description: "x" } }).lines.length, 0);
+
+    log("");
+    log("refusesBeyondDescriptions, by the base in the address (#534):");
+    const OTHER = `https://api.airtable.com/v0/meta/bases/${OTHER_BASE_ID}`;
+    check("  a name on another base goes", send({ method: "PATCH", url: `${OTHER}/tables/tblXtmDonSyOyOvV3`, body: { name: "Assets" } }).refused, false);
+    check("  a field created on another base goes", send({ method: "POST", url: `${OTHER}/tables/tblXtmDonSyOyOvV3/fields`, body: { name: "x" } }).refused, false);
+    check(
+        "  a row write on another base goes",
+        send({ method: "PATCH", url: `https://api.airtable.com/v0/${OTHER_BASE_ID}/tblXtmDonSyOyOvV3`, body: {} }).refused,
+        false
+    );
+    check(
+        "  a row read with a query on another base goes",
+        send({ method: "GET", url: `https://api.airtable.com/v0/${OTHER_BASE_ID}/Assets?pageSize=1` }).refused,
+        false
+    );
+    check("  and says nothing", send({ method: "DELETE", url: `${OTHER}/tables/tblXtmDonSyOyOvV3` }).lines.length, 0);
+    check(
+        "  a row read with a query on the live base is refused",
+        send({ method: "GET", url: `https://api.airtable.com/v0/${LIVE_BASE_ID}/Assets?pageSize=1` }).refused,
+        true
+    );
+    check(
+        "  another base on another host is refused",
+        send({ method: "GET", url: `https://example.com/v0/meta/bases/${OTHER_BASE_ID}/tables` }).refused,
+        true
+    );
+    check(
+        "  plain http to another base is refused",
+        send({ method: "GET", url: `http://api.airtable.com/v0/meta/bases/${OTHER_BASE_ID}/tables` }).refused,
+        true
+    );
+    check("  an address naming no base is refused", send({ method: "GET", url: "https://api.airtable.com/v0/meta/bases" }).refused, true);
 
     // ── the inventory, both ways ─────────────────────────────────────────────
     log("");
@@ -342,6 +427,7 @@ export function run({ check, assert, log }) {
         }
         assert(`  ${path} imports ${GUARD} from ${GUARD_MODULE}`, importsGuard(ast, path));
         check(`    and asks before ${entry.writes.join(", ")}`, unguardedWrites(ast, entry.writes).join("; "), "");
+        check("    and every question names its base", guardCallsWithoutBase(ast).join("; "), "");
     }
     const wipe = parseSource(readFileSync(join(REPO_ROOT, "scripts/demo/wipe_base.mjs"), "utf8"), "wipe_base").ast;
     let wipesOrder = false;
@@ -384,6 +470,12 @@ export function run({ check, assert, log }) {
     const negated = `async function f() { if (!refusesProtectedWrite({ writes: ["Jobs"] })) await air.createRecords("x", []); }`;
     check("  a negated guard still decides", unguardedWrites(planted(negated), ["createRecords"]).join("; "), "");
     check("  a listed write never made is found", unguardedWrites(planted(good), ["create", "destroy"]).join("; "), "destroy is never called");
+    check("  a guard naming no base is found", guardCallsWithoutBase(planted(good)).length, 1);
+    const based = `if (refusesProtectedWrite({ script: "x", baseId: base.getId(), writes: [TABLES.ASSETS] })) process.exit(1);`;
+    check("  a guard naming its base passes", guardCallsWithoutBase(planted(based)).join("; "), "");
+    const spread = `const q = { baseId: "x" }; if (refusesProtectedWrite({ ...q, writes: ["Assets"] })) process.exit(1);`;
+    check("  a base hidden in a spread is found", guardCallsWithoutBase(planted(spread)).length, 1);
+    check("  a question by variable is found", guardCallsWithoutBase(planted(`if (refusesProtectedWrite(q)) process.exit(1);`)).length, 1);
 
     const describer = `import { refusesBeyondDescriptions } from "../protectedTables.mjs";
 const META_ROOT = "https://api.airtable.com/v0/meta";
@@ -415,6 +507,11 @@ async function request(method, path, body) {
         "imports ../../lib/airtable/client.js"
     );
     check("  a built-in import is not", describerFindings(planted(`import { join } from "node:path";\n${describer}`), describerAt).join("; "), "");
+    check(
+        "  the base's module is not",
+        describerFindings(planted(`import { resolveAirtableBase } from "../../lib/airtableBase.js";\n${describer}`), describerAt).join("; "),
+        ""
+    );
 
     const pyGood = `RENAMED_BY_513 = ("Asset Categories", "Assets", "Asset Log")\ndef main():\n    renamed = [name for name in RENAMED_BY_513 if find_table(tables, name)]\n    if renamed:\n        return 1\n    client.create_table(TOOLS)\n`;
     check("  a Python stop before its write passes", pythonStopFindings(pyGood).join("; "), "");

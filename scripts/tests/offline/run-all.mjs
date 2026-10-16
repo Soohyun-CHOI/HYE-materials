@@ -50,18 +50,18 @@ if (files.length === 0) {
  * teaches people to ignore CI. A check that imports an env-coupled module dies
  * with `ERR_MODULE_NOT_FOUND: Cannot find module .../lib/airtable/client`
  * (this tier runs without the extension loader) or, with the loader,
- * `Missing AIRTABLE_API_KEY`. Both read as "the environment is broken", so the
+ * `Missing AIRTABLE_TEST_API_KEY`. Both read as "the environment is broken", so the
  * honest response would be to go fix the environment — when the actual fact is
  * that the check does not belong in this tier.
  */
 function diagnoseLoadFailure(err) {
     const message = String(err?.message ?? err);
-    if (/Missing AIRTABLE_API_KEY/i.test(message) || /lib[\\/]airtable/i.test(message)) {
+    if (/Missing AIRTABLE_(TEST_)?API_KEY/i.test(message) || /lib[\\/]airtable/i.test(message)) {
         return {
             headline: "is NOT offline — it, or something it imports, reaches lib/airtable/",
             advice:
                 "This tier must run with no credentials. lib/airtable/client.js throws at module load " +
-                "without AIRTABLE_API_KEY, so anything importing it transitively belongs in the " +
+                "without an Airtable key, so anything importing it transitively belongs in the " +
                 "credentialed tier (scripts/tests/verify-*.mjs). See docs/notes/verification.md, Verification tiers.",
         };
     }

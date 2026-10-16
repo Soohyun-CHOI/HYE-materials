@@ -27,7 +27,7 @@ import {
 // lib/materialPriceView.js -> lib/itemNaming.js, none of which reach
 // lib/airtable/. That is load-bearing rather than incidental: this file used to
 // import itemOptionLabel from lib/deliveryCandidates.js, which pulls in
-// lib/airtable/client.js, and client.js throws `Missing AIRTABLE_API_KEY` at
+// lib/airtable/client.js, and client.js throws `Missing AIRTABLE_TEST_API_KEY` at
 // module load — so selecting a job blew up in the browser. Importing a module
 // EXECUTES it; "the readers are never called on this side" was not a defense.
 // scripts/tests/offline/client-import-safety.mjs now fails on any such import.

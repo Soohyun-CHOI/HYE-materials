@@ -180,8 +180,9 @@ if (missing.length) {
 }
 
 // Every table in ORDER is emptied, so ORDER is what is asked (#531): it holds none of them today,
-// and the day it does this stops before the first read.
-if (refusesProtectedWrite({ script: "wipe_base", wipes: ORDER, log: console.error })) process.exit(1);
+// and the day it does this stops before the first read on the live base. The base is the client's
+// own, read off the SDK (#534).
+if (refusesProtectedWrite({ script: "wipe_base", baseId: base.getId(), wipes: ORDER, log: console.error })) process.exit(1);
 
 console.log("=".repeat(72));
 console.log(`wipe_base — ${CONFIRM ? "DELETING" : "dry run, nothing will be deleted"}`);

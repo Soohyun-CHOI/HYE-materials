@@ -41,9 +41,19 @@
 // Exit codes, per docs/notes/verification.md: 0 the base matches the spec, 1
 // something failed, 2 nothing failed but something is incomplete (a dry run).
 
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
+
 const API = "https://api.airtable.com/v0";
-const KEY = process.env.AIRTABLE_API_KEY;
-const BASE = process.env.AIRTABLE_BASE_ID;
+// The base this run reaches (#534): the test base unless the run names the live one.
+const AIRTABLE = (() => {
+    try {
+        return resolveAirtableBase();
+    } catch (error) {
+        return { error };
+    }
+})();
+const KEY = AIRTABLE.apiKey;
+const BASE = AIRTABLE.baseId;
 
 const DRY_RUN = process.argv.includes("--dry-run");
 
@@ -101,7 +111,7 @@ async function readTable() {
 }
 
 async function main() {
-    if (!KEY || !BASE) fail("AIRTABLE_API_KEY and AIRTABLE_BASE_ID are required — run with --env-file=.env.local");
+    if (AIRTABLE.error) fail(`${AIRTABLE.error.message} — run with --env-file=.env.local`);
 
     console.log(`Base ${BASE}${DRY_RUN ? "  (DRY RUN — nothing is written)" : ""}\n`);
 

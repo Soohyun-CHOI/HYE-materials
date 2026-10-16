@@ -76,7 +76,7 @@ function note(label) {
 }
 
 printProvenance({
-    title: "verify-airtable-ops-190 — the operation counter against the live base",
+    title: "verify-airtable-ops-190 — the operation counter against the base this run reaches",
     extra: [`airtable  pinned at ${PINNED_AIRTABLE_VERSION}`],
 });
 

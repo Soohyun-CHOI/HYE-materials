@@ -11,7 +11,7 @@
 // schema edit; setting `Jobs."Delivery Address"` on `26-DEMO-01` is a RECORD
 // edit, and it is here because the app has no SCREEN that writes a job's default
 // address — which is not the same thing as the value being unscriptable. It is
-// `scripts/import/`'s own category: a one-time backfill against the live base
+// `scripts/import/`'s own category: a one-time backfill against each base
 // with no diff of its own, the shape #356 used to give every `Materials` row a
 // category and #381 used to clear nine `First Name` cells. Without it, the
 // "this job has a default" half of the form is unreachable on this base and no
@@ -58,9 +58,19 @@
 // something failed, 2 nothing failed but something is incomplete (a dry run, or
 // the toggle is still outstanding).
 
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
+
 const API = "https://api.airtable.com/v0";
-const KEY = process.env.AIRTABLE_API_KEY;
-const BASE = process.env.AIRTABLE_BASE_ID;
+// The base this run reaches (#534): the test base unless the run names the live one.
+const AIRTABLE = (() => {
+    try {
+        return resolveAirtableBase();
+    } catch (error) {
+        return { error };
+    }
+})();
+const KEY = AIRTABLE.apiKey;
+const BASE = AIRTABLE.baseId;
 
 const DRY_RUN = process.argv.includes("--dry-run");
 
@@ -106,7 +116,7 @@ function fail(message) {
 }
 
 async function main() {
-    if (!KEY || !BASE) fail("AIRTABLE_API_KEY and AIRTABLE_BASE_ID are required — run with --env-file=.env.local");
+    if (AIRTABLE.error) fail(`${AIRTABLE.error.message} — run with --env-file=.env.local`);
 
     console.log(`Base ${BASE}${DRY_RUN ? "  (DRY RUN — nothing is written)" : ""}\n`);
 

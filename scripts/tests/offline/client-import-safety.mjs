@@ -1,6 +1,6 @@
 // No Client Component may import a credentialed module (#162).
 //
-// WHY THIS EXISTS. lib/airtable/client.js throws `Missing AIRTABLE_API_KEY` at
+// WHY THIS EXISTS. lib/airtable/client.js throws `Missing AIRTABLE_TEST_API_KEY` at
 // MODULE LOAD. In a Server Component that is a deliberate fail-fast; in a browser
 // bundle it is an unconditional crash, because the variable is server-only by
 // design. #162 shipped exactly that bug: app/deliveries/new/DeliveryForm.js

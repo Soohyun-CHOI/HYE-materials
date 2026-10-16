@@ -2,7 +2,7 @@
 // the row (#309) — source shape, on the AST.
 //
 // WHY THIS TIER CANNOT IMPORT THE MODULE IT IS ABOUT. lib/invoiceVisibility.js
-// reaches lib/airtable/*, which throws `Missing AIRTABLE_API_KEY` at module load,
+// reaches lib/airtable/*, which throws `Missing AIRTABLE_TEST_API_KEY` at module load,
 // so the offline tier can neither call `getVisibleInvoiceIds` nor read
 // `seesEveryInvoice`. What it can do is read the source, and the things worth
 // pinning here are structural anyway:

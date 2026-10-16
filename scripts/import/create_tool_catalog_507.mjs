@@ -51,6 +51,7 @@ import {
     composeItemName,
     readCatalog,
 } from "../../lib/assetCategory.js";
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
 
 const API_ROOT = "https://api.airtable.com/v0";
 const META_ROOT = `${API_ROOT}/meta`;
@@ -208,12 +209,14 @@ function categoryOf(record) {
 
 async function main() {
     const dryRun = process.argv.includes("--dry-run");
-    const token = process.env.AIRTABLE_API_KEY;
-    const baseId = process.env.AIRTABLE_BASE_ID;
-    if (!token || !baseId) {
-        log("AIRTABLE_API_KEY and AIRTABLE_BASE_ID must be set — run with --env-file=.env.local");
+    let airtable;
+    try {
+        airtable = resolveAirtableBase();
+    } catch (error) {
+        log(`${error.message} — run with --env-file=.env.local`);
         return 1;
     }
+    const { apiKey: token, baseId } = airtable;
 
     const air = new Airtable(token, baseId);
     log(`create_tool_catalog_507 — base ${baseId}${dryRun ? "  (DRY RUN — nothing is written)" : ""}\n`);
@@ -321,7 +324,7 @@ async function main() {
     if (dryRun) return finish(air, 2, "dry run — nothing was written");
 
     // --- verification is part of the run ----------------------------------
-    log(`\nverifying against the live base:`);
+    log(`\nverifying against the base it wrote:`);
     table = await air.table();
     const failures = [];
     const field = (name) => table.fields.find((f) => f.name === name);

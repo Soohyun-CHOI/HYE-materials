@@ -42,6 +42,10 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { refusesBeyondDescriptions } from "../protectedTables.mjs";
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
+
+/** The base this run reaches (#534), resolved at the top of main(): the test base unless the run names the live one. */
+let airtable = null;
 
 const SCRIPT = "describe_repair_531";
 
@@ -190,7 +194,7 @@ async function request(method, path, body) {
     const res = await fetch(url, {
         method,
         headers: {
-            Authorization: `Bearer ${process.env.AIRTABLE_API_KEY}`,
+            Authorization: `Bearer ${airtable.apiKey}`,
             "Content-Type": "application/json",
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -253,11 +257,13 @@ function shape(table) {
 
 async function main() {
     const apply = process.argv.includes("--apply");
-    if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
-        log("AIRTABLE_API_KEY and AIRTABLE_BASE_ID must be set — run with --env-file=.env.local");
+    try {
+        airtable = resolveAirtableBase();
+    } catch (error) {
+        log(`${error.message} — run with --env-file=.env.local`);
         return 1;
     }
-    const baseId = process.env.AIRTABLE_BASE_ID;
+    const baseId = airtable.baseId;
 
     log("=".repeat(72));
     log("Six descriptions on Assets and Asset Log, after #531 — descriptions alone");

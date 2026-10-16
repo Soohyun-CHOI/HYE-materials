@@ -20,9 +20,9 @@ Unit that is already constrained upstream, so the select is a structural
 guarantee rather than a fix -- which is why each is converted while it
 still holds zero records.
 
-Usage examples (reads AIRTABLE_API_KEY / AIRTABLE_BASE_ID from .env.local
-at the repo root automatically, same as import_jobs.py -- no manual
-export needed for local dev):
+Usage examples (reads the key and the base from .env.local at the repo root
+automatically, through airtable_base.py -- the test base unless AIRTABLE_BASE=live
+names the live one (#534), same as import_jobs.py):
     python3 add_unit_options.py --dry-run
     python3 add_unit_options.py
 
@@ -116,6 +116,8 @@ from pathlib import Path
 import requests
 from dotenv import load_dotenv
 
+from airtable_base import resolve_airtable_base
+
 # ----------------------------------------------------------------------------
 # Environment
 # ----------------------------------------------------------------------------
@@ -127,8 +129,10 @@ if not load_dotenv(PROJECT_ROOT / ".env.local"):
 # ----------------------------------------------------------------------------
 # Config
 # ----------------------------------------------------------------------------
-AIRTABLE_API_KEY = os.environ["AIRTABLE_API_KEY"]
-AIRTABLE_BASE_ID = os.environ["AIRTABLE_BASE_ID"]
+# The base this run reaches (#534): the test base unless AIRTABLE_BASE=live names the
+# live one -- lib/airtableBase.js's answer, asked through node (airtable_base.py).
+AIRTABLE_BASE_ID, AIRTABLE_API_KEY, AIRTABLE_BASE = resolve_airtable_base()
+print(f"Airtable: {AIRTABLE_BASE}")
 
 FIELD_UNIT = "Unit"
 
@@ -416,7 +420,6 @@ def sync_unit_field(client: AirtableSchemaClient, tables, table_name: str, dry_r
 
 def main():
     parser = argparse.ArgumentParser(description="Add the canonical Unit select options to every table in TARGET_TABLES")
-    parser.add_argument("--base-id", default=AIRTABLE_BASE_ID, help="Airtable Base ID")
     parser.add_argument("--dry-run", action="store_true", help="Preview only, without writing to Airtable")
     parser.add_argument(
         "--allow-default-colors",
@@ -426,7 +429,7 @@ def main():
     )
     args = parser.parse_args()
 
-    client = AirtableSchemaClient(AIRTABLE_API_KEY, args.base_id)
+    client = AirtableSchemaClient(AIRTABLE_API_KEY, AIRTABLE_BASE_ID)
 
     print("Fetching current schema...")
     tables = client.fetch_tables()

@@ -1,4 +1,4 @@
-// The batch form refuses a foreign-table id, measured against the live base (#444).
+// The batch form refuses a foreign-table id, measured against the base this run reaches (#444).
 //
 // WHY THIS EXISTS. #444's guarantee — that a write by a caller-supplied record id
 // cannot land on another table's row — rests on ONE Airtable behavior: the batch forms

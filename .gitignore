@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# the template a new machine copies to .env.local (#534) — no value in it
+!.env.example
 
 # vercel
 .vercel

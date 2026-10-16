@@ -43,7 +43,7 @@ const VERIFIER = "assertItemsHaveCategories";
 /**
  * `SEED_CATEGORIES`, PARSED RATHER THAN IMPORTED, for this tier's own boundary:
  * the helper reaches `lib/airtable/client.js`, which throws
- * `Missing AIRTABLE_API_KEY` at module load. `table-field-names.mjs` reads
+ * `Missing AIRTABLE_TEST_API_KEY` at module load. `table-field-names.mjs` reads
  * `TABLES` the same way and for the same reason, and `line-vocabulary.mjs`
  * before it — so this is the repository's answer to the situation rather than a
  * new one. The cost is that a computed entry would be invisible here; the

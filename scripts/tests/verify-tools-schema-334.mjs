@@ -1,4 +1,5 @@
-// The three tools tables, against the live base (#334).
+// The three tools tables, against the base this run reaches (#334) — the test base
+// unless the run names the live one (`lib/airtableBase.js`, #534).
 //
 // WHY THIS TIER AND NOT THE OFFLINE ONE. `offline/asset-status.mjs` compares two
 // FILES — lib/assetStatus.js against the option lists create_tools_334.py sends —
@@ -29,10 +30,11 @@
 //      remove the option afterwards.
 //
 // Part A is safe at any time. Parts B and C create records, cleaned up within the
-// run through scripts/tests/_fixtures.mjs. Cost is roughly 20 operations. **Since #531
-// they are refused before their first write**: `Assets` and `Asset Log` hold the site's
-// records, which no script writes (`scripts/protectedTables.mjs`), so a run is Part A and
-// ends on 2.
+// run through scripts/tests/_fixtures.mjs. Cost is roughly 20 operations. **On the live base
+// they are refused before their first write** (#531): `Assets` and `Asset Log` hold the
+// site's records there, which no script writes (`scripts/protectedTables.mjs`), so a run
+// that names the live base is Part A and ends on 2. On the test base, where every run goes
+// unless it names the live one (#534), all three parts run.
 //
 // `Asset Categories` IS THE CATALOG SINCE #507, so Part A reads its fields — seven since
 // #514 — and the type's and the class's options against lib/assetCategory.js, and Part B
@@ -68,8 +70,9 @@ import { ASSET_CATEGORY_FIELDS, ASSET_CLASS_VALUES, ASSET_TYPE_VALUES, composeIt
 import { createFixtures } from "./_fixtures.mjs";
 import { printProvenance } from "./_provenance.mjs";
 import { refusesProtectedWrite } from "../protectedTables.mjs";
+import { resolveAirtableBase } from "../../lib/airtableBase.js";
 
-printProvenance({ title: "verify-tools-schema-334 — the three tools tables, against the live base" });
+printProvenance({ title: "verify-tools-schema-334 — the three tools tables, against the base this run reaches" });
 
 let pass = true;
 let incomplete = false;
@@ -126,16 +129,17 @@ log();
 let complete = false;
 
 try {
-    // ── Part A — the live schema ────────────────────────────────────────────
-    log("Part A — the live schema against the spec (read-only)");
+    // ── Part A — the base's schema ──────────────────────────────────────────
+    log("Part A — the base's schema against the spec (read-only)");
 
+    const airtable = resolveAirtableBase();
     const res = await fetch(
-        `https://api.airtable.com/v0/meta/bases/${process.env.AIRTABLE_BASE_ID}/tables`,
-        { headers: { Authorization: `Bearer ${process.env.AIRTABLE_API_KEY}` } }
+        `https://api.airtable.com/v0/meta/bases/${airtable.baseId}/tables`,
+        { headers: { Authorization: `Bearer ${airtable.apiKey}` } }
     );
     if (!res.ok) {
         log(`  SKIPPED — Metadata API returned ${res.status}`);
-        log("        needs AIRTABLE_API_KEY + AIRTABLE_BASE_ID (schema.bases:read scope).");
+        log(`        needs ${airtable.apiKeyVariable} with the schema.bases:read scope.`);
         incomplete = true;
     } else {
         const { tables } = await res.json();
@@ -255,17 +259,19 @@ try {
     log();
     log("Part B — one row per table, read back through the mappers");
 
-    // REFUSED SINCE #531, AND PART C WITH IT: both write a row into `Assets` and `Asset Log`,
-    // which hold the site's records (`scripts/protectedTables.mjs`), so Part A is all this
-    // script runs and it ends on 2.
+    // REFUSED ON THE LIVE BASE SINCE #531, AND PART C WITH IT: both write a row into `Assets`
+    // and `Asset Log`, which hold the site's records there (`scripts/protectedTables.mjs`), so
+    // on the live base Part A is all this script runs and it ends on 2. The base is the client's
+    // own, read off the SDK, so the guard judges where the writes below would land (#534).
     const refused = refusesProtectedWrite({
         script: "verify-tools-schema-334",
+        baseId: base.getId(),
         writes: [TABLES.ASSET_CATEGORIES, TABLES.ASSETS, TABLES.ASSET_LOG],
     });
     const job = refused ? null : await getJobByCode("26-DEMO-01");
     const users = refused ? [] : await getActiveUsers();
     if (refused) {
-        log("  SKIPPED — Parts B and C write into Assets and Asset Log, the site's records since #531.");
+        log("  SKIPPED — Parts B and C write into Assets and Asset Log, the site's records on the live base since #531.");
         incomplete = true;
     } else if (!job || users.length === 0) {
         log("  SKIPPED — needs Job 26-DEMO-01 and at least one active user.");

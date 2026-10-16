@@ -59,8 +59,9 @@ clause was already corrected in `lib/overagePR.js` and in
 `docs/notes/verification.md`). A description-only PATCH returns 200 where
 one carrying `options.choices` returns 422, so both are free.
 
-Usage (reads AIRTABLE_API_KEY / AIRTABLE_BASE_ID from .env.local at the
-repo root, same as add_unit_options.py and import_jobs.py):
+Usage (reads the key and the base from .env.local at the repo root, through
+airtable_base.py -- the test base unless AIRTABLE_BASE=live names the live one
+(#534) -- same as add_unit_options.py and import_jobs.py):
     python3 scripts/import/create_direct_purchases_272.py --dry-run
     python3 scripts/import/create_direct_purchases_272.py
 
@@ -85,6 +86,8 @@ from pathlib import Path
 import requests
 from dotenv import load_dotenv
 
+from airtable_base import resolve_airtable_base
+
 # ----------------------------------------------------------------------------
 # Environment
 # ----------------------------------------------------------------------------
@@ -93,8 +96,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if not load_dotenv(PROJECT_ROOT / ".env.local"):
     raise RuntimeError(f"Could not load {PROJECT_ROOT / '.env.local'}")
 
-AIRTABLE_API_KEY = os.environ["AIRTABLE_API_KEY"]
-AIRTABLE_BASE_ID = os.environ["AIRTABLE_BASE_ID"]
+# The base this run reaches (#534): the test base unless AIRTABLE_BASE=live names the
+# live one -- lib/airtableBase.js's answer, asked through node (airtable_base.py).
+AIRTABLE_BASE_ID, AIRTABLE_API_KEY, AIRTABLE_BASE = resolve_airtable_base()
 
 AIRTABLE_META_ROOT = "https://api.airtable.com/v0/meta"
 
@@ -565,16 +569,15 @@ def main():
     parser = argparse.ArgumentParser(
         description="Create the Direct Purchases table (#272) and correct two false field descriptions"
     )
-    parser.add_argument("--base-id", default=AIRTABLE_BASE_ID, help="Airtable Base ID")
     parser.add_argument(
         "--dry-run", action="store_true", help="Print the plan without writing anything"
     )
     args = parser.parse_args()
 
-    client = AirtableSchemaClient(AIRTABLE_API_KEY, args.base_id)
+    client = AirtableSchemaClient(AIRTABLE_API_KEY, AIRTABLE_BASE_ID)
 
     print("=" * 72)
-    print(f"create_direct_purchases_272 — base {args.base_id}")
+    print(f"create_direct_purchases_272 — {AIRTABLE_BASE}")
     print("=" * 72)
     print()
 
