@@ -1,71 +1,71 @@
-﻿job,type,category,name,size,maker,part_number,class,quantity,catalog,source,note
-25-USA-13,Equipment,For Welders,Weld Head,,Swagelok,SWS-10H-D-15,A,1,existing,S4#1,10H 헤더
-25-USA-13,Tool,Gas Control,250 Series Regulator,,,,A,3,existing,S4#2,
-25-USA-13,Equipment,For Welders,Weld Head,,Swagelok,SWS-5H-D-15,A,1,existing,S4#3,5H 헤더
-25-USA-13,Tool,Gas Control,Argon Flowmeter Regulator,,,,A,2,existing,S4#4,Ar 게이지
-25-USA-13,Tool,Gas Control,Argon Flowmeter Regulator,,,RX 191D,A,3,new,S4#5,
-25-USA-13,Equipment,For Welders,Weld Head,,Swagelok,SWS-10H-D-15,A,1,existing,S4#6,
-25-USA-13,Equipment,Welding Equipment,TIG Welder,,Joyoung Welder,WD-350-PN,A,80,existing,S4#7,원본 WD-350PN II
-25-USA-13,Tool,Cutter,PEX Pipe Cutter,,,,B,8,new,S4#8,
-25-USA-13,Tool,Measuring Tools,Gap Gauge,10H,,,B,38,new,S4#9,
-25-USA-13,Tool,Other Tools,Tool Cart,,,,B,38,new,S4#10,
-25-USA-13,Tool,Machining Tools,Ratchet Bender,,,,B,1,new,S4#12,
-25-USA-13,Tool,Machining Tools,Drill Press Vise,,,,B,9,new,S4#13,
-25-USA-13,Tool,Power Tools,Impact Drill,,DeWalt,,B,4,new,S4#14,
-25-USA-13,Tool,Power Tools,Drill,,DeWalt,,B,12,existing,S4#15,
-25-USA-13,Tool,Power Tools,Heat Gun,,DeWalt,,B,16,existing,S4#16,
-25-USA-13,Tool,Machining Tools,Long Bender,,,,B,4,new,S4#17,
-25-USA-13,Tool,Power Tools,Drill,,Milwaukee,,B,73,existing,S4#18,
-25-USA-13,Tool,Power Tools,Band Saw,,,,B,6,new,S4#19,
-25-USA-13,Tool,Other Tools,Ladder,,,,B,42,new,S4#20,
-25-USA-13,Tool,Cutter,Tube Cutter,,,,B,4,new,S4#21,스테인리스 플렉시블
-25-USA-13,Tool,Fastening Tools,Crimper,,,,B,13,new,S4#22,
-25-USA-13,Tool,Other Tools,Work Cart,,,,B,3,new,S4#23,
-25-USA-13,Tool,Machining Tools,Tube Bender,,,,B,4,new,S4#24,
-25-USA-13,Tool,Machining Tools,Tube Fabrication Die,,,,B,26,new,S4#25,
-25-USA-13,Tool,Cutter,Tube Cutter,,,,B,2,new,S4#26,
-25-USA-13,Tool,Cutter,Plastic Pipe and Tubing Cutter,,,,B,2,existing,S4#27,
-25-USA-13,Tool,Power Tools,Drill,,Hilti,,B,3,existing,S4#28,힐티 드릴
-25-USA-13,Tool,For Welders,M200 Remote Extension Cable,50 ft,Swagelok,,B,3,new,S4#29,
-25-USA-13,Tool,For Welders,Series 10 Fixture Block,,Swagelok,,B,3,new,S4#30,
-25-USA-13,Tool,For Welders,Series 5 Fixture Block,,Swagelok,,B,3,new,S4#31,
-25-USA-13,Tool,For Welders,Series 5 Tube Collet Half,"1/2""",Swagelok,,B,4,new,S4#32,
-25-USA-13,Tool,For Welders,Series 5 Tube Collet Half,"1/4""",Swagelok,,B,1,new,S4#33,
-25-USA-13,Tool,For Welders,Series 5 Tube Collet Half,"3/8""",Swagelok,,B,2,new,S4#34,
-26-USA-12,Tool,Power Tools,Drill,,Milwaukee,,B,4,existing,S4#35,
-26-USA-12,Tool,Power Tools,Impact Drill,,Milwaukee,,B,1,existing,S4#36,
-26-USA-12,Tool,Power Tools,Band Saw,,Milwaukee,,B,2,new,S4#37,
-26-USA-12,Tool,Power Tools,Jigsaw,,Milwaukee,,B,1,new,S4#38,
-26-USA-12,Tool,Machining Tools,Short Bender,"1/2""",,,B,1,new,S4#39,
-26-USA-12,Tool,Machining Tools,Short Bender,"1/4""",,,B,1,new,S4#40,
-26-USA-12,Tool,Machining Tools,Long Bender,"1/2""",,,B,2,new,S4#41,
-26-USA-12,Tool,Machining Tools,Long Bender,"1/4""",,,B,2,new,S4#42,
-26-USA-12,Tool,Cutter,Tube Cutter,,,,B,8,new,S4#43,
-26-USA-12,Equipment,Cutting Equipment,Cutting Machine,,AXXAIR,171,A,1,new,S4#44,
-26-USA-12,Equipment,Cutting Equipment,Cutting Machine,,AXXAIR,120,A,1,new,S4#45,
-26-USA-12,Equipment,Welding Equipment,Automatic Welder,,Swagelok,SWS-M200,A,2,existing,S4#46-47,
-26-USA-12,Equipment,For Welders,Weld Head,,Swagelok,SWS-20H-D-15,A,1,new,S4#48,
-26-USA-12,Equipment,For Welders,Weld Head,,Swagelok,SWS-5H-D-15,A,1,existing,S4#49,
-26-USA-12,Equipment,Welding Equipment,TIG Welder,,Miller,DYNASTY200,A,2,new,S4#50-51,
-23-USA-09,Tool,Power Tools,Drill,,DeWalt,DCD771,B,5,new,S5#1,
-23-USA-09,Tool,Power Tools,Impact Drill,,DeWalt,DCF885,B,3,new,S5#2,
-23-USA-09,Tool,Power Tools,Drill,,Milwaukee,3401-20,B,1,new,S5#3,
-23-USA-09,Equipment,Machining Equipment,End Mill,,Orbitalum,RPG ONE AKKU,B,4,new,S5#4,
-23-USA-09,Tool,Power Tools,Band Saw,,DeWalt,DCS375,B,1,existing (add part),S5#5,"기존 Band Saw, DeWalt 줄에 품번 추가"
-23-USA-09,Tool,Power Tools,Grinder,,DeWalt,DCG413,B,1,new,S5#6,
-23-USA-09,Tool,Power Tools,Grinder,,YESWELDER,MJQ03,B,1,new,S5#7,
-23-USA-09,Tool,Power Tools,Band Saw,,Makita,2107FW,B,1,existing,S5#8,
-23-USA-09,Tool,Fastening Tools,Automatic Ferrule Swaging Tool,,HY-LOK,EZY-MAT2,B,1,new,S5#9,
-23-USA-09,Equipment,Cutting Equipment,Automatic Tube Cutting Machine,,DCSENG,S-TCA 1.0,B,2,new,S5#10,
-23-USA-09,Equipment,Machining Equipment,Bench Drill Press,,RYOBI,DP103L,B,1,existing,S5#11,
-23-USA-09,Equipment,Bending Equipment,Automatic Tube Bending Machine,,Transfluid,DB 630-CNC-R/L,B,1,new,S5#12,
-23-USA-09,Tool,Machining Tools,Long Bender,"1/4""",KBS Rollobend,4100,B,5,new,S5#13,
-23-USA-09,Tool,Machining Tools,Long Bender,"3/8""",KBS Rollobend,6600,B,1,new,S5#14,
-23-USA-09,Tool,Machining Tools,Long Bender,"1/2""",KBS Rollobend,8500,B,4,new,S5#15,
-23-USA-09,Tool,Machining Tools,Short Bender,"1/4""",Swagelok,MS-HTB-4T,B,2,new,S5#16,
-23-USA-09,Tool,Machining Tools,Short Bender,"3/8""",Swagelok,MS-HTB-6T,B,2,new,S5#17,
-23-USA-09,Tool,Machining Tools,Short Bender,"1/2""",Swagelok,MS-HTB-8,B,2,new,S5#18,엑셀 그대로 (MS-HTB-8T인지 미확인)
-23-USA-09,Equipment,Welding Equipment,Automatic Welder,,Swagelok,SWS-M200,A,4,existing,S5#19,
-23-USA-09,Equipment,For Welders,Weld Head,,Swagelok,SWS-5H-D-15,A,12,existing,S5#20,
-23-USA-09,Equipment,For Welders,Weld Head,,Swagelok,SWS-10H-D-15,A,2,existing,S5#21,
-23-USA-09,Tool,Cutter,Tube Cutter,,,,B,7,new,S5#22,
+﻿job,type,category,name,size,maker,part_number,class,quantity,catalog,source
+25-USA-13,Equipment,For Welders,Weld Head,,Swagelok,SWS-10H-D-15,A,1,existing,S4#1
+25-USA-13,Tool,Gas Control,250 Series Regulator,,,,A,3,existing,S4#2
+25-USA-13,Equipment,For Welders,Weld Head,,Swagelok,SWS-5H-D-15,A,1,existing,S4#3
+25-USA-13,Tool,Gas Control,Argon Flowmeter Regulator,,,,A,2,existing,S4#4
+25-USA-13,Tool,Gas Control,Argon Flowmeter Regulator,,,RX 191D,A,3,new,S4#5
+25-USA-13,Equipment,For Welders,Weld Head,,Swagelok,SWS-10H-D-15,A,1,existing,S4#6
+25-USA-13,Equipment,Welding Equipment,TIG Welder,,Joyoung Welder,WD-350-PN,A,80,existing,S4#7
+25-USA-13,Tool,Cutter,PEX Pipe Cutter,,,,B,8,new,S4#8
+25-USA-13,Tool,Measuring Tools,Gap Gauge,10H,,,B,38,new,S4#9
+25-USA-13,Tool,Other Tools,Tool Cart,,,,B,38,new,S4#10
+25-USA-13,Tool,Machining Tools,Ratchet Bender,,,,B,1,new,S4#12
+25-USA-13,Tool,Machining Tools,Drill Press Vise,,,,B,9,new,S4#13
+25-USA-13,Tool,Power Tools,Impact Drill,,DeWalt,,B,4,new,S4#14
+25-USA-13,Tool,Power Tools,Drill,,DeWalt,,B,12,existing,S4#15
+25-USA-13,Tool,Power Tools,Heat Gun,,DeWalt,,B,16,existing,S4#16
+25-USA-13,Tool,Machining Tools,Long Bender,,,,B,4,new,S4#17
+25-USA-13,Tool,Power Tools,Drill,,Milwaukee,,B,73,existing,S4#18
+25-USA-13,Tool,Power Tools,Band Saw,,,,B,6,new,S4#19
+25-USA-13,Tool,Other Tools,Ladder,,,,B,42,new,S4#20
+25-USA-13,Tool,Cutter,Tube Cutter,,,,B,4,new,S4#21
+25-USA-13,Tool,Fastening Tools,Crimper,,,,B,13,new,S4#22
+25-USA-13,Tool,Other Tools,Work Cart,,,,B,3,new,S4#23
+25-USA-13,Tool,Machining Tools,Tube Bender,,,,B,4,new,S4#24
+25-USA-13,Tool,Machining Tools,Tube Fabrication Die,,,,B,26,new,S4#25
+25-USA-13,Tool,Cutter,Tube Cutter,,,,B,2,new,S4#26
+25-USA-13,Tool,Cutter,Plastic Pipe and Tubing Cutter,,,,B,2,existing,S4#27
+25-USA-13,Tool,Power Tools,Drill,,Hilti,,B,3,existing,S4#28
+25-USA-13,Tool,For Welders,M200 Remote Extension Cable,50 ft,Swagelok,,B,3,new,S4#29
+25-USA-13,Tool,For Welders,Series 10 Fixture Block,,Swagelok,,B,3,new,S4#30
+25-USA-13,Tool,For Welders,Series 5 Fixture Block,,Swagelok,,B,3,new,S4#31
+25-USA-13,Tool,For Welders,Series 5 Tube Collet Half,"1/2""",Swagelok,,B,4,new,S4#32
+25-USA-13,Tool,For Welders,Series 5 Tube Collet Half,"1/4""",Swagelok,,B,1,new,S4#33
+25-USA-13,Tool,For Welders,Series 5 Tube Collet Half,"3/8""",Swagelok,,B,2,new,S4#34
+26-USA-12,Tool,Power Tools,Drill,,Milwaukee,,B,4,existing,S4#35
+26-USA-12,Tool,Power Tools,Impact Drill,,Milwaukee,,B,1,existing,S4#36
+26-USA-12,Tool,Power Tools,Band Saw,,Milwaukee,,B,2,new,S4#37
+26-USA-12,Tool,Power Tools,Jigsaw,,Milwaukee,,B,1,new,S4#38
+26-USA-12,Tool,Machining Tools,Short Bender,"1/2""",,,B,1,new,S4#39
+26-USA-12,Tool,Machining Tools,Short Bender,"1/4""",,,B,1,new,S4#40
+26-USA-12,Tool,Machining Tools,Long Bender,"1/2""",,,B,2,new,S4#41
+26-USA-12,Tool,Machining Tools,Long Bender,"1/4""",,,B,2,new,S4#42
+26-USA-12,Tool,Cutter,Tube Cutter,,,,B,8,new,S4#43
+26-USA-12,Equipment,Cutting Equipment,Cutting Machine,,AXXAIR,171,A,1,new,S4#44
+26-USA-12,Equipment,Cutting Equipment,Cutting Machine,,AXXAIR,120,A,1,new,S4#45
+26-USA-12,Equipment,Welding Equipment,Automatic Welder,,Swagelok,SWS-M200,A,2,existing,S4#46-47
+26-USA-12,Equipment,For Welders,Weld Head,,Swagelok,SWS-20H-D-15,A,1,new,S4#48
+26-USA-12,Equipment,For Welders,Weld Head,,Swagelok,SWS-5H-D-15,A,1,existing,S4#49
+26-USA-12,Equipment,Welding Equipment,TIG Welder,,Miller,DYNASTY200,A,2,new,S4#50-51
+23-USA-09,Tool,Power Tools,Drill,,DeWalt,DCD771,B,5,new,S5#1
+23-USA-09,Tool,Power Tools,Impact Drill,,DeWalt,DCF885,B,3,new,S5#2
+23-USA-09,Tool,Power Tools,Drill,,Milwaukee,3401-20,B,1,new,S5#3
+23-USA-09,Equipment,Machining Equipment,End Mill,,Orbitalum,RPG ONE AKKU,B,4,new,S5#4
+23-USA-09,Tool,Power Tools,Band Saw,,DeWalt,DCS375,B,1,existing (add part),S5#5
+23-USA-09,Tool,Power Tools,Grinder,,DeWalt,DCG413,B,1,new,S5#6
+23-USA-09,Tool,Power Tools,Grinder,,YESWELDER,MJQ03,B,1,new,S5#7
+23-USA-09,Tool,Power Tools,Band Saw,,Makita,2107FW,B,1,existing,S5#8
+23-USA-09,Tool,Fastening Tools,Automatic Ferrule Swaging Tool,,HY-LOK,EZY-MAT2,B,1,new,S5#9
+23-USA-09,Equipment,Cutting Equipment,Automatic Tube Cutting Machine,,DCSENG,S-TCA 1.0,B,2,new,S5#10
+23-USA-09,Equipment,Machining Equipment,Bench Drill Press,,RYOBI,DP103L,B,1,existing,S5#11
+23-USA-09,Equipment,Bending Equipment,Automatic Tube Bending Machine,,Transfluid,DB 630-CNC-R/L,B,1,new,S5#12
+23-USA-09,Tool,Machining Tools,Long Bender,"1/4""",KBS Rollobend,4100,B,5,new,S5#13
+23-USA-09,Tool,Machining Tools,Long Bender,"3/8""",KBS Rollobend,6600,B,1,new,S5#14
+23-USA-09,Tool,Machining Tools,Long Bender,"1/2""",KBS Rollobend,8500,B,4,new,S5#15
+23-USA-09,Tool,Machining Tools,Short Bender,"1/4""",Swagelok,MS-HTB-4T,B,2,new,S5#16
+23-USA-09,Tool,Machining Tools,Short Bender,"3/8""",Swagelok,MS-HTB-6T,B,2,new,S5#17
+23-USA-09,Tool,Machining Tools,Short Bender,"1/2""",Swagelok,MS-HTB-8,B,2,new,S5#18
+23-USA-09,Equipment,Welding Equipment,Automatic Welder,,Swagelok,SWS-M200,A,4,existing,S5#19
+23-USA-09,Equipment,For Welders,Weld Head,,Swagelok,SWS-5H-D-15,A,12,existing,S5#20
+23-USA-09,Equipment,For Welders,Weld Head,,Swagelok,SWS-10H-D-15,A,2,existing,S5#21
+23-USA-09,Tool,Cutter,Tube Cutter,,,,B,7,new,S5#22

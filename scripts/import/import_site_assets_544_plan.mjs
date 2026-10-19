@@ -41,8 +41,8 @@ export const SCRIPT = "import_site_assets_544";
 export const SOURCE = join(dirname(fileURLToPath(import.meta.url)), "sources", "asset_import_544.csv");
 
 /** The list's header as Soo wrote it, and what each column is read as, in its order. */
-export const HEADER = "job,type,category,name,size,maker,part_number,class,quantity,catalog,source,note";
-const COLUMNS = ["job", "level1", "level2", "level3", "size", "maker", "partNumber", "assetClass", "quantity", "catalog", "source", "note"];
+export const HEADER = "job,type,category,name,size,maker,part_number,class,quantity,catalog,source";
+const COLUMNS = ["job", "level1", "level2", "level3", "size", "maker", "partNumber", "assetClass", "quantity", "catalog", "source"];
 
 /** What the catalog holds of a row's path, in the list's words. */
 export const HOLDS = Object.freeze({ EXISTING: "existing", NEW: "new", ADD_PART: "existing (add part)" });
@@ -145,7 +145,7 @@ export function readList(bytes = readFileSync(SOURCE)) {
         }
         const row = { line, ...Object.fromEntries(COLUMNS.map((column, i) => [column, cells[i]])) };
         const where = `line ${line} (${row.source})`;
-        for (const column of COLUMNS.filter((c) => c !== "note")) {
+        for (const column of COLUMNS) {
             if (row[column] !== normalizeItemText(row[column])) problems.push(`${where}: ${column} carries stray whitespace (${JSON.stringify(row[column])})`);
         }
         for (const level of ASSET_PATH_LEVELS) {

@@ -45,8 +45,11 @@ const SCRIPT_PATH = "scripts/import/import_site_assets_544.mjs";
 const PLAN_PATH = "scripts/import/import_site_assets_544_plan.mjs";
 const PLAN_SPECIFIER = "./import_site_assets_544_plan.mjs";
 
-/** The committed list's digest, of its text with `\n` endings, as the review left it. */
-const LIST_SHA256 = "12f29602e5fef28d274c6321ac12072288d646f6076ba69684bace6a5e375230";
+/**
+ * The committed list's digest, of its text with `\n` endings: the reviewed list less its notes
+ * column, which nothing read. The ledgers' run lines carry `12f29602…`, the list's with it.
+ */
+const LIST_SHA256 = "d311fa141f328972b6c4009455324e3dbcd1214b848e291ca64e4828656cf40f";
 
 /** A list file from rows of cells, each cell quoted where it holds a quote or a comma. */
 function csv(rows, header = HEADER) {
@@ -67,11 +70,11 @@ const BAND_SAW = ["Tool", "Power Tools", "Band Saw", "", "DeWalt", ""];
 
 /** The small list: an existing path, one new path on two jobs, a new path in a group to add, and an add part. */
 const SMALL = [
-    ["J-1", ...DRILL, "B", "3", "existing", "A1", ""],
-    ["J-1", ...SAW, "", "", "", "B", "2", "new", "A2", ""],
-    ["J-2", ...SAW, "", "", "", "B", "4", "new", "A3", "a note, with a comma"],
-    ["J-2", ...LADDER, "", "", "", "B", "5", "new", "A4", ""],
-    ["J-2", "Tool", "Power Tools", "Band Saw", "", "DeWalt", "DCS375", "B", "1", "existing (add part)", "A5", ""],
+    ["J-1", ...DRILL, "B", "3", "existing", "A1"],
+    ["J-1", ...SAW, "", "", "", "B", "2", "new", "A2"],
+    ["J-2", ...SAW, "", "", "", "B", "4", "new", "A3"],
+    ["J-2", ...LADDER, "", "", "", "B", "5", "new", "A4"],
+    ["J-2", "Tool", "Power Tools", "Band Saw", "", "DeWalt", "DCS375", "B", "1", "existing (add part)", "A5"],
 ];
 
 /** A base the small list fits: its two rows, one group, two jobs the recorder is on, and an empty day. */
@@ -131,7 +134,7 @@ export function run({ check, assert, log }) {
     check("  add part rows", words(HOLDS.ADD_PART), 1);
     check("  its jobs, in order", [...new Set(list.rows.map((r) => r.job))].join(" "), "25-USA-13 26-USA-12 23-USA-09");
     check("  a quoted size is read whole", list.rows.find((r) => r.source === "S4#32")?.size, '1/2"');
-    check("  the note is read and nothing else of it", (list.rows.find((r) => r.source === "S5#5")?.note ?? "").length > 0, true);
+    check("  the header ends on the source", HEADER.split(",").at(-1), "source");
     check("  the groups the run may add", GROUPS_THIS_RUN_MAY_ADD.map((g) => `${g.level1} > ${g.level2}`).join(" | "), "Tool > For Welders | Tool > Other Tools");
     check("  the highest sequence a day takes", HIGHEST_SEQUENCE, 999);
 
@@ -142,7 +145,9 @@ export function run({ check, assert, log }) {
     const good = SMALL[0];
     check("  the small list reads with no problem", refusal(SMALL), "");
     assert("  a header otherwise is refused", /the header is/.test(refusal([good], HEADER.replace("part_number", "part"))));
-    assert("  a short row is refused", /cell\(s\), not 12/.test(refusal([good.slice(0, 11)])));
+    assert("  a short row is refused", /cell\(s\), not 11/.test(refusal([good.slice(0, 10)])));
+    assert("  a row with a notes cell after its source is refused", /12 cell\(s\), not 11/.test(refusal([[...good, "a note"]])));
+    check("  a quoted cell holding a comma is read whole", readList(csv([["J-1", "Tool", "Power Tools", "Saw, Large", "", "", "", "B", "1", "new", "Q1"]])).rows[0]?.level3, "Saw, Large");
     assert("  stray whitespace is refused", /carries stray whitespace/.test(refusal([["J-1", "Tool", "Power  Tools", ...good.slice(3)]])));
     assert("  a placeholder for empty is refused", /a placeholder for empty/.test(refusal([["J-1", "Tool", "Power Tools", "Drill", "N/A", ...good.slice(5)]])));
     assert("  a quantity of 0 is refused", /is not a whole number above 0/.test(refusal([[...good.slice(0, 8), "0", ...good.slice(9)]])));

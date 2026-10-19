@@ -1,14 +1,17 @@
 // Registers the tools and equipment of three sites — 25-USA-13, 26-USA-12 and 23-USA-09 — from
 // the list Soo reviewed against the catalog (#544).
 //
-// ONE SOURCE, `sources/asset_import_544.csv`, KEPT AS IT WAS HANDED OVER — the byte-order mark
-// and the notes column with it. The two sites' spreadsheets were matched against the live base's
+// ONE SOURCE, `sources/asset_import_544.csv`, KEPT AS IT WAS HANDED OVER BUT FOR ONE COLUMN — the
+// byte-order mark with it. The two sites' spreadsheets were matched against the live base's
 // catalog and its category groups and settled into this one list before the script existed, and
 // nothing here reads them. A row is one registration: a job, a catalog path in its six levels, a
 // class, how many to register, what the catalog holds of the path (`catalog`: `existing`, `new` or
-// `existing (add part)`), the spreadsheet row it came from (`source`, the run's key for it) and a
-// note nothing reads. The cells are written as the list spells them: no rule of
-// `lib/itemNaming.js` is asked to spell a name, since the list is already in the catalog's shape.
+// `existing (add part)`), and the spreadsheet row it came from (`source`, the run's key for it).
+// The list as handed over ended on a notes column in Korean that nothing read; it was dropped
+// before the list was committed, every other cell left as it was, so the digest the ledgers' run
+// lines carry, `12f29602…`, is of the list with it. The cells are written as the list spells
+// them: no rule of `lib/itemNaming.js` is asked to spell a name, since the list is already in the
+// catalog's shape.
 //
 // WHAT A RUN WRITES, IN ORDER. The category groups the list names and no group holds — only
 // `Tool > For Welders` and `Tool > Other Tools`, the two the review left to this run; any other
