@@ -87,8 +87,9 @@ export const TABLE_ROW_LINK = "after:absolute after:inset-0";
  * a heading names nothing it counts, so `noun` follows it unseen, in the list's own word.
  *
  * `caption` IS WHAT A CATEGORY'S OWN PAGE SAYS UNDER ITS TITLE (#507): what the category is, 10
- * under the title (0n Header stack), as 1d draws it since #519 — and the control stays centered
- * on the title's line, as the record header's actions are.
+ * under the title (0n Header stack), as 1d draws it since #519 — and the control stands level
+ * with the title's top, as 1d draws it since 2026-10-16 (#538), where it was centered on the
+ * title's line, 2 higher, until then.
  *
  * TWO CONTROLS IN ONE HEAD STAND 12 APART (1a, #519): the job's chip and `Add items`.
  *
@@ -121,13 +122,7 @@ export function ListHeader({ title, count, noun, caption, underBreadcrumb = fals
                 </div>
                 {caption}
             </div>
-            <div
-                className={`flex shrink-0 items-center gap-list-header-control-inline ${
-                    caption ? "-mt-[calc((var(--height-control-lg)-var(--text-heading-lg--line-height))/2)]" : ""
-                }`}
-            >
-                {children}
-            </div>
+            <div className="flex shrink-0 items-center gap-list-header-control-inline">{children}</div>
         </div>
     );
 }

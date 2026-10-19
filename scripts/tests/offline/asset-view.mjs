@@ -380,11 +380,15 @@ export function run({ check, assert, log }) {
     check("  who holds an asset that is out is the module's answer", initOf("holder"), "currentHolder(history, asset.status)");
     check("  and when a retired one was retired", initOf("retired"), "retiredAt(history, asset.status)");
     check("  and when one in repair was sent (#531)", initOf("sentForRepair"), "sentForRepairAt(history, asset.status)");
-    // DRAWN AT BOTH WIDTHS, THE DAY AT THE HOLDER'S SIZE (1f, 1j-e) — where the retirement's
-    // day is the desk's alone.
+    // DRAWN AT BOTH WIDTHS, THE DAY AT THE HOLDER'S SIZE (1f, 1j-e) — and the retirement's day
+    // with it since the files of 2026-10-16 (1j-c, #538), where it was the desk's alone.
     assert(
         "  the sending's day is drawn at both widths, at the holder's size",
         /\{sentForRepair && \(\s*<span className="text-body-sm text-foreground-subtle max-sm:text-mobile-body-sm">\s*<Instant at=\{sentForRepair\} format=\{DAY_FORMAT\} \/>/.test(page.source)
+    );
+    assert(
+        "  and the retirement's day too (1j-c, #538)",
+        /\{retired && \(\s*<span className="text-body-sm text-foreground-subtle max-sm:text-mobile-body-sm">\s*<Instant at=\{retired\} format=\{DAY_FORMAT\} \/>/.test(page.source)
     );
     // WHO RECORDED AN ENTRY IS NAMED FOR WHAT THEY DID (#463), in full.
     assert("each entry names its recorder in full", /people\.map\(\(person\) => \[person\.id, actorName\(person\)\]\)/.test(page.source));
@@ -568,6 +572,42 @@ export function run({ check, assert, log }) {
             .filter(Boolean)
             .join(", "),
         ""
+    );
+
+    // ── the heads, as the files of 2026-10-16 draw them (#538) ─────────────
+    // A PHONE'S TITLE BLOCK OPENS ON THE ID, AND THE TOP BAR HOLDS NONE (0a): the id in the id
+    // face at 14 in Ink 3, first in the title block and 4 over the name, under a bar handed the
+    // name to fade in once the heading has gone under it, hidden while out; 1k-c's bar is handed
+    // no name, and its id stands over its title the same way. A phone's status mark centers on
+    // its line. At a desk the header's actions stand 3 above the title's top (1f).
+    log("");
+    log("the heads: the id in a phone's title block, the name in its bar, a desk's actions 3 up:");
+    const heads = (pageSource, topBar) =>
+        [
+            /const ID_ON_PHONE = "font-id text-mobile-body-xs tracking-id tabular-nums text-foreground-subtle";/.test(pageSource),
+            /<div className="flex flex-col gap-title-stack max-sm:gap-mobile-title-block-stack">\s*<p className=\{`\$\{ID_ON_PHONE\} sm:hidden`\}>\{asset\.assetId\}<\/p>\s*<h1 /.test(pageSource),
+            /<TopBar name=\{name\}>/.test(pageSource) && /<TopBar>/.test(pageSource) && !/<TopBar[^>]*\bid=/.test(pageSource),
+            /<p className=\{`\$\{ID_ON_PHONE\} sm:hidden`\}>\{asked\}<\/p>\s*<h1 /.test(pageSource),
+            /"-mt-record-header-actions-bleed flex shrink-0 items-center gap-gap max-sm:hidden"/.test(pageSource),
+            /"inline-flex items-baseline gap-gap text-body max-sm:items-center max-sm:text-mobile-body"/.test(pageSource),
+            /export default function TopBar\(\{ name, children \}\)/.test(topBar) && !/\{id\}/.test(topBar),
+            /const heading = name \? document\.querySelector\("h1"\) : null;/.test(topBar) &&
+                /setNamed\(Boolean\(bar && heading && heading\.getBoundingClientRect\(\)\.bottom <= bar\.getBoundingClientRect\(\)\.bottom\)\)/.test(topBar),
+            /named \? "visible opacity-100" : "invisible opacity-0"/.test(topBar) && /inset-x-mobile-top-bar-title-inset-x/.test(topBar),
+        ].join(" ");
+    const topBarSource = parseFile("app/components/TopBar.js").source;
+    check(
+        "the id opens a phone's title block on both pages, the bar takes the name alone, the status mark centers, and a desk's actions stand 3 up",
+        heads(page.source, topBarSource),
+        "true true true true true true true true true"
+    );
+    check(
+        "  and the heads as #463 drew them — the id in the bar, the actions centered on the title's line — are seen (anti-vacuity)",
+        heads(
+            'const ID_IN_TEXT = "font-id"; <TopBar id={asset.assetId}><MoreActions /></TopBar><div className="flex flex-col gap-title-stack max-sm:gap-mobile-caption-stack"><h1 className="text-heading-lg">{name}</h1></div><div className="-mt-[calc((var(--height-control-lg)-var(--text-heading-lg--line-height))/2)] flex shrink-0 items-center gap-gap max-sm:hidden" /><span className="inline-flex items-baseline gap-gap text-body max-sm:text-mobile-body" />',
+            'export default function TopBar({ id, muted = false, children }) { const measure = () => setUnder(window.scrollY > 0); return <p className="font-id">{id}</p>; }'
+        ),
+        "false false false false false false false false false"
     );
 
     // ── anti-vacuity ───────────────────────────────────────────────────────

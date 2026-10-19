@@ -49,10 +49,12 @@ and which decisions in the drawing a later design may not undo.
 ## What it always carries
 
 **identity.** The category's name as the heading — the record's name, as 0n and 1j
-draw a record page — and the `Asset ID` beside it: under the heading at a
-desk, set in the id face and leading the line under it, and in the top bar on a
-phone, where the screen opens. An asset whose category did not resolve is headed
-by its id. It was the `Asset ID` as the heading, and nothing else, until #463.
+draw a record page — and the `Asset ID` beside it, set in the id face: under
+the heading at a desk, leading the line under it, and over the name on a phone,
+the first line of the screen under its top bar (#538), where the top bar held it
+until then. Once the heading has scrolled under the top bar, the bar shows the
+name. An asset whose category did not resolve is headed by its id. It was the
+`Asset ID` as the heading, and nothing else, until #463.
 
 **identity.** What the item is (1f, 1j, #519): its type, its category and its
 class — `HYE-AST-260909-004 · Tool · Power tools · Class B` at a desk, the id
@@ -89,9 +91,9 @@ sticker**, which is the whole of #411.
 `In repair` or `Retired`, behind the mark 0g gives it — a solid dot, a ring,
 the ring dashed (0g's Away, #531), the ring struck through. This is what the
 reader came for. **A value only one state has stands after it**: who holds a
-tool that is out — the name its latest entry checked it out to — at both
-widths, the day one in repair was sent at both widths (#531), and at a desk the
-day a retired one was retired.
+tool that is out — the name its latest entry checked it out to — the day one in
+repair was sent (#531), and the day a retired one was retired, each at both
+widths; the retired day was a desk's alone until #538.
 
 **evidence.** The category it is one of, which is the heading, and the job it is
 on, which every history entry states at both widths and the phone's foot bar
@@ -265,7 +267,8 @@ starts again as it started — the one job left already chosen, or none of
 several (#469) — in the dialog and in the foot bar alike. **At a desk a job is
 said by its code and its name** (1i, #519), the name after the code in Ink 3 in
 the field and in its list, as the registration's is; the phone's pill and its
-sheet say the code alone, as 1j draws them.
+sheet say the code alone, as 1j draws them. Every one lists the jobs by their
+codes (#538).
 
 **The transition has no heading.** The two blocks below it name things —
 `History`, `Label` — and a heading over the act would have to name it in the
@@ -462,7 +465,8 @@ would state a time that is not when the asset was created.
 found`, the design's (1h, 1k; `Tool not found` until #519). At a desk, centered in the column, a sentence
 naming the code asked for in the id face — `No item has the code
 HYE-AST-260909-099. Check it against the label.` — and `Back to Tools & Equipment`. On a
-phone, under the top bar naming the code in Ink 3, a mark and one line,
+phone, a mark, the code in Ink 3 over the heading (#538; the top bar named it
+until then), and one line,
 `No item has this code. Check it against the label and scan again.`, **and no
 way back**, as 1k-c draws it: a phone came from a scan, and the next thing it
 does is scan again. The top bar's menu holds the reader's account alone there

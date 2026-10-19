@@ -1688,7 +1688,8 @@ export function run({ check, assert, log }) {
             countGiven: /\{count != null && \(\s*<p className="shrink-0 text-body tabular-nums text-foreground-subtle">/.test(header),
             centered:
                 /caption \? "items-start" : "items-center"/.test(header) &&
-                /caption \? "-mt-\[calc\(\(var\(--height-control-lg\)-var\(--text-heading-lg--line-height\)\)\/2\)\]" : ""/.test(header),
+                /<div className="flex shrink-0 items-center gap-list-header-control-inline">\{children\}<\/div>/.test(header) &&
+                !/-mt-/.test(header),
             figure: /<p className="shrink-0 text-body tabular-nums text-foreground-subtle">\s*\{count\}\s*<span className="sr-only">\{` \$\{noun\}`\}<\/span>\s*<\/p>/.test(header),
             top: /underBreadcrumb \? "pt-breadcrumb-stack" : "min-h-\(--height-control-lg\) pt-list-header-inset-top"/.test(header) && /pb-list-header-inset-bottom/.test(header),
             under: `${propSources(categoryScreen, "ListHeader", "underBreadcrumb").join()}|${propSources(listFile, "ListHeader", "underBreadcrumb").join()}`,
@@ -1701,7 +1702,7 @@ export function run({ check, assert, log }) {
     const crumbFile = parseFile("app/components/Breadcrumb.js");
     const head = headOf({ table, frame, crumb: crumbFile, categoryScreen: parseFile(CATEGORY_SCREEN), listScreen });
     check("a list's head is one line, the count on the title's baseline 8 on (#505), a caption alone under it (#507)", head.line, "true true");
-    check("  its control centered on the title's line, a caption or not (#507)", head.centered, true);
+    check("  its control centered on the title's line, or level with the title's top over a caption (#538)", head.centered, true);
     check("  the figure alone at Ink 3, its noun said to assistive tech alone", head.figure, true);
     check("  and drawn only where the page hands one, a head with nothing to count its title alone (#519)", head.countGiven, true);
     check("  32 above it, or the breadcrumb's 14, and 18 under it — and with no bar over it at least a 36 control's line (#519)", head.top, true);
