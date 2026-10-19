@@ -163,7 +163,7 @@ accepted (#463).** A registration's assets go to the top, so a link to a
 later page names different assets after one. The selection is printed ids
 and moves with nothing. It read oldest first until #463, for that reason.
 
-**evidence.** Which rows the page shows of how many, `1–25 of 38`, stated
+**evidence.** Which rows the page shows of how many, `1–50 of 76`, stated
 whether or not there is a second page, because a count that appears only once a
 list is long leaves the short case saying nothing — the one figure where a page
 shows a single row, `1 of 1` — and past one page which page of how many, `Page 1
@@ -227,7 +227,7 @@ shortfall follows, and a reload between them opens whichever is left.
 **A step to the previous page** and **a step to the next**, past one page, each
 acting when there is a page that way and drawn without acting at its own end —
 1d's, where until #463 each was absent at its end.
-**A second page exists only for a category with more than twenty-five assets**,
+**A second page exists only for a category with more than fifty assets**,
 and that number counts every registration under the category rather than
 one: registering more of a kind adds to the same list, and one registration
 can make up to a hundred. Both steps carry the selection, so what was
@@ -309,17 +309,18 @@ for two.
 
 ## What must agree elsewhere
 
-**A page holds twenty-five assets, the design's figure for the list as
-it drew it (#442), and the design settled how the position is expressed
-(#463):** which rows the page shows of how many, which page of how many, and
-one step in each direction (1d). This is the first paged list in the app. **Twenty-five is the design's to move again** when
-the list is drawn again. It replaced ten, an estimate of a screenful made
-before any screen was drawn, and it is a design's figure rather than a
-measurement — nobody has yet read this list with a real warehouse in
-it. **Two ceilings on it are not the design's.** Anything up
-to fifty costs the app exactly the same to fetch, and a fifty-first row is
-a second read; and a page is how many one press of the page box selects,
-where the print control acts on at most a hundred — what one print takes.
+**A page holds fifty assets (#538), and the design settled how the position
+is expressed (#463):** which rows the page shows of how many, which page of
+how many, and one step in each direction (1d). This is the first paged list in
+the app. **Fifty is #538's figure, not the drawing's**: the drawings
+still page every list at twenty-five, the figure the design set for the list
+as it drew it (#442), which replaced ten, an estimate of a screenful made
+before any screen was drawn. Neither is a measurement — nobody has yet read
+this list with a real warehouse in it. **Two ceilings on it are not a
+choice.** Anything up to fifty costs the app exactly the same to fetch, and a
+fifty-first row is a second read, so fifty is the largest page one read
+holds; and a page is how many one press of the page box selects, where the
+print control acts on at most a hundred — what one print takes.
 
 **The selection rides in the address (#443), which is what lets it survive a
 page turn, a reload and a copied link.** It was the label screen's own

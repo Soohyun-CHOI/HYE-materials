@@ -4,10 +4,10 @@ import { useSearchParams } from "next/navigation";
 import { useId, useRef, useState, useTransition } from "react";
 import Breadcrumb from "@/app/components/Breadcrumb";
 import { Button, Checkbox, FilterChip, SearchField, ToggleChip } from "@/app/components/Controls";
-import Dot from "@/app/components/Dot";
-import ListFrame, { SelectionBar } from "@/app/components/ListFrame";
-import { ListHeader, Pager, TABLE_HEAD, TABLE_ROW, TABLE_ROW_LINK, TABLE_ROW_SELECTED } from "@/app/components/ListTable";
+import { ListFrameFill, SelectionBar } from "@/app/components/ListFrame";
+import { ListHeader, Pager, TABLE_HEAD_FILL, TABLE_ROW_FILL, TABLE_ROW_LINK, TABLE_ROW_SELECTED } from "@/app/components/ListTable";
 import { MenuButton } from "@/app/components/Menu";
+import { useTooltip } from "@/app/components/Tooltip";
 import { FILTER_BAR_COPY } from "@/lib/listFilters";
 import { ASSET_CLASS_VALUES } from "@/lib/assetCategory";
 import { ASSET_CATALOG_COPY as COPY, filterCatalogRows } from "@/lib/assetCatalog";
@@ -27,12 +27,22 @@ import { EntryDialog, RemoveDialog } from "./CatalogDialogs";
 
 // 1l's columns: the box, the name, which takes the room the rest leave, then the size, the
 // maker, the part number, the category, the type, the class and how many items stand under the
-// row, each at 1l's width, 20 apart.
+// row, each at 1l's width, 20 apart — the widths of 2026-10-16, which laid the list on Fill.
 const COLUMNS =
     "grid-cols-[var(--size-icon)_minmax(0,1fr)_var(--width-catalog-size)_var(--width-catalog-maker)_var(--width-catalog-part-number)_var(--width-catalog-category)_var(--width-catalog-type)_var(--width-catalog-class)_var(--width-catalog-items)]";
 
 /** The columns in 1l's order, by what each holds. */
 const COLUMN_ORDER = ["level3", "size", "maker", "partNumber", "level2", "level1", "assetClass", "assetCount"];
+
+/** The cells after the name, each cut to its column with an ellipsis, the figures tabular. */
+const CUT_CELLS = [
+    { key: "size", figures: true },
+    { key: "maker" },
+    { key: "partNumber", figures: true },
+    { key: "level2" },
+    { key: "level1" },
+    { key: "assetClass" },
+];
 
 /**
  * The catalog (1l, #527): the bar back to Tools & Equipment, the head with how many rows it
@@ -46,9 +56,13 @@ const COLUMN_ORDER = ["level3", "size", "maker", "partNumber", "level2", "level1
  * `filterAssetCategoryRows` under `lib/assetCatalog.js:filterCatalogRows` — with the toggle, read
  * here as the literal `1` the path writes.
  *
- * THE HEAD SCROLLS AWAY WITH THE BAND UNDER THE BAR, AND THE NAME COMES INTO THE BAR ONCE IT HAS
- * GONE (1l, as 1d draws a category's page): `Catalog`, and the head's `N of M` after a dot while
- * the band narrows.
+ * A LIST ON FILL (1l since 2026-10-16, #538): the column's whole width, the bar, the head and the
+ * band holding still and the rows scrolling between the column head and the pager
+ * (`ListFrameFill`). From #527 to #538 it was 1d's shape at the 1080 measure, the head and the
+ * band scrolling away under the bar and the name coming into the bar; Fill brings no name in.
+ *
+ * A VALUE ITS COLUMN CUTS SHOWS WHOLE ABOVE ITS CELL UNDER THE POINTER (1l): every column but the
+ * count ends its text in an ellipsis, and the row hands the tooltip the cell the pointer is on.
  *
  * THE HEAD OPENS `New category` AND `Add to catalog`, AND A ROW'S NAME OPENS ITS EDIT (1l) — the
  * name a button whose box covers the row, as a link covers 1a's, named by the row's whole name.
@@ -120,120 +134,121 @@ export default function CatalogList({ rows, groups }) {
 
     const count = reading.narrowed ? FILTER_BAR_COPY.count(reading.rows.length, reading.total) : reading.total;
     const emptied = reading.narrowed && reading.rows.length === 0;
+    const tip = useTooltip({ placement: "above" });
 
     return (
-        <ListFrame
-            top={
-                <Breadcrumb
-                    levels={[{ label: ASSET_LIST_COPY.heading, href: ASSET_CATEGORIES_PATH }]}
-                    title={
-                        <>
-                            {COPY.heading}
-                            {reading.narrowed && (
-                                <>
-                                    <Dot />
-                                    <span className="font-normal text-foreground-subtle tabular-nums">{count}</span>
-                                </>
-                            )}
-                        </>
-                    }
-                />
-            }
-            header={
-                <ListHeader title={COPY.heading} count={count} noun={ASSET_LIST_COPY.itemNoun(reading.rows.length)} underBreadcrumb>
-                    {/* 1l's two openers, 8 apart. */}
-                    <div className="flex items-center gap-gap">
-                        <Button variant="bordered" onClick={() => openEntry({ mode: "category" })}>
-                            {COPY.newCategoryTitle}
-                        </Button>
-                        <Button onClick={() => openEntry({ mode: "add" })}>{COPY.addTitle}</Button>
-                    </div>
-                </ListHeader>
-            }
-            band={
-                <>
-                    <SearchField label={COPY.searchLabel} value={typed} onChange={search} clearLabel={COPY.clearSearch} />
-                    {ASSET_LIST_FACETS.map((facet) => (
-                        <FilterChip
-                            key={facet}
-                            label={ASSET_LIST_COPY.facetLabel[facet]}
-                            options={reading.facets[facet].map(({ value, count: held }) => ({ value, label: value, count: held }))}
-                            values={reading.held[facet]}
-                            onChange={(values) => write({ ...reading.held, [facet]: values })}
-                            clearLabel={ASSET_LIST_COPY.clearFacet[facet]}
-                            several={ASSET_LIST_COPY.selectedCount}
+        <>
+            <ListFrameFill
+                top={<Breadcrumb levels={[{ label: ASSET_LIST_COPY.heading, href: ASSET_CATEGORIES_PATH }]} />}
+                header={
+                    <ListHeader title={COPY.heading} count={count} noun={ASSET_LIST_COPY.itemNoun(reading.rows.length)} underBreadcrumb fill>
+                        {/* 1l's two openers, 8 apart. */}
+                        <div className="flex items-center gap-gap">
+                            <Button variant="bordered" onClick={() => openEntry({ mode: "category" })}>
+                                {COPY.newCategoryTitle}
+                            </Button>
+                            <Button onClick={() => openEntry({ mode: "add" })}>{COPY.addTitle}</Button>
+                        </div>
+                    </ListHeader>
+                }
+                band={
+                    <>
+                        <SearchField label={COPY.searchLabel} value={typed} onChange={search} clearLabel={COPY.clearSearch} />
+                        {ASSET_LIST_FACETS.map((facet) => (
+                            <FilterChip
+                                key={facet}
+                                label={ASSET_LIST_COPY.facetLabel[facet]}
+                                options={reading.facets[facet].map(({ value, count: held }) => ({ value, label: value, count: held }))}
+                                values={reading.held[facet]}
+                                onChange={(values) => write({ ...reading.held, [facet]: values })}
+                                clearLabel={ASSET_LIST_COPY.clearFacet[facet]}
+                                several={ASSET_LIST_COPY.selectedCount}
+                            />
+                        ))}
+                        <ToggleChip
+                            label={COPY.discontinuedOnly}
+                            on={reading.held.discontinued}
+                            onChange={(on) => write({ ...reading.held, discontinued: on })}
+                            clearLabel={COPY.clearDiscontinued}
                         />
-                    ))}
-                    <ToggleChip
-                        label={COPY.discontinuedOnly}
-                        on={reading.held.discontinued}
-                        onChange={(on) => write({ ...reading.held, discontinued: on })}
-                        clearLabel={COPY.clearDiscontinued}
-                    />
-                </>
-            }
-            footer={
-                reading.rows.length > 0 && (
-                    <Pager
-                        range={ASSET_LIST_COPY.range({ from: page.from + 1, to: page.to, total: page.total })}
-                        position={pagerPosition(page)}
-                        previous={{ onPress: page.page > 1 ? () => write(reading.held, page.page - 1) : undefined, label: ASSET_LIST_COPY.previous }}
-                        next={{ onPress: page.page < page.pageCount ? () => write(reading.held, page.page + 1) : undefined, label: ASSET_LIST_COPY.next }}
-                    />
-                )
-            }
-            // 1l's bar, 1d's own: the count, how many are on other pages, the way out, and `Set
-            // class`, its menu opening above it.
-            overlay={
-                <SelectionBar
-                    shown={selection.length > 0}
-                    label={COPY.selectionBar}
-                    count={selection.length}
-                    notOnPage={notOnPage}
-                    words={{ count: ASSET_LIST_COPY.selectedCount, notOnPage: ASSET_LIST_COPY.notOnPage }}
-                    clearLabel={ASSET_LIST_COPY.clearSelection}
-                    onClear={() => select([])}
-                    reason={classRefusal}
-                    reasonId={reasonId}
-                >
-                    <MenuButton
-                        look="bordered"
-                        label={COPY.setClass}
-                        placement="above"
-                        locked={classing}
-                        items={ASSET_CLASS_VALUES.map((assetClass) => ({ key: assetClass, label: COPY.classOption(assetClass), onSelect: () => setClass(assetClass) }))}
-                    />
-                </SelectionBar>
-            }
-            overlayShown={selection.length > 0}
-        >
-            <div role="table" aria-label={COPY.heading}>
-                {/* This page's box: its state is this page's alone, and a partly selected page
-                    shows as mixed. */}
-                <div role="row" className={`${TABLE_HEAD} ${COLUMNS}`}>
-                    <span role="columnheader" className="flex self-center">
-                        <Checkbox
-                            label={ASSET_LIST_COPY.selectPage}
-                            checked={pageState === "all"}
-                            indeterminate={pageState === "some"}
-                            onChange={() => select(togglePage(selection, pageIds))}
-                        />
-                    </span>
-                    {COLUMN_ORDER.map((key) => (
-                        <span key={key} role="columnheader" className={key === "assetCount" ? "text-right" : "truncate"}>
-                            {COPY.columns[key]}
+                    </>
+                }
+                label={COPY.heading}
+                // This page's box: its state is this page's alone, and a partly selected page
+                // shows as mixed.
+                columnHead={
+                    <div role="row" className={`${TABLE_HEAD_FILL} ${COLUMNS}`}>
+                        <span role="columnheader" className="flex self-center">
+                            <Checkbox
+                                label={ASSET_LIST_COPY.selectPage}
+                                checked={pageState === "all"}
+                                indeterminate={pageState === "some"}
+                                onChange={() => select(togglePage(selection, pageIds))}
+                            />
                         </span>
-                    ))}
-                </div>
+                        {COLUMN_ORDER.map((key) => (
+                            <span key={key} role="columnheader" className={key === "assetCount" ? "text-right" : "truncate"}>
+                                {COPY.columns[key]}
+                            </span>
+                        ))}
+                    </div>
+                }
+                footer={
+                    reading.rows.length > 0 && (
+                        <Pager
+                            fill
+                            range={ASSET_LIST_COPY.range({ from: page.from + 1, to: page.to, total: page.total })}
+                            position={pagerPosition(page)}
+                            previous={{ onPress: page.page > 1 ? () => write(reading.held, page.page - 1) : undefined, label: ASSET_LIST_COPY.previous }}
+                            next={{ onPress: page.page < page.pageCount ? () => write(reading.held, page.page + 1) : undefined, label: ASSET_LIST_COPY.next }}
+                        />
+                    )
+                }
+                // 1l's bar, 1d's own: the count, how many are on other pages, the way out, and `Set
+                // class`, its menu opening above it.
+                overlay={
+                    <SelectionBar
+                        shown={selection.length > 0}
+                        label={COPY.selectionBar}
+                        count={selection.length}
+                        notOnPage={notOnPage}
+                        words={{ count: ASSET_LIST_COPY.selectedCount, notOnPage: ASSET_LIST_COPY.notOnPage }}
+                        clearLabel={ASSET_LIST_COPY.clearSelection}
+                        onClear={() => select([])}
+                        reason={classRefusal}
+                        reasonId={reasonId}
+                    >
+                        <MenuButton
+                            look="bordered"
+                            label={COPY.setClass}
+                            placement="above"
+                            locked={classing}
+                            items={ASSET_CLASS_VALUES.map((assetClass) => ({ key: assetClass, label: COPY.classOption(assetClass), onSelect: () => setClass(assetClass) }))}
+                        />
+                    </SelectionBar>
+                }
+                overlayShown={selection.length > 0}
+                // What a band that emptied the list says, under a Rule where the rows stood (1l).
+                empty={
+                    emptied && (
+                        <div className="flex flex-col items-center gap-list-emptied-stack border-t border-divider py-list-emptied-inset-y text-center">
+                            <p className="text-body">{COPY.noneMatch}</p>
+                            <Button variant="bordered" size="md" onClick={clearAll}>
+                                {COPY.clearAll}
+                            </Button>
+                        </div>
+                    )
+                }
+            >
                 {page.rows.map((row) => (
-                    <div key={row.id} role="row" className={`${TABLE_ROW} ${COLUMNS} ${selection.includes(row.id) ? TABLE_ROW_SELECTED : ""}`}>
+                    <div key={row.id} role="row" {...tip.cutProps()} className={`${TABLE_ROW_FILL} ${COLUMNS} ${selection.includes(row.id) ? TABLE_ROW_SELECTED : ""}`}>
                         <span role="cell" className="flex self-center">
                             <Checkbox label={COPY.selectRow(row.itemName)} checked={selection.includes(row.id)} onChange={() => select(toggleAsset(selection, row.id))} />
                         </span>
                         {/* The name, which opens the row's edit across the whole row, and after it
                             a discontinued row's mark at 13 in Ink 3 (1l). */}
                         <span role="cell" className="flex min-w-0 items-baseline gap-gap whitespace-nowrap">
-                            <span className="min-w-0 truncate">
+                            <span data-cut="" className="min-w-0 truncate">
                                 <button
                                     type="button"
                                     aria-label={COPY.editRow(row.itemName)}
@@ -245,40 +260,21 @@ export default function CatalogList({ rows, groups }) {
                             </span>
                             {row.discontinued && <span className="shrink-0 text-body-sm text-foreground-subtle">{COPY.discontinued}</span>}
                         </span>
-                        <span role="cell" className="truncate tabular-nums">
-                            {row.size}
-                        </span>
-                        <span role="cell" className="truncate">
-                            {row.maker}
-                        </span>
-                        <span role="cell" className="truncate tabular-nums">
-                            {row.partNumber}
-                        </span>
-                        <span role="cell" className="truncate">
-                            {row.level2}
-                        </span>
-                        <span role="cell" className="truncate">
-                            {row.level1}
-                        </span>
-                        <span role="cell" className="truncate">
-                            {row.assetClass}
-                        </span>
+                        {CUT_CELLS.map(({ key, figures }) => (
+                            <span key={key} role="cell" className="min-w-0">
+                                <span data-cut="" className={`block truncate ${figures ? "tabular-nums" : ""}`}>
+                                    {row[key]}
+                                </span>
+                            </span>
+                        ))}
                         {/* A row nothing stands under says `0` in Ink 3, as 1a's counts do. */}
                         <span role="cell" className={`text-right tabular-nums ${row.assetCount === 0 ? "text-foreground-subtle" : ""}`}>
                             {row.assetCount}
                         </span>
                     </div>
                 ))}
-            </div>
-            {/* What a band that emptied the list says, under a Rule where the rows stood (1l). */}
-            {emptied && (
-                <div className="flex flex-col items-center gap-list-emptied-stack border-t border-divider py-list-emptied-inset-y text-center">
-                    <p className="text-body">{COPY.noneMatch}</p>
-                    <Button variant="bordered" size="md" onClick={clearAll}>
-                        {COPY.clearAll}
-                    </Button>
-                </div>
-            )}
+            </ListFrameFill>
+            {tip.element}
             {entry && (
                 <EntryDialog
                     key={entry.key}
@@ -291,6 +287,6 @@ export default function CatalogList({ rows, groups }) {
                 />
             )}
             {removing && <RemoveDialog key={removing.key} row={removing.row} open={removeShown} onClose={() => setRemoveShown(false)} />}
-        </ListFrame>
+        </>
     );
 }

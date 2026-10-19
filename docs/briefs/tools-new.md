@@ -151,7 +151,8 @@ and no other job is offered.
 **A job is said by its code and its name** (1b, #519): each option the code at
 500 and the job's name after it in Ink 3, cut before the code is, and the field
 holding a job the same way. The code is what every list on this axis says and
-the name is what tells two codes apart for a reader choosing between them.
+the name is what tells two codes apart for a reader choosing between them. The
+jobs are listed by their codes (#538), as the list's own choice lists them.
 
 **When it is opened on a category (#449, #451, #456):** a category's own screen opens it
 on that category with its `Add items`, and after a registration that fell short, its

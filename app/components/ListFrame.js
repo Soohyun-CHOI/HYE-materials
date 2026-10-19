@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { InfoMark } from "@/app/components/Controls";
 import Dot from "@/app/components/Dot";
 import Icon from "@/app/components/Icon";
-import { LIST_MEASURE } from "@/app/components/ListTable";
+import { LIST_FILL, LIST_MEASURE } from "@/app/components/ListTable";
 import { SCROLL_LANE } from "@/app/components/scrollLane";
 import { useTooltip } from "@/app/components/Tooltip";
 
@@ -32,6 +32,20 @@ const BAND = `${LIST_MEASURE} flex items-center gap-gap pb-control-band-inset-y`
 const KEEP_CLEAR_OF_PAGER = "scroll-pb-[calc(var(--spacing-pager-inset-top)+var(--height-control)+var(--spacing-pager-inset-bottom))]";
 const KEEP_CLEAR_OF_BAR =
     "scroll-pb-[calc(var(--spacing-pager-inset-top)+var(--height-control)+var(--spacing-pager-inset-bottom)+var(--spacing-selection-bar-offset)+var(--height-control-lg)+2*var(--spacing-selection-bar-inset)+2px)]";
+
+// A list on Fill (#538): its band on the Margin; its column head laid over the lane's top, its 36
+// and its rule, which the lane's first 36 is room for; and the bar's track running from under
+// the column head to over the pager (0i Track), so the thumb never passes under either.
+const BAND_FILL = `${LIST_FILL} flex shrink-0 items-center gap-gap pb-control-band-inset-y`;
+const HEAD_OVER_LANE = "-mb-[calc(var(--height-table-header)+1px)]";
+const TRACK_UNDER_HEAD = "[&::-webkit-scrollbar-track]:mt-(--height-table-header) scroll-pt-(--height-table-header)";
+const TRACK_OVER_PAGER =
+    "[&::-webkit-scrollbar-track]:mb-[calc(var(--spacing-pager-inset-top)+var(--height-control)+var(--spacing-pager-inset-bottom))]";
+
+/** Whether rows run beneath what stands at a lane's foot: the lane not yet at its end. */
+function rowsRunBeneath(lane) {
+    return lane.scrollTop + lane.clientHeight < lane.scrollHeight - 1;
+}
 
 /**
  * The frame a list is drawn in (1a, 1d; #463, #519): one scroll from the top of the column to
@@ -84,9 +98,7 @@ const KEEP_CLEAR_OF_BAR =
  * `band` IS 1a's FILTER BAND (#520): the list's controls in a row 8 apart under the head, 14
  * over the column head, held at the top with the head as the one Sticky surface 0i draws — so
  * the column head holds under both. A list with no band holds its column head under the head.
- * **A list with a bar draws its band under the head and scrolls it away with it (1l, #527)** —
- * the catalog, which 1l draws as 1d is drawn, its column head held under the bar — so the
- * name comes into the bar once the head has gone, the band still below it.
+ * The catalog drew its band under a bar from #527 until #538 laid it on Fill (`ListFrameFill`).
  */
 export default function ListFrame({ top, header, band, footer, overlay, overlayShown = false, children }) {
     const laneRef = useRef(null);
@@ -99,7 +111,7 @@ export default function ListFrame({ top, header, band, footer, overlay, overlayS
         const lane = laneRef.current;
         if (!lane) return undefined;
         const measure = () => {
-            setBeneath(lane.scrollTop + lane.clientHeight < lane.scrollHeight - 1);
+            setBeneath(rowsRunBeneath(lane));
             const bar = topRef.current;
             const head = headerRef.current;
             if (bar && head) setTitleGone(head.getBoundingClientRect().bottom <= bar.getBoundingClientRect().bottom);
@@ -130,7 +142,6 @@ export default function ListFrame({ top, header, band, footer, overlay, overlayS
                             {top}
                         </div>
                         <div ref={headerRef}>{header}</div>
-                        {band && <div className={BAND}>{band}</div>}
                     </>
                 ) : (
                     <div className="sticky top-0 z-10 bg-background-translucent backdrop-blur-sm">
@@ -263,6 +274,90 @@ export function SelectionBar({ shown, label, count, notOnPage, words, clearLabel
                 {children}
             </div>
             {tip.element}
+        </div>
+    );
+}
+
+/**
+ * The frame a list on Fill is drawn in (1l, #538): the bar, the head and the band holding still
+ * at the top, and the rows scrolling inside a region of their own between the column head and
+ * the pager, which lie over its two ends — 0i's "a list on Fill scrolls inside its own region",
+ * where a list on 1080 is one scroll (`ListFrame`). The catalog is the one list on Fill, since
+ * the files of 2026-10-16 laid it across the column as the Invoices file lays its lists.
+ *
+ * THE COLUMN HEAD STANDS OUTSIDE THE LANE, OVER ITS TOP, so its ground and its rules reach the
+ * window's edge across the lane while a row's reach the lane's edge (0i Track), and the lane's
+ * first 36 is room for it to lie over; the bar's track starts under it and ends over the pager,
+ * so the thumb passes under neither. The head keeps the Sticky ground throughout, which over the
+ * lane's empty top is plain white, as 1l draws it until rows pass beneath.
+ *
+ * THE LANE SCROLLS UP AND DOWN AND NEVER SIDEWAYS, AS 1l DRAWS IT. With the head outside the
+ * lane a sideways scroll would move the rows under a head that stays, so a window too narrow for
+ * the catalog's columns cuts them at the lane's edge; the name's column gives way first, since
+ * it is the one that takes what the others leave. Until #538 the lane scrolled sideways.
+ *
+ * WHAT IT SHARES WITH `ListFrame`: the pager pinned over the lane's foot, its ground saying
+ * whether rows run beneath (`rowsRunBeneath`), the rows ending on its height and the selection
+ * bar's, and focus scrolling clear of both. The selection bar stands centered on the rows, the
+ * lane left out, as 1l centers it. `label` names the table, whose head row and rows the frame
+ * holds in two parts; the catalog's dialogs stand outside the frame.
+ *
+ * `empty` IS WHAT A LIST THE BAND EMPTIED SAYS IN THE ROWS' PLACE, under the column head and
+ * outside the table, since it is no row; the lane is not drawn while it stands.
+ */
+export function ListFrameFill({ top, header, band, columnHead, label, footer, overlay, overlayShown = false, empty, children }) {
+    const laneRef = useRef(null);
+    const [beneath, setBeneath] = useState(false);
+    // The lane comes back when the band stops emptying the list, and is measured anew.
+    const laneShown = !empty;
+
+    useEffect(() => {
+        const lane = laneRef.current;
+        if (!lane || !laneShown) return undefined;
+        const measure = () => setBeneath(rowsRunBeneath(lane));
+        measure();
+        lane.addEventListener("scroll", measure, { passive: true });
+        const resized = new ResizeObserver(measure);
+        resized.observe(lane);
+        for (const child of lane.children) resized.observe(child);
+        return () => {
+            lane.removeEventListener("scroll", measure);
+            resized.disconnect();
+        };
+    }, [laneShown]);
+
+    return (
+        <div data-list-frame="" className="flex h-full flex-col font-ui text-foreground-default">
+            {top && <div className="shrink-0">{top}</div>}
+            <div className="shrink-0">{header}</div>
+            {band && <div className={BAND_FILL}>{band}</div>}
+            <div role="table" aria-label={label} className={`flex min-h-0 flex-col ${empty ? "shrink-0" : "flex-1"}`}>
+                <div role="rowgroup" className={`shrink-0 ${empty ? "-mb-px" : HEAD_OVER_LANE}`}>
+                    {columnHead}
+                </div>
+                {laneShown && (
+                    <div
+                        ref={laneRef}
+                        role="rowgroup"
+                        className={`min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable] ${SCROLL_LANE} ${TRACK_UNDER_HEAD} ${
+                            footer ? `${TRACK_OVER_PAGER} ${overlayShown ? KEEP_CLEAR_OF_BAR : KEEP_CLEAR_OF_PAGER}` : ""
+                        }`}
+                    >
+                        <div aria-hidden="true" className="h-table-header" />
+                        {children}
+                        {footer && <div aria-hidden="true" className={overlayShown ? END_ROOM_WITH_BAR : END_ROOM} />}
+                    </div>
+                )}
+            </div>
+            {empty && <div className={`min-h-0 flex-1 overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable] ${SCROLL_LANE}`}>{empty}</div>}
+            {footer && (
+                <div className={`relative z-10 shrink-0 ${PAGER_OVER_ROWS}`}>
+                    <div className="relative mr-scrollbar-gutter">{overlay}</div>
+                    <div className={`border-t ${beneath ? "border-divider-strong bg-background-translucent backdrop-blur-sm" : "border-transparent bg-white"}`}>
+                        {footer}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

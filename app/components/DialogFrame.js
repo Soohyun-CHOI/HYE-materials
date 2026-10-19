@@ -591,6 +591,11 @@ export function DialogBody({ lane = false, foot, children }) {
  * anything was typed, which 1b draws unshaded. A result is pressed on `click` with its `mousedown` stopped, as `Menu`'s options
  * are, so focus stays in the field. With nothing listed, `empty` stands in the results' place.
  *
+ * THE RESULTS STAND UNDER A CLEAR 1 (1b, #538): 1b draws them as one group of the grouped list
+ * the drawings share, whose first group's Inner rule is drawn clear and still takes its pixel,
+ * so the first result stands 9 under the row's Rule; with nothing listed there is no group, and
+ * `empty` stands at the 8.
+ *
  * IT IS THE DIALOG'S BODY FOR FOCUS (#469): marked `data-dialog-body`, so focus that falls in an
  * open dialog — a step that went, taking what held it — comes back to the field.
  *
@@ -666,7 +671,7 @@ export function DialogSearch({ label, value, onChange, clearLabel, filters, resu
                 ref={listRef}
                 className={`mb-dialog-results-inset-bottom min-h-0 grow overflow-y-auto overscroll-contain pt-dialog-results-inset-top pr-[calc(var(--spacing-dialog-inset)-var(--spacing-dialog-result-bleed)-var(--spacing-scrollbar-gutter))] pl-[calc(var(--spacing-dialog-inset)-var(--spacing-dialog-result-bleed))] [scrollbar-gutter:stable] ${SCROLL_LANE}`}
             >
-                <div id={listId} role="listbox" aria-label={resultsLabel} className="flex flex-col">
+                <div id={listId} role="listbox" aria-label={resultsLabel} className={`flex flex-col ${count > 0 ? "border-t border-transparent" : ""}`}>
                     {results.map((result, index) => (
                         <div
                             key={result.key}

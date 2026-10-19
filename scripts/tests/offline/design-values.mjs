@@ -258,15 +258,17 @@ const VALUES = [
     ["--width-table-count", "6rem", null],
     ["--width-table-id", "15rem", null],
     ["--width-table-date", "7.5rem", null],
-    // 1l's columns, the catalog's own (#527).
-    ["--width-catalog-size", "4.5rem", null],
-    ["--width-catalog-maker", "8rem", null],
-    ["--width-catalog-part-number", "8.5rem", null],
-    ["--width-catalog-category", "7rem", null],
-    ["--width-catalog-type", "5.5rem", null],
+    // 1l's columns, the catalog's own (#527), at the widths of 2026-10-16 (#538).
+    ["--width-catalog-size", "8rem", null],
+    ["--width-catalog-maker", "8.5rem", null],
+    ["--width-catalog-part-number", "9rem", null],
+    ["--width-catalog-category", "11rem", null],
+    ["--width-catalog-type", "6rem", null],
     ["--width-catalog-class", "2.75rem", null],
-    ["--width-catalog-items", "3.25rem", null],
+    ["--width-catalog-items", "3rem", null],
     ["--width-catalog-class-field", "8.25rem", null],
+    // How far in a list on Fill sets its table from the window's edge (1l, #538).
+    ["--spacing-fill-table-inset-right", "2.25rem", null],
     ["--spacing-catalog-preview-stack", "0.125rem", null],
     ["--spacing-pager-inline", "1.5rem", null],
     ["--spacing-pager-step-gap", "0.625rem", null],
@@ -466,6 +468,8 @@ const VALUES = [
     // The record rail on 1080 (#463), which #462 left undeclared, its label block and the
     // history beside it; all but the rail's three from the drawings, not the spec.
     ["--spacing-record-header-inline", "3.5rem", null],
+    // How far the record header's actions stand above its title's top (1f, #538).
+    ["--spacing-record-header-actions-bleed", "0.1875rem", null],
     ["--width-record-rail", "21rem", null],
     ["--spacing-record-rail-inline", "2rem", null],
     ["--spacing-record-rail-inset-left", "1.75rem", null],
@@ -514,6 +518,8 @@ const VALUES = [
     // The top bar's soft edge (#463), the bottom bar's again on the bar above; the fade is the drawings'.
     ["--spacing-mobile-top-bar-bleed", "1.5rem", null],
     ["--transition-duration-mobile-top-bar", "160ms", null],
+    // Either side of the name the top bar fades in (0a, #538).
+    ["--spacing-mobile-top-bar-title-inset-x", "3.5rem", null],
     ["--spacing-mobile-bottom-bar-inset-top", "1rem", null],
     ["--spacing-mobile-bottom-bar-inset-bottom", "1.25rem", null],
     ["--spacing-mobile-bottom-bar-stack", "0.75rem", null],
@@ -568,10 +574,11 @@ const VALUES = [
     ["--radius-mobile-control", "0.75rem", null],
     ["--radius-mobile-drawer", "1.75rem", null],
     ["--opacity-mobile-pressed", "50%", null],
-    ["--spacing-mobile-top-bar-stack", "1rem", null],
+    // The title block 4 under the top bar since the files of 2026-10-16 (#538), where it was 16.
+    ["--spacing-mobile-top-bar-stack", "0.25rem", null],
     ["--spacing-mobile-title-stack", "1.375rem", null],
-    // From the drawings, not the spec (#519): the phone caption under a record's title.
-    ["--spacing-mobile-caption-stack", "0.25rem", null],
+    // The title block's lines on a phone, 4 apart (0a, #538): the id over the name, the caption under it.
+    ["--spacing-mobile-title-block-stack", "0.25rem", null],
     ["--spacing-mobile-stack", "2rem", null],
     // A phone's sign-in page (#473); the caret's height is the drawings'.
     ["--spacing-mobile-sign-in-inset-top", "4.5rem", null],

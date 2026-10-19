@@ -431,15 +431,15 @@ export function run({ check, assert, log }) {
 
     // ── 2: the paging ───────────────────────────────────────────────────────
     log("");
-    log("a page holds twenty-five assets, and the pages are the whole list:");
+    log("a page holds fifty assets, and the pages are the whole list:");
 
     // PINNED BY VALUE SINCE #442, where this held only that the size was a whole
     // number under fifty. Every length in the loop was derived from the constant,
     // and the one thing that tied the size down was a twelve-row fixture, by the
-    // accident of twelve rows being two pages at ten. It is the design's figure and
-    // the design may move it (docs/briefs/asset-categories-categoryRecordId.md); moving it is an edit
-    // to these literals in the same commit.
-    check("a page holds this many assets", ASSET_PAGE_SIZE, 25);
+    // accident of twelve rows being two pages at ten. Twenty-five from #442 and fifty
+    // since #538 (docs/briefs/asset-categories-categoryRecordId.md); moving it is an
+    // edit to these literals in the same commit.
+    check("a page holds this many assets", ASSET_PAGE_SIZE, 50);
     // Above 50 a page would cost two `findChildRecords` queries instead of one,
     // which is a boundary on this number that is not the design's.
     assert("  and stays inside one batched read of fifty", ASSET_PAGE_SIZE <= 50);
@@ -454,16 +454,16 @@ export function run({ check, assert, log }) {
 
     const idsOfLength = (n) => Array.from({ length: n }, (_, i) => `rec${String(i).padStart(3, "0")}`);
     // Literal lengths and literal page counts, on both sides of both edges a page of
-    // twenty-five has inside a hundred.
+    // fifty has inside two hundred.
     for (const [n, pages] of [
         [0, 1],
         [1, 1],
-        [24, 1],
-        [25, 1],
-        [26, 2],
-        [50, 2],
-        [51, 3],
-        [100, 4],
+        [49, 1],
+        [50, 1],
+        [51, 2],
+        [100, 2],
+        [101, 3],
+        [200, 4],
     ]) {
         const all = idsOfLength(n);
         const first = pageOfAssets(all, 1);
@@ -478,22 +478,21 @@ export function run({ check, assert, log }) {
     }
 
     // A LIST THAT REALLY SPANS PAGES AT THIS SIZE (#442). This was twelve, which was
-    // two pages at ten and is one at twenty-five: its page-2 assertions fail at this
-    // size, and any version of them bent to pass would be asking about a list with
-    // no second page. Fifty-two is three pages — two full and two left over, which
-    // puts a middle page between the two ends. Its page count is pinned first, so a
-    // fixture that stopped spanning pages fails here rather than quietly asking about
-    // page 1 three times.
-    const fiftyTwo = idsOfLength(52);
-    check("fifty-two assets make three pages", pageOfAssets(fiftyTwo, 1).pageCount, 3);
+    // two pages at ten and one at twenty-five, and fifty-two from #442 to #538, which is
+    // two pages at fifty with no middle one. A hundred and two is three pages — two full
+    // and two left over, which puts a middle page between the two ends. Its page count is
+    // pinned first, so a fixture that stopped spanning pages fails here rather than
+    // quietly asking about page 1 three times.
+    const hundredTwo = idsOfLength(102);
+    check("a hundred and two assets make three pages", pageOfAssets(hundredTwo, 1).pageCount, 3);
     // NEWEST FIRST (#463): the array's last opens page 1, and its first closes the list.
-    check("  page 1 holds the newest twenty-five", pageOfAssets(fiftyTwo, 1).ids.length, 25);
-    check("  opening on the newest of all", pageOfAssets(fiftyTwo, 1).ids[0], "rec051");
-    check("  page 2 opens on the twenty-sixth newest", pageOfAssets(fiftyTwo, 2).ids[0], "rec026");
-    check("  and closes on the fiftieth", pageOfAssets(fiftyTwo, 2).ids.at(-1), "rec002");
-    check("  and page 3 holds the remaining two", pageOfAssets(fiftyTwo, 3).ids.length, 2);
-    check("  which are the oldest two, newest first", pageOfAssets(fiftyTwo, 3).ids.join(), "rec001,rec000");
-    check("  and the link array it was handed is left as it was", fiftyTwo[0], "rec000");
+    check("  page 1 holds the newest fifty", pageOfAssets(hundredTwo, 1).ids.length, 50);
+    check("  opening on the newest of all", pageOfAssets(hundredTwo, 1).ids[0], "rec101");
+    check("  page 2 opens on the fifty-first newest", pageOfAssets(hundredTwo, 2).ids[0], "rec051");
+    check("  and closes on the hundredth", pageOfAssets(hundredTwo, 2).ids.at(-1), "rec002");
+    check("  and page 3 holds the remaining two", pageOfAssets(hundredTwo, 3).ids.length, 2);
+    check("  which are the oldest two, newest first", pageOfAssets(hundredTwo, 3).ids.join(), "rec001,rec000");
+    check("  and the link array it was handed is left as it was", hundredTwo[0], "rec000");
 
     log("");
     log("a page nobody can be on resolves to one they can:");
@@ -508,7 +507,7 @@ export function run({ check, assert, log }) {
         ["3", 3, "the last one"],
         ["999", 3, "one past the end"],
     ])
-        check(`  ${why} lands on page ${want}`, pageOfAssets(fiftyTwo, raw).page, want);
+        check(`  ${why} lands on page ${want}`, pageOfAssets(hundredTwo, raw).page, want);
     check("an empty category has one page, not none", pageOfAssets([], 1).pageCount, 1);
     check("  and that page is empty", pageOfAssets([], 1).ids.length, 0);
 
@@ -521,7 +520,7 @@ export function run({ check, assert, log }) {
     // was `pageHolding`'s page, held here by its edges.
     log("");
     log("what a registration wrote opens the first page, newest first:");
-    const before = idsOfLength(30);
+    const before = idsOfLength(60);
     const written = Array.from({ length: 14 }, (_, i) => `new${String(i).padStart(3, "0")}`);
     check("  the category already fills a page", pageOfAssets(before, 1).pageCount, 2);
     check(
@@ -529,8 +528,8 @@ export function run({ check, assert, log }) {
         pageOfAssets([...before, ...written], 1).ids.slice(0, 14).join(),
         [...written].reverse().join()
     );
-    check("  and the category's newest before them follows", pageOfAssets([...before, ...written], 1).ids[14], "rec029");
-    const run = Array.from({ length: 30 }, (_, i) => `run${String(i).padStart(3, "0")}`);
+    check("  and the category's newest before them follows", pageOfAssets([...before, ...written], 1).ids[14], "rec059");
+    const run = Array.from({ length: 55 }, (_, i) => `run${String(i).padStart(3, "0")}`);
     check(
         "  a run longer than a page fills page 1 and goes on to page 2",
         `${pageOfAssets([...before, ...run], 1).ids.every((id) => id.startsWith("run"))} ${pageOfAssets([...before, ...run], 2).ids.slice(0, 5).join()}`,
@@ -1269,12 +1268,14 @@ export function run({ check, assert, log }) {
     // ── 2c: this list's page and the document lists' page stay two constants ─
     log("");
     log("the asset lists' page size and the document lists' are two numbers, not one:");
-    // SINCE #442 BOTH ARE 25, AND THAT IS WHAT MAKES THIS WORTH A CHECK. They are set
-    // for different readers — a phone and three short facts against a monitor and six
-    // columns — and this one is also how many labels a press prints. Folding them into
-    // one constant makes a design change to either move the other, and two equal
-    // numbers in two files is the first thing a pass that names the design's values
-    // reaches for. So each has to be declared as a number in its own module, and
+    // FROM #442 BOTH WERE 25, AND #538 IS WHAT THIS CHECK KEPT ONE EDIT: it moved this one
+    // to fifty and left the document lists' at 25. They are set for different lists —
+    // three short facts a press of the page box selects for printing, against six columns
+    // a gate admitted (this said a phone against a monitor, which stopped being true when
+    // the asset lists' briefs made them a desk's; corrected per #181). Folding them into
+    // one constant makes a change to either move the other, and two numbers that agree
+    // are the first thing a pass that names the design's values reaches for — as they
+    // may again. So each has to be declared as a number in its own module, and
     // neither module may reach the other: a shared token, an alias and a re-export all
     // fail here. **What retires this** is a design decision that the two are one
     // reader's page, taken where #258 names the design's values — and then this
@@ -1431,21 +1432,21 @@ export function run({ check, assert, log }) {
     // ── 2e: the category list's pages, and the frame both lists are drawn in (#463)
     log("");
     log("the category list pages its rows as a category's own list does, and both are drawn in one frame:");
-    // THE CATEGORY LIST PAGES AT THE SAME 25 BY THE SAME CLAMP, over rows the page already built:
+    // THE CATEGORY LIST PAGES AT THE SAME SIZE BY THE SAME CLAMP, over rows the page already built:
     // reassembly over the lengths around both edges, and the window both lists share.
     const rowsOf = (n) => Array.from({ length: n }, (_, at) => ({ id: `rec${at}` }));
-    const listLengths = [0, 1, 24, 25, 26, 49, 50, 51];
+    const listLengths = [0, 1, 49, 50, 51, 99, 100, 101];
     const reassembled = listLengths.filter((n) => {
         const first = pageOfAssetCategories(rowsOf(n), 1);
         const pages = Array.from({ length: first.pageCount }, (_, at) => pageOfAssetCategories(rowsOf(n), at + 1).rows.map((row) => row.id));
-        return pages.flat().join() === rowsOf(n).map((row) => row.id).join() && first.pageCount === Math.max(1, Math.ceil(n / 25));
+        return pages.flat().join() === rowsOf(n).map((row) => row.id).join() && first.pageCount === Math.max(1, Math.ceil(n / 50));
     });
     check("the category list's pages are the whole list, at every length around the edges", reassembled.join(), listLengths.join());
-    const second = pageOfAssetCategories(rowsOf(40), "2");
-    check("  page 2 of 40 shows the 26th to the 40th", `${second.page}/${second.pageCount} ${second.from}–${second.to} of ${second.total}`, "2/2 25–40 of 40");
-    check("  a page past the end is the last, and an unreadable one the first", `${pageOfAssetCategories(rowsOf(26), "9").page} ${pageOfAssetCategories(rowsOf(26), "x").page}`, "2 1");
+    const second = pageOfAssetCategories(rowsOf(80), "2");
+    check("  page 2 of 80 shows the 51st to the 80th", `${second.page}/${second.pageCount} ${second.from}–${second.to} of ${second.total}`, "2/2 50–80 of 80");
+    check("  a page past the end is the last, and an unreadable one the first", `${pageOfAssetCategories(rowsOf(51), "9").page} ${pageOfAssetCategories(rowsOf(51), "x").page}`, "2 1");
     const disagreements = [];
-    for (const n of [0, 1, 25, 26, 51])
+    for (const n of [0, 1, 50, 51, 101])
         for (const asked of ["1", "2", "3", "x"]) {
             const categories = pageOfAssetCategories(rowsOf(n), asked);
             const items = pageOfAssets(rowsOf(n).map((row) => row.id), asked);
@@ -1514,7 +1515,7 @@ export function run({ check, assert, log }) {
     );
     check(
         "  rows run beneath the pager until the lane is at its end",
-        /setBeneath\(lane\.scrollTop \+ lane\.clientHeight < lane\.scrollHeight - 1\)/.test(frameSource),
+        /function rowsRunBeneath\(lane\) \{\s*return lane\.scrollTop \+ lane\.clientHeight < lane\.scrollHeight - 1;\s*\}/.test(frame.source) && /setBeneath\(rowsRunBeneath\(lane\)\)/.test(frameSource),
         true
     );
     check(
@@ -1687,7 +1688,8 @@ export function run({ check, assert, log }) {
             countGiven: /\{count != null && \(\s*<p className="shrink-0 text-body tabular-nums text-foreground-subtle">/.test(header),
             centered:
                 /caption \? "items-start" : "items-center"/.test(header) &&
-                /caption \? "-mt-\[calc\(\(var\(--height-control-lg\)-var\(--text-heading-lg--line-height\)\)\/2\)\]" : ""/.test(header),
+                /<div className="flex shrink-0 items-center gap-list-header-control-inline">\{children\}<\/div>/.test(header) &&
+                !/-mt-/.test(header),
             figure: /<p className="shrink-0 text-body tabular-nums text-foreground-subtle">\s*\{count\}\s*<span className="sr-only">\{` \$\{noun\}`\}<\/span>\s*<\/p>/.test(header),
             top: /underBreadcrumb \? "pt-breadcrumb-stack" : "min-h-\(--height-control-lg\) pt-list-header-inset-top"/.test(header) && /pb-list-header-inset-bottom/.test(header),
             under: `${propSources(categoryScreen, "ListHeader", "underBreadcrumb").join()}|${propSources(listFile, "ListHeader", "underBreadcrumb").join()}`,
@@ -1700,7 +1702,7 @@ export function run({ check, assert, log }) {
     const crumbFile = parseFile("app/components/Breadcrumb.js");
     const head = headOf({ table, frame, crumb: crumbFile, categoryScreen: parseFile(CATEGORY_SCREEN), listScreen });
     check("a list's head is one line, the count on the title's baseline 8 on (#505), a caption alone under it (#507)", head.line, "true true");
-    check("  its control centered on the title's line, a caption or not (#507)", head.centered, true);
+    check("  its control centered on the title's line, or level with the title's top over a caption (#538)", head.centered, true);
     check("  the figure alone at Ink 3, its noun said to assistive tech alone", head.figure, true);
     check("  and drawn only where the page hands one, a head with nothing to count its title alone (#519)", head.countGiven, true);
     check("  32 above it, or the breadcrumb's 14, and 18 under it — and with no bar over it at least a 36 control's line (#519)", head.top, true);
@@ -2054,8 +2056,6 @@ export function run({ check, assert, log }) {
         return [
             inLane(/<div ref=\{topRef\} className="sticky top-0 z-10">\s*\{top\}\s*<\/div>\s*<div ref=\{headerRef\}>\{header\}<\/div>/),
             inLane(/<div className="sticky top-0 z-10 bg-background-translucent backdrop-blur-sm">\s*\{header\}\s*\{band && <div className=\{BAND\}>\{band\}<\/div>\}\s*<\/div>/),
-            // 1l's band under its head, both scrolling away under the bar (#527).
-            inLane(/<div ref=\{headerRef\}>\{header\}<\/div>\s*\{band && <div className=\{BAND\}>\{band\}<\/div>\}/),
             /const BAND = `\$\{LIST_MEASURE\} flex items-center gap-gap pb-control-band-inset-y`;/.test(source),
             /\$\{\s*top \? UNDER_BAR : band \? UNDER_HEAD_AND_BAND : UNDER_HEAD\s*\}/.test(frameFn),
             /const UNDER_HEAD_AND_BAND =\s*"\[--table-head-top:calc\(var\(--spacing-list-header-inset-top\)\+var\(--height-control-lg\)\+var\(--spacing-list-header-inset-bottom\)\+var\(--height-control\)\+var\(--spacing-control-band-inset-y\)\)\] scroll-pt-\[calc\(var\(--table-head-top\)\+var\(--height-table-header\)\)\]";/.test(source),
@@ -2067,9 +2067,9 @@ export function run({ check, assert, log }) {
         ].join(" ");
     };
     check(
-        "  one scroll: 1a's head and its band and 1d's bar held at the top inside the lane, 1l's band under its head below the bar, the column head under each, focus clear of them, the pager after the lane",
+        "  one scroll: 1a's head and its band and 1d's bar held at the top inside the lane, the column head under each, focus clear of them, the pager after the lane",
         oneScroll(frameWhole),
-        "true true true true true true true true true true"
+        "true true true true true true true true true"
     );
     check(
         "  and the column head reads where the frame holds it",
@@ -2081,7 +2081,72 @@ export function run({ check, assert, log }) {
         oneScroll(
             'export default function ListFrame() { return <div>{top && <div className="shrink-0 pr-scrollbar-gutter">{top}</div>}<div className="shrink-0">{header}</div><div ref={laneRef} className={`${SCROLL_LANE}`} /><div className={PAGER_OVER_ROWS} /></div>; }'
         ),
-        "false false false false false false false false false false"
+        "false false false false false false false false false"
+    );
+    // A LIST ON FILL SCROLLS IN A REGION OF ITS OWN (0i, 1l, #538): the bar, the head and the band
+    // outside the lane and holding still, the column head outside it too and laid over its first
+    // 36, the lane scrolling up and down only, its track from under the column head to over the
+    // pager, and the pager after the lane with the selection bar centered off the lane's 8.
+    const fillFrame = (source) => {
+        const fn = source.slice(source.indexOf("export function ListFrameFill"));
+        const lane = fn.indexOf("ref={laneRef}");
+        const pager = fn.indexOf("PAGER_OVER_ROWS");
+        const beforeLane = (pattern) => {
+            const at = fn.search(pattern);
+            return at >= 0 && at < lane;
+        };
+        return [
+            beforeLane(/\{top && <div className="shrink-0">\{top\}<\/div>\}\s*<div className="shrink-0">\{header\}<\/div>\s*\{band && <div className=\{BAND_FILL\}>\{band\}<\/div>\}/),
+            beforeLane(/<div role="rowgroup" className=\{`shrink-0 \$\{empty \? "-mb-px" : HEAD_OVER_LANE\}`\}>\s*\{columnHead\}\s*<\/div>/),
+            /const HEAD_OVER_LANE = "-mb-\[calc\(var\(--height-table-header\)\+1px\)\]";/.test(source) && /<div aria-hidden="true" className="h-table-header" \/>\s*\{children\}/.test(fn),
+            /className=\{`min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain \[scrollbar-gutter:stable\] \$\{SCROLL_LANE\} \$\{TRACK_UNDER_HEAD\}/.test(fn),
+            /const TRACK_UNDER_HEAD = "\[&::-webkit-scrollbar-track\]:mt-\(--height-table-header\) scroll-pt-\(--height-table-header\)";/.test(source) &&
+                /footer \? `\$\{TRACK_OVER_PAGER\} \$\{overlayShown \? KEEP_CLEAR_OF_BAR : KEEP_CLEAR_OF_PAGER\}`/.test(fn),
+            lane >= 0 && pager > lane && /<div className="relative mr-scrollbar-gutter">\{overlay\}<\/div>/.test(fn.slice(pager)),
+            /const BAND_FILL = `\$\{LIST_FILL\} flex shrink-0 items-center gap-gap pb-control-band-inset-y`;/.test(source),
+        ].join(" ");
+    };
+    check(
+        "  a list on Fill: the head and the band still, the column head over the lane's top, the lane up and down only, its track between the two, the pager after it",
+        fillFrame(frameWhole),
+        "true true true true true true true"
+    );
+    check(
+        "  and a Fill frame scrolling its head with the rows, as 1d's does, is seen (anti-vacuity)",
+        fillFrame(
+            "export function ListFrameFill() { return <div><div ref={laneRef} className={`overflow-auto ${SCROLL_LANE}`}>{top}{header}<div className={BAND}>{band}</div>{columnHead}{children}</div><div className={PAGER_OVER_ROWS}>{overlay}</div></div>; }"
+        ),
+        "false false false false false false false"
+    );
+    // 1l DRAWS ITS ROWS ON FILL: Fill's column head and rows, the head and the pager on the
+    // Margin, and no name handed to the bar, since nothing scrolls the head away under it.
+    const catalogOnFill = (source) =>
+        [
+            /<ListFrameFill\b/.test(source) && !/<ListFrame\b/.test(source),
+            /className=\{`\$\{TABLE_HEAD_FILL\} \$\{COLUMNS\}`\}/.test(source),
+            /className=\{`\$\{TABLE_ROW_FILL\} \$\{COLUMNS\}/.test(source),
+            /<ListHeader\b[^>]*\bfill\b/.test(source) && /<Pager\s+fill\b/.test(source),
+            !/<Breadcrumb[^>]*\btitle=/.test(source),
+        ].join(" ");
+    check(
+        "  Fill's pager: its count on the Margin and its steps on the rows' text edge, as Fill's row ends its text",
+        [
+            /\$\{fill \? "pl-page-gutter pr-fill-table-inset-right" : "px-table-bleed"\}/.test(parseFile(LIST_TABLE).source),
+            /export const TABLE_ROW_FILL =\s*"[^"]*\bpl-page-gutter pr-\[calc\(var\(--spacing-fill-table-inset-right\)-var\(--spacing-scrollbar-gutter\)\)\]/.test(parseFile(LIST_TABLE).source),
+        ].join(" "),
+        "true true"
+    );
+    check(
+        "  the catalog is that list: Fill's column head and rows, its head and pager, and no name in its bar",
+        catalogOnFill(parseFile("app/(assets)/asset-catalog/CatalogList.js").source),
+        "true true true true true"
+    );
+    check(
+        "  and the catalog at the measure under a bar that takes its name is seen (anti-vacuity)",
+        catalogOnFill(
+            "<ListFrame top={<Breadcrumb levels={l} title={t} />}><div className={`${TABLE_HEAD} ${COLUMNS}`} /><div className={`${TABLE_ROW} ${COLUMNS}`} /><ListHeader title={t} /><Pager range={r} /></ListFrame>"
+        ),
+        "false false false false false"
     );
     // 1d's NAME IN THE BAR once its head has scrolled under it: measured by the frame, marked on
     // the lane, drawn by the bar under the mark behind a 16 rule 16 either side at 13 and 600,

@@ -87,13 +87,21 @@ export function run({ check, assert, log }) {
         0
     );
     check("and a missing job list yields none", assignedJobsFor(onOne, undefined).length, 0);
-    // The list's own order survives, which is what makes the picker's order the
-    // job list's rather than the assignment array's.
+    // IN THE ORDER OF THEIR CODES (#538), as the files of 2026-10-16 list a reader's jobs:
+    // neither the Jobs table's order nor the assignment array's comes through, a run of
+    // digits reads as a number, and the loaded list is not reordered in place.
+    const tableOrder = [
+        { id: "ua", jobCode: "UA00001" },
+        { id: "d10", jobCode: "26-DEMO-10" },
+        { id: "usa", jobCode: "23-USA-09" },
+        { id: "d2", jobCode: "26-DEMO-2" },
+    ];
     check(
-        "the loaded list's order is kept",
-        assignedJobsFor({ assignedJobs: ["job2", "job1"] }, JOBS).map((j) => j.jobCode).join(),
-        "26-DEMO-01,26-DEMO-02"
+        "the jobs come in the order of their codes, whatever the table's order or the assignments'",
+        assignedJobsFor({ assignedJobs: ["d2", "ua", "usa", "d10"] }, tableOrder).map((j) => j.jobCode).join(),
+        "23-USA-09,26-DEMO-2,26-DEMO-10,UA00001"
     );
+    check("  and the loaded list keeps its own", tableOrder.map((j) => j.id).join(), "ua,d10,usa,d2");
 
     // ── 1b: one assignment, spelled once (#458) ────────────────────────────
     // "One assignment is used without asking" is three screens' reading — the

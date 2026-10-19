@@ -16,6 +16,7 @@ import {
     readCatalogEntry,
     readCategoryEntry,
     renamesItems,
+    savedCategory,
     shownName,
 } from "@/lib/assetCatalog";
 import { addAssetCategoryGroupAction, removeAssetCategoryAction, saveAssetCategoryAction, setAssetCategoryDiscontinuedAction } from "./actions";
@@ -29,6 +30,11 @@ import { addAssetCategoryGroupAction, removeAssetCategoryAction, saveAssetCatego
  * and the name as fields that suggest what the catalog holds, the size, the maker and the part
  * number a row may leave empty, and what the row shows as — and `New category` asks the type
  * and the category alone. Each opens fresh, its owner mounting it anew for every opening.
+ *
+ * WHAT IS SAVED IS SHOWN BEFORE THE PRESS (#538). A category or a name the catalog does not hold
+ * is saved with each word's first letter in capitals, and one it holds as it spells it: the
+ * Category field takes that spelling once focus leaves it, in both dialogs that ask it, and
+ * `Shows as` spells the name so, the name field keeping what was typed.
  *
  * WHAT A PRESS MAY SAVE IS `lib/assetCatalog.js`'s READING, ASKED HERE FIRST. A press the reading
  * refuses sends nothing and says each refusal under its field, focus going to the first (#522);
@@ -137,12 +143,15 @@ export function EntryDialog({ entry, open, onClose, onRemove, rows, groups }) {
         });
     };
 
-    // What a press would save once the reading takes it — a name the category holds spelled as
-    // it holds it — and what is typed until then, so `Shows as` and the note say what is saved.
-    const toSave = reading.entry ?? values;
-    const shown = shownName(toSave);
+    // What a press would save, spelled as the reading spells it, so `Shows as` and the note say
+    // what is saved; and the category's spelling put in its field once focus leaves it (#538).
+    const shown = shownName(values, { rows, editing });
     const newCategory = !fields.level2 && isNewCategory(values, groups);
     const newName = !fields.level3 && isNewName(values, rows);
+    const spellCategory = () => {
+        const spelled = savedCategory(values, groups, { rows, editing });
+        if (spelled !== values.level2) set("level2")(spelled);
+    };
 
     return (
         <DialogFrame
@@ -191,6 +200,7 @@ export function EntryDialog({ entry, open, onClose, onRemove, rows, groups }) {
                         name="level2"
                         value={values.level2}
                         onChange={set("level2")}
+                        onBlur={spellCategory}
                         suggestions={categorySuggestions(values, groups).map((label) => ({ label }))}
                         placeholder={COPY.placeholders.level2}
                         {...list("level2")}
@@ -240,7 +250,7 @@ export function EntryDialog({ entry, open, onClose, onRemove, rows, groups }) {
             </DialogBody>
             <DialogActions
                 refusal={refusal}
-                note={editing && renamesItems(row, toSave) ? COPY.renames(row.assetCount) : null}
+                note={editing && renamesItems(row, values, { rows }) ? COPY.renames(row.assetCount) : null}
                 secondary={
                     editing &&
                     (row.discontinued ? (

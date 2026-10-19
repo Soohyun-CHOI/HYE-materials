@@ -1166,6 +1166,13 @@ export function run({ check, assert, log }) {
         ].join(" "),
         "true true true true true true"
     );
+    // THE RESULTS STAND UNDER A CLEAR 1 WHILE ANY ARE LISTED (1b, #538): the grouped list's first
+    // rule, drawn clear, and none over `empty`, where 1b draws no group.
+    check(
+        "  the results stand under a clear 1 while any are listed, and `empty` at the list's 8 (#538)",
+        /role="listbox" aria-label=\{resultsLabel\} className=\{`flex flex-col \$\{count > 0 \? "border-t border-transparent" : ""\}`\}/.test(searchPart),
+        true
+    );
     const actionsFn = functionNamed(frame.ast, "DialogActions");
     const actionsPart = actionsFn ? frame.source.slice(actionsFn.start, actionsFn.end) : "";
     const controlSource = parseFile(CONTROLS).source;

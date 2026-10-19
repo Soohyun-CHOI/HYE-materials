@@ -19,12 +19,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * dismisses something the pointer opened without moving the pointer. It does not show while
  * `enabled` is false — the rail expanded, with every word on the screen — and a caller whose
  * target opens a menu leaves its target's props off while the menu shows (0k).
+ *
+ * A CUT VALUE SHOWS WHOLE ABOVE ITS CELL (1l, #538): `cutProps` goes on a row, and the pointer over
+ * a cell whose `[data-cut]` text its column cuts shows that text above the cell, centered on it,
+ * and nothing over a cell that shows its text whole. The row and not the cell takes the pointer,
+ * since a row that opens is covered by its link and its cells never see it. Assistive tech reads
+ * the whole text already; the figures above are tabular, as 1l sets them.
  */
 export function useTooltip({ enabled = true, placement = "beside" } = {}) {
     const tipRef = useRef(null);
+    const shownOn = useRef(null);
     const [word, setWord] = useState("");
 
     const hide = useCallback(() => {
+        shownOn.current = null;
         const tip = tipRef.current;
         if (tip?.matches(":popover-open")) tip.hidePopover();
     }, []);
@@ -70,6 +78,25 @@ export function useTooltip({ enabled = true, placement = "beside" } = {}) {
         onBlur: hide,
     });
 
+    /** What a row of cells that may cut their text needs (`[data-cut]` in each): the cut one's whole text, above it. */
+    const cutProps = () => ({
+        onPointerMove: (event) => {
+            const cell = [...event.currentTarget.querySelectorAll("[data-cut]")].find((cut) => {
+                const box = (cut.closest('[role="cell"]') ?? cut).getBoundingClientRect();
+                return event.clientX >= box.left && event.clientX < box.right;
+            });
+            if (!cell || cell.scrollWidth <= cell.clientWidth + 1) {
+                if (shownOn.current) hide();
+                return;
+            }
+            if (shownOn.current === cell) return;
+            hide();
+            shownOn.current = cell;
+            show(cell.closest('[role="cell"]') ?? cell, cell.textContent);
+        },
+        onPointerLeave: hide,
+    });
+
     const element = (
         <div
             ref={tipRef}
@@ -77,7 +104,7 @@ export function useTooltip({ enabled = true, placement = "beside" } = {}) {
             aria-hidden="true"
             className={`pointer-events-none inset-auto whitespace-nowrap rounded-control bg-foreground-default px-tooltip-inset-x pt-tooltip-inset-top pb-tooltip-inset-bottom font-ui text-body-sm font-medium text-white shadow-popover transition-opacity delay-tooltip duration-tooltip starting:open:opacity-0 ${
                 placement === "above"
-                    ? "mx-0 mt-0 mb-tooltip-offset -translate-x-1/2"
+                    ? "mx-0 mt-0 mb-tooltip-offset -translate-x-1/2 tabular-nums"
                     : "my-0 mr-0 ml-tooltip-rail-offset -translate-y-1/2"
             }`}
         >
@@ -85,5 +112,5 @@ export function useTooltip({ enabled = true, placement = "beside" } = {}) {
         </div>
     );
 
-    return { targetProps, hide, element };
+    return { targetProps, cutProps, hide, element };
 }

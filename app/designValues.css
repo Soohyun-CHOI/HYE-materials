@@ -109,14 +109,15 @@
     --width-table-count: 6rem; /* 1a, 96: a column of counts — from the drawings, not the spec */
     --width-table-id: 15rem; /* 1d, 240: a column of printed ids — from the drawings, not the spec */
     --width-table-date: 7.5rem; /* 1d, 120: a column of days — from the drawings, not the spec */
-    --width-catalog-size: 4.5rem; /* 1l, 72: the catalog's size column — from the drawings, not the spec */
-    --width-catalog-maker: 8rem; /* 1l, 128: the catalog's maker column — from the drawings, not the spec */
-    --width-catalog-part-number: 8.5rem; /* 1l, 136: the catalog's part number column — from the drawings, not the spec */
-    --width-catalog-category: 7rem; /* 1l, 112: the catalog's category column — from the drawings, not the spec */
-    --width-catalog-type: 5.5rem; /* 1l, 88: the catalog's type column — from the drawings, not the spec */
+    --width-catalog-size: 8rem; /* 1l, 128: the catalog's size column — from the drawings, not the spec */
+    --width-catalog-maker: 8.5rem; /* 1l, 136: the catalog's maker column — from the drawings, not the spec */
+    --width-catalog-part-number: 9rem; /* 1l, 144: the catalog's part number column — from the drawings, not the spec */
+    --width-catalog-category: 11rem; /* 1l, 176: the catalog's category column — from the drawings, not the spec */
+    --width-catalog-type: 6rem; /* 1l, 96: the catalog's type column — from the drawings, not the spec */
     --width-catalog-class: 2.75rem; /* 1l, 44: the catalog's class column — from the drawings, not the spec */
-    --width-catalog-items: 3.25rem; /* 1l, 52: the catalog's column of how many items stand under a row — from the drawings, not the spec */
+    --width-catalog-items: 3rem; /* 1l, 48: the catalog's column of how many items stand under a row — from the drawings, not the spec */
     --width-catalog-class-field: 8.25rem; /* 1l, 132: the class beside the type in the catalog's dialog — from the drawings, not the spec */
+    --spacing-fill-table-inset-right: 2.25rem; /* 1l, 36: how far in from the window's edge a list on Fill sets its table, the lane's 8 within it — from the drawings, not the spec */
     --spacing-catalog-preview-stack: 0.125rem; /* 1l, 2: from Shows as to the name under it in the catalog's dialog — from the drawings, not the spec */
     --spacing-pager-inset-top: 0.75rem; /* Pager, 12: above its controls, counting its 1px rule */
     --spacing-pager-inset-bottom: 1rem; /* Pager, 16: under them, so 60 in all */
@@ -320,6 +321,7 @@
     --spacing-subtitle-stack: 0.75rem; /* Header stack, 12: from the line of text under the title to the status */
     --spacing-heading-sm-stack: 0.75rem; /* Rail blocks, 12: from a block's name to what it heads, the phone's Block name too */
     --spacing-record-header-inline: 3.5rem; /* 1f, 56: between the header's title block and its actions — from the drawings, not the spec */
+    --spacing-record-header-actions-bleed: 0.1875rem; /* 1f, 3: how far the header's actions stand above its title's top — from the drawings, not the spec */
     --width-record-rail: 21rem; /* Record rail, 336: on 1080, at the content's right edge */
     --spacing-record-rail-inline: 2rem; /* Record rail, 32: from the main column's text to the rail's Rule */
     --spacing-record-rail-inset-left: 1.75rem; /* Record rail, 28: from the Rule to the rail's own text */
@@ -371,7 +373,8 @@
     --spacing-mobile-top-bar-inset-right: 0.25rem; /* Top bar, 4: its right side */
     --size-mobile-top-bar-icon: 1.5rem; /* Top bar, 24: the mark on its round button */
     --spacing-mobile-top-bar-bleed: 1.5rem; /* Top bar, 24: how far its soft edge reaches below it */
-    --transition-duration-mobile-top-bar: 160ms; /* the top bar's soft edge fading in — from the drawings' stylesheet, not the spec */
+    --spacing-mobile-top-bar-title-inset-x: 3.5rem; /* Top bar, 56: either side of the name it fades in */
+    --transition-duration-mobile-top-bar: 160ms; /* the top bar's soft edge and its name fading in — from the drawings' stylesheet, not the spec */
     --spacing-mobile-bottom-bar-inset-top: 1rem; /* Foot bar, 16: above */
     --spacing-mobile-bottom-bar-inset-bottom: 1.25rem; /* Foot bar, 20: below */
     --spacing-mobile-bottom-bar-stack: 0.75rem; /* Foot bar, 12: between its rows */
@@ -384,7 +387,7 @@
     --text-mobile-heading-lg--line-height: 1.75rem;
     --text-mobile-heading-lg--letter-spacing: -0.012em;
     --text-mobile-heading-lg--font-weight: 600;
-    --text-mobile-heading: 1.0625rem; /* Bar, 17: the top bar's id, a sheet or dialog title, a button */
+    --text-mobile-heading: 1.0625rem; /* Bar, 17: the name in the top bar, a sheet or dialog title, a button */
     --text-mobile-heading--line-height: 1.5rem;
     --text-mobile-body: 1rem; /* Event, 16: a log entry's event, a dialog's sentence, a field's value */
     --text-mobile-body--line-height: 1.5rem;
@@ -425,9 +428,9 @@
     --radius-mobile-drawer: 1.75rem; /* Radius, 28: a sheet's top corners */
     --opacity-mobile-pressed: 50%; /* Field: a text button while pressed */
 
-    --spacing-mobile-top-bar-stack: 1rem; /* Title block, 16: under the top bar */
+    --spacing-mobile-top-bar-stack: 0.25rem; /* Title block, 4: under the top bar */
     --spacing-mobile-title-stack: 1.375rem; /* Title block, 22: below it */
-    --spacing-mobile-caption-stack: 0.25rem; /* 1j, 4: from the record's title to the caption under it — from the drawings, not the spec */
+    --spacing-mobile-title-block-stack: 0.25rem; /* Top bar, 4: between the title block's lines — the record's id over its name, and 1j's caption under it */
     --spacing-mobile-stack: 2rem; /* Section, 32: between two sections */
     --spacing-mobile-sign-in-inset-top: 4.5rem; /* Tools 0a, 72: the wordmark from the top of a sign-in page */
     --spacing-mobile-sign-in-brand-stack: 2rem; /* Tools 0a, 32: from the wordmark to the title */

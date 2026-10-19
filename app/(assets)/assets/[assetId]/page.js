@@ -59,6 +59,10 @@ export const viewport = KEYBOARD_VIEWPORT;
 // glyphs draw where they did.
 const ID_IN_TEXT = "font-id leading-none tracking-id text-foreground-default";
 
+// The id a phone's title block opens on (0a, #538): 14 in the id face, tabular, in Ink 3, 4 over
+// the name — where the top bar held it at 17 until the files of 2026-10-16.
+const ID_ON_PHONE = "font-id text-mobile-body-xs tracking-id tabular-nums text-foreground-subtle";
+
 /**
  * One asset and everything that has happened to it (#340), in the look the design
  * settled (#463): 0n's record page at a desk (1f, 1g) and 1j's app screen on a phone.
@@ -138,12 +142,13 @@ const ID_IN_TEXT = "font-id leading-none tracking-id text-foreground-default";
  *
  * TWO DRAWINGS OF ONE PAGE (#463). A desk draws 0n's record page under the breadcrumb:
  * a header holding its category's name, the line under it, its status and the actions, the
- * history beside the record rail and its label (1f, 1g). A phone draws 1j: the top bar with the
- * id and `More actions`, the title block, the history, and the transition in a foot bar. **The
- * line under the name is the id and the caption since #519** — the id, the type, the category
- * and the class at a desk, the id first as it has been since #411, and the caption alone under the
- * name on a phone, whose top bar holds the id — off the category row already read, so it costs
- * nothing (`CategoryCaption`). The job left that line with #519, as 1f draws it: every history
+ * history beside the record rail and its label (1f, 1g). A phone draws 1j: the top bar with
+ * `More actions` and, once the heading has scrolled under it, the name; the title block; the
+ * history; and the transition in a foot bar. **The line under the name is the id and the caption
+ * since #519** — the id, the type, the category and the class at a desk, the id first as it has
+ * been since #411; on a phone the id opens the title block over the name and the caption stands
+ * alone under it, where the top bar held the id until #538 — off the category row already read,
+ * so it costs nothing (`CategoryCaption`). The job left that line with #519, as 1f draws it: every history
  * entry names its job, and for a reader on several jobs the breadcrumb does. What is
  * one fact is one element — the heading, the status, an entry — set at each width's size;
  * what only one width draws is drawn there alone. Every word is a constant and every value a
@@ -157,19 +162,23 @@ export default async function AssetPage(props) {
 
 /**
  * A code no asset carries (#463): the desk's 1h, centered in the column with the code it
- * asked for and the way back to the list, and the phone's 1k-c, the top bar naming the code
- * in Ink 3 over the mark and two lines — no way back, since a phone arrived here from a scan.
- * Its top bar carries `More actions` with the account alone (#495), as every one does.
+ * asked for and the way back to the list, and the phone's 1k-c, the mark, then the code in Ink 3
+ * over the title, as every phone title block opens on its id (#538), and the sentence — no way
+ * back, since a phone arrived here from a scan. Its top bar carries `More actions` with the
+ * account alone (#495), as every one does, and no name.
  */
 function AssetNotFound({ asked, account }) {
     return (
         <div className="flex min-h-full flex-1 flex-col font-ui text-foreground-default max-sm:min-h-0">
-            <TopBar id={asked} muted>
+            <TopBar>
                 <MoreActions phone account={account} />
             </TopBar>
             <div className="flex flex-1 flex-col items-center justify-center px-page-gutter text-center max-sm:px-mobile-empty-state-inset-x max-sm:pb-mobile-empty-state-inset-bottom">
                 <Icon name="search-x" className="mb-gap size-mobile-empty-state-icon text-foreground-subtle sm:hidden" />
-                <h1 className="text-heading font-semibold max-sm:mt-gap max-sm:text-mobile-heading-lg">{COPY.notFoundHeading}</h1>
+                <div className="flex flex-col items-center gap-mobile-title-block-stack max-sm:mt-gap">
+                    <p className={`${ID_ON_PHONE} sm:hidden`}>{asked}</p>
+                    <h1 className="text-heading font-semibold max-sm:text-mobile-heading-lg">{COPY.notFoundHeading}</h1>
+                </div>
                 <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted max-sm:hidden">
                     {COPY.notFoundCode.before}
                     <span className={ID_IN_TEXT}>{asked}</span>
@@ -291,9 +300,10 @@ async function renderAssetPage({ params }) {
     return (
         <AssetTransition plan={transition} assetId={asset.assetId} itemName={category?.itemName}>
             <div className="font-ui text-foreground-default max-sm:flex max-sm:flex-1 max-sm:flex-col">
-                {/* THE PHONE'S HEAD (1j): the printed id, and `More actions`, which holds the
-                    retirement when there is something to retire and the account always (#495). */}
-                <TopBar id={asset.assetId}>
+                {/* THE PHONE'S HEAD (1j): `More actions`, which holds the retirement when there
+                    is something to retire and the account always (#495), and the name once the
+                    heading has scrolled under it (#538). */}
+                <TopBar name={name}>
                     <MoreActions phone account={account} />
                 </TopBar>
                 {/* WHERE THIS ASSET SITS UNDER ITS CATEGORY (#460): the list, the category, and the
@@ -331,12 +341,14 @@ async function renderAssetPage({ params }) {
                     page is a flex column and this its full width, margins and all, since an
                     automatic margin would shrink it to what it holds. */}
                 <div className="mx-auto box-content max-w-content px-page-gutter pt-breadcrumb-stack pb-scroll-inset-bottom max-sm:mx-0 max-sm:max-w-none max-sm:px-0 max-sm:pt-0 max-sm:pb-0">
-                    {/* 0n's RECORD HEADER: the name, the id and job under it, the status, and
-                        on the right what may be recorded, centered on the title's line —
-                        24 above and below its Band. On a phone, 1j's title block. */}
+                    {/* 0n's RECORD HEADER: the name, the id and the caption under it, the status,
+                        and on the right what may be recorded, 3 above the title's top as 1f
+                        draws it — 24 above and below its Band. On a phone, 1j's title block,
+                        4 under the top bar: the id, the name and the caption, 4 apart (#538). */}
                     <header className="flex items-start justify-between gap-record-header-inline border-b border-divider-strong pb-record-header-stack max-sm:border-b-0 max-sm:px-mobile-gutter max-sm:pt-mobile-top-bar-stack max-sm:pb-mobile-title-stack">
                         <div className="flex min-w-0 flex-col gap-subtitle-stack">
-                            <div className="flex flex-col gap-title-stack max-sm:gap-mobile-caption-stack">
+                            <div className="flex flex-col gap-title-stack max-sm:gap-mobile-title-block-stack">
+                                <p className={`${ID_ON_PHONE} sm:hidden`}>{asset.assetId}</p>
                                 <h1 className="text-heading-lg max-sm:text-mobile-heading-lg">{name}</h1>
                                 <CategoryCaption
                                     category={category}
@@ -346,17 +358,19 @@ async function renderAssetPage({ params }) {
                                 <CategoryCaption category={category} className="text-mobile-body-xs text-foreground-subtle sm:hidden" />
                             </div>
                             {/* THE STATUS, AND THE VALUE ONLY ONE STATE HAS 14 AFTER IT (0n):
-                                who holds an asset that is out, at a desk when a retired one
-                                was retired, and at both widths when one in repair was sent
-                                (#531; 1f, 1j-e), the day at the holder's size. */}
+                                who holds an asset that is out, when a retired one was retired
+                                and when one in repair was sent, at both widths (#531, #538; 1f,
+                                1j-c, 1j-e), the day at the holder's size. The mark sits on the
+                                word's baseline at a desk and centered on its line on a phone,
+                                as each drawing sets it. */}
                             <div className="flex items-baseline gap-gap-lg">
-                                <span className="inline-flex items-baseline gap-gap text-body max-sm:text-mobile-body">
+                                <span className="inline-flex items-baseline gap-gap text-body max-sm:items-center max-sm:text-mobile-body">
                                     <StatusMark status={asset.status} />
                                     {asset.status}
                                 </span>
                                 {holder && <span className="text-body-sm text-foreground-subtle max-sm:text-mobile-body-sm">{holder}</span>}
                                 {retired && (
-                                    <span className="text-body-sm text-foreground-subtle max-sm:hidden">
+                                    <span className="text-body-sm text-foreground-subtle max-sm:text-mobile-body-sm">
                                         <Instant at={retired} format={DAY_FORMAT} />
                                     </span>
                                 )}
@@ -385,7 +399,7 @@ async function renderAssetPage({ params }) {
                                   <p className="max-w-empty-state text-body-sm text-pretty text-foreground-subtle max-sm:hidden">{transition.refusal}</p>
                               )
                             : (transition.event || transition.maySendForRepair || transition.mayRetire) && (
-                                  <div className="-mt-[calc((var(--height-control-lg)-var(--text-heading-lg--line-height))/2)] flex shrink-0 items-center gap-gap max-sm:hidden">
+                                  <div className="-mt-record-header-actions-bleed flex shrink-0 items-center gap-gap max-sm:hidden">
                                       {transition.event && <TransitionDialog currentJobCode={jobCode} recentCheckOuts={recentCheckOuts} />}
                                       {(transition.maySendForRepair || transition.mayRetire) && <MoreActions />}
                                   </div>
