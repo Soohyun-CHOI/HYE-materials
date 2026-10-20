@@ -39,10 +39,10 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * said under the field; one about the whole press is `{ error }`, said over the actions.
  *
  * A NEW CATEGORY IS WRITTEN BEFORE THE ITEM FILED UNDER IT, AND NOT TAKEN BACK. The group first,
- * under its own lock, then the row under its path's — two locks in sequence, never nested
- * (CLAUDE.md) — because a group with nothing under it is a state the catalog already holds and
- * its check reports as no fault, where an item whose category is no group is what that check
- * fails on. So when the item's write fails after the group's, the group stays, the page is drawn
+ * under its own lock, then the row, linked to it (#539), under its path's — two locks in
+ * sequence, never nested (CLAUDE.md) — because a group with nothing under it is a state the
+ * catalog already holds and its check reports as no fault, where an item filed under no group
+ * is what that check fails on. So when the item's write fails after the group's, the group stays, the page is drawn
  * again with it, the field no longer says `New`, and the dialog says the category was added and
  * the item was not: a second press saves the item alone. Taking the group back would be a delete
  * that can fail in its turn, to undo a row nothing is wrong with.
@@ -78,10 +78,15 @@ async function saveAssetCategoryHandler(prevState, formData) {
         if (!reading.entry) return reading;
         const { entry, newCategory } = reading;
 
+        // The group the row links (#539): the one its type and category name, or the one this
+        // press adds — or, added by another since the read, the one that stands now.
+        let group = reading.group;
         let addedCategory = false;
         if (newCategory) {
             try {
-                addedCategory = Boolean((await createAssetCategoryGroup({ level1: entry.level1, level2: entry.level2 })).created);
+                const made = await createAssetCategoryGroup({ level1: entry.level1, level2: entry.level2 });
+                addedCategory = Boolean(made.created);
+                group = made.created ?? made.exists;
             } catch {
                 return { error: COPY.notSaved };
             }
@@ -89,7 +94,7 @@ async function saveAssetCategoryHandler(prevState, formData) {
 
         let written;
         try {
-            written = editing ? await updateAssetCategory(editing, entry) : await createAssetCategory(entry);
+            written = editing ? await updateAssetCategory(editing, entry, group.id) : await createAssetCategory(entry, group.id);
         } catch {
             if (addedCategory) refresh();
             return { error: addedCategory ? COPY.categoryOnly : COPY.notSaved };

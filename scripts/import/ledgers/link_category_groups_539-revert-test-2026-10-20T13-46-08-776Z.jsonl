@@ -1,0 +1,100 @@
+{"type":"run","script":"link_category_groups_539","base":"test","revert":"scripts\\import\\ledgers\\link_category_groups_539-test-2026-10-20T13-45-47-709Z.jsonl","at":"2026-10-20T13:46:08.777Z"}
+{"type":"unlink","id":"rec0HVeUBDhlYzjg5","itemName":"Long Bender 1/4\"","before":["rec1p9ZwMmo4PRbRm"],"after":[],"at":"2026-10-20T13:46:08.778Z"}
+{"type":"unlink","id":"rec0P0XGIu4PgWVJd","itemName":"Tube Cutter","before":["reciX5S0AvbbF7RsN"],"after":[],"at":"2026-10-20T13:46:08.779Z"}
+{"type":"unlink","id":"rec1EIEN3xm5N9lQI","itemName":"Tool Cart","before":["reclv6G8hwKURJqsG"],"after":[],"at":"2026-10-20T13:46:08.779Z"}
+{"type":"unlink","id":"rec2DN0Bml5KeHQjt","itemName":"End Mill, Orbitalum (RPG ONE AKKU)","before":["recVOjc9KKLtyMBek"],"after":[],"at":"2026-10-20T13:46:08.811Z"}
+{"type":"unlink","id":"rec2G5OhLas2Ksoub","itemName":"Flowmeter (RMA-13-SSV)","before":["recbXHhraH6xfWhFg"],"after":[],"at":"2026-10-20T13:46:08.811Z"}
+{"type":"unlink","id":"rec332UrdZCVHJEx1","itemName":"Pipe Cutter, Ridgid (PC116)","before":["recaCEwhk9eRBBRcG"],"after":[],"at":"2026-10-20T13:46:08.812Z"}
+{"type":"unlink","id":"rec34HuJEiPXsVfOb","itemName":"Digital Readout Welding Gauge","before":["recDEHA2AwaDMarqz"],"after":[],"at":"2026-10-20T13:46:08.812Z"}
+{"type":"unlink","id":"rec485wr6sBzihKTm","itemName":"Jigsaw, Milwaukee","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:08.812Z"}
+{"type":"unlink","id":"rec49R8KUiYbMi0yT","itemName":"Vacuum Flange Automatic Welding Equipment, Ketiwell","before":["rec4zaVuYUU3LjtOc"],"after":[],"at":"2026-10-20T13:46:08.813Z"}
+{"type":"unlink","id":"rec4TSbaQyVNuL69h","itemName":"Cutting Machine, AXXAIR (120)","before":["recaCEwhk9eRBBRcG"],"after":[],"at":"2026-10-20T13:46:08.813Z"}
+{"type":"unlink","id":"rec4UR0NNk2yKl8ka","itemName":"Hammer Drill, Hilti (TE6-A36)","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:09.194Z"}
+{"type":"unlink","id":"rec4d3vJ8hrCW4199","itemName":"Rota Flowmeter (LF101)","before":["recbXHhraH6xfWhFg"],"after":[],"at":"2026-10-20T13:46:09.194Z"}
+{"type":"unlink","id":"rec5HknfdBvUgURQz","itemName":"Weld Head, Swagelok (SWS-5H-D-15)","before":["recHWrUGKX0M2JslT"],"after":[],"at":"2026-10-20T13:46:09.195Z"}
+{"type":"unlink","id":"rec5TkOJUXAcKUdLp","itemName":"Short Bender 1/4\", Swagelok (MS-HTB-4T)","before":["rec1p9ZwMmo4PRbRm"],"after":[],"at":"2026-10-20T13:46:09.195Z"}
+{"type":"unlink","id":"rec5VYqtnjxdfpJQl","itemName":"Bench Drill Press, RYOBI (DP103L)","before":["recVOjc9KKLtyMBek"],"after":[],"at":"2026-10-20T13:46:09.195Z"}
+{"type":"unlink","id":"rec5phlNwn0Mk2QFC","itemName":"Bending Machine, Roper Whitney (622LR)","before":["recZoiRkF9sTarBYg"],"after":[],"at":"2026-10-20T13:46:09.195Z"}
+{"type":"unlink","id":"rec6HACBRjVy2mjmU","itemName":"Ladder","before":["reclv6G8hwKURJqsG"],"after":[],"at":"2026-10-20T13:46:09.196Z"}
+{"type":"unlink","id":"rec70xzo35s3wLSZ5","itemName":"250 Series Regulator","before":["recbXHhraH6xfWhFg"],"after":[],"at":"2026-10-20T13:46:09.196Z"}
+{"type":"unlink","id":"rec7E1CMZomLgvkGB","itemName":"TIG Welder, Lincoln Electric (TIG 205)","before":["rec4zaVuYUU3LjtOc"],"after":[],"at":"2026-10-20T13:46:09.196Z"}
+{"type":"unlink","id":"rec7OSMuGqRsel8EX","itemName":"Tube Fabrication Die","before":["rec1p9ZwMmo4PRbRm"],"after":[],"at":"2026-10-20T13:46:09.196Z"}
+{"type":"unlink","id":"rec7tKkw4iqYzCH66","itemName":"Long Bender 1/4\", KBS Rollobend (4100)","before":["rec1p9ZwMmo4PRbRm"],"after":[],"at":"2026-10-20T13:46:09.500Z"}
+{"type":"unlink","id":"rec8q6bBByoYNNipv","itemName":"Jigsaw, DeWalt","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:09.500Z"}
+{"type":"unlink","id":"rec93z2KbEcNLgnVe","itemName":"Electric Walkie Stacker, Big Joe (PDS-30-177-TR)","before":["recxWqlmSJbNuriHf"],"after":[],"at":"2026-10-20T13:46:09.501Z"}
+{"type":"unlink","id":"rec9Lpur74F1hEhE4","itemName":"Plastic Pipe and Tubing Cutter","before":["reciX5S0AvbbF7RsN"],"after":[],"at":"2026-10-20T13:46:09.501Z"}
+{"type":"unlink","id":"rec9le2MCNrf3znl3","itemName":"Hand Pallet Jack, ULINE (H-8921)","before":["recxWqlmSJbNuriHf"],"after":[],"at":"2026-10-20T13:46:09.501Z"}
+{"type":"unlink","id":"recAurS58xvwg8uxt","itemName":"Portable Blower, Bilt Hard (SFDC-750F)","before":["rec0WB0921agub9yv"],"after":[],"at":"2026-10-20T13:46:09.501Z"}
+{"type":"unlink","id":"recBPtHwpBAmQseF2","itemName":"Rotary Automatic Welding Equipment, Ketiwell (HY-FWM-200)","before":["rec4zaVuYUU3LjtOc"],"after":[],"at":"2026-10-20T13:46:09.502Z"}
+{"type":"unlink","id":"recBayh4HATi6AgJf","itemName":"Laser, DeWalt","before":["recDEHA2AwaDMarqz"],"after":[],"at":"2026-10-20T13:46:09.502Z"}
+{"type":"unlink","id":"recBrQ2JRRGUWOF8J","itemName":"Automatic Tube Cutting Machine, DCSENG (S-TCA 1.0)","before":["recaCEwhk9eRBBRcG"],"after":[],"at":"2026-10-20T13:46:09.502Z"}
+{"type":"unlink","id":"recEFFfLYdu61MrQK","itemName":"Weld Head, Swagelok (SWS-20H-D-15)","before":["recHWrUGKX0M2JslT"],"after":[],"at":"2026-10-20T13:46:09.502Z"}
+{"type":"unlink","id":"recEUTqBXJooSLeZf","itemName":"Heat Gun, DeWalt","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:09.758Z"}
+{"type":"unlink","id":"recF9MlIWmF0cY8og","itemName":"Band Saw, Makita (2107FW)","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:09.759Z"}
+{"type":"unlink","id":"recGH4GN4EHMjniN3","itemName":"Band Saw, Milwaukee","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:09.759Z"}
+{"type":"unlink","id":"recHLnZ2B8k0bOxko","itemName":"Series 5 Tube Collet Half 1/4\", Swagelok","before":["rec18L0fUaZKPXxUM"],"after":[],"at":"2026-10-20T13:46:09.759Z"}
+{"type":"unlink","id":"recHdYQnP96Qvc9IT","itemName":"Hand Pallet Jack, ZMHBRO (PUHR274855)","before":["recxWqlmSJbNuriHf"],"after":[],"at":"2026-10-20T13:46:09.759Z"}
+{"type":"unlink","id":"recI3ekNFxwIAHxDK","itemName":"Crimper","before":["recWqjpOceffjY1l2"],"after":[],"at":"2026-10-20T13:46:09.760Z"}
+{"type":"unlink","id":"recIcEwNrwqjtCykI","itemName":"Long Bender 3/8\", KBS Rollobend (6600)","before":["rec1p9ZwMmo4PRbRm"],"after":[],"at":"2026-10-20T13:46:09.760Z"}
+{"type":"unlink","id":"recImIHAZLuy5NVaS","itemName":"Hand Pallet Jack, FRANKLIN (58293)","before":["recxWqlmSJbNuriHf"],"after":[],"at":"2026-10-20T13:46:09.760Z"}
+{"type":"unlink","id":"recJ5ZhEjf2vWZGy1","itemName":"End Mill, Orbitalum","before":["recVOjc9KKLtyMBek"],"after":[],"at":"2026-10-20T13:46:09.760Z"}
+{"type":"unlink","id":"recJM8A5qQsdQ6K1O","itemName":"Drill Press Vise","before":["rec1p9ZwMmo4PRbRm"],"after":[],"at":"2026-10-20T13:46:09.761Z"}
+{"type":"unlink","id":"recKUOM8m8lNNYY68","itemName":"Tube Bender 3/8\"","before":["rec1p9ZwMmo4PRbRm"],"after":[],"at":"2026-10-20T13:46:10.040Z"}
+{"type":"unlink","id":"recLDC6u8NBKpc84Z","itemName":"Gap Gauge 10H","before":["recDEHA2AwaDMarqz"],"after":[],"at":"2026-10-20T13:46:10.040Z"}
+{"type":"unlink","id":"recLSb22qkcRbkyqh","itemName":"Series 10 Fixture Block, Swagelok","before":["rec18L0fUaZKPXxUM"],"after":[],"at":"2026-10-20T13:46:10.041Z"}
+{"type":"unlink","id":"recMBgRsWvSzvDv9F","itemName":"Bench Drill Press, JET (J-2530)","before":["recVOjc9KKLtyMBek"],"after":[],"at":"2026-10-20T13:46:10.041Z"}
+{"type":"unlink","id":"recMhKCtlq9e2Qgo0","itemName":"TIG Welder, Joyoung Welder (WD-350-PN)","before":["rec4zaVuYUU3LjtOc"],"after":[],"at":"2026-10-20T13:46:10.041Z"}
+{"type":"unlink","id":"recN3P4X7R0Iq8uiO","itemName":"Turntable, VEVOR (F4D80-110GN-18S)","before":["rec4zaVuYUU3LjtOc"],"after":[],"at":"2026-10-20T13:46:10.041Z"}
+{"type":"unlink","id":"recO17E7zopnfgIvz","itemName":"Transformer, VEVOR","before":["rec0WB0921agub9yv"],"after":[],"at":"2026-10-20T13:46:10.042Z"}
+{"type":"unlink","id":"recQNQRE0hAoxSahK","itemName":"Drill, DeWalt","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:10.042Z"}
+{"type":"unlink","id":"recRiftLtcDVNUkkh","itemName":"TIG Welder, Lincoln Electric (TIG 200)","before":["rec4zaVuYUU3LjtOc"],"after":[],"at":"2026-10-20T13:46:10.042Z"}
+{"type":"unlink","id":"recSdmYUNQfejYXeZ","itemName":"Grinder, DeWalt (DCG413)","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:10.042Z"}
+{"type":"unlink","id":"recSyMbTNosXrpK9e","itemName":"Band Saw, DeWalt (DCS375)","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:10.282Z"}
+{"type":"unlink","id":"recU4tAEZvofVHv75","itemName":"Tube Bender 1/2\" (5xR=2.50\")","before":["rec1p9ZwMmo4PRbRm"],"after":[],"at":"2026-10-20T13:46:10.283Z"}
+{"type":"unlink","id":"recURneihhhpdzhEd","itemName":"Automatic Ferrule Swaging Tool, HY-LOK (EZY-MAT2)","before":["recWqjpOceffjY1l2"],"after":[],"at":"2026-10-20T13:46:10.283Z"}
+{"type":"unlink","id":"recV62sVFzEJNog56","itemName":"Grinder, YESWELDER (MJQ03)","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:10.283Z"}
+{"type":"unlink","id":"recWKwcqUOwDqSX1K","itemName":"Drill, DeWalt (DCD771)","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:10.284Z"}
+{"type":"unlink","id":"recWnQmlgndjO1Ygi","itemName":"Fusion Welder, AGRU (SP315-S)","before":["rec4zaVuYUU3LjtOc"],"after":[],"at":"2026-10-20T13:46:10.284Z"}
+{"type":"unlink","id":"recXlLNm4ArZyEyXX","itemName":"PEX Pipe Cutter","before":["reciX5S0AvbbF7RsN"],"after":[],"at":"2026-10-20T13:46:10.284Z"}
+{"type":"unlink","id":"recad46P9TLqsdYdX","itemName":"Cutting Machine, AXXAIR (322)","before":["recaCEwhk9eRBBRcG"],"after":[],"at":"2026-10-20T13:46:10.284Z"}
+{"type":"unlink","id":"recbeiq5ScD7zrXbx","itemName":"Short Bender 1/2\", Swagelok (MS-HTB-8)","before":["rec1p9ZwMmo4PRbRm"],"after":[],"at":"2026-10-20T13:46:10.284Z"}
+{"type":"unlink","id":"recbfpGIFkKddPUK1","itemName":"Drill, Milwaukee","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:10.285Z"}
+{"type":"unlink","id":"recc2oTY9ThnLXwYR","itemName":"Transformer, Rockstone Power (RT3000W)","before":["rec0WB0921agub9yv"],"after":[],"at":"2026-10-20T13:46:10.551Z"}
+{"type":"unlink","id":"recd3AvEgZc10xPtc","itemName":"Hammer Drill, Milwaukee","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:10.552Z"}
+{"type":"unlink","id":"receRBqalzOf9N4Qq","itemName":"Automatic Tube Bending Machine, Transfluid (DB 630-CNC-R/L)","before":["recZoiRkF9sTarBYg"],"after":[],"at":"2026-10-20T13:46:10.552Z"}
+{"type":"unlink","id":"recfZvIFk1idugtJL","itemName":"Transformer, Johsun Tec (DT-10000VA)","before":["rec0WB0921agub9yv"],"after":[],"at":"2026-10-20T13:46:10.552Z"}
+{"type":"unlink","id":"recgPX8yPevahU4li","itemName":"Series 5 Tube Collet Half 3/8\", Swagelok","before":["rec18L0fUaZKPXxUM"],"after":[],"at":"2026-10-20T13:46:10.553Z"}
+{"type":"unlink","id":"recgZU1JHa0RLJWIs","itemName":"Series 5 Fixture Block, Swagelok","before":["rec18L0fUaZKPXxUM"],"after":[],"at":"2026-10-20T13:46:10.553Z"}
+{"type":"unlink","id":"rech9Ff8CFnGlVchX","itemName":"Long Bender 1/2\", KBS Rollobend (8500)","before":["rec1p9ZwMmo4PRbRm"],"after":[],"at":"2026-10-20T13:46:10.553Z"}
+{"type":"unlink","id":"rechKCOMKPDLI1KUx","itemName":"Tube Cutter 50 to 120 mm, Rothenberger (70032)","before":["reciX5S0AvbbF7RsN"],"after":[],"at":"2026-10-20T13:46:10.553Z"}
+{"type":"unlink","id":"reciaXLELkvsr8MDL","itemName":"Automatic Welder, Swagelok (SWS-M200)","before":["rec4zaVuYUU3LjtOc"],"after":[],"at":"2026-10-20T13:46:10.553Z"}
+{"type":"unlink","id":"recjRn4esCawLxDl9","itemName":"Argon Flowmeter Regulator","before":["recbXHhraH6xfWhFg"],"after":[],"at":"2026-10-20T13:46:10.554Z"}
+{"type":"unlink","id":"recjoEoEpsoDRzqiW","itemName":"Cutting Machine, AXXAIR (171)","before":["recaCEwhk9eRBBRcG"],"after":[],"at":"2026-10-20T13:46:10.807Z"}
+{"type":"unlink","id":"recjse8gINcGp8sWb","itemName":"Tube Bender 1/4\" (10xR=2.50\")","before":["rec1p9ZwMmo4PRbRm"],"after":[],"at":"2026-10-20T13:46:10.807Z"}
+{"type":"unlink","id":"reckHJx3BIrTXlGYB","itemName":"Ratchet Bender","before":["rec1p9ZwMmo4PRbRm"],"after":[],"at":"2026-10-20T13:46:10.807Z"}
+{"type":"unlink","id":"recmSjcTeZMMhL2aW","itemName":"Drill, Hilti","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:10.808Z"}
+{"type":"unlink","id":"recmyLcGnHrIqprB5","itemName":"Long Bender 1/2\"","before":["rec1p9ZwMmo4PRbRm"],"after":[],"at":"2026-10-20T13:46:10.808Z"}
+{"type":"unlink","id":"recn3gSofp2cPxbqr","itemName":"Band Saw","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:10.808Z"}
+{"type":"unlink","id":"recnXAT3agJEqLvvh","itemName":"Weld Head, Swagelok (SWS-10H-D-15)","before":["recHWrUGKX0M2JslT"],"after":[],"at":"2026-10-20T13:46:10.809Z"}
+{"type":"unlink","id":"recnfdCAOIvLOyzh8","itemName":"Short Bender 1/2\"","before":["rec1p9ZwMmo4PRbRm"],"after":[],"at":"2026-10-20T13:46:10.809Z"}
+{"type":"unlink","id":"recnp4VPgh9EmKggj","itemName":"Impact Drill, Milwaukee","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:10.809Z"}
+{"type":"unlink","id":"reco6Zf5FAebUe5Lj","itemName":"Short Bender 3/8\", Swagelok (MS-HTB-6T)","before":["rec1p9ZwMmo4PRbRm"],"after":[],"at":"2026-10-20T13:46:10.809Z"}
+{"type":"unlink","id":"recoDTcCcw7l4kb9J","itemName":"Rota Flowmeter (LF201)","before":["recbXHhraH6xfWhFg"],"after":[],"at":"2026-10-20T13:46:11.036Z"}
+{"type":"unlink","id":"recoMYcsXH0vYczti","itemName":"Short Bender 1/4\"","before":["rec1p9ZwMmo4PRbRm"],"after":[],"at":"2026-10-20T13:46:11.037Z"}
+{"type":"unlink","id":"recp7IZxDgFfg0NSk","itemName":"Cutting Machine, AXXAIR (172)","before":["recaCEwhk9eRBBRcG"],"after":[],"at":"2026-10-20T13:46:11.037Z"}
+{"type":"unlink","id":"recqJufD8l7Gj6CM1","itemName":"High-Speed Cutting Saw, DeWalt (DWS779)","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:11.038Z"}
+{"type":"unlink","id":"recqhe3H3ppHJmqtw","itemName":"Long Bender","before":["rec1p9ZwMmo4PRbRm"],"after":[],"at":"2026-10-20T13:46:11.038Z"}
+{"type":"unlink","id":"recrmsnEG2bUGzLe9","itemName":"Drill, Milwaukee (3401-20)","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:11.038Z"}
+{"type":"unlink","id":"recsAqzpsfxQkP8gF","itemName":"Band Saw, Milwaukee (2929-20)","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:11.039Z"}
+{"type":"unlink","id":"recsIv7NTioNJIQG7","itemName":"TIG Welder, Miller (DYNASTY200)","before":["rec4zaVuYUU3LjtOc"],"after":[],"at":"2026-10-20T13:46:11.039Z"}
+{"type":"unlink","id":"recshtO7830oO43TJ","itemName":"Series 5 Tube Collet Half 1/2\", Swagelok","before":["rec18L0fUaZKPXxUM"],"after":[],"at":"2026-10-20T13:46:11.039Z"}
+{"type":"unlink","id":"recsnBD1DRuVdh18p","itemName":"Impact Drill, DeWalt (DCF885)","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:11.040Z"}
+{"type":"unlink","id":"recsxcmRpZvXcV9SO","itemName":"Hammer Drill, Hilti (TE6-A36-AVR)","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:11.323Z"}
+{"type":"unlink","id":"rectBm4DnaIb1QDRS","itemName":"Turntable, VEVOR (F5D120-110GU-18S)","before":["rec4zaVuYUU3LjtOc"],"after":[],"at":"2026-10-20T13:46:11.324Z"}
+{"type":"unlink","id":"rectSVE6tiyp9K5Dy","itemName":"Argon Flowmeter Regulator (RX 191D)","before":["recbXHhraH6xfWhFg"],"after":[],"at":"2026-10-20T13:46:11.324Z"}
+{"type":"unlink","id":"rectj8dAtEwNt4G6c","itemName":"Tube Bender","before":["rec1p9ZwMmo4PRbRm"],"after":[],"at":"2026-10-20T13:46:11.325Z"}
+{"type":"unlink","id":"recuYBRuZfNNYzxJ4","itemName":"Impact Drill, DeWalt","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:11.325Z"}
+{"type":"unlink","id":"recvPxWWkf2WoDMBm","itemName":"M200 Remote Extension Cable 50 ft, Swagelok","before":["rec18L0fUaZKPXxUM"],"after":[],"at":"2026-10-20T13:46:11.326Z"}
+{"type":"unlink","id":"recxVRwMDT1MY8HrP","itemName":"Cutting Machine, AXXAIR (222)","before":["recaCEwhk9eRBBRcG"],"after":[],"at":"2026-10-20T13:46:11.326Z"}
+{"type":"unlink","id":"recyzS9DrGQ4kCG6P","itemName":"Work Cart","before":["reclv6G8hwKURJqsG"],"after":[],"at":"2026-10-20T13:46:11.327Z"}
+{"type":"unlink","id":"reczWIuXoR447dZFx","itemName":"Band Saw, Hercules (HCB79B)","before":["recEwA2FIw74BQJDc"],"after":[],"at":"2026-10-20T13:46:11.327Z"}

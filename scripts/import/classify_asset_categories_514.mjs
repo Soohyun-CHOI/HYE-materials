@@ -48,6 +48,15 @@
 // a group with nothing under it yet is said and is no fault. The pairing is
 // `lib/assetCategory.js:groupCatalog`'s, the same the load judged its two lists by.
 //
+// AND SINCE #539 IT CHECKS THE LINK THAT FILES A ROW UNDER ITS GROUP. `Category Group` is
+// `link_category_groups_539.mjs`'s to make and fill, and `Level 1` and `Level 2` become lookups
+// through it by a hand step, a field's type not being PATCHable; so this makes neither, and on a
+// base where the link is missing it stops, naming that script. Where the levels are still typed,
+// or the link still takes several records, it says the hand step and counts it due. Once they
+// are lookups it holds each wired to the group's own field, the link to one record and its far
+// side `Asset Categories`, every row filed under exactly one group, and the descriptions of all
+// of them — the link's two the link script's (`link_category_groups_539_plan.mjs`).
+//
 // IT WRITES NO RECORD, SO IT KEEPS NO LEDGER. What it changes is schema, each step printed as
 // it is made; the demo catalog #514 rewrote is `scripts/demo/seed_asset_catalog_514.mjs`'s,
 // which carries its own way back.
@@ -73,8 +82,10 @@ import {
     ASSET_CLASS_VALUES,
     ASSET_GROUP_LEVELS,
     ASSET_TYPE_VALUES,
+    CATEGORY_GROUP_FIELD,
     DISCONTINUED_FIELD,
     ITEM_NAME_FORMULA,
+    catalogFieldsOf,
     composeItemName,
     groupCatalog,
     pathOf,
@@ -82,6 +93,7 @@ import {
     readCategoryGroups,
 } from "../../lib/assetCategory.js";
 import { resolveAirtableBase } from "../../lib/airtableBase.js";
+import { INVERSE_DESCRIPTION, INVERSE_NAME, LINK_DESCRIPTION, SINGLE_LINK_STEP } from "./link_category_groups_539_plan.mjs";
 
 const API_ROOT = "https://api.airtable.com/v0";
 const META_ROOT = `${API_ROOT}/meta`;
@@ -111,8 +123,9 @@ const choicesOf = (values) => values.map((name, i) => ({ name, color: SELECT_COL
 
 const TABLE_DESCRIPTION =
     "The asset categories (#507; Tools until #513): one row per kind, named by its path in six levels (#514) — " +
-    "Level 1 the type, Equipment or Tool; Level 2 the category, a field of work such as machining or welding; " +
-    "Level 3 the name; then Size, Maker and Part Number, which a row leaves empty where they do not apply — and " +
+    "Level 1 the type, Equipment or Tool, and Level 2 the category, a field of work such as machining or welding, " +
+    "both read from the group the row is filed under, Category Group (#539); Level 3 the name; then Size, Maker " +
+    "and Part Number, which a row leaves empty where they do not apply — and " +
     "carrying a Class. Leave an empty level empty: N/A, -, None and the like read as values, and a row holding one " +
     "is not offered. The office keeps it here and on the app's Catalog page (#527), the one place the app writes a " +
     "row of it: a registration picks a row and writes assets under it. One path is one kind; two rows naming one path are one choice, and only the first is " +
@@ -126,26 +139,34 @@ const NAME_DESCRIPTION =
     "scripts/import/classify_asset_categories_514.mjs; edit it there.";
 
 /**
- * The eight fields, as the base should hold them once this has run: the seven a path and its
- * class are, in the order a path says them, and the mark #527 added after them.
+ * The nine fields, as the base should hold them once this has run: the seven a path and its
+ * class are, in the order a path says them, the mark #527 added after them, and the link #539
+ * files a row by. The first two are lookups of the group's own two fields through that link
+ * (`lookup`), each a hand conversion of the field it was typed as (`typedAs`); the link is
+ * `link_category_groups_539.mjs`'s (`link`), which this checks and does not make.
  */
 const FIELDS = [
     {
         name: ASSET_CATEGORY_FIELDS.level1,
-        type: "singleSelect",
-        options: { choices: choicesOf(ASSET_TYPE_VALUES) },
+        type: "multipleLookupValues",
+        lookup: ASSET_CATEGORY_FIELDS.level1,
+        typedAs: "singleSelect",
         description:
-            "The type, the catalog's first level (#514), said Type on screen: Equipment or Tool. Information only — " +
+            "The type, the catalog's first level (#514), said Type on screen: Equipment or Tool, looked up from the " +
+            "group the item is filed under, Category Group (#539) — change that link to change it. Information only — " +
             "what an asset does is the same either way. A registration filters the names by it, and a row without one " +
             "is not offered.",
     },
     {
         name: ASSET_CATEGORY_FIELDS.level2,
-        type: "singleLineText",
+        type: "multipleLookupValues",
+        lookup: ASSET_CATEGORY_FIELDS.level2,
+        typedAs: "singleLineText",
         description:
             "The category, the catalog's second level, said Category on screen: a field of work such as machining or " +
-            "welding. A registration filters the names by it. Level 1 until #514, which renamed it with its values. " +
-            "A row's Level 1 and Level 2 are a row of Asset Category Groups (#528): add a new category there first.",
+            "welding, looked up from the group the item is filed under, Category Group (#539). Rename a category in " +
+            "Asset Category Groups and every item filed under it follows; file an item elsewhere by changing its " +
+            "Category Group. A registration filters the names by it. Level 1 until #514, which renamed it with its values.",
     },
     {
         name: ASSET_CATEGORY_FIELDS.level3,
@@ -193,15 +214,21 @@ const FIELDS = [
             "assets already under it stay as they are on every list and page. Untick it to offer the row again. The " +
             "row keeps its path while ticked, so a second row naming the same path is not offered either.",
     },
+    {
+        name: CATEGORY_GROUP_FIELD,
+        type: "multipleRecordLinks",
+        link: true,
+        description: LINK_DESCRIPTION,
+    },
 ];
 
 const GROUPS_DESCRIPTION =
     "The types and categories the asset catalog files under (#528): one row per category, Level 1 the type, " +
-    "Equipment or Tool, and Level 2 the category, a field of work such as welding or machining — the two fields " +
-    "Asset Categories names them by. A category can stand here before anything is filed under it. Every type and " +
-    "category a row of Asset Categories carries is a row here: no link joins the two tables, the values do, " +
-    "compared without regard to case or spacing, and scripts/import/classify_asset_categories_514.mjs fails on a " +
-    "catalog row whose pair is missing — so add a new category here before typing an item under it. Loaded from " +
+    "Equipment or Tool, and Level 2 the category, a field of work such as welding or machining. A category can " +
+    "stand here before anything is filed under it. Each row of Asset Categories links to one row here through " +
+    "Category Group and reads its Level 1 and Level 2 from it (#539), so a category renamed here is renamed on " +
+    "every item filed under it; a group with items under it is renamed, never deleted, since deleting it leaves " +
+    "them with no type and no category. Loaded from " +
     "scripts/import/sources/asset_category_groups_528.csv by scripts/import/replace_asset_catalog_528.mjs; the app's " +
     "Catalog page adds a row for a category typed new and renames or removes none (#527).";
 
@@ -216,17 +243,17 @@ const GROUP_FIELDS = [
         name: ASSET_CATEGORY_FIELDS.level2,
         type: "singleLineText",
         description:
-            "The category, said Category on screen — the same value as Level 2 on every Asset Categories row filed " +
-            "under it. The primary, and no key on its own: a group is a type and a category together, and one category " +
-            "name may stand under both types.",
+            "The category, said Category on screen — the value Level 2 looks up on every Asset Categories row filed " +
+            "under it (#539). The primary, and no key on its own: a group is a type and a category together, and one " +
+            "category name may stand under both types.",
     },
     {
         name: ASSET_CATEGORY_FIELDS.level1,
         type: "singleSelect",
         options: { choices: choicesOf(ASSET_TYPE_VALUES) },
         description:
-            "The type, said Type on screen: Equipment or Tool, the same two options as Level 1 on Asset Categories. A " +
-            "row without one is no group.",
+            "The type, said Type on screen: Equipment or Tool, which Level 1 looks up on every Asset Categories row " +
+            "filed under it (#539). A row without one is no group.",
     },
 ];
 
@@ -310,17 +337,30 @@ function byName(table, formula) {
 /** A select's options as `name/color`, in order — the half of a select nothing can PATCH. */
 const choiceList = (field) => (field?.options?.choices ?? []).map((c) => `${c.name}/${c.color}`).join(" | ");
 
-/** A row in the shape lib/assetCategory.js reads, from a REST record. */
+/** A row in the shape lib/assetCategory.js reads, from a REST record, with the groups it links (#539). */
 function categoryOf(record) {
     const f = record.fields;
     return {
         id: record.id,
         itemName: f[NAME_FIELD] ?? "",
-        ...Object.fromEntries(Object.entries(ASSET_CATEGORY_FIELDS).map(([key, name]) => [key, f[name] ?? ""])),
+        ...catalogFieldsOf(f),
         // The REST API leaves an unticked box out of a record, so `true` alone marks one (#527).
         discontinued: f[DISCONTINUED_FIELD] === true,
+        groups: Array.isArray(f[CATEGORY_GROUP_FIELD]) ? f[CATEGORY_GROUP_FIELD] : [],
     };
 }
+
+/** Whether a lookup is the group's own field of its name, through the link (#539). */
+function looksUp(live, spec, table, groupsTable) {
+    const link = table.fields.find((f) => f.name === CATEGORY_GROUP_FIELD);
+    const source = groupsTable?.fields.find((f) => f.name === spec.lookup);
+    return live?.type === spec.type && Boolean(link) && Boolean(source) && live.options?.recordLinkFieldId === link.id && live.options?.fieldIdInLinkedTable === source.id;
+}
+
+/** The hand step that turns a typed level into its lookup (#539). */
+const conversionStep = (spec) =>
+    `In ${TABLE_NAME}, open ${spec.name}'s settings and make it a Lookup of ${CATEGORY_GROUP_FIELD}'s ${spec.lookup} — ` +
+    `once link_category_groups_539.mjs reports every row linked, since the conversion replaces every typed value.`;
 
 /** A row of `Asset Category Groups` in the shape lib/assetCategory.js reads, from a REST record. */
 function groupOf(record) {
@@ -330,9 +370,15 @@ function groupOf(record) {
 /** A row's type and category as a path says them. */
 const pairOf = (row) => pathOf({ level1: row.level1, level2: row.level2 }) || "(neither)";
 
-/** Why a row is not offered, in the words of the fields the office types into. */
-function whyAside({ reason, missing, levels, of }) {
-    if (reason === "incomplete") return `missing ${missing.map((m) => ASSET_CATEGORY_FIELDS[m]).join(", ")}`;
+/**
+ * Why a row is not offered, in the words of the fields the office types into — on a catalog row
+ * the type and the category are its `Category Group`, which the office sets in their place (#539).
+ */
+function whyAside({ reason, missing, levels, of, category }) {
+    if (reason === "incomplete") {
+        const named = missing.map((m) => (category && ASSET_GROUP_LEVELS.includes(m) ? CATEGORY_GROUP_FIELD : ASSET_CATEGORY_FIELDS[m]));
+        return `missing ${[...new Set(named)].join(", ")}`;
+    }
     if (reason === "placeholder") return `a placeholder for empty in ${levels.map((m) => ASSET_CATEGORY_FIELDS[m]).join(", ")} — leave the cell empty`;
     return `the path ${of.id} already names`;
 }
@@ -393,10 +439,37 @@ async function main() {
         table = await air.table();
     }
 
-    // --- the three new fields ----------------------------------------------
-    log("\nthe fields a row of six levels needs:");
+    // --- the fields a row of six levels needs, and the link that files it ---
+    log("\nthe fields a row of six levels needs, and the link that files it (#539):");
+    let groupsTable = await air.table(GROUPS_TABLE);
     for (const spec of FIELDS) {
         const live = table.fields.find((f) => f.name === spec.name);
+        // The link is the link script's to make and fill, and its one-record toggle a hand step.
+        if (spec.link) {
+            if (!live) {
+                due++;
+                log(`  [STEP]   ${spec.name} is missing: scripts/import/link_category_groups_539.mjs --apply makes it and links every row`);
+            } else if (live.type !== spec.type || live.options?.linkedTableId !== groupsTable?.id) {
+                log(`  ${spec.name} is a ${live.type} to ${live.options?.linkedTableId ?? "nothing"}, not a link to ${GROUPS_TABLE} — stopping.`);
+                return finish(air, 1, "a field is in the way");
+            } else if (live.options?.prefersSingleRecordLink !== true) {
+                due++;
+                log(`  [HAND]   ${SINGLE_LINK_STEP}`);
+            } else log(`  [SKIP]   ${spec.name} (${live.id}) links one ${GROUPS_TABLE} row`);
+            continue;
+        }
+        // A level the group gives is converted by hand from the field it was typed as.
+        if (spec.lookup) {
+            if (looksUp(live, spec, table, groupsTable)) log(`  [SKIP]   ${spec.name} (${live.id}) looks up ${CATEGORY_GROUP_FIELD}'s ${spec.lookup}`);
+            else if (live?.type === spec.typedAs) {
+                due++;
+                log(`  [HAND]   ${conversionStep(spec)}`);
+            } else {
+                log(`  ${spec.name} is ${live ? `a ${live.type}` : "missing"}, neither typed as a ${spec.typedAs} nor a lookup of ${CATEGORY_GROUP_FIELD}'s ${spec.lookup} — stopping.`);
+                return finish(air, 1, "a field is in the way");
+            }
+            continue;
+        }
         if (live && live.type !== spec.type) {
             log(`  ${spec.name} exists as a ${live.type}, not the ${spec.type} this needs; a type cannot be PATCHed — stopping.`);
             return finish(air, 1, "a field is in the way");
@@ -430,8 +503,10 @@ async function main() {
 
     // Descriptions are synced, not only set on create: the base's copy is the one somebody
     // reads while typing into the cell (create_material_categories_354.mjs has the reason). A
-    // field a dry run has not made yet has none to compare.
-    for (const [name, description] of [[NAME_FIELD, NAME_DESCRIPTION], ...FIELDS.map((f) => [f.name, f.description])]) {
+    // field a dry run has not made yet has none to compare, and a level still typed keeps the
+    // words it has until its hand step makes the lookup they describe (#539).
+    const described = [[NAME_FIELD, NAME_DESCRIPTION], ...FIELDS.filter((f) => !f.lookup || looksUp(table.fields.find((each) => each.name === f.name), f, table, groupsTable)).map((f) => [f.name, f.description])];
+    for (const [name, description] of described) {
         const live = table.fields.find((f) => f.name === name);
         if (!live || (live.description ?? "") === description) continue;
         due++;
@@ -453,7 +528,6 @@ async function main() {
 
     // --- the groups the catalog files under (#528) --------------------------
     log(`\n${GROUPS_TABLE}, the types and categories the catalog files under:`);
-    const groupsTable = await air.table(GROUPS_TABLE);
     if (!groupsTable) {
         due++;
         if (!apply) log(`  [WOULD]  create it with ${GROUP_FIELDS.map((f) => `${f.name} (${f.type}${f.options ? ` ${JSON.stringify(f.options)}` : ""})`).join(", ")}`);
@@ -488,6 +562,16 @@ async function main() {
                 log(`  [PATCH]  ${spec.name}'s description`);
             }
         }
+        // The link's far side, named by the link script, described as it is (#539).
+        const inverse = groupsTable.fields.find((f) => f.name === INVERSE_NAME);
+        if (inverse && (inverse.description ?? "") !== INVERSE_DESCRIPTION) {
+            due++;
+            if (!apply) log(`  [WOULD]  update ${INVERSE_NAME}'s description`);
+            else {
+                await air.patchField(groupsTable.id, inverse.id, { description: INVERSE_DESCRIPTION });
+                log(`  [PATCH]  ${INVERSE_NAME}'s description`);
+            }
+        }
         if ((groupsTable.description ?? "") !== GROUPS_DESCRIPTION) {
             due++;
             if (!apply) log(`  [WOULD]  update the table's description`);
@@ -502,6 +586,7 @@ async function main() {
     // --- verification is part of the run, and on a matching base it is the run ----
     log(`\nverifying against the base it wrote:`);
     table = await air.table();
+    const groupsLive = await air.table(GROUPS_TABLE);
     const failures = [];
     const field = (name) => table.fields.find((f) => f.name === name);
     if (field(NAME_FIELD)?.type !== "formula") failures.push(`${NAME_FIELD} is ${field(NAME_FIELD)?.type}, not a formula`);
@@ -513,18 +598,23 @@ async function main() {
         if (!live) failures.push(`${spec.name} is missing`);
         else if (live.type !== spec.type) failures.push(`${spec.name} is ${live.type}, not ${spec.type}`);
         else if (spec.options && choiceList(live) !== choiceList(spec)) failures.push(`${spec.name}'s choices are ${choiceList(live)}, not ${choiceList(spec)}`);
+        else if (spec.lookup && !looksUp(live, spec, table, groupsLive)) failures.push(`${spec.name} is not a lookup of ${GROUPS_TABLE}.${spec.lookup} through ${CATEGORY_GROUP_FIELD}`);
+        else if (spec.link && live.options?.linkedTableId !== groupsLive?.id) failures.push(`${spec.name} does not link ${GROUPS_TABLE}`);
+        else if (spec.link && live.options?.prefersSingleRecordLink !== true) failures.push(`${spec.name} allows several records — ${SINGLE_LINK_STEP}`);
     }
     for (const rename of RENAMES) {
         if (field(rename.to)?.id !== rename.id) failures.push(`${rename.to} is ${field(rename.to)?.id ?? "missing"}, not ${rename.id}, the field it was renamed from`);
     }
 
-    const records = await air.listRecords(table.id, [NAME_FIELD, ...Object.values(ASSET_CATEGORY_FIELDS), DISCONTINUED_FIELD]);
+    const records = await air.listRecords(table.id, [NAME_FIELD, ...Object.values(ASSET_CATEGORY_FIELDS), DISCONTINUED_FIELD, CATEGORY_GROUP_FIELD]);
     const categories = records.map(categoryOf);
     for (const category of categories) {
         const expected = composeItemName(category);
         if (category.itemName !== expected) {
             failures.push(`${category.id}: the base named it ${JSON.stringify(category.itemName)}, the rule names it ${JSON.stringify(expected)}`);
         }
+        // Filed under one group, or it reads no type and no category (#539).
+        if (category.groups.length !== 1) failures.push(`${category.id} ${JSON.stringify(category.itemName)}: filed under ${category.groups.length} groups, not one`);
     }
 
     const { offered, setAside } = readCatalog(categories);
@@ -544,7 +634,6 @@ async function main() {
 
     // The groups (#528): the table's shape, each row that stands as a group, and every row a
     // registration may pick filed under one. A group with nothing under it is said, not failed.
-    const groupsLive = await air.table(GROUPS_TABLE);
     if (!groupsLive) failures.push(`${GROUPS_TABLE} is missing`);
     else {
         const groupField = (name) => groupsLive.fields.find((f) => f.name === name);
@@ -555,6 +644,8 @@ async function main() {
             else if (spec.options && choiceList(live) !== choiceList(spec)) failures.push(`${GROUPS_TABLE}.${spec.name}'s choices are ${choiceList(live)}, not ${choiceList(spec)}`);
         }
         if (groupField(GROUP_FIELDS[0].name)?.id !== groupsLive.primaryFieldId) failures.push(`${GROUPS_TABLE}'s primary is not ${GROUP_FIELDS[0].name}`);
+        const inverse = groupField(INVERSE_NAME);
+        if (inverse?.type !== "multipleRecordLinks" || inverse.options?.linkedTableId !== table.id) failures.push(`${GROUPS_TABLE}.${INVERSE_NAME} is not the far side of ${CATEGORY_GROUP_FIELD}`);
 
         const groups = (await air.listRecords(groupsLive.id, GROUP_FIELDS.map((f) => f.name))).map(groupOf);
         const standing = readCategoryGroups(groups);
@@ -573,7 +664,7 @@ async function main() {
         for (const line of failures) log(`    ${line}`);
         return finish(air, 1, "the base does not match the spec");
     }
-    log(`  the fields, both selects' choices, the expression and every name match, and every type and category a registration offers is a group.`);
+    log(`  the fields, both selects' choices, the expression, the link and its two lookups and every name match, every row is filed under one group, and every type and category a registration offers is a group.`);
     return finish(air, 0, "the base matches the spec");
 }
 

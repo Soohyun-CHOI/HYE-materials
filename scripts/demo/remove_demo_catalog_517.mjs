@@ -18,6 +18,11 @@
 // IT REFUSES WHILE THE OFFICE'S CATALOG IS NOT THERE: with no row outside the demo that a
 // registration may pick, removing the demo would leave the registration nothing to offer.
 //
+// SINCE #539 IT STOPS BEFORE IT READS A ROW, the removal and the revert alike. The catalog files
+// each row under its group by `Category Group`, and `Level 1` and `Level 2` are lookups through
+// it, which the revert writes as typed text (`link_category_groups_539_plan.mjs:filedByLink`);
+// the demo's categories were never groups, so its ledger cannot be put back on this base.
+//
 // THE LEDGER IS WRITTEN BEFORE THE FIRST DELETE AND IS COMMITTED, beside this script, for
 // rewrite_po_year_313.mjs' reason (docs/notes/verification.md): every row about to go, each
 // field as the API returned it. Then the asset log rows go, then the assets, then the catalog
@@ -64,6 +69,7 @@ import { fileURLToPath } from "node:url";
 
 import { ASSET_CATEGORY_FIELDS, catalogPathKey, readCatalog } from "../../lib/assetCategory.js";
 import { refusesProtectedWrite } from "../protectedTables.mjs";
+import { FILED_BY_LINK_REFUSAL, filedByLink } from "../import/link_category_groups_539_plan.mjs";
 import { resolveAirtableBase } from "../../lib/airtableBase.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -352,6 +358,10 @@ async function main() {
     }
     const air = new Airtable(token, baseId);
     log(`remove_demo_catalog_517 — base ${baseId}${ledgerPath ? "  (REVERT)" : ""}${apply ? "" : "  (DRY RUN — nothing is written; --apply writes)"}\n`);
+    if (filedByLink(await air.tables())) {
+        log(FILED_BY_LINK_REFUSAL);
+        return finish(air, 1, "refused: the catalog files by link since #539");
+    }
     return ledgerPath ? revert(air, apply, ledgerPath) : remove(air, apply);
 }
 

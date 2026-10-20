@@ -54,8 +54,10 @@ import {
     ASSET_PATH_SEPARATOR,
     ASSET_REQUIRED_LEVELS,
     ASSET_TYPE_VALUES,
+    ASSET_WRITTEN_LEVELS,
     DISCONTINUED_FIELD,
     ITEM_NAME_FORMULA,
+    catalogFieldsOf,
     catalogLevelValues,
     catalogNames,
     catalogPathKey,
@@ -65,6 +67,7 @@ import {
     compareSizes,
     composeItemName,
     groupCatalog,
+    groupLevelOf,
     isPlaceholder,
     pathOf,
     readCatalog,
@@ -267,6 +270,33 @@ function importedFromModule({ ast }) {
 }
 
 export function run({ check, assert, log }) {
+    // ── #539: a row's type and category, read through its group ──────────────
+    log("a catalog row's type and category, read through the group it links (#539):");
+    check("a lookup through one group is that group's value", groupLevelOf(["Tool"]), "Tool");
+    check("a lookup through two groups is no value", groupLevelOf(["Tool", "Equipment"]), "");
+    check("a lookup through no group is no value", groupLevelOf([]), "");
+    check("a typed value is read as itself", groupLevelOf("Equipment"), "Equipment");
+    check("an absent field is no value", groupLevelOf(undefined), "");
+    const looked = catalogFieldsOf({
+        "Level 1": ["Tool"],
+        "Level 2": ["Power Tools"],
+        "Level 3": "Drill",
+        Size: "18V",
+        "Part Number": "DCD791",
+        Class: "B",
+    });
+    check(
+        "a record's fields read as the catalog's path and class, the group's two through their lookups",
+        JSON.stringify(looked),
+        JSON.stringify({ level1: "Tool", level2: "Power Tools", level3: "Drill", size: "18V", maker: "", partNumber: "DCD791", assetClass: "B" })
+    );
+    const doubled = catalogFieldsOf({ "Level 1": ["Tool", "Tool"], "Level 2": ["Power Tools", "Cutter"], "Level 3": "Drill", Class: "B" });
+    check("a row filed under two groups reads no type and no category", `${doubled.level1}|${doubled.level2}`, "|");
+    const aside = readCatalog([{ id: "r", itemName: "Drill", ...doubled }]).setAside[0];
+    check("  and is set aside as missing both", `${aside?.reason}: ${aside?.missing?.join(", ")}`, "incomplete: level1, level2");
+    check("a write carries every level but the group's two, and the class", ASSET_WRITTEN_LEVELS.join(", "), "level3, size, maker, partNumber, assetClass");
+    log("");
+
     // ── 0: the groups the catalog files under (#528) ─────────────────────────
     log("the groups a catalog row's type and category stand in (#528):");
     check("the two levels a group is, the type first", ASSET_GROUP_LEVELS.join(", "), "level1, level2");
@@ -805,24 +835,26 @@ export function run({ check, assert, log }) {
     // AND ONLY THE CATALOG PAGE'S ACTIONS TAKE A WRITER — every one of them, so a writer nothing
     // calls fails here as well as in `offline/unread-exports.mjs`.
     check("  whose writers the catalog page's actions alone import, every one", importersOf(parsed, "lib/airtable/assetCategories", WRITERS).join(" | "), `${CATALOG_ACTIONS}: ${WRITERS.join(" ")}`);
-    // ONE SPELLING: each field the reader takes off a record is the module's, beside the two
-    // fields that are not the catalog's own.
+    // ONE SPELLING: the path and the class come off a record through the module's one reading of
+    // them (#539), and the reader takes by name only the fields that are not the catalog's path.
     const got = [];
+    const readings = [];
     const reader = parseFile(READER);
     walk(reader.ast, (n) => {
         if (n.type === "CallExpression" && n.callee?.property?.name === "get") got.push(reader.source.slice(n.arguments[0].start, n.arguments[0].end));
+        if (n.type !== "FunctionDeclaration" || n.id?.name !== "recordToAssetCategory") return;
+        walk(n.body, (inner) => {
+            if (inner.type === "SpreadElement") readings.push(reader.source.slice(inner.argument.start, inner.argument.end));
+        });
     });
-    check(
-        "  reading each catalog field by the module's name for it",
-        got.sort().join(", "),
-        '"Assets", "Item Name", ASSET_CATEGORY_FIELDS.assetClass, ASSET_CATEGORY_FIELDS.level1, ASSET_CATEGORY_FIELDS.level2, ASSET_CATEGORY_FIELDS.level3, ASSET_CATEGORY_FIELDS.maker, ASSET_CATEGORY_FIELDS.partNumber, ASSET_CATEGORY_FIELDS.size, DISCONTINUED_FIELD'
-    );
+    check("  reading by name only the fields that are not the catalog's path", got.sort().join(", "), '"Assets", "Item Name", DISCONTINUED_FIELD');
+    check("  and the path and the class through the module's one reading of a record", readings.join(", "), "catalogFieldsOf(record.fields)");
     check("  and spelling none of them", fieldLiterals(reader).spelled, "");
     const script = parseFile(SCRIPT);
     check(
-        "the catalog's script takes the fields, the mark (#527), both selects' values, the expression, the path and the readings from the module",
+        "the catalog's script takes the fields, the mark (#527), the link (#539), both selects' values, the expression, the path and the readings from the module",
         importedFromModule(script),
-        "ASSET_CATEGORY_FIELDS, ASSET_CLASS_VALUES, ASSET_GROUP_LEVELS, ASSET_TYPE_VALUES, DISCONTINUED_FIELD, ITEM_NAME_FORMULA, composeItemName, groupCatalog, pathOf, readCatalog, readCategoryGroups"
+        "ASSET_CATEGORY_FIELDS, ASSET_CLASS_VALUES, ASSET_GROUP_LEVELS, ASSET_TYPE_VALUES, CATEGORY_GROUP_FIELD, DISCONTINUED_FIELD, ITEM_NAME_FORMULA, catalogFieldsOf, composeItemName, groupCatalog, pathOf, readCatalog, readCategoryGroups"
     );
     check("  and spells none of the fields", fieldLiterals(script).spelled, "");
     // THE TWO NAMES IT RENAMES FROM ARE #507's, in the order they must run: `Level 2` out of the way first.
