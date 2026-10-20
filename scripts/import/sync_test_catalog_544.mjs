@@ -20,7 +20,8 @@
 //
 // WHAT IT WRITES, THROUGH THE APP'S WRITERS WHERE THE APP HAS ONE. A catalog row whose levels, class
 // or mark differ takes the live row's — `updateAssetCategory` and `setAssetCategoryDiscontinued`,
-// the catalog page's; a live row the test base lacks is `createAssetCategory`'s. A group renamed on
+// the catalog page's; a live row the test base lacks is `createAssetCategory`'s — each, since #539,
+// linking the test base's group of the row's type and category (`categoryGroupOf`). A group renamed on
 // the live base is renamed here, and one the live base removed is removed here, neither of which the
 // app does (#527), so those two are this script's, ten to a request; a group the live base added is
 // `createAssetCategoryGroup`'s. A job the test base lacks is `createJob`'s, with the live job's name
@@ -55,7 +56,7 @@ import { createAssetCategoryGroup, getAllAssetCategoryGroups } from "../../lib/a
 import { createJob, getAllJobs, getJobByRecordId } from "../../lib/airtable/jobs.js";
 import { addAssignedJob, getUserByEmail, getUsersByRecordIds } from "../../lib/airtable/users.js";
 import { getAllAddresses } from "../../lib/airtable/addresses.js";
-import { ASSET_CATEGORY_FIELDS, ASSET_GROUP_LEVELS, ASSET_PATH_LEVELS, catalogPathKey, categoryGroupKey, pathOf } from "../../lib/assetCategory.js";
+import { ASSET_CATEGORY_FIELDS, ASSET_GROUP_LEVELS, ASSET_PATH_LEVELS, catalogPathKey, categoryGroupKey, categoryGroupOf, pathOf } from "../../lib/assetCategory.js";
 import { LIVE_BASE_ID, describeAirtableBase, resolveAirtableBase } from "../../lib/airtableBase.js";
 import { snapshot as opsSnapshot } from "../../lib/airtableOps.js";
 import { RECORDER_EMAIL, inChunks, readList } from "./import_site_assets_544_plan.mjs";
@@ -210,26 +211,33 @@ async function sync(apply, snapshotPath) {
     for (const group of p.groupRemovals) write({ type: "removed", table: TABLES.ASSET_CATEGORY_GROUPS, id: group.id, ...groupOf(group) });
     log(`\nledger: ${relative(process.cwd(), ledgerPath)}  (commit it)`);
 
-    // Groups first, so every row the updates move stands in a group as it lands.
+    // Groups first, so every row the updates move stands in a group as it lands — and is linked
+    // to it (#539): the test base's groups as renamed here, and those made.
+    const groups = test.groups.map((group) => {
+        const rename = p.groupRenames.find((each) => each.id === group.id);
+        return rename ? { id: group.id, ...rename.after } : group;
+    });
     for (const group of p.groupCreates) {
         const made = await createAssetCategoryGroup(group);
         write({ type: "group", id: made.created?.id ?? made.exists.id, ...group, created: Boolean(made.created) });
+        groups.push(made.created ?? made.exists);
     }
     for (const chunk of inChunks(p.groupRenames)) {
         await base(TABLES.ASSET_CATEGORY_GROUPS).update([...chunk.map(({ id, after }) => ({ id, fields: Object.fromEntries(ASSET_GROUP_LEVELS.map((level) => [ASSET_CATEGORY_FIELDS[level], after[level]])) }))]);
     }
+    const groupIdOf = (entry) => categoryGroupOf(entry, groups)?.id;
     for (const { id, after } of p.rowUpdates) {
         const { discontinued, ...entry } = after;
         const before = test.catalog.find((category) => category.id === id);
         if (ROW_FIELDS.some((field) => field !== "discontinued" && rowOf(before)[field] !== after[field])) {
-            const put = await updateAssetCategory(id, entry);
+            const put = await updateAssetCategory(id, entry, groupIdOf(entry));
             if (!put.updated) return finish(1, `${id} was not updated — ${put.gone ? "the row is gone" : `${put.exists.id} holds its path`}`);
         }
         if ((before.discontinued === true) !== discontinued) await setAssetCategoryDiscontinued(id, discontinued);
     }
     for (const row of p.rowCreates) {
         const { discontinued, ...entry } = rowOf(row);
-        const made = await createAssetCategory(entry);
+        const made = await createAssetCategory(entry, groupIdOf(entry));
         if (!made.created) return finish(1, `${pathOf(row)} was on the test base by the time it was written`);
         if (discontinued) await setAssetCategoryDiscontinued(made.created.id, true);
         write({ type: "catalog", id: made.created.id, ...rowOf(row) });

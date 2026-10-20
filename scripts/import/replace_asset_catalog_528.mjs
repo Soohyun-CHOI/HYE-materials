@@ -64,6 +64,11 @@
 // put back by a later `--apply`: read the dry run, which names every class it would change,
 // before running one. Not observed — nothing has run it since.
 //
+// SINCE #539 IT STOPS BEFORE IT READS A ROW, as #517's load stops since this one ran. The catalog
+// files each row under its group by `Category Group`, and `Level 1` and `Level 2` are lookups
+// through it, which a load and a revert here write as typed text
+// (`link_category_groups_539_plan.mjs:filedByLink`).
+//
 // Usage (from the repo root). Dry run is the DEFAULT, for each run and for a revert:
 //   node --env-file=.env.local scripts/import/replace_asset_catalog_528.mjs
 //   node --env-file=.env.local scripts/import/replace_asset_catalog_528.mjs --apply
@@ -98,6 +103,7 @@ import {
 } from "../../lib/assetCategory.js";
 import { textMatchKey } from "../../lib/itemNaming.js";
 import { refusesProtectedWrite } from "../protectedTables.mjs";
+import { FILED_BY_LINK_REFUSAL, filedByLink } from "./link_category_groups_539_plan.mjs";
 import { resolveAirtableBase } from "../../lib/airtableBase.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -586,6 +592,10 @@ async function main() {
     }
     const { apiKey: token, baseId } = airtable;
     const air = new Airtable(token, baseId);
+    if (filedByLink(await air.tables())) {
+        log(FILED_BY_LINK_REFUSAL);
+        return finish(air, 1, "refused: the catalog files by link since #539");
+    }
     if (ledgerPath) return revert(air, apply, ledgerPath);
     return removal ? remove(air, apply, sources) : load(air, apply, sources);
 }

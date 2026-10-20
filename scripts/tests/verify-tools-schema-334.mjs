@@ -40,7 +40,10 @@
 // #514 — and the type's and the class's options against lib/assetCategory.js, and Part B
 // writes its kind by those fields and reads back the name the base's formula gave it — the
 // one place `composeItemName` is held against the live expression outside the catalog's
-// check, scripts/import/classify_asset_categories_514.mjs. Its kind was a
+// check, scripts/import/classify_asset_categories_514.mjs. Since #539 the type and the
+// category are lookups through `Category Group`, so Part A reads the type's options off the
+// groups' table and the link's inverse with the others, and Part B files its kind under a
+// group of its own and reads both back through the mapper. Its kind was a
 // typed `Tool Name`, found by name, until then. This also named `Tool Log."Notes"`,
 // which #363 deleted, in Part A's list, the fixture tag and Part B's entry; a log row
 // is tagged by `Checked Out To` now, the text a `Checked out` row carries (#376), and
@@ -66,7 +69,14 @@ import {
     ASSET_STATUS,
     ASSET_STATUS_VALUES,
 } from "../../lib/assetStatus.js";
-import { ASSET_CATEGORY_FIELDS, ASSET_CLASS_VALUES, ASSET_TYPE_VALUES, composeItemName } from "../../lib/assetCategory.js";
+import {
+    ASSET_CATEGORY_FIELDS,
+    ASSET_CLASS_VALUES,
+    ASSET_TYPE_VALUES,
+    ASSET_WRITTEN_LEVELS,
+    CATEGORY_GROUP_FIELD,
+    composeItemName,
+} from "../../lib/assetCategory.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { printProvenance } from "./_provenance.mjs";
 import { refusesProtectedWrite } from "../protectedTables.mjs";
@@ -115,6 +125,14 @@ const fixtures = createFixtures({
             tagField: ASSET_CATEGORY_FIELDS.level3,
             children: [{ link: "Assets", table: TABLES.ASSETS, label: "Tool Item" }],
         },
+        {
+            // The group the kind is filed under (#539), after the kind that links it.
+            name: "groups",
+            table: TABLES.ASSET_CATEGORY_GROUPS,
+            label: "Category group",
+            tagField: ASSET_CATEGORY_FIELDS.level2,
+            children: [{ link: TABLES.ASSET_CATEGORIES, table: TABLES.ASSET_CATEGORIES, label: "Tool" }],
+        },
     ],
 });
 const TAG = fixtures.TAG;
@@ -149,16 +167,18 @@ try {
 
         const EXPECTED = {
             // The catalog since #507, in six levels and a class since #514: the name a
-            // formula over four of them, and the type a select as the class is.
+            // formula over four of them, and since #539 the type and the category lookups
+            // through the link to the row's group.
             [TABLES.ASSET_CATEGORIES]: [
                 ["Item Name", "formula"],
-                [ASSET_CATEGORY_FIELDS.level1, "singleSelect"],
-                [ASSET_CATEGORY_FIELDS.level2, "singleLineText"],
+                [ASSET_CATEGORY_FIELDS.level1, "multipleLookupValues"],
+                [ASSET_CATEGORY_FIELDS.level2, "multipleLookupValues"],
                 [ASSET_CATEGORY_FIELDS.level3, "singleLineText"],
                 [ASSET_CATEGORY_FIELDS.size, "singleLineText"],
                 [ASSET_CATEGORY_FIELDS.maker, "singleLineText"],
                 [ASSET_CATEGORY_FIELDS.partNumber, "singleLineText"],
                 [ASSET_CATEGORY_FIELDS.assetClass, "singleSelect"],
+                [CATEGORY_GROUP_FIELD, "multipleRecordLinks"],
             ],
             [TABLES.ASSETS]: [
                 ["Asset ID", "singleLineText"],
@@ -215,22 +235,24 @@ try {
         check("    choices on Status no code can write", strayStatus.join(", "), "");
         check("    choices on Event no code can write", strayEvent.join(", "), "");
         // THE CLASS'S TWO (#507) AND THE TYPE'S (#514), against lib/assetCategory.js for the
-        // same reason.
+        // same reason — the type's on the groups' table since #539, whose select the catalog's
+        // `Level 1` looks up.
         const classField = field(byName.get(TABLES.ASSET_CATEGORIES), ASSET_CATEGORY_FIELDS.assetClass);
         const liveClass = (classField?.options?.choices || []).map((c) => c.name);
         check("    Asset Categories.Class", liveClass.join(" | "), ASSET_CLASS_VALUES.join(" | "));
-        const typeField = field(byName.get(TABLES.ASSET_CATEGORIES), ASSET_CATEGORY_FIELDS.level1);
+        const typeField = field(byName.get(TABLES.ASSET_CATEGORY_GROUPS), ASSET_CATEGORY_FIELDS.level1);
         const liveType = (typeField?.options?.choices || []).map((c) => c.name);
-        check(`    Asset Categories."${ASSET_CATEGORY_FIELDS.level1}"`, liveType.join(" | "), ASSET_TYPE_VALUES.join(" | "));
+        check(`    Asset Category Groups."${ASSET_CATEGORY_FIELDS.level1}"`, liveType.join(" | "), ASSET_TYPE_VALUES.join(" | "));
 
         log();
-        log("  the five inverses, checked on the far tables:");
+        log("  the six inverses, checked on the far tables — the catalog's link to its groups since #539:");
         const INVERSES = [
             [TABLES.ASSETS, "Category", TABLES.ASSET_CATEGORIES, "Assets"],
             [TABLES.ASSETS, "Job", "Jobs", "Assets"],
             [TABLES.ASSET_LOG, "Asset", TABLES.ASSETS, "Asset Log"],
             [TABLES.ASSET_LOG, "Job", "Jobs", "Asset Log"],
             [TABLES.ASSET_LOG, "Recorded By", "Users", "Asset Log"],
+            [TABLES.ASSET_CATEGORIES, CATEGORY_GROUP_FIELD, TABLES.ASSET_CATEGORY_GROUPS, TABLES.ASSET_CATEGORIES],
         ];
         const needsToggle = [];
         for (const [ourTable, ourField, farTable, farField] of INVERSES) {
@@ -246,11 +268,11 @@ try {
         // `prefersSingleRecordLink` on both CREATE and UPDATE (422, measured), so no
         // script can set it and a red line here would be a permanent one — the shape
         // _fixtures.mjs warns about, where a standing warning stops being read. The
-        // app enforces single-record on all five either way; this reports what the
+        // app enforces single-record on all six either way; this reports what the
         // BASE still says so the hand toggle can be finished or confirmed.
         log();
         if (needsToggle.length === 0) {
-            log("  all five links are single-record on the base too.");
+            log("  all six links are single-record on the base too.");
         } else {
             log(`  ${needsToggle.length} link(s) still multi on the base — turn OFF`);
             log('  "Allow linking to multiple records" in the Airtable UI:');
@@ -269,7 +291,7 @@ try {
     const refused = refusesProtectedWrite({
         script: "verify-tools-schema-334",
         baseId: base.getId(),
-        writes: [TABLES.ASSET_CATEGORIES, TABLES.ASSETS, TABLES.ASSET_LOG],
+        writes: [TABLES.ASSET_CATEGORY_GROUPS, TABLES.ASSET_CATEGORIES, TABLES.ASSETS, TABLES.ASSET_LOG],
     });
     const job = refused ? null : await getJobByCode("26-DEMO-01");
     const users = refused ? [] : await getActiveUsers();
@@ -283,7 +305,8 @@ try {
         const user = users[0];
         // A catalog row, written by its fields as the office types one (#507), all six levels
         // filled so the name carries its comma and both its halves (#514); `Item Name` is the base's to
-        // compute.
+        // compute. Its type and category are a group of its own, which it links (#539), so the
+        // mapper reads them back through the two lookups.
         const kind = {
             level1: ASSET_TYPE_VALUES[1],
             level2: `${TAG} probe tools`,
@@ -299,9 +322,15 @@ try {
         // registered and minted below.
         const assetId = `${TAG}-001`;
 
-        const categoryRecord = await base(TABLES.ASSET_CATEGORIES).create(
-            Object.fromEntries(Object.entries(ASSET_CATEGORY_FIELDS).map(([key, fieldName]) => [fieldName, kind[key]]))
-        );
+        const groupRecord = await base(TABLES.ASSET_CATEGORY_GROUPS).create({
+            [ASSET_CATEGORY_FIELDS.level2]: kind.level2,
+            [ASSET_CATEGORY_FIELDS.level1]: kind.level1,
+        });
+        track("groups", groupRecord.id);
+        const categoryRecord = await base(TABLES.ASSET_CATEGORIES).create({
+            [CATEGORY_GROUP_FIELD]: [groupRecord.id],
+            ...Object.fromEntries(ASSET_WRITTEN_LEVELS.map((key) => [ASSET_CATEGORY_FIELDS[key], kind[key]])),
+        });
         track("tools", categoryRecord.id);
 
         const itemRecord = await base(TABLES.ASSETS).create({

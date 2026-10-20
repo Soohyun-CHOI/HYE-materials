@@ -35,6 +35,11 @@
 // them back under new record ids, and this would then refuse those too: it finds the eleven by
 // the ids written above.
 //
+// SINCE #539 IT STOPS BEFORE IT READS A ROW. The catalog files each row under its group by
+// `Category Group`, and `Level 1` and `Level 2` are lookups through it, which this writes as
+// typed text (`link_category_groups_539_plan.mjs:filedByLink`); the demo's categories were
+// never groups.
+//
 // IT TALKS TO THE REST API DIRECTLY, as the catalog's scripts in scripts/import/ do, and counts
 // its calls, which lib/airtableOps.js cannot see.
 //
@@ -51,6 +56,7 @@
 import { ASSET_CATEGORY_FIELDS, composeItemName, readCatalog } from "../../lib/assetCategory.js";
 import { textMatchKey } from "../../lib/itemNaming.js";
 import { resolveAirtableBase } from "../../lib/airtableBase.js";
+import { FILED_BY_LINK_REFUSAL, filedByLink } from "../import/link_category_groups_539_plan.mjs";
 
 const API_ROOT = "https://api.airtable.com/v0";
 const META_ROOT = `${API_ROOT}/meta`;
@@ -187,6 +193,10 @@ async function main() {
     log(`seed_asset_catalog_514 — base ${baseId}${revert ? "  (REVERT)" : writing ? "" : "  (DRY RUN — nothing is written; --apply writes)"}\n`);
 
     const table = await air.table();
+    if (filedByLink([table])) {
+        log(FILED_BY_LINK_REFUSAL);
+        return finish(air, 1, "refused: the catalog files by link since #539");
+    }
     const missing = table ? Object.values(ASSET_CATEGORY_FIELDS).filter((name) => !table.fields.some((f) => f.name === name)) : ["the table"];
     if (missing.length > 0) {
         log(`${TABLE_NAME} lacks ${missing.join(", ")} — run scripts/import/classify_asset_categories_514.mjs --apply first.`);

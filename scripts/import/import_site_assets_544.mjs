@@ -23,7 +23,9 @@
 // EVERY WRITE IS ONE OF THE APP'S OWN WRITERS, SO NO RULE HERE IS A SECOND COPY. A group is
 // `createAssetCategoryGroup`, a path `createAssetCategory` and a part number `updateAssetCategory`
 // — the catalog page's writers (#527), each reading the catalog again under its key's lock and
-// writing nothing over a path another row holds. A row's items are the registration's two writes
+// writing nothing over a path another row holds; since #539 a path and a part number are written
+// with the link to the group their type and category name (`categoryGroupOf`), among the groups
+// read and those this run adds. A row's items are the registration's two writes
 // (#338, #470): `createAssets`, which mints `HYE-AST-YYMMDD-###` under the day's lock
 // (`lib/ids.js`), ten to a request, and writes the cache — `In stock` and the job — with each
 // asset; then `createFirstAssetLogEntries`, each asset's `Created` row on the same job, recorded
@@ -111,7 +113,7 @@ import { createAssets, getAssetsByRecordIds } from "../../lib/airtable/assets.js
 import { createFirstAssetLogEntries } from "../../lib/airtable/assetLog.js";
 import { getAllJobs } from "../../lib/airtable/jobs.js";
 import { getUserByEmail } from "../../lib/airtable/users.js";
-import { ASSET_CATEGORY_FIELDS, catalogPathKey, categoryGroupKey, composeItemName, pathOf, readCatalog } from "../../lib/assetCategory.js";
+import { ASSET_CATEGORY_FIELDS, catalogPathKey, categoryGroupKey, categoryGroupOf, composeItemName, pathOf, readCatalog } from "../../lib/assetCategory.js";
 import { readRegistration } from "../../lib/assetRegistration.js";
 import { assignedJobsFor } from "../../lib/assetJob.js";
 import { ASSET_EVENT, ASSET_STATUS } from "../../lib/assetStatus.js";
@@ -413,21 +415,25 @@ async function load(apply, list, baseName) {
     log("");
     log(`ledger: ${relative(process.cwd(), ledger.path)}  (commit it)`);
 
+    // The groups a catalog write links (#539): those read, and those this run adds.
+    const groups = [...read.groups];
     for (const group of p.groupsToCreate) {
         const made = await createAssetCategoryGroup(group);
         if (!made.created) return finish(1, `${group.level1} > ${group.level2} stood by the time it was written — run again, which plans with it`);
         ledger.write({ type: "group", id: made.created.id, ...group });
+        groups.push(made.created);
         log(`  [GROUP]  ${group.level1} > ${group.level2}  ${made.created.id}`);
     }
+    const groupIdOf = (row) => categoryGroupOf(row, groups)?.id;
     for (const { entry, sources } of p.pathsToCreate) {
-        const made = await createAssetCategory(entry);
+        const made = await createAssetCategory(entry, groupIdOf(entry));
         if (!made.created) return finish(1, `${said(entry)} was on the catalog by the time it was written (${made.exists.id}) — nothing after it was written`);
         ledger.write({ type: "catalog", id: made.created.id, ...entry, itemName: made.created.itemName, sources });
         log(`  [CREATE] ${made.created.id}  ${made.created.itemName}`);
     }
     for (const { row, category, entry } of p.partsToAdd) {
         ledger.write({ type: "part", id: category.id, field: ASSET_CATEGORY_FIELDS.partNumber, before: category.partNumber, after: entry.partNumber, levels: levelsOf(category), assetClass: category.assetClass, source: row.source });
-        const made = await updateAssetCategory(category.id, entry);
+        const made = await updateAssetCategory(category.id, entry, groupIdOf(category));
         if (!made.updated) return finish(1, `${category.id}'s part number was not written (${made.gone ? "the row is gone" : `${made.exists.id} holds the path`})`);
         log(`  [PART]   ${category.id}  ${made.updated.itemName}`);
     }
@@ -572,8 +578,10 @@ async function revert(apply, ledgerPath, baseName) {
 
     for (const chunk of inChunks(logsToGo.map((row) => row.id))) await base(TABLES.ASSET_LOG).destroy([...chunk]);
     for (const chunk of inChunks(standing.map((asset) => asset.id))) await base(TABLES.ASSETS).destroy([...chunk]);
+    // A part number put back keeps the row filed under the group it stands in (#539).
+    const groupIdOf = (row) => categoryGroupOf(row, groups)?.id;
     for (const { category, entry } of partsBack) {
-        const put = await updateAssetCategory(category.id, entry);
+        const put = await updateAssetCategory(category.id, entry, groupIdOf(category));
         if (!put.updated) return finish(1, `${category.id}'s part number was not put back — ${put.gone ? "the row is gone" : `${put.exists.id} holds the path`}`);
     }
     for (const category of catalogToGo) {

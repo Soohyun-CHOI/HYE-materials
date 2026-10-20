@@ -48,11 +48,15 @@ export const GROUP_LEVEL_FIELDS = Object.freeze([ASSET_CATEGORY_FIELDS.level1, A
 /** How many rows one request writes: Airtable's batch. */
 export const ROWS_PER_REQUEST = 10;
 
+/**
+ * The link's words and its far side's, written by this run and held by the catalog's check
+ * (`classify_asset_categories_514.mjs`), which imports them so the two say one thing.
+ */
 export const LINK_DESCRIPTION =
     "The category group this item is filed under (#539): its type and its category, a row of Asset Category " +
-    "Groups. Pick one group. Level 1 and Level 2 read from it once they are lookups through this field, so a " +
-    "category renamed in Asset Category Groups is renamed on every item filed under it. Filled from the typed " +
-    "Level 1 and Level 2 by scripts/import/link_category_groups_539.mjs.";
+    "Groups. Pick one group: Level 1 and Level 2 look their values up through this field, so a category renamed " +
+    "in Asset Category Groups is renamed on every item filed under it. The app's Catalog page sets it when an " +
+    "item is added or edited; scripts/import/link_category_groups_539.mjs filled it from the typed Level 1 and Level 2.";
 
 export const INVERSE_DESCRIPTION =
     "The items of Asset Categories filed under this group (#539), through their Category Group link. A group with " +
@@ -215,6 +219,21 @@ export function planRevert(lines, rows) {
 export function unlinkLine(row, line) {
     return { type: "unlink", id: row.id, itemName: row.itemName, before: [...row.link], after: [...line.before] };
 }
+
+/**
+ * Whether the catalog files its rows by `Category Group` (#539), off the Metadata API's tables —
+ * the mark the catalog's earlier loads stop on (#514's and #528's shape for a script whose spec
+ * the base has moved past): each writes `Level 1` and `Level 2` as typed text, which a lookup
+ * through the link cannot take, and reads them as text.
+ */
+export function filedByLink(tables) {
+    return (tables ?? []).some((table) => table?.name === CATALOG_TABLE && (table.fields ?? []).some((field) => field.name === CATEGORY_GROUP_FIELD));
+}
+
+/** What such a script says as it stops. */
+export const FILED_BY_LINK_REFUSAL =
+    `${CATALOG_TABLE} files each row under its group by ${CATEGORY_GROUP_FIELD} since #539, and its ${GROUP_LEVEL_FIELDS.join(" and ")} ` +
+    "are lookups through it: this script reads and writes them as typed text, so it stops before it reads a row.";
 
 /** A list cut into requests of `size`. */
 export function inChunks(items, size = ROWS_PER_REQUEST) {

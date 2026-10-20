@@ -19,16 +19,19 @@
 
 import { readFileSync } from "fs";
 import { join } from "path";
-import { REPO_ROOT, calleeName, parentMap, parseSource, walk } from "./_ast.mjs";
+import { REPO_ROOT, calleeName, callsBefore, callsTo, parentMap, parseSource, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 import { CATEGORY_GROUP_FIELD } from "../../../lib/assetCategory.js";
+import { readCatalogEntry } from "../../../lib/assetCatalog.js";
 import {
     CATALOG_TABLE,
+    FILED_BY_LINK_REFUSAL,
     GROUPS_TABLE,
     GROUP_LEVEL_FIELDS,
     INVERSE_NAME,
     ROWS_PER_REQUEST,
     catalogRowOf,
+    filedByLink,
     groupRowOf,
     inChunks,
     linkLine,
@@ -47,8 +50,47 @@ const PLAN_PATH = "scripts/import/link_category_groups_539_plan.mjs";
 const PLAN_SPECIFIER = "./link_category_groups_539_plan.mjs";
 const CATEGORY_MODULE_PATH = "lib/assetCategory.js";
 const CATALOG_MODULE_PATH = "lib/assetCatalog.js";
+const WRITER_PATH = "lib/airtable/assetCategories.js";
+const ACTIONS_PATH = "app/(assets)/asset-catalog/actions.js";
+const IMPORT_PATH = "scripts/import/import_site_assets_544.mjs";
+const SYNC_PATH = "scripts/import/sync_test_catalog_544.mjs";
+const CLASSIFY_PATH = "scripts/import/classify_asset_categories_514.mjs";
+
+/** The catalog's earlier loads, each with the steps in its entry that read the catalog's rows. */
+const EARLIER_LOADS = [
+    { path: "scripts/import/replace_asset_catalog_528.mjs", work: ["load", "remove", "revert"] },
+    { path: "scripts/demo/remove_demo_catalog_517.mjs", work: ["remove", "revert"] },
+    { path: "scripts/demo/seed_asset_catalog_514.mjs", work: ["listRecords"] },
+];
 
 const read = (path) => readFileSync(join(REPO_ROOT, path), "utf8");
+
+/** A top-level function by its name, exported or not. */
+function functionNamed(ast, name) {
+    let found = null;
+    walk(ast, (n) => {
+        if (!found && n.type === "FunctionDeclaration" && n.id?.name === name) found = n;
+    });
+    return found;
+}
+
+/** Whether an object literal under `node` holds a computed key spelled as the identifier `name`. */
+function hasComputedKey(node, name) {
+    let found = false;
+    walk(node, (n) => (found ||= n?.type === "Property" && n.computed && n.key?.type === "Identifier" && n.key.name === name));
+    return found;
+}
+
+/** A node's own source text. */
+const sourceOf = (path, node) => (node ? read(path).slice(node.start, node.end) : "");
+
+/** The arguments of the first call to `name` under `root`, as source text — or of every call, with `every`. */
+function callArgsOf(path, root, name, { every = false } = {}) {
+    const text = read(path);
+    const calls = root ? callsTo(root, name) : [];
+    const argsOf = (call) => call.arguments.map((arg) => text.slice(arg.start, arg.end));
+    return every ? calls.map(argsOf) : calls[0] ? argsOf(calls[0]) : [];
+}
 
 // ── the Metadata API's answer, as the two tables come back ────────────────────
 
@@ -96,6 +138,58 @@ const GROUPS = [
 const at = (id, level1, level2, link = [], itemName = `${id} name`) => ({ id, itemName, level1, level2, link });
 
 export function run({ check, assert }) {
+    // ── what writes a catalog row links its group (#539) ──────────────────────
+    const writer = parseSource(read(WRITER_PATH), WRITER_PATH).ast;
+    const fieldsOf = functionNamed(writer, "fieldsOf");
+    assert("the writer's fields carry the link, keyed by the module's name for it", hasComputedKey(fieldsOf, "CATEGORY_GROUP_FIELD"));
+    check("  a planted key spelled as text is not that name", hasComputedKey(parseSource('const f = { "Category Group": [id] };', "planted").ast, "CATEGORY_GROUP_FIELD"), false);
+    assert("  and every level but the group's two, by the module's list of them", sourceOf(WRITER_PATH, fieldsOf).includes("ASSET_WRITTEN_LEVELS.map("));
+    check("  and no level through the whole map of fields", sourceOf(WRITER_PATH, fieldsOf).includes("Object.entries(ASSET_CATEGORY_FIELDS)"), false);
+    let throwsWithoutGroup = false;
+    walk(fieldsOf, (n) => (throwsWithoutGroup ||= n.type === "ThrowStatement"));
+    assert("  and a row with no group to link is refused before it is sent", throwsWithoutGroup);
+    for (const name of ["createAssetCategory", "updateAssetCategory"]) {
+        const fn = functionNamed(writer, name);
+        check(`${name} takes the group it files the row under, last`, fn?.params.at(-1)?.name, "categoryGroupRecordId");
+        check(`  and writes it`, callArgsOf(WRITER_PATH, fn, "fieldsOf").join(" | "), "entry | categoryGroupRecordId");
+    }
+
+    const action = parseSource(read(ACTIONS_PATH), ACTIONS_PATH).ast;
+    check("the catalog page's save links the group it read or added", ["createAssetCategory", "updateAssetCategory"].map((name) => callArgsOf(ACTIONS_PATH, action, name).at(-1)).join(" | "), "group.id | group.id");
+    assert("  the group added, or one another press added first", read(ACTIONS_PATH).includes("group = made.created ?? made.exists;"));
+    const groups = [{ id: "gPower", level1: "Tool", level2: "Power Tools" }];
+    const existing = readCatalogEntry({ level1: "Tool", assetClass: "B", level2: "power tools", level3: "Drill" }, { rows: [], groups });
+    check("an entry under a standing group hands that group back", existing.group?.id, "gPower");
+    const added = readCatalogEntry({ level1: "Tool", assetClass: "B", level2: "Ladders", level3: "Ladder" }, { rows: [], groups });
+    check("  and one under a new category none, and says so", `${added.group}|${added.newCategory}`, "null|true");
+
+    for (const [path, writes] of [
+        [IMPORT_PATH, 3],
+        [SYNC_PATH, 2],
+    ]) {
+        const ast = parseSource(read(path), path).ast;
+        const lasts = [...callArgsOf(path, ast, "createAssetCategory", { every: true }), ...callArgsOf(path, ast, "updateAssetCategory", { every: true })];
+        check(`${path}'s catalog writes`, lasts.length, writes);
+        assert(`${path} hands each catalog write its group`, lasts.length > 0 && lasts.every((args) => /^groupIdOf\(/.test(args.at(-1) ?? "")));
+        assert(`  found by the module's reading of a type and category`, /const groupIdOf = \([^)]*\) => categoryGroupOf\(/.test(read(path)));
+    }
+
+    // ── the earlier loads stop on a catalog filed by link ─────────────────────
+    const catalogWith = (fields) => ({ name: CATALOG_TABLE, fields: fields.map((name) => ({ name })) });
+    check("a catalog holding the link is filed by it", filedByLink([catalogWith(["Item Name", CATEGORY_GROUP_FIELD])]), true);
+    check("  and one without it is not", filedByLink([catalogWith(["Item Name", "Level 1"])]), false);
+    check("  nor another table holding a field of that name", filedByLink([{ name: GROUPS_TABLE, fields: [{ name: CATEGORY_GROUP_FIELD }] }]), false);
+    assert("  the refusal names the link and both levels", FILED_BY_LINK_REFUSAL.includes(CATEGORY_GROUP_FIELD) && GROUP_LEVEL_FIELDS.every((name) => FILED_BY_LINK_REFUSAL.includes(name)));
+    for (const { path, work } of EARLIER_LOADS) {
+        const main = functionNamed(parseSource(read(path), path).ast, "main");
+        assert(`${path} asks the mark in its entry`, callsTo(main, "filedByLink").length === 1);
+        assert(`  before each step that reads a row`, work.every((name) => callsBefore(main, "filedByLink", name)));
+    }
+
+    // ── the catalog's check holds the link's words as the run wrote them ──────
+    const classifyImports = parseSource(read(CLASSIFY_PATH), CLASSIFY_PATH).ast.body.filter((n) => n.type === "ImportDeclaration" && n.source.value === PLAN_SPECIFIER).flatMap((n) => n.specifiers.map((s) => s.imported?.name));
+    check("the catalog's check takes the link's and its far side's words from the plan", classifyImports.sort().join(", "), "INVERSE_DESCRIPTION, INVERSE_NAME, LINK_DESCRIPTION, SINGLE_LINK_STEP");
+
     // ── the schema's state ────────────────────────────────────────────────────
     const fresh = schemaState(catalogTable(TYPED), groupsTable());
     check("typed levels and no link: the levels are typed", fresh.levels, "typed");
