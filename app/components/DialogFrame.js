@@ -601,8 +601,9 @@ export function DialogBody({ lane = false, foot, children }) {
  *
  * `results` are `{ key, label, match, place, detail }`: `match` the part of `label` what is typed
  * matched, set at 600 (`lib/assetTransition.js:matchedPart`'s shape); `place` what tells the
- * label from another of the same words, after it at 13 in Ink 3, giving its room up first; and
- * `detail` what picking it leads to, at the row's end at 13 in Ink 3.
+ * label from another of the same words, and what found it where the label did not (#547), after
+ * it at 13 in Ink 3, giving its room up first; and `detail` what picking it leads to, at the
+ * row's end at 13 in Ink 3.
  */
 export function DialogSearch({ label, value, onChange, clearLabel, filters, results, resultsLabel, onPick, empty }) {
     const inputRef = useRef(null);
