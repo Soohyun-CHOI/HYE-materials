@@ -61,6 +61,7 @@
 
 import { ASSET_EVENT, ASSET_STATUS, ASSET_STATUS_VALUES } from "../../../lib/assetStatus.js";
 import { ASSET_COPY } from "../../../lib/assetView.js";
+import { ASSET_NOTE_COPY } from "../../../lib/assetNote.js";
 import {
     ASSET_LIST_COPY,
     ASSET_LIST_FACETS,
@@ -2334,18 +2335,34 @@ export function run({ check, assert, log }) {
         "true true"
     );
 
-    // THE LIST'S COLUMNS (1d): the id, the status taking the room left with who holds an
-    // `Out` after it, and the day at 120 where the job stood — with the box and without.
+    // THE LIST'S COLUMNS (1d, #533): the id, the status at 240 with who holds an `Out` after it,
+    // the note taking the room left, and the day at 120 where the job stood — with the box and
+    // without.
     const assetListSource = parseFile(ASSET_LIST).source;
     check(
-        "the list's columns are the id, the status and the day, with the box and without",
+        "the list's columns are the id, the status, the note and the day, with the box and without",
         [
-            assetListSource.includes('const COLUMNS = "grid-cols-[var(--size-icon)_var(--width-table-id)_minmax(0,1fr)_var(--width-table-date)]";'),
-            assetListSource.includes('const COLUMNS_WITHOUT_BOX = "grid-cols-[var(--width-table-id)_minmax(0,1fr)_var(--width-table-date)]";'),
-            /\{COPY\.assetIdLabel\}<\/span>\s*<span role="columnheader">\{COPY\.statusLabel\}<\/span>\s*<span role="columnheader">\{COPY\.updatedLabel\}<\/span>/.test(assetListSource),
+            assetListSource.includes(
+                'const COLUMNS = "grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";'
+            ),
+            assetListSource.includes('const COLUMNS_WITHOUT_BOX = "grid-cols-[var(--width-table-id)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";'),
+            /\{COPY\.assetIdLabel\}<\/span>\s*<span role="columnheader">\{COPY\.statusLabel\}<\/span>\s*<span role="columnheader">\{COPY\.noteLabel\}<\/span>\s*<span role="columnheader">\{COPY\.updatedLabel\}<\/span>/.test(
+                assetListSource
+            ),
             !/COPY\.jobLabel|row\.jobCode/.test(assetListSource),
         ].join(" "),
         "true true true true"
+    );
+    check(
+        "  the note in Ink 2 on one line, cut and shown whole above its cell, between the status and the day (#533)",
+        [
+            /<span role="cell" className="min-w-0 text-foreground-muted">\s*<span data-cut="" className="block truncate">\s*\{row\.note\}\s*<\/span>\s*<\/span>\s*\{\/\*[^]*?\*\/\}\s*<span role="cell" className="text-foreground-muted">\s*<Instant at=\{row\.updatedAt\}/.test(assetListSource),
+            /<div key=\{row\.id\} role="row" \{\.\.\.tooltip\.cutProps\(\)\}/.test(assetListSource),
+            /const tooltip = useTooltip\(\{ placement: "above" \}\);/.test(assetListSource),
+            /\{tooltip\.element\}/.test(assetListSource),
+            ASSET_LIST_COPY.noteLabel === ASSET_NOTE_COPY.label,
+        ].join(" "),
+        "true true true true true"
     );
     check(
         "  an `Out` names who holds it behind 0e's dot, and the day is the reader's, in Ink 2",

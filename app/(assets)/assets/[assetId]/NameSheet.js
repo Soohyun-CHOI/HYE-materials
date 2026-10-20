@@ -1,8 +1,7 @@
 "use client";
 
-import { useRef } from "react";
+import { SheetInput } from "@/app/components/Controls";
 import { DialogFrame, SheetRows } from "@/app/components/DialogFrame";
-import Icon from "@/app/components/Icon";
 import { textMatchKey } from "@/lib/itemNaming";
 import { ASSET_TRANSITION_COPY as COPY, matchedPart, namesAreRecent } from "@/lib/assetTransition";
 
@@ -24,11 +23,11 @@ import { ASSET_TRANSITION_COPY as COPY, matchedPart, namesAreRecent } from "@/li
  * #376 found in a browser: closing hands focus back to the opener, and opening on focus
  * reopened it the moment it shut.
  *
- * THE FIELD IS 0a's ONE FIELD IN A SHEET: filled at Ink 5.5% with no edge, 50 tall, 16
- * inside, its value at 16 and an Accent caret, and a clear × at its end once it holds a
- * value. The caret is in it as the sheet opens, the frame's rule for the first field that
- * takes typing, so the keyboard is up; the keyboard's `done` key puts the sheet away as
- * `Done` does.
+ * THE FIELD IS 0a's ONE FIELD IN A SHEET, `SheetInput` since the note sheet typed into it too
+ * (#533): filled at Ink 5.5% with no edge, 50 tall, 16 inside, its value at 16 and an Accent
+ * caret, and a clear × at its end once it holds a value. The caret is in it as the sheet opens,
+ * the frame's rule for the first field that takes typing, so the keyboard is up; the
+ * keyboard's `done` key puts the sheet away as `Done` does.
  *
  * THE LIST IS ABOUT A JOB, SO IT IS ABSENT UNTIL ONE IS CHOSEN — not empty, absent, heading
  * and all (#376). A job nothing has gone out on says so in place of the rows. Typing narrows
@@ -41,7 +40,6 @@ import { ASSET_TRANSITION_COPY as COPY, matchedPart, namesAreRecent } from "@/li
  * IT CLOSES ON A PRESS ON WHAT LIES BEHIND IT AND ON ITS HANDLE, both of which 1j draws.
  */
 export default function NameSheet({ open, onClose, value, onChange, names, jobChosen, hasRecent }) {
-    const inputRef = useRef(null);
     const typed = textMatchKey(value);
 
     return (
@@ -56,39 +54,14 @@ export default function NameSheet({ open, onClose, value, onChange, names, jobCh
         >
             <div className="flex min-h-0 flex-col">
                 <div className="shrink-0 px-mobile-gutter pb-mobile-drawer-title-inset-y">
-                    <div
-                        className={`flex h-mobile-input items-center rounded-mobile-control bg-mobile-input-background pl-mobile-input-inset-x ${value ? "" : "pr-mobile-input-inset-x"}`}
-                    >
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            value={value}
-                            onChange={(event) => onChange(event.target.value)}
-                            onKeyDown={(event) => {
-                                if (event.key !== "Enter") return;
-                                event.preventDefault();
-                                onClose();
-                            }}
-                            placeholder={COPY.namePlaceholder}
-                            aria-label={COPY.checkedOutToLabel}
-                            autoComplete="off"
-                            enterKeyHint="done"
-                            className="h-full min-w-0 flex-1 bg-transparent text-mobile-body text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle"
-                        />
-                        {value && (
-                            <button
-                                type="button"
-                                aria-label={COPY.clearName}
-                                onClick={() => {
-                                    onChange("");
-                                    inputRef.current?.focus();
-                                }}
-                                className="flex size-mobile-touch-target shrink-0 items-center justify-center text-foreground-subtle active:opacity-mobile-pressed"
-                            >
-                                <Icon name="x" className="size-mobile-input-clear-icon" />
-                            </button>
-                        )}
-                    </div>
+                    <SheetInput
+                        value={value}
+                        onChange={onChange}
+                        onDone={onClose}
+                        placeholder={COPY.namePlaceholder}
+                        label={COPY.checkedOutToLabel}
+                        clearLabel={COPY.clearName}
+                    />
                 </div>
                 {jobChosen && names.length > 0 && (
                     <>

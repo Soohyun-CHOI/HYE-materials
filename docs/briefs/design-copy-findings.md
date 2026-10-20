@@ -268,3 +268,29 @@ The keys are `ASSET_TRANSITION_COPY.working`, `.movedAct`, `.firstVerb`,
 or `asset-list-view.mjs`. The base's words are its own: `In repair`,
 `Sent for repair` and `Returned from repair`, which the controls say in the
 imperative.
+
+---
+
+## What an item's note says that the files of 2026-10-16 do not (#533)
+
+The files draw the note in 1d's column, 1f's line, dialog and its refusal, 1j's
+line and 1j-b2's sheet, and none of the moments after a press. What a screen
+says in their place follows a rule the design already states, and the next
+sending decides each.
+
+| String | Where | The files |
+|---|---|---|
+| `Saving…`, `Adding…`, `Removing…` | the dialog's commitment, `Remove note` and the sheet's `Done`, busy, heard and not seen | draw no wait for any |
+| `Nothing was saved. Someone else changed this note first.` | the dialog over its actions, or the sheet under its field, when the note changed since the page was drawn | draw no refused note |
+| `Edit note` | the name of a desk's `Edit` | name the phone's line so, and the desk's button by its word |
+
+**The working words are 0f's rule**, each commitment's verb in its `-ing`
+form, and a field cleared and saved says `Removing…`, since that is what it
+does. **The refusal takes 1k's two halves**, what became of the press and then
+why, and names nobody: nothing records who wrote a note. **The desk's `Edit` is
+named `Edit note`**, the words the phone's line is named by, so the one act has
+one name at both widths and the button's own word stays in it.
+
+The keys are `ASSET_NOTE_COPY.working`, `.changedFirst` and `.editNote` in
+`lib/assetNote.js`, held by value in `offline/asset-note.mjs`. The base's word is
+the screen's: `Assets."Note"`.

@@ -91,6 +91,11 @@ const DESIGN_SHAPES = {
         ["path", { d: "M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" }],
         ["circle", { cx: "12", cy: "10", r: "3" }],
     ],
+    // An item's note's mark (0a Note, #533), as 1.52.0 holds it — not the shape the files of
+    // 2026-10-16 draw, which is Lucide's before its redraw.
+    "message-square": [
+        ["path", { d: "M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z" }],
+    ],
     minus: [["path", { d: "M5 12h14" }]],
     "panel-left": [
         ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2" }],
@@ -142,8 +147,8 @@ const DESIGN_SHAPES = {
 
 /** Which marks each file draws, so a mark gone from a screen is a failure here. */
 const MARKS_BY_FILE = {
+    "app/(assets)/assets/[assetId]/AssetNote.js": ["message-square", "plus"],
     "app/(assets)/assets/[assetId]/MoreActions.js": ["ellipsis"],
-    "app/(assets)/assets/[assetId]/NameSheet.js": ["x"],
     "app/(assets)/assets/[assetId]/TransitionBar.js": ["map-pin", "user"],
     "app/(assets)/assets/[assetId]/page.js": ["map-pin", "search-x", "user"],
     "app/components/Breadcrumb.js": ["chevron-left"],

@@ -195,7 +195,7 @@ export function run({ check, assert, log }) {
         const nameSheet = parseFile("app/(assets)/assets/[assetId]/NameSheet.js").source;
         assert("  the job sheet is a sheet of rows", /<DialogFrame[^>]*\bsheet\b/.test(jobSheet) && /<SheetRows\b/.test(jobSheet));
         assert("  holding no field, so it opens on its title", !/<input\b|<TextInput\b|<Combobox\b/.test(jobSheet));
-        assert("  the name sheet holds a field, which takes the caret instead", /<input\b/.test(nameSheet) && /<SheetRows\b/.test(nameSheet));
+        assert("  the name sheet holds a field, which takes the caret instead", /<SheetInput\b/.test(nameSheet) && /<SheetRows\b/.test(nameSheet));
 
         log("");
         log("anti-vacuity — the opening's reader on planted frames:");
@@ -1301,7 +1301,16 @@ export function run({ check, assert, log }) {
             handle: /\{sheet && !confirm && \(/.test(frameSource),
             noClose: /items-center max-sm:in-data-\[sheet\]:hidden/.test(frameSource),
             confirm: [/const confirm = recordId !== undefined;/.test(frameSource), /"font-id text-body-sm tracking-id text-foreground-default /.test(frameSource)].join(" "),
-            done: /\{done \? \(/.test(frameSource) && /onClick=\{done\.onPress\}/.test(frameSource),
+            done: /\{done \? \(/.test(frameSource) && /onClick=\{busy \? undefined : done\.onPress\}/.test(frameSource),
+            // A `Done` that sends what its sheet holds is 0f's Working while the frame is busy
+            // (#533): its press turned away, busy and locked to assistive tech, and its word laid
+            // under the spinner — and a `Done` that only puts a sheet away names no word.
+            doneBusy: [
+                /aria-busy=\{busy && done\.busyLabel \? true : undefined\}/.test(frameSource),
+                /aria-disabled=\{busy \? true : undefined\}/.test(frameSource),
+                /data-busy=\{\(busy && done\.busyLabel\) \|\| undefined\}/.test(frameSource),
+                /<ButtonLabel busyLabel=\{done\.busyLabel\}>\{done\.label\}<\/ButtonLabel>/.test(frameSource),
+            ].join(" "),
             removed: [
                 /queueMicrotask\(\(\) => \{\s*if \(!dialog\.isConnected\) focusAfterRemoval\(opener\);/.test(frameSource),
                 /if \(!dialog\?\.open\) return;\s*const opener = openerRef\.current;/.test(frameSource),
@@ -1327,6 +1336,7 @@ export function run({ check, assert, log }) {
     check("a sheet that confirms draws no handle, and no sheet the close", `${sheetRules.handle} ${sheetRules.noClose}`, "true true");
     check("the Confirm's line under the title is the record's id, in the id face", sheetRules.confirm, "true true");
     check("a sheet holding a field ends its head in its own text button", sheetRules.done, true);
+    check("  which says it is working while its sheet sends, and turns its press away (#533)", sheetRules.doneBusy, "true true true true");
     check("a dialog taken away open hands focus back, after the removal", sheetRules.removed, "true true");
     check("  to the opener it kept as it opened, none for a dialog no press opened", sheetRules.opener, true);
     check("  or to the heading when the opener is gone or will not take focus", sheetRules.backTo, "true true");
@@ -1413,6 +1423,8 @@ export function run({ check, assert, log }) {
             "app/(assets)/asset-categories/[categoryRecordId]/RegistrationUnlogged.js",
             // The catalog's entry and its removal's question (#527).
             "app/(assets)/asset-catalog/CatalogDialogs.js",
+            // An item's note: the desk's dialog and the phone's sheet (#533).
+            "app/(assets)/assets/[assetId]/AssetNote.js",
         ]
             .sort()
             .join(", ")
@@ -1706,7 +1718,10 @@ export function run({ check, assert, log }) {
                     const a = attribute(name);
                     return a ? (a.value ? source.slice(a.value.start, a.value.end) : "true") : null;
                 };
-                if (inner.name?.name === "DialogFrame") frames.push({ submits: attribute("onSubmit") !== undefined, busy: valueOf("busy") });
+                // A sheet whose `Done` sends what it holds names that `Done`'s working word (#533),
+                // which is how it is told from a `Done` that only puts the sheet away.
+                if (inner.name?.name === "DialogFrame")
+                    frames.push({ submits: attribute("onSubmit") !== undefined, sendsByDone: /\bbusyLabel\b/.test(valueOf("done") ?? ""), busy: valueOf("busy") });
                 if (inner.name?.name === "Button") {
                     if (valueOf("type") === '"submit"') commitments.push(valueOf("busyLabel") ? "named" : "unnamed");
                     if (/\bpending\b/.test(valueOf("disabled") ?? "")) disabledBySending++;
@@ -1714,7 +1729,7 @@ export function run({ check, assert, log }) {
             });
             for (const f of frames)
                 found.push(
-                    `${n.id?.name}: ${f.submits ? "submits" : "asks nothing"} · busy ${f.busy ?? "none"} · ${commitments.join(", ") || "no submit"} · ${disabledBySending} disabled by sending`
+                    `${n.id?.name}: ${f.submits ? "submits" : f.sendsByDone ? "sends by its Done" : "asks nothing"} · busy ${f.busy ?? "none"} · ${commitments.join(", ") || "no submit"} · ${disabledBySending} disabled by sending`
                 );
         });
         return found;
@@ -1727,13 +1742,22 @@ export function run({ check, assert, log }) {
         "every dialog on the axis that submits hands its frame its busy state and its commitment a word, with nothing disabled for it",
         dialogs.filter((d) => d.includes(": submits")).join(" | "),
         [
-            // The catalog's entry hands its frame what it waits on, its submit or `"action"` (#527).
+            // The catalog's entry hands its frame what it waits on, its submit or `"action"` (#527),
+            // and so does an item's note, `"action"` while `Remove note` is on its way (#533).
             "EntryDialog: submits · busy {busy} · named · 0 disabled by sending",
+            'NoteDialog: submits · busy {pending ? (removing ? "action" : true) : false} · named · 0 disabled by sending',
             "RegistrationForm: submits · busy {pending} · named · 0 disabled by sending",
             "RemoveDialog: submits · busy {pending} · named · 0 disabled by sending",
             "RetirementConfirm: submits · busy {pending} · named · 0 disabled by sending",
             "TransitionForm: submits · busy {pending} · named · 0 disabled by sending",
         ].join(" | ")
+    );
+    // A SHEET THAT SENDS BY ITS `Done` HANDS ITS FRAME THE STATE TOO (#533), which its `Done`
+    // reads: the note's sheet, the one sheet on the axis whose `Done` saves.
+    check(
+        "  and every sheet that sends by its Done hands it its state, its Done naming a word",
+        dialogs.filter((d) => d.includes(": sends by its Done")).join(" | "),
+        "NoteSheet: sends by its Done · busy {pending} · no submit · 0 disabled by sending"
     );
     check(
         "  and every one that asks nothing hands it none",
@@ -1746,7 +1770,7 @@ export function run({ check, assert, log }) {
         onNewFrame.filter((rel) => submitFacts(parseFile(rel)).length > 0).length,
         onNewFrame.length
     );
-    check("    a dialog each, and the catalog's file its two", dialogs.length, onNewFrame.length + 1);
+    check("    a dialog each, and the catalog's file and the note's their two", dialogs.length, onNewFrame.length + 2);
 
     // AND EVERY FORM THAT SUBMITS OUTSIDE A FRAME IS HELD TO THE SAME (#463): the asset
     // page's foot bar, which wraps what it holds in `FormBusy` itself, and the desk's press,
@@ -1787,6 +1811,8 @@ export function run({ check, assert, log }) {
             // the rest of the dialog locks (#527).
             'EntryDialog: button {pending && working === "restore"}, button {pending && working === "discontinue"} · named, named, named · 0 disabled by sending',
             "LabelsDialog: button {pending} · named · 0 disabled by sending",
+            // An item's note's `Remove note`, working by its own `busy` while the dialog locks (#533).
+            "NoteDialog: button {removing} · named, named · 0 disabled by sending",
             // Both lock while the menu's `Send for repair` is on its way, the wait being the
             // menu's, and work for their own press otherwise (#531).
             'TransitionBar: form {repairPending ? "action" : pending} · named · 0 disabled by sending',

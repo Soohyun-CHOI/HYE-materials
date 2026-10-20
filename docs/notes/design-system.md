@@ -175,6 +175,8 @@ Each is for the issue that draws it to name, in the same commit as its reader, s
 
 - The heads of the files of 2026-10-16 carry two new names and move two, which #538 did with their readers. **0a's top bar holds its one button alone**, and the name it fades in once the page's heading has scrolled under it stands clear of 56 at either side (`--spacing-mobile-top-bar-title-inset-x`), over the soft edge's 160ms; the record's id moved into the body, 4 under the bar (`--spacing-mobile-top-bar-stack`, 16 until the spec's Title block said 4) and 4 over the name, the 4 1j already set from the name to its caption (`--spacing-mobile-title-block-stack`, named for the caption alone until it had two readers). **1f's record header sets its actions 3 above the title's top** (`--spacing-record-header-actions-bleed`), where they stood centered on the title's line, 2 up; 1d's head now sets its control level with the title's top, which takes no name.
 
+- An item's note in the files of 2026-10-16 carries seven, which #533 named with their readers (`docs/notes/tools.md`, `An item's note`). 0a's Note row gives the phone's line its 12 past the text either side (`--spacing-mobile-note-bleed-x`) and the 12 from a field's line to the count at its end (`--spacing-field-count-inline`), a desk's dialog and a phone's sheet alike; the drawings give the rest — 1j's 14 above and below the line, so one line is the 48 a target takes (`--spacing-mobile-note-bleed-y`); 1f's `Add note`, whose face reaches 5 past its plus mark at the line's start (`--spacing-note-add-bleed-left`), the mark 6 before its word (`--spacing-note-add-gap`), its other side and its height the Inline control's; 1d's status column, 240 again beside the note's (`--width-table-status`, the name #520 retired); and 1j-b2's clear ×, whose target ends 2 inside the edge of the one field in a sheet (`--spacing-mobile-sheet-input-clear-inset-right`) — which moved the name sheet's, the same part, 2 in from the edge it stood on, since 1j-b2 is the one sheet field the files draw a clear on. A desk's `Edit` is the Inline control as it is (26, 8 either side), and the marks are 1f's 14 and 1j's 16, names already. **The files draw the note's mark in Lucide's shape before its redraw**, the corner tail of `M21 15a2 2 0 0 1-2 2H7l-4 4V5…`, and the app draws 1.52.0's `message-square`, the release every other mark is drawn from (#502); the next sending is to be held against it.
+
 - A date's slashes are at 45% with 1.5 of room either side, and its time 9 past it at a desk and 8 on a phone — every date both files draw, and no row. #463 named the four with `app/components/Instant.js`, which draws every date in the app.
 
 **THE ONE PLACE A DRAWING CONTRADICTED THE SPEC IS SETTLED**: the name sheet's `Done` is 48 now, the phone's Target (answer 11).
@@ -249,6 +251,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0o Field and Action, 40 tall | `--height-control-xl` | 2.5rem (40) |
 | 0a Side room, inside a form field — a dialog's and a sign-in page's — and 0o Field, its fixed domain from the border | `--spacing-input-inset-x` | 0.75rem (12) |
 | 0l Compact, a field's help under it, and 0o Refusal, one field's | `--spacing-input-message-stack` | 0.375rem (6) |
+| Tools 0a Note, a field's line to the count at its end — a desk's dialog and a phone's sheet | `--spacing-field-count-inline` | 0.75rem (12) |
 | 0a Menu, from | `--min-width-menu` | 8.75rem (140) |
 | 0a Menu, to | `--max-width-menu` | 17.5rem (280) |
 | 0a Menu, under the control | `--spacing-menu-offset` | 0.375rem (6) |
@@ -275,6 +278,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 1a's drawing, a column of counts — not the spec | `--width-table-count` | 6rem (96) |
 | 1d's drawing, a column of printed ids — not the spec | `--width-table-id` | 15rem (240) |
 | 1d's drawing, a column of days — not the spec; the status's 160 until #520 gave the status the room left | `--width-table-date` | 7.5rem (120) |
+| 1d's drawing, a column of statuses beside the note's — not the spec; named again by #533, the note taking the room left | `--width-table-status` | 15rem (240) |
 | 1l's drawing, the catalog's size column — not the spec | `--width-catalog-size` | 8rem (128) |
 | 1l's drawing, the catalog's maker column — not the spec | `--width-catalog-maker` | 8.5rem (136) |
 | 1l's drawing, the catalog's part number column — not the spec | `--width-catalog-part-number` | 9rem (144) |
@@ -444,6 +448,8 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0n Rail blocks, from a block's name | `--spacing-heading-sm-stack` | 0.75rem (12) |
 | 1f's drawing, the header's title block to its actions — not the spec | `--spacing-record-header-inline` | 3.5rem (56) |
 | 1f's drawing, the header's actions above its title's top — not the spec | `--spacing-record-header-actions-bleed` | 0.1875rem (3) |
+| 1f's drawing, `Add note`'s face past its plus mark at the line's start — not the spec | `--spacing-note-add-bleed-left` | 0.3125rem (5) |
+| 1f's drawing, `Add note`'s plus mark to its word — not the spec | `--spacing-note-add-gap` | 0.375rem (6) |
 | 0n Record rail, on 1080 | `--width-record-rail` | 21rem (336) |
 | 0n Record rail, the main column's text to its Rule | `--spacing-record-rail-inline` | 2rem (32) |
 | 0n Record rail, its Rule to its own text | `--spacing-record-rail-inset-left` | 1.75rem (28) |
@@ -509,6 +515,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | Tools 0a Field, its icon to its value, and any two parts inside it | `--spacing-mobile-input-gap` | 0.625rem (10) |
 | 1j's and 1a's drawings, the clear × at a filled field's end — not the spec | `--size-mobile-input-clear-icon` | 0.9375rem (15) |
 | 1a's drawing, the clear ×'s target from the field's inside edge — not the spec | `--spacing-mobile-input-clear-inset-right` | 0.375rem (6) |
+| 1j-b2's drawing, the clear ×'s target from the edge of the one field in a sheet — not the spec | `--spacing-mobile-sheet-input-clear-inset-right` | 0.125rem (2) |
 | Tools 0a Field, a text button pressed | `--opacity-mobile-pressed` | 50% |
 | Tools 0a Field, the one field in a sheet | `--color-mobile-input-background` | Ink at 5.5% |
 | Tools 0a Field label, a field to the next label | `--spacing-mobile-field-stack` | 1.25rem (20) |
@@ -528,6 +535,8 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | Tools 0a Title block, under the top bar | `--spacing-mobile-top-bar-stack` | 0.25rem (4) |
 | Tools 0a Title block, below | `--spacing-mobile-title-stack` | 1.375rem (22) |
 | Tools 0a Top bar, the record's id over its name, and 1j's caption under it | `--spacing-mobile-title-block-stack` | 0.25rem (4) |
+| Tools 0a Note, the line a writer presses, past its text either side | `--spacing-mobile-note-bleed-x` | 0.75rem (12) |
+| 1j's drawing, that line above and below its text, one line the 48 a target takes — not the spec | `--spacing-mobile-note-bleed-y` | 0.875rem (14) |
 | Tools 0a Section | `--spacing-mobile-stack` | 2rem (32) |
 | Tools 0a Step page, the wordmark from the top | `--spacing-mobile-sign-in-inset-top` | 4.5rem (72) |
 | Tools 0a Step page, the wordmark to the title | `--spacing-mobile-sign-in-brand-stack` | 2rem (32) |

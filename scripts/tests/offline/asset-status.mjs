@@ -46,6 +46,7 @@ import {
     JOB_SOURCE_OF_EVENT,
     MAY_RETIRE_FROM_STATUS,
     MAY_SEND_FOR_REPAIR_FROM_STATUS,
+    MAY_WRITE_NOTE_IN_STATUS,
     STATUS_AFTER_EVENT,
     ASSET_EVENT,
     ASSET_EVENT_VALUES,
@@ -55,6 +56,7 @@ import {
     jobSourceOf,
     mayRetireFrom,
     maySendForRepairFrom,
+    mayWriteNoteIn,
     statusAfterEvent,
 } from "../../../lib/assetStatus.js";
 import { isMain, standalone } from "./_harness.mjs";
@@ -456,6 +458,44 @@ export function run({ check, log, assert }) {
         "  and the return leaves it where it may be sent again",
         maySendForRepairFrom(statusAfterEvent(eventOfferedBy(statusAfterEvent(ASSET_EVENT.SENT_FOR_REPAIR)))),
         true
+    );
+
+    // ── the sixth map: in which statuses an item's note may be written (#533) ──
+    // By value: while the item is on a job, in stock or out; not while it is at its maker,
+    // whose trip #531 left unrecorded, and not once it is retired, which records nothing more.
+    log("");
+    log("in which statuses an item's note may be written, by value (#533):");
+    check("In stock", MAY_WRITE_NOTE_IN_STATUS["In stock"], true);
+    check("Out", MAY_WRITE_NOTE_IN_STATUS["Out"], true);
+    check("In repair", MAY_WRITE_NOTE_IN_STATUS["In repair"], false);
+    check("Retired", MAY_WRITE_NOTE_IN_STATUS["Retired"], false);
+    check("  four entries, one per status", Object.keys(MAY_WRITE_NOTE_IN_STATUS).sort().join(" | "), "In repair | In stock | Out | Retired");
+    check("  every entry is a boolean", Object.values(MAY_WRITE_NOTE_IN_STATUS).filter((v) => typeof v !== "boolean").length, 0);
+    check("mayWriteNoteIn applies it", ASSET_STATUS_VALUES.map((s) => mayWriteNoteIn(s)).join(","), "true,true,false,false");
+    let noteThrew = null;
+    try {
+        mayWriteNoteIn("Lost");
+    } catch (err) {
+        noteThrew = err.message;
+    }
+    assert("a status outside the vocabulary throws rather than reading false", Boolean(noteThrew));
+    assert("  and the throw names the module to edit", (noteThrew || "").includes("lib/assetStatus.js"));
+    // IT PARTS FROM THE PRESS AND FROM THE RETIREMENT ON `In repair`, which offers a press and
+    // may be retired, and its note may not be written — so it is a map of its own.
+    check(
+        "  statuses offering a press whose note may not be written",
+        ASSET_STATUS_VALUES.filter((s) => eventOfferedBy(s) && !mayWriteNoteIn(s)).join(" | "),
+        "In repair"
+    );
+    check(
+        "  statuses that may be retired and whose note may not be written",
+        ASSET_STATUS_VALUES.filter((s) => mayRetireFrom(s) && !mayWriteNoteIn(s)).join(" | "),
+        "In repair"
+    );
+    check(
+        "  statuses whose note may be written and that may not be sent for repair",
+        ASSET_STATUS_VALUES.filter((s) => mayWriteNoteIn(s) && !maySendForRepairFrom(s)).join(" | "),
+        "Out"
     );
 
     // ── the fifth map: where each event's row takes its job from (#531) ─────

@@ -460,16 +460,51 @@ export function ButtonLink({ variant = "filled", size = "lg", href, children }) 
  * `labelNote` IS A WORD BESIDE THE LABEL, 8 AFTER IT AT 400 IN INK 3 (1l, #527) — the catalog's
  * `Optional` beside a level a row may leave empty. It is part of the label, so the field is named
  * `Size Optional` and assistive tech hears that it may be left empty.
+ *
+ * `count` IS HOW MUCH THE FIELD HOLDS AGAINST WHAT IT MAY, AT THE LINE'S END (0a Note, 1f, 1j-b2;
+ * #533): `28/50` in the line's ink, 12 after what the line says, and in Red with the field while
+ * it refuses. It describes the field as the line does, and is not read out as it changes, which
+ * a count would be on every keystroke.
  */
-export function Field({ label, labelNote, labelAs = "label", labelHidden = false, size = "lg", help, note, refusal, reserveMessage = false, children }) {
+export function Field({ label, labelNote, labelAs = "label", labelHidden = false, size = "lg", help, note, refusal, reserveMessage = false, count, children }) {
     const base = useId();
     const control = `${base}control`;
     const labelId = `${base}label`;
     const messageId = `${base}message`;
+    const countId = `${base}count`;
     const said = refusal || note || help;
-    const context = { control, labelId, messageId: said ? messageId : undefined, refused: Boolean(refusal) };
+    const described = [said ? messageId : null, count !== undefined ? countId : null].filter(Boolean).join(" ") || undefined;
+    const context = { control, labelId, messageId: described, refused: Boolean(refusal) };
     const xl = size === "xl";
     const labelClass = labelHidden ? "sr-only" : `mb-gap ${FIELD_LABEL} ${xl ? "max-sm:text-mobile-body-sm" : ""}`;
+    const message = (said || reserveMessage) && (
+        <div
+            id={messageId}
+            aria-live="polite"
+            className={
+                count === undefined
+                    ? `mt-input-message-stack ${FIELD_MESSAGE} ${labelHidden ? "text-center max-sm:text-left" : ""} ${
+                          xl ? "max-sm:px-mobile-input-message-inset-x max-sm:text-mobile-body-sm" : ""
+                      }`
+                    : "min-w-0 flex-1"
+            }
+        >
+            {refusal ? (
+                <p role="alert" className={`text-danger ${xl ? "max-sm:flex max-sm:gap-mobile-input-message-gap" : ""}`}>
+                    {xl && (
+                        <span className="hidden h-[var(--text-mobile-body-sm--line-height)] items-center max-sm:flex">
+                            <AlertMark />
+                        </span>
+                    )}
+                    <span>{refusal}</span>
+                </p>
+            ) : note ? (
+                <p className="text-foreground-muted">{note}</p>
+            ) : help ? (
+                <p className="text-foreground-subtle tabular-nums">{help}</p>
+            ) : null}
+        </div>
+    );
 
     // In a sheet below the phone's edge a label is 15 at 500, still 8 above its field (Tools
     // 0a Field label), and what is said under it is 15 too (Beside) — #458.
@@ -488,28 +523,18 @@ export function Field({ label, labelNote, labelAs = "label", labelHidden = false
                     </span>
                 )}
                 {children}
-                {(said || reserveMessage) && (
+                {count === undefined ? (
+                    message
+                ) : (
                     <div
-                        id={messageId}
-                        aria-live="polite"
-                        className={`mt-input-message-stack ${FIELD_MESSAGE} ${labelHidden ? "text-center max-sm:text-left" : ""} ${
+                        className={`mt-input-message-stack flex items-start gap-field-count-inline ${FIELD_MESSAGE} ${
                             xl ? "max-sm:px-mobile-input-message-inset-x max-sm:text-mobile-body-sm" : ""
                         }`}
                     >
-                        {refusal ? (
-                            <p role="alert" className={`text-danger ${xl ? "max-sm:flex max-sm:gap-mobile-input-message-gap" : ""}`}>
-                                {xl && (
-                                    <span className="hidden h-[var(--text-mobile-body-sm--line-height)] items-center max-sm:flex">
-                                        <AlertMark />
-                                    </span>
-                                )}
-                                <span>{refusal}</span>
-                            </p>
-                        ) : note ? (
-                            <p className="text-foreground-muted">{note}</p>
-                        ) : help ? (
-                            <p className="text-foreground-subtle tabular-nums">{help}</p>
-                        ) : null}
+                        {message}
+                        <span id={countId} className={`ml-auto shrink-0 tabular-nums ${refusal ? "text-danger" : "text-foreground-subtle"}`}>
+                            {count}
+                        </span>
                     </div>
                 )}
             </div>
@@ -616,6 +641,70 @@ function ClearButton({ onClear }) {
         >
             <Icon name="x" className="size-mobile-input-clear-icon" />
         </button>
+    );
+}
+
+/**
+ * The one field in a sheet (Tools 0a Field): filled at Ink 5.5% with no edge, 50 tall, 16
+ * inside, its value at 16 and an Accent caret, and a clear × at its end once it holds a value.
+ * Enter and the keyboard's `done` key are `onDone`.
+ *
+ * TWO SHEETS TYPE INTO IT, SO IT IS ONE PART (#533). 1j's name sheet drew it inline from #458;
+ * the note sheet is the second (1j-b2), and two copies of one field would be two answers to how
+ * it looks. The clear's target ends 2 inside the field's edge, the field keeping its 16, as
+ * 1j-b2 draws it — the one sheet field the files of 2026-10-16 draw a clear on — where the name
+ * sheet's ended on the edge itself, its 16 given up while it held a value. Inside a `Field` it takes the field's id, its line and whether it refuses, a refusal
+ * drawing the Red edge as a ring inside the field (1j-b2), and the field's label names it; the
+ * name sheet's stands alone, and `label` names it. Inside a busy form it is read-only and offers
+ * no clear (#469).
+ */
+export function SheetInput({ value, onChange, onDone, placeholder, label, clearLabel, inputRef }) {
+    const field = useField();
+    const locked = Boolean(useContext(FormBusyContext));
+    const ownRef = useRef(null);
+    const ref = inputRef ?? ownRef;
+    const clearable = Boolean(value) && !locked;
+
+    return (
+        <div
+            className={`flex h-mobile-input items-center rounded-mobile-control bg-mobile-input-background px-mobile-input-inset-x ${
+                field.refused ? "ring-1 ring-danger ring-inset" : ""
+            }`}
+        >
+            <input
+                ref={ref}
+                id={field.control}
+                type="text"
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                onKeyDown={(event) => {
+                    if (event.key !== "Enter") return;
+                    event.preventDefault();
+                    if (!locked) onDone();
+                }}
+                readOnly={locked}
+                placeholder={placeholder}
+                aria-label={label}
+                aria-describedby={field.messageId}
+                aria-invalid={field.refused || undefined}
+                autoComplete="off"
+                enterKeyHint="done"
+                className="h-full min-w-0 flex-1 bg-transparent text-mobile-body text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle"
+            />
+            {clearable && (
+                <button
+                    type="button"
+                    aria-label={clearLabel}
+                    onClick={() => {
+                        onChange("");
+                        ref.current?.focus();
+                    }}
+                    className="-mr-[calc(var(--spacing-mobile-input-inset-x)-var(--spacing-mobile-sheet-input-clear-inset-right))] flex size-mobile-touch-target shrink-0 items-center justify-center text-foreground-subtle active:opacity-mobile-pressed"
+                >
+                    <Icon name="x" className="size-mobile-input-clear-icon" />
+                </button>
+            )}
+        </div>
     );
 }
 

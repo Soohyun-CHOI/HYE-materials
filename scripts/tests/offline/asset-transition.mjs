@@ -1083,7 +1083,7 @@ export function run({ check, assert, log }) {
         inline.length,
         0
     );
-    for (const name of ["recordAssetEventAction", "retireAssetAction", "writeEvent"])
+    for (const name of ["recordAssetEventAction", "retireAssetAction", "updateAssetNoteAction", "writeEvent"])
         assert(`  ${name} refuses through it`, callsTo(resolveFunction(action.ast, name), "refuse").length > 0);
 
     // AND THE SUCCESS PATH IS UNTOUCHED, WHICH IS THE SAME CLAIM FROM THE OTHER
@@ -1726,10 +1726,21 @@ export function run({ check, assert, log }) {
         ["sheet", "closesOnBackdrop", "onHandlePress", "done"].map((a) => attributeSources(nameSheet.ast, nameSheet.source, "DialogFrame", a).join()).join(" | "),
         "true | true | {onClose} | {{ label: COPY.sheetDone, onPress: onClose }}"
     );
-    assert("  its field the one field in a sheet: filled, with an Accent caret", /bg-mobile-input-background/.test(nameSheet.source) && /caret-primary/.test(nameSheet.source));
-    assert("  the keyboard's done key puts it away", /if \(event\.key !== "Enter"\) return;\s*event\.preventDefault\(\);\s*onClose\(\);/.test(nameSheet.source));
-    assert("  with a clear mark once it holds a value, named for a screen reader", /\{value && \(\s*<button[\s\S]*?aria-label=\{COPY\.clearName\}/.test(nameSheet.source));
-    assert("  every keystroke handed back to the opener", /onChange=\{\(event\) => onChange\(event\.target\.value\)\}/.test(nameSheet.source));
+    // ITS FIELD IS `SheetInput` SINCE THE NOTE SHEET TYPED INTO ONE TOO (#533): the sheet hands it
+    // the opener's value and change, `onClose` as its done key, and the clear mark's name, and
+    // the part holds the look, the done key, the clear mark and the keystrokes.
+    const controls = parseFile("app/components/Controls.js");
+    const sheetInputNode = resolveFunction(controls.ast, "SheetInput");
+    const sheetInput = sheetInputNode ? controls.source.slice(sheetInputNode.start, sheetInputNode.end) : "";
+    check(
+        "  its field the one field in a sheet, handed what it types into and how it ends",
+        ["value", "onChange", "onDone", "label", "clearLabel"].map((a) => attributeSources(nameSheet.ast, nameSheet.source, "SheetInput", a).join()).join(" | "),
+        "{value} | {onChange} | {onClose} | {COPY.checkedOutToLabel} | {COPY.clearName}"
+    );
+    assert("  the field filled, with an Accent caret", /bg-mobile-input-background/.test(sheetInput) && /caret-primary/.test(sheetInput));
+    assert("  the keyboard's done key ends it", /if \(event\.key !== "Enter"\) return;\s*event\.preventDefault\(\);\s*if \(!locked\) onDone\(\);/.test(sheetInput));
+    assert("  with a clear mark once it holds a value, named for a screen reader", /\{clearable && \(\s*<button[\s\S]*?aria-label=\{clearLabel\}/.test(sheetInput) && /const clearable = Boolean\(value\) && !locked;/.test(sheetInput));
+    assert("  every keystroke handed back to the opener", /onChange=\{\(event\) => onChange\(event\.target\.value\)\}/.test(sheetInput));
     // THE HEAD GOES WITH ITS ROWS. A typed name that matches none of them leaves no list,
     // as the desk's closes on no suggestion, where a head over nothing was what a browser
     // showed first; and the sentence for a job with none is for that job alone.

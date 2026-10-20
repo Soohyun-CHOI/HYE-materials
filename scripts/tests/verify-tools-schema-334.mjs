@@ -165,6 +165,9 @@ try {
                 ["Category", "multipleRecordLinks"],
                 ["Status", "singleSelect"],
                 ["Job", "multipleRecordLinks"],
+                // An item's one line (#533), made by hand on both bases and described by
+                // scripts/import/describe_note_533.mjs.
+                ["Note", "singleLineText"],
             ],
             [TABLES.ASSET_LOG]: [
                 ["Asset Log ID", "singleLineText"],
