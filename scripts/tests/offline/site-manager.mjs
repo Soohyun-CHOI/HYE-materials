@@ -55,10 +55,12 @@ const ITEM = "app/(assets)/assets/[assetId]/page.js";
 const ASSET_LIST = "app/(assets)/asset-categories/[categoryRecordId]/AssetList.js";
 const LABELS = "app/(assets)/assets/LabelsDialog.js";
 
-/** The assets axis's server actions, each `file::export`. A fifth fails until it is here. */
+/** The assets axis's server actions, each `file::export`. A sixth fails until it is here. */
 const ASSET_ACTIONS = [
     "app/(assets)/assets/[assetId]/actions.js::recordAssetEventAction",
     "app/(assets)/assets/[assetId]/actions.js::retireAssetAction",
+    // An item's note (#533): not an event, and written by whoever records one.
+    "app/(assets)/assets/[assetId]/actions.js::updateAssetNoteAction",
     "app/(assets)/assets/actions.js::readAssetLabelsAction",
     "app/(assets)/asset-categories/actions.js::registerAssetsAction",
 ];
@@ -328,7 +330,7 @@ export function run({ check, assert, log }) {
     });
     const actions = entries.filter((e) => e.kind !== "page" && (e.file.startsWith("app/(assets)/") || e.file.startsWith("app/l/")));
     check(
-        "the axis's server actions are the four this gate is for and the catalog's five, found by walking",
+        "the axis's server actions are the five this gate is for and the catalog's five, found by walking",
         actions.map((e) => `${e.file}::${e.name}`).sort().join(" | "),
         [...ASSET_ACTIONS, ...CATALOG_ACTIONS].sort().join(" | ")
     );

@@ -29,6 +29,7 @@ import StatusMark from "../../StatusMark";
 import CategoryCaption from "../../CategoryCaption";
 import JobChoice from "../../JobChoice";
 import MoreActions from "./MoreActions";
+import AssetNote from "./AssetNote";
 import AssetTransition from "./AssetTransition";
 import TransitionBar from "./TransitionBar";
 import TransitionDialog from "./TransitionDialog";
@@ -104,7 +105,8 @@ const ID_ON_PHONE = "font-id text-mobile-body-xs tracking-id tabular-nums text-f
  * jobs are read once for the whole history rather than per row, so a long history
  * adds no cost on either. #463 added no read: who holds an asset that is out and when
  * a retired one was retired are both on the history's latest row, already in hand, and so
- * is when one in repair was sent (#531).
+ * is when one in repair was sent (#531). Nor did the note (#533), a field of the asset's own
+ * row, which the lookup reads whole.
  *
  * `Status` AND `Job` ARE READ FROM THE ASSET. They are caches of the last log
  * row, and this page has that row in hand — but it shows the cached values,
@@ -344,9 +346,11 @@ async function renderAssetPage({ params }) {
                     {/* 0n's RECORD HEADER: the name, the id and the caption under it, the status,
                         and on the right what may be recorded, 3 above the title's top as 1f
                         draws it — 24 above and below its Band. On a phone, 1j's title block,
-                        4 under the top bar: the id, the name and the caption, 4 apart (#538). */}
+                        4 under the top bar: the id, the name and the caption, 4 apart (#538). The
+                        block takes the phone's whole width, where nothing stands on its right, so
+                        a note's line reaches 12 past it either side however short the name (#533). */}
                     <header className="flex items-start justify-between gap-record-header-inline border-b border-divider-strong pb-record-header-stack max-sm:border-b-0 max-sm:px-mobile-gutter max-sm:pt-mobile-top-bar-stack max-sm:pb-mobile-title-stack">
-                        <div className="flex min-w-0 flex-col gap-subtitle-stack">
+                        <div className="flex min-w-0 flex-col gap-subtitle-stack max-sm:flex-1">
                             <div className="flex flex-col gap-title-stack max-sm:gap-mobile-title-block-stack">
                                 <p className={`${ID_ON_PHONE} sm:hidden`}>{asset.assetId}</p>
                                 <h1 className="text-heading-lg max-sm:text-mobile-heading-lg">{name}</h1>
@@ -381,6 +385,11 @@ async function renderAssetPage({ params }) {
                                 )}
                             </div>
                             <TransitionRefusal />
+                            {/* THE NOTE, 12 UNDER THE STATUS AT BOTH WIDTHS (0a Note, 1f, 1j; #533):
+                                read by everybody, written by whoever the plan says may — and
+                                after a refused press's sentence, which 1k sets right under the
+                                status it is about. It arrived with the asset's own read. */}
+                            <AssetNote assetId={asset.assetId} note={asset.note} writable={transition.mayWriteNote} />
                         </div>
                         {/* WHAT MAY BE RECORDED, AT A DESK (#362, #363, #463, #531): the press
                             and `More actions`, which holds sending for repair and the

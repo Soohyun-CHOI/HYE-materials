@@ -116,7 +116,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/addressChoice.js` — how a form asks where material goes, on both screens that ask (#385, #387). **A request stores an ADDRESS and not a choice.**
 - `lib/materialIdentity.js` — what makes two ordered items the same material (#356). The lock key, the cache's grouping key and `getMaterialByKey`'s values all come from here.
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
-- `lib/assetStatus.js` — the assets axis's two closed vocabularies and the five maps over them (#334, #335, #362, #363, #531). No call site passes `createAssetLogEntry` a string literal.
+- `lib/assetStatus.js` — the assets axis's two closed vocabularies and the six maps over them (#334, #335, #362, #363, #531, #533). No call site passes `createAssetLogEntry` a string literal.
 - `lib/assetJob.js` — the job an `Asset Log` row is filed against (#363), the one assignment used without asking (#458), and the picker's words.
 - `lib/assetCategory.js` — the asset categories a registration picks from (#507): their six levels (#514), the type and the class, the name's formula, which rows a registration may pick and the walk to one, the `Asset Category Groups` row each type and category is (#528), and the catalog's words. **Only the catalog's page writes an `Asset Categories` row (#527).**
 - `lib/assetRegistration.js` — registering assets (#338): the ceiling, what the dialog opens with and may submit (#456), a landing's account (#449), and every word a registration says.
@@ -125,6 +125,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/assetLabelQR.js` — the QR symbol an asset's label carries (#351).
 - `lib/assetLabelPage.js` — the page an asset's label prints as (#353, #467).
 - `lib/assetTransition.js` — what a person may record against an asset (#362, #363, #531): the press, the menu's two, which asks first (#458), the refusals, and every word it says.
+- `lib/assetNote.js` — an item's note (#533): what a typed one keeps, a press's answers in order, and every word. **No event: it appends no `Asset Log` row.**
 - `lib/assetListView.js` — the two asset list screens (#339), the app's first paging, which assets a label run is for (#443), the one job they stand on (#509, #520), what the category list's band narrows by (#520), and their own words.
 - `lib/assetCatalog.js` — the office's catalog page (#527): every row, that band with a toggle, what an add or an edit may save, and its words.
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
@@ -267,7 +268,7 @@ Read `docs/notes/uploads-and-drafts.md` before changing an upload path or `persi
 - **Caller obligation for the flag helpers:** `requireAdmin()` only *reports* the decision. A caller that does not act on `{ authorized }` protects nothing.
 - **Re-authorization rule:** every directly-callable endpoint re-authorizes to the level of the strictest page that renders its UI. A page being the only caller is not a substitute — Route Handlers and Server Actions are reachable directly.
 - Any route or action that fetches a caller-supplied URL, or hands one to Airtable, restricts it to our own Blob store, independent of auth.
-- **Role-scoped:** `app/admin/**` and the invoice write paths (`/invoices/new`, `/invoices/[invoiceId]/edit`, and the edit, delete and payment actions) are Admin-only; the assets axis's four actions are a site manager's (#506), and `/asset-catalog` and its five actions the office's (#527).
+- **Role-scoped:** `app/admin/**` and the invoice write paths (`/invoices/new`, `/invoices/[invoiceId]/edit`, and the edit, delete and payment actions) are Admin-only; the assets axis's five actions are a site manager's (#506, #533), and `/asset-catalog` and its five actions the office's (#527).
 - **Row-scoped, not role-scoped:** `/prs`, `/prs/[prId]`, `/pos`, `/pos/[poId]`, `/invoices`, `/invoices/[invoiceId]`. All need only an active session to reach, then decide per record through `canViewPR` — for the invoice routes via `lib/invoiceVisibility.js`, which owns the walk and no predicate of its own. **A refusal renders the ordinary not-found text**, a write's too: never confirm that a record exists outside someone's scope.
 - **Enforced by `offline/authz-structure.mjs`**, which enumerates every `app/api/**/route.js` and every `"use server"` export and requires each to be wrapped or listed as an exemption with a reason. A stale exemption fails. An exemption's per-record comparison is held by `offline/owner-before-write.mjs` wherever a request is read by id (#440).
 

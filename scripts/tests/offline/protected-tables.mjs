@@ -24,7 +24,8 @@
 // `scripts/` is read, and one REACHES the two tables when it names either as a whole string —
 // `"Assets"`, `"Asset Log"` — or by `TABLES.ASSETS` / `TABLES.ASSET_LOG`, or by its id on this
 // base, or imports `lib/airtable/assets.js` or `lib/airtable/assetLog.js`, or names one of the
-// app's three actions that write them. Each one that reaches is classified in `CLASSIFIED`
+// app's four actions that write them — the note's among them since #533, which writes
+// `Assets."Note"` from the item's page and is the app's write, not a script's. Each one that reaches is classified in `CLASSIFIED`
 // below, and both directions fail: a script that reaches and is not classified, and an entry
 // that names a file which no longer reaches. A description that merely mentions assets in a
 // sentence is not a whole string and does not reach. This directory is left out: the tier
@@ -83,7 +84,7 @@ const META_ROOT = "https://api.airtable.com/v0/meta";
 const PROTECTED_TABLE_IDS = ["tblXtmDonSyOyOvV3", "tblrox7y4akPKdbpF"];
 
 /** The app's actions that write the two tables, which a script driving the live app would name. */
-const PROTECTED_ACTIONS = ["recordAssetEventAction", "retireAssetAction", "registerAssetsAction"];
+const PROTECTED_ACTIONS = ["recordAssetEventAction", "retireAssetAction", "registerAssetsAction", "updateAssetNoteAction"];
 
 /** The two modules that read and write the two tables. */
 const PROTECTED_MODULES = ["lib/airtable/assets.js", "lib/airtable/assetLog.js"];
@@ -101,6 +102,8 @@ const CLASSIFIED = {
     "scripts/demo/wipe_base.mjs": { writes: ["destroy"] },
     "scripts/import/create_tools_334.py": { python: true },
     "scripts/import/describe_repair_531.mjs": { describes: true },
+    // `Assets."Note"`'s description, the field read and made by nothing here (#533).
+    "scripts/import/describe_note_533.mjs": { describes: true },
     "scripts/import/import_site_assets_544.mjs": {
         writes: [
             "createAssetCategoryGroup",
@@ -612,6 +615,7 @@ export function run({ check, assert, log }) {
     assert("  a table id reaches", reachesJs(planted(`const T = { A: "tblXtmDonSyOyOvV3" };`), "scripts/import/x.mjs"));
     assert("  an import of the writer's module reaches", reachesJs(planted(`import { createAssets } from "../../lib/airtable/assets.js";`), "scripts/tests/x.mjs"));
     assert("  an action of the app that writes them reaches", reachesJs(planted(`await post("retireAssetAction", []);`), "scripts/tests/x.mjs"));
+    assert("  the note's action reaches too (#533)", reachesJs(planted(`await post("updateAssetNoteAction", []);`), "scripts/tests/x.mjs"));
     assert("  a sentence mentioning assets does not", !reachesJs(planted(`const d = "Assets holds the physical tools.";`), "scripts/import/x.mjs"));
     assert("  another table does not", !reachesJs(planted(`base(TABLES.VENDORS).create({});`), "scripts/demo/x.mjs"));
     assert("  Python naming a table reaches", reachesPy(`X = ("Assets",)`));

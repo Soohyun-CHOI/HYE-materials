@@ -8,6 +8,7 @@ import Dot from "@/app/components/Dot";
 import Instant from "@/app/components/Instant";
 import ListFrame, { SelectionBar } from "@/app/components/ListFrame";
 import { Pager, TABLE_HEAD, TABLE_ROW, TABLE_ROW_LINK, TABLE_ROW_SELECTED } from "@/app/components/ListTable";
+import { useTooltip } from "@/app/components/Tooltip";
 import { ASSET_LABEL_PAGE_COPY as LABEL_COPY } from "@/lib/assetLabelPage";
 import {
     ASSET_LIST_COPY as COPY,
@@ -22,13 +23,14 @@ import { DAY_FORMAT } from "@/lib/format";
 import StatusMark from "../../StatusMark";
 import LabelsDialog from "../../assets/LabelsDialog";
 
-// 1d's columns since #520: the box, the printed id at 240, the status taking the room left —
-// and after an `Out` who holds it — and the day each item last changed at 120. The status
-// stood at 160 with the job after it from #463 until 1d drew the day in the job's place.
-const COLUMNS = "grid-cols-[var(--size-icon)_var(--width-table-id)_minmax(0,1fr)_var(--width-table-date)]";
-// The same three for a reader who selects nothing (#506), with no box to hold room for, as 1d
+// 1d's columns since #533: the box, the printed id at 240, the status at 240 — and after an
+// `Out` who holds it — the note taking the room left, and the day each item last changed at
+// 120. The status took the room left from #520, when 1d drew the day in the job's place, and
+// stood at 160 with the job after it from #463.
+const COLUMNS = "grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";
+// The same four for a reader who selects nothing (#506), with no box to hold room for, as 1d
 // draws the list for a reader with no role.
-const COLUMNS_WITHOUT_BOX = "grid-cols-[var(--width-table-id)_minmax(0,1fr)_var(--width-table-date)]";
+const COLUMNS_WITHOUT_BOX = "grid-cols-[var(--width-table-id)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";
 
 // One page of a category's assets, drawn as 1d's table (#463): a box on each and one for the
 // page in the column head, and the selection bar that opens the labels' dialog on what they
@@ -110,6 +112,8 @@ export default function AssetList({ categoryRecordId, itemName, selects, rows, p
     const summary = describeSelection(selection, pageIds);
     const selecting = summary.count > 0;
     const reasonId = useId();
+    // A note its column cuts shows whole above its cell (#533), as a cut catalog cell does.
+    const tooltip = useTooltip({ placement: "above" });
 
     // THE ONE WRITE, AND IT IS NOT A NAVIGATION — see the header. It keeps the page
     // the reader is on, resolved rather than as typed.
@@ -178,6 +182,7 @@ export default function AssetList({ categoryRecordId, itemName, selects, rows, p
                     )}
                     <span role="columnheader">{COPY.assetIdLabel}</span>
                     <span role="columnheader">{COPY.statusLabel}</span>
+                    <span role="columnheader">{COPY.noteLabel}</span>
                     <span role="columnheader">{COPY.updatedLabel}</span>
                 </div>
                 {/* Newest first, the link array turned over by `pageOfAssets` (#463).
@@ -185,7 +190,7 @@ export default function AssetList({ categoryRecordId, itemName, selects, rows, p
                 {rows.map((row) => {
                     const selected = selection.includes(row.assetId);
                     return (
-                        <div key={row.id} role="row" className={`${TABLE_ROW} ${columns} ${selected ? TABLE_ROW_SELECTED : ""}`}>
+                        <div key={row.id} role="row" {...tooltip.cutProps()} className={`${TABLE_ROW} ${columns} ${selected ? TABLE_ROW_SELECTED : ""}`}>
                             {selects && (
                                 <span role="cell" className="flex self-center">
                                     <Checkbox
@@ -217,6 +222,15 @@ export default function AssetList({ categoryRecordId, itemName, selects, rows, p
                                     )}
                                 </span>
                             </span>
+                            {/* Its note, on one line in Ink 2 and cut at its column's end, the
+                                whole of it above the cell under the pointer (1d, #533) — the
+                                catalog's cut cell (#538), since the row's link covers the cell and
+                                a `title` on it would never be seen. Nothing for an item with none. */}
+                            <span role="cell" className="min-w-0 text-foreground-muted">
+                                <span data-cut="" className="block truncate">
+                                    {row.note}
+                                </span>
+                            </span>
                             {/* The day it last changed, in the reader's own zone (#374) and
                                 Ink 2, the year written out (#520); nothing for an item whose
                                 log holds no row. */}
@@ -227,6 +241,7 @@ export default function AssetList({ categoryRecordId, itemName, selects, rows, p
                     );
                 })}
             </div>
+            {tooltip.element}
             {children}
         </ListFrame>
     );

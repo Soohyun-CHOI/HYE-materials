@@ -95,6 +95,16 @@ tool that is out — the name its latest entry checked it out to — the day one
 repair was sent (#531), and the day a retired one was retired, each at both
 widths; the retired day was a desk's alone until #538.
 
+**evidence.** The item's note, 12 under its status at both widths (#533; 0a Note,
+1f, 1j): the one line a site manager keeps on it — what sets it apart from the
+others of its kind, a cracked case, the crate it is kept in — behind a
+speech-bubble mark, in Ink 2, wrapping on a phone if it must. It is read by
+everybody wherever an item has one, on every status, a retired one's and one in
+repair included. **It is not an event**: writing it adds no history entry and
+moves neither the status nor the job, so nothing on the screen says who wrote it
+or when, and the category's list counts no change for it. **It is not on the
+label**, which prints the code alone.
+
 **evidence.** The category it is one of, which is the heading, and the job it is
 on, which every history entry states at both widths and the phone's foot bar
 states as the job the next event will be recorded on — and for a reader on more
@@ -410,6 +420,31 @@ else retires the asset first is that the dialog goes** — the refusal
 re-renders the page, the page has nothing to offer a retired asset, and the
 dialog disappears with its menu; what the reader is left looking at is the
 status saying it is the end.
+
+**For a site manager on a job, while the item is in stock or out, a way to
+write its note (#533).** At a desk `Edit` stands after the note, an Inline
+control, and `Add note` in Accent with its plus mark stands in its place where
+there is none (1f); on a phone the whole line is the press, at least 48 tall and
+reaching 12 past the text either side, and reads `Add a note` in Ink 3 where there
+is none (1j-a). A desk opens a dialog — `Edit note`, or `Add note` over none; the
+field `Note`, its example `e.g. At the Riverside yard`, and under it
+`Up to 50 characters.` with the count at the line's end, `28/50`; `Remove note`
+at the actions' left while there is a note; `Cancel`; and `Save`, or `Add note`
+over none. A phone opens a sheet over the keyboard (1j-b2) with the same title,
+the same field and line, and `Done` at its head's end, which saves — and on a
+field left empty removes the note; a press behind the sheet puts it away and
+saves nothing. **More than 50 is refused, and nothing is cut**: the field turns
+Red and its line says `Max 50 characters.` with the count in Red, the field
+keeping what was typed. What is kept is trimmed, each run of spaces one, its case
+as typed; a note that comes out as the one already there writes nothing. **A
+reader who may not write meets the note, and nothing where there is none** — on
+no job, not a site manager, or an item in repair or retired, whose note stands as
+it was (1f, 1j-c, 1j-d, 1j-e). **A note somebody else changed while this one was
+being written** is refused with `Nothing was saved. Someone else changed this
+note first.`, the page drawn again with theirs and what was typed still in the
+field, so a second press writes over it knowingly; a press on an item somebody
+has since sent for repair or retired is answered by the page drawn again, with
+no way to write and nothing said.
 
 **For a site manager assigned to no job, a sentence where the controls would
 be**: in the header's right at a desk and in the foot bar on a phone. Both

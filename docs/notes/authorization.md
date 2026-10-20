@@ -109,6 +109,8 @@ Adding tools, reading a run of labels to print, checking a tool out or in and re
 
 **WHAT IT COSTS.** The gate reads the person and the factory drops them, so the three actions that need the person read them again — eight operations for a check-out where #362's figure was seven, and the label read is still two, since the gate's read is the session it had to make. A refusal is the gate's one read and the page it re-renders.
 
+**#533 MADE IT FIVE: AN ITEM'S NOTE IS WRITTEN BEHIND THE SAME GATE.** `updateAssetNoteAction` is `withSiteManagerAction` around an unexported handler, and the handler asks `planTransition` the rest — a job at all, and a status that allows a note — which is the answer the page drew the control on; nothing is scoped per asset (#337), so there is no per-record comparison beyond the note the page was drawn with, which is #378's question rather than an owner's. It needs the person, so it reads them again: five operations, the gate's one among them. `offline/site-manager.mjs` finds it by walking, and `offline/protected-tables.mjs` names it among the app's writers of `Assets`.
+
 ## Auth (lib/auth.js, lib/session.js, lib/email.js, lib/authz.js)
 
 - A magic link, or the code the same email carries (#471). requestMagicLink() domain-checks, holds the request to #148's ceilings, emails both and binds the asking browser to the row; verifyMagicLink() and signInWithCode() spend that one row under one withKeyLock key and end in one startSession(), which finds-or-creates the User. See "Signing in with a code" below.

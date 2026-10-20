@@ -207,6 +207,8 @@ const VALUES = [
     ["--height-control-xl", "2.5rem", null],
     ["--spacing-input-inset-x", "0.75rem", null],
     ["--spacing-input-message-stack", "0.375rem", null],
+    // A field's count at the end of the line under it, at both widths (0a Note, #533).
+    ["--spacing-field-count-inline", "0.75rem", null],
     // 1l's New mark and 0f's segmented row (#527).
     ["--spacing-input-mark-inset-right", "3.25rem", null],
     ["--spacing-segmented-inset", "0.125rem", null],
@@ -257,6 +259,8 @@ const VALUES = [
     ["--spacing-table-column-inline", "1.25rem", null],
     ["--width-table-count", "6rem", null],
     ["--width-table-id", "15rem", null],
+    // The status's column, held again beside the note's (1d, #533).
+    ["--width-table-status", "15rem", null],
     ["--width-table-date", "7.5rem", null],
     // 1l's columns, the catalog's own (#527), at the widths of 2026-10-16 (#538).
     ["--width-catalog-size", "8rem", null],
@@ -470,6 +474,9 @@ const VALUES = [
     ["--spacing-record-header-inline", "3.5rem", null],
     // How far the record header's actions stand above its title's top (1f, #538).
     ["--spacing-record-header-actions-bleed", "0.1875rem", null],
+    // Add note's face past its plus mark, and the mark to its word (1f, #533).
+    ["--spacing-note-add-bleed-left", "0.3125rem", null],
+    ["--spacing-note-add-gap", "0.375rem", null],
     ["--width-record-rail", "21rem", null],
     ["--spacing-record-rail-inline", "2rem", null],
     ["--spacing-record-rail-inset-left", "1.75rem", null],
@@ -579,6 +586,11 @@ const VALUES = [
     ["--spacing-mobile-title-stack", "1.375rem", null],
     // The title block's lines on a phone, 4 apart (0a, #538): the id over the name, the caption under it.
     ["--spacing-mobile-title-block-stack", "0.25rem", null],
+    // The clear × of the one field in a sheet, from the field's edge (1j-b2, #533).
+    ["--spacing-mobile-sheet-input-clear-inset-right", "0.125rem", null],
+    // The phone's note line a writer presses, past its text either side and above and below (0a Note, 1j; #533).
+    ["--spacing-mobile-note-bleed-x", "0.75rem", null],
+    ["--spacing-mobile-note-bleed-y", "0.875rem", null],
     ["--spacing-mobile-stack", "2rem", null],
     // A phone's sign-in page (#473); the caret's height is the drawings'.
     ["--spacing-mobile-sign-in-inset-top", "4.5rem", null],

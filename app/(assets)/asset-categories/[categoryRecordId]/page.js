@@ -310,6 +310,8 @@ async function renderCategoryPage({ params, searchParams }) {
                 id: asset.id,
                 assetId: asset.assetId,
                 status: asset.status,
+                // Its note (#533), a field of the asset's own row, so it came with this read.
+                note: asset.note,
                 ...lastChangeOf(asset, latest),
             }))}
             page={page}

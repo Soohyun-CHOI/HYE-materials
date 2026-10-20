@@ -3,7 +3,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { searchResultsKey } from "@/lib/controls";
 import { DIALOG_FRAME_COPY as COPY, focusLost } from "@/lib/dialogFrame";
-import { FormBusy, Refusal } from "./Controls";
+import { ButtonLabel, FormBusy, Refusal } from "./Controls";
 import Icon from "./Icon";
 import { SCROLL_LANE } from "./scrollLane";
 
@@ -279,7 +279,10 @@ function laidOutAsSheet(dialog) {
  * the second build (#457): what it holds is drawn in a pane beside the column, which is
  * the Compact build's inside — see the header. `recordId` is 0l's Confirm, and `sheet`,
  * `closesOnBackdrop`, `onHandlePress` and `done` are the phone's sheet (#458), the header
- * again. `onHidden` runs before the frame closes a dialog its page stopped drawing (#495).
+ * again — and a sheet whose `Done` sends what it holds, the note sheet's (#533), names its
+ * `-ing` word as `done.busyLabel`, so while the frame is `busy` its `Done` is 0f's Working, the
+ * phone's spinner alone, as a sheet's commitment is. `onHidden` runs before the frame closes a
+ * dialog its page stopped drawing (#495).
  * `wide` is 0l's 480, a dialog that searches a list and picks from it, and `fixed` holds it at
  * 1b's 490 while what it asks changes with what was picked (#520): what it holds then takes
  * the rest of its height, `DialogSearch` or `DialogBody` scrolling and the actions at its foot.
@@ -435,10 +438,13 @@ export function DialogFrame({
                 <div className="-mr-mobile-drawer-header-action-inset-x flex h-[var(--text-mobile-heading--line-height)] shrink-0 items-center">
                     <button
                         type="button"
-                        onClick={done.onPress}
-                        className="flex h-mobile-touch-target items-center rounded-full px-mobile-drawer-header-action-inset-x text-mobile-heading font-semibold text-primary active:opacity-mobile-pressed"
+                        onClick={busy ? undefined : done.onPress}
+                        aria-busy={busy && done.busyLabel ? true : undefined}
+                        aria-disabled={busy ? true : undefined}
+                        data-busy={(busy && done.busyLabel) || undefined}
+                        className="group/button relative flex h-mobile-touch-target items-center rounded-full px-mobile-drawer-header-action-inset-x text-mobile-heading font-semibold text-primary not-aria-disabled:active:opacity-mobile-pressed"
                     >
-                        {done.label}
+                        <ButtonLabel busyLabel={done.busyLabel}>{done.label}</ButtonLabel>
                     </button>
                 </div>
             ) : (

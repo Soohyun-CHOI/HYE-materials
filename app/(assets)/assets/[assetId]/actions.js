@@ -4,7 +4,8 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser, withSiteManagerAction } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
-import { getAssetByAssetId, updateAssetCache } from "@/lib/airtable/assets";
+import { getAssetByAssetId, updateAssetCache, updateAssetNote } from "@/lib/airtable/assets";
+import { withKeyLock } from "@/lib/airtable/client";
 import { createAssetLogEntry, getAssetLogByAsset } from "@/lib/airtable/assetLog";
 import { getUsersByRecordIds } from "@/lib/airtable/users";
 import { ASSET_COPY } from "@/lib/assetView";
@@ -16,7 +17,9 @@ import {
     readRetirement,
     readSubmission,
 } from "@/lib/assetTransition";
+import { readNoteSubmission } from "@/lib/assetNote";
 import { assetPath } from "@/lib/assetRoutes";
+import { normalizeItemText } from "@/lib/itemNaming";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 /**
@@ -230,11 +233,72 @@ async function retireAssetHandler(prevState, formData) {
 }
 
 /**
+ * Write an asset's note, or clear it (#533) — `Assets."Note"` in place, and nothing else.
+ *
+ * NO `Asset Log` ROW, BECAUSE A NOTE IS NO EVENT. The two actions above append one and move
+ * the caches; this writes the one field no event writes, so the item's history and the day
+ * its category's list says it last changed are left as they were (`lib/assetNote.js`).
+ *
+ * THE SAME WRAPPER, AND THE SAME ANSWER TO WHO (#506). Only a site manager gets past
+ * `withSiteManagerAction`, and the body asks `planTransition` the rest — that the reader is on
+ * a job and that the status allows a note (`mayWriteNote`) — which is the answer the page drew
+ * its control on. What the reader's job is does not matter: a note records none.
+ *
+ * WHAT THE PAGE WAS DRAWN WITH IS COMPARED, NEVER WRITTEN (#378). The form carries the note it
+ * opened on as `previous`, and `readNoteSubmission` refuses a press whose note somebody else has
+ * changed since — said, and the page drawn again under the dialog that stays open — and answers
+ * a reader who may no longer write with the page drawn again and nothing said, #378's terminal
+ * case: the control is gone from it and the reason is on it.
+ *
+ * A READ AND A WRITE UNDER ONE LOCK, keyed by the printed id the form carries, folded as the
+ * lookup folds it — so two presses in one process cannot both pass the comparison. It nests
+ * nothing: the writer takes no lock of its own. Two invocations still race, `withKeyLock`'s
+ * standing limit, and the later write wins; a reader who loses that race sees the other note
+ * once the page is opened again.
+ *
+ * FIVE OPERATIONS: the session twice — the wrapper's gate and this body — the asset, the job
+ * list `planTransition` reads assignments against, and the write. A refusal is the first four
+ * and the page drawn again; a note left as it was writes nothing and lands as a success does.
+ *
+ * REFUSES BY RETURNING `{ error }` BECAUSE ITS CALL SITE BINDS (#185): `AssetNote.js` reads it
+ * through `useActionState`, and says it above the dialog's actions or under the sheet's field.
+ * A success redirects to the page it came from and says nothing (#321).
+ */
+export const updateAssetNoteAction = withSiteManagerAction(updateAssetNoteHandler);
+
+async function updateAssetNoteHandler(prevState, formData) {
+    return withOpsLabel("updateAssetNoteAction", async () => {
+        const user = await requireUser();
+        const asked = String(formData.get("assetId") ?? "");
+
+        const outcome = await withKeyLock(`asset-note:${normalizeItemText(asked).toLowerCase()}`, async () => {
+            const asset = await getAssetByAssetId(asked);
+            if (!asset) return { refusal: ASSET_COPY.notFoundHeading };
+
+            const plan = planTransition({ user, jobs: await getAllJobs(), status: asset.status });
+            const answer = readNoteSubmission(plan, {
+                typed: String(formData.get("note") ?? ""),
+                previous: String(formData.get("previous") ?? ""),
+                stored: asset.note,
+            });
+            if (answer.ended || answer.refusal) return answer;
+            if (!answer.unchanged) await updateAssetNote({ assetRecordId: asset.id, note: answer.note });
+            return { landed: asset.assetId };
+        });
+
+        if (outcome.ended) return refuse(null);
+        if (outcome.refusal) return refuse(outcome.refusal);
+        redirect(assetPath(outcome.landed));
+    });
+}
+
+/**
  * The one shape a refusal takes here, and the re-render that goes with it (#378).
  *
- * EVERY REFUSAL THESE TWO ACTIONS RETURN SAYS THE PAGE IS OUT OF DATE, WHICH IS
- * WHY THIS IS ONE PLACE RATHER THAN A JUDGMENT PER REFUSAL. Both reach their
- * verdict through `planTransition` on a status just read from the base, and the
+ * EVERY REFUSAL THESE THREE ACTIONS RETURN SAYS THE PAGE IS OUT OF DATE, WHICH IS
+ * WHY THIS IS ONE PLACE RATHER THAN A JUDGMENT PER REFUSAL. Each reaches its
+ * verdict through `planTransition` on a status just read from the base — the note's
+ * on its note too (#533) — and the
  * page reaches its own from the same function — so an action that refuses is one
  * whose caller is looking at something the base no longer says. Returning and no
  * more leaves every one of those facts on screen as it was: the status, the
@@ -263,7 +327,7 @@ async function retireAssetHandler(prevState, formData) {
  *
  * IT WORKS ONLY INSIDE A SERVER ACTION, since `refresh()` throws anywhere else.
  * That is a constraint on this function rather than a hazard: its callers are the
- * two actions' handlers and the writer they share. A press `withSiteManagerAction`
+ * three actions' handlers and the writer two of them share. A press `withSiteManagerAction`
  * turns away never gets this far, and is answered the same way — a fresh render —
  * by the wrapper's own refusal (#506), with nothing said.
  *
@@ -274,9 +338,15 @@ async function retireAssetHandler(prevState, formData) {
  * entry, what it was, and when, which the page turns into 1k's sentence in the reader's
  * own zone. `error` is still the whole sentence without them, so nothing that reads
  * only `error` says less than it did.
+ *
+ * AND A REFUSAL THE PAGE SAYS ON ITS OWN IS `null`, the page and nothing beside it (#533): a
+ * note pressed on an item somebody retired or sent for repair since, or by a reader no longer
+ * on a job, whose fresh page draws no control to write with — #378's terminal case, which the
+ * wrapper's own refusal answers the same way (#506).
  */
 function refuse(error, moved = null) {
     refresh();
+    if (error === null) return null;
     return moved ? { error, moved } : { error };
 }
 
