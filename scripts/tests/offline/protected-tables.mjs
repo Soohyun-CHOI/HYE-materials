@@ -51,7 +51,15 @@ import { readdirSync, readFileSync } from "fs";
 import { join, relative } from "path";
 import { REPO_ROOT, calleeName, isFunctionNode, parentMap, parseSource, toPosix, walk } from "./_ast.mjs";
 import { tableEntriesFromSource } from "./table-field-names.mjs";
-import { PROTECTED_LINK_TARGETS, PROTECTED_TABLES, refusesBeyondDescriptions, refusesProtectedWrite } from "../../protectedTables.mjs";
+import {
+    LEDGERED_IMPORT,
+    LEDGERED_ROW_FIELDS,
+    PROTECTED_LINK_TARGETS,
+    PROTECTED_TABLES,
+    refusesBeyondDescriptions,
+    refusesBeyondLedger,
+    refusesProtectedWrite,
+} from "../../protectedTables.mjs";
 import { LIVE_BASE_ID } from "../../../lib/airtableBase.js";
 import { isMain, standalone } from "./_harness.mjs";
 
@@ -93,6 +101,18 @@ const CLASSIFIED = {
     "scripts/demo/wipe_base.mjs": { writes: ["destroy"] },
     "scripts/import/create_tools_334.py": { python: true },
     "scripts/import/describe_repair_531.mjs": { describes: true },
+    "scripts/import/import_site_assets_544.mjs": {
+        writes: [
+            "createAssetCategoryGroup",
+            "createAssetCategory",
+            "updateAssetCategory",
+            "createAssets",
+            "createFirstAssetLogEntries",
+            "destroy",
+            "removeAssetCategory",
+        ],
+        ledgered: true,
+    },
 };
 
 /** Every `.mjs`, `.js` and `.py` file under `scripts/`, but this tier's and the module's own. */
@@ -252,6 +272,58 @@ export function describerFindings(ast, fromPath) {
     return findings;
 }
 
+const LEDGER_GUARD = "refusesBeyondLedger";
+
+/**
+ * What is wrong with a ledgered script's fence (#544): the function assigned over the SDK's
+ * `runAction` — on the instance and on the functor — must ask `refusesBeyondLedger` in the test of an
+ * `if` that returns, naming its base and the request, before it hands the request to the funnel it
+ * wrapped (`inner.call`), and the script must install it before it loads or reverts.
+ */
+export function fenceFindings(ast) {
+    const findings = [];
+    let fenced = null;
+    const assigned = [];
+    walk(ast, (node) => {
+        if (node.type === "VariableDeclarator" && node.id?.name === "fenced" && isFunctionNode(node.init ?? {})) fenced = node.init;
+        if (node.type === "AssignmentExpression" && node.left?.property?.name === "runAction" && node.right?.name === "fenced") assigned.push(node.left.object?.name);
+    });
+    if (!fenced) return ["no function `fenced` to wrap the funnel with"];
+    for (const owner of ["instance", "baseFunctor"]) if (!assigned.includes(owner)) findings.push(`${owner}.runAction is not the fence`);
+    let guard = null;
+    let send = null;
+    walk(fenced, (node) => {
+        if (node.type === "IfStatement" && !guard) {
+            let asks = null;
+            walk(node.test, (inner) => {
+                if (calleeName(inner) === LEDGER_GUARD) asks = inner;
+            });
+            let returns = false;
+            walk(node.consequent, (inner) => {
+                if (inner.type === "ReturnStatement") returns = true;
+            });
+            if (asks && returns) guard = asks;
+        }
+        if (node.type === "CallExpression" && node.callee?.object?.name === "inner" && node.callee?.property?.name === "call") send = node;
+    });
+    if (!guard) findings.push(`the fence asks ${LEDGER_GUARD} in no if that returns`);
+    else {
+        const keys = (guard.arguments[0]?.properties ?? []).map((p) => p.key?.name);
+        for (const key of ["baseId", "request", "allowed"]) if (!keys.includes(key)) findings.push(`the fence's question names no ${key}`);
+    }
+    if (!send) findings.push("the fence hands nothing to the funnel it wrapped");
+    else if (guard && guard.start > send.start) findings.push("the fence sends before it asks");
+    const calls = [];
+    walk(ast, (node) => {
+        const name = calleeName(node);
+        if (name === "fenceRequests" || name === "load" || name === "revert") calls.push({ name, start: node.start });
+    });
+    const install = calls.find((call) => call.name === "fenceRequests");
+    if (!install) findings.push("the script never installs the fence");
+    else for (const call of calls.filter((c) => c.name !== "fenceRequests")) if (call.start < install.start) findings.push(`${call.name} is called before the fence is installed`);
+    return findings;
+}
+
 /** What is wrong with a Python script's stop: it must name both tables and stop before it writes. */
 export function pythonStopFindings(source) {
     const findings = [];
@@ -394,6 +466,81 @@ export function run({ check, assert, log }) {
     );
     check("  an address naming no base is refused", send({ method: "GET", url: "https://api.airtable.com/v0/meta/bases" }).refused, true);
 
+    // ── the one script that adds rows there, by value (#544) ────────────────
+    log("");
+    log("refusesBeyondLedger, by value:");
+    const ASSET = (over = {}) => ({ "Asset ID": "HYE-AST-261019-001", Category: ["recCat"], Status: "In stock", Job: ["recJob"], ...over });
+    const LOG_ROW = (over = {}) => ({ "Asset Log ID": "HYE-AST-261019-001-001", Asset: ["recMine"], Event: "Created", Job: ["recJob"], "Recorded By": ["recSoo"], "Event At": "2026-10-19T00:00:00.000Z", ...over });
+    const made = new Map([["recMine", "HYE-AST-261019-001"]]);
+    const fence = (over = {}) => ({ creates: true, created: made, deletes: new Set(), ...over });
+    const judge = ({ script = LEDGERED_IMPORT, baseId = LIVE_BASE_ID, method = "post", path = "/Assets/", queryParams = {}, body, allowed = fence() }) => {
+        const lines = [];
+        const refused = refusesBeyondLedger({ script, baseId, request: { method, path, queryParams, body }, allowed, log: (line) => lines.push(line) });
+        return { refused, lines };
+    };
+    const create = (fields, path = "/Assets/") => ({ path, body: { records: [{ fields }] } });
+    check("  the module names the import", LEDGERED_IMPORT, "import_site_assets_544");
+    check("  an asset as a registration writes it goes", judge(create(ASSET())).refused, false);
+    check("  ten in one request go", judge({ body: { records: Array.from({ length: 10 }, () => ({ fields: ASSET() })) } }).refused, false);
+    check("  eleven do not", judge({ body: { records: Array.from({ length: 11 }, () => ({ fields: ASSET() })) } }).refused, true);
+    check("  another script's asset does not", judge({ ...create(ASSET()), script: "replace_asset_catalog_528" }).refused, true);
+    check("  and says which script may", judge({ ...create(ASSET()), script: "x" }).lines[0], "REFUSED, before sending: x would write Assets, and only import_site_assets_544 adds rows there on the live base.");
+    check("  an asset with a field more does not", judge(create(ASSET({ Notes: "x" }))).refused, true);
+    const momentless = LOG_ROW();
+    delete momentless["Event At"];
+    check("  a Created row with a field fewer does not", judge(create(momentless, "/Asset%20Log/")).refused, true);
+    check("  a Created row of two recorders does not", judge(create(LOG_ROW({ "Recorded By": ["recSoo", "recX"] }), "/Asset%20Log/")).refused, true);
+    check("  an asset not in stock does not", judge(create(ASSET({ Status: "Out" }))).refused, true);
+    check("  an asset of four digits does not", judge(create(ASSET({ "Asset ID": "HYE-AST-261019-1000" }))).refused, true);
+    check("  an asset of another family does not", judge(create(ASSET({ "Asset ID": "HYE-TL-261019-001" }))).refused, true);
+    check("  an asset of two jobs does not", judge(create(ASSET({ Job: ["recJob", "recJob2"] }))).refused, true);
+    check("  a create with typecast does not", judge({ body: { records: [{ fields: ASSET() }], typecast: true } }).refused, true);
+    check("  a create before the registrations begin does not", judge({ ...create(ASSET()), allowed: fence({ creates: false }) }).refused, true);
+    check("  a Created row on an asset this run made goes", judge(create(LOG_ROW(), "/Asset%20Log/")).refused, false);
+    check("  a Created row on another asset does not", judge(create(LOG_ROW({ Asset: ["recOther"] }), "/Asset%20Log/")).refused, true);
+    check("  a Created row of the wrong id does not", judge(create(LOG_ROW({ "Asset Log ID": "HYE-AST-261019-001-002" }), "/Asset%20Log/")).refused, true);
+    check("  a check-out row does not", judge(create(LOG_ROW({ Event: "Checked out" }), "/Asset%20Log/")).refused, true);
+    check("  a log row naming whoever it was handed to does not", judge(create(LOG_ROW({ "Checked Out To": "x" }), "/Asset%20Log/")).refused, true);
+    check("  a read goes", judge({ method: "get", path: "/Assets" }).refused, false);
+    check("  a long read goes", judge({ method: "post", path: "/Asset%20Log/listRecords", body: {} }).refused, false);
+    check("  a read of one row goes", judge({ method: "get", path: "/Assets/recX" }).refused, false);
+    check("  an update in a batch does not", judge({ method: "patch", path: "/Assets/", body: { records: [{ id: "recMine", fields: { Status: "Out" } }] } }).refused, true);
+    check("  an update of one row does not", judge({ method: "patch", path: "/Assets/recMine", body: { fields: {} } }).refused, true);
+    check("  a replace does not", judge({ method: "put", path: "/Asset%20Log/", body: { records: [] } }).refused, true);
+    const reverting = fence({ creates: false, deletes: new Set(["recMine", "recMine2"]) });
+    check("  a delete of the ledger's rows goes", judge({ method: "delete", path: "/Assets", queryParams: { records: ["recMine", "recMine2"] }, allowed: reverting }).refused, false);
+    check("  a delete reaching one more does not", judge({ method: "delete", path: "/Assets", queryParams: { records: ["recMine", "recOther"] }, allowed: reverting }).refused, true);
+    check("  and names it", judge({ method: "delete", path: "/Assets", queryParams: { records: ["recMine", "recOther"] }, allowed: reverting }).lines[0], "REFUSED, before sending: import_site_assets_544 would delete recOther, which the ledger did not make on the live base.");
+    check("  a delete of one row by its address does not", judge({ method: "delete", path: "/Assets/recMine", allowed: reverting }).refused, true);
+    check("  a delete during a run does not", judge({ method: "delete", path: "/Assets", queryParams: { records: ["recMine"] } }).refused, true);
+    check("  a create during a revert does not", judge({ ...create(ASSET()), allowed: reverting }).refused, true);
+    check("  another table is not its question", judge({ method: "patch", path: "/Asset%20Categories/", body: {} }).refused, false);
+    check("  the test base is not its question", judge({ method: "patch", path: "/Assets/", baseId: OTHER_BASE_ID }).refused, false);
+    check("  no named base is the live one", judge({ method: "patch", path: "/Assets/", baseId: "" }).refused, true);
+    check("  a delete naming no ids does not", judge({ method: "delete", path: "/Assets", queryParams: {}, allowed: reverting }).refused, true);
+    check("  a refusal says two lines", judge({ method: "patch", path: "/Assets/" }).lines.length, 2);
+    assert("  the second says nothing was sent", /Nothing was sent\.$/.test(judge({ method: "patch", path: "/Assets/" }).lines[1] ?? ""));
+    check("  and the old question still refuses the import on the two", ask({ script: LEDGERED_IMPORT, writes: ["Assets", "Asset Log"] }).refused, true);
+
+    log("");
+    log("the rows the import may create are the registration's writers' own:");
+    const written = (path, fn, marker) => {
+        const keys = [];
+        walk(parseSource(readFileSync(join(REPO_ROOT, path), "utf8"), path).ast, (node) => {
+            if (!isFunctionNode(node) || node.id?.name !== fn) return;
+            walk(node, (inner) => {
+                if (inner.type !== "ObjectExpression" || !inner.properties.some((p) => p.key?.value === marker || p.key?.name === marker)) return;
+                for (const p of inner.properties) if (p.type === "Property") keys.push(p.key.value ?? p.key.name);
+            });
+        });
+        return keys;
+    };
+    const assetKeys = written("lib/airtable/assets.js", "createAssets", "Asset ID");
+    check("  Assets: createAssets' row", [...assetKeys].sort().join(", "), [...LEDGERED_ROW_FIELDS.Assets].sort().join(", "));
+    const logKeys = [...written("lib/airtable/assetLog.js", "createFirstAssetLogEntries", "Asset Log ID"), ...written("lib/airtable/assetLog.js", "entryFields", "Recorded By")];
+    check("  Asset Log: createFirstAssetLogEntries' row and entryFields'", [...logKeys].sort().join(", "), [...LEDGERED_ROW_FIELDS["Asset Log"]].sort().join(", "));
+    check("  the module's two tables are the protected two", Object.keys(LEDGERED_ROW_FIELDS).join(" | "), PROTECTED_TABLES.join(" | "));
+
     // ── the inventory, both ways ─────────────────────────────────────────────
     log("");
     log("every script that reaches the two tables is classified:");
@@ -428,7 +575,24 @@ export function run({ check, assert, log }) {
         assert(`  ${path} imports ${GUARD} from ${GUARD_MODULE}`, importsGuard(ast, path));
         check(`    and asks before ${entry.writes.join(", ")}`, unguardedWrites(ast, entry.writes).join("; "), "");
         check("    and every question names its base", guardCallsWithoutBase(ast).join("; "), "");
+        if (entry.ledgered) {
+            check(`    and is the one script the exception names`, path.replace(/^.*\//, "").replace(/\.mjs$/, ""), LEDGERED_IMPORT);
+            assert(`    and imports ${LEDGER_GUARD} from ${GUARD_MODULE}`, importsGuard(ast, path, LEDGER_GUARD));
+            check("    and fences the funnel, judging each request before it is sent", fenceFindings(ast).join("; "), "");
+        }
     }
+    log("");
+    log("no other script names the exception:");
+    const namers = files.filter((path) => {
+        if (path.endsWith(".py")) return false;
+        let names = false;
+        walk(parseSource(readFileSync(join(REPO_ROOT, path), "utf8"), path).ast, (node) => {
+            if (node.type === "Identifier" && (node.name === LEDGER_GUARD || node.name === "LEDGERED_IMPORT")) names = true;
+            if (node.type === "Literal" && node.value === LEDGERED_IMPORT && !path.endsWith(`${LEDGERED_IMPORT}.mjs`) && !path.endsWith(`${LEDGERED_IMPORT}_plan.mjs`)) names = true;
+        });
+        return names;
+    });
+    check("  the scripts naming refusesBeyondLedger or the import", namers.join(" | "), Object.keys(CLASSIFIED).filter((path) => CLASSIFIED[path].ledgered).join(" | "));
     const wipe = parseSource(readFileSync(join(REPO_ROOT, "scripts/demo/wipe_base.mjs"), "utf8"), "wipe_base").ast;
     let wipesOrder = false;
     walk(wipe, (node) => {
@@ -513,7 +677,28 @@ async function request(method, path, body) {
         ""
     );
 
-    const pyGood = `RENAMED_BY_513 = ("Asset Categories", "Assets", "Asset Log")\ndef main():\n    renamed = [name for name in RENAMED_BY_513 if find_table(tables, name)]\n    if renamed:\n        return 1\n    client.create_table(TOOLS)\n`;
+    const fenceGood = `function fenceRequests(baseFunctor) {
+    const instance = baseFunctor._base;
+    const inner = instance.runAction;
+    const fenced = function (method, path, queryParams, body, callback) {
+        if (refusesBeyondLedger({ script: "x", baseId: baseFunctor.getId(), request: { method, path }, allowed: {} })) {
+            return;
+        }
+        setTimeout(() => inner.call(instance, method, path, queryParams, body, callback), 0);
+    };
+    instance.runAction = fenced;
+    baseFunctor.runAction = fenced;
+}
+function main() { fenceRequests(base); return load(); }`;
+    check("  a fence asking before it sends passes", fenceFindings(planted(fenceGood)).join("; "), "");
+    check("  a fence sending first is found", fenceFindings(planted(fenceGood.replace("        setTimeout(() => inner.call(instance, method, path, queryParams, body, callback), 0);\n", "").replace("        if (refusesBeyondLedger", "        inner.call(instance, method, path, queryParams, body, callback);\n        if (refusesBeyondLedger"))).join("; "), "the fence sends before it asks");
+    check("  a fence whose answer returns nothing is found", fenceFindings(planted(fenceGood.replace("            return;\n", "            log(1);\n"))).join("; "), "the fence asks refusesBeyondLedger in no if that returns");
+    check("  a fence on the instance alone is found", fenceFindings(planted(fenceGood.replace("    baseFunctor.runAction = fenced;\n", ""))).join("; "), "baseFunctor.runAction is not the fence");
+    check("  a question naming no base is found", fenceFindings(planted(fenceGood.replace("baseId: baseFunctor.getId(), ", ""))).join("; "), "the fence's question names no baseId");
+    check("  a load before the fence is found", fenceFindings(planted(fenceGood.replace("fenceRequests(base); return load();", "load(); fenceRequests(base);"))).join("; "), "load is called before the fence is installed");
+    check("  no fence installed is found", fenceFindings(planted(fenceGood.replace("fenceRequests(base); ", ""))).join("; "), "the script never installs the fence");
+
+    const pyGood =`RENAMED_BY_513 = ("Asset Categories", "Assets", "Asset Log")\ndef main():\n    renamed = [name for name in RENAMED_BY_513 if find_table(tables, name)]\n    if renamed:\n        return 1\n    client.create_table(TOOLS)\n`;
     check("  a Python stop before its write passes", pythonStopFindings(pyGood).join("; "), "");
     const pyLate = pyGood.replace("    renamed =", "    client.create_field(t, f)\n    renamed =");
     check("  a Python write before the stop is found", pythonStopFindings(pyLate).join("; "), "main() writes before it stops");

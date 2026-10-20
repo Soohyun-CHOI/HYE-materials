@@ -16,7 +16,7 @@
 // `Asset Log` row is an event somebody performed — a check-out on a job, a check-in, a
 // retirement. Nothing in this repository rebuilds them: a label printed for an asset points at
 // its row, and an event is true of a moment that is gone. So the app's own screens are their
-// one writer, and a script — a credentialed check, an import, a demo seed, a revert — that would
+// one writer but for the one import below (#544), and a script — a credentialed check, an import, a demo seed, a revert — that would
 // create, update or delete a row of either, or rename or redescribe either table or its fields,
 // asks this module first and stops before its first write — a description alone excepted, below.
 // The check for a run's own fixtures
@@ -48,12 +48,26 @@
 // `scripts/` naming either table or a writer of them and requires the question before the
 // writes. Source order is not execution order, and that check says so where it holds it.
 //
-// IMPORTS ONE MODULE, `lib/airtableBase.js`, which imports nothing — so a script run with no
-// loader — `scripts/import/`'s and `scripts/demo/`'s REST scripts — can import it, and so can the
-// offline tier. The names are the base's, and the check holds them equal to
-// `lib/airtable/client.js:TABLES`.
+// ONE SCRIPT MAY ADD ROWS THERE, AND TAKE BACK ONLY ITS OWN (#544). `import_site_assets_544.mjs`
+// registers the three sites' items from the list Soo reviewed, and Soo allowed it on the live base.
+// It is not let past `refusesProtectedWrite`, which refuses it as it refuses every script: it asks
+// that question of the catalog's tables alone, and every request it sends to `Assets` or `Asset Log`
+// is judged by `refusesBeyondLedger` at the SDK's one funnel, as the request leaves — so what is
+// held is what is sent, and not a guard's place in the source. On the live base that answers stop
+// for any script but `LEDGERED_IMPORT`, and for it lets through a read, a create of new rows shaped
+// exactly as a registration writes them — an asset in stock, its `Created` row on an asset this same
+// run created — and, in a revert, a delete of the rows its ledger names and nothing else. No update
+// of any row of either table goes through. Ending the exception is deleting `LEDGERED_IMPORT` and
+// the function, in a commit of its own.
+//
+// IMPORTS THREE MODULES, `lib/airtableBase.js`, `lib/idSequence.js` and `lib/assetStatus.js`, none
+// of which imports anything — so a script run with no loader — `scripts/import/`'s and
+// `scripts/demo/`'s REST scripts — can import it, and so can the offline tier. The names are the
+// base's, and the check holds them equal to `lib/airtable/client.js:TABLES`.
 
 import { LIVE_BASE_ID } from "../lib/airtableBase.js";
+import { ID_KINDS } from "../lib/idSequence.js";
+import { ASSET_EVENT, ASSET_STATUS } from "../lib/assetStatus.js";
 
 /** The tables no script writes on the live base: the site's assets and what has happened to them. */
 export const PROTECTED_TABLES = Object.freeze(["Assets", "Asset Log"]);
@@ -84,6 +98,104 @@ export function refusesProtectedWrite({ script, baseId, writes = [], wipes = [],
         "Assets and Asset Log on the live base hold the site's records since #531 — every item registered and " +
             "every event recorded against one — so no script writes, deletes or reshapes either there, or empties a " +
             "table they link to. Nothing was written."
+    );
+    return true;
+}
+
+/** The one script `refusesBeyondLedger` lets add rows to the two tables on the live base (#544). */
+export const LEDGERED_IMPORT = "import_site_assets_544";
+
+/**
+ * The fields of a row the import may create in each table, exactly — what `createAssets` and
+ * `createFirstAssetLogEntries` write; the offline check holds them to those writers' source.
+ */
+export const LEDGERED_ROW_FIELDS = Object.freeze({
+    Assets: Object.freeze(["Asset ID", "Category", "Status", "Job"]),
+    "Asset Log": Object.freeze(["Asset Log ID", "Asset", "Event", "Job", "Recorded By", "Event At"]),
+});
+
+/** Airtable's ceiling on the rows one request writes. */
+const ROWS_PER_REQUEST = 10;
+
+/** A printed id of the width a day declares, and no wider (`lib/idSequence.js`). */
+const ASSET_ID = new RegExp(`^${ID_KINDS.ASSET.token}-\\d{6}-\\d{${ID_KINDS.ASSET.padLength}}$`);
+
+/** A link written as one record id. */
+const oneLink = (value) => Array.isArray(value) && value.length === 1 && typeof value[0] === "string" && value[0].startsWith("rec");
+
+/** What one row of a create would write beyond what the import may, or null when nothing. */
+function rowBeyond(table, fields, created) {
+    if (fields === null || typeof fields !== "object") return "create a row with no fields";
+    const keys = Object.keys(fields).sort();
+    const allowed = [...LEDGERED_ROW_FIELDS[table]].sort();
+    if (keys.join("\n") !== allowed.join("\n")) return `create ${table} with ${keys.join(", ") || "no field"}, not ${allowed.join(", ")}`;
+    if (table === "Assets") {
+        if (!ASSET_ID.test(String(fields["Asset ID"]))) return `create an asset ${JSON.stringify(fields["Asset ID"])}, not a day's id of ${ID_KINDS.ASSET.padLength} digits`;
+        if (fields.Status !== ASSET_STATUS.IN_STOCK) return `create an asset ${JSON.stringify(fields.Status)}, not ${ASSET_STATUS.IN_STOCK}`;
+        if (!oneLink(fields.Category) || !oneLink(fields.Job)) return "create an asset without one category and one job";
+        return null;
+    }
+    if (fields.Event !== ASSET_EVENT.CREATED) return `create a ${JSON.stringify(fields.Event)} row, not ${ASSET_EVENT.CREATED}`;
+    if (!oneLink(fields.Asset) || !created.has(fields.Asset[0])) return `create a log row on ${JSON.stringify(fields.Asset)}, an asset this run did not create`;
+    if (fields["Asset Log ID"] !== `${created.get(fields.Asset[0])}-001`) return `create ${JSON.stringify(fields["Asset Log ID"])}, not ${created.get(fields.Asset[0])}-001`;
+    if (!oneLink(fields.Job) || !oneLink(fields["Recorded By"])) return "create a log row without one job and one recorder";
+    return null;
+}
+
+/** What a request to one of the two tables would do beyond the import's ledger, or null when nothing. */
+function beyondLedger({ method, path, queryParams, body }, { creates, created, deletes }) {
+    const [, segment = "", rest = ""] = String(path ?? "").split("/");
+    const table = decodeURIComponent(segment);
+    const verb = String(method ?? "").toLowerCase();
+    if (verb === "get") return null;
+    if (verb === "post" && rest === "listRecords") return null;
+    if (verb === "post" && rest === "") {
+        if (!creates) return `create ${table} rows, which a revert does not`;
+        const records = body?.records;
+        if (!Array.isArray(records) || records.length === 0 || records.length > ROWS_PER_REQUEST) return `create ${table} rows other than one to ${ROWS_PER_REQUEST} in a batch`;
+        const others = Object.keys(body).filter((key) => key !== "records");
+        if (others.length > 0) return `create ${table} rows with ${others.join(", ")}`;
+        for (const record of records) {
+            const beyond = Object.keys(record ?? {}).some((key) => key !== "fields") ? `create a ${table} row carrying more than its fields` : rowBeyond(table, record?.fields, created);
+            if (beyond) return beyond;
+        }
+        return null;
+    }
+    if (verb === "delete" && rest === "") {
+        const ids = queryParams?.records;
+        if (!Array.isArray(ids) || ids.length === 0 || ids.length > ROWS_PER_REQUEST) return `delete ${table} rows other than one to ${ROWS_PER_REQUEST} in a batch`;
+        const foreign = ids.filter((id) => !deletes.has(id));
+        if (foreign.length > 0) return `delete ${foreign.join(", ")}, which the ledger did not make`;
+        return null;
+    }
+    return `send ${verb.toUpperCase()} ${path}`;
+}
+
+/**
+ * Whether a request to `Assets` or `Asset Log` must not be sent, saying so (#544): false, saying
+ * nothing, for a request to another table or on a base other than the live one; on the live base,
+ * true for every script but `LEDGERED_IMPORT`, and for it true but for a read, a create of rows
+ * shaped exactly as a registration's — `allowed.creates` true, each `Created` row on a record in
+ * `allowed.created`, a map of the assets this run created to their printed ids — and a batch delete
+ * of ids in `allowed.deletes`. An update is always refused. `request` is the SDK's funnel's
+ * arguments: `method`, `path` (`/Assets/`, `/Asset%20Log/listRecords`), `queryParams` and `body`.
+ * The caller stops on true, before the request leaves.
+ */
+export function refusesBeyondLedger({ script, baseId, request, allowed = {}, log = console.log }) {
+    const table = decodeURIComponent(String(request?.path ?? "").split("/")[1] ?? "");
+    if (!PROTECTED_TABLES.includes(table)) return false;
+    const named = typeof baseId === "string" && baseId !== "";
+    if (named && baseId !== LIVE_BASE_ID) return false;
+    const where = named ? "on the live base" : "on a base it does not name";
+    const beyond =
+        script !== LEDGERED_IMPORT
+            ? `write ${table}, and only ${LEDGERED_IMPORT} adds rows there`
+            : beyondLedger(request, { creates: allowed.creates === true, created: allowed.created ?? new Map(), deletes: allowed.deletes ?? new Set() });
+    if (beyond === null) return false;
+    log(`REFUSED, before sending: ${script} would ${beyond} ${where}.`);
+    log(
+        `Assets and Asset Log on the live base hold the site's records since #531; ${LEDGERED_IMPORT} alone adds rows to them, ` +
+            "shaped as a registration writes them, and takes back only the rows its ledger names. Nothing was sent."
     );
     return true;
 }
