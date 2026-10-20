@@ -91,7 +91,7 @@ import { fakeBase } from "./_fakeBase.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title =
-    "Registering assets — the pure half, where a registration lands, and what a failed batch makes of it (#338, #449, #455, #456, #459, #469, #470, #485, #507, #514, #520)";
+    "Registering assets — the pure half, where a registration lands, and what a failed batch makes of it (#338, #449, #455, #456, #459, #469, #470, #485, #507, #514, #520, #547)";
 
 /** The action whose redirect section 8 reads, and the dialog whose submission it reads. */
 const ACTION = "app/(assets)/asset-categories/actions.js";
@@ -236,6 +236,9 @@ export async function run({ check, assert, log }) {
     // 1b's `Back` — `Change`, the sign-in steps' word on that line, from #507.
     check("  no line under it while the dialog picks, and no `Change`", ["intro", "changeName"].filter((key) => key in ASSET_REGISTRATION_COPY).join(", "), "");
     check("  the way back to the first step", ASSET_REGISTRATION_COPY.back, "Back");
+    // THE FIRST STEP'S SEARCH NAMES WHAT A SITE KNOWS AN ITEM BY (#547), one string for its label
+    // and its placeholder, where it said the category list's `Search items` from #520.
+    check("  the search's label, naming what it finds an item by", ASSET_REGISTRATION_COPY.searchLabel, "Name, maker or part #");
     // WHAT THE SEARCH SAYS (1b, #520): what a name leads to, past one of each, the sizes first
     // since the second step asks the size first; and where it looked when nothing matched — the
     // category chosen, else the type in lower case, else any category — the words typed in Ink.
@@ -939,10 +942,10 @@ export async function run({ check, assert, log }) {
                     })
                     .join(", ");
             }
-            // The first step's search (#507, #520): what a pick does, what it lists, and what each
-            // result is — the catalog's name itself, so a pick hands `pick` the levels and the place
-            // the second step says. A suggestion of the label alone left that line saying ` · ` on
-            // #507's first walk.
+            // The first step's search (#507, #520): its label (#547), what a pick does, what it
+            // lists, and what each result is — the catalog's name itself, so a pick hands `pick` the
+            // levels, the place the second step says and what the words chose. A suggestion of the
+            // label alone left that line saying ` · ` on #507's first walk.
             if (n.type === "JSXOpeningElement" && n.name?.name === "DialogSearch") {
                 const attribute = (name) => n.attributes.find((a) => a.name?.name === name)?.value?.expression;
                 const listed = attribute("results");
@@ -953,7 +956,9 @@ export async function run({ check, assert, log }) {
                     body?.type === "ObjectExpression"
                         ? body.properties.map((p) => (p.type === "SpreadElement" ? `...${text(p.argument)}` : `${p.key?.name}: ${text(p.value)}`)).join(", ")
                         : "nothing";
-                facts.search = `picks through ${text(attribute("onPick")) || "nothing"} · lists ${text(source) || "nothing"} · each { ${each} }`;
+                facts.search = `labeled ${text(attribute("label")) || "nothing"} · picks through ${text(attribute("onPick")) || "nothing"} · lists ${
+                    text(source) || "nothing"
+                } · each { ${each} }`;
             }
             // The first step's filters (#514, #520): each chip's word, whether it takes one value
             // and where its list opens, what it holds and what a choice does.
@@ -1017,10 +1022,11 @@ export async function run({ check, assert, log }) {
                 });
                 facts.back = calls.join(" · ");
             }
-            // A name picked, and what it does to the second step's choices (#507, #514).
+            // A name picked, and what it does to the second step's choices (#507, #514): since #547
+            // what it hands `setChosen`, an `if` around a reset until then.
             if (n.type === "VariableDeclarator" && n.id?.name === "pick" && /Function/.test(n.init?.type ?? "")) {
                 walk(n.init, (inner) => {
-                    if (facts.pickRule === "none" && inner.type === "IfStatement") facts.pickRule = text(inner);
+                    if (facts.pickRule === "none" && inner.type === "CallExpression" && inner.callee?.name === "setChosen") facts.pickRule = text(inner.arguments[0]);
                 });
             }
             if (n.type === "MemberExpression" && !n.computed && n.object?.type === "Identifier" && n.object.name === "said")
@@ -1169,10 +1175,13 @@ export async function run({ check, assert, log }) {
     // THE FIRST STEP (#507, #514, #520): 1b's search with the type and the category at its row's
     // end, each a chip taking one value with its list opening at its right end; the categories the
     // type holds, and a type chosen taking away a category it does not hold, so clearing the type
-    // brings none back; every name the search lists under them, each the name itself with what
-    // is typed marked, its place and what it leads to, picked through the one function that goes
-    // on to the second step; that function starts another name's choices afresh and keeps the
-    // name already held's; and nothing submits, the search taking Enter for itself.
+    // brings none back; every name the search lists under them, each the name itself with the
+    // words its name holds marked, what it says beside the name — its place and what found it
+    // (#547) — and what it leads to, picked through the one function that goes on to the second
+    // step; that function starts another name's choices where the search's words chose them and
+    // keeps the name already held's under those; and nothing submits, the search taking Enter for
+    // itself. Its label names what a site knows an item by (#547), where it said the band's
+    // `Search items` from #520.
     check(
         "the first step's type and category are chips taking one value at the search's row's end",
         dialog.firstStepFields,
@@ -1188,9 +1197,13 @@ export async function run({ check, assert, log }) {
     check(
         "the first step's search lists the catalog's names under the filters, each the name itself, and picks through `pick`",
         dialog.search,
-        "picks through (result) => pick(result.name) · lists searchCatalogNames(catalog, { filters, typed }) · each { key: name.key, name: name, label: name.level3, match: matchedPart(name.level3, typed), place: placeOf(name.place), detail: nameOffers(name) }"
+        "labeled COPY.searchLabel · picks through (result) => pick(result.name) · lists searchCatalogNames(catalog, { filters, typed }) · each { key: name.key, name: name, label: name.level3, match: matchedPart(name.level3, name.named), place: placeOf(name.beside), detail: nameOffers(name) }"
     );
-    check("  a pick starts another name's choices afresh, and keeps the name already held's", dialog.pickRule, "if (name.key !== picked?.key) setChosen({});");
+    check(
+        "  a pick starts another name's choices where the words chose them, and keeps the name already held's under those",
+        dialog.pickRule,
+        "(was) => (name.key === picked?.key ? { ...was, ...name.chosen } : name.chosen)"
+    );
     check("  and the first step submits nothing", dialog.firstStep, "return;");
     // THE SECOND STEP (#514, #520): each choice the walk draws — the size, the model — as 0l's chips
     // under its own word and with its own refusal, offering what the walk offers and holding what
@@ -1289,7 +1302,7 @@ export async function run({ check, assert, log }) {
     check("  a row submitted whatever the dialog was opened on is seen", plantedDialog.nameField, "false else: Choice = nothing | false then: input hidden = category.id");
     check("  a row made by the steps alone is seen", plantedDialog.made, "details.category");
     check("  steps walking every row, picked or not, are seen", plantedDialog.details, "walkDetails(catalog, chosen)");
-    check("  a search that picks nothing, over every row, each its label alone, is seen", plantedDialog.search, "picks through nothing · lists tools · each { label: x.itemName }");
+    check("  a search that picks nothing, over every row, each its label alone, is seen", plantedDialog.search, "labeled nothing · picks through nothing · lists tools · each { label: x.itemName }");
     check("  a way back that drops the name picked is seen", plantedDialog.back, "setPicked(null)");
     check("  and one drawn as a bordered button on every dialog, saying `Change`, is seen", plantedDialog.backDrawn, "Button { onClick: setPicked } COPY.changeName");
     check("  a type taking several, its list opening from its left, and no category, is seen", plantedDialog.firstStepFields, "FilterChip CATALOG.levelLabel.level1 (several, fit start) values none → setFilters");

@@ -11,7 +11,10 @@
 // #528 the groups a row's type and category stand in: which rows of `Asset Category Groups`
 // stand, on a list typed the same way, and which catalog rows no group holds. And since #527 the
 // mark a row the office no longer buys carries, `Discontinued`: such a row is not offered and
-// still holds its path, on a small catalog of its own so the fixture above reads as it did.
+// still holds its path, on a small catalog of its own so the fixture above reads as it did. And
+// since #547 the first step's search over every level of a row — which names it lists and in
+// what order, what each says beside its name and what the second step opens with chosen — on a
+// catalog of its own shaped as the office's.
 //
 // AND THAT ONE MODULE WRITES AN `Asset Categories` ROW, FOR ONE PAGE (#527). The office keeps the
 // catalog — its first rows loaded from its own list by a script (#517), and since #527 on the
@@ -73,7 +76,7 @@ import {
 import { REPO_ROOT, listJsFiles, parentMap, parseFile, parseSource, repoPath, toPosix, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "The catalog an asset is chosen from, in six levels, its groups, and one writer of its rows (#507, #514, #517, #527, #528)";
+export const title = "The catalog an asset is chosen from, in six levels, its groups, and one writer of its rows (#507, #514, #517, #527, #528, #547)";
 
 /**
  * The module that reads the table and, since #527, writes it; the two scripts that write the
@@ -491,16 +494,19 @@ export function run({ check, assert, log }) {
     // typed every name under the filters, in the names' order, so 1b's list opens on the catalog.
     check("the search lists every name, with nothing typed, in the names' order", said(searchCatalogNames(offered)), said(catalogNames(offered)));
     check("  a part typed, in any case and spacing, the names holding it", said(searchCatalogNames(offered, { typed: "  LEVEL " })), "Laser Level (Equipment > Measuring), Laser Level (Tool > Measuring)");
+    // Since #547 a name whose own words lack it is listed after those holding it, where a level of
+    // a row under it does: `Jigsaw`'s category is `Carpentry`.
     check(
-        "  every name holding it, none cut",
+        "  every name a level holds it in, none cut, those whose name holds it first",
         said(searchCatalogNames(offered, { typed: "e" })),
-        "Air Compressor (Equipment > Site Services), Angle Grinder (Tool > Machining), Cordless Drill (Tool > Carpentry), Drill Press (Equipment > Machining), Laser Level (Equipment > Measuring), Laser Level (Tool > Measuring), Utility Knife (Tool > Carpentry), Utility Knife (Tool > Cutting), Welding Machine (Equipment > Welding)"
+        "Air Compressor (Equipment > Site Services), Angle Grinder (Tool > Machining), Cordless Drill (Tool > Carpentry), Drill Press (Equipment > Machining), Laser Level (Equipment > Measuring), Laser Level (Tool > Measuring), Utility Knife (Tool > Carpentry), Utility Knife (Tool > Cutting), Welding Machine (Equipment > Welding), Jigsaw (Tool > Carpentry)"
     );
     check("  narrowed by the category", said(searchCatalogNames(offered, { filters: { level2: "measuring" } })), "Laser Level (Equipment > Measuring), Laser Level (Tool > Measuring)");
     check("  and by the type", said(searchCatalogNames(offered, { filters: { level1: "tool", level2: "measuring" } })), "Laser Level (Tool > Measuring)");
     check("  to nothing when the filters hold no such name", said(searchCatalogNames(offered, { filters: { level2: "measuring" }, typed: "grinder" })), "");
     check("  a name typed in full is listed, since picking it goes on", said(searchCatalogNames(offered, { typed: "drill press" })), "Drill Press (Equipment > Machining)");
-    check("  and words in another order are not one name", said(searchCatalogNames(offered, { typed: "press drill" })), "");
+    // Words in another order were no name from #507 to #547, which searched the words as one run.
+    check("  and words in another order find it too, each word anywhere in it", said(searchCatalogNames(offered, { typed: "press drill" })), "Drill Press (Equipment > Machining)");
     // THE NAME TYPED IN FULL, THEN THOSE BEGINNING WITH IT, THEN THOSE HOLDING IT (#517): the
     // office's `Wrench` stood sixth among the names holding `wrench`, and the first is the one
     // 1b's Enter takes (#520).
@@ -540,6 +546,100 @@ export function run({ check, assert, log }) {
     check("  no size, two models", offersOf("welding"), "Welding Machine 0 2");
     check("  a generic row beside one model", offersOf("drill press"), "Drill Press 0 1");
     check("  and one size, no model", offersOf("jigsaw"), "Jigsaw 1 0");
+    // ── the search over every level (#547) ──
+    // A catalog shaped as the office's where it matters here: `Band Saw` in two places, a DeWalt
+    // part number in each and one beginning with the other; two Hilti hammer drills; two DeWalt
+    // drills; two flowmeters told apart by part number alone; a bender in two sizes, generic and
+    // Swagelok; a wrench whose size holds `1/2` without beginning with it, and a gauge with that
+    // size and one beginning with `1/2`; a collet whose maker begins with `Swagelok`; one cutter
+    // model in two sizes; a name holding `power`; and three names whose own words hold some, one
+    // or none of `hammer drill` while their categories hold the rest.
+    const kind = (id, level1, level2, level3, size = "", maker = "", partNumber = "") => ({ id, level1, level2, level3, size, maker, partNumber });
+    const kinds = [
+        kind("bsP", "Tool", "Power Tools", "Band Saw", "", "DeWalt", "DCS375"),
+        kind("bsP2", "Tool", "Power Tools", "Band Saw", "", "Makita", "2107FW"),
+        kind("bsC", "Equipment", "Cutting", "Band Saw", "", "DeWalt", "DCS375B"),
+        kind("hdA", "Tool", "Power Tools", "Hammer Drill", "", "Hilti", "TE6-A36"),
+        kind("hdB", "Tool", "Power Tools", "Hammer Drill", "", "Hilti", "TE6-A36-AVR"),
+        kind("hdM", "Tool", "Power Tools", "Hammer Drill", "", "Milwaukee"),
+        kind("dr", "Tool", "Power Tools", "Drill", "", "DeWalt"),
+        kind("drD", "Tool", "Power Tools", "Drill", "", "DeWalt", "DCD771"),
+        kind("rf2", "Tool", "Gas Control", "Rota Flowmeter", "", "", "LF201"),
+        kind("rf1", "Tool", "Gas Control", "Rota Flowmeter", "", "", "LF101"),
+        kind("sb4", "Tool", "Machining Tools", "Short Bender", '1/4"'),
+        kind("sb8", "Tool", "Machining Tools", "Short Bender", '1/2"'),
+        kind("sb4s", "Tool", "Machining Tools", "Short Bender", '1/4"', "Swagelok", "MS-HTB-4T"),
+        kind("sb8s", "Tool", "Machining Tools", "Short Bender", '1/2"', "Swagelok", "MS-HTB-8"),
+        kind("pw", "Tool", "Hand Tools", "Pipe Wrench", '1-1/2"'),
+        kind("gauge15", "Tool", "Measuring Tools", "Gauge", '1-1/2"'),
+        kind("gauge05", "Tool", "Measuring Tools", "Gauge", '1/2"'),
+        kind("collet", "Tool", "For Welders", "Collet Half", '1/2"', "Swagelok USA"),
+        kind("tc4", "Tool", "Cutter", "Tube Cutter", '1/4"', "Ridgid", "150"),
+        kind("tc8", "Tool", "Cutter", "Tube Cutter", '1/2"', "Ridgid", "150"),
+        kind("ps", "Equipment", "Welding Equipment", "Power Supply", "", "Miller"),
+        kind("bit", "Tool", "Hammer Accessories", "Drill Bit"),
+        kind("carbide", "Tool", "Hammer Accessories", "Carbide Drill"),
+        kind("chisel", "Tool", "Hammer Drill Parts", "Chisel"),
+    ];
+    // What a reader sees of each result: its name, and what it says beside it.
+    const shown = (typed) =>
+        searchCatalogNames(kinds, { typed })
+            .map((name) => (name.beside.length > 0 ? `${name.level3} [${name.beside.join(" · ")}]` : name.level3))
+            .join(", ");
+    // What the second step opens with chosen for each result, a model's key said with a slash.
+    const opens = (typed) =>
+        searchCatalogNames(kinds, { typed })
+            .map((name) => `${name.level3}: ${Object.entries(name.chosen).map(([level, key]) => `${level}=${key.replace("\n", "/")}`).join(" ") || "nothing"}`)
+            .join(" | ");
+    // THE NAMES HOLDING EVERY WORD, THEN SOME, THEN NONE, EACH BY #517's RANK: by the words the
+    // name holds, and for a name the other levels found alone by the value found. In the names'
+    // order alone these four read `Carbide Drill`, `Chisel`, `Drill Bit`, `Hammer Drill`.
+    check(
+        "the names holding every word first, then those holding some, then those holding none, each in #517's ranks",
+        shown("hammer drill"),
+        "Hammer Drill, Drill Bit [Hammer Accessories], Carbide Drill [Hammer Accessories], Chisel [Hammer Drill Parts]"
+    );
+    check("  the name holding a word before the names a category finds", shown("power"), "Power Supply, Band Saw [Power Tools], Drill [Power Tools], Hammer Drill [Power Tools]");
+    check("  a value typed in full before one beginning with it, in another place", shown("dcs375"), "Band Saw [Power Tools · DeWalt (DCS375)], Band Saw [Cutting · DeWalt (DCS375B)]");
+    check("  a size beginning with it before one holding it, a name ranked by its best row", shown("1/2"), 'Collet Half [1/2"], Gauge [1/2" · 1-1/2"], Short Bender [1/2"], Tube Cutter [1/2"], Pipe Wrench [1-1/2"]');
+    // EVERY WORD IN ONE ROW: a name is listed for a row that holds them all, and not for words its
+    // rows hold apart — `MS-HTB-4T` is the 1/4" bender.
+    check("every word in a level of one row, the name holding one", shown("drill dewalt"), "Drill [DeWalt]");
+    check("  and words two of its rows hold apart find nothing", shown("ms-htb-4t 1/2"), "");
+    check("  words in two levels of one row, ranked by the worse of the two", shown("swagelok 1/2"), 'Collet Half [1/2" · Swagelok USA], Short Bender [1/2" · Swagelok (MS-HTB-8)]');
+    // WHAT FOUND IT, AFTER THE PLACE AND NOT REPEATING IT: the type, the category, each size and the
+    // model, `Maker (Part #)`; several models by one maker say the maker, and several by none each.
+    check("the type found, after the place", shown("equipment"), "Band Saw [Cutting · Equipment], Power Supply [Equipment]");
+    check("  a model found by its maker, one maker's two said once", shown("dewalt"), "Band Saw [Cutting · DeWalt (DCS375B)], Band Saw [Power Tools · DeWalt (DCS375)], Drill [DeWalt]");
+    check("  two models by one maker found by their part numbers", shown("te6"), "Hammer Drill [Hilti]");
+    check("  one of them typed in full", shown("te6-a36-avr"), "Hammer Drill [Hilti (TE6-A36-AVR)]");
+    check("  two by no maker each, in the second step's order, after a name holding it", shown("lf"), "Collet Half, Rota Flowmeter [LF101 · LF201]");
+    check("  two sizes each, in the second step's order", shown("1/"), 'Collet Half [1/2"], Gauge [1/2" · 1-1/2"], Short Bender [1/4" · 1/2"], Tube Cutter [1/4" · 1/2"], Pipe Wrench [1-1/2"]');
+    check("  and a name its own words found says no more than its place", shown("band saw"), "Band Saw [Cutting], Band Saw [Power Tools]");
+    // THE WORDS THE NAME HOLDS, WHICH THE ROW MARKS: in the order typed, and none for a name found
+    // by its other levels alone.
+    check(
+        "the words each name holds, for its mark",
+        searchCatalogNames(kinds, { typed: "Drill  HAMMER" })
+            .map((name) => `${name.level3}=${name.named}`)
+            .join(" | "),
+        "Hammer Drill=drill hammer | Drill Bit=drill | Carbide Drill=drill | Chisel="
+    );
+    // WHAT THE SECOND STEP OPENS WITH CHOSEN: a part number its model, with the size where its rows
+    // hold one, and a size its size, each where the rows answering hold one; a maker nothing.
+    check("a part number chooses its model, and the size its row has", opens("dcs375"), "Band Saw: model=dewalt/dcs375 size= | Band Saw: model=dewalt/dcs375b size=");
+    check("  a model in two sizes, its model alone", opens("150"), "Tube Cutter: model=ridgid/150");
+    check("  a size its size, a bender's two models left to choose, and two sizes none", opens("1/2"), 'Collet Half: size=1/2" | Gauge: nothing | Short Bender: size=1/2" | Tube Cutter: size=1/2" | Pipe Wrench: size=1-1/2"');
+    check("  several models nothing", opens("te6"), "Hammer Drill: nothing");
+    check("  several sizes nothing, and the one size of a name beside them its size", opens("1/"), 'Collet Half: size=1/2" | Gauge: nothing | Short Bender: nothing | Tube Cutter: nothing | Pipe Wrench: size=1-1/2"');
+    check("  a maker nothing, though it found one model", opens("makita"), "Band Saw: nothing");
+    check("  and a name its own words found nothing, its one model though", opens("cutter"), "Tube Cutter: nothing");
+    const bender = catalogRowsOf(kinds, "tool\nmachining tools\nshort bender");
+    const openedOn = (typed) => walked(bender, searchCatalogNames(kinds, { typed })[0].chosen);
+    check("  the bender opened on the part number's model and its size", openedOn("ms-htb-8"), 'size 1/4"/1/2" = 1/2" · model Swagelok (MS-HTB-8)/Not specified = Swagelok (MS-HTB-8) → sb8s');
+    check("  and on the size, its two models to choose between", openedOn("1/2"), 'size 1/4"/1/2" = 1/2" · model Swagelok (MS-HTB-8)/Not specified = ? → no row');
+    check("  nothing typed chooses nothing and says the place alone", searchCatalogNames(offered).every((name) => Object.keys(name.chosen).length === 0 && name.beside.join() === name.place.join()), true);
+
     check("the rows under a name, the second step's to narrow between", ids(catalogRowsOf(offered, "tool\nmachining\nangle grinder")), "g45,g45mk30,g45mk70,g45bo,g5");
     check("  under its type alone, where one name has two", ids(catalogRowsOf(offered, "tool\nmeasuring\nlaser level")), "laserT");
     check("  and a name nothing holds has none", ids(catalogRowsOf(offered, "tool\nnowhere\nnothing")), "");

@@ -27,24 +27,26 @@ import { registerAssetsAction } from "./actions";
  * (#456), and the control that opens it. It was the form at `/tools/new` from #338 to #456.
  *
  * TWO STEPS SINCE #507, BECAUSE A REGISTRATION PICKS A KIND FROM THE CATALOG. The first finds
- * the name — a search over the catalog's names, which the type and the category narrow — and
- * picking one goes on to the second, which takes what the catalog holds under that name — its
- * size and its model since #520, the maker and part number together, each only where the rows
- * give a choice — the count and the job, and submits. Nothing here creates a kind: the
- * name typed on this dialog from #338 was found or created as it was written, and the office
- * keeps the catalog now, on its own page (#527) and in Airtable.
+ * the name — a search over the catalog's names, and since #547 their types, categories, sizes,
+ * makers and part numbers, which the type and the category narrow — and picking one goes on to
+ * the second, which takes what the catalog holds under that name — its size and its model since
+ * #520, the maker and part number together, each only where the rows give a choice, and opened
+ * on the size or the model a size or a part number found (#547) — the count and the job, and
+ * submits. Nothing here creates a kind: the name typed on this dialog from #338 was found or
+ * created as it was written, and the office keeps the catalog now, on its own page (#527) and in
+ * Airtable.
  *
  * THE FIRST STEP IS 1b's SINCE #520: the search the dialog is built around (`DialogSearch`,
  * 0f Field), the type and the category as chips taking one value at its row's end, and every
  * name it lists under it in the dialog's body — each with what it leads to at its row's end
- * (`nameOffers`), and its place after it where the catalog holds its words twice — or the
- * sentence saying nothing matched. The dialog is 480 wide, as 0l gives a dialog that searches a
- * list and picks from it, and holds 1b's 490 while it picks, so moving between the steps never
- * moves its edges. On the second the line under the title is the name picked, and `Back` the
- * way to the first, a ghost at the actions' left. Until #520 the search offered five names in
- * a list under a field, the filters were 0l's choices above it, the first step said
- * `Each one gets its own ID and label.` under the title, and the way back was the sign-in
- * steps' `Change` on that line.
+ * (`nameOffers`), and after it its place where the catalog holds its words twice and what found
+ * it where the name did not (#547) — or the sentence saying nothing matched. The dialog is 480
+ * wide, as 0l gives a dialog that searches a list and picks from it, and holds 1b's 490 while it
+ * picks, so moving between the steps never moves its edges. On the second the line under the
+ * title is the name picked, and `Back` the way to the first, a ghost at the actions' left. Until
+ * #520 the search offered five names in a list under a field, the filters were 0l's choices
+ * above it, the first step said `Each one gets its own ID and label.` under the title, and the
+ * way back was the sign-in steps' `Change` on that line.
  *
  * THE SECOND STEP IS 1b's SINCE #520, AND `walkDetails`' ANSWER, DRAWN. The size and the model
  * are 0l's chips (`ChipChoice`), scrolling in 0i's lane, and the count and the job sit on the
@@ -252,13 +254,14 @@ export function RegistrationForm({ open, onClose, jobs, category, catalog = [], 
     const details = walkDetails(category ? catalog : picked ? catalogRowsOf(catalog, picked.key) : [], chosen);
     const made = category ?? details.category;
 
-    // A name picked starts its levels afresh where they start (`walkDetails`), unless it is the
-    // name the second step already held, which keeps what was chosen there. What it is handed
-    // is a name the search listed, its place and what it offers with it — so the second step
-    // can say where it stands. The search keeps what was typed, so `Back` finds the list as it
-    // was left.
+    // A name picked starts its levels where the search's words chose them — a size or a model a
+    // size or a part number found (#547) — and the rest where `walkDetails` starts them, unless
+    // it is the name the second step already held, which keeps what was chosen there under what
+    // the words chose. What it is handed is a name the search listed, its place and what it
+    // offers with it — so the second step can say where it stands. The search keeps what was
+    // typed, so `Back` finds the list as it was left.
     const pick = (name) => {
-        if (name.key !== picked?.key) setChosen({});
+        setChosen((was) => (name.key === picked?.key ? { ...was, ...name.chosen } : name.chosen));
         setPicked(name);
         setChoosing(false);
         setGuarded(null);
@@ -291,8 +294,8 @@ export function RegistrationForm({ open, onClose, jobs, category, catalog = [], 
         startTransition(() => formAction(formData));
     };
 
-    // Where a name stands, when the catalog holds its words in another place too (#520): the
-    // parts `searchCatalogNames` hands, behind 0e's dot.
+    // Where a name stands, when the catalog holds its words in another place too (#520), and in
+    // the list what found it (#547): the parts `searchCatalogNames` hands, behind 0e's dot.
     const placeOf = (parts) =>
         parts.length === 0
             ? null
@@ -342,7 +345,7 @@ export function RegistrationForm({ open, onClose, jobs, category, catalog = [], 
         <DialogFrame open={open} onClose={onClose} busy={pending} title={COPY.heading} subtitle={subtitle} onSubmit={submit} wide fixed={!category}>
             {step === "name" ? (
                 <DialogSearch
-                    label={CATALOG.searchItems}
+                    label={COPY.searchLabel}
                     value={typed}
                     onChange={setTyped}
                     clearLabel={CATALOG.clearSearch}
@@ -376,8 +379,8 @@ export function RegistrationForm({ open, onClose, jobs, category, catalog = [], 
                         key: name.key,
                         name,
                         label: name.level3,
-                        match: matchedPart(name.level3, typed),
-                        place: placeOf(name.place),
+                        match: matchedPart(name.level3, name.named),
+                        place: placeOf(name.beside),
                         detail: nameOffers(name),
                     }))}
                     resultsLabel={ASSET_LIST_COPY.heading}

@@ -50,26 +50,40 @@ wide, and 490 tall while it picks** (0l, 1b; #520): a dialog that searches a lis
 and picks from it takes 480, and one whose choices change with what was picked
 holds its height, so going between the steps never moves its edges.
 
-- **The first finds the name (1b, #514, #520).** A search across the dialog,
-  `Search items`, with two chips at its end, `Type` and `Category`, each
-  taking one value and saying it once chosen; the categories offered are the
-  chosen type's, and choosing a type clears a category it does not hold.
-  Under it, every name the catalog holds under what is chosen — the whole list
-  before anything is typed, and those whose name holds what is typed after,
-  the part typed set heavier: **the name typed in full first, then names
-  beginning with it, then names holding it elsewhere**, each group
-  alphabetical, so on #517's catalog `wrench` listed `Wrench` before
-  `Adjustable Monkey Wrench`, which #528's holds neither of. Each name says at its end what the second step will ask among —
-  `18 sizes`, or `3 models` where it asks one size or none — and nothing
-  where it asks neither. **One name can stand in two places, and those are
-  two names**: the office's `Band Saw` is `Equipment > Machining` and `Tool >
+- **The first finds the name (1b, #514, #520, #547).** A search across the
+  dialog, `Name, maker or part #`, with two chips at its end, `Type` and
+  `Category`, each taking one value and saying it once chosen; the
+  categories offered are the chosen type's, and choosing a type clears a
+  category it does not hold. Under it, every name the catalog holds under what
+  is chosen — the whole list before anything is typed, and after it **every
+  name with a row of the catalog holding every word typed, in its name, type,
+  category, size, maker or part number** (#547), so `drill dewalt` lists the
+  drill a DeWalt is filed under, and `band 1/2` lists nothing while no band
+  saw is sized `1/2"`; until #547 only the name was searched, for the words as
+  typed. **The names holding every word come first: the name typed in full,
+  then names beginning with it, then names holding it elsewhere** (#517), so
+  on #517's catalog `wrench` listed `Wrench` before `Adjustable Monkey
+  Wrench`, which #528's holds neither of. Then the names holding some of the
+  words, and last the names found by the other fields alone, ranked the same
+  way by the value that found them — `DCS375` before `DCS375B`, `1/2"` before
+  `1-1/2"` — each rank alphabetical. The words a name holds are set heavier.
+  **A name its own words did not find says what did, after it in a lighter
+  ink** (#547): the type or the category, the size, or the model as the
+  second step says it, `DeWalt (DCS375)`; several models one maker made say
+  the maker alone, `Hilti`, and several with no maker in common say each.
+  Each name says at its end what the second step will ask among — `18
+  sizes`, or `3 models` where it asks one size or none — and nothing where it
+  asks neither. **One name can stand in two places, and those are two
+  names**: the office's `Band Saw` is `Equipment > Machining` and `Tool >
   Power Tool`, so each of its rows says its category after the name in a
   lighter ink; `Pipe Cutter` is a `Cutter` of both types, so its rows say the
   type and the category, `Equipment · Cutter`. A name in one place says
-  neither. **Picking one goes on**, by a press or by Enter, which takes the
-  name the arrows moved to, or the one name left — nothing is shaded until an
-  arrow moves, as 1b draws a typed search (#522; from #520 the first listed was
-  shaded and taken once something was typed). From #514 to #520 the type and the category were two
+  neither, and one in two places that something else found says its place
+  and then what found it, `Power Tool · DeWalt (DCS375)`. **Picking one goes
+  on**, by a press or by Enter, which takes the name the arrows moved to, or
+  the one name left — nothing is shaded until an arrow moves, as 1b draws a
+  typed search (#522; from #520 the first listed was shaded and taken once
+  something was typed). From #514 to #520 the type and the category were two
   choices over a search field, `All types` and `All categories` until chosen,
   and the search offered five names with their places beside them.
 - **The second takes the rest.** The name picked on the line under the title —
@@ -96,10 +110,15 @@ holds its height, so going between the steps never moves its edges.
   DeWalt with no size beside two Milwaukees sized M12 and M18, so a size
   started on its empty option would leave DeWalt the one maker, chosen, for
   somebody adding a Milwaukee who never touched the size; here the size is
-  asked among `M12`, `M18` and `None`, and the model waits for it. From
-  #514 to #520 the step asked `Size`, `Maker` and `Part #` one by one, each
-  a choice with its empty option first — `No size`, `No maker`, `No part
-  #` — and drew a level of one option as a choice holding it.
+  asked among `M12`, `M18` and `None`, and the model waits for it. **A name
+  the search found by a size or a part number opens with that size or that
+  model chosen** (#547), and the model's size with it — the reader has said
+  which already — but where the words found several, none of them is, by
+  the same rule; a maker found chooses nothing, since it says who made a
+  model and not which. From #514 to #520 the step asked `Size`, `Maker` and
+  `Part #` one by one, each a choice with its empty option first — `No
+  size`, `No maker`, `No part #` — and drew a level of one option as a choice
+  holding it.
 - **The fields it always asks sit on the actions** (0l, 1b): how many, a
   whole number of at least 1, capped at 100 per submission, and the job,
   side by side, with the size and the model scrolling above them when there
@@ -246,7 +265,10 @@ creation date where a registration lands.
 **The catalog's words are the same on every screen that shows them (#507,
 #514):** `Type`, `Category`, `Name`, `Size`, `Maker`, `Part #` and `Class`
 here, the category beside each name on the list — and since #520 the search's
-`Search items` and its chips, which the list's band says too — and the line under a category's
+chips, which the list's band draws too; the search said the band's
+`Search items` until #547 and says `Name, maker or part #` since, finding an
+item by its maker and its part number as the band does not — and the line
+under a category's
 name on its own screen and on an asset's — `Tool · Power tools · Class B` (#519;
 the list's `Class`, `Type` and `Category` columns and a line saying the class and
 the whole path, `Class A · Tool > DEMO Machining > … > GA4570`, until then). An item's name
