@@ -7,20 +7,19 @@ import {
     getAllAssetCategories,
     getAssetCategoriesByRecordIds,
     removeAssetCategory,
-    setAssetCategoriesClass,
     setAssetCategoryDiscontinued,
     updateAssetCategory,
 } from "@/lib/airtable/assetCategories";
 import { createAssetCategoryGroup, getAllAssetCategoryGroups } from "@/lib/airtable/assetCategoryGroups";
-import { ASSET_CATALOG_COPY as COPY, CATALOG_ENTRY_FIELDS, classChanges, readCatalogEntry, readCategoryEntry } from "@/lib/assetCatalog";
-import { ASSET_CLASS_VALUES } from "@/lib/assetCategory";
+import { ASSET_CATALOG_COPY as COPY, CATALOG_ENTRY_FIELDS, readCatalogEntry, readCategoryEntry } from "@/lib/assetCatalog";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 /*
  * What the catalog's page writes (1l, #527): a row added or saved over, a category added on its
- * own, a row discontinued or restored, a row nothing stands under removed, and the class of
- * several rows set at once. The only writers of `Asset Categories` and `Asset Category Groups` in
- * the app; the office's hand edits in Airtable are the other way either changes.
+ * own, a row discontinued or restored, and a row nothing stands under removed — and from #527
+ * until #552 the class of several rows set at once (`Set class`), which went with the class. The
+ * only writers of `Asset Categories` and `Asset Category Groups` in the app; the office's hand
+ * edits in Airtable are the other way either changes.
  *
  * THE OFFICE'S, SO `withAdminAction`, AND THE SITE MANAGER'S WRAPPER IS NOT THE GATE HERE. The
  * four acts on an asset are a site manager's (#506) and the catalog is the office's, as the page
@@ -177,30 +176,6 @@ async function removeAssetCategoryHandler(categoryRecordId) {
         if (removed.gone || removed.hasItems) {
             refresh();
             return { error: removed.gone ? COPY.gone : COPY.hasItems };
-        }
-        refresh();
-        return { done: true };
-    });
-}
-
-/**
- * The class of the rows selected (1l's `Set class`), written where it differs. A failure part of
- * the way leaves what was set before it set, and the page is drawn again showing which.
- */
-export const setAssetCategoriesClassAction = withAdminAction(() => {
-    refresh();
-    return { error: COPY.noAccess };
-}, setAssetCategoriesClassHandler);
-
-async function setAssetCategoriesClassHandler(categoryRecordIds, assetClass) {
-    return withOpsLabel("setAssetCategoriesClassAction", async () => {
-        if (!ASSET_CLASS_VALUES.includes(assetClass) || !Array.isArray(categoryRecordIds)) return { error: COPY.classNotSet };
-        const changes = classChanges(await getAllAssetCategories(), categoryRecordIds, assetClass);
-        try {
-            await setAssetCategoriesClass(changes, assetClass);
-        } catch {
-            refresh();
-            return { error: COPY.classNotSet };
         }
         refresh();
         return { done: true };

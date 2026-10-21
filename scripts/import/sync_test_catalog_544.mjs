@@ -18,9 +18,9 @@
 // is: a group by its pair (`categoryGroupKey`), a catalog row by its path (`catalogPathKey`), a job
 // by its code.
 //
-// WHAT IT WRITES, THROUGH THE APP'S WRITERS WHERE THE APP HAS ONE. A catalog row whose levels, class
-// or mark differ takes the live row's — `updateAssetCategory` and `setAssetCategoryDiscontinued`,
-// the catalog page's; a live row the test base lacks is `createAssetCategory`'s — each, since #539,
+// WHAT IT WRITES, THROUGH THE APP'S WRITERS WHERE THE APP HAS ONE. A catalog row whose levels or
+// mark differ takes the live row's (its class as well until #552 took the class off the catalog)
+// — `updateAssetCategory` and `setAssetCategoryDiscontinued`, the catalog page's; a live row the test base lacks is `createAssetCategory`'s — each, since #539,
 // linking the test base's group of the row's type and category (`categoryGroupOf`). A group renamed on
 // the live base is renamed here, and one the live base removed is removed here, neither of which the
 // app does (#527), so those two are this script's, ten to a request; a group the live base added is
@@ -64,8 +64,8 @@ import { RECORDER_EMAIL, inChunks, readList } from "./import_site_assets_544_pla
 const SCRIPT = "sync_test_catalog_544";
 const LEDGERS = join(dirname(fileURLToPath(import.meta.url)), "ledgers");
 
-/** What a catalog row is, field by field: its six levels, its class and its mark. */
-const ROW_FIELDS = [...ASSET_PATH_LEVELS, "assetClass", "discontinued"];
+/** What a catalog row is, field by field: its six levels and its mark — and its class until #552. */
+const ROW_FIELDS = [...ASSET_PATH_LEVELS, "discontinued"];
 const rowOf = (category) => Object.fromEntries(ROW_FIELDS.map((field) => [field, field === "discontinued" ? category.discontinued === true : (category[field] ?? "")]));
 const sameRow = (a, b) => ROW_FIELDS.every((field) => rowOf(a)[field] === rowOf(b)[field]);
 const groupOf = (group) => Object.fromEntries(ASSET_GROUP_LEVELS.map((level) => [level, group[level] ?? ""]));
@@ -183,7 +183,7 @@ async function sync(apply, snapshotPath) {
         log(`  [ROW]    ${id}  ${moved.join(", ")}  (${items} item(s))`);
     }
     log(`catalog rows to create: ${p.rowCreates.length}`);
-    for (const row of p.rowCreates) log(`  [CREATE] ${pathOf(row)}, class ${row.assetClass}`);
+    for (const row of p.rowCreates) log(`  [CREATE] ${pathOf(row)}`);
     log(`groups to rename: ${p.groupRenames.length}`);
     for (const { id, before, after } of p.groupRenames) log(`  [RENAME] ${id}  ${pair(before)} → ${pair(after)}`);
     log(`groups to create: ${p.groupCreates.length}`);

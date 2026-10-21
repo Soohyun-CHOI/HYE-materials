@@ -67,6 +67,13 @@ import { fileURLToPath } from "node:url";
 
 import { ASSET_CATEGORY_FIELDS, ASSET_PATH_LEVELS, catalogPathKey, composeItemName, readCatalog } from "../../lib/assetCategory.js";
 import { resolveAirtableBase } from "../../lib/airtableBase.js";
+import { CLASS_FIELD } from "./keep_asset_class_552_plan.mjs";
+
+// The catalog's fields as this script read and wrote them: lib/assetCategory.js's path and the
+// class, which #552 took off the catalog and lib/ names no longer, its name from
+// keep_asset_class_552_plan.mjs. The run stops on the base as it stands before it reads a row,
+// so nothing here reaches the class; it is kept as the record of what ran.
+const CATALOG_FIELDS = Object.freeze({ ...ASSET_CATEGORY_FIELDS, assetClass: CLASS_FIELD.name });
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CSV_PATH = join(HERE, "sources", "asset_categories_517.csv");
@@ -171,8 +178,8 @@ function parseCsv(text) {
 
 /** Why a row is not offered, in the words of the fields the office types into. */
 function whyAside({ reason, missing, levels, of }) {
-    if (reason === "incomplete") return `missing ${missing.map((m) => ASSET_CATEGORY_FIELDS[m]).join(", ")}`;
-    if (reason === "placeholder") return `a placeholder for empty in ${levels.map((m) => ASSET_CATEGORY_FIELDS[m]).join(", ")} — leave the cell empty`;
+    if (reason === "incomplete") return `missing ${missing.map((m) => CATALOG_FIELDS[m]).join(", ")}`;
+    if (reason === "placeholder") return `a placeholder for empty in ${levels.map((m) => CATALOG_FIELDS[m]).join(", ")} — leave the cell empty`;
     return `the path ${of.id} already names`;
 }
 
@@ -196,7 +203,7 @@ function readSource() {
             continue;
         }
         for (const [i, value] of cells.entries()) {
-            if (value !== value.trim() || /\s{2}/.test(value)) problems.push(`line ${line}: ${ASSET_CATEGORY_FIELDS[ASSET_PATH_LEVELS[i]]} carries stray whitespace (${JSON.stringify(value)})`);
+            if (value !== value.trim() || /\s{2}/.test(value)) problems.push(`line ${line}: ${CATALOG_FIELDS[ASSET_PATH_LEVELS[i]]} carries stray whitespace (${JSON.stringify(value)})`);
         }
         rows.push({ id: `line ${line}`, ...Object.fromEntries(ASSET_PATH_LEVELS.map((level, i) => [level, cells[i]])), assetClass: LOADED_CLASS });
     }
@@ -211,15 +218,15 @@ function categoryOf(record) {
     return {
         id: record.id,
         itemName: f[NAME_FIELD] ?? "",
-        ...Object.fromEntries(Object.entries(ASSET_CATEGORY_FIELDS).map(([key, name]) => [key, f[name] ?? ""])),
+        ...Object.fromEntries(Object.entries(CATALOG_FIELDS).map(([key, name]) => [key, f[name] ?? ""])),
     };
 }
 
 /** A CSV row as the fields a create sends: each level it has, and its class. */
 function fieldsOf(row) {
     return {
-        ...Object.fromEntries(ASSET_PATH_LEVELS.filter((level) => row[level] !== "").map((level) => [ASSET_CATEGORY_FIELDS[level], row[level]])),
-        [ASSET_CATEGORY_FIELDS.assetClass]: row.assetClass,
+        ...Object.fromEntries(ASSET_PATH_LEVELS.filter((level) => row[level] !== "").map((level) => [CATALOG_FIELDS[level], row[level]])),
+        [CATALOG_FIELDS.assetClass]: row.assetClass,
     };
 }
 
@@ -252,13 +259,13 @@ async function main() {
         return finish(air, 1, "refused: this list was replaced");
     }
     const table = tables.find((t) => t.name === TABLE_NAME) ?? null;
-    const missing = table ? [NAME_FIELD, ...Object.values(ASSET_CATEGORY_FIELDS)].filter((name) => !table.fields.some((f) => f.name === name)) : ["the table"];
+    const missing = table ? [NAME_FIELD, ...Object.values(CATALOG_FIELDS)].filter((name) => !table.fields.some((f) => f.name === name)) : ["the table"];
     if (missing.length > 0) {
         log(`${TABLE_NAME} on base ${baseId} lacks ${missing.join(", ")} — run scripts/import/classify_asset_categories_514.mjs --apply first.`);
         return finish(air, 1, "the schema is not #514's");
     }
 
-    const fields = [NAME_FIELD, ...Object.values(ASSET_CATEGORY_FIELDS)];
+    const fields = [NAME_FIELD, ...Object.values(CATALOG_FIELDS)];
     const before = (await air.listRecords(table.id, fields)).map(categoryOf);
     const held = new Set(before.map(catalogPathKey));
     const named = new Set(rows.map(catalogPathKey));

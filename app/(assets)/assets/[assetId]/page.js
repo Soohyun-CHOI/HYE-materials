@@ -147,8 +147,8 @@ const ID_ON_PHONE = "font-id text-mobile-body-xs tracking-id tabular-nums text-f
  * history beside the record rail and its label (1f, 1g). A phone draws 1j: the top bar with
  * `More actions` and, once the heading has scrolled under it, the name; the title block; the
  * history; and the transition in a foot bar. **The line under the name is the id and the caption
- * since #519** — the id, the type, the category and the class at a desk, the id first as it has
- * been since #411; on a phone the id opens the title block over the name and the caption stands
+ * since #519** — the id, the type and the category at a desk, and the class too until #552, the
+ * id first as it has been since #411; on a phone the id opens the title block over the name and the caption stands
  * alone under it, where the top bar held the id until #538 — off the category row already read,
  * so it costs nothing (`CategoryCaption`). The job left that line with #519, as 1f draws it: every history
  * entry names its job, and for a reader on several jobs the breadcrumb does. What is

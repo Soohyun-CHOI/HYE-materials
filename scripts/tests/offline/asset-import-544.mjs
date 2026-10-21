@@ -57,10 +57,10 @@ function csv(rows, header = HEADER) {
     return Buffer.from(`﻿${[header, ...rows.map((row) => row.map(cell).join(","))].join("\n")}\n`, "utf8");
 }
 
-/** A catalog row as `lib/airtable/assetCategories.js` maps one. */
-function row(id, [level1, level2, level3, size = "", maker = "", partNumber = ""], { assetClass = "B", assets = [], discontinued = false } = {}) {
+/** A catalog row as `lib/airtable/assetCategories.js` maps one — with no class since #552. */
+function row(id, [level1, level2, level3, size = "", maker = "", partNumber = ""], { assets = [], discontinued = false } = {}) {
     const levels = { level1, level2, level3, size, maker, partNumber };
-    return { id, itemName: composeItemName(levels), assets, ...levels, assetClass, discontinued };
+    return { id, itemName: composeItemName(levels), assets, ...levels, discontinued };
 }
 
 const DRILL = ["Tool", "Power Tools", "Drill", "", "DeWalt", ""];
@@ -137,6 +137,13 @@ export function run({ check, assert, log }) {
     check("  the header ends on the source", HEADER.split(",").at(-1), "source");
     check("  the groups the run may add", GROUPS_THIS_RUN_MAY_ADD.map((g) => `${g.level1} > ${g.level2}`).join(" | "), "Tool > For Welders | Tool > Other Tools");
     check("  the highest sequence a day takes", HIGHEST_SEQUENCE, 999);
+    // THE LIST'S CLASS IS READ BY ITS PLACE AND DECIDES NOTHING SINCE #552: the column stays, so the
+    // list is still the list handed over, and a row carries it as `listClass` alone.
+    check(
+        "  its class column read by its place, as the list's own and not the catalog's (#552)",
+        `${HEADER.split(",")[7]} ${[...new Set(list.rows.map((r) => r.listClass))].sort().join("/")} ${list.rows.some((r) => "assetClass" in r)}`,
+        "class A/B false"
+    );
 
     // ── the list's refusals ──────────────────────────────────────────────────
     log("");
@@ -165,7 +172,12 @@ export function run({ check, assert, log }) {
     check("  no note", whole.notes.join(" | "), "");
     check("  the group to add", whole.groupsToCreate.map((g) => `${g.level1} > ${g.level2}`).join(" | "), "Tool > Other Tools");
     check("  each new path once, with every row naming it", whole.pathsToCreate.map(({ entry, sources }) => `${entry.level3}:${sources.join("+")}`).join(" | "), "Saw:A2+A3 | Ladder:A4");
-    check("  the part number onto the target, the rest of it as the target has it", whole.partsToAdd.map(({ category, entry }) => `${category.id}:${entry.maker}:${entry.partNumber}:${entry.assetClass}`).join(" | "), "recBand:DeWalt:DCS375:B");
+    check("  the part number onto the target, the rest of it as the target has it", whole.partsToAdd.map(({ category, entry }) => `${category.id}:${entry.maker}:${entry.partNumber}`).join(" | "), "recBand:DeWalt:DCS375");
+    check(
+        "  and no new path or part number carries a class (#552)",
+        [...whole.pathsToCreate.map(({ entry }) => entry), ...whole.partsToAdd.map(({ entry }) => entry)].some((entry) => "assetClass" in entry),
+        false
+    );
     check("  each row's catalog row and due", whole.rows.map(({ row: r, category, due }) => `${r.source}:${category?.id ?? "-"}:${due}`).join(" "), "A1:recDrill:3 A2:-:2 A3:-:4 A4:-:5 A5:recBand:1");
     check("  each row's job", whole.rows.map(({ job }) => job.id).join(" "), "recJob1 recJob1 recJob2 recJob2 recJob2");
     check("  the items due", whole.dueTotal, 15);
@@ -177,21 +189,30 @@ export function run({ check, assert, log }) {
     check("    existing with no row", problemsOf(withCatalog([base.catalog[1]])), "line 2 (A1): existing, and the catalog holds 0 row(s) on Tool > Power Tools > Drill > DeWalt");
     check("    existing on two rows, one in other case", problemsOf(withCatalog([...base.catalog, row("recDrill2", ["Tool", "power tools", "drill", "", "dewalt", ""])])), "line 2 (A1): existing, and the catalog holds 2 row(s) on Tool > Power Tools > Drill > DeWalt");
     check("    existing on a discontinued row", problemsOf(withCatalog([row("recDrill", DRILL, { discontinued: true }), base.catalog[1]])), "line 2 (A1): its row recDrill is not one a registration may pick (discontinued)");
-    check("    existing of another class is told and kept", plan(withCatalog([row("recDrill", DRILL, { assetClass: "A" }), base.catalog[1]]), NONE).notes.join(" | "), "line 2 (A1): the list says class B and the catalog's row is class A, which is kept");
+    const classedA1 = plan(smallBase({ list: readList(csv([[...SMALL[0].slice(0, 7), "A", ...SMALL[0].slice(8)], ...SMALL.slice(1)])).rows }), NONE);
+    check("    an existing row's class in the list decides nothing, and is told nothing (#552)", `${classedA1.problems.join(" | ")}|${classedA1.notes.join(" | ")}|${classedA1.rows[0].category?.id}`, "||recDrill");
     check("    a new path the catalog holds", problemsOf(withCatalog([...base.catalog, row("recSaw", SAW)])), 'line 3 (A2): new, and the catalog holds recSaw "Saw" on its path | line 4 (A3): new, and the catalog holds recSaw "Saw" on its path');
     const madeSaw = ledgered([ledgerOf([{ type: "catalog", id: "recSaw" }])]);
     const sawMade = plan(withCatalog([...base.catalog, row("recSaw", SAW)]), madeSaw);
     check("    a new path the ledger made is no problem", sawMade.problems.join(" | "), "");
     check("    and is the rows' catalog row, created no more", `${sawMade.rows[1].category?.id} ${sawMade.pathsToCreate.map(({ entry }) => entry.level3).join(",")}`, "recSaw Ladder");
     check("    an existing row the ledger made is a problem", problemsOf(smallBase(), ledgered([ledgerOf([{ type: "catalog", id: "recDrill" }])])), "line 2 (A1): existing, and its row recDrill is one this script made");
-    const twoClasses = smallBase({ list: readList(csv([SMALL[1], [...SMALL[2].slice(0, 7), "A", ...SMALL[2].slice(8)]])).rows });
-    check("    one new path in two classes", problemsOf(twoClasses), "line 3 (A3): class A, where A2 give the same new path class B");
-    const classC = smallBase({ list: readList(csv([[...SMALL[1].slice(0, 7), "C", ...SMALL[1].slice(8)]])).rows });
-    assert("    a new path the catalog's page would refuse is refused", /^A2: the catalog's page would refuse Saw {2}— Tool > Power Tools > Saw — assetClass: /.test(problemsOf(classC)));
+    const twoClasses = plan(smallBase({ list: readList(csv([SMALL[1], [...SMALL[2].slice(0, 7), "A", ...SMALL[2].slice(8)]])).rows }), NONE);
+    check(
+        "    one new path the list gives two classes is one path, refused nothing (#552)",
+        `${twoClasses.problems.join(" | ")}|${twoClasses.pathsToCreate.map(({ entry, sources }) => `${entry.level3}:${sources.join("+")}`).join(" | ")}`,
+        "|Saw:A2+A3"
+    );
+    const classC = plan(smallBase({ list: readList(csv([[...SMALL[1].slice(0, 7), "C", ...SMALL[1].slice(8)]])).rows }), NONE);
+    check("    and a class outside the two is no refusal either", classC.problems.join(" | "), "");
+    assert(
+        "    a new path the catalog's page would refuse is refused",
+        /(^| \| )A2: the catalog's page would refuse Saw {2}— Tools > Power Tools > Saw — level1: Choose a type\.$/.test(problemsOf(smallBase({ list: readList(csv([[SMALL[1][0], "Tools", ...SMALL[1].slice(2)]])).rows })))
+    );
     check("    an add part target with an item on it",problemsOf(withCatalog([base.catalog[0], row("recBand", BAND_SAW, { assets: ["recX"] })])), "line 6 (A5): add part, and 1 item(s) stand on its target recBand, which the part number would rename");
-    const otherClass = plan(withCatalog([base.catalog[0], row("recBand", ["Tool", "Power Tools", "band saw", "", "DeWalt", ""], { assetClass: "A" })]), NONE);
-    check("    an add part keeps its target's spelling and class", otherClass.partsToAdd.map(({ entry }) => `${entry.level3}:${entry.assetClass}:${entry.partNumber}`).join(" | "), "band saw:A:DCS375");
-    check("    and tells the class", otherClass.notes.join(" | "), "line 6 (A5): the list says class B and the target is class A, which is kept");
+    const otherSpelling = plan(withCatalog([base.catalog[0], row("recBand", ["Tool", "Power Tools", "band saw", "", "DeWalt", ""])]), NONE);
+    check("    an add part keeps its target's spelling", otherSpelling.partsToAdd.map(({ entry }) => `${entry.level3}:${entry.partNumber}`).join(" | "), "band saw:DCS375");
+    check("    and tells nothing of a class (#552)", otherSpelling.notes.join(" | "), "");
     check("    an add part with no target",problemsOf(withCatalog([base.catalog[0]])), "line 6 (A5): add part, and the catalog holds 0 row(s) on Tool > Power Tools > Band Saw > DeWalt, its target");
     const partHeld = withCatalog([base.catalog[0], row("recBand", ["Tool", "Power Tools", "Band Saw", "", "DeWalt", "DCS375"])]);
     check("    an add part whose path is held already", problemsOf(partHeld), "line 6 (A5): add part, and the catalog already holds recBand on Tool > Power Tools > Band Saw > DeWalt > DCS375");
@@ -259,8 +280,7 @@ export function run({ check, assert, log }) {
         if (r.catalog === HOLDS.EXISTING) paths.set(catalogPathKey(r), [r.level1, r.level2, r.level3, r.size, r.maker, r.partNumber]);
         if (r.catalog === HOLDS.ADD_PART) paths.set(catalogPathKey({ ...r, partNumber: "" }), [r.level1, r.level2, r.level3, r.size, r.maker, ""]);
     }
-    const classOf = new Map(list.rows.map((r) => [catalogPathKey(r), r.assetClass]));
-    const catalog = [...paths.values()].map((levels, i) => row(`recC${i}`, levels, { assetClass: classOf.get(catalogPathKey(row("", levels))) ?? "B" }));
+    const catalog = [...paths.values()].map((levels, i) => row(`recC${i}`, levels));
     const pairs = new Map(list.rows.map((r) => [`${r.level1}\n${r.level2}`, { level1: r.level1, level2: r.level2 }]));
     const groups = [...pairs.values()].filter((g) => !GROUPS_THIS_RUN_MAY_ADD.some((pair) => pair.level1 === g.level1 && pair.level2 === g.level2)).map((g, i) => ({ id: `recG${i}`, ...g }));
     const siteJobs = ["25-USA-13", "26-USA-12", "23-USA-09"].map((jobCode, i) => ({ id: `recSite${i}`, jobCode, assets: [] }));

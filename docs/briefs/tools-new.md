@@ -16,8 +16,8 @@ bought (#507).** The office keeps the catalog of tools and equipment, on its
 own screen (`asset-catalog.md`, #527) and in Airtable — every kind the company
 buys, named by a type (`Equipment` or
 `Tool`), a category (a field of work, such as machining or welding) and a name,
-then a size, a maker and a part number where those apply (#514), and marked
-with a class — and this dialog never adds to it: it picks one of its rows and
+then a size, a maker and a part number where those apply (#514) — and this
+dialog never adds to it: it picks one of its rows and
 creates one `Assets` row per unit, each with its own minted id. A kind missing
 from the catalog is the office's to add, and **a kind the office has marked
 discontinued is not offered (#527)** — the items already under it stay where
@@ -132,11 +132,10 @@ line's other end. It names what it will add by its count — `Add 1 item`, `Add
 5 items` — and says `Add items` while the count is one a submission would
 refuse (#469).
 
-**The class is not said here (1b, #520).** The office sets it in the catalog,
-`A` for an item that matters more, usually a dearer one, and `B` otherwise,
-and no act reads it; a category's own screen and an asset's say it in their
-caption. The second step stated it under the levels from #507 to #520. A
-design may not make it a choice here.
+**No class is said here, and none is the catalog's (#552).** A catalog row
+carried one, `A` for an item that mattered more and `B` otherwise, from #507
+until the office stopped keeping it; no act read it. The second step stated it
+under the levels from #507 to #520, and 1b drew none from then on.
 
 ## What it carries only sometimes
 
@@ -222,7 +221,7 @@ chosen and typed stays with it** — the name, its size and model, the count and
 because what the sentence asks for is the same submit again.
 
 **When the catalog no longer offers the row picked (#507):** the office has
-emptied one of its levels or its class, marked it discontinued (#527), or a
+emptied one of its levels, marked it discontinued (#527), or a
 second row names the same path, since the page was drawn. The submission is refused whole, with one sentence on
 the line above the actions — `That item isn't available any more.` — and the
 page is drawn again under the dialog, so the dialog's names, sizes and models
@@ -263,15 +262,15 @@ renders may say that. `create` stays where it names something else: the
 creation date where a registration lands.
 
 **The catalog's words are the same on every screen that shows them (#507,
-#514):** `Type`, `Category`, `Name`, `Size`, `Maker`, `Part #` and `Class`
-here, the category beside each name on the list — and since #520 the search's
+#514):** `Type`, `Category`, `Name`, `Size`, `Maker` and `Part #` here, the category beside each name on the list — and since #520 the search's
 chips, which the list's band draws too; the search said the band's
 `Search items` until #547 and says `Name, maker or part #` since, finding an
 item by its maker and its part number as the band does not — and the line
 under a category's
-name on its own screen and on an asset's — `Tool · Power tools · Class B` (#519;
+name on its own screen and on an asset's — `Tool · Power tools` (#519;
 the list's `Class`, `Type` and `Category` columns and a line saying the class and
-the whole path, `Class A · Tool > DEMO Machining > … > GA4570`, until then). An item's name
+the whole path, `Class A · Tool > DEMO Machining > … > GA4570`, until then, and
+`· Class B` after the category until #552). An item's name
 is its name and its size, then a comma and its maker, then its part number in
 parentheses — `DEMO Angle Grinder 4-1/2", DEMO Makita (GA4570)`, `DEMO Angle
 Grinder 4-1/2", DEMO Bosch`, `DEMO Drill Press` — each part left out with what

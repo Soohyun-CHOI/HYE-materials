@@ -374,8 +374,8 @@ export function run({ check, assert, log }) {
     // EACH ROW CARRIES ITS KIND'S CATEGORY AND TYPE (#507, #514), each under its level's name,
     // and two kinds of one name are told apart by the category and then the type, so a page
     // reads the same on every read. The category stands beside the name (1a, #519); the class
-    // rode here while the list drew it as a column, from #507 to #519, and rides again since
-    // #520 for the band's filter by it.
+    // rode here while the list drew it as a column, from #507 to #519, and again from #520 for
+    // the band's filter by it, until #552 took it off the catalog.
     const kinds = summarizeAssetCategories(
         [
             { id: "recLaserT", itemName: "Laser Level", assetClass: "B", level1: "Tool", level2: "Measuring", assets: [] },
@@ -390,7 +390,7 @@ export function run({ check, assert, log }) {
         kinds.map((r) => `${r.id} ${r.level1}/${r.level2}`).join(" | "),
         "recLaserE Equipment/Measuring | recLaserT Tool/Measuring | recKnifeC Tool/Carpentry | recKnifeX Tool/Cutting"
     );
-    check("  and its class, for the band (#520)", kinds.map((r) => r.assetClass).join(","), "A,B,B,B");
+    check("  and no class, though the kind it is read off carries one (#552)", kinds.map((r) => ("assetClass" in r ? r.assetClass : "none")).join(","), "none,none,none,none");
     check("  and a kind without them says nothing for them", `${rowFor(rows, "angle grinder").level1}|${rowFor(rows, "angle grinder").level2}|`, "||");
     // THE LIST'S COLUMNS, OFF ITS SOURCE (#519): the name, then a count per status (1a). The
     // class, the type and the category were columns between them from #507 and #514.
@@ -1186,7 +1186,8 @@ export function run({ check, assert, log }) {
     );
     // WHAT THE CATEGORY AND THE CATALOG ARE (#507), off their declarations, since `category: opened`
     // above reads alike whatever `opened` is: the row the page read, by the id the action
-    // admits and the class the second step says, and the catalog the reading admits it from —
+    // admits and the name its line says — the class it said until #520, and carried unread until
+    // #552 — and the catalog the reading admits it from —
     // that one row, while the catalog offers it, as `registrationCatalog` hands a dialog a row,
     // so the second step starts on its levels (#514).
     const handedOn = ({ ast, source }) => {
@@ -1200,7 +1201,7 @@ export function run({ check, assert, log }) {
     check(
         "  the tool is the row the page read, and the catalog that row while the catalog offers it",
         handedOn(parseFile(CATEGORY_SCREEN)),
-        "{ id: category.id, itemName: category.itemName, assetClass: category.assetClass } | registrationCatalog([category])"
+        "{ id: category.id, itemName: category.itemName } | registrationCatalog([category])"
     );
     check(
         "  and a page handing a row of its own making, and the whole table as its catalog, is seen (anti-vacuity)",
@@ -2086,10 +2087,16 @@ export function run({ check, assert, log }) {
     );
     // A LIST ON FILL SCROLLS IN A REGION OF ITS OWN (0i, 1l, #538): the bar, the head and the band
     // outside the lane and holding still, the column head outside it too and laid over its first
-    // 36, the lane scrolling up and down only, its track from under the column head to over the
-    // pager, and the pager after the lane with the selection bar centered off the lane's 8.
+    // 36, its track from under the column head to over the pager, and the pager after the lane.
+    // SINCE #552 THE LANE SCROLLS SIDEWAYS TOO (0b Row, 1l of 2026-10-21): the column head in a
+    // box of its own that hides what overflows it and takes the lane's offset as the lane moves,
+    // the table marked while the lane stands scrolled from its start, and — while the rows run
+    // past the lane — the pager under the lane rather than over its foot, the rows ending on no
+    // room for it and the track running to the lane's foot. No selection bar rides over the pager
+    // since #552 took away `Set class`.
     const fillFrame = (source) => {
         const fn = source.slice(source.indexOf("export function ListFrameFill"));
+        const body = fn.slice(0, fn.indexOf("\n}\n"));
         const lane = fn.indexOf("ref={laneRef}");
         const pager = fn.indexOf("PAGER_OVER_ROWS");
         const beforeLane = (pattern) => {
@@ -2098,34 +2105,41 @@ export function run({ check, assert, log }) {
         };
         return [
             beforeLane(/\{top && <div className="shrink-0">\{top\}<\/div>\}\s*<div className="shrink-0">\{header\}<\/div>\s*\{band && <div className=\{BAND_FILL\}>\{band\}<\/div>\}/),
-            beforeLane(/<div role="rowgroup" className=\{`shrink-0 \$\{empty \? "-mb-px" : HEAD_OVER_LANE\}`\}>\s*\{columnHead\}\s*<\/div>/),
+            beforeLane(/<div ref=\{headRef\} role="rowgroup" className=\{`shrink-0 overflow-x-hidden \$\{empty \? "-mb-px" : HEAD_OVER_LANE\}`\}>\s*\{columnHead\}\s*<\/div>/),
             /const HEAD_OVER_LANE = "-mb-\[calc\(var\(--height-table-header\)\+1px\)\]";/.test(source) && /<div aria-hidden="true" className="h-table-header" \/>\s*\{children\}/.test(fn),
-            /className=\{`min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain \[scrollbar-gutter:stable\] \$\{SCROLL_LANE\} \$\{TRACK_UNDER_HEAD\}/.test(fn),
+            /className=\{`min-h-0 flex-1 overflow-x-auto overflow-y-auto overscroll-contain \[scrollbar-gutter:stable\] \$\{SCROLL_LANE\} \$\{TRACK_UNDER_HEAD\}/.test(fn),
             /const TRACK_UNDER_HEAD = "\[&::-webkit-scrollbar-track\]:mt-\(--height-table-header\) scroll-pt-\(--height-table-header\)";/.test(source) &&
-                /footer \? `\$\{TRACK_OVER_PAGER\} \$\{overlayShown \? KEEP_CLEAR_OF_BAR : KEEP_CLEAR_OF_PAGER\}`/.test(fn),
-            lane >= 0 && pager > lane && /<div className="relative mr-scrollbar-gutter">\{overlay\}<\/div>/.test(fn.slice(pager)),
+                /footer && !sideways \? `\$\{TRACK_OVER_PAGER\} \$\{KEEP_CLEAR_OF_PAGER\}` : ""/.test(fn),
+            /setSideways\(lane\.scrollWidth > lane\.clientWidth\)/.test(fn) && /setScrolledSideways\(lane\.scrollLeft > 0\)/.test(fn) && /headRef\.current\.scrollLeft = lane\.scrollLeft/.test(fn),
+            /data-scrolled-sideways=\{scrolledSideways && laneShown \? "" : undefined\}/.test(fn) && /className=\{`group\/fill /.test(fn),
+            lane >= 0 && pager > lane && /\$\{sideways \? "" : PAGER_OVER_ROWS\}/.test(fn) && /\{footer && !sideways && <div aria-hidden="true" className=\{END_ROOM\} \/>\}/.test(fn),
+            !/\boverlay/i.test(body),
             /const BAND_FILL = `\$\{LIST_FILL\} flex shrink-0 items-center gap-gap pb-control-band-inset-y`;/.test(source),
         ].join(" ");
     };
     check(
-        "  a list on Fill: the head and the band still, the column head over the lane's top, the lane up and down only, its track between the two, the pager after it",
+        "  a list on Fill: the head and the band still, the column head over the lane's top and moved with it, the lane both ways, its track between the two, the pager over its foot or under it",
         fillFrame(frameWhole),
-        "true true true true true true true"
+        "true true true true true true true true true true"
     );
     check(
-        "  and a Fill frame scrolling its head with the rows, as 1d's does, is seen (anti-vacuity)",
+        "  and #538's Fill frame, the lane up and down only and a selection bar over the pager, is seen (anti-vacuity)",
         fillFrame(
-            "export function ListFrameFill() { return <div><div ref={laneRef} className={`overflow-auto ${SCROLL_LANE}`}>{top}{header}<div className={BAND}>{band}</div>{columnHead}{children}</div><div className={PAGER_OVER_ROWS}>{overlay}</div></div>; }"
+            'const BAND_FILL = `${LIST_FILL} flex shrink-0 items-center gap-gap pb-control-band-inset-y`;\n' +
+                "export function ListFrameFill({ overlay }) { return <div>{top && <div className=\"shrink-0\">{top}</div>}<div className=\"shrink-0\">{header}</div>{band && <div className={BAND_FILL}>{band}</div>}" +
+                '<div role="rowgroup" className={`shrink-0 ${empty ? "-mb-px" : HEAD_OVER_LANE}`}>{columnHead}</div>' +
+                "<div ref={laneRef} className={`min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable] ${SCROLL_LANE} ${TRACK_UNDER_HEAD}`}>{children}</div>" +
+                "<div className={`relative z-10 shrink-0 ${PAGER_OVER_ROWS}`}><div className=\"relative mr-scrollbar-gutter\">{overlay}</div></div></div>; }\n}\n"
         ),
-        "false false false false false false false"
+        "true false false false false false false false false true"
     );
     // 1l DRAWS ITS ROWS ON FILL: Fill's column head and rows, the head and the pager on the
     // Margin, and no name handed to the bar, since nothing scrolls the head away under it.
     const catalogOnFill = (source) =>
         [
             /<ListFrameFill\b/.test(source) && !/<ListFrame\b/.test(source),
-            /className=\{`\$\{TABLE_HEAD_FILL\} \$\{COLUMNS\}`\}/.test(source),
-            /className=\{`\$\{TABLE_ROW_FILL\} \$\{COLUMNS\}/.test(source),
+            /className=\{`\$\{TABLE_HEAD_FILL\} \$\{COLUMNS\} \$\{LEAST\}`\}/.test(source),
+            /\$\{TABLE_ROW_FILL\} \$\{COLUMNS\} \$\{LEAST\}/.test(source),
             /<ListHeader\b[^>]*\bfill\b/.test(source) && /<Pager\s+fill\b/.test(source),
             !/<Breadcrumb[^>]*\btitle=/.test(source),
         ].join(" ");
@@ -2207,13 +2221,14 @@ export function run({ check, assert, log }) {
         }),
         "false false false false false"
     );
-    // THE CAPTION: the type, the category and the class (1d, 1f, 1j), the asset's id first at a
-    // desk, and the path the caption said from #507 nowhere in it.
+    // THE CAPTION: the type and the category (1d, 1f, 1j), the asset's id first at a desk, the
+    // path the caption said from #507 nowhere in it, and since #552 no class after the two.
     const captionSource = parseFile("app/(assets)/CategoryCaption.js").source;
     check(
-        "  the caption says the type, the category and the class, after what leads it, and no path",
+        "  the caption says the type and the category, after what leads it, and no path and no class",
         [
-            /const parts = \[\s*lead,\s*category\?\.level1 \? value\(category\.level1\) : null,\s*category\?\.level2 \? value\(category\.level2\) : null,\s*assetClass/.test(captionSource),
+            /const parts = \[\s*lead,\s*category\?\.level1 \? value\(category\.level1\) : null,\s*category\?\.level2 \? value\(category\.level2\) : null\s*\]\.filter\(Boolean\)/.test(captionSource) &&
+                !/assetClass|classOf/.test(captionSource),
             !/pathOf/.test(captionSource),
             /text-foreground-default tabular-nums max-sm:text-foreground-muted/.test(captionSource),
             /<CategoryCaption\s+category=\{category\}\s+lead=\{<span className=\{ID_IN_TEXT\}>\{asset\.assetId\}<\/span>\}/.test(assetSource),
@@ -2375,9 +2390,10 @@ export function run({ check, assert, log }) {
 
     // ── #520: the category list's band ──────────────────────────────────────
     log("");
-    log("the category list's band filters by type, category and class and searches the rows on the job (#520):");
+    log("the category list's band filters by type and category and searches the rows on the job (#520, #552):");
     // Five rows on one job: one category under two types, spelled two ways, and one name a
-    // search reaches by two words.
+    // search reaches by two words. Each still carries a class, as a row read before #552 would,
+    // which the band reads past.
     const BAND = [
         { id: "r1", itemName: "TIG Welder, Lincoln Electric (TIG 205)", level1: "Equipment", level2: "Welding", assetClass: "A" },
         { id: "r2", itemName: "Band Saw, Makita (2107FW)", level1: "Equipment", level2: "Machining", assetClass: "A" },
@@ -2389,7 +2405,7 @@ export function run({ check, assert, log }) {
     const offered = (reading, facet) => reading.facets[facet].map((o) => `${o.value}${o.chosen ? "*" : ""} ${o.count}`).join(" | ");
     const unbanded = filterAssetCategoryRows(BAND, {});
     check("nothing held is every row, narrowing nothing", `${ids(unbanded)} ${unbanded.narrowed}`, "r1,r2,r3,r4,r5 false");
-    check("  each facet offers what the rows hold, counted, in order", ASSET_LIST_FACETS.map((f) => offered(unbanded, f)).join(" / "), "Equipment 2 | Tool 3 / Machining 2 | Power Tool 2 | Welding 1 / A 3 | B 2");
+    check("  each facet offers what the rows hold, counted, in order", ASSET_LIST_FACETS.map((f) => offered(unbanded, f)).join(" / "), "Equipment 2 | Tool 3 / Machining 2 | Power Tool 2 | Welding 1");
     const onTools = filterAssetCategoryRows(BAND, { level1: ["Tool"] });
     check("a type narrows to its rows", `${ids(onTools)} ${onTools.narrowed}`, "r3,r4,r5 true");
     check("  its own facet still counts each type on its own", offered(onTools, "level1"), "Equipment 2 | Tool* 3");
@@ -2397,32 +2413,41 @@ export function run({ check, assert, log }) {
     const stale = filterAssetCategoryRows(BAND, { level1: ["Tool"], level2: ["Welding"] });
     check("a category under no type chosen narrows nothing, and is not held", `${ids(stale)} ${stale.held.level2.length}`, "r3,r4,r5 0");
     check("several values on one facet are any of them", ids(filterAssetCategoryRows(BAND, { level2: ["Power Tool", "welding"] })), "r1,r3,r5");
-    check("  facets compose with and", ids(filterAssetCategoryRows(BAND, { level1: ["Tool"], assetClass: ["A"] })), "r5");
+    check("  facets compose with and", ids(filterAssetCategoryRows(BAND, { level1: ["Tool"], level2: ["Power Tool"] })), "r3,r5");
+    const classed = filterAssetCategoryRows(BAND, { level1: ["Tool"], assetClass: ["A"] });
+    check(
+        "  and a class asked for narrows nothing and is not held, the band's facets the type and the category alone (#552)",
+        `${ids(classed)} ${JSON.stringify(classed.held)} ${Object.keys(classed.facets).join(",")}`,
+        'r3,r4,r5 {"q":"","level1":["Tool"],"level2":[]} level1,level2'
+    );
     check("a search takes every word, across the name", ids(filterAssetCategoryRows(BAND, { q: "band  DEWALT" })), "r3");
     check("  the category", ids(filterAssetCategoryRows(BAND, { q: "power" })), "r3,r5");
     check("  and the type", ids(filterAssetCategoryRows(BAND, { q: "equipment" })), "r1,r2");
     const searched = filterAssetCategoryRows(BAND, { q: "band" });
-    check("  and the counts are under the search", `${offered(searched, "level1")} / ${offered(searched, "assetClass")}`, "Equipment 1 | Tool 1 / A 1 | B 1");
+    check("  and the counts are under the search", `${offered(searched, "level1")} / ${offered(searched, "level2")}`, "Equipment 1 | Tool 1 / Machining 1 | Power Tool 1 | Welding 0");
     check("  a search alone narrows, and spaces alone do not", `${searched.narrowed} ${filterAssetCategoryRows(BAND, { q: "   " }).narrowed}`, "true false");
     check("a value no row holds is no choice", `${ids(filterAssetCategoryRows(BAND, { level1: ["Vehicle"] }))} ${filterAssetCategoryRows(BAND, { level1: ["Vehicle"] }).narrowed}`, "r1,r2,r3,r4,r5 false");
     check(
         "what the band holds is the values taken, in their spelling, and the search as typed",
-        JSON.stringify(filterAssetCategoryRows(BAND, { q: " saw ", level1: ["tool"], assetClass: ["b", "A"] }).held),
-        JSON.stringify({ q: " saw ", level1: ["Tool"], level2: [], assetClass: ["A", "B"] })
+        JSON.stringify(filterAssetCategoryRows(BAND, { q: " saw ", level1: ["tool"], level2: ["power tool"] }).held),
+        JSON.stringify({ q: " saw ", level1: ["Tool"], level2: ["Power Tool"] })
     );
     check(
-        "the address is read under the chips' words, each value once",
+        "the address is read under the chips' words, each value once, and a class left on it is read past (#552)",
         JSON.stringify(readAssetListFilters(new URLSearchParams("q=tig&type=Tool&type=Tool&category=%20Power%20%20Tool&class=A&job=recX&page=2"))),
-        JSON.stringify({ q: "tig", level1: ["Tool"], level2: ["Power Tool"], assetClass: ["A"] })
+        JSON.stringify({ q: "tig", level1: ["Tool"], level2: ["Power Tool"] })
     );
-    check("  and nothing in it reads as nothing", JSON.stringify(readAssetListFilters(new URLSearchParams(""))), JSON.stringify({ q: "", level1: [], level2: [], assetClass: [] }));
+    check("  and nothing in it reads as nothing", JSON.stringify(readAssetListFilters(new URLSearchParams(""))), JSON.stringify({ q: "", level1: [], level2: [] }));
     const emptiedSays = (reading) => {
         const words = emptiedListWords(reading);
         return `${words.sentence} | ${words.typed} | ${words.clear} ${words.clearsAll}`;
     };
     check("a search that empties the list names what was typed, and clears the search alone", emptiedSays(filterAssetCategoryRows(BAND, { q: " zzz  " })), "No items match | zzz | Clear search false");
     check("  with a chip held too, everything", emptiedSays(filterAssetCategoryRows(BAND, { q: "zzz", level1: ["Tool"] })), "No items match | zzz | Clear all true");
-    check("  and chips alone say these filters", emptiedSays(filterAssetCategoryRows(BAND, { level1: ["Equipment"], assetClass: ["B"] })), "No items match these filters | null | Clear all true");
+    // Chips alone empty a list only through a category offered with nothing under it, the
+    // catalog's (#527): a type and a category the rows hold always leave the rows holding both.
+    const chipsAlone = filterAssetCategoryRows(BAND, { level2: ["Cutting"] }, { offers: [{ level1: "Tool", level2: "Cutting" }] });
+    check("  and chips alone say these filters", `${chipsAlone.rows.length} | ${emptiedSays(chipsAlone)}`, "0 | No items match these filters | null | Clear all true");
     check(
         "the band's words: the search, each chip's own word and its clear, and the two sentences",
         [
@@ -2433,7 +2458,12 @@ export function run({ check, assert, log }) {
             ASSET_LIST_COPY.noneMatchFilters,
             ASSET_LIST_COPY.clearAll,
         ].join(" | "),
-        "Search items | Clear search | Type: Clear type filter, Category: Clear category filter, Class: Clear class filter | No items match | No items match these filters | Clear all"
+        "Search items | Clear search | Type: Clear type filter, Category: Clear category filter | No items match | No items match these filters | Clear all"
+    );
+    check(
+        "  a chip's word and its clear for each facet and for no other, the class's gone with its chip (#552)",
+        `${Object.keys(ASSET_LIST_COPY.facetLabel).join(" ")} | ${Object.keys(ASSET_LIST_COPY.clearFacet).join(" ")}`,
+        "level1 level2 | level1 level2"
     );
 
     // WHERE THE BAND LIVES, off the sources: the list reads it off the address through the one

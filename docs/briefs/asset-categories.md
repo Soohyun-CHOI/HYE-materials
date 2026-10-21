@@ -100,9 +100,10 @@ not what they may see.
 
 **action.** Under the head, a band of controls held at the top with it (1a,
 0i): a search, `Search items`, over each row's name, its category and its type
-— every word typed must be in one of them — and three chips, `Type`, `Category`
-and `Class`, each listing the values the job's rows hold with how many rows
-each would leave, several taken at once. A chip holding one value says it,
+— every word typed must be in one of them — and two chips, `Type` and
+`Category`, each listing the values the job's rows hold with how many rows
+each would leave, several taken at once. A third, `Class`, went with the class
+in #552, and an address still naming one reads as naming nothing. A chip holding one value says it,
 `Category Power tools`, and one holding several says how many, `2 selected`,
 each with a × that empties it. The categories offered are those under the
 types taken. The band narrows rows already in the browser, so nothing it does
@@ -126,8 +127,9 @@ and size apart, and a design must give it the room.
 **evidence.** Beside each name, its category, the catalog's (#507, #514) —
 `Power tools`, in a lighter ink, giving its room up before the name does (1a,
 #519). The type and the class stood beside it as columns of their own from #507
-and #514; the band's chips filter by them since #520, and a category's own
-screen says all three under its name.
+and #514; the band's chips filter by the type since #520, and a category's own
+screen says the type and the category under its name. The class is no longer
+the catalog's (#552).
 
 **verdict.** Four counts on every row: how many of that item are
 `In stock`, how many are `Out`, how many are `In repair` — away at their

@@ -1106,7 +1106,7 @@ const CHOICE_LOOK = {
 /**
  * 0f's segmented row (1l, #527) — "a choice is the bordered list with its chevron, or a
  * segmented row; which of the two is a design call" (0l), and 1l calls it for the catalog's
- * type and class. A white track on an Edge border, 36 tall, 2 inside, at the Group radius, its
+ * type, and until #552 its class. A white track on an Edge border, 36 tall, 2 inside, at the Group radius, its
  * options sharing its width, each at 14 and 500 with 6 either side; the chosen one a pill on the
  * Face at the Control radius with its word in Accent, the rest at Ink 3, lifting to Ink under
  * the pointer. A new choice slides the pill across, at once with reduced motion. A field that

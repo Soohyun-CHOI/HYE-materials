@@ -291,30 +291,44 @@ export function SelectionBar({ shown, label, count, notOnPage, words, clearLabel
  * so the thumb passes under neither. The head keeps the Sticky ground throughout, which over the
  * lane's empty top is plain white, as 1l draws it until rows pass beneath.
  *
- * THE LANE SCROLLS UP AND DOWN AND NEVER SIDEWAYS, AS 1l DRAWS IT. With the head outside the
- * lane a sideways scroll would move the rows under a head that stays, so a window too narrow for
- * the catalog's columns cuts them at the lane's edge; the name's column gives way first, since
- * it is the one that takes what the others leave. Until #538 the lane scrolled sideways.
+ * A LANE NARROWER THAN THE TABLE AT ITS LEAST SCROLLS IT SIDEWAYS, THE COLUMN HEAD WITH IT (0b
+ * Row, 1l since 2026-10-21, #552): "so no column is cut; the pager then sits below the region,
+ * clear of the sideways bar". The table's least width is its rows' own (`min-width`), so the
+ * frame asks the lane whether the rows run past it (`sideways`) rather than holding a figure.
+ * The head stands in a box of its own that hides what overflows it and is moved to the lane's
+ * offset on every scroll, so the two never part; while the lane stands scrolled from its start
+ * the table is marked `data-scrolled-sideways`, which the column a table holds at its start
+ * reads for its edge. From #538 until then the lane scrolled up and down only and a narrow
+ * window cut the columns at its edge, and before #538 it scrolled sideways under no head.
  *
- * WHAT IT SHARES WITH `ListFrame`: the pager pinned over the lane's foot, its ground saying
- * whether rows run beneath (`rowsRunBeneath`), the rows ending on its height and the selection
- * bar's, and focus scrolling clear of both. The selection bar stands centered on the rows, the
- * lane left out, as 1l centers it. `label` names the table, whose head row and rows the frame
- * holds in two parts; the catalog's dialogs stand outside the frame.
+ * WHAT IT SHARES WITH `ListFrame`: the pager pinned over the lane's foot — below it while the
+ * lane scrolls sideways — its ground saying whether rows run beneath (`rowsRunBeneath`), the rows
+ * ending on its height while it stands over them, and focus scrolling clear of it. `label` names
+ * the table, whose head row and rows the frame holds in two parts; the catalog's dialogs stand
+ * outside the frame. It held the catalog's selection bar over the pager from #527 until #552
+ * took away `Set class`, the one act a selection there was for.
  *
  * `empty` IS WHAT A LIST THE BAND EMPTIED SAYS IN THE ROWS' PLACE, under the column head and
  * outside the table, since it is no row; the lane is not drawn while it stands.
  */
-export function ListFrameFill({ top, header, band, columnHead, label, footer, overlay, overlayShown = false, empty, children }) {
+export function ListFrameFill({ top, header, band, columnHead, label, footer, empty, children }) {
     const laneRef = useRef(null);
+    const headRef = useRef(null);
     const [beneath, setBeneath] = useState(false);
+    const [sideways, setSideways] = useState(false);
+    const [scrolledSideways, setScrolledSideways] = useState(false);
     // The lane comes back when the band stops emptying the list, and is measured anew.
     const laneShown = !empty;
 
     useEffect(() => {
         const lane = laneRef.current;
         if (!lane || !laneShown) return undefined;
-        const measure = () => setBeneath(rowsRunBeneath(lane));
+        const measure = () => {
+            setBeneath(rowsRunBeneath(lane));
+            setSideways(lane.scrollWidth > lane.clientWidth);
+            setScrolledSideways(lane.scrollLeft > 0);
+            if (headRef.current) headRef.current.scrollLeft = lane.scrollLeft;
+        };
         measure();
         lane.addEventListener("scroll", measure, { passive: true });
         const resized = new ResizeObserver(measure);
@@ -331,28 +345,32 @@ export function ListFrameFill({ top, header, band, columnHead, label, footer, ov
             {top && <div className="shrink-0">{top}</div>}
             <div className="shrink-0">{header}</div>
             {band && <div className={BAND_FILL}>{band}</div>}
-            <div role="table" aria-label={label} className={`flex min-h-0 flex-col ${empty ? "shrink-0" : "flex-1"}`}>
-                <div role="rowgroup" className={`shrink-0 ${empty ? "-mb-px" : HEAD_OVER_LANE}`}>
+            <div
+                role="table"
+                aria-label={label}
+                data-scrolled-sideways={scrolledSideways && laneShown ? "" : undefined}
+                className={`group/fill flex min-h-0 flex-col ${empty ? "shrink-0" : "flex-1"}`}
+            >
+                <div ref={headRef} role="rowgroup" className={`shrink-0 overflow-x-hidden ${empty ? "-mb-px" : HEAD_OVER_LANE}`}>
                     {columnHead}
                 </div>
                 {laneShown && (
                     <div
                         ref={laneRef}
                         role="rowgroup"
-                        className={`min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable] ${SCROLL_LANE} ${TRACK_UNDER_HEAD} ${
-                            footer ? `${TRACK_OVER_PAGER} ${overlayShown ? KEEP_CLEAR_OF_BAR : KEEP_CLEAR_OF_PAGER}` : ""
+                        className={`min-h-0 flex-1 overflow-x-auto overflow-y-auto overscroll-contain [scrollbar-gutter:stable] ${SCROLL_LANE} ${TRACK_UNDER_HEAD} ${
+                            footer && !sideways ? `${TRACK_OVER_PAGER} ${KEEP_CLEAR_OF_PAGER}` : ""
                         }`}
                     >
                         <div aria-hidden="true" className="h-table-header" />
                         {children}
-                        {footer && <div aria-hidden="true" className={overlayShown ? END_ROOM_WITH_BAR : END_ROOM} />}
+                        {footer && !sideways && <div aria-hidden="true" className={END_ROOM} />}
                     </div>
                 )}
             </div>
             {empty && <div className={`min-h-0 flex-1 overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable] ${SCROLL_LANE}`}>{empty}</div>}
             {footer && (
-                <div className={`relative z-10 shrink-0 ${PAGER_OVER_ROWS}`}>
-                    <div className="relative mr-scrollbar-gutter">{overlay}</div>
+                <div className={`relative z-10 shrink-0 ${sideways ? "" : PAGER_OVER_ROWS}`}>
                     <div className={`border-t ${beneath ? "border-divider-strong bg-background-translucent backdrop-blur-sm" : "border-transparent bg-white"}`}>
                         {footer}
                     </div>

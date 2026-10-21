@@ -26,8 +26,8 @@ import JobChoice from "../JobChoice";
 // written here and `offline/asset-list-view.mjs` holds it to the vocabulary's length. The
 // category stands in the name's cell, 20 after the name at Ink 3, and gives its room up first,
 // so a long name is cut last. From #507 to #519 the class, the type and the category were
-// columns of their own between the name and the counts; the band's chips filter by all three
-// since #520, and the category page's caption says them.
+// columns of their own between the name and the counts; the band's chips filter by the type and
+// the category since #520, the class too until #552, and the category page's caption says them.
 const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(4,var(--width-table-count))]";
 
 /**

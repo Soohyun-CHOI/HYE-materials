@@ -184,6 +184,13 @@ const RETIRED = {
     "Tool Log": "#513 — the table is `Asset Log`, and so are the links naming it on `Assets`, `Jobs` and `Users`",
     "Tool Log ID": "#513 — the field is `Asset Log ID`",
     "Tool Item": "#513 — the `Asset Log` link is `Asset`",
+    // #552 — A FIELD DELETED WITH NOTHING IN ITS PLACE, #334's kind: `Asset Categories."Class"`,
+    // `A` or `B` from #507, which no act read and the office stopped keeping. Its values are in
+    // `scripts/import/keep_asset_class_552.mjs`' ledgers, and that script's plan names the field
+    // for it, the catalog's check and the earlier catalog scripts — all under `scripts/`, which
+    // this file does not read. Under `app/` and `lib/` the name addresses nothing, whether the
+    // hand step has taken it off a base yet or not.
+    Class: "#552 — the class is off the catalog; its values are kept in keep_asset_class_552's ledgers",
 };
 
 /**

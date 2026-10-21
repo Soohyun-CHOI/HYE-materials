@@ -72,8 +72,15 @@ import { refusesProtectedWrite } from "../protectedTables.mjs";
 import { FILED_BY_LINK_REFUSAL, filedByLink } from "../import/link_category_groups_539_plan.mjs";
 import { resolveAirtableBase } from "../../lib/airtableBase.js";
 import { refusesLiveBase } from "./_testBaseOnly.mjs";
+import { CLASS_FIELD } from "../import/keep_asset_class_552_plan.mjs";
 
 if (refusesLiveBase({ script: "remove_demo_catalog_517" })) process.exit(1);
+
+// The catalog's fields as this script read and wrote them: lib/assetCategory.js's path and the
+// class, which #552 took off the catalog and lib/ names no longer, its name from
+// keep_asset_class_552_plan.mjs. The run stops on the base as it stands before it reads a row,
+// so nothing here reaches the class; it is kept as the record of what ran.
+const CATALOG_FIELDS = Object.freeze({ ...ASSET_CATEGORY_FIELDS, assetClass: CLASS_FIELD.name });
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const LEDGER_PREFIX = "remove_demo_catalog_517-";
@@ -94,7 +101,7 @@ const DEMO_MARK = "DEMO ";
  * links their children are created with. A link to another of the three is `relinks`, written
  * through the record ids the revert minted for its parent.
  */
-const CATEGORIES = { name: "Asset Categories", writes: Object.values(ASSET_CATEGORY_FIELDS) };
+const CATEGORIES = { name: "Asset Categories", writes: Object.values(CATALOG_FIELDS) };
 const ASSETS = { name: "Assets", id: "Asset ID", writes: ["Asset ID", "Status", "Job"], relinks: "Category" };
 const LOG = { name: "Asset Log", id: "Asset Log ID", writes: ["Asset Log ID", "Event", "Job", "Recorded By", "Event At", "Checked Out To"], relinks: "Asset" };
 
@@ -166,7 +173,7 @@ function categoryOf(record) {
     return {
         id: record.id,
         itemName: record.fields["Item Name"] ?? "",
-        ...Object.fromEntries(Object.entries(ASSET_CATEGORY_FIELDS).map(([key, name]) => [key, record.fields[name] ?? ""])),
+        ...Object.fromEntries(Object.entries(CATALOG_FIELDS).map(([key, name]) => [key, record.fields[name] ?? ""])),
     };
 }
 

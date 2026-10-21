@@ -33,7 +33,11 @@ three sizes and makers, where the category list joins them into one name each.
 **evidence.** A bar at the top, `Tools & Equipment` with a chevron back to the
 category list. The list lies across the column's whole width (#538): the bar,
 the head and the band hold still, and only the rows scroll, between the column
-head and the pager, so no name comes into the bar.
+head and the pager, so no name comes into the bar. A window narrower than the
+table at its least scrolls the table sideways inside its region, the column
+head moving with it, the name's column holding at the start with a line at its
+end while the table stands scrolled, and the pager then under the region
+(1l since 2026-10-21, #552).
 
 **context.** The head: `Catalog`, and how many rows the catalog holds — the
 figure alone, or `N of M` while the band narrows, `M` every row.
@@ -45,9 +49,9 @@ to nothing else.
 
 **action.** Under the head, the category list's band (1a, #520): a search,
 `Search catalog`, over each row's whole name, its category and its type, the
-name typed in full first; three chips, `Type`, `Category` and `Class`, each
-taking several values with how many rows each would leave — both types and both
-classes offered whatever the rows hold, and every category the office keeps,
+name typed in full first; two chips, `Type` and `Category`, each taking
+several values with how many rows each would leave — both types offered
+whatever the rows hold, and every category the office keeps,
 one with nothing filed under it yet at a count of none, each chip's list
 scrolling within itself once it passes 340 (1l, #555); and `Discontinued only`,
 a toggle that narrows to the discontinued rows, with a × that turns it off.
@@ -57,17 +61,17 @@ and it narrows rows already in the browser.
 **evidence.** One row per catalog row, fifty to a page with the category
 list's pager under them, in order of name, then size, maker and part number, a
 run of digits read as a number. Each row says its name, size, maker, part
-number, category, type and class, and how many items stand under it — every
+number, category and type, and how many items stand under it — every
 status counted, since a retired item still stands under its row — with a zero in
 a lighter ink. A level a row leaves empty is an empty cell. A value its column
 cuts ends in an ellipsis, and under the pointer shows whole above its cell.
 
-**action.** A row's name opens `Edit item` over it, the whole row its target;
-a box before it selects it, and one in the column head selects the page. The
-selection outlives a page and a narrowing.
+**action.** A row opens `Edit item` over it, the whole row its target. No row
+is selected: a box on each row, one in the column head, and the bar with `Set
+class` they were for went with the class (#552).
 
-**The dialog (1l)** asks the type and the class as two segmented rows, opening
-on `Equipment` and `A` for a new row; the category, listing every category its
+**The dialog (1l)** asks the type as a segmented row across the dialog,
+opening on `Equipment` for a new row; the category, listing every category its
 type holds and marking one it does not `New`; the name, listing every name
 under that category and marking a new one the same way; and the size, the
 maker and the part number, each `Optional`. **Each list opens
@@ -77,8 +81,8 @@ being edited shows where it stands among the rest; typing narrows it to the
 names holding what is typed, and emptying the field opens it whole again. It
 stands six rows tall at most and scrolls within that. Under them, `Shows as` and the name the
 row will have — the base's own rule — or `Item name` in a faint ink before a
-name is typed. A press is refused field by field under each field: a type or a
-class not chosen, a category or a name empty or a placeholder, `N/A` and its
+name is typed. A press is refused field by field under each field: a type not
+chosen, a category or a name empty or a placeholder, `N/A` and its
 kind in a level that is left empty instead (`Leave it empty.`), and a path
 another row holds already, said on the name with that row's category — a
 discontinued one included. A category typed new is added with the row, first.
@@ -108,13 +112,8 @@ whose one item, `Remove from catalog`, asks `Remove … from catalog?` — `It
 comes out of the catalog. No items use it.` — before the row goes. A row items
 came to stand under since stays, and the question says why.
 
-**When rows are selected:** a bar over the pager with how many, how many are on
-other pages, a way to clear them, and `Set class`, whose menu gives every row
-selected `Class A` or `Class B` and clears the selection.
-
-**When a press wrote nothing:** its reason over the dialog's actions, or in the
-bar's own column for `Set class`. A category written before the row that failed
-after it stands, and the dialog says so.
+**When a press wrote nothing:** its reason over the dialog's actions. A category
+written before the row that failed after it stands, and the dialog says so.
 
 **When the band leaves no row:** under the column head, `Nothing in the catalog
 matches` and a `Clear all` that empties the search, the chips and the toggle at
@@ -133,5 +132,6 @@ chips, its counts and its address are one reading over rows of the same shape,
 so a word changed on one changes on both.
 
 **The level words are the catalog's** — `Type`, `Category`, `Name`, `Size`,
-`Maker`, `Part #`, `Class` — the same on the registration, the category list's
-band and a category's caption.
+`Maker`, `Part #` — the same on the registration, the category list's band
+and a category's caption. A row carried a class, `A` or `B`, from #507 until
+#552; the office keeps none, and no screen says one.
