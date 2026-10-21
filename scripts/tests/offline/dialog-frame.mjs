@@ -101,12 +101,31 @@ const key = (name, mods = {}) => ({ key: name, altKey: false, ctrlKey: false, me
 function laneFacts({ ast, source }) {
     const menu = functionNamed(ast, "Menu");
     const body = menu ? source.slice(menu.start, menu.end) : "";
+    // The region inside the popover that scrolls (#555).
+    const region = body.match(/<div className=\{`(flex min-h-0 flex-col overflow-y-auto[^`]*)`\}>/)?.[1] ?? "";
     return [
         /import \{ SCROLL_LANE \} from "\.\/scrollLane";/.test(source),
-        /className=\{`inset-auto [^`]*\boverflow-y-auto overscroll-contain\b[^`]*\$\{SCROLL_LANE\}/.test(body),
-        /\$\{lane \? `\[scrollbar-gutter:stable\] \$\{lane\}` : ""\}/.test(body) && (body.match(/scrollbar-gutter/g) ?? []).length === 1,
+        /\boverflow-y-auto overscroll-contain px-menu-inset \$\{SCROLL_LANE\}/.test(region),
+        /\$\{lane \? "\[scrollbar-gutter:stable\]" : ""\}/.test(region) && /\$\{lane \?\? ""\}/.test(body) && (body.match(/scrollbar-gutter/g) ?? []).length === 1,
         /list\.style\.maxHeight = "";\s*const own = parseFloat\(getComputedStyle\(list\)\.maxHeight\);\s*list\.style\.maxHeight = `\$\{Number\.isNaN\(own\) \? room : Math\.min\(own, room\)\}px`;/.test(body),
         /const index = active >= 0 \? active : checkedIndex;/.test(body) && /\}, \[shown, active, checkedIndex\]\);/.test(body),
+    ].join(" ");
+}
+
+/**
+ * Whether what scrolls stands 5 inside the Edge above and below while it scrolls (Soo, #555): the
+ * frame holds the Menu's 5 above and below and scrolls nothing, and the region inside it, which
+ * scrolls, holds the 5 either side.
+ */
+function insetFacts({ ast, source }) {
+    const menu = functionNamed(ast, "Menu");
+    const body = menu ? source.slice(menu.start, menu.end) : "";
+    const frame = body.match(/popover="manual"\s+className=\{`([^`]*)`\}/)?.[1] ?? "";
+    const region = body.match(/<div className=\{`(flex min-h-0 flex-col overflow-y-auto[^`]*)`\}>/)?.[1] ?? "";
+    return [
+        /\bpy-menu-inset\b/.test(frame) && !/\bp-menu-inset\b/.test(frame),
+        frame !== "" && !/\boverflow-/.test(frame),
+        /\bpx-menu-inset\b/.test(region) && /\bmin-h-0\b/.test(region),
     ].join(" ");
 }
 
@@ -240,6 +259,12 @@ export function run({ check, assert, log }) {
             "false false false false false false false"
         );
         check("  every field list scrolls in 0i's bar, reserving its lane and stopping at its height where handed one", laneFacts(parseFile(MENU)), "true true true true true");
+        check("  and what scrolls stands 5 inside the Edge above and below, the frame holding the 5 and scrolling nothing", insetFacts(parseFile(MENU)), "true true true");
+        check(
+            "  a list padded where it scrolls, so a row scrolled past touches the Edge, is seen",
+            insetFacts(parseSource('export default function Menu() { return <div popover="manual" className={`inset-auto overflow-y-auto p-menu-inset`} />; }\n', "<planted-inset>")),
+            "false false false"
+        );
         check(
             "  a list scrolling in the browser's own bar, as it did until #555, is seen",
             laneFacts(
@@ -901,7 +926,7 @@ export function run({ check, assert, log }) {
     check(
         "a field's list sets its options at 13 and a typed fragment's match at 600 (#495)",
         [
-            /className=\{?[`"][^`"]*\bp-menu-inset font-ui text-body-sm\b/.test(fieldListSource),
+            /className=\{?[`"][^`"]*\bpy-menu-inset font-ui text-body-sm\b/.test(fieldListSource),
             /\{option\.match \? \(\s*<>\s*\{option\.match\.before\}\s*<span className="font-semibold">\{option\.match\.match\}<\/span>/.test(fieldListSource),
         ].join(" "),
         "true true"
