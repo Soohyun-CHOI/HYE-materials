@@ -275,7 +275,7 @@ export function run({ check, assert, log }) {
     check("a lookup through one group is that group's value", groupLevelOf(["Tool"]), "Tool");
     check("a lookup through two groups is no value", groupLevelOf(["Tool", "Equipment"]), "");
     check("a lookup through no group is no value", groupLevelOf([]), "");
-    check("a typed value is read as itself", groupLevelOf("Equipment"), "Equipment");
+    check("a typed value is no value, both bases reading lookups (#555)", groupLevelOf("Equipment"), "");
     check("an absent field is no value", groupLevelOf(undefined), "");
     const looked = catalogFieldsOf({
         "Level 1": ["Tool"],

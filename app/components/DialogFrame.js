@@ -524,7 +524,10 @@ export function DialogFrame({
  *
  * IT STOPS AT ITS END (0i Chain, #495): a scroll past its last line does not move the page
  * behind the dialog. Beside a preview it holds the column's 24 either side inside itself, so
- * it scrolls across the column's whole width and its Rules run edge to edge (1e).
+ * it scrolls across the column's whole width and its Rules run edge to edge (1e). **It scrolls
+ * in 0i's bar (#555)**, the browser's own 15 with its arrows until then in a window too short
+ * for the dialog, and takes the bar's 8 only while it shows, since no drawing shows a body
+ * scrolling.
  *
  * IN A DIALOG HOLDING ITS HEIGHT (#520) the fields it always has sit on the actions and only
  * what changes scrolls (0l): `foot` is those fields, 14 under what scrolls and outside it, and
@@ -569,7 +572,7 @@ export function DialogBody({ lane = false, foot, children }) {
                     className={`flex min-h-0 flex-col gap-gap-lg overflow-y-auto overscroll-contain ${
                         lane
                             ? `pt-[calc(var(--spacing-dialog-header-stack)-var(--spacing-dialog-header-inset-bottom))] pr-[calc(var(--spacing-dialog-inset)-var(--spacing-scrollbar-gutter))] pl-dialog-inset [scrollbar-gutter:stable] ${SCROLL_LANE}`
-                            : "pt-dialog-header-stack in-data-preview:px-dialog-inset in-data-fixed:px-dialog-inset"
+                            : `pt-dialog-header-stack in-data-preview:px-dialog-inset in-data-fixed:px-dialog-inset ${SCROLL_LANE}`
                     } max-sm:in-data-[sheet]:px-mobile-gutter max-sm:in-data-[sheet=drawer]:gap-mobile-field-stack max-sm:in-data-[sheet=drawer]:pt-0 max-sm:in-data-[sheet=confirm]:pt-mobile-confirm-id-stack`}
                 >
                     {children}

@@ -75,6 +75,8 @@
     --ease-segmented: cubic-bezier(0.2, 0, 0, 1); /* 0f segmented row: how its pill slides — the rail's curve, which the spec names */
     --min-width-menu: 8.75rem; /* Menu, 140: its longest item's width, from here */
     --max-width-menu: 17.5rem; /* Menu, 280: to here */
+    --max-height-catalog-field-list: 14.25rem; /* 1l, 228: the most the list the catalog dialog's Category or Name opens stands before it scrolls in its lane — six 36 rows inside the Menu's 5 and its Edge — from the drawings, not the spec */
+    --max-height-catalog-filter-list: 21.25rem; /* 1l, 340: the most the list a chip in the catalog's band opens stands before it scrolls in its lane — from the drawings, not the spec */
     --spacing-menu-offset: 0.375rem; /* Menu, 6: under the control that opens it */
     --spacing-menu-inset: 0.3125rem; /* Menu, 5: inside it */
     --spacing-menu-heading-inset-y: 0.375rem; /* Menu, 6: above and below a head that names what follows */

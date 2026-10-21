@@ -3,6 +3,7 @@
 import { Fragment, useId, useLayoutEffect, useRef, useState } from "react";
 import { menuButtonKey, menuIndex, menuKey, typeaheadIndex } from "@/lib/controls";
 import Icon from "./Icon";
+import { SCROLL_LANE } from "./scrollLane";
 
 // 0a Menu's head, a line that names what follows and answers no pointer: 12 at Ink 3 and
 // 400, 6 above and below, 10 either side (#495). The field list's `Recently at this job` and
@@ -73,10 +74,34 @@ const MENU_HEADING = "shrink-0 truncate px-control-inset-x py-menu-heading-inset
  * a list a press opened shows the one chosen by its check alone, as 0a's Menu marks a list you
  * choose one from, and the pointer shades what it is on; until #522 the chosen row took Hover
  * however the list opened (#501), which read as a row the pointer was on. Every figure in a
- * list is tabular (0h), so a column of job codes holds one width.
+ * list is tabular (0h), so a column of job codes holds one width. **A list opening with nothing
+ * under visual focus shows the option it checks**, scrolled into view (#555): the catalog's
+ * fields open on everything they offer with the value they hold checked somewhere in it.
+ *
+ * A LIST THAT SCROLLS DOES SO IN 0i's BAR, AND STOPS AT ITS END (#555). Every list here scrolls
+ * once the room under its control runs out, and until #555 it did so in the browser's own bar —
+ * 15 wide with its arrows — since nothing measured off the DOM shows a scrollbar, #538's reading
+ * missed it. Each draws `SCROLL_LANE` now, the one string every lane reads, and keeps a scroll past
+ * its end from moving what is behind it (0i Chain). **A list drawn as a lane of its own is handed
+ * `lane`**, the `max-h-*` class of the height its drawing stops it at, and stands at that height or
+ * the room under its control, whichever is less — 1l's band chips at 340 and its dialog's two
+ * fields at 228.
+ *
+ * THE BAR TAKES ITS 8 ONLY WHILE IT SHOWS, IN EVERY LIST (Soo, #555). 1l reserves the 8 on its
+ * lanes whether or not the bar shows (0i Gutter), so its two-option `Type` and `Class` stood 8
+ * wider on the right than on the left with nothing to scroll; none reserves it here. A list as wide
+ * as its options grows by the 8 while its bar shows, and one as wide as its field gives its options
+ * the 8 then, so a list that scrolls draws as 1l's does and one that does not as 1a's.
+ *
+ * WHAT SCROLLS STANDS 5 INSIDE THE EDGE ABOVE AND BELOW, AT REST AND WHILE IT SCROLLS (Soo, #555).
+ * The frame holds the Menu's 5 above and below, and the options scroll in a region inside it, so a
+ * row passing the top or the foot is cut 5 inside the Edge rather than at it; the region holds the 5
+ * either side, and the bar runs its height. 1l pads the scrolling box itself, which leaves a row
+ * scrolled to the middle touching the Edge; at rest the two draw alike.
  */
-export default function Menu({ id, anchorRef, shown, labelId, heading, options, active, shade = true, onPick, fit = "field", rows = "lg", multiselectable = false }) {
+export default function Menu({ id, anchorRef, shown, labelId, heading, options, active, shade = true, onPick, fit = "field", rows = "lg", multiselectable = false, lane }) {
     const listRef = useRef(null);
+    const checkedIndex = options.findIndex((option) => option.checked);
 
     useLayoutEffect(() => {
         const list = listRef.current;
@@ -101,7 +126,12 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
                 if (fit === "field") list.style.width = `${box.width}px`;
             }
             list.style.top = `${box.bottom}px`;
-            list.style.maxHeight = `${Math.max(0, window.innerHeight - box.bottom - offset)}px`;
+            // The room under the field, or a lane's own height where that is less: the class
+            // gives the second, read with the inline height cleared.
+            const room = Math.max(0, window.innerHeight - box.bottom - offset);
+            list.style.maxHeight = "";
+            const own = parseFloat(getComputedStyle(list).maxHeight);
+            list.style.maxHeight = `${Number.isNaN(own) ? room : Math.min(own, room)}px`;
         };
         place();
         if (!list.matches(":popover-open")) list.showPopover();
@@ -113,11 +143,13 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
         };
     }, [shown, anchorRef, fit]);
 
-    // The option under visual focus stays in view in a list long enough to scroll.
+    // The option under visual focus stays in view in a list long enough to scroll, and the one
+    // it checks while none is.
     useLayoutEffect(() => {
-        if (!shown || active < 0) return;
-        listRef.current?.querySelector(`[data-index="${active}"]`)?.scrollIntoView({ block: "nearest" });
-    }, [shown, active]);
+        const index = active >= 0 ? active : checkedIndex;
+        if (!shown || index < 0) return;
+        listRef.current?.querySelector(`[data-index="${index}"]`)?.scrollIntoView({ block: "nearest" });
+    }, [shown, active, checkedIndex]);
 
     return (
         <div
@@ -127,60 +159,62 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
             aria-labelledby={labelId}
             aria-multiselectable={multiselectable || undefined}
             popover="manual"
-            className={`inset-auto mx-0 mt-menu-offset mb-0 flex-col overflow-y-auto rounded-card border border-border bg-white p-menu-inset font-ui text-body-sm text-foreground-default tabular-nums shadow-popover open:flex ${
+            className={`inset-auto mx-0 mt-menu-offset mb-0 flex-col rounded-card border border-border bg-white py-menu-inset font-ui text-body-sm text-foreground-default tabular-nums shadow-popover open:flex ${
                 fit === "field" ? "" : "w-max min-w-menu max-w-menu"
-            }`}
+            } ${lane ?? ""}`}
         >
-            {heading && (
-                <div aria-hidden="true" className={MENU_HEADING}>
-                    {heading}
-                </div>
-            )}
-            {options.map((option, index) => (
-                <div
-                    key={option.key}
-                    id={`${id}-${index}`}
-                    data-index={index}
-                    role="option"
-                    aria-selected={option.selected ? "true" : "false"}
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => onPick(index)}
-                    className={`flex ${rows === "sm" ? "h-control" : "h-control-lg"} shrink-0 cursor-pointer items-center justify-between gap-gap rounded-control px-control-inset-x hover:bg-hover ${
-                        index === active && shade ? "bg-hover" : ""
-                    }`}
-                >
-                    {multiselectable && (
-                        <span
-                            aria-hidden="true"
-                            className={`mr-[calc(var(--spacing-menu-box-gap)-var(--spacing-gap))] flex size-icon shrink-0 items-center justify-center rounded-badge border ${
-                                option.selected ? "border-primary bg-primary" : "border-checkbox-border bg-white"
-                            }`}
-                        >
-                            {option.selected && <Icon name="check" className="size-checkbox-mark text-white" />}
-                        </span>
-                    )}
-                    <span
-                        className={`${option.note ? "shrink-0" : `min-w-0 truncate ${multiselectable ? "flex-1" : ""}`} ${option.strong ? "font-medium tabular-nums" : ""}`}
+            <div className={`flex min-h-0 flex-col overflow-y-auto overscroll-contain px-menu-inset ${SCROLL_LANE}`}>
+                {heading && (
+                    <div aria-hidden="true" className={MENU_HEADING}>
+                        {heading}
+                    </div>
+                )}
+                {options.map((option, index) => (
+                    <div
+                        key={option.key}
+                        id={`${id}-${index}`}
+                        data-index={index}
+                        role="option"
+                        aria-selected={option.selected ? "true" : "false"}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => onPick(index)}
+                        className={`flex ${rows === "sm" ? "h-control" : "h-control-lg"} shrink-0 cursor-pointer items-center justify-between gap-gap rounded-control px-control-inset-x hover:bg-hover ${
+                            index === active && shade ? "bg-hover" : ""
+                        }`}
                     >
-                        {option.match ? (
-                            <>
-                                {option.match.before}
-                                <span className="font-semibold">{option.match.match}</span>
-                                {option.match.after}
-                            </>
-                        ) : (
-                            option.label
+                        {multiselectable && (
+                            <span
+                                aria-hidden="true"
+                                className={`mr-[calc(var(--spacing-menu-box-gap)-var(--spacing-gap))] flex size-icon shrink-0 items-center justify-center rounded-badge border ${
+                                    option.selected ? "border-primary bg-primary" : "border-checkbox-border bg-white"
+                                }`}
+                            >
+                                {option.selected && <Icon name="check" className="size-checkbox-mark text-white" />}
+                            </span>
                         )}
-                    </span>
-                    {option.note && <span className="min-w-0 flex-1 truncate text-foreground-subtle">{option.note}</span>}
-                    {option.detail !== undefined && option.detail !== null && option.detail !== "" && (
-                        <span className="shrink-0 pl-[calc(var(--spacing-menu-value-inline)-var(--spacing-gap))] text-body-sm text-foreground-subtle tabular-nums">
-                            {option.detail}
+                        <span
+                            className={`${option.note ? "shrink-0" : `min-w-0 truncate ${multiselectable ? "flex-1" : ""}`} ${option.strong ? "font-medium tabular-nums" : ""}`}
+                        >
+                            {option.match ? (
+                                <>
+                                    {option.match.before}
+                                    <span className="font-semibold">{option.match.match}</span>
+                                    {option.match.after}
+                                </>
+                            ) : (
+                                option.label
+                            )}
                         </span>
-                    )}
-                    {option.checked && <Icon name="check" className="size-icon-sm shrink-0 text-primary" />}
-                </div>
-            ))}
+                        {option.note && <span className="min-w-0 flex-1 truncate text-foreground-subtle">{option.note}</span>}
+                        {option.detail !== undefined && option.detail !== null && option.detail !== "" && (
+                            <span className="shrink-0 pl-[calc(var(--spacing-menu-value-inline)-var(--spacing-gap))] text-body-sm text-foreground-subtle tabular-nums">
+                                {option.detail}
+                            </span>
+                        )}
+                        {option.checked && <Icon name="check" className="size-icon-sm shrink-0 text-primary" />}
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }

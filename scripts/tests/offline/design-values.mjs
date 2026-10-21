@@ -217,6 +217,9 @@ const VALUES = [
     ["--ease-segmented", "cubic-bezier(0.2, 0, 0, 1)", null],
     ["--min-width-menu", "8.75rem", null],
     ["--max-width-menu", "17.5rem", null],
+    // The most 1l's two kinds of list stand before they scroll in their lanes (#555).
+    ["--max-height-catalog-field-list", "14.25rem", null],
+    ["--max-height-catalog-filter-list", "21.25rem", null],
     ["--spacing-menu-offset", "0.375rem", null],
     ["--spacing-menu-inset", "0.3125rem", null],
     // 0a Menu's head, which names what follows (#495).
