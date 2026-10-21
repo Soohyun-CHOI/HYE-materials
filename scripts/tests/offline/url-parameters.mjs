@@ -180,12 +180,8 @@ const CARRIED = [
         param: "category",
         note: "#520 — the categories chosen on the `Category` chip, repeatable; one under no type chosen narrows nothing, as a value no row holds does",
     },
-    {
-        route: "/asset-categories",
-        param: "class",
-        note: "#520 — the classes chosen on the `Class` chip, repeatable, `A` or `B` as the catalog holds them",
-    },
-    // #527 — THE CATALOG'S BAND: the category list's search and three chips under the same names,
+    // #527 — THE CATALOG'S BAND: the category list's search and two chips under the same names —
+    // three until #552 took the class's away, and `class` with it on both routes —
     // read through the same `readAssetListFilters` and written through `assetCatalogPath` by
     // `history.replaceState`, so a change fetches nothing — and its toggle. No job: the catalog is
     // the company's, whatever job a list stands on.
@@ -203,11 +199,6 @@ const CARRIED = [
         route: "/asset-catalog",
         param: "category",
         note: "#527 — the categories chosen on the `Category` chip, repeatable; every group's category is offered, one nothing is filed under at a count of none",
-    },
-    {
-        route: "/asset-catalog",
-        param: "class",
-        note: "#527 — the classes chosen on the `Class` chip, repeatable; both classes are offered whatever the rows hold",
     },
     {
         route: "/asset-catalog",
@@ -821,14 +812,14 @@ export function run({ check, assert, log }) {
         )
     );
     // The sixth, and #520's: a key named through `ASSET_LIST_PARAMS`, which is how the
-    // category list's band writes its four. Without it the band would be read and written by
+    // category list's band writes its three, four until #552. Without it the band would be read and written by
     // nothing this file can see.
     const viaDeclared = parseSource(
         'export const ASSET_CATEGORIES_PATH = "/asset-categories";\n' +
             "export function assetCategoriesPath(filters) {\n" +
             "  const query = new URLSearchParams();\n" +
             "  query.set(ASSET_LIST_PARAMS.q, filters.q);\n" +
-            "  for (const value of filters.assetClass) query.append(ASSET_LIST_PARAMS.assetClass, value);\n" +
+            "  for (const value of filters.level2) query.append(ASSET_LIST_PARAMS.level2, value);\n" +
             "  return `${ASSET_CATEGORIES_PATH}?${query}`;\n" +
             "}\n",
         "<declared-key>"
@@ -839,7 +830,7 @@ export function run({ check, assert, log }) {
             .map((w) => `${w.route}?${w.param}`)
             .sort()
             .join(" "),
-        "/asset-categories?class /asset-categories?q"
+        "/asset-categories?category /asset-categories?q"
     );
 
     // ── 2: nothing is read that nothing writes ──────────────────────────────

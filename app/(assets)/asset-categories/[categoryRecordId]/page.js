@@ -120,8 +120,8 @@ export const metadata = { title: "Item" };
  * levels it asks start on this kind's values (#514) — which is none at all for a row the
  * catalog no longer offers: its refusal is then the action's.
  *
- * WHAT THE KIND IS, IN THE CAPTION UNDER ITS NAME (#507): its type, its category and its class
- * since #519, off the row already read (`CategoryCaption`).
+ * WHAT THE KIND IS, IN THE CAPTION UNDER ITS NAME (#507): its type and its category since #519,
+ * and its class until #552, off the row already read (`CategoryCaption`).
  *
  * A READER WHO IS NOT A SITE MANAGER READS THIS PAGE WITHOUT WHAT A SITE MANAGER DOES ON
  * IT (#506): no opener, no box on a row or on the page and no selection bar — so no label
@@ -249,7 +249,7 @@ async function renderCategoryPage({ params, searchParams }) {
     // The dialog on this kind (#507): the row as the page read it, and the catalog it may pick
     // from, which is this row alone — none when the catalog no longer offers it — so each
     // level its second step asks has this row's value already chosen (#514).
-    const opened = { id: category.id, itemName: category.itemName, assetClass: category.assetClass };
+    const opened = { id: category.id, itemName: category.itemName };
     const catalog = registrationCatalog([category]);
     const registration = { opener: ASSET_REGISTRATION_COPY.heading, canRegister, jobs: assignedJobs, category: opened, catalog };
     const header = (

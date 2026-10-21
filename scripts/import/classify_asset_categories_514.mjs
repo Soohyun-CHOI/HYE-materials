@@ -7,8 +7,8 @@
 // formula becomes `{Level 3} {Size}, {Maker} ({Part Number})`, an empty level left out with what
 // stands before it — no maker, no comma; no part number, no parentheses — so a size the office
 // types with its own, `5" (127 mm)`, keeps them before the comma. lib/assetCategory.js
-// holds the fields, the type's and the class's values and the expression, and this script
-// imports them rather than spelling them.
+// holds the fields, the type's values and the expression, and this script imports them rather
+// than spelling them.
 //
 // THE TWO LEVELS MOVE UP BY A RENAME, AND THE ORDER IS FORCED. `Level 2` becomes `Level 3`
 // first and `Level 1` becomes `Level 2` second, so no two fields ever hold one name, and only
@@ -28,7 +28,7 @@
 // until #514, and refuses to run now that the levels are these. Once the schema matches, a run
 // writes nothing and reads every row back: it compares each name the base computed with
 // lib/assetCategory.js's rule, and it lists every row a registration cannot choose, with why
-// — a type, a category, a name or the class missing; a level holding a placeholder for
+// — a type, a category or a name missing; a level holding a placeholder for
 // nothing, such as `N/A`, `-` or `None`, where an empty level is left empty; or a path another
 // row already names. That list is how a row the office typed and the app does not offer gets
 // found, and the judgment is `readCatalog`'s, the one the registration reads.
@@ -57,6 +57,11 @@
 // side `Asset Categories`, every row filed under exactly one group, and the descriptions of all
 // of them — the link's two the link script's (`link_category_groups_539_plan.mjs`).
 //
+// AND SINCE #552 IT HOLDS THE CLASS GONE. `Class`, which #507 made and this specced until #552, is
+// read by nothing in the app, and the Metadata API deletes no field, so while it stands the field
+// is a hand step due — after `keep_asset_class_552.mjs` has kept its values in a ledger — and a
+// base still holding it does not match the spec. Its name is that script's plan's alone.
+//
 // IT WRITES NO RECORD, SO IT KEEPS NO LEDGER. What it changes is schema, each step printed as
 // it is made; the demo catalog #514 rewrote is `scripts/demo/seed_asset_catalog_514.mjs`'s,
 // which carries its own way back.
@@ -79,7 +84,6 @@
 
 import {
     ASSET_CATEGORY_FIELDS,
-    ASSET_CLASS_VALUES,
     ASSET_GROUP_LEVELS,
     ASSET_TYPE_VALUES,
     CATEGORY_GROUP_FIELD,
@@ -93,6 +97,7 @@ import {
     readCategoryGroups,
 } from "../../lib/assetCategory.js";
 import { resolveAirtableBase } from "../../lib/airtableBase.js";
+import { CLASS_FIELD, DELETE_STEP, classFieldOf } from "./keep_asset_class_552_plan.mjs";
 import { INVERSE_DESCRIPTION, INVERSE_NAME, LINK_DESCRIPTION, SINGLE_LINK_STEP } from "./link_category_groups_539_plan.mjs";
 
 const API_ROOT = "https://api.airtable.com/v0";
@@ -115,8 +120,8 @@ const RENAMES = [
 
 /**
  * The colors walk Airtable's light palette in declaration order — the rule
- * create_tools_334.py states for the axis's selects — and neither select has a terminal
- * value to give gray.
+ * create_tools_334.py states for the axis's selects — and the type's select, the one this specs
+ * since #552 took the class's, has no terminal value to give gray.
  */
 const SELECT_COLORS = ["blueLight2", "cyanLight2"];
 const choicesOf = (values) => values.map((name, i) => ({ name, color: SELECT_COLORS[i] }));
@@ -125,8 +130,8 @@ const TABLE_DESCRIPTION =
     "The asset categories (#507; Tools until #513): one row per kind, named by its path in six levels (#514) — " +
     "Level 1 the type, Equipment or Tool, and Level 2 the category, a field of work such as machining or welding, " +
     "both read from the group the row is filed under, Category Group (#539); Level 3 the name; then Size, Maker " +
-    "and Part Number, which a row leaves empty where they do not apply — and " +
-    "carrying a Class. Leave an empty level empty: N/A, -, None and the like read as values, and a row holding one " +
+    "and Part Number, which a row leaves empty where they do not apply. " +
+    "Leave an empty level empty: N/A, -, None and the like read as values, and a row holding one " +
     "is not offered. The office keeps it here and on the app's Catalog page (#527), the one place the app writes a " +
     "row of it: a registration picks a row and writes assets under it. One path is one kind; two rows naming one path are one choice, and only the first is " +
     "offered (lib/assetCategory.js). Assets holds the physical tools and equipment, one row each.";
@@ -139,11 +144,12 @@ const NAME_DESCRIPTION =
     "scripts/import/classify_asset_categories_514.mjs; edit it there.";
 
 /**
- * The nine fields, as the base should hold them once this has run: the seven a path and its
- * class are, in the order a path says them, the mark #527 added after them, and the link #539
- * files a row by. The first two are lookups of the group's own two fields through that link
- * (`lookup`), each a hand conversion of the field it was typed as (`typedAs`); the link is
- * `link_category_groups_539.mjs`'s (`link`), which this checks and does not make.
+ * The eight fields, as the base should hold them once this has run: the six a path is, in the
+ * order a path says them, the mark #527 added after them, and the link #539 files a row by. The
+ * class stood after the path from #507 until #552. The first two are lookups of the group's own
+ * two fields through that link (`lookup`), each a hand conversion of the field it was typed as
+ * (`typedAs`); the link is `link_category_groups_539.mjs`'s (`link`), which this checks and does
+ * not make.
  */
 const FIELDS = [
     {
@@ -196,14 +202,6 @@ const FIELDS = [
         description:
             "The maker's part number, said Part # on screen (#514), and the last thing in Item Name, in parentheses. " +
             "Leave it empty where it does not apply.",
-    },
-    {
-        name: ASSET_CATEGORY_FIELDS.assetClass,
-        type: "singleSelect",
-        options: { choices: choicesOf(ASSET_CLASS_VALUES) },
-        description:
-            "How much the kind matters (#507): A for one that matters more, usually a dearer one, B otherwise. " +
-            "Information only — no act in the app reads it. A row without one is not offered to a registration.",
     },
     {
         name: DISCONTINUED_FIELD,
@@ -486,6 +484,11 @@ async function main() {
         const made = await air.createField(table.id, spec);
         log(`  [CREATE] ${spec.name} (${made.id}) as a ${made.type}`);
     }
+    // The class nothing reads (#552): a hand step while it stands, since no API deletes a field.
+    if (classFieldOf(table).field) {
+        due++;
+        log(`  [HAND]   ${CLASS_FIELD.name} stands, and nothing reads it: ${DELETE_STEP}`);
+    } else log(`  [GONE]   ${CLASS_FIELD.name}, which #552 took off the catalog`);
     if (apply) table = await air.table();
 
     // --- the formula and the words ------------------------------------------
@@ -602,6 +605,7 @@ async function main() {
         else if (spec.link && live.options?.linkedTableId !== groupsLive?.id) failures.push(`${spec.name} does not link ${GROUPS_TABLE}`);
         else if (spec.link && live.options?.prefersSingleRecordLink !== true) failures.push(`${spec.name} allows several records — ${SINGLE_LINK_STEP}`);
     }
+    if (classFieldOf(table).field) failures.push(`${CLASS_FIELD.name} still stands — ${DELETE_STEP}`);
     for (const rename of RENAMES) {
         if (field(rename.to)?.id !== rename.id) failures.push(`${rename.to} is ${field(rename.to)?.id ?? "missing"}, not ${rename.id}, the field it was renamed from`);
     }
@@ -664,7 +668,7 @@ async function main() {
         for (const line of failures) log(`    ${line}`);
         return finish(air, 1, "the base does not match the spec");
     }
-    log(`  the fields, both selects' choices, the expression, the link and its two lookups and every name match, every row is filed under one group, and every type and category a registration offers is a group.`);
+    log(`  the fields, the type's choices, no class, the expression, the link and its two lookups and every name match, every row is filed under one group, and every type and category a registration offers is a group.`);
     return finish(air, 0, "the base matches the spec");
 }
 

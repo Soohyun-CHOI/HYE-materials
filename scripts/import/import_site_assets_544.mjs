@@ -7,6 +7,8 @@
 // nothing here reads them. A row is one registration: a job, a catalog path in its six levels, a
 // class, how many to register, what the catalog holds of the path (`catalog`: `existing`, `new` or
 // `existing (add part)`), and the spreadsheet row it came from (`source`, the run's key for it).
+// The class decides nothing since #552 took it off the catalog: it is read by its place, so the
+// list keeps its shape and its digest, and nothing is written, compared or ledgered by it.
 // The list as handed over ended on a notes column in Korean that nothing read; it was dropped
 // before the list was committed, every other cell left as it was, so the digest the ledgers' run
 // lines carry, `12f29602…`, is of the list with it. The cells are written as the list spells
@@ -15,7 +17,8 @@
 //
 // WHAT A RUN WRITES, IN ORDER. The category groups the list names and no group holds — only
 // `Tool > For Welders` and `Tool > Other Tools`, the two the review left to this run; any other
-// missing pair refuses the run. Each `new` path once, however many rows name it, with its class.
+// missing pair refuses the run. Each `new` path once, however many rows name it — with its class
+// until #552.
 // The part number of each `existing (add part)` row onto the row that has none — `Band Saw,
 // DeWalt` taking `DCS375`, a row no item stands under. Then each row's items, in the list's order,
 // and the `Created` row of each.
@@ -240,7 +243,7 @@ function printPlan(p, read, done) {
     log(`groups to create: ${p.groupsToCreate.length}`);
     for (const group of p.groupsToCreate) log(`  [GROUP]  ${group.level1} > ${group.level2}`);
     log(`catalog rows to create: ${p.pathsToCreate.length}`);
-    for (const { entry, sources } of p.pathsToCreate) log(`  [CREATE] ${said(entry)}, class ${entry.assetClass}  (${sources.join(", ")})`);
+    for (const { entry, sources } of p.pathsToCreate) log(`  [CREATE] ${said(entry)}  (${sources.join(", ")})`);
     log(`part numbers to add: ${p.partsToAdd.length}`);
     for (const { row, category } of p.partsToAdd) log(`  [PART]   ${category.id} ${JSON.stringify(category.itemName)} takes ${JSON.stringify(row.partNumber)}  (${row.source}; ${category.assets.length} item(s) on it)`);
     log("");
@@ -314,7 +317,6 @@ async function readBack(list, baseName, recorder) {
         const held = byPath.get(catalogPathKey(row)) ?? [];
         if (held.length !== 1) failures.push(`${row.source}: the catalog holds ${held.length} row(s) on ${pathOf(row)}`);
         const category = held[0] ?? null;
-        if (row.catalog === HOLDS.NEW && category && category.assetClass !== row.assetClass) failures.push(`${row.source}: ${category.id} is class ${category.assetClass}, the list says ${row.assetClass}`);
         if (category && category.itemName !== composeItemName(category)) told.push(`${category.id} is named ${JSON.stringify(category.itemName)}, the rule says ${JSON.stringify(composeItemName(category))}`);
         if (!groups.some((group) => categoryGroupKey(group) === categoryGroupKey(row))) failures.push(`${row.source}: no group holds ${row.level1} > ${row.level2}`);
         const mine = done.assets.filter((asset) => asset.source === row.source && assetOf.has(asset.id));
@@ -432,7 +434,7 @@ async function load(apply, list, baseName) {
         log(`  [CREATE] ${made.created.id}  ${made.created.itemName}`);
     }
     for (const { row, category, entry } of p.partsToAdd) {
-        ledger.write({ type: "part", id: category.id, field: ASSET_CATEGORY_FIELDS.partNumber, before: category.partNumber, after: entry.partNumber, levels: levelsOf(category), assetClass: category.assetClass, source: row.source });
+        ledger.write({ type: "part", id: category.id, field: ASSET_CATEGORY_FIELDS.partNumber, before: category.partNumber, after: entry.partNumber, levels: levelsOf(category), source: row.source });
         const made = await updateAssetCategory(category.id, entry, groupIdOf(category));
         if (!made.updated) return finish(1, `${category.id}'s part number was not written (${made.gone ? "the row is gone" : `${made.exists.id} holds the path`})`);
         log(`  [PART]   ${category.id}  ${made.updated.itemName}`);
@@ -530,7 +532,7 @@ async function revert(apply, ledgerPath, baseName) {
         if (category.partNumber !== part.after) refusals.push(`${part.id}'s part number reads ${JSON.stringify(category.partNumber)}, not the ${JSON.stringify(part.after)} the ledger wrote`);
         const others = category.assets.filter((id) => !ours.has(id));
         if (others.length > 0) refusals.push(`${part.id} ${JSON.stringify(category.itemName)} holds ${others.length} item(s) this ledger did not make, which its old part number would rename`);
-        partsBack.push({ part, category, entry: { ...levelsOf(category), assetClass: category.assetClass, partNumber: part.before } });
+        partsBack.push({ part, category, entry: { ...levelsOf(category), partNumber: part.before } });
     }
     const groupsToGo = groups.filter((group) => done.groupIds.has(group.id));
     for (const group of groupsToGo) {
@@ -572,7 +574,7 @@ async function revert(apply, ledgerPath, baseName) {
     for (const row of logsToGo) record.write({ type: "removed", table: TABLES.ASSET_LOG, id: row.id, fields: row.fields });
     for (const asset of standing) record.write({ type: "removed", table: TABLES.ASSETS, id: asset.id, assetId: asset.assetId, category: asset.category, job: asset.job, status: asset.status });
     for (const { part } of partsBack) record.write({ type: "part", id: part.id, before: part.after, after: part.before });
-    for (const category of catalogToGo) record.write({ type: "removed", table: TABLES.ASSET_CATEGORIES, id: category.id, ...levelsOf(category), assetClass: category.assetClass, itemName: category.itemName });
+    for (const category of catalogToGo) record.write({ type: "removed", table: TABLES.ASSET_CATEGORIES, id: category.id, ...levelsOf(category), itemName: category.itemName });
     for (const group of groupsToGo) record.write({ type: "removed", table: TABLES.ASSET_CATEGORY_GROUPS, id: group.id, level1: group.level1, level2: group.level2 });
     log(`\nrevert ledger: ${relative(process.cwd(), record.path)}  (commit it)`);
 

@@ -65,13 +65,12 @@ const ASSET_ACTIONS = [
     "app/(assets)/asset-categories/actions.js::registerAssetsAction",
 ];
 
-/** The catalog's page's actions (#527), the office's, in a file of their own. */
+/** The catalog's page's actions (#527), the office's, in a file of their own — and `Set class`'s until #552. */
 const CATALOG_ACTIONS = [
     "app/(assets)/asset-catalog/actions.js::saveAssetCategoryAction",
     "app/(assets)/asset-catalog/actions.js::addAssetCategoryGroupAction",
     "app/(assets)/asset-catalog/actions.js::setAssetCategoryDiscontinuedAction",
     "app/(assets)/asset-catalog/actions.js::removeAssetCategoryAction",
-    "app/(assets)/asset-catalog/actions.js::setAssetCategoriesClassAction",
 ];
 
 /**
@@ -330,7 +329,7 @@ export function run({ check, assert, log }) {
     });
     const actions = entries.filter((e) => e.kind !== "page" && (e.file.startsWith("app/(assets)/") || e.file.startsWith("app/l/")));
     check(
-        "the axis's server actions are the five this gate is for and the catalog's five, found by walking",
+        "the axis's server actions are the five this gate is for and the catalog's four, found by walking",
         actions.map((e) => `${e.file}::${e.name}`).sort().join(" | "),
         [...ASSET_ACTIONS, ...CATALOG_ACTIONS].sort().join(" | ")
     );

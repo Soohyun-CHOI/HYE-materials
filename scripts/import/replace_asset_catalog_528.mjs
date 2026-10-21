@@ -105,6 +105,13 @@ import { textMatchKey } from "../../lib/itemNaming.js";
 import { refusesProtectedWrite } from "../protectedTables.mjs";
 import { FILED_BY_LINK_REFUSAL, filedByLink } from "./link_category_groups_539_plan.mjs";
 import { resolveAirtableBase } from "../../lib/airtableBase.js";
+import { CLASS_FIELD } from "./keep_asset_class_552_plan.mjs";
+
+// The catalog's fields as this script read and wrote them: lib/assetCategory.js's path and the
+// class, which #552 took off the catalog and lib/ names no longer, its name from
+// keep_asset_class_552_plan.mjs. The run stops on the base as it stands before it reads a row,
+// so nothing here reaches the class; it is kept as the record of what ran.
+const CATALOG_FIELDS = Object.freeze({ ...ASSET_CATEGORY_FIELDS, assetClass: CLASS_FIELD.name });
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SOURCES = join(HERE, "sources");
@@ -246,7 +253,7 @@ function readList(list) {
             continue;
         }
         for (const [i, value] of cells.entries()) {
-            if (value !== value.trim() || /\s{2}/.test(value)) problems.push(`${list.file} line ${line}: ${ASSET_CATEGORY_FIELDS[list.levels[i]]} carries stray whitespace (${JSON.stringify(value)})`);
+            if (value !== value.trim() || /\s{2}/.test(value)) problems.push(`${list.file} line ${line}: ${CATALOG_FIELDS[list.levels[i]]} carries stray whitespace (${JSON.stringify(value)})`);
         }
         rows.push({ id: `line ${line}`, ...Object.fromEntries(list.levels.map((level, i) => [level, cells[i]])) });
     }
@@ -256,8 +263,8 @@ function readList(list) {
 
 /** Why a row is not offered, or no group, in the words of the fields the office types into. */
 function whyAside({ reason, missing, levels, of }) {
-    if (reason === "incomplete") return `missing ${missing.map((m) => ASSET_CATEGORY_FIELDS[m]).join(", ")}`;
-    if (reason === "placeholder") return `a placeholder for empty in ${levels.map((m) => ASSET_CATEGORY_FIELDS[m]).join(", ")} — leave the cell empty`;
+    if (reason === "incomplete") return `missing ${missing.map((m) => CATALOG_FIELDS[m]).join(", ")}`;
+    if (reason === "placeholder") return `a placeholder for empty in ${levels.map((m) => CATALOG_FIELDS[m]).join(", ")} — leave the cell empty`;
     return `${of.id} already names it`;
 }
 
@@ -282,18 +289,18 @@ function categoryOf(record) {
         id: record.id,
         itemName: record.fields[NAME_FIELD] ?? "",
         assets: record.fields.Assets ?? [],
-        ...Object.fromEntries(Object.entries(ASSET_CATEGORY_FIELDS).map(([key, name]) => [key, record.fields[name] ?? ""])),
+        ...Object.fromEntries(Object.entries(CATALOG_FIELDS).map(([key, name]) => [key, record.fields[name] ?? ""])),
     };
 }
 
 /** A REST record of `Asset Category Groups`, its two levels. */
 function groupOf(record) {
-    return { id: record.id, ...Object.fromEntries(ASSET_GROUP_LEVELS.map((level) => [level, record.fields[ASSET_CATEGORY_FIELDS[level]] ?? ""])) };
+    return { id: record.id, ...Object.fromEntries(ASSET_GROUP_LEVELS.map((level) => [level, record.fields[CATALOG_FIELDS[level]] ?? ""])) };
 }
 
 /** A list row as the fields a create sends: each level it has, and its class where it has one. */
 function fieldsOf(row, levels) {
-    return Object.fromEntries(levels.filter((level) => (row[level] ?? "") !== "").map((level) => [ASSET_CATEGORY_FIELDS[level], row[level]]));
+    return Object.fromEntries(levels.filter((level) => (row[level] ?? "") !== "").map((level) => [CATALOG_FIELDS[level], row[level]]));
 }
 
 /** The levels of a row, for a ledger: what a path is said and keyed by. */
@@ -444,7 +451,7 @@ async function load(air, apply, sources) {
             const after = plan(await readBase(air), sources);
             const targetOf = (row) => after.byPath.get(catalogPathKey(row))?.[0];
             const lines = [
-                ...p.classes.map(({ row, category }) => ({ table: CATALOG_TABLE, field: ASSET_CATEGORY_FIELDS.assetClass, id: category.id, name: category.itemName, before: category.assetClass, after: row.assetClass })),
+                ...p.classes.map(({ row, category }) => ({ table: CATALOG_TABLE, field: CATALOG_FIELDS.assetClass, id: category.id, name: category.itemName, before: category.assetClass, after: row.assetClass })),
                 ...p.moves.map(({ asset, from, to }) => ({ table: ASSETS_TABLE, field: ASSET_CATEGORY, id: asset.id, assetId: asset.fields[ASSET_ID], before: [from.id], after: [targetOf(to).id], beforeLevels: levelsOf(from), afterLevels: levelsOf(to) })),
             ];
             writeLedger(lines);
@@ -548,7 +555,7 @@ async function revert(air, apply, ledgerPath) {
     if (!apply) return finish(air, 2, `dry run — ${lines.length} line(s) would be put back, nothing was written`);
 
     for (const chunk of inChunks(removed)) {
-        await air.createRecords(base.ids.catalog, chunk.map((line) => ({ fields: Object.fromEntries(Object.values(ASSET_CATEGORY_FIELDS).filter((name) => line.fields[name] !== undefined).map((name) => [name, line.fields[name]])) })));
+        await air.createRecords(base.ids.catalog, chunk.map((line) => ({ fields: Object.fromEntries(Object.values(CATALOG_FIELDS).filter((name) => line.fields[name] !== undefined).map((name) => [name, line.fields[name]])) })));
     }
     for (const chunk of inChunks(classes)) await air.updateRecords(base.ids.catalog, chunk.map((line) => ({ id: line.id, fields: { [line.field]: line.before } })));
     for (const chunk of inChunks(moves)) await air.updateRecords(base.ids.assets, chunk.map((line) => ({ id: line.id, fields: { [line.field]: [onPath(line.beforeLevels)[0].id] } })));

@@ -265,15 +265,16 @@ const VALUES = [
     // The status's column, held again beside the note's (1d, #533).
     ["--width-table-status", "15rem", null],
     ["--width-table-date", "7.5rem", null],
-    // 1l's columns, the catalog's own (#527), at the widths of 2026-10-16 (#538).
-    ["--width-catalog-size", "8rem", null],
-    ["--width-catalog-maker", "8.5rem", null],
-    ["--width-catalog-part-number", "9rem", null],
-    ["--width-catalog-category", "11rem", null],
-    ["--width-catalog-type", "6rem", null],
-    ["--width-catalog-class", "2.75rem", null],
+    // 1l's columns, the catalog's own (#527), as the drawing of 2026-10-21 lays them by 0b Row's
+    // rule (#552): the name and the three free-text columns at their least, the rest fixed. The
+    // class's column and its field in the dialog went with the class.
+    ["--min-width-catalog-name", "20rem", null],
+    ["--width-catalog-size", "6rem", null],
+    ["--min-width-catalog-maker", "7.5rem", null],
+    ["--min-width-catalog-part-number", "8rem", null],
+    ["--min-width-catalog-category", "8.5rem", null],
+    ["--width-catalog-type", "5rem", null],
     ["--width-catalog-items", "3rem", null],
-    ["--width-catalog-class-field", "8.25rem", null],
     // How far in a list on Fill sets its table from the window's edge (1l, #538).
     ["--spacing-fill-table-inset-right", "2.25rem", null],
     ["--spacing-catalog-preview-stack", "0.125rem", null],
@@ -308,6 +309,8 @@ const VALUES = [
     ["--color-border", "oklch(0.888 0.008 265)", null],
     ["--color-border-focus", "oklch(0.640 0.010 265)", null],
     ["--color-hover-subtle", "color-mix(in oklab, var(--color-foreground-default) 3%, transparent)", null],
+    // The Wash made opaque, for the name column a table holds at its start (0b Row, #552).
+    ["--color-pinned-column-hover", "color-mix(in srgb, var(--color-foreground-default) 3%, white)", null],
     ["--color-background-muted", "color-mix(in oklab, var(--color-foreground-default) 4.5%, transparent)", null],
     ["--color-hover", "color-mix(in oklab, var(--color-foreground-default) 5.5%, transparent)", null],
     ["--color-scrollbar-thumb", "color-mix(in oklab, var(--color-foreground-default) 20%, transparent)", null],
@@ -1026,6 +1029,15 @@ export async function run({ check, assert, log }) {
         "--color-mobile-input-background",
     ];
     for (const name of washes) check(`  ${name} is the foreground in an amount`, mixes(declared.get(name) ?? "").join(" "), "--color-foreground-default");
+    // A column held over a row under the pointer stands on the Wash made opaque (0b Row, #552):
+    // the same amount of the foreground over white, mixed in sRGB as the browser composites the
+    // Wash over a white row, so the held column and the row beside it read as one ground.
+    const amountOver = (value, space, over) => value.match(new RegExp(`^color-mix\\(in ${space}, var\\(--color-foreground-default\\) ([\\d.]+)%, ${over}\\)$`))?.[1] ?? null;
+    check(
+        "  the held column's ground under the pointer is the Wash's amount of the foreground over white",
+        amountOver(declared.get("--color-pinned-column-hover") ?? "", "srgb", "white"),
+        amountOver(declared.get("--color-hover-subtle") ?? "", "oklab", "transparent")
+    );
     const lifted = VALUES.filter(([n]) => n.startsWith("--shadow-") || /^--color-.*-overlay$/.test(n)).map(([n]) => n);
     for (const name of lifted) {
         const used = mixes(declared.get(name) ?? "");

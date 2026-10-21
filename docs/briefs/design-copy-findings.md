@@ -162,8 +162,9 @@ A copy key named after its string takes the string's word when the string moves,
 
 An `Assets` row is an **asset**: `Asset ID` (`HYE-AST-YYMMDD-###`), `Category`,
 `Job`, `Status`. An `Asset Categories` row is a **category**: `Item Name`, a
-formula over `Level 3`, `Size`, `Maker` and `Part Number`, beside `Level 1`,
-`Level 2` and `Class` (#514; over `Level 2` and `Size` until then). An `Asset
+formula over `Level 3`, `Size`, `Maker` and `Part Number`, beside `Level 1`
+and `Level 2` (#514; over `Level 2` and `Size` until then; beside `Class` too
+until #552 took the class off the catalog). An `Asset
 Log` row is an entry in an asset's history. `Level 1`'s value `Tool` is the type
 and not this word, and stays. `docs/notes/naming.md` has the rows for `tool` /
 `item`, `Tools & Equipment`, `category` and the six level words.
@@ -174,8 +175,8 @@ and not this word, and stays. `docs/notes/naming.md` has the rows for `tool` /
 
 The registration names a kind by its type, category and name on its first
 step, and by its size and model on its second; the list says the category
-beside each name, and the two pages that head a kind say the type, the category
-and the class under it (#519, the design's). The level words are the issue's,
+beside each name, and the two pages that head a kind say the type and the
+category under it (#519, the design's; the class after them until #552). The level words are the issue's,
 and both steps took 1b's in #520 — the search and its chips, no line under the
 title while it picks, the size and the model as chips, `None` and `Not
 specified` for a choice left empty, and `Choose a size.` and `Choose a model.`
@@ -188,7 +189,7 @@ placeholders and `No size`, `No maker` and `No part #` left this table then.
 | String | Where | Shape it takes |
 |---|---|---|
 | `Type`, `Category`, `Name`, `Size`, `Maker`, `Part #` | the levels | the issue's words |
-| `Tool · Power tools · Class B` | a kind's caption and an asset's | 1d, 1f, 1j (#519) |
+| `Tool · Power tools` | a kind's caption and an asset's | 1d, 1f, 1j (#519, #552) |
 
 **`None` and `Not specified` are values and not placeholders**, which is why
 they are chips of their own, set in Ink 3 as 1b sets them: chosen — by the

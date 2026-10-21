@@ -56,19 +56,19 @@ until then. Once the heading has scrolled under the top bar, the bar shows the
 name. An asset whose category did not resolve is headed by its id. It was the
 `Asset ID` as the heading, and nothing else, until #463.
 
-**identity.** What the item is (1f, 1j, #519): its type, its category and its
-class — `HYE-AST-260909-004 · Tool · Power tools · Class B` at a desk, the id
-first, and `Tool · Power tools · Class B` under the name on a phone, 4 under it,
-its values a step lighter there. It says what the name cannot: a name is the
-item's name and its size, then a comma and its maker, then its part number in
-parentheses, `DEMO Angle Grinder 4-1/2", DEMO Makita (GA4570)`, so it says
-neither which category nor which type holds it, nor its class. The type and the
-class are information — the type `Equipment` or `Tool`, which changes nothing this
-screen offers, and the class `A` for an item that matters more, usually a dearer
-one, `B` otherwise — and no control here reads either. A part the category lacks
-is left out. From #507 to #519 the line under the heading was the id and the job,
-and a second line under it said the class and the whole path, `Class A · Tool >
-DEMO Machining > DEMO Angle Grinder > 4-1/2" > DEMO Makita > GA4570`.
+**identity.** What the item is (1f, 1j, #519): its type and its category —
+`HYE-AST-260909-004 · Tool · Power tools` at a desk, the id first, and `Tool ·
+Power tools` under the name on a phone, 4 under it, its values a step lighter
+there. It says what the name cannot: a name is the item's name and its size,
+then a comma and its maker, then its part number in parentheses, `DEMO Angle
+Grinder 4-1/2", DEMO Makita (GA4570)`, so it says neither which category nor
+which type holds it. The type is information — `Equipment` or `Tool`, which
+changes nothing this screen offers — and no control here reads it. A part the
+category lacks is left out. From #507 to #519 the line under the heading was the
+id and the job, and a second line under it said the class and the whole path,
+`Class A · Tool > DEMO Machining > DEMO Angle Grinder > 4-1/2" > DEMO Makita >
+GA4570`; from #519 the class followed the category, until #552 took it off the
+catalog.
 
 **The id is no longer the same string as the one on the sticker, and the
 confirmation still works (#411).** The label prints `260909-004` where the page

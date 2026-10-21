@@ -5,7 +5,7 @@ import { Button, Combobox, Field, SegmentedChoice, TextInput, useRefusalFocus } 
 import { DialogActions, DialogBody, DialogFrame, DialogMessage, DialogSummary } from "@/app/components/DialogFrame";
 import Dot from "@/app/components/Dot";
 import { MenuButton } from "@/app/components/Menu";
-import { ASSET_CLASS_VALUES, ASSET_TYPE_VALUES } from "@/lib/assetCategory";
+import { ASSET_TYPE_VALUES } from "@/lib/assetCategory";
 import {
     ASSET_CATALOG_COPY as COPY,
     CATALOG_ENTRY_FIELDS,
@@ -28,10 +28,12 @@ import { addAssetCategoryGroupAction, removeAssetCategoryAction, saveAssetCatego
  * question before a row nothing stands under is removed.
  *
  * ONE DIALOG FOR THE THREE ENTRIES, AS 1l DRAWS IT. `Add to catalog`, a row's name and `New
- * category` open the same fields — the type and the class as two segmented rows, the category
+ * category` open the same fields — the type as a segmented row across the dialog, the category
  * and the name as fields that suggest what the catalog holds, the size, the maker and the part
  * number a row may leave empty, and what the row shows as — and `New category` asks the type
- * and the category alone. Each opens fresh, its owner mounting it anew for every opening.
+ * and the category alone. Each opens fresh, its owner mounting it anew for every opening. The
+ * class stood beside the type at 132 from #527 until #552 took it off the catalog, and the type
+ * takes the whole row in all three since, as `New category` always drew it.
  *
  * WHAT IS SAVED IS SHOWN BEFORE THE PRESS (#538). A category or a name the catalog does not hold
  * is saved with each word's first letter in capitals, and one it holds as it spells it: the
@@ -54,12 +56,11 @@ import { addAssetCategoryGroupAction, removeAssetCategoryAction, saveAssetCatego
  */
 
 const TYPES = ASSET_TYPE_VALUES.map((value) => ({ value, label: value }));
-const CLASSES = ASSET_CLASS_VALUES.map((value) => ({ value, label: value }));
 
-/** What a dialog opens holding: the row's values for an edit, and 1l's first type and class with nothing typed for the other two. */
+/** What a dialog opens holding: the row's values for an edit, and 1l's first type with nothing typed for the rest. */
 function openingValues(entry) {
     if (entry.mode === "edit") return Object.fromEntries(CATALOG_ENTRY_FIELDS.map((key) => [key, entry.row[key] ?? ""]));
-    return { ...Object.fromEntries(CATALOG_ENTRY_FIELDS.map((key) => [key, ""])), level1: ASSET_TYPE_VALUES[0], assetClass: ASSET_CLASS_VALUES[0] };
+    return { ...Object.fromEntries(CATALOG_ENTRY_FIELDS.map((key) => [key, ""])), level1: ASSET_TYPE_VALUES[0] };
 }
 
 /**
@@ -186,17 +187,9 @@ export function EntryDialog({ entry, open, onClose, onRemove, rows, groups }) {
         >
             {editing && <input type="hidden" name="categoryRecordId" value={row.id} />}
             <DialogBody>
-                {/* The type, and beside it the class at 1l's 132 — the type alone for a category. */}
-                <div className={`grid gap-dialog-inline ${category ? "" : "grid-cols-[minmax(0,1fr)_var(--width-catalog-class-field)]"}`}>
-                    <Field label={COPY.fields.level1} labelAs="span" refusal={fields.level1}>
-                        <SegmentedChoice name="level1" options={TYPES} value={values.level1} onChange={set("level1")} />
-                    </Field>
-                    {!category && (
-                        <Field label={COPY.fields.assetClass} labelAs="span" refusal={fields.assetClass}>
-                            <SegmentedChoice name="assetClass" options={CLASSES} value={values.assetClass} onChange={set("assetClass")} />
-                        </Field>
-                    )}
-                </div>
+                <Field label={COPY.fields.level1} labelAs="span" refusal={fields.level1}>
+                    <SegmentedChoice name="level1" options={TYPES} value={values.level1} onChange={set("level1")} />
+                </Field>
                 <Field label={COPY.fields.level2} refusal={fields.level2}>
                     <Combobox
                         name="level2"

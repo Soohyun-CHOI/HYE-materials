@@ -46,12 +46,18 @@
 
 import {
     ASSET_CATEGORY_FIELDS,
-    ASSET_CLASS_VALUES,
     ITEM_NAME_FORMULA,
     composeItemName,
     readCatalog,
 } from "../../lib/assetCategory.js";
 import { resolveAirtableBase } from "../../lib/airtableBase.js";
+import { CLASS_FIELD } from "./keep_asset_class_552_plan.mjs";
+
+// The catalog's fields as this script read and wrote them: lib/assetCategory.js's path and the
+// class, which #552 took off the catalog and lib/ names no longer, its name from
+// keep_asset_class_552_plan.mjs. The run stops on the base as it stands before it reads a row,
+// so nothing here reaches the class; it is kept as the record of what ran.
+const CATALOG_FIELDS = Object.freeze({ ...ASSET_CATEGORY_FIELDS, assetClass: CLASS_FIELD.name });
 
 const API_ROOT = "https://api.airtable.com/v0";
 const META_ROOT = `${API_ROOT}/meta`;
@@ -86,14 +92,14 @@ const NAME_DESCRIPTION =
 /** The four fields, as the base should hold them once this has run. */
 const FIELDS = [
     {
-        name: ASSET_CATEGORY_FIELDS.level1,
+        name: CATALOG_FIELDS.level1,
         type: "singleLineText",
         description:
             "The category, the catalog's first level (#507), said Category on screen. A registration filters " +
             "the tools by it.",
     },
     {
-        name: ASSET_CATEGORY_FIELDS.level2,
+        name: CATALOG_FIELDS.level2,
         type: "singleLineText",
         description:
             "The tool, the catalog's second level (#507), said Tool on screen, and the first half of Item Name. " +
@@ -101,16 +107,16 @@ const FIELDS = [
             "grows goes between this and Size, as a field inserted then.",
     },
     {
-        name: ASSET_CATEGORY_FIELDS.size,
+        name: CATALOG_FIELDS.size,
         type: "singleLineText",
         description:
             "The size, the catalog's last level (#507), and the second half of Item Name. It stays last when a " +
             "level is inserted before it.",
     },
     {
-        name: ASSET_CATEGORY_FIELDS.assetClass,
+        name: CATALOG_FIELDS.assetClass,
         type: "singleSelect",
-        options: { choices: ASSET_CLASS_VALUES.map((name, i) => ({ name, color: CLASS_COLORS[i] })) },
+        options: { choices: CLASS_FIELD.values.map((name, i) => ({ name, color: CLASS_COLORS[i] })) },
         description:
             "How much the tool matters (#507): A for one that matters more, usually a dearer one, B otherwise. " +
             "Information only — no act in the app reads it. A row without one is not offered to a registration.",
@@ -200,10 +206,10 @@ function categoryOf(record) {
     return {
         id: record.id,
         itemName: f[NAME_FIELD] ?? "",
-        level1: f[ASSET_CATEGORY_FIELDS.level1] ?? "",
-        level2: f[ASSET_CATEGORY_FIELDS.level2] ?? "",
-        size: f[ASSET_CATEGORY_FIELDS.size] ?? "",
-        assetClass: f[ASSET_CATEGORY_FIELDS.assetClass] ?? "",
+        level1: f[CATALOG_FIELDS.level1] ?? "",
+        level2: f[CATALOG_FIELDS.level2] ?? "",
+        size: f[CATALOG_FIELDS.size] ?? "",
+        assetClass: f[CATALOG_FIELDS.assetClass] ?? "",
     };
 }
 
@@ -263,30 +269,30 @@ async function main() {
     if (nameField.type !== "formula") {
         // A dry run on a base without the field reads the names alone: a field the read
         // names and the base lacks is a 422, and every row's `Level 2` is empty then anyway.
-        const hasLevel2 = table.fields.some((f) => f.name === ASSET_CATEGORY_FIELDS.level2);
-        const rows = await air.listRecords(table.id, hasLevel2 ? [NAME_FIELD, ASSET_CATEGORY_FIELDS.level2] : [NAME_FIELD]);
-        const toCopy = rows.filter((r) => (r.fields[NAME_FIELD] ?? "").trim() !== "" && (r.fields[ASSET_CATEGORY_FIELDS.level2] ?? "").trim() === "");
-        log(`\n${NAME_FIELD} is still \`${nameField.type}\`: ${rows.length} row(s), ${toCopy.length} whose name is not yet in ${ASSET_CATEGORY_FIELDS.level2}.`);
+        const hasLevel2 = table.fields.some((f) => f.name === CATALOG_FIELDS.level2);
+        const rows = await air.listRecords(table.id, hasLevel2 ? [NAME_FIELD, CATALOG_FIELDS.level2] : [NAME_FIELD]);
+        const toCopy = rows.filter((r) => (r.fields[NAME_FIELD] ?? "").trim() !== "" && (r.fields[CATALOG_FIELDS.level2] ?? "").trim() === "");
+        log(`\n${NAME_FIELD} is still \`${nameField.type}\`: ${rows.length} row(s), ${toCopy.length} whose name is not yet in ${CATALOG_FIELDS.level2}.`);
         for (let i = 0; i < toCopy.length; i += RECORDS_PER_REQUEST) {
             const chunk = toCopy.slice(i, i + RECORDS_PER_REQUEST);
-            for (const r of chunk) log(`  ${dryRun ? "[WOULD]" : "[COPY]  "} ${r.id}  ${JSON.stringify(r.fields[NAME_FIELD])} into ${ASSET_CATEGORY_FIELDS.level2}`);
+            for (const r of chunk) log(`  ${dryRun ? "[WOULD]" : "[COPY]  "} ${r.id}  ${JSON.stringify(r.fields[NAME_FIELD])} into ${CATALOG_FIELDS.level2}`);
             if (!dryRun) {
                 await air.updateRecords(
                     table.id,
-                    chunk.map((r) => ({ id: r.id, fields: { [ASSET_CATEGORY_FIELDS.level2]: r.fields[NAME_FIELD] } }))
+                    chunk.map((r) => ({ id: r.id, fields: { [CATALOG_FIELDS.level2]: r.fields[NAME_FIELD] } }))
                 );
             }
         }
         if (dryRun) return finish(air, 2, "dry run — nothing was written");
 
-        const after = await air.listRecords(table.id, [NAME_FIELD, ASSET_CATEGORY_FIELDS.level2]);
-        const uncopied = after.filter((r) => (r.fields[NAME_FIELD] ?? "").trim() !== "" && r.fields[ASSET_CATEGORY_FIELDS.level2] !== r.fields[NAME_FIELD]);
+        const after = await air.listRecords(table.id, [NAME_FIELD, CATALOG_FIELDS.level2]);
+        const uncopied = after.filter((r) => (r.fields[NAME_FIELD] ?? "").trim() !== "" && r.fields[CATALOG_FIELDS.level2] !== r.fields[NAME_FIELD]);
         if (uncopied.length > 0) {
-            log(`\n${uncopied.length} row(s) hold a name ${ASSET_CATEGORY_FIELDS.level2} does not, so the hand step would lose it:`);
-            for (const r of uncopied) log(`  ${r.id}  ${JSON.stringify(r.fields[NAME_FIELD])} / ${JSON.stringify(r.fields[ASSET_CATEGORY_FIELDS.level2] ?? "")}`);
+            log(`\n${uncopied.length} row(s) hold a name ${CATALOG_FIELDS.level2} does not, so the hand step would lose it:`);
+            for (const r of uncopied) log(`  ${r.id}  ${JSON.stringify(r.fields[NAME_FIELD])} / ${JSON.stringify(r.fields[CATALOG_FIELDS.level2] ?? "")}`);
             return finish(air, 1, "not safe to convert yet");
         }
-        log(`  every name is in ${ASSET_CATEGORY_FIELDS.level2}, as typed.`);
+        log(`  every name is in ${CATALOG_FIELDS.level2}, as typed.`);
         return handStep(air);
     }
 
@@ -337,16 +343,16 @@ async function main() {
         if (!live) failures.push(`${spec.name} is missing`);
         else if (live.type !== spec.type) failures.push(`${spec.name} is ${live.type}, not ${spec.type}`);
     }
-    const choices = (field(ASSET_CATEGORY_FIELDS.assetClass)?.options?.choices ?? []).map((c) => `${c.name}/${c.color}`);
-    const wantChoices = ASSET_CLASS_VALUES.map((name, i) => `${name}/${CLASS_COLORS[i]}`);
+    const choices = (field(CATALOG_FIELDS.assetClass)?.options?.choices ?? []).map((c) => `${c.name}/${c.color}`);
+    const wantChoices = CLASS_FIELD.values.map((name, i) => `${name}/${CLASS_COLORS[i]}`);
     if (choices.join(" | ") !== wantChoices.join(" | ")) failures.push(`Class's choices are ${choices.join(" | ")}, not ${wantChoices.join(" | ")}`);
 
     const records = await air.listRecords(table.id, [
         NAME_FIELD,
-        ASSET_CATEGORY_FIELDS.level1,
-        ASSET_CATEGORY_FIELDS.level2,
-        ASSET_CATEGORY_FIELDS.size,
-        ASSET_CATEGORY_FIELDS.assetClass,
+        CATALOG_FIELDS.level1,
+        CATALOG_FIELDS.level2,
+        CATALOG_FIELDS.size,
+        CATALOG_FIELDS.assetClass,
     ]);
     const categories = records.map(categoryOf);
     for (const category of categories) {
@@ -361,7 +367,7 @@ async function main() {
     if (setAside.length > 0) {
         log(`  ${setAside.length} row(s) a registration cannot pick, for the office to fill or remove:`);
         for (const { category, reason, missing, of } of setAside) {
-            const why = reason === "incomplete" ? `missing ${missing.map((m) => ASSET_CATEGORY_FIELDS[m]).join(", ")}` : `the path ${of.id} already names`;
+            const why = reason === "incomplete" ? `missing ${missing.map((m) => CATALOG_FIELDS[m]).join(", ")}` : `the path ${of.id} already names`;
             log(`    ${category.id}  ${JSON.stringify(category.itemName)} — ${why}`);
         }
     }

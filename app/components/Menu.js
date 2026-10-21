@@ -275,27 +275,13 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
  *
  * `look="end"` IS A MENU SET FLUSH AGAINST ITS OPENER'S RIGHT END (1l, #527), at least as wide as
  * the opener and up to 280 inside its room and its Edge — a dialog's `More actions`, whose 28 has
- * no ink to meet the content's edge as the asset page's 32 does, and the selection bar's `Set
- * class`, which opens above itself. Its items are as tall as the control that opens it, 0a's rule
- * and 1l's drawing: `rows="close"` under a dialog head's 28, and `rows="lg"` under a 36. **Its
- * least width is 1l's for each**, as #522 took every menu's from its drawing: `More actions`
- * 140 inside its room and its Edge, as the record's is, and `Set class` 140 with both counted
- * (`outerLeast`), as 1a's lists are.
+ * no ink to meet the content's edge as the asset page's 32 does. Its items are as tall as the
+ * control that opens it, 0a's rule and 1l's drawing: the 28 of a dialog head's close. **Its least
+ * width is 1l's**, as #522 took every menu's from its drawing: 140 inside its room and its Edge,
+ * as the record's is. The catalog's selection bar opened one above a 36 from #527 until #552,
+ * its rows 36 and its 140 counted outside the Edge, and went with `Set class`.
  */
-export function ActionMenu({
-    id,
-    anchorRef,
-    shown,
-    labelledBy,
-    placement = "below",
-    look = "account",
-    rows = "lg",
-    outerLeast = false,
-    focusOn = "first",
-    heading,
-    items,
-    onClose,
-}) {
+export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "below", look = "account", focusOn = "first", heading, items, onClose }) {
     const listRef = useRef(null);
     const headingId = useId();
 
@@ -316,10 +302,7 @@ export function ActionMenu({
             if (look === "record" || look === "end") {
                 list.style.left = "auto";
                 list.style.right = `${document.documentElement.clientWidth - box.right}px`;
-                if (look === "end")
-                    list.style.minWidth = outerLeast
-                        ? `max(var(--min-width-menu), ${box.width}px)`
-                        : `max(calc(var(--min-width-menu) + 2 * var(--spacing-menu-inset) + 2px), ${box.width}px)`;
+                if (look === "end") list.style.minWidth = `max(calc(var(--min-width-menu) + 2 * var(--spacing-menu-inset) + 2px), ${box.width}px)`;
             } else {
                 list.style.left = `${placement === "beside" ? box.right : box.left}px`;
             }
@@ -343,7 +326,7 @@ export function ActionMenu({
             window.removeEventListener("resize", place);
             document.removeEventListener("scroll", place, true);
         };
-    }, [shown, anchorRef, placement, look, outerLeast, focusOn]);
+    }, [shown, anchorRef, placement, look, focusOn]);
 
     const onKeyDown = (event) => {
         const action = menuKey(event);
@@ -405,7 +388,7 @@ export function ActionMenu({
                             onClick={item.onSelect}
                             aria-labelledby={item.detail ? labelId : undefined}
                             aria-describedby={item.detail ? detailId : undefined}
-                            className={`flex w-full shrink-0 text-left outline-none ${item.detail ? DETAIL_ITEM : `items-center ${ITEM_LOOK[look]} ${look === "end" ? ITEM_ROWS[rows] : ""}`} ${
+                            className={`flex w-full shrink-0 text-left outline-none ${item.detail ? DETAIL_ITEM : `items-center ${ITEM_LOOK[look]}`} ${
                                 item.tone === "danger" ? DANGER_ITEM[look] : item.detail ? "focus-visible:bg-hover active:bg-hover" : "hover:bg-hover focus-visible:bg-hover"
                             }`}
                         >
@@ -436,14 +419,12 @@ export function ActionMenu({
  * focus back here. Choosing an item hands focus here before the item acts, so whatever the item
  * opens returns it here as the browser's modal dialog does.
  *
- * TWO LOOKS. `icon` is a dialog's head button: 28 square at the Control radius, its 14 dots in
- * Ink 3, taking Hover and Ink under the pointer and while its menu is open — 1l's `More actions`,
- * named by `label` alone. `bordered` is 0a's Commitment in its bordered kind with its word, a 14
- * chevron 8 after it in Ink 3, 16 before the word and 12 after the chevron, and the Wash while its
- * menu is open — 1l's `Set class`, which opens above itself from the selection bar. `locked` is a
- * busy dialog's (#469): its look kept, no press taken.
+ * A DIALOG'S HEAD BUTTON: 28 square at the Control radius, its 14 dots in Ink 3, taking Hover and
+ * Ink under the pointer and while its menu is open — 1l's `More actions`, named by `label` alone.
+ * `locked` is a busy dialog's (#469): its look kept, no press taken. From #527 until #552 it had
+ * a second look, 0a's bordered Commitment with its word and a chevron, for `Set class`.
  */
-export function MenuButton({ label, look = "icon", placement = "below", locked = false, items }) {
+export function MenuButton({ label, locked = false, items }) {
     const [open, setOpen] = useState(false);
     const [focusOn, setFocusOn] = useState("first");
     const buttonRef = useRef(null);
@@ -470,7 +451,7 @@ export function MenuButton({ label, look = "icon", placement = "below", locked =
                 aria-haspopup="menu"
                 aria-expanded={open}
                 aria-controls={open ? menuId : undefined}
-                aria-label={look === "icon" ? label : undefined}
+                aria-label={label}
                 aria-disabled={locked || undefined}
                 onClick={() => (open ? close("toggle") : openOn("first"))}
                 onKeyDown={(event) => {
@@ -479,26 +460,16 @@ export function MenuButton({ label, look = "icon", placement = "below", locked =
                     event.preventDefault();
                     openOn(where);
                 }}
-                className={MENU_BUTTON_LOOK[look]}
+                className={MENU_BUTTON_LOOK}
             >
-                {look === "icon" ? (
-                    <Icon name="ellipsis" className="size-icon-sm" />
-                ) : (
-                    <>
-                        {label}
-                        <Icon name="chevron-down" className="size-icon-sm shrink-0 text-foreground-subtle" />
-                    </>
-                )}
+                <Icon name="ellipsis" className="size-icon-sm" />
             </button>
             <ActionMenu
                 id={menuId}
                 anchorRef={buttonRef}
                 shown={open}
                 labelledBy={buttonId}
-                placement={placement}
                 look="end"
-                rows={look === "icon" ? "close" : "lg"}
-                outerLeast={look === "bordered"}
                 focusOn={focusOn}
                 items={items.map((item) => ({
                     ...item,
@@ -514,11 +485,8 @@ export function MenuButton({ label, look = "icon", placement = "below", locked =
     );
 }
 
-const MENU_BUTTON_LOOK = {
-    icon: "flex aspect-square h-dialog-close shrink-0 items-center justify-center rounded-control text-foreground-subtle not-aria-disabled:hover:bg-hover not-aria-disabled:hover:text-foreground-default aria-expanded:bg-hover aria-expanded:text-foreground-default",
-    bordered:
-        "flex h-control-lg shrink-0 items-center gap-gap rounded-control border border-border bg-white pr-input-inset-x pl-control-lg-inset-x font-ui text-body font-semibold whitespace-nowrap text-foreground-default not-aria-disabled:hover:bg-hover-subtle aria-expanded:bg-hover-subtle",
-};
+const MENU_BUTTON_LOOK =
+    "flex aspect-square h-dialog-close shrink-0 items-center justify-center rounded-control text-foreground-subtle not-aria-disabled:hover:bg-hover not-aria-disabled:hover:text-foreground-default aria-expanded:bg-hover aria-expanded:text-foreground-default";
 
 // Where each placement sets the menu from its opener: under it at 0a's 6, above it at the
 // same 6, or beside the collapsed rail's account at 0m's 8, where the rows run on one line.
@@ -557,11 +525,9 @@ const ITEM_LOOK = {
     record:
         "h-control rounded-control px-control-inset-x text-body-sm " +
         "max-sm:h-mobile-touch-target max-sm:rounded-none max-sm:px-mobile-menu-row-inset-x max-sm:text-mobile-heading",
-    end: "rounded-control px-control-inset-x text-body-sm whitespace-nowrap",
+    // A menu set flush at its opener's end has items its opener's height (0a): the close's 28.
+    end: "h-dialog-close rounded-control px-control-inset-x text-body-sm whitespace-nowrap",
 };
-
-// How tall an item of a menu set flush at its opener's end is: its opener's height (0a).
-const ITEM_ROWS = { close: "h-dialog-close", lg: "h-control-lg" };
 
 // The account a phone's menu ends on (Tools 0a Menu, #495): a row at least 56 tall, 8 above
 // and below and 16 either side, its word over its detail. It takes the Hover face while held,

@@ -1,48 +1,46 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useId, useRef, useState, useTransition } from "react";
+import { useRef, useState } from "react";
 import Breadcrumb from "@/app/components/Breadcrumb";
-import { Button, Checkbox, FilterChip, SearchField, ToggleChip } from "@/app/components/Controls";
-import { ListFrameFill, SelectionBar } from "@/app/components/ListFrame";
-import { ListHeader, Pager, TABLE_HEAD_FILL, TABLE_ROW_FILL, TABLE_ROW_LINK, TABLE_ROW_SELECTED } from "@/app/components/ListTable";
-import { MenuButton } from "@/app/components/Menu";
+import { Button, FilterChip, SearchField, ToggleChip } from "@/app/components/Controls";
+import { ListFrameFill } from "@/app/components/ListFrame";
+import { ListHeader, Pager, TABLE_HEAD_FILL, TABLE_ROW_FILL, TABLE_ROW_LINK } from "@/app/components/ListTable";
 import { useTooltip } from "@/app/components/Tooltip";
 import { FILTER_BAR_COPY } from "@/lib/listFilters";
-import { ASSET_CLASS_VALUES } from "@/lib/assetCategory";
 import { ASSET_CATALOG_COPY as COPY, filterCatalogRows } from "@/lib/assetCatalog";
-import {
-    ASSET_LIST_COPY,
-    ASSET_LIST_FACETS,
-    pageOfAssetCategories,
-    pagerPosition,
-    pageSelection,
-    readAssetListFilters,
-    toggleAsset,
-    togglePage,
-} from "@/lib/assetListView";
+import { ASSET_LIST_COPY, ASSET_LIST_FACETS, pageOfAssetCategories, pagerPosition, readAssetListFilters } from "@/lib/assetListView";
 import { ASSET_CATEGORIES_PATH, assetCatalogPath } from "@/lib/assetRoutes";
-import { setAssetCategoriesClassAction } from "./actions";
 import { EntryDialog, RemoveDialog } from "./CatalogDialogs";
 
-// 1l's columns: the box, the name, which takes the room the rest leave, then the size, the
-// maker, the part number, the category, the type, the class and how many items stand under the
-// row, each at 1l's width, 20 apart — the widths of 2026-10-16, which laid the list on Fill.
+// 1l's columns since 2026-10-21 (0b Row): the name, then the size, the maker, the part number,
+// the category, the type and how many items stand under the row, 20 apart. A table whose columns
+// are compared row against row, so the three free-text columns and the name take a least width
+// each and share what is left by weight, the name 2 and the others 1, and the size, the type and
+// the count are fixed — every figure 1l's. The class stood between the type and the count, and a
+// box before the name, from #527 until #552.
 const COLUMNS =
-    "grid-cols-[var(--size-icon)_minmax(0,1fr)_var(--width-catalog-size)_var(--width-catalog-maker)_var(--width-catalog-part-number)_var(--width-catalog-category)_var(--width-catalog-type)_var(--width-catalog-class)_var(--width-catalog-items)]";
+    "grid-cols-[minmax(var(--min-width-catalog-name),2fr)_var(--width-catalog-size)_minmax(var(--min-width-catalog-maker),1fr)_minmax(var(--min-width-catalog-part-number),1fr)_minmax(var(--min-width-catalog-category),1fr)_var(--width-catalog-type)_var(--width-catalog-items)]";
+
+// The table's least width, the columns at their least and the 20s between them (0b Row: "a
+// table's least width lets the longest real value of every column show whole"), held by the head
+// row and every row alike, so a lane narrower than it scrolls the two sideways together
+// (`ListFrameFill`). Both rows are box-content, so it is their text's width, the 32 and the 36
+// outside it.
+const LEAST =
+    "min-w-[calc(var(--min-width-catalog-name)+var(--width-catalog-size)+var(--min-width-catalog-maker)+var(--min-width-catalog-part-number)+var(--min-width-catalog-category)+var(--width-catalog-type)+var(--width-catalog-items)+6*var(--spacing-table-column-inline))]";
+
+// The name's column holds at the table's start as it scrolls (0b Row): sticky, and pulled out
+// over the row's 32 so its ground meets the window's edge; an opaque ground, white at rest and
+// the row's Wash under the pointer, and a 1px Band at its end while the table stands scrolled.
+const PINNED =
+    "sticky left-0 z-1 -ml-page-gutter flex min-w-0 items-center self-stretch pl-page-gutter group-data-scrolled-sideways/fill:shadow-[1px_0_0_var(--color-divider-strong)]";
 
 /** The columns in 1l's order, by what each holds. */
-const COLUMN_ORDER = ["level3", "size", "maker", "partNumber", "level2", "level1", "assetClass", "assetCount"];
+const COLUMN_ORDER = ["level3", "size", "maker", "partNumber", "level2", "level1", "assetCount"];
 
 /** The cells after the name, each cut to its column with an ellipsis, the figures tabular. */
-const CUT_CELLS = [
-    { key: "size", figures: true },
-    { key: "maker" },
-    { key: "partNumber", figures: true },
-    { key: "level2" },
-    { key: "level1" },
-    { key: "assetClass" },
-];
+const CUT_CELLS = [{ key: "size", figures: true }, { key: "maker" }, { key: "partNumber", figures: true }, { key: "level2" }, { key: "level1" }];
 
 /**
  * The catalog (1l, #527): the bar back to Tools & Equipment, the head with how many rows it
@@ -60,21 +58,24 @@ const CUT_CELLS = [
  * band holding still and the rows scrolling between the column head and the pager
  * (`ListFrameFill`). From #527 to #538 it was 1d's shape at the 1080 measure, the head and the
  * band scrolling away under the bar and the name coming into the bar; Fill brings no name in.
+ * Narrower than the table at its least, it scrolls sideways with the name's column held at its
+ * start (1l since 2026-10-21, #552).
  *
  * A VALUE ITS COLUMN CUTS SHOWS WHOLE ABOVE ITS CELL UNDER THE POINTER (1l): every column but the
  * count ends its text in an ellipsis, and the row hands the tooltip the cell the pointer is on.
  *
- * THE HEAD OPENS `New category` AND `Add to catalog`, AND A ROW'S NAME OPENS ITS EDIT (1l) — the
- * name a button whose box covers the row, as a link covers 1a's, named by the row's whole name.
- * Each opening mounts its dialog anew, so it starts from what it was opened on; the question
- * before a removal opens as the edit closes, after it in the tree, so it takes the row's name
- * for its opener and hands focus back there (`DialogFrame.js`).
+ * THE HEAD OPENS `New category` AND `Add to catalog`, AND A ROW OPENS ITS EDIT (1l) — a press
+ * anywhere on it, as 1l's row takes one, and its name a button named by the row's whole name,
+ * which the keyboard and assistive tech reach. The name's held column is a box of its own for
+ * what is positioned inside it, so the button's own box covers that column and the row takes
+ * the press beside it. Each opening mounts its dialog anew, so it starts from what it was opened
+ * on; the question before a removal opens as the edit closes, after it in the tree, so it takes
+ * the row's name for its opener and hands focus back there (`DialogFrame.js`).
  *
- * A BOX ON EVERY ROW SELECTS IT, AND THE SELECTION OUTLIVES A PAGE OR A NARROWING (1l, as 1d's
- * does): it is held here and not in the address, since nothing but `Set class` reads it and
- * that acts at once; a row the page no longer holds drops out of it. `Set class` gives every row
- * selected the class chosen and clears the selection; a press that wrote nothing says why in the
- * bar's own column.
+ * NO ROW IS SELECTED. A box on every row selected it from #527, for `Set class` alone, which
+ * gave every row selected one class; #552 took the class off the catalog, and the box, the
+ * page's box and the selection bar went with the one act they were for, as 1l draws the list
+ * since 2026-10-21.
  */
 export default function CatalogList({ rows, groups }) {
     const params = useSearchParams();
@@ -101,25 +102,13 @@ export default function CatalogList({ rows, groups }) {
         setRemoveShown(true);
     };
 
-    const [selected, setSelected] = useState([]);
-    const selection = selected.filter((id) => rows.some((row) => row.id === id));
-    const pageIds = page.rows.map((row) => row.id);
-    const pageState = pageSelection(selection, pageIds);
-    const notOnPage = selection.filter((id) => !pageIds.includes(id)).length;
-    const [classRefusal, setClassRefusal] = useState(null);
-    const [classing, startClassing] = useTransition();
-    const reasonId = useId();
-    const select = (next) => {
-        setClassRefusal(null);
-        setSelected(next);
-    };
-    const setClass = (assetClass) => {
-        setClassRefusal(null);
-        startClassing(async () => {
-            const classed = await setAssetCategoriesClassAction(selection, assetClass);
-            setClassRefusal(classed?.error ?? null);
-            if (classed?.done) setSelected([]);
-        });
+    // A press on a row beside its name is a press on the name, which takes focus first, so the
+    // edit hands focus back to it on closing as it does after a press on the name itself.
+    const pressRow = (event) => {
+        if (event.target.closest("button")) return;
+        const name = event.currentTarget.querySelector("button");
+        name?.focus();
+        name?.click();
     };
 
     const write = (filters, toPage = 1) => window.history.replaceState(null, "", assetCatalogPath(toPage, filters));
@@ -177,20 +166,22 @@ export default function CatalogList({ rows, groups }) {
                     </>
                 }
                 label={COPY.heading}
-                // This page's box: its state is this page's alone, and a partly selected page
-                // shows as mixed.
+                // The name's head is held at the start with the name's column, on the head's own
+                // Sticky ground at rest and on white once the table scrolls under it (0b Row).
                 columnHead={
-                    <div role="row" className={`${TABLE_HEAD_FILL} ${COLUMNS}`}>
-                        <span role="columnheader" className="flex self-center">
-                            <Checkbox
-                                label={ASSET_LIST_COPY.selectPage}
-                                checked={pageState === "all"}
-                                indeterminate={pageState === "some"}
-                                onChange={() => select(togglePage(selection, pageIds))}
-                            />
-                        </span>
+                    <div role="row" className={`${TABLE_HEAD_FILL} ${COLUMNS} ${LEAST}`}>
                         {COLUMN_ORDER.map((key) => (
-                            <span key={key} role="columnheader" className={key === "assetCount" ? "text-right" : "truncate"}>
+                            <span
+                                key={key}
+                                role="columnheader"
+                                className={
+                                    key === "level3"
+                                        ? `${PINNED} group-data-scrolled-sideways/fill:bg-white`
+                                        : key === "assetCount"
+                                          ? "text-right"
+                                          : "truncate"
+                                }
+                            >
                                 {COPY.columns[key]}
                             </span>
                         ))}
@@ -207,30 +198,6 @@ export default function CatalogList({ rows, groups }) {
                         />
                     )
                 }
-                // 1l's bar, 1d's own: the count, how many are on other pages, the way out, and `Set
-                // class`, its menu opening above it.
-                overlay={
-                    <SelectionBar
-                        shown={selection.length > 0}
-                        label={COPY.selectionBar}
-                        count={selection.length}
-                        notOnPage={notOnPage}
-                        words={{ count: ASSET_LIST_COPY.selectedCount, notOnPage: ASSET_LIST_COPY.notOnPage }}
-                        clearLabel={ASSET_LIST_COPY.clearSelection}
-                        onClear={() => select([])}
-                        reason={classRefusal}
-                        reasonId={reasonId}
-                    >
-                        <MenuButton
-                            look="bordered"
-                            label={COPY.setClass}
-                            placement="above"
-                            locked={classing}
-                            items={ASSET_CLASS_VALUES.map((assetClass) => ({ key: assetClass, label: COPY.classOption(assetClass), onSelect: () => setClass(assetClass) }))}
-                        />
-                    </SelectionBar>
-                }
-                overlayShown={selection.length > 0}
                 // What a band that emptied the list says, under a Rule where the rows stood (1l).
                 empty={
                     emptied && (
@@ -244,13 +211,16 @@ export default function CatalogList({ rows, groups }) {
                 }
             >
                 {page.rows.map((row) => (
-                    <div key={row.id} role="row" {...tip.cutProps()} className={`${TABLE_ROW_FILL} ${COLUMNS} ${selection.includes(row.id) ? TABLE_ROW_SELECTED : ""}`}>
-                        <span role="cell" className="flex self-center">
-                            <Checkbox label={COPY.selectRow(row.itemName)} checked={selection.includes(row.id)} onChange={() => select(toggleAsset(selection, row.id))} />
-                        </span>
-                        {/* The name, which opens the row's edit across the whole row, and after it
-                            a discontinued row's mark at 13 in Ink 3 (1l). */}
-                        <span role="cell" className="flex min-w-0 items-baseline gap-gap whitespace-nowrap">
+                    <div
+                        key={row.id}
+                        role="row"
+                        {...tip.cutProps()}
+                        onClick={pressRow}
+                        className={`group/row cursor-pointer ${TABLE_ROW_FILL} ${COLUMNS} ${LEAST}`}
+                    >
+                        {/* The name, held at the table's start, and after it a discontinued row's
+                            mark at 13 in Ink 3 (1l). */}
+                        <span role="cell" className={`${PINNED} gap-gap whitespace-nowrap bg-white group-hover/row:bg-pinned-column-hover`}>
                             <span data-cut="" className="min-w-0 truncate">
                                 <button
                                     type="button"

@@ -36,8 +36,8 @@
 // that names the live base is Part A and ends on 2. On the test base, where every run goes
 // unless it names the live one (#534), all three parts run.
 //
-// `Asset Categories` IS THE CATALOG SINCE #507, so Part A reads its fields — seven since
-// #514 — and the type's and the class's options against lib/assetCategory.js, and Part B
+// `Asset Categories` IS THE CATALOG SINCE #507, so Part A reads its fields — six since
+// #552, which took the class off — and the type's options against lib/assetCategory.js, and Part B
 // writes its kind by those fields and reads back the name the base's formula gave it — the
 // one place `composeItemName` is held against the live expression outside the catalog's
 // check, scripts/import/classify_asset_categories_514.mjs. Since #539 the type and the
@@ -71,7 +71,6 @@ import {
 } from "../../lib/assetStatus.js";
 import {
     ASSET_CATEGORY_FIELDS,
-    ASSET_CLASS_VALUES,
     ASSET_TYPE_VALUES,
     ASSET_WRITTEN_LEVELS,
     CATEGORY_GROUP_FIELD,
@@ -166,9 +165,10 @@ try {
         const field = (table, name) => (table?.fields || []).find((f) => f.name === name);
 
         const EXPECTED = {
-            // The catalog since #507, in six levels and a class since #514: the name a
-            // formula over four of them, and since #539 the type and the category lookups
-            // through the link to the row's group.
+            // The catalog since #507, in six levels since #514: the name a formula over
+            // four of them, and since #539 the type and the category lookups through the
+            // link to the row's group. The class went in #552, and a base still holding it
+            // passes, since nothing here asks it absent: the catalog's check counts it due.
             [TABLES.ASSET_CATEGORIES]: [
                 ["Item Name", "formula"],
                 [ASSET_CATEGORY_FIELDS.level1, "multipleLookupValues"],
@@ -177,7 +177,6 @@ try {
                 [ASSET_CATEGORY_FIELDS.size, "singleLineText"],
                 [ASSET_CATEGORY_FIELDS.maker, "singleLineText"],
                 [ASSET_CATEGORY_FIELDS.partNumber, "singleLineText"],
-                [ASSET_CATEGORY_FIELDS.assetClass, "singleSelect"],
                 [CATEGORY_GROUP_FIELD, "multipleRecordLinks"],
             ],
             [TABLES.ASSETS]: [
@@ -234,12 +233,9 @@ try {
         const strayEvent = liveEvent.filter((n) => !ASSET_EVENT_VALUES.includes(n));
         check("    choices on Status no code can write", strayStatus.join(", "), "");
         check("    choices on Event no code can write", strayEvent.join(", "), "");
-        // THE CLASS'S TWO (#507) AND THE TYPE'S (#514), against lib/assetCategory.js for the
-        // same reason — the type's on the groups' table since #539, whose select the catalog's
-        // `Level 1` looks up.
-        const classField = field(byName.get(TABLES.ASSET_CATEGORIES), ASSET_CATEGORY_FIELDS.assetClass);
-        const liveClass = (classField?.options?.choices || []).map((c) => c.name);
-        check("    Asset Categories.Class", liveClass.join(" | "), ASSET_CLASS_VALUES.join(" | "));
+        // THE TYPE'S TWO (#514), against lib/assetCategory.js for the same reason — on the
+        // groups' table since #539, whose select the catalog's `Level 1` looks up. The class's
+        // two were held here from #507 until #552 took the class off the catalog.
         const typeField = field(byName.get(TABLES.ASSET_CATEGORY_GROUPS), ASSET_CATEGORY_FIELDS.level1);
         const liveType = (typeField?.options?.choices || []).map((c) => c.name);
         check(`    Asset Category Groups."${ASSET_CATEGORY_FIELDS.level1}"`, liveType.join(" | "), ASSET_TYPE_VALUES.join(" | "));
@@ -314,7 +310,6 @@ try {
             size: "18V",
             maker: "Probe Maker",
             partNumber: "PD-18",
-            assetClass: ASSET_CLASS_VALUES[1],
         };
         // `Asset ID` is written as a literal here rather than minted: #335 owns
         // the generator and does not exist yet, and the shape of a top-level ID is
@@ -364,7 +359,7 @@ try {
         // The base's formula against lib/assetCategory.js's rule, on a row this run wrote.
         check("    itemName, as the formula names it", readCategory?.itemName, composeItemName(kind));
         check(
-            "    its path and class, through the mapper",
+            "    its path, through the mapper",
             Object.keys(kind).map((key) => readCategory?.[key]).join(" | "),
             Object.values(kind).join(" | ")
         );

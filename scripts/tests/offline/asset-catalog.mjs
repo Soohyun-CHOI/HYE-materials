@@ -27,7 +27,6 @@ import {
     catalogOffers,
     catalogRows,
     categorySuggestions,
-    classChanges,
     everyCategory,
     everyName,
     filterCatalogRows,
@@ -40,7 +39,7 @@ import {
     savedCategory,
     shownName,
 } from "../../../lib/assetCatalog.js";
-import { ASSET_CLASS_VALUES, ASSET_TYPE_VALUES } from "../../../lib/assetCategory.js";
+import { ASSET_TYPE_VALUES } from "../../../lib/assetCategory.js";
 import { REPO_ROOT, callsTo, listJsFiles, parseFile, parseSource, repoPath, toPosix, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 import { importersOf } from "./asset-category.mjs";
@@ -57,8 +56,8 @@ const CONTROLS = "app/components/Controls.js";
 const ACTIONS = "app/(assets)/asset-catalog/actions.js";
 const DIALOGS = "app/(assets)/asset-catalog/CatalogDialogs.js";
 
-/** A row as `recordToAssetCategory` returns it, with `n` items standing under it. */
-const category = (id, [level1, level2, level3, size, maker, partNumber], assetClass, n = 0, discontinued = false) => ({
+/** A row as `recordToAssetCategory` returns it, with `n` items standing under it — and no class since #552. */
+const category = (id, [level1, level2, level3, size, maker, partNumber], n = 0, discontinued = false) => ({
     id,
     itemName: [level3, size].filter(Boolean).join(" ") + (maker ? `, ${maker}` : "") + (partNumber ? ` (${partNumber})` : ""),
     assets: Array.from({ length: n }, (_, i) => `recAsset${id}${i}`),
@@ -68,7 +67,6 @@ const category = (id, [level1, level2, level3, size, maker, partNumber], assetCl
     size,
     maker,
     partNumber,
-    assetClass,
     discontinued,
 });
 
@@ -78,16 +76,16 @@ const category = (id, [level1, level2, level3, size, maker, partNumber], assetCl
  * typed without a type, and a saw blade whose name begins with what the search below types.
  */
 const CATEGORIES = [
-    category("bat18", ["Tool", "Power Tool", "Battery", "M18", "Milwaukee", ""], "A"),
-    category("rat10", ["Tool", "Wrench", "Flexible Ratchet", "10 mm", "", ""], "B", 2),
-    category("bat1", ["Tool", "Power Tool", "Battery", "", "DeWalt", ""], "A", 1),
-    category("cut", ["Equipment", "Cutting Equipment", "Cutting Machine", "", "AXXAIR", "172"], "A", 0, true),
-    category("band", ["Tool", "Power Tool", "Band Saw", "", "Makita", "2107FW"], "B", 2),
-    category("rat9", ["Tool", "Wrench", "Flexible Ratchet", "9 mm", "", ""], "B"),
-    category("blade", ["Tool", "Power Tool", "Saw Blade", '7-1/4"', "", ""], "B"),
-    category("bandEq", ["Equipment", "Cutting Equipment", "Band Saw", "", "", ""], "A"),
-    category("bat12", ["Tool", "Power Tool", "Battery", "M12", "Milwaukee", ""], "A", 10),
-    category("broken", ["", "Machining", "Bench Grinder", '8"', "", ""], ""),
+    category("bat18", ["Tool", "Power Tool", "Battery", "M18", "Milwaukee", ""]),
+    category("rat10", ["Tool", "Wrench", "Flexible Ratchet", "10 mm", "", ""], 2),
+    category("bat1", ["Tool", "Power Tool", "Battery", "", "DeWalt", ""], 1),
+    category("cut", ["Equipment", "Cutting Equipment", "Cutting Machine", "", "AXXAIR", "172"], 0, true),
+    category("band", ["Tool", "Power Tool", "Band Saw", "", "Makita", "2107FW"], 2),
+    category("rat9", ["Tool", "Wrench", "Flexible Ratchet", "9 mm", "", ""]),
+    category("blade", ["Tool", "Power Tool", "Saw Blade", '7-1/4"', "", ""]),
+    category("bandEq", ["Equipment", "Cutting Equipment", "Band Saw", "", "", ""]),
+    category("bat12", ["Tool", "Power Tool", "Battery", "M12", "Milwaukee", ""], 10),
+    category("broken", ["", "Machining", "Bench Grinder", '8"', "", ""]),
 ];
 
 /** The groups: four standing, `Lift Equipment` with nothing filed under it, and two that are no group. */
@@ -171,7 +169,7 @@ export function run({ check, assert, log }) {
     log("the whole list the Category and the Name open on, before anything is typed (#555):");
     const listed = (choices) => choices.map(({ label, chosen }) => `${label}${chosen ? "*" : ""}`).join(", ");
     const wholeRows = catalogRows(CATEGORIES);
-    const asTyped = (over) => ({ level1: "Tool", assetClass: "A", level2: "", level3: "", size: "", maker: "", partNumber: "", ...over });
+    const asTyped = (over) => ({ level1: "Tool", level2: "", level3: "", size: "", maker: "", partNumber: "", ...over });
     check(
         "every category the type holds, each once and in name order, the one the field holds marked in the catalog's spelling",
         [
@@ -226,15 +224,16 @@ export function run({ check, assert, log }) {
         "bandEq,band,bat1,bat12,bat18,broken,cut,rat9,rat10,blade"
     );
     check(
-        "  each saying its path, its class, its mark and its count, and none of its items",
+        "  each saying its path, its mark and its count, and none of its items — and no class (#552)",
         Object.keys(rows[0]).join(", "),
-        "id, itemName, level1, level2, level3, size, maker, partNumber, assetClass, discontinued, assetCount"
+        "id, itemName, level1, level2, level3, size, maker, partNumber, discontinued, assetCount"
     );
+    check("  a class the row is read with is listed nowhere (#552)", "assetClass" in catalogRows([{ ...CATEGORIES[0], assetClass: "A" }])[0], false);
     check("  every item under a row counted", rows.find((row) => row.id === "bat12")?.assetCount, 10);
     check("  a row typed without a type is listed like any other", rows.find((row) => row.id === "broken")?.level3, "Bench Grinder");
     check(
         "  and only the box's own `true` marks one discontinued",
-        catalogRows([category("x", ["Tool", "A", "B", "", "", ""], "A", 0, true), { ...category("y", ["Tool", "A", "C", "", "", ""], "A"), discontinued: "true" }])
+        catalogRows([category("x", ["Tool", "A", "B", "", "", ""], 0, true), { ...category("y", ["Tool", "A", "C", "", "", ""]), discontinued: "true" }])
             .map((row) => `${row.id} ${row.discontinued}`)
             .join(", "),
         "x true, y false"
@@ -245,11 +244,11 @@ export function run({ check, assert, log }) {
     log("");
     log("what the band offers beyond the values its rows hold:");
     check(
-        "both types, every standing group, both classes — a group set aside offers nothing",
+        "both types and every standing group, and no class since #552 — a group set aside offers nothing",
         catalogOffers(GROUPS)
             .map((offer) => Object.values(offer).join("/"))
             .join(", "),
-        "Equipment, Tool, Tool/Power Tool, Tool/Wrench, Equipment/Cutting Equipment, Equipment/Lift Equipment, A, B"
+        "Equipment, Tool, Tool/Power Tool, Tool/Wrench, Equipment/Cutting Equipment, Equipment/Lift Equipment"
     );
 
     // ── 3: the band ─────────────────────────────────────────────────────────
@@ -263,7 +262,7 @@ export function run({ check, assert, log }) {
         offered(whole.facets.level2),
         "Cutting Equipment 2, Lift Equipment 0, Machining 1, Power Tool 5, Wrench 2"
     );
-    check("  both classes", offered(whole.facets.assetClass), "A 5, B 4");
+    check("  and no third facet: the class's chip went with the class (#552)", Object.keys(whole.facets).join(", "), "level1, level2");
     const marked = filterCatalogRows(rows, GROUPS, { discontinued: true });
     check(
         "the toggle leaves the discontinued rows, narrows, and holds itself",
@@ -313,7 +312,7 @@ export function run({ check, assert, log }) {
     check(
         "  and the columns, in 1l's order, the catalog's words for its levels",
         Object.values(ASSET_CATALOG_COPY.columns).join(", "),
-        "Name, Size, Maker, Part #, Category, Type, Class, Items"
+"Name, Size, Maker, Part #, Category, Type, Items"
     );
 
     // ── 5: who reaches it, and who is offered the way ───────────────────────
@@ -426,13 +425,21 @@ export function run({ check, assert, log }) {
                   .map(([field, words]) => `${field}=${words}`)
                   .join(" | ")
             : "saves";
-    const entry = (over) => ({ level1: "Tool", assetClass: "A", level2: "Wrench", level3: "Torque Wrench", size: "", maker: "", partNumber: "", ...over });
+    const entry = (over) => ({ level1: "Tool", level2: "Wrench", level3: "Torque Wrench", size: "", maker: "", partNumber: "", ...over });
     check(
         "nothing typed is refused field by field, all at once",
         said(readCatalogEntry({}, { rows, groups: GROUPS })),
-        "level1=Choose a type. | assetClass=Choose a class. | level2=Enter a category. | level3=Enter a name."
+        "level1=Choose a type. | level2=Enter a category. | level3=Enter a name."
     );
-    check("  a type and a class are one of their two values", said(readCatalogEntry(entry({ level1: "Tools", assetClass: "C" }), { rows, groups: GROUPS })), "level1=Choose a type. | assetClass=Choose a class.");
+    check(
+        "  a type is one of its two values, and a class typed in is asked nothing and saved nowhere (#552)",
+        [
+            said(readCatalogEntry(entry({ level1: "Tools", assetClass: "C" }), { rows, groups: GROUPS })),
+            said(readCatalogEntry(entry({ assetClass: "C" }), { rows, groups: GROUPS })),
+            "assetClass" in (readCatalogEntry(entry({ assetClass: "A" }), { rows, groups: GROUPS }).entry ?? {}),
+        ].join(" | "),
+        "level1=Choose a type. | saves | false"
+    );
     check(
         "  a placeholder is no category and no name, and a level a row may leave empty is left so",
         said(readCatalogEntry(entry({ level2: "N/A", level3: "tbd", size: "n.a.", maker: "-", partNumber: "None" }), { rows, groups: GROUPS })),
@@ -458,7 +465,7 @@ export function run({ check, assert, log }) {
     check(
         "a category and a name the type holds are saved as it spells them, every field normalized",
         `${Object.values(spelled.entry ?? {}).join("/")} | new ${spelled.newCategory}`,
-        "Tool/A/Power Tool/Battery/M14// | new false"
+        "Tool/Power Tool/Battery/M14// | new false"
     );
     const lift = readCatalogEntry(entry({ level2: "Lift Equipment", level3: "Scissor Lift" }), { rows, groups: GROUPS });
     const pipe = readCatalogEntry(entry({ level1: "Equipment", level2: "wrench", level3: "Pipe Wrench" }), { rows, groups: GROUPS });
@@ -475,11 +482,11 @@ export function run({ check, assert, log }) {
     check(
         "a new category and a new name are saved with each word's first letter in capitals, the rest as typed",
         `${Object.values(fresh.entry ?? {}).join(" / ")} | new ${fresh.newCategory}`,
-        "Tool / A / Pipe Tools / High-speed Cut-off SAW / 10 mm / milwaukee / abc-1 | new true"
+        "Tool / Pipe Tools / High-speed Cut-off SAW / 10 mm / milwaukee / abc-1 | new true"
     );
     const held = readCatalogEntry(entry({ level2: "POWER tool", level3: "band   SAW", maker: "Bosch" }), { rows, groups: GROUPS });
     check("  and a category and a name the catalog holds keep its spelling", `${held.entry?.level2} / ${held.entry?.level3} | new ${held.newCategory}`, "Power Tool / Band Saw | new false");
-    const handRows = catalogRows([...CATEGORIES, category("hand", ["Tool", "hand tool", "torque wrench", "", "", ""], "B", 3)]);
+    const handRows = catalogRows([...CATEGORIES, category("hand", ["Tool", "hand tool", "torque wrench", "", "", ""], 3)]);
     const hand = handRows.find((row) => row.id === "hand");
     const kept = readCatalogEntry({ ...hand, size: "1/2 in" }, { rows: handRows, groups: GROUPS, editing: "hand" });
     const moved = readCatalogEntry({ ...hand, level2: "hand tools", level3: "torque wrench xl" }, { rows: handRows, groups: GROUPS, editing: "hand" });
@@ -563,7 +570,7 @@ export function run({ check, assert, log }) {
         [
             renamesItems(bat12, { ...bat12, size: "M12 " }),
             renamesItems(bat12, { ...bat12, size: "M12 XC" }),
-            renamesItems(bat12, { ...bat12, assetClass: "B" }),
+            renamesItems(bat12, { ...bat12, discontinued: true }),
             renamesItems(rows.find((row) => row.id === "blade"), { level3: "Saw Blade", size: '10"' }),
         ].join(" "),
         "false true false false"
@@ -573,7 +580,6 @@ export function run({ check, assert, log }) {
         [renamesItems(hand, { ...hand, level3: " torque  wrench" }, { rows: handRows }), renamesItems(hand, { ...hand, level3: "Torque wrench" }, { rows: handRows })].join(" "),
         "false true"
     );
-    check("`Set class` writes the rows selected whose class differs, and no row it does not hold", classChanges(rows, ["bat12", "rat10", "gone"], "B").join(","), "bat12");
 
     // ── 9: the actions ──────────────────────────────────────────────────────
     log("");
@@ -617,7 +623,7 @@ export function run({ check, assert, log }) {
         "  the fields, their examples, and what marks one new",
         JSON.stringify([C.fields, C.optional, C.placeholders, C.newMark, C.newCategory, C.newCategoryAlone, C.newName, C.showsAs, C.noName]),
         JSON.stringify([
-            { level1: "Type", assetClass: "Class", level2: "Category", level3: "Name", size: "Size", maker: "Maker", partNumber: "Part #" },
+            { level1: "Type", level2: "Category", level3: "Name", size: "Size", maker: "Maker", partNumber: "Part #" },
             "Optional",
             { level2: "e.g. Wrench", level3: "e.g. Flexible Ratchet", size: "e.g. 16 mm", maker: "e.g. Milwaukee", partNumber: "e.g. 2767-20" },
             "New",
@@ -634,16 +640,15 @@ export function run({ check, assert, log }) {
         "No items | 1 item | 10 items | Its 1 item takes the new name. | Its 10 items take the new name. | Discontinue | Restore | More actions | Remove from catalog | Remove Wrench 16 mm from catalog? | It comes out of the catalog. No items use it."
     );
     check(
-        "  a row's two controls, the bar and its menu",
-        [C.editRow("Battery M12, Milwaukee"), C.selectRow("Battery M12, Milwaukee"), C.selectionBar, C.setClass, C.classOption("A")].join(" | "),
-        "Edit Battery M12, Milwaukee | Select Battery M12, Milwaukee | Selected rows | Set class | Class A"
+        "  a row's one control, and none of the words a selection said before #552 took away `Set class`",
+        [C.editRow("Battery M12, Milwaukee"), ["selectRow", "selectionBar", "setClass", "classOption", "classNotSet"].filter((key) => key in C).join(",") || "none"].join(" | "),
+        "Edit Battery M12, Milwaukee | none"
     );
     check(
         "  each refusal",
-        JSON.stringify([C.refusal.level1, C.refusal.assetClass, C.refusal.level2, C.refusal.level3, C.refusal.leaveEmpty, C.refusal.exists("Wrench"), C.refusal.categoryExists, C.notSaved, C.categoryOnly, C.categoryNotCreated, C.notRemoved, C.classNotSet, C.gone, C.hasItems]),
+        JSON.stringify([C.refusal.level1, C.refusal.level2, C.refusal.level3, C.refusal.leaveEmpty, C.refusal.exists("Wrench"), C.refusal.categoryExists, C.notSaved, C.categoryOnly, C.categoryNotCreated, C.notRemoved, C.gone, C.hasItems]),
         JSON.stringify([
             "Choose a type.",
-            "Choose a class.",
             "Enter a category.",
             "Enter a name.",
             "Leave it empty.",
@@ -653,34 +658,41 @@ export function run({ check, assert, log }) {
             "The category was added, but the item wasn't. Try again.",
             "Couldn't create the category. Try again.",
             "Couldn't remove the item. Try again.",
-            "Couldn't set the class. Try again.",
             "This item isn't in the catalog any more.",
             "Items use it now, so it stays in the catalog.",
         ])
     );
-    // THE TWO MENUS' ROWS ARE THEIR OPENERS' HEIGHT (0a, 1l): the dialog's `More actions` is the
-    // close's 28 and its row 28, and `Set class` a 36 with rows of 36. AND EACH IS AT LEAST AS WIDE
-    // AS 1l DRAWS IT: `More actions` 140 inside its room and its Edge, `Set class` 140 with both
-    // counted, each at least its opener.
+    check(
+        "  a refusal for each field the dialog asks and for no other, the class's gone with its field (#552)",
+        `${Object.keys(C.refusal).join(" ")} | ${Object.keys(C.fields).join(" ")}`,
+        "level1 level2 level3 leaveEmpty exists categoryExists | level1 level2 level3 size maker partNumber"
+    );
+    // THE MENU'S ROWS ARE ITS OPENER'S HEIGHT (0a, 1l): the dialog's `More actions` is the close's
+    // 28 and its rows 28, AND IT IS AT LEAST AS WIDE AS 1l DRAWS IT, 140 inside its room and its
+    // Edge, and at least its opener. `Set class`, a 36 with rows of 36 and its 140 counted outside
+    // the Edge, was the second menu a button opened from #527 until #552, and its look went with it.
     const menuSource = parseFile("app/components/Menu.js").source;
     check(
-        "the dialog's menu has rows of its 28 and `Set class` rows of its 36",
-        `${/const ITEM_ROWS = \{ close: "h-dialog-close", lg: "h-control-lg" \};/.test(menuSource)} ${/rows=\{look === "icon" \? "close" : "lg"\}/.test(menuSource)} ${/flex aspect-square h-dialog-close /.test(menuSource)}`,
+        "the dialog's menu has rows of its 28, and the button opening it has no second look",
+        [
+            /end: "h-dialog-close rounded-control px-control-inset-x text-body-sm whitespace-nowrap"/.test(menuSource),
+            /const MENU_BUTTON_LOOK =\s*"flex aspect-square h-dialog-close /.test(menuSource),
+            !/ITEM_ROWS|outerLeast|look === "bordered"|MENU_BUTTON_LOOK\[/.test(menuSource.slice(menuSource.indexOf("export function ActionMenu"))),
+        ].join(" "),
         "true true true"
     );
     check(
-        "  and `Set class`'s least width is 140 in all, the dialog's 140 inside, each at least its opener",
-        [
-            /outerLeast=\{look === "bordered"\}/.test(menuSource),
-            /list\.style\.minWidth = outerLeast\s*\? `max\(var\(--min-width-menu\), \$\{box\.width\}px\)`\s*: `max\(calc\(var\(--min-width-menu\) \+ 2 \* var\(--spacing-menu-inset\) \+ 2px\), \$\{box\.width\}px\)`;/.test(menuSource),
-        ].join(" "),
-        "true true"
+        "  and its least width is 140 inside its room and its Edge, and at least its opener",
+        /if \(look === "end"\) list\.style\.minWidth = `max\(calc\(var\(--min-width-menu\) \+ 2 \* var\(--spacing-menu-inset\) \+ 2px\), \$\{box\.width\}px\)`;/.test(menuSource),
+        true
     );
-    // WHAT A NEW ENTRY OPENS ON IS 1l's: the first type and the first class, nothing typed.
+    // WHAT A NEW ENTRY OPENS ON IS 1l's: the first type, nothing typed — and no class, whose first
+    // value it opened on as well from #527 until #552, beside the type at 132.
+    const dialogsSource = parseFile(DIALOGS).source;
     check(
-        "a new entry opens on 1l's first type and class",
-        `${ASSET_TYPE_VALUES[0]} ${ASSET_CLASS_VALUES[0]} ${/level1: ASSET_TYPE_VALUES\[0\], assetClass: ASSET_CLASS_VALUES\[0\]/.test(parseFile(DIALOGS).source)}`,
-        "Equipment A true"
+        "a new entry opens on 1l's first type, and the dialog asks no class",
+        `${ASSET_TYPE_VALUES[0]} ${/level1: ASSET_TYPE_VALUES\[0\] \};/.test(dialogsSource)} ${/assetClass|CLASS|catalog-class/.test(dialogsSource)}`,
+        "Equipment true false"
     );
     // WHAT IS SAVED IS SHOWN BEFORE THE PRESS (#538): the one Category field both dialogs draw takes
     // a save's spelling as focus leaves it, the combobox asking its caller once its list has shut,
@@ -693,14 +705,53 @@ export function run({ check, assert, log }) {
             /onBlur=\{\(\) => \{\s*setActive\(-1\);\s*onListOpenChange\(false\);\s*onBlur\?\.\(\);\s*\}\}/.test(controls),
         ].join(" ");
     check("the Category field takes a save's spelling as focus leaves it, in both dialogs, and `Shows as` the name's", spelledBeforePress(parseFile(DIALOGS).source, controls), "true true true true");
+    // 1l's TABLE OF 2026-10-21 (0b Row, #552): the name and the three free-text columns at a least
+    // width each, sharing the rest 2 to 1, the size, the type and the count fixed; the table's least
+    // width those columns at their least and the 20s between them, so the lane scrolls it sideways
+    // below that; the name's column held at the start on an opaque ground with a Band at its end
+    // while the table stands scrolled; no box, no selection bar and no `Set class`; and a press on a
+    // row a press on its name.
+    const catalogTable = (list) => {
+        const columns = (list.match(/const COLUMNS =\s*"grid-cols-\[([^"]*)\]";/) ?? [])[1] ?? "";
+        const least = (list.match(/const LEAST =\s*"min-w-\[calc\(([^"]*)\)\]";/) ?? [])[1] ?? "";
+        const tracks = columns.split(/_(?![^(]*\))/).filter(Boolean);
+        const namesOf = (text) => [...text.matchAll(/var\((--[a-z-]+)\)/g)].map((m) => m[1]);
+        const pinned = (list.match(/const PINNED =\s*"([^"]*)";/) ?? [])[1] ?? "";
+        return [
+            tracks.join(" ") ===
+                "minmax(var(--min-width-catalog-name),2fr) var(--width-catalog-size) minmax(var(--min-width-catalog-maker),1fr) minmax(var(--min-width-catalog-part-number),1fr) minmax(var(--min-width-catalog-category),1fr) var(--width-catalog-type) var(--width-catalog-items)",
+            namesOf(least).filter((name) => name !== "--spacing-table-column-inline").join(" ") === namesOf(columns).join(" ") &&
+                least.includes(`${tracks.length - 1}*var(--spacing-table-column-inline)`),
+            ["sticky", "left-0", "-ml-page-gutter", "pl-page-gutter", "self-stretch", "group-data-scrolled-sideways/fill:shadow-[1px_0_0_var(--color-divider-strong)]"].every((token) => pinned.split(" ").includes(token)),
+            /key === "level3"\s*\?\s*`\$\{PINNED\} group-data-scrolled-sideways\/fill:bg-white`/.test(list) &&
+                /className=\{`\$\{PINNED\} gap-gap whitespace-nowrap bg-white group-hover\/row:bg-pinned-column-hover`\}/.test(list) &&
+                /className=\{`group\/row cursor-pointer \$\{TABLE_ROW_FILL\}/.test(list),
+            !/\bCheckbox\b|\bSelectionBar\b|\bMenuButton\b|setAssetCategoriesClassAction|setSelected/.test(list),
+            /onClick=\{pressRow\}/.test(list) &&
+                /const pressRow = \(event\) => \{\s*if \(event\.target\.closest\("button"\)\) return;\s*const name = event\.currentTarget\.querySelector\("button"\);\s*name\?\.focus\(\);\s*name\?\.click\(\);\s*\};/.test(list),
+        ].join(" ");
+    };
+    check(
+        "the catalog's table as 1l lays it since 2026-10-21: its columns, its least width, the name held at its start, no selection, a press on a row its name's",
+        catalogTable(parseFile(LIST).source),
+        "true true true true true true"
+    );
+    check(
+        "  and #538's table — fixed columns after a box, the name left to give way, a box on every row and `Set class` — is seen (anti-vacuity)",
+        catalogTable(
+            'const COLUMNS =\n    "grid-cols-[var(--size-icon)_minmax(0,1fr)_var(--width-catalog-size)_var(--width-catalog-maker)_var(--width-catalog-part-number)_var(--width-catalog-category)_var(--width-catalog-type)_var(--width-catalog-class)_var(--width-catalog-items)]";\n' +
+                '<span role="cell" className="flex self-center"><Checkbox label={COPY.selectRow(row.itemName)} /></span><SelectionBar><MenuButton label={COPY.setClass} /></SelectionBar>'
+        ),
+        "false false false false false false"
+    );
     // A VALUE ITS COLUMN CUTS SHOWS WHOLE ABOVE ITS CELL (1l, #538): every row hands the tooltip the
     // pointer, each column but the count marks its text as one that may be cut, and the tooltip
     // shows only what its column cut.
     const cutShown = (list, tooltip) =>
         [
-            /<div key=\{row\.id\} role="row" \{\.\.\.tip\.cutProps\(\)\}/.test(list),
+            /<div\s+key=\{row\.id\}\s+role="row"\s+\{\.\.\.tip\.cutProps\(\)\}/.test(list),
             (list.match(/data-cut=""/g) ?? []).length === 2 &&
-                /const CUT_CELLS = \[\s*\{ key: "size", figures: true \},\s*\{ key: "maker" \},\s*\{ key: "partNumber", figures: true \},\s*\{ key: "level2" \},\s*\{ key: "level1" \},\s*\{ key: "assetClass" \},\s*\];/.test(list),
+                /const CUT_CELLS = \[\s*\{ key: "size", figures: true \},\s*\{ key: "maker" \},\s*\{ key: "partNumber", figures: true \},\s*\{ key: "level2" \},\s*\{ key: "level1" \},?\s*\];/.test(list),
             /if \(!cell \|\| cell\.scrollWidth <= cell\.clientWidth \+ 1\) \{\s*if \(shownOn\.current\) hide\(\);\s*return;\s*\}/.test(tooltip),
         ].join(" ");
     check("a cut value shows whole above its cell, the row handing the tooltip the pointer, a cell whole showing none", cutShown(parseFile(LIST).source, parseFile("app/components/Tooltip.js").source), "true true true");

@@ -1,7 +1,7 @@
 // The catalog a registration picks from (#507), in six levels since #514.
 //
 // WHAT THIS HOLDS. `lib/assetCategory.js` is the catalog's one implementation: its columns, the
-// type's and the class's values, the expression the base names a row with, the key one path is
+// type's values — the class's too until #552 — the expression the base names a row with, the key one path is
 // compared by, which rows a registration may pick, and the walk the registration's two steps
 // narrow through — every level 0l's choice since #517, the empty option one of them. Each is
 // pure and held here by value — the walk on a catalog typed the way an office types one by
@@ -28,9 +28,9 @@
 // AND ONE SPELLING OF EACH FIELD. The reader in `lib/airtable/assetCategories.js`, the catalog's
 // script, the demo catalog's, the office catalog's load and the demo's removal (#517) and the
 // revised list's replacement (#528) take the fields' names from `ASSET_CATEGORY_FIELDS`, and
-// the catalog's script the type's and the class's values, the expression and the readings from
+// the catalog's script the type's values, the expression and the readings from
 // the module too, as the load, the removal and the replacement take the readings and the keys;
-// a literal of one of the seven names in any of them fails, since a second spelling is what a
+// a literal of one of the six names in any of them fails, since a second spelling is what a
 // rename would miss. The one exception is
 // read by value: the names #514's two renames start FROM, which are #507's and are what a field
 // holding them is renamed from.
@@ -44,10 +44,10 @@
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
 import { relative } from "path";
+import * as assetCategoryModule from "../../../lib/assetCategory.js";
 import {
     ASSET_CATEGORY_COPY,
     ASSET_CATEGORY_FIELDS,
-    ASSET_CLASS_VALUES,
     ASSET_GROUP_LEVELS,
     ASSET_MODEL_LEVELS,
     ASSET_PATH_LEVELS,
@@ -90,15 +90,15 @@ const READER = "lib/airtable/assetCategories.js";
 // The one file that may import a writer of `READER`'s, the catalog page's actions (#527), and
 // the writers it may import.
 const CATALOG_ACTIONS = "app/(assets)/asset-catalog/actions.js";
-const WRITERS = ["createAssetCategory", "removeAssetCategory", "setAssetCategoriesClass", "setAssetCategoryDiscontinued", "updateAssetCategory"];
+const WRITERS = ["createAssetCategory", "removeAssetCategory", "setAssetCategoryDiscontinued", "updateAssetCategory"];
 const SCRIPT = "scripts/import/classify_asset_categories_514.mjs";
 const SEED = "scripts/demo/seed_asset_catalog_514.mjs";
 const LOAD = "scripts/import/load_asset_catalog_517.mjs";
 const REMOVAL = "scripts/demo/remove_demo_catalog_517.mjs";
 const REPLACEMENT = "scripts/import/replace_asset_catalog_528.mjs";
 
-/** A row as `recordToAssetCategory` returns it, named as the base would name it. */
-const row = (id, [level1, level2, level3, size, maker, partNumber], assetClass) => ({
+/** A row as `recordToAssetCategory` returns it, named as the base would name it — with no class since #552. */
+const row = (id, [level1, level2, level3, size, maker, partNumber]) => ({
     id,
     itemName: composeItemName({ level3, size, maker, partNumber }),
     assets: [],
@@ -108,7 +108,6 @@ const row = (id, [level1, level2, level3, size, maker, partNumber], assetClass) 
     size,
     maker,
     partNumber,
-    assetClass,
 });
 
 /**
@@ -116,36 +115,36 @@ const row = (id, [level1, level2, level3, size, maker, partNumber], assetClass) 
  * generic row beside three by a maker, one of them with its category typed another way; the
  * drill has no generic row; the welding machine, the drill press and the compressor are
  * equipment with no size; the laser level is one name under two types and the utility knife
- * one under two categories. The ten after `knifeX` are each a way a row is not offered.
+ * one under two categories. The nine after `knifeX` are each a way a row is not offered — ten
+ * until #552, when a class outside the two stopped being one.
  */
 const ROWS = [
-    row("g45", ["Tool", "Machining", "Angle Grinder", '4-1/2"', "", ""], "A"),
-    row("g45mk30", ["Tool", "Machining", "Angle Grinder", '4-1/2"', "Makita", "GA4530"], "A"),
-    row("g45mk70", ["Tool", "machining ", "Angle Grinder", '4-1/2"', "Makita", "GA4570"], "A"),
-    row("g45bo", ["Tool", "Machining", "Angle Grinder", '4-1/2"', "Bosch", ""], "A"),
-    row("g5", ["Tool", "Machining", "Angle Grinder", '5"', "", ""], "A"),
-    row("drillDw", ["Tool", "Carpentry", "Cordless Drill", "18V", "DeWalt", "DCD791"], "B"),
-    row("drillMw", ["Tool", "Carpentry", "Cordless Drill", "18V", "Milwaukee", "2801-20"], "B"),
-    row("jig", ["Tool", "Carpentry", "Jigsaw", "T-Shank", "", ""], "B"),
-    row("weldLi", ["Equipment", "Welding", "Welding Machine", "", "Lincoln", "POWER MIG 256"], "A"),
-    row("weldMi", ["Equipment", "Welding", "Welding Machine", "", "Miller", "Millermatic 255"], "A"),
-    row("press", ["Equipment", "Machining", "Drill Press", "", "", ""], "A"),
-    row("pressJet", ["Equipment", "Machining", "Drill Press", "", "Jet", "JDP-17"], "A"),
-    row("air", ["Equipment", "Site Services", "Air Compressor", "", "", ""], "B"),
-    row("laserT", ["Tool", "Measuring", "Laser Level", "Cross-Line", "", ""], "B"),
-    row("laserE", ["Equipment", "Measuring", "Laser Level", "Rotary", "", ""], "A"),
-    row("knifeC", ["Tool", "Carpentry", "Utility Knife", "18mm", "", ""], "B"),
-    row("knifeX", ["Tool", "Cutting", "Utility Knife", "25mm", "", ""], "B"),
-    row("notype", ["", "Machining", "Bench Grinder", '8"', "", ""], "A"),
-    row("vehicle", ["Vehicle", "Transport", "Forklift", "", "", ""], "A"),
-    row("nocat", ["Tool", "  ", "Hammer Drill", "SDS-Plus", "", ""], "A"),
-    row("noname", ["Tool", "Machining", "", "", "", ""], "A"),
-    row("classC", ["Tool", "Concrete", "Rotary Hammer", "SDS-Max", "", ""], "C"),
-    row("bare", ["", "", "", "", "", ""], ""),
-    row("na", ["Tool", "Machining", "Angle Grinder", '4-1/2"', "N/A", ""], "A"),
-    row("dash", ["Equipment", "Welding", "Welding Machine", "-", "Lincoln", "POWER MIG 256"], "A"),
-    row("none", ["Tool", "Carpentry", "Cordless Drill", "18V", "DeWalt", "None"], "B"),
-    row("again", ["Tool", "machining", "angle  grinder", '4-1/2" ', "makita", "ga4530"], "B"),
+    row("g45", ["Tool", "Machining", "Angle Grinder", '4-1/2"', "", ""]),
+    row("g45mk30", ["Tool", "Machining", "Angle Grinder", '4-1/2"', "Makita", "GA4530"]),
+    row("g45mk70", ["Tool", "machining ", "Angle Grinder", '4-1/2"', "Makita", "GA4570"]),
+    row("g45bo", ["Tool", "Machining", "Angle Grinder", '4-1/2"', "Bosch", ""]),
+    row("g5", ["Tool", "Machining", "Angle Grinder", '5"', "", ""]),
+    row("drillDw", ["Tool", "Carpentry", "Cordless Drill", "18V", "DeWalt", "DCD791"]),
+    row("drillMw", ["Tool", "Carpentry", "Cordless Drill", "18V", "Milwaukee", "2801-20"]),
+    row("jig", ["Tool", "Carpentry", "Jigsaw", "T-Shank", "", ""]),
+    row("weldLi", ["Equipment", "Welding", "Welding Machine", "", "Lincoln", "POWER MIG 256"]),
+    row("weldMi", ["Equipment", "Welding", "Welding Machine", "", "Miller", "Millermatic 255"]),
+    row("press", ["Equipment", "Machining", "Drill Press", "", "", ""]),
+    row("pressJet", ["Equipment", "Machining", "Drill Press", "", "Jet", "JDP-17"]),
+    row("air", ["Equipment", "Site Services", "Air Compressor", "", "", ""]),
+    row("laserT", ["Tool", "Measuring", "Laser Level", "Cross-Line", "", ""]),
+    row("laserE", ["Equipment", "Measuring", "Laser Level", "Rotary", "", ""]),
+    row("knifeC", ["Tool", "Carpentry", "Utility Knife", "18mm", "", ""]),
+    row("knifeX", ["Tool", "Cutting", "Utility Knife", "25mm", "", ""]),
+    row("notype", ["", "Machining", "Bench Grinder", '8"', "", ""]),
+    row("vehicle", ["Vehicle", "Transport", "Forklift", "", "", ""]),
+    row("nocat", ["Tool", "  ", "Hammer Drill", "SDS-Plus", "", ""]),
+    row("noname", ["Tool", "Machining", "", "", "", ""]),
+    row("bare", ["", "", "", "", "", ""]),
+    row("na", ["Tool", "Machining", "Angle Grinder", '4-1/2"', "N/A", ""]),
+    row("dash", ["Equipment", "Welding", "Welding Machine", "-", "Lincoln", "POWER MIG 256"]),
+    row("none", ["Tool", "Carpentry", "Cordless Drill", "18V", "DeWalt", "None"]),
+    row("again", ["Tool", "machining", "angle  grinder", '4-1/2" ', "makita", "ga4530"]),
 ];
 
 /**
@@ -286,15 +285,15 @@ export function run({ check, assert, log }) {
         Class: "B",
     });
     check(
-        "a record's fields read as the catalog's path and class, the group's two through their lookups",
+        "a record's fields read as the catalog's path, the group's two through their lookups, and a class it still carries read past (#552)",
         JSON.stringify(looked),
-        JSON.stringify({ level1: "Tool", level2: "Power Tools", level3: "Drill", size: "18V", maker: "", partNumber: "DCD791", assetClass: "B" })
+        JSON.stringify({ level1: "Tool", level2: "Power Tools", level3: "Drill", size: "18V", maker: "", partNumber: "DCD791" })
     );
     const doubled = catalogFieldsOf({ "Level 1": ["Tool", "Tool"], "Level 2": ["Power Tools", "Cutter"], "Level 3": "Drill", Class: "B" });
     check("a row filed under two groups reads no type and no category", `${doubled.level1}|${doubled.level2}`, "|");
     const aside = readCatalog([{ id: "r", itemName: "Drill", ...doubled }]).setAside[0];
     check("  and is set aside as missing both", `${aside?.reason}: ${aside?.missing?.join(", ")}`, "incomplete: level1, level2");
-    check("a write carries every level but the group's two, and the class", ASSET_WRITTEN_LEVELS.join(", "), "level3, size, maker, partNumber, assetClass");
+    check("a write carries every level but the group's two, and no class (#552)", ASSET_WRITTEN_LEVELS.join(", "), "level3, size, maker, partNumber");
     log("");
 
     // ── 0: the groups the catalog files under (#528) ─────────────────────────
@@ -334,14 +333,14 @@ export function run({ check, assert, log }) {
     check("  and the replacement spells none of the fields", `${fieldLiterals(replacement).spelled}|${fieldLiterals(replacement).renamedFrom}`, "|");
     log("");
 
-    // ── 1: the columns, the type, the class and the name ────────────────────
-    log("the catalog's columns, the type's and the class's values and the name the base gives a row:");
+    // ── 1: the columns, the type and the name ───────────────────────────────
+    log("the catalog's columns, the type's values and the name the base gives a row:");
     check(
-        "the seven fields, by what each holds",
+        "the six fields, by what each holds — the class the seventh until #552",
         Object.entries(ASSET_CATEGORY_FIELDS)
             .map(([key, field]) => `${key}=${field}`)
             .join(", "),
-        "level1=Level 1, level2=Level 2, level3=Level 3, size=Size, maker=Maker, partNumber=Part Number, assetClass=Class"
+        "level1=Level 1, level2=Level 2, level3=Level 3, size=Size, maker=Maker, partNumber=Part Number"
     );
     check(
         "  and the mark a row the office no longer buys carries, apart from what a kind is (#527)",
@@ -352,7 +351,11 @@ export function run({ check, assert, log }) {
     check("  the three every row a registration may pick fills", ASSET_REQUIRED_LEVELS.join(", "), "level1, level2, level3");
     check("  and the two a model is, chosen together on the second step (#520)", ASSET_MODEL_LEVELS.join(", "), "maker, partNumber");
     check("  the type's two values, in the select's order", ASSET_TYPE_VALUES.join(", "), "Equipment, Tool");
-    check("  the class's two values, in the select's order", ASSET_CLASS_VALUES.join(", "), "A, B");
+    check(
+        "  and no class's values, word or caption part, which #552 took off the catalog",
+        ["ASSET_CLASS_VALUES" in assetCategoryModule, "classLabel" in ASSET_CATEGORY_COPY, "classOf" in ASSET_CATEGORY_COPY, "assetClass" in ASSET_CATEGORY_COPY.clearFilter].join(" "),
+        "false false false false"
+    );
     check("  the separator a path is said with, `lib/materialCategory.js`' own", ASSET_PATH_SEPARATOR, " > ");
     check(
         "the expression `Item Name` computes: the name and the size, a comma and the maker, the part number in parentheses",
@@ -407,7 +410,7 @@ export function run({ check, assert, log }) {
         check(`  ${JSON.stringify(value)}`, isPlaceholder(value), expected);
 
     log("");
-    log("a registration may pick a row with a type, a category, a name and a class, no placeholder, once per path:");
+    log("a registration may pick a row with a type, a category and a name, no placeholder, once per path:");
     const { offered, setAside } = readCatalog(ROWS);
     check(
         "the whole rows are offered, in the order they were read — a generic row beside a maker's among them",
@@ -415,12 +418,12 @@ export function run({ check, assert, log }) {
         "g45,g45mk30,g45mk70,g45bo,g5,drillDw,drillMw,jig,weldLi,weldMi,press,pressJet,air,laserT,laserE,knifeC,knifeX"
     );
     // EACH WAY A ROW IS NOT OFFERED, WITH WHY: the type missing or not one of the two, a level
-    // missing or only spaces, the class missing or not one of the two, a placeholder in any
-    // level, and a path another row names in another case and spacing whatever its class.
+    // missing or only spaces, a placeholder in any level, and a path another row names in another
+    // case and spacing. A class missing or not one of two was a way until #552.
     check(
         "  and every other row is set aside with why",
         asideOf(setAside),
-        "notype:incomplete:level1 vehicle:incomplete:level1 nocat:incomplete:level2 noname:incomplete:level3 classC:incomplete:assetClass bare:incomplete:level1+level2+level3+assetClass na:placeholder:maker dash:placeholder:size none:placeholder:partNumber again:repeated:g45mk30"
+        "notype:incomplete:level1 vehicle:incomplete:level1 nocat:incomplete:level2 noname:incomplete:level3 bare:incomplete:level1+level2+level3 na:placeholder:maker dash:placeholder:size none:placeholder:partNumber again:repeated:g45mk30"
     );
     // THE KEY ONE PATH IS COMPARED BY (#517): what `readCatalog` offers one row of, and what the
     // office catalog's load asks the base before it creates a row.
@@ -453,21 +456,26 @@ export function run({ check, assert, log }) {
         ["true", 1, "yes", undefined].map((discontinued) => readCatalog([{ ...press, discontinued }]).offered.length).join(","),
         "1,1,1,1"
     );
-    check("  an incomplete row is incomplete whatever its mark", asideOf(readCatalog([{ ...ROWS.find((r) => r.id === "classC"), discontinued: true }]).setAside), "classC:incomplete:assetClass");
+    check("  an incomplete row is incomplete whatever its mark", asideOf(readCatalog([{ ...ROWS.find((r) => r.id === "noname"), discontinued: true }]).setAside), "noname:incomplete:level3");
+    // A CLASS ASKS NOTHING SINCE #552: a row carrying one outside the two, or none, or one of the
+    // two, is offered alike, as a row the base read before the field went would be.
+    const classed = ["C", "", "A", undefined].map((assetClass, i) => ({ ...ROWS.find((r) => r.id === "jig"), id: `jig${i}`, size: `T-${i}`, assetClass }));
+    check("  and a class, whatever it holds, keeps no row from being offered (#552)", `${ids(readCatalog(classed).offered)} | ${asideOf(readCatalog(classed).setAside)}`, "jig0,jig1,jig2,jig3 | ");
     check("  the dialog is not handed it", ids(registrationCatalog([{ ...press, discontinued: true }, air])), "air");
     check(
         "  and its pair is no fault when no group holds it, since nobody may pick it",
         ids(groupCatalog([{ ...press, level2: "Nowhere", discontinued: true }, { ...air, level2: "Nowhere" }], GROUP_ROWS).ungrouped),
         "air"
     );
-    // WHAT THE DIALOG IS HANDED: the offered rows, their levels and class and nothing of their assets.
+    // WHAT THE DIALOG IS HANDED: the offered rows, their levels and nothing of their assets — and,
+    // until #552, their class.
     const handed = registrationCatalog(ROWS);
     check("the dialog is handed the offered rows", ids(handed), ids(offered));
-    check("  each with what it shows and narrows by, and no assets", Object.keys(handed[0]).join(", "), "id, itemName, assetClass, level1, level2, level3, size, maker, partNumber");
+    check("  each with what it shows and narrows by, and no assets", Object.keys(handed[0]).join(", "), "id, itemName, level1, level2, level3, size, maker, partNumber");
     check(
         "  each value its row's",
         Object.values(handed.find((entry) => entry.id === "g45mk30")).join(" | "),
-        'g45mk30 | Angle Grinder 4-1/2", Makita (GA4530) | A | Tool | Machining | Angle Grinder | 4-1/2" | Makita | GA4530'
+        'g45mk30 | Angle Grinder 4-1/2", Makita (GA4530) | Tool | Machining | Angle Grinder | 4-1/2" | Makita | GA4530'
     );
 
     // ── 3: the first step's filters and search ───────────────────────────────
@@ -762,16 +770,15 @@ export function run({ check, assert, log }) {
         "Type | Category | Name | Size | Maker | Part #"
     );
     check("  a word for every level and no other", Object.keys(ASSET_CATEGORY_COPY.levelLabel).join(" "), ASSET_PATH_LEVELS.join(" "));
-    check("  and the class's", ASSET_CATEGORY_COPY.classLabel, "Class");
     // THE SEARCH'S AND THE FILTERS' WORDS ARE THE DESIGN'S, ONE STRING FOR THE CATEGORY LIST'S BAND
     // AND THE REGISTRATION'S FIRST STEP (1a, 1b; #520). The registration's filters said `All types`
     // and `All categories` from #514, `All jobs`' shape, and its search `Choose a name`.
     check(
         "the search's words and each filter's ×, the band's and the registration's alike",
         [ASSET_CATEGORY_COPY.searchItems, ASSET_CATEGORY_COPY.clearSearch, ...Object.values(ASSET_CATEGORY_COPY.clearFilter)].join(" | "),
-        "Search items | Clear search | Clear type filter | Clear category filter | Clear class filter"
+        "Search items | Clear search | Clear type filter | Clear category filter"
     );
-    check("  a × for each filter a chip draws", Object.keys(ASSET_CATEGORY_COPY.clearFilter).join(" "), "level1 level2 assetClass");
+    check("  a × for each filter a chip draws, the class's gone with its chip (#552)", Object.keys(ASSET_CATEGORY_COPY.clearFilter).join(" "), "level1 level2");
     // THE SECOND STEP'S WORDS ARE 1b's (#520): its second choice, and each choice's empty option,
     // where #514 drew `Choose a size`-shaped placeholders and `No size`, `No maker`, `No part #`.
     check("  the second step's model", ASSET_CATEGORY_COPY.modelLabel, "Model");
@@ -783,12 +790,6 @@ export function run({ check, assert, log }) {
         "size=None | model=Not specified"
     );
     check("  and no placeholder, since a chip has none", "unchosen" in ASSET_CATEGORY_COPY, false);
-    const classParts = ASSET_CATEGORY_COPY.classOf("A");
-    check(
-        "  and the class beside a kind, its value the part in Ink",
-        `${classParts.map((part) => (typeof part === "string" ? part : part.emphasis)).join("")} | ${classParts.filter((part) => typeof part !== "string").map((part) => part.emphasis).join()}`,
-        "Class A | A"
-    );
 
     // ── 6: one module writes an `Asset Categories` row, and each field has one spelling ──────
     log("");
@@ -811,24 +812,25 @@ export function run({ check, assert, log }) {
             .join("; "),
         ""
     );
-    // THE MODULE'S WRITES ARE THE CATALOG PAGE'S FIVE (#527): a row added, a row saved over, its
-    // mark, a class given several rows, and a row removed — each a batch form (#444).
+    // THE MODULE'S WRITES ARE THE CATALOG PAGE'S FOUR (#527): a row added, a row saved over, its
+    // mark and a row removed — each a batch form (#444). The fifth gave several rows a class, until
+    // #552 took the class off the catalog.
     check(
-        "  and inside it the writes are an add, three saves over and a removal",
+        "  and inside it the writes are an add, two saves over and a removal",
         uses
             .filter(({ file, use }) => file === READER && !READS.has(use))
             .map(({ use }) => use)
             .sort()
             .join(", "),
-        "base(…).create, base(…).destroy, base(…).update, base(…).update, base(…).update"
+        "base(…).create, base(…).destroy, base(…).update, base(…).update"
     );
-    // ITS EXPORTS: the two readers and the five writers, and nothing else.
+    // ITS EXPORTS: the two readers and the four writers, and nothing else.
     const exported = [];
     walk(parseFile(READER).ast, (n) => {
         if (n.type === "ExportNamedDeclaration" && n.declaration?.id) exported.push(n.declaration.id.name);
     });
     check(
-        `${READER} exports its two readers and the catalog page's five writers`,
+        `${READER} exports its two readers and the catalog page's four writers`,
         exported.sort().join(", "),
         ["getAllAssetCategories", "getAssetCategoriesByRecordIds", ...WRITERS].sort().join(", ")
     );
@@ -848,13 +850,13 @@ export function run({ check, assert, log }) {
         });
     });
     check("  reading by name only the fields that are not the catalog's path", got.sort().join(", "), '"Assets", "Item Name", DISCONTINUED_FIELD');
-    check("  and the path and the class through the module's one reading of a record", readings.join(", "), "catalogFieldsOf(record.fields)");
+    check("  and the path through the module's one reading of a record", readings.join(", "), "catalogFieldsOf(record.fields)");
     check("  and spelling none of them", fieldLiterals(reader).spelled, "");
     const script = parseFile(SCRIPT);
     check(
-        "the catalog's script takes the fields, the mark (#527), the link (#539), both selects' values, the expression, the path and the readings from the module",
+        "the catalog's script takes the fields, the mark (#527), the link (#539), the type's values, the expression, the path and the readings from the module",
         importedFromModule(script),
-        "ASSET_CATEGORY_FIELDS, ASSET_CLASS_VALUES, ASSET_GROUP_LEVELS, ASSET_TYPE_VALUES, CATEGORY_GROUP_FIELD, DISCONTINUED_FIELD, ITEM_NAME_FORMULA, catalogFieldsOf, composeItemName, groupCatalog, pathOf, readCatalog, readCategoryGroups"
+        "ASSET_CATEGORY_FIELDS, ASSET_GROUP_LEVELS, ASSET_TYPE_VALUES, CATEGORY_GROUP_FIELD, DISCONTINUED_FIELD, ITEM_NAME_FORMULA, catalogFieldsOf, composeItemName, groupCatalog, pathOf, readCatalog, readCategoryGroups"
     );
     check("  and spells none of the fields", fieldLiterals(script).spelled, "");
     // THE TWO NAMES IT RENAMES FROM ARE #507's, in the order they must run: `Level 2` out of the way first.

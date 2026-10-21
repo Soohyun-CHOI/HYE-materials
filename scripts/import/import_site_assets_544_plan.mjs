@@ -15,6 +15,13 @@
 // `readCatalogEntry`'s, a recorder's jobs `assignedJobsFor`'s and the day's next sequence
 // `nextSequence`'s; what is here is which of those the list's three words ask, and what the run
 // owes when they do not hold.
+//
+// THE LIST'S `class` IS READ BY ITS PLACE AND DECIDES NOTHING SINCE #552, which took the class off
+// the catalog. The list stays as it was handed over and its digest with it, so its header and its
+// cell count are still the whole list's; the column is still a cell that must carry no stray
+// whitespace, and nothing else asks it — no path is created with it, no row is compared by it,
+// no ledger line carries it. Until #552 a new path was created with the list's class, a held
+// row's differing class was told, and two rows giving one new path two classes refused the run.
 
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -40,9 +47,12 @@ import { normalizeItemText, textMatchKey } from "../../lib/itemNaming.js";
 export const SCRIPT = "import_site_assets_544";
 export const SOURCE = join(dirname(fileURLToPath(import.meta.url)), "sources", "asset_import_544.csv");
 
-/** The list's header as Soo wrote it, and what each column is read as, in its order. */
+/**
+ * The list's header as Soo wrote it, and what each column is read as, in its order — the eighth
+ * the list's class, `listClass`, which nothing reads since #552 (the header).
+ */
 export const HEADER = "job,type,category,name,size,maker,part_number,class,quantity,catalog,source";
-const COLUMNS = ["job", "level1", "level2", "level3", "size", "maker", "partNumber", "assetClass", "quantity", "catalog", "source"];
+const COLUMNS = ["job", "level1", "level2", "level3", "size", "maker", "partNumber", "listClass", "quantity", "catalog", "source"];
 
 /** What the catalog holds of a row's path, in the list's words. */
 export const HOLDS = Object.freeze({ EXISTING: "existing", NEW: "new", ADD_PART: "existing (add part)" });
@@ -293,15 +303,13 @@ export function plan(read, done) {
             else {
                 category = held[0];
                 if (!offered.has(category.id)) problems.push(`${where(row)}: its row ${category.id} is not one a registration may pick (${setAside.get(category.id)})`);
-                if (category.assetClass !== row.assetClass) notes.push(`${where(row)}: the list says class ${row.assetClass} and the catalog's row is class ${category.assetClass}, which is kept`);
             }
         } else if (row.catalog === HOLDS.NEW) {
             if (held.length === 0) {
                 const key = catalogPathKey(row);
                 const pending = pathsToCreate.get(key);
-                if (pending && pending.entry.assetClass !== row.assetClass) problems.push(`${where(row)}: class ${row.assetClass}, where ${pending.sources.join(", ")} give the same new path class ${pending.entry.assetClass}`);
-                else if (pending) pending.sources.push(row.source);
-                else pathsToCreate.set(key, { entry: { ...levelsOf(row), assetClass: row.assetClass }, sources: [row.source] });
+                if (pending) pending.sources.push(row.source);
+                else pathsToCreate.set(key, { entry: levelsOf(row), sources: [row.source] });
             } else if (held.length === 1 && ours.length === 1) category = held[0];
             else problems.push(`${where(row)}: new, and the catalog holds ${held.map((c) => `${c.id} ${JSON.stringify(c.itemName)}`).join(", ")} on its path`);
         } else if (row.catalog === HOLDS.ADD_PART) {
@@ -314,9 +322,8 @@ export function plan(read, done) {
             else if (targets[0].assets.length > 0) problems.push(`${where(row)}: add part, and ${targets[0].assets.length} item(s) stand on its target ${targets[0].id}, which the part number would rename`);
             else {
                 const target = targets[0];
-                if (target.assetClass !== row.assetClass) notes.push(`${where(row)}: the list says class ${row.assetClass} and the target is class ${target.assetClass}, which is kept`);
-                // The target's own levels and class, and the list's part number: nothing else of the row moves.
-                const entry = { ...levelsOf(target), assetClass: target.assetClass, partNumber: row.partNumber };
+                // The target's own levels, and the list's part number: nothing else of the row moves.
+                const entry = { ...levelsOf(target), partNumber: row.partNumber };
                 const refused = readCatalogEntry(entry, { rows: catalog, groups, editing: target.id }).fields;
                 if (refused) problems.push(`${where(row)}: the catalog's page would refuse the part number — ${Object.entries(refused).map(([k, v]) => `${k}: ${v}`).join("; ")}`);
                 partsToAdd.push({ row, category: target, entry });

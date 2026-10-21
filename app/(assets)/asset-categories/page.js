@@ -62,7 +62,7 @@ export const metadata = { title: COPY.heading };
  * address**: what the band holds is the list's to read there, as a category's selection is.
  *
  * EACH ROW SAYS ITS KIND'S CATEGORY BESIDE ITS NAME (1a, #519), off the row already read, and
- * carries its type and its class for the band to filter by.
+ * carries its type for the band to filter by.
  *
  * A READER WHO IS NOT A SITE MANAGER READS THE SAME LIST WITH NO OPENER (#506), in the
  * head or under an empty list: adding assets is a site manager's, and the action behind

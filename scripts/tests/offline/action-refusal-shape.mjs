@@ -173,13 +173,6 @@ const ACTIONS = {
         binding: "awaited",
         why: "the removal's question awaits it and sets the refusal over its actions",
     },
-    setAssetCategoriesClassAction: {
-        text: "COPY.noAccess",
-        file: "app/(assets)/asset-catalog/actions.js",
-        shape: "return",
-        binding: "awaited",
-        why: "CatalogList.js awaits it and sets the refusal in the selection bar's own column",
-    },
 };
 
 /** Bindings that can observe a return. The third, `form-action`, cannot. */

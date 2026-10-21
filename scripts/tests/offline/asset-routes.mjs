@@ -308,10 +308,11 @@ export async function run({ check, assert, log }) {
     check("  and none is the plain list, the rail's", `${assetCategoriesPath(1, null)} ${assetCategoriesPath(1)} ${assetCategoriesPath(2)}`, "/asset-categories /asset-categories /asset-categories?page=2");
     // WHAT THE BAND HOLDS (#520): after the job and before the page, the search trimmed and
     // each facet's values repeated under the chip's own word, nothing for what holds nothing.
+    // A class handed in is written nowhere since #552, which took the class's chip away.
     check(
-        "  with what the band holds, after the job and before the page",
+        "  with what the band holds, after the job and before the page, and no class (#552)",
         assetCategoriesPath(2, "recJob1", { q: "  tig welder ", level1: ["Equipment"], level2: ["Welding", "Power Tool"], assetClass: ["A"] }),
-        "/asset-categories?job=recJob1&q=tig+welder&type=Equipment&category=Welding&category=Power+Tool&class=A&page=2"
+        "/asset-categories?job=recJob1&q=tig+welder&type=Equipment&category=Welding&category=Power+Tool&page=2"
     );
     check(
         "  and a band holding nothing writes nothing",
@@ -322,9 +323,9 @@ export async function run({ check, assert, log }) {
     // and the toggle as the literal `1`, before the page, and no job.
     check("the catalog", ASSET_CATALOG_PATH, "/asset-catalog");
     check(
-        "  with what its band holds, the toggle after the chips and before the page",
+        "  with what its band holds, the toggle after the chips and before the page, and no class (#552)",
         assetCatalogPath(3, { q: " band saw ", level1: ["Tool"], level2: ["Power Tool"], assetClass: ["B", "A"], discontinued: true }),
-        "/asset-catalog?q=band+saw&type=Tool&category=Power+Tool&class=B&class=A&discontinued=1&page=3"
+        "/asset-catalog?q=band+saw&type=Tool&category=Power+Tool&discontinued=1&page=3"
     );
     check(
         "  and holding nothing, or a toggle merely truthy, is the plain catalog",

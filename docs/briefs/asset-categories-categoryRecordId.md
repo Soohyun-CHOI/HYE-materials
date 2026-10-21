@@ -56,18 +56,17 @@ head stood still and the rows scrolled alone.
 it — the shape the asset's screen takes with its printed id and the
 four document detail screens take with theirs.
 
-**identity.** Under the heading, what the item is (1d, #519): its type, its
-category and its class, `Tool · Power tools · Class B`, the values in a darker ink
-than the line. **It says what the name cannot**: a name is the item's name and
-its size, then a comma and its maker, then its part number in parentheses,
-`DEMO Welding Machine, DEMO Miller (Millermatic 255)`, so it says neither which
-category nor which type holds it, nor its class. The type and the class are
-information — the type `Equipment` or `Tool`, the class `A` for an item that
-matters more, usually a dearer one, `B` otherwise — and nothing here acts on
-either. A part the category lacks is left out, and with none there is no line.
-It said the class and the whole path from #507 to #519, `Class B · Tool > DEMO
-Carpentry > DEMO Jigsaw > T-Shank`, the record header's line under its title (0n)
-until the design drew this one.
+**identity.** Under the heading, what the item is (1d, #519): its type and its
+category, `Tool · Power tools`, the values in a darker ink than the line. **It
+says what the name cannot**: a name is the item's name and its size, then a
+comma and its maker, then its part number in parentheses, `DEMO Welding
+Machine, DEMO Miller (Millermatic 255)`, so it says neither which category nor
+which type holds it. The type is information — `Equipment` or `Tool` — and
+nothing here acts on it. A part the category lacks is left out, and with none
+there is no line. It said the class and the whole path from #507 to #519, `Class
+B · Tool > DEMO Carpentry > DEMO Jigsaw > T-Shank`, the record header's line
+under its title (0n) until the design drew this one, and the class after the
+category until #552 took it off the catalog.
 
 **action.** A way back to `/asset-categories`: the breadcrumb's one level, `Tools & Equipment`
 behind a chevron (#460), the word the asset's screen opens its path with

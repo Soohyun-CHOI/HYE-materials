@@ -113,14 +113,13 @@
     --width-table-id: 15rem; /* 1d, 240: a column of printed ids — from the drawings, not the spec */
     --width-table-status: 15rem; /* 1d, 240: a column of statuses, beside the note's — from the drawings, not the spec */
     --width-table-date: 7.5rem; /* 1d, 120: a column of days — from the drawings, not the spec */
-    --width-catalog-size: 8rem; /* 1l, 128: the catalog's size column — from the drawings, not the spec */
-    --width-catalog-maker: 8.5rem; /* 1l, 136: the catalog's maker column — from the drawings, not the spec */
-    --width-catalog-part-number: 9rem; /* 1l, 144: the catalog's part number column — from the drawings, not the spec */
-    --width-catalog-category: 11rem; /* 1l, 176: the catalog's category column — from the drawings, not the spec */
-    --width-catalog-type: 6rem; /* 1l, 96: the catalog's type column — from the drawings, not the spec */
-    --width-catalog-class: 2.75rem; /* 1l, 44: the catalog's class column — from the drawings, not the spec */
-    --width-catalog-items: 3rem; /* 1l, 48: the catalog's column of how many items stand under a row — from the drawings, not the spec */
-    --width-catalog-class-field: 8.25rem; /* 1l, 132: the class beside the type in the catalog's dialog — from the drawings, not the spec */
+    --min-width-catalog-name: 20rem; /* 1l, 320: the least the catalog's name column takes, sharing what is left at a weight of 2 — the drawing's, by 0b Row's rule */
+    --width-catalog-size: 6rem; /* 1l, 96: the catalog's size column, fixed — the drawing's, by 0b Row's rule */
+    --min-width-catalog-maker: 7.5rem; /* 1l, 120: the least the catalog's maker column takes, sharing what is left at a weight of 1 — the drawing's, by 0b Row's rule */
+    --min-width-catalog-part-number: 8rem; /* 1l, 128: the least the catalog's part number column takes, at a weight of 1 — the drawing's, by 0b Row's rule */
+    --min-width-catalog-category: 8.5rem; /* 1l, 136: the least the catalog's category column takes, at a weight of 1 — the drawing's, by 0b Row's rule */
+    --width-catalog-type: 5rem; /* 1l, 80: the catalog's type column, fixed — the drawing's, by 0b Row's rule */
+    --width-catalog-items: 3rem; /* 1l, 48: the catalog's column of how many items stand under a row, fixed — the drawing's, by 0b Row's rule */
     --spacing-fill-table-inset-right: 2.25rem; /* 1l, 36: how far in from the window's edge a list on Fill sets its table, the lane's 8 within it — from the drawings, not the spec */
     --spacing-catalog-preview-stack: 0.125rem; /* 1l, 2: from Shows as to the name under it in the catalog's dialog — from the drawings, not the spec */
     --spacing-pager-inset-top: 0.75rem; /* Pager, 12: above its controls, counting its 1px rule */
@@ -162,6 +161,7 @@
 
     /* The washes are the foreground in amounts, so each is written as one. */
     --color-hover-subtle: color-mix(in oklab, var(--color-foreground-default) 3%, transparent); /* Wash: a bordered control, or a table row, under the pointer */
+    --color-pinned-column-hover: color-mix(in srgb, var(--color-foreground-default) 3%, white); /* 0b Row, the Wash made opaque: the ground of the name column a table holds at its start, under a row taking the Wash */
     --color-background-muted: color-mix(in oklab, var(--color-foreground-default) 4.5%, transparent); /* Field: a resting ground that answers no pointer */
     --color-hover: color-mix(in oklab, var(--color-foreground-default) 5.5%, transparent); /* Hover: anything without an outline under the pointer */
     --color-scrollbar-thumb: color-mix(in oklab, var(--color-foreground-default) 20%, transparent); /* 0i Bar: a scrollbar's thumb */

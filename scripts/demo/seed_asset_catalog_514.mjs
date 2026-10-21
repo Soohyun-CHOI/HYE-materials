@@ -58,8 +58,15 @@ import { textMatchKey } from "../../lib/itemNaming.js";
 import { resolveAirtableBase } from "../../lib/airtableBase.js";
 import { FILED_BY_LINK_REFUSAL, filedByLink } from "../import/link_category_groups_539_plan.mjs";
 import { refusesLiveBase } from "./_testBaseOnly.mjs";
+import { CLASS_FIELD } from "../import/keep_asset_class_552_plan.mjs";
 
 if (refusesLiveBase({ script: "seed_asset_catalog_514" })) process.exit(1);
+
+// The catalog's fields as this script read and wrote them: lib/assetCategory.js's path and the
+// class, which #552 took off the catalog and lib/ names no longer, its name from
+// keep_asset_class_552_plan.mjs. The run stops on the base as it stands before it reads a row,
+// so nothing here reaches the class; it is kept as the record of what ran.
+const CATALOG_FIELDS = Object.freeze({ ...ASSET_CATEGORY_FIELDS, assetClass: CLASS_FIELD.name });
 
 const API_ROOT = "https://api.airtable.com/v0";
 const META_ROOT = `${API_ROOT}/meta`;
@@ -163,12 +170,12 @@ function finish(air, code, verdict) {
 
 /** A REST record as a spec row, an empty field `""`. */
 function valuesOf(record) {
-    return Object.fromEntries(KEYS.map((key) => [key, record.fields[ASSET_CATEGORY_FIELDS[key]] ?? ""]));
+    return Object.fromEntries(KEYS.map((key) => [key, record.fields[CATALOG_FIELDS[key]] ?? ""]));
 }
 
 /** A spec row as the fields a write sends: every one, an empty level cleared. */
 function fieldsOf(values) {
-    return Object.fromEntries(KEYS.map((key) => [ASSET_CATEGORY_FIELDS[key], values[key] === "" ? null : values[key]]));
+    return Object.fromEntries(KEYS.map((key) => [CATALOG_FIELDS[key], values[key] === "" ? null : values[key]]));
 }
 
 const same = (a, b) => KEYS.every((key) => a[key] === b[key]);
@@ -200,13 +207,13 @@ async function main() {
         log(FILED_BY_LINK_REFUSAL);
         return finish(air, 1, "refused: the catalog files by link since #539");
     }
-    const missing = table ? Object.values(ASSET_CATEGORY_FIELDS).filter((name) => !table.fields.some((f) => f.name === name)) : ["the table"];
+    const missing = table ? Object.values(CATALOG_FIELDS).filter((name) => !table.fields.some((f) => f.name === name)) : ["the table"];
     if (missing.length > 0) {
         log(`${TABLE_NAME} lacks ${missing.join(", ")} — run scripts/import/classify_asset_categories_514.mjs --apply first.`);
         return finish(air, 1, "the schema is not #514's");
     }
 
-    const records = await air.listRecords(table.id, [NAME_FIELD, ...Object.values(ASSET_CATEGORY_FIELDS)]);
+    const records = await air.listRecords(table.id, [NAME_FIELD, ...Object.values(CATALOG_FIELDS)]);
     const byId = new Map(records.map((record) => [record.id, record]));
 
     // --- the eleven rows: each must read what it was or what it becomes ------
@@ -249,7 +256,7 @@ async function main() {
 
     // --- read back ------------------------------------------------------------
     log(`\nreading the catalog back:`);
-    const after = await air.listRecords(table.id, [NAME_FIELD, ...Object.values(ASSET_CATEGORY_FIELDS)]);
+    const after = await air.listRecords(table.id, [NAME_FIELD, ...Object.values(CATALOG_FIELDS)]);
     const afterById = new Map(after.map((record) => [record.id, record]));
     const failures = [];
     for (const { id, from, to } of REWRITES) {
