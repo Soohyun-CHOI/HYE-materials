@@ -71,6 +71,9 @@ import { ASSET_CATEGORY_FIELDS, catalogPathKey, readCatalog } from "../../lib/as
 import { refusesProtectedWrite } from "../protectedTables.mjs";
 import { FILED_BY_LINK_REFUSAL, filedByLink } from "../import/link_category_groups_539_plan.mjs";
 import { resolveAirtableBase } from "../../lib/airtableBase.js";
+import { refusesLiveBase } from "./_testBaseOnly.mjs";
+
+if (refusesLiveBase({ script: "remove_demo_catalog_517" })) process.exit(1);
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const LEDGER_PREFIX = "remove_demo_catalog_517-";

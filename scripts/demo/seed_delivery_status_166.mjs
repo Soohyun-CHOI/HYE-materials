@@ -60,6 +60,9 @@ import {
     materialKeyFor,
     resolveSeedCategories,
 } from "./_seed_categories.mjs";
+import { refusesLiveBase } from "./_testBaseOnly.mjs";
+
+if (refusesLiveBase({ script: "seed_delivery_status_166" })) process.exit(1);
 
 const JOB_CODE = "26-DEMO-01";
 const VENDOR_NAME = "Lone Star Pipe & Supply";

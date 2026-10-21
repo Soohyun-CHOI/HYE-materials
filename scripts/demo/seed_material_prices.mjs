@@ -42,6 +42,9 @@ import {
     itemForCategory,
     resolveSeedCategories,
 } from "./_seed_categories.mjs";
+import { refusesLiveBase } from "./_testBaseOnly.mjs";
+
+if (refusesLiveBase({ script: "seed_material_prices" })) process.exit(1);
 
 // A third vendor, so the comparison screen has something to compare. Named
 // "Demo ..." on purpose: a realistic supplier name sitting in Vendors could

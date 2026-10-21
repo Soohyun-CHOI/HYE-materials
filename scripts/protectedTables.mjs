@@ -29,6 +29,8 @@
 // a run deleting every row of one of those (`wipe_base.mjs`) rewrites the two tables without
 // naming them. A run deleting chosen rows of one asks itself whether any asset stands on them,
 // as `replace_asset_catalog_528.mjs --remove` already does; a whole table emptied cannot.
+// `PROTECTED_LINKS` is those links by table, with `Asset Log."Asset"` between the two, for a run
+// that asks it of every row it would delete (`remove_demo_data_537_plan.mjs`, #537).
 //
 // NO FLAG LETS A RUN PAST IT ON THE LIVE BASE, and that is the point rather than an omission: a
 // way round is a write waiting for the run that takes it. Naming the live base (`AIRTABLE_BASE=live`)
@@ -74,6 +76,12 @@ export const PROTECTED_TABLES = Object.freeze(["Assets", "Asset Log"]);
 
 /** The tables a protected row links to, which no script empties of every row. */
 export const PROTECTED_LINK_TARGETS = Object.freeze(["Asset Categories", "Jobs", "Users"]);
+
+/** The links a protected row carries as its own value, by table — each pair's far side is a mirror. */
+export const PROTECTED_LINKS = Object.freeze({
+    Assets: Object.freeze(["Category", "Job"]),
+    "Asset Log": Object.freeze(["Asset", "Job", "Recorded By"]),
+});
 
 /**
  * Whether a run must stop before its first write, saying so: `baseId` is the base it writes to,

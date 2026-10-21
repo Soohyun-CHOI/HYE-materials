@@ -57,6 +57,9 @@ import { ASSET_CATEGORY_FIELDS, composeItemName, readCatalog } from "../../lib/a
 import { textMatchKey } from "../../lib/itemNaming.js";
 import { resolveAirtableBase } from "../../lib/airtableBase.js";
 import { FILED_BY_LINK_REFUSAL, filedByLink } from "../import/link_category_groups_539_plan.mjs";
+import { refusesLiveBase } from "./_testBaseOnly.mjs";
+
+if (refusesLiveBase({ script: "seed_asset_catalog_514" })) process.exit(1);
 
 const API_ROOT = "https://api.airtable.com/v0";
 const META_ROOT = `${API_ROOT}/meta`;
