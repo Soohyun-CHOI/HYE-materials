@@ -5,6 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffe
 import {
     CONTROLS_COPY as COPY,
     buttonBusyState,
+    comboboxList,
     editableComboboxKey,
     menuIndex,
     movedIndex,
@@ -1213,26 +1214,47 @@ export function SegmentedChoice({ name, options, value, onChange }) {
  * Category field puts what a save would spell in place of what was typed then, so the field shows
  * what is saved. A press on a suggestion keeps focus in the field (`Menu.js`), so it is not asked
  * before a pick, and what it is asked of later is the suggestion's own spelling.
+ *
+ * A FIELD MAY OPEN ON EVERYTHING IT OFFERS (`every`, #555): the catalog's Category and Name list
+ * the whole of what the type, or the type and the category, hold the moment the list opens —
+ * as focus arrives, by Tab or a press, on a press in the field while it holds focus, and on Down
+ * — with the one the field holds marked `chosen` and scrolled to, so a reader who does not
+ * remember what the catalog holds need not guess at its first letters. Typing narrows to
+ * `suggestions` until the list shuts, and emptying the field opens the whole list again, since
+ * nothing is left to narrow by. The keys are the same either way. `lane` is the most the list
+ * stands at before it scrolls in 0i's lane (`Menu.js`), its drawing's.
  */
-export function Combobox({ name, value, onChange, onPick, onBlur, suggestions, heading, placeholder, listOpen, onListOpenChange, mark }) {
+export function Combobox({ name, value, onChange, onPick, onBlur, suggestions, every, lane, heading, placeholder, listOpen, onListOpenChange, mark }) {
     const field = useField();
     const formBusy = Boolean(useContext(FormBusyContext));
     const listId = `${field.control}list`;
     const markId = `${field.control}mark`;
     const [active, setActive] = useState(-1);
+    // Whether something has been typed since the list last opened, which narrows a field that
+    // opens on everything it offers.
+    const [narrowing, setNarrowing] = useState(false);
     const anchorRef = useRef(null);
-    const shown = listOpen && suggestions.length > 0 && !formBusy;
+    const list = comboboxList({ every, suggestions, narrowing, value });
+    const shown = listOpen && list.length > 0 && !formBusy;
+    // What the list holds once it opens, nothing typed since.
+    const opening = comboboxList({ every, suggestions, narrowing: false, value });
+
+    const open = () => {
+        setNarrowing(false);
+        setActive(-1);
+        onListOpenChange(true);
+    };
 
     const accept = (index) => {
-        if (onPick) onPick(suggestions[index]);
-        else onChange(suggestions[index].label);
+        if (onPick) onPick(list[index]);
+        else onChange(list[index].label);
         setActive(-1);
         onListOpenChange(false);
     };
 
     const onKeyDown = (event) => {
         if (formBusy) return;
-        const answer = editableComboboxKey(event, { shown, active, count: suggestions.length });
+        const answer = editableComboboxKey(event, { shown, active, count: shown ? list.length : opening.length });
         if (!answer) return;
         if (answer.stop) {
             event.preventDefault();
@@ -1242,6 +1264,7 @@ export function Combobox({ name, value, onChange, onPick, onBlur, suggestions, h
             accept(answer.accept);
             return;
         }
+        if (answer.shown && !shown) setNarrowing(false);
         setActive(answer.active);
         onListOpenChange(answer.shown);
     };
@@ -1266,11 +1289,15 @@ export function Combobox({ name, value, onChange, onPick, onBlur, suggestions, h
                 readOnly={formBusy}
                 onChange={(event) => {
                     onChange(event.target.value);
+                    setNarrowing(true);
                     setActive(-1);
                     onListOpenChange(true);
                 }}
                 onFocus={() => {
-                    if (!formBusy) onListOpenChange(true);
+                    if (!formBusy) open();
+                }}
+                onClick={() => {
+                    if (!formBusy && !shown) open();
                 }}
                 onBlur={() => {
                     setActive(-1);
@@ -1301,12 +1328,14 @@ export function Combobox({ name, value, onChange, onPick, onBlur, suggestions, h
                 shown={shown}
                 labelId={field.labelId}
                 heading={heading}
-                options={suggestions.map((suggestion, index) => ({
+                lane={lane}
+                options={list.map((suggestion, index) => ({
                     key: suggestion.key ?? suggestion.label,
                     label: suggestion.label,
                     match: suggestion.match,
                     detail: suggestion.detail,
                     selected: index === active,
+                    checked: suggestion.chosen === true,
                 }))}
                 active={active}
                 onPick={accept}
@@ -1395,9 +1424,10 @@ const FILTER_CHIP_HELD =
  * one, it says the value alone, as 1b draws it, where a chip taking several says its name before
  * what it holds. Its `values` and `onChange` keep the one shape, an empty list or one value.
  * `fit` is where its list opens, as `Menu`'s: from its left, or set against its right end for a
- * chip at the end of its row.
+ * chip at the end of its row; and `lane` the height a list drawn as a lane of its own stops at
+ * (`Menu`'s, #555), 1l's band.
  */
-export function FilterChip({ label, options, values, onChange, clearLabel, several, single = false, fit = "start" }) {
+export function FilterChip({ label, options, values, onChange, clearLabel, several, single = false, fit = "start", lane }) {
     const id = useId();
     const labelId = `${id}label`;
     const listId = `${id}list`;
@@ -1536,6 +1566,7 @@ export function FilterChip({ label, options, values, onChange, clearLabel, sever
                 shown={open}
                 labelId={labelId}
                 fit={fit}
+                lane={lane}
                 rows="sm"
                 multiselectable={!single}
                 options={options.map((option, index) => ({

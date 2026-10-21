@@ -54,6 +54,7 @@ import { readFileSync } from "node:fs";
 import {
     CONTROLS_COPY,
     buttonBusyState,
+    comboboxList,
     editableComboboxKey,
     menuButtonKey,
     menuIndex,
@@ -90,6 +91,46 @@ const VISIBLE_ATTRIBUTES = new Set(["placeholder", "title", "alt", "aria-label"]
 
 /** A key as a handler receives it. */
 const key = (name, mods = {}) => ({ key: name, altKey: false, ctrlKey: false, metaKey: false, ...mods });
+
+/**
+ * What a field's list draws as it scrolls, off `Menu.js` (#555): 0i's bar on every list and its
+ * Chain, the lane's reserved 8 and its height only where a caller hands one, the height the less
+ * of the lane's and the room under the field, and the option it checks scrolled to while no key
+ * has moved visual focus.
+ */
+function laneFacts({ ast, source }) {
+    const menu = functionNamed(ast, "Menu");
+    const body = menu ? source.slice(menu.start, menu.end) : "";
+    return [
+        /import \{ SCROLL_LANE \} from "\.\/scrollLane";/.test(source),
+        /className=\{`inset-auto [^`]*\boverflow-y-auto overscroll-contain\b[^`]*\$\{SCROLL_LANE\}/.test(body),
+        /\$\{lane \? `\[scrollbar-gutter:stable\] \$\{lane\}` : ""\}/.test(body) && (body.match(/scrollbar-gutter/g) ?? []).length === 1,
+        /list\.style\.maxHeight = "";\s*const own = parseFloat\(getComputedStyle\(list\)\.maxHeight\);\s*list\.style\.maxHeight = `\$\{Number\.isNaN\(own\) \? room : Math\.min\(own, room\)\}px`;/.test(body),
+        /const index = active >= 0 \? active : checkedIndex;/.test(body) && /\}, \[shown, active, checkedIndex\]\);/.test(body),
+    ].join(" ");
+}
+
+/**
+ * How a typed value opens on everything it offers, off `Controls.js` (#555): which list it shows
+ * and holds the keys to, a press, focus and a key that opens it showing the whole list again,
+ * typing narrowing it, the pick taken from the list shown, and the mark and the lane handed on.
+ */
+function everyFacts({ ast, source }) {
+    const fn = functionNamed(ast, "Combobox");
+    const body = fn ? source.slice(fn.start, fn.end) : "";
+    const chip = functionNamed(ast, "FilterChip");
+    return [
+        /const list = comboboxList\(\{ every, suggestions, narrowing, value \}\);/.test(body) &&
+            /const opening = comboboxList\(\{ every, suggestions, narrowing: false, value \}\);/.test(body),
+        /editableComboboxKey\(event, \{ shown, active, count: shown \? list\.length : opening\.length \}\)/.test(body),
+        /const open = \(\) => \{\s*setNarrowing\(false\);\s*setActive\(-1\);\s*onListOpenChange\(true\);\s*\};/.test(body) &&
+            /if \(answer\.shown && !shown\) setNarrowing\(false\);/.test(body),
+        /onChange\(event\.target\.value\);\s*setNarrowing\(true\);/.test(body),
+        /if \(onPick\) onPick\(list\[index\]\);\s*else onChange\(list\[index\]\.label\);/.test(body),
+        /lane=\{lane\}\s+options=\{list\.map\(/.test(body) && /checked: suggestion\.chosen === true,/.test(body),
+        chip ? /lane=\{lane\}/.test(source.slice(chip.start, chip.end)) : false,
+    ].join(" ");
+}
 
 /** Every JSX opening element named `tag` in a file, with its attributes by name. */
 function elements(ast, tag) {
@@ -174,6 +215,52 @@ function openingFocus(source) {
 }
 
 export function run({ check, assert, log }) {
+    // ── #555: a field that opens on everything it offers, and 0i's bar on every list ──
+    // At the head, as #531's block below is, so nothing older that throws keeps these from failing.
+    {
+        log("a typed value that opens on everything it offers, and a list that scrolls in 0i's bar (#555):");
+        const every = [{ label: "All" }];
+        const suggestions = [{ label: "Some" }];
+        const shows = (state) => comboboxList({ every, suggestions, ...state })[0]?.label ?? "none";
+        check(
+            "the whole list until something is typed, the suggestions once it is, the whole again once emptied, and suggestions alone with no whole list",
+            [
+                shows({ narrowing: false, value: "Power Tools" }),
+                shows({ narrowing: true, value: "po" }),
+                shows({ narrowing: true, value: "" }),
+                comboboxList({ every: undefined, suggestions, narrowing: false, value: "" })[0]?.label ?? "none",
+            ].join(" "),
+            "All Some All Some"
+        );
+        const controls = parseFile(CONTROLS);
+        check("  the combobox shows that list, shows it whole again as it opens, and narrows it as typed", everyFacts(controls), "true true true true true true true");
+        check(
+            "  a combobox showing its suggestions whatever was typed is seen",
+            everyFacts(parseSource("export function Combobox() { const shown = listOpen && suggestions.length > 0; return <input />; }\nexport function FilterChip() { return <Menu />; }\n", "<planted-every>")),
+            "false false false false false false false"
+        );
+        check("  every field list scrolls in 0i's bar, reserving its lane and stopping at its height where handed one", laneFacts(parseFile(MENU)), "true true true true true");
+        check(
+            "  a list scrolling in the browser's own bar, as it did until #555, is seen",
+            laneFacts(
+                parseSource(
+                    "export default function Menu() { useLayoutEffect(() => { list.style.maxHeight = `${room}px`; }, [shown]); return <div className={`inset-auto mx-0 flex-col overflow-y-auto rounded-card`} />; }\n",
+                    "<planted-lane>"
+                )
+            ),
+            "false false false false false"
+        );
+        const frame = parseFile(FRAME);
+        const body = functionNamed(frame.ast, "DialogBody");
+        const bodySource = body ? frame.source.slice(body.start, body.end) : "";
+        check(
+            "  a dialog's body scrolls in the bar too, in the lane and out of it",
+            `${/\[scrollbar-gutter:stable\] \$\{SCROLL_LANE\}`/.test(bodySource)} ${/: `pt-dialog-header-stack in-data-preview:px-dialog-inset in-data-fixed:px-dialog-inset \$\{SCROLL_LANE\}`/.test(bodySource)}`,
+            "true true"
+        );
+        log("");
+    }
+
     // ── #531: a sheet holding no field opens on its title ──────────────────
     // At the head of the check, as #522's block below is, so nothing older that throws keeps
     // these from printing. What a browser showed is in `tools.md`.
@@ -1255,7 +1342,7 @@ export function run({ check, assert, log }) {
         [
             /className=\{`relative flex min-h-0 grow flex-col \$\{lane \? "mt-dialog-header-inset-bottom" : ""\}`\}/.test(bodyPart),
             bodyPart.includes("pt-[calc(var(--spacing-dialog-header-stack)-var(--spacing-dialog-header-inset-bottom))]"),
-            /: "pt-dialog-header-stack in-data-preview:px-dialog-inset/.test(bodyPart),
+            /: `pt-dialog-header-stack in-data-preview:px-dialog-inset/.test(bodyPart),
             /\{hidden\.above && <div aria-hidden="true" className=\{`absolute inset-x-0 h-px bg-divider \$\{lane \? "-top-px" : "top-0"\}`\} \/>\}/.test(bodyPart),
         ].join(" "),
         "true true true true"
@@ -1533,9 +1620,11 @@ export function run({ check, assert, log }) {
             combobox: [
                 reads("Combobox"),
                 /readOnly=\{formBusy\}/.test(combobox),
-                /const shown = listOpen && suggestions\.length > 0 && !formBusy;/.test(combobox),
+                /const shown = listOpen && list\.length > 0 && !formBusy;/.test(combobox),
                 /const onKeyDown = \(event\) => \{\s*if \(formBusy\) return;/.test(combobox),
-                /onFocus=\{\(\) => \{\s*if \(!formBusy\) onListOpenChange\(true\);/.test(combobox),
+                // Focus arriving and a press in the field both open it (#555), and neither does
+                // while the form waits.
+                /onFocus=\{\(\) => \{\s*if \(!formBusy\) open\(\);/.test(combobox) && /onClick=\{\(\) => \{\s*if \(!formBusy && !shown\) open\(\);/.test(combobox),
             ].join(" "),
             sheetField: [
                 reads("SheetField"),

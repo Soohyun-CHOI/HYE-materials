@@ -28,6 +28,8 @@ import {
     catalogRows,
     categorySuggestions,
     classChanges,
+    everyCategory,
+    everyName,
     filterCatalogRows,
     isNewCategory,
     isNewName,
@@ -164,6 +166,57 @@ function drawn({ ast }, name) {
 }
 
 export function run({ check, assert, log }) {
+    // ── #555: everything a dialog's field opens on ──────────────────────────
+    // First, so no older line that throws under a mutation can keep these from failing.
+    log("the whole list the Category and the Name open on, before anything is typed (#555):");
+    const listed = (choices) => choices.map(({ label, chosen }) => `${label}${chosen ? "*" : ""}`).join(", ");
+    const wholeRows = catalogRows(CATEGORIES);
+    const asTyped = (over) => ({ level1: "Tool", assetClass: "A", level2: "", level3: "", size: "", maker: "", partNumber: "", ...over });
+    check(
+        "every category the type holds, each once and in name order, the one the field holds marked in the catalog's spelling",
+        [
+            listed(everyCategory({ level1: "Tool", level2: "" }, GROUPS)),
+            listed(everyCategory({ level1: "Tool", level2: " WRENCH " }, GROUPS)),
+            listed(everyCategory({ level1: "Equipment", level2: "Power Tool" }, GROUPS)),
+            listed(everyCategory({ level1: "Tool", level2: "  " }, GROUPS)),
+        ].join(" | "),
+        "Power Tool, Wrench | Power Tool, Wrench* | Cutting Equipment, Lift Equipment | Power Tool, Wrench"
+    );
+    check(
+        "  and every name under the type and the category, a discontinued row's among them, the one held marked",
+        [
+            listed(everyName(asTyped({ level2: "power tool", level3: "battery" }), wholeRows)),
+            listed(everyName(asTyped({ level1: "Equipment", level2: "Cutting Equipment", level3: "" }), wholeRows)),
+            listed(everyName(asTyped({ level2: "Lift Equipment", level3: "Battery" }), wholeRows)),
+        ].join(" | "),
+        "Band Saw, Battery*, Saw Blade | Band Saw, Cutting Machine | "
+    );
+    // More categories than a typed list holds, in an order a word sort would get wrong.
+    const many = ["Welding", "Size 10", "Bending", "Size 9", "Gauges", "Lifting", "Machining", "Fastening"].map((level2) => ({ level1: "Tool", level2 }));
+    check(
+        "the whole list is not cut at the typed list's six, and orders a run of digits as a number",
+        `${listed(everyCategory({ level1: "Tool", level2: "" }, many))} | ${categorySuggestions({ level1: "Tool", level2: "" }, many).length}`,
+        "Bending, Fastening, Gauges, Lifting, Machining, Size 9, Size 10, Welding | 6"
+    );
+    check(
+        "  and typing still narrows, the one typed whole left out",
+        `${categorySuggestions({ level1: "Tool", level2: "size" }, many).join(", ")} | ${categorySuggestions({ level1: "Tool", level2: "size 9" }, many).join(", ")}`,
+        "Size 9, Size 10 | "
+    );
+    {
+        const dialogs = parseFile(DIALOGS).source;
+        const handed = (field, every) =>
+            new RegExp(`<Combobox\\s+name="${field}"(?:(?!/>)[\\s\\S])*?every=\\{${every}\\(values, (groups|rows)\\)\\}\\s+lane="max-h-catalog-field-list"`).test(dialogs);
+        check(
+            "the dialog hands both fields the whole list and 1l's 228 lane",
+            `${handed("level2", "everyCategory")} ${handed("level3", "everyName")}`,
+            "true true"
+        );
+        const chipLanes = (file) => (parseFile(file).source.match(/<FilterChip\b[\s\S]*?\/>/g) ?? []).map((chip) => (chip.match(/lane="([^"]*)"/) ?? [])[1] ?? "none").join(", ");
+        check("the catalog's band hands its chips 1l's 340 lane, and the category list's none, as 1a draws", `${chipLanes(LIST)} | ${chipLanes(CATEGORY_LIST)}`, "max-h-catalog-filter-list | none");
+    }
+    log("");
+
     // ── 1: the rows ──────────────────────────────────────────────────────────
     log("every row of the catalog, in 1l's order, saying what the page shows and nothing of its items:");
     const rows = catalogRows(CATEGORIES);

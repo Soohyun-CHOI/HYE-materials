@@ -10,6 +10,8 @@ import {
     ASSET_CATALOG_COPY as COPY,
     CATALOG_ENTRY_FIELDS,
     categorySuggestions,
+    everyCategory,
+    everyName,
     isNewCategory,
     isNewName,
     nameSuggestions,
@@ -202,6 +204,8 @@ export function EntryDialog({ entry, open, onClose, onRemove, rows, groups }) {
                         onChange={set("level2")}
                         onBlur={spellCategory}
                         suggestions={categorySuggestions(values, groups).map((label) => ({ label }))}
+                        every={everyCategory(values, groups)}
+                        lane="max-h-catalog-field-list"
                         placeholder={COPY.placeholders.level2}
                         {...list("level2")}
                         mark={newCategory ? { word: COPY.newMark, said: category ? COPY.newCategoryAlone : COPY.newCategory } : null}
@@ -215,6 +219,8 @@ export function EntryDialog({ entry, open, onClose, onRemove, rows, groups }) {
                                 value={values.level3}
                                 onChange={set("level3")}
                                 suggestions={nameSuggestions(values, rows).map((label) => ({ label }))}
+                                every={everyName(values, rows)}
+                                lane="max-h-catalog-field-list"
                                 placeholder={COPY.placeholders.level3}
                                 {...list("level3")}
                                 mark={newName ? { word: COPY.newMark, said: COPY.newName } : null}

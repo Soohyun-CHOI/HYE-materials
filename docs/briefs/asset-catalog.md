@@ -48,7 +48,8 @@ to nothing else.
 name typed in full first; three chips, `Type`, `Category` and `Class`, each
 taking several values with how many rows each would leave — both types and both
 classes offered whatever the rows hold, and every category the office keeps,
-one with nothing filed under it yet at a count of none; and `Discontinued only`,
+one with nothing filed under it yet at a count of none, each chip's list
+scrolling within itself once it passes 340 (1l, #555); and `Discontinued only`,
 a toggle that narrows to the discontinued rows, with a × that turns it off.
 What the band holds rides the address, so a reload and a copied link keep it,
 and it narrows rows already in the browser.
@@ -66,10 +67,15 @@ a box before it selects it, and one in the column head selects the page. The
 selection outlives a page and a narrowing.
 
 **The dialog (1l)** asks the type and the class as two segmented rows, opening
-on `Equipment` and `A` for a new row; the category, suggesting the categories
-its type holds and marking one it does not `New`; the name, suggesting the names
-under that category and marking a new one the same way; and the size, the maker
-and the part number, each `Optional`. Under them, `Shows as` and the name the
+on `Equipment` and `A` for a new row; the category, listing every category its
+type holds and marking one it does not `New`; the name, listing every name
+under that category and marking a new one the same way; and the size, the
+maker and the part number, each `Optional`. **Each list opens
+whole (#555)** — as the field takes focus, on a press in it and on Down — in
+name order, with the value the field holds checked and scrolled to, so a row
+being edited shows where it stands among the rest; typing narrows it to the
+names holding what is typed, and emptying the field opens it whole again. It
+stands six rows tall at most and scrolls within that. Under them, `Shows as` and the name the
 row will have — the base's own rule — or `Item name` in a faint ink before a
 name is typed. A press is refused field by field under each field: a type or a
 class not chosen, a category or a name empty or a placeholder, `N/A` and its

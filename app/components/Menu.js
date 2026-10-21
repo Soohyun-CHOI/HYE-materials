@@ -3,6 +3,7 @@
 import { Fragment, useId, useLayoutEffect, useRef, useState } from "react";
 import { menuButtonKey, menuIndex, menuKey, typeaheadIndex } from "@/lib/controls";
 import Icon from "./Icon";
+import { SCROLL_LANE } from "./scrollLane";
 
 // 0a Menu's head, a line that names what follows and answers no pointer: 12 at Ink 3 and
 // 400, 6 above and below, 10 either side (#495). The field list's `Recently at this job` and
@@ -73,10 +74,23 @@ const MENU_HEADING = "shrink-0 truncate px-control-inset-x py-menu-heading-inset
  * a list a press opened shows the one chosen by its check alone, as 0a's Menu marks a list you
  * choose one from, and the pointer shades what it is on; until #522 the chosen row took Hover
  * however the list opened (#501), which read as a row the pointer was on. Every figure in a
- * list is tabular (0h), so a column of job codes holds one width.
+ * list is tabular (0h), so a column of job codes holds one width. **A list opening with nothing
+ * under visual focus shows the option it checks**, scrolled into view (#555): the catalog's
+ * fields open on everything they offer with the value they hold checked somewhere in it.
+ *
+ * A LIST THAT SCROLLS DOES SO IN 0i's BAR, AND STOPS AT ITS END (#555). Every list here scrolls
+ * once the room under its control runs out, and until #555 it did so in the browser's own bar —
+ * 15 wide with its arrows — since nothing measured off the DOM shows a scrollbar, #538's reading
+ * missed it. Each draws `SCROLL_LANE` now, the one string every lane reads, and keeps a scroll past
+ * its end from moving what is behind it (0i Chain); its bar takes its 8 only while it shows,
+ * which is how 1a, 1b and 1i draw their lists, never long enough to scroll. **A list drawn as a
+ * lane of its own is handed `lane`**, the `max-h-*` class of the height its drawing stops it at:
+ * it reserves the 8 whether or not its bar shows (0i Gutter) and stands at that height or the room
+ * under its control, whichever is less — 1l's band chips at 340 and its dialog's two fields at 228.
  */
-export default function Menu({ id, anchorRef, shown, labelId, heading, options, active, shade = true, onPick, fit = "field", rows = "lg", multiselectable = false }) {
+export default function Menu({ id, anchorRef, shown, labelId, heading, options, active, shade = true, onPick, fit = "field", rows = "lg", multiselectable = false, lane }) {
     const listRef = useRef(null);
+    const checkedIndex = options.findIndex((option) => option.checked);
 
     useLayoutEffect(() => {
         const list = listRef.current;
@@ -101,7 +115,12 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
                 if (fit === "field") list.style.width = `${box.width}px`;
             }
             list.style.top = `${box.bottom}px`;
-            list.style.maxHeight = `${Math.max(0, window.innerHeight - box.bottom - offset)}px`;
+            // The room under the field, or a lane's own height where that is less: the class
+            // gives the second, read with the inline height cleared.
+            const room = Math.max(0, window.innerHeight - box.bottom - offset);
+            list.style.maxHeight = "";
+            const own = parseFloat(getComputedStyle(list).maxHeight);
+            list.style.maxHeight = `${Number.isNaN(own) ? room : Math.min(own, room)}px`;
         };
         place();
         if (!list.matches(":popover-open")) list.showPopover();
@@ -113,11 +132,13 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
         };
     }, [shown, anchorRef, fit]);
 
-    // The option under visual focus stays in view in a list long enough to scroll.
+    // The option under visual focus stays in view in a list long enough to scroll, and the one
+    // it checks while none is.
     useLayoutEffect(() => {
-        if (!shown || active < 0) return;
-        listRef.current?.querySelector(`[data-index="${active}"]`)?.scrollIntoView({ block: "nearest" });
-    }, [shown, active]);
+        const index = active >= 0 ? active : checkedIndex;
+        if (!shown || index < 0) return;
+        listRef.current?.querySelector(`[data-index="${index}"]`)?.scrollIntoView({ block: "nearest" });
+    }, [shown, active, checkedIndex]);
 
     return (
         <div
@@ -127,9 +148,9 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
             aria-labelledby={labelId}
             aria-multiselectable={multiselectable || undefined}
             popover="manual"
-            className={`inset-auto mx-0 mt-menu-offset mb-0 flex-col overflow-y-auto rounded-card border border-border bg-white p-menu-inset font-ui text-body-sm text-foreground-default tabular-nums shadow-popover open:flex ${
+            className={`inset-auto mx-0 mt-menu-offset mb-0 flex-col overflow-y-auto overscroll-contain rounded-card border border-border bg-white p-menu-inset font-ui text-body-sm text-foreground-default tabular-nums shadow-popover open:flex ${SCROLL_LANE} ${
                 fit === "field" ? "" : "w-max min-w-menu max-w-menu"
-            }`}
+            } ${lane ? `[scrollbar-gutter:stable] ${lane}` : ""}`}
         >
             {heading && (
                 <div aria-hidden="true" className={MENU_HEADING}>

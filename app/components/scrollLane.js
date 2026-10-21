@@ -5,7 +5,8 @@
  *
  * ONE STRING FOR EVERY LANE. The rail's column drew it first (#460), a list scrolls its rows
  * in a lane of its own since #463, and the labels' pane and a sign-in step's column at a
- * desk since #495, so each reads it from here rather than spelling it again. Whatever
+ * desk since #495, and every list a field or a chip opens and a dialog's body since #555, so
+ * each reads it from here rather than spelling it again. Whatever
  * scrolls with it reserves the lane itself — overflow, `scrollbar-gutter` and the
  * overscroll rule are the caller's, since only the caller knows when it scrolls.
  */
