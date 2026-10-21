@@ -82,11 +82,16 @@ const MENU_HEADING = "shrink-0 truncate px-control-inset-x py-menu-heading-inset
  * once the room under its control runs out, and until #555 it did so in the browser's own bar —
  * 15 wide with its arrows — since nothing measured off the DOM shows a scrollbar, #538's reading
  * missed it. Each draws `SCROLL_LANE` now, the one string every lane reads, and keeps a scroll past
- * its end from moving what is behind it (0i Chain); its bar takes its 8 only while it shows,
- * which is how 1a, 1b and 1i draw their lists, never long enough to scroll. **A list drawn as a
- * lane of its own is handed `lane`**, the `max-h-*` class of the height its drawing stops it at:
- * it reserves the 8 whether or not its bar shows (0i Gutter) and stands at that height or the room
- * under its control, whichever is less — 1l's band chips at 340 and its dialog's two fields at 228.
+ * its end from moving what is behind it (0i Chain). **A list drawn as a lane of its own is handed
+ * `lane`**, the `max-h-*` class of the height its drawing stops it at, and stands at that height or
+ * the room under its control, whichever is less — 1l's band chips at 340 and its dialog's two
+ * fields at 228.
+ *
+ * THE BAR TAKES ITS 8 ONLY WHILE IT SHOWS, IN EVERY LIST (Soo, #555). 1l reserves the 8 on its
+ * lanes whether or not the bar shows (0i Gutter), so its two-option `Type` and `Class` stood 8
+ * wider on the right than on the left with nothing to scroll; none reserves it here. A list as wide
+ * as its options grows by the 8 while its bar shows, and one as wide as its field gives its options
+ * the 8 then, so a list that scrolls draws as 1l's does and one that does not as 1a's.
  *
  * WHAT SCROLLS STANDS 5 INSIDE THE EDGE ABOVE AND BELOW, AT REST AND WHILE IT SCROLLS (Soo, #555).
  * The frame holds the Menu's 5 above and below, and the options scroll in a region inside it, so a
@@ -158,7 +163,7 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
                 fit === "field" ? "" : "w-max min-w-menu max-w-menu"
             } ${lane ?? ""}`}
         >
-            <div className={`flex min-h-0 flex-col overflow-y-auto overscroll-contain px-menu-inset ${SCROLL_LANE} ${lane ? "[scrollbar-gutter:stable]" : ""}`}>
+            <div className={`flex min-h-0 flex-col overflow-y-auto overscroll-contain px-menu-inset ${SCROLL_LANE}`}>
                 {heading && (
                     <div aria-hidden="true" className={MENU_HEADING}>
                         {heading}

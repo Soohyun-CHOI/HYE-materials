@@ -94,9 +94,9 @@ const key = (name, mods = {}) => ({ key: name, altKey: false, ctrlKey: false, me
 
 /**
  * What a field's list draws as it scrolls, off `Menu.js` (#555): 0i's bar on every list and its
- * Chain, the lane's reserved 8 and its height only where a caller hands one, the height the less
- * of the lane's and the room under the field, and the option it checks scrolled to while no key
- * has moved visual focus.
+ * Chain, the bar's 8 reserved by none (Soo's ruling) and a lane's height only where a caller hands
+ * one, the height the less of the lane's and the room under the field, and the option it checks
+ * scrolled to while no key has moved visual focus.
  */
 function laneFacts({ ast, source }) {
     const menu = functionNamed(ast, "Menu");
@@ -106,7 +106,7 @@ function laneFacts({ ast, source }) {
     return [
         /import \{ SCROLL_LANE \} from "\.\/scrollLane";/.test(source),
         /\boverflow-y-auto overscroll-contain px-menu-inset \$\{SCROLL_LANE\}/.test(region),
-        /\$\{lane \? "\[scrollbar-gutter:stable\]" : ""\}/.test(region) && /\$\{lane \?\? ""\}/.test(body) && (body.match(/scrollbar-gutter/g) ?? []).length === 1,
+        region !== "" && /\$\{lane \?\? ""\}/.test(body) && !/scrollbar-gutter/.test(body),
         /list\.style\.maxHeight = "";\s*const own = parseFloat\(getComputedStyle\(list\)\.maxHeight\);\s*list\.style\.maxHeight = `\$\{Number\.isNaN\(own\) \? room : Math\.min\(own, room\)\}px`;/.test(body),
         /const index = active >= 0 \? active : checkedIndex;/.test(body) && /\}, \[shown, active, checkedIndex\]\);/.test(body),
     ].join(" ");
@@ -258,7 +258,7 @@ export function run({ check, assert, log }) {
             everyFacts(parseSource("export function Combobox() { const shown = listOpen && suggestions.length > 0; return <input />; }\nexport function FilterChip() { return <Menu />; }\n", "<planted-every>")),
             "false false false false false false false"
         );
-        check("  every field list scrolls in 0i's bar, reserving its lane and stopping at its height where handed one", laneFacts(parseFile(MENU)), "true true true true true");
+        check("  every field list scrolls in 0i's bar, taking its 8 only while it shows and stopping at its height where handed one", laneFacts(parseFile(MENU)), "true true true true true");
         check("  and what scrolls stands 5 inside the Edge above and below, the frame holding the 5 and scrolling nothing", insetFacts(parseFile(MENU)), "true true true");
         check(
             "  a list padded where it scrolls, so a row scrolled past touches the Edge, is seen",
@@ -274,6 +274,16 @@ export function run({ check, assert, log }) {
                 )
             ),
             "false false false false false"
+        );
+        check(
+            "  a lane holding the bar's 8 with nothing to scroll, as 1l's do, is seen",
+            laneFacts(
+                parseSource(
+                    'export default function Menu() { return <div popover="manual" className={`inset-auto ${lane ?? ""}`}><div className={`flex min-h-0 flex-col overflow-y-auto overscroll-contain px-menu-inset ${SCROLL_LANE} [scrollbar-gutter:stable]`}></div></div>; }\n',
+                    "<planted-reserved>"
+                )
+            ).split(" ")[2],
+            "false"
         );
         const frame = parseFile(FRAME);
         const body = functionNamed(frame.ast, "DialogBody");
