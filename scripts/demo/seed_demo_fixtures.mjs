@@ -29,6 +29,9 @@ import { createDiscipline } from "../../lib/airtable/disciplines.js";
 import { createVendor, getVendorByName } from "../../lib/airtable/vendors.js";
 import { addAssignedJob, createUser, getUserByEmail, setUserName } from "../../lib/airtable/users.js";
 import { userName } from "../../lib/userName.js";
+import { refusesLiveBase } from "./_testBaseOnly.mjs";
+
+if (refusesLiveBase({ script: "seed_demo_fixtures" })) process.exit(1);
 
 // One account plays every Requester/Signer/President role during a live demo,
 // which is a convenience rather than a constraint — the clause here used to say

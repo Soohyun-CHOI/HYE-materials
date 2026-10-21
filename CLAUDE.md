@@ -72,7 +72,7 @@ What that boundary implies keeps coming up: a decision made before a PR exists c
 
 ### Editing the Airtable schema
 
-**The schema is editable by either of us, and a schema change ships in the SAME COMMIT as the code that reads it.** Outside `Assets` and `Asset Log` (#531) no production data exists yet, so the moment to fix a name or a shape is now.
+**The schema is editable by either of us, and a schema change ships in the SAME COMMIT as the code that reads it.** Outside the assets axis, `Users` and `Jobs` (#531, #537) no production data exists yet, so the moment to fix a name or a shape is now.
 
 **Renaming a field is safe and the procedure is mechanical**: a rename carries every formula, rollup and view filter with it, so the only thing it breaks is a string literal here — and a grep coming back empty does not finish it. `airtable-access.md` has the mechanism, the read-every-hunk step and the near-miss behind them.
 
@@ -281,7 +281,7 @@ Read `docs/notes/authorization.md` before adding an endpoint, an exemption or a 
 - `npm test` runs the whole offline tier and CI runs it on every push; `npx eslint .` is a second CI job and stays clean, a rule this repo deliberately breaks taking a scoped disable with its reason rather than a tolerated error (#187). **It resolves names under `scripts/` since #426** — `no-undef` and, since #427, `no-unused-vars`, against Node's globals alone, since flat config MERGES globals and the wide set would leave a rule reporting 0 while blind. **An unread binding may still be load-bearing**, so read one before deleting it.
 - **Every run reaches the test base unless it names the live one (#534)**: `AIRTABLE_BASE=live` per command, or the production deployment. A schema change goes to the test base first and to the live one once Soo approves.
 - **Do not run a `verify-*.mjs` casually** — one run costs hundreds of Airtable operations.
-- **Dummy records already in the base are deliberate, not leftovers.** Nothing in this base is to be removed as tidying-up.
+- **Dummy records on the test base are deliberate, not leftovers; the live base holds none since #537**, and every `scripts/demo/` script that writes refuses it. Nothing in either base is to be removed as tidying-up.
 - **`Assets` and `Asset Log` on the live base are the site's real records (#531)**: no script, check or browser walk writes or deletes a row of either, and a script that could asks `scripts/protectedTables.mjs` and stops first. The one exception is `scripts/import/import_site_assets_544.mjs` (#544), each request judged as it leaves: creates shaped as a registration's, deletes of its own ledger's rows, no update.
 - **What a green CI run does NOT mean:** that authorization is enforced, or that anything rendered. Source shape is not execution — a gate inside `if (false)` satisfies a structural check — and this tier never opens a page, so a column that does not appear, a width that wraps and a field that reaches the browser are all invisible to it. Those are checked in a browser with the two fixture accounts and the finding written into the PR. Green means nothing cheap regressed.
 

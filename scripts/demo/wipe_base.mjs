@@ -56,6 +56,9 @@
 
 import { base, TABLES } from "../../lib/airtable/client.js";
 import { refusesProtectedWrite } from "../protectedTables.mjs";
+import { refusesLiveBase } from "./_testBaseOnly.mjs";
+
+if (refusesLiveBase({ script: "wipe_base" })) process.exit(1);
 
 const CONFIRM = process.argv.includes("--confirm");
 

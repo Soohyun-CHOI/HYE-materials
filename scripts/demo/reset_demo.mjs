@@ -43,6 +43,9 @@ import { base, TABLES } from "../../lib/airtable/client.js";
 import { getItemsByPO } from "../../lib/airtable/poItems.js";
 import { getItemsByDelivery } from "../../lib/airtable/deliveryItems.js";
 import { resolveDemoRecords, pickRecordId, pick } from "./_demo_ids.mjs";
+import { refusesLiveBase } from "./_testBaseOnly.mjs";
+
+if (refusesLiveBase({ script: "reset_demo" })) process.exit(1);
 
 const CONFIRM = process.argv.includes("--confirm");
 const HERE = dirname(fileURLToPath(import.meta.url));
