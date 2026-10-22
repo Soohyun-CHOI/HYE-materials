@@ -349,12 +349,18 @@
 
     /* 0o · Sign-in page — one column, centered, with the wordmark at its head (#473). */
     --container-sign-in: 22.5rem; /* 0o, 360: the page's one column */
-    --spacing-sign-in-inset-top: 16.75rem; /* 0o, 268: the wordmark from the page's top, the same in every state */
+    --spacing-sign-in-inset-top: clamp(4rem, 24dvh, 15rem); /* 0o, 24%: the wordmark from the page's top, a share of the window's height never under 64 nor over 240, the same in every state — 268 until the files of 2026-10-22 (#554) */
+    --spacing-sign-in-list-step-inset-y: clamp(3rem, 10dvh, 7rem); /* 0o, 10%: a step whose column holds a list to choose from, from the page's top to the wordmark and from the column's end to the page's — never under 48 nor over 112 (Sign in 1l, #554) */
     --spacing-sign-in-brand-stack: 2.5rem; /* 0o, 40: from the wordmark to the title */
     --spacing-sign-in-title-stack: 0.5rem; /* 0o, 8: between a header's title, its sentence and an address chip */
     --spacing-sign-in-header-stack: 2rem; /* 0o, 32: under the header, to the first field or the action */
     --spacing-sign-in-form-stack: 1.5rem; /* 0o, 24: from a field to the action or to a refusal of the page, and from the action to the line under it */
     --spacing-sign-in-form-inline: 0.75rem; /* 1g, 12: between two fields sharing a row — from the drawings, not the spec */
+    --spacing-sign-in-list-stack: 0.75rem; /* Sign in 1l, 12: from the job step's search to its list — from the drawings, not the spec */
+    --spacing-sign-in-list-inset-y: 0.25rem; /* Sign in 1l, 4: inside that list, above its first row and below its last — from the drawings, not the spec */
+    --spacing-sign-in-list-note-stack: 1rem; /* Sign in 1l, 16: from that list to the line saying why its action waits — from the drawings, not the spec */
+    --spacing-sign-in-list-empty-inset-y: 2.5rem; /* Sign in 1l, 40: above and below what that list says when a search finds nothing — from the drawings, not the spec */
+    --size-sign-in-check-mark: 0.6875rem; /* Sign in 1l, 11: the check in a chosen row's box — from the drawings, not the spec */
     --spacing-avatar-chip-inset-left: 0.25rem; /* 0o, 4: the avatar from the chip's round end */
     --spacing-avatar-chip-inset-right: 0.75rem; /* 0o, 12: the chip's words from its other end */
     --size-code-slot: 3.25rem; /* 0o, 52: the box one figure of a sign-in code is drawn in */
@@ -446,6 +452,13 @@
     --spacing-mobile-sign-in-brand-stack: 2rem; /* Tools 0a, 32: from the wordmark to the title */
     --spacing-mobile-code-stack: 1.5rem; /* Tools 0a, 24: a code under the address chip that leads into it */
     --spacing-mobile-code-help-stack: 1.25rem; /* Tools 0a, 20: the line under a code that offers a new email */
+    --spacing-mobile-sign-in-search-inset-y: 0.5rem; /* Sign in 1k, 8: the job step's search band, above and below its field, and again from it to the first row — from the drawings, not the spec */
+    --spacing-mobile-sign-in-search-bleed: 1.5rem; /* Sign in 1k, 24: how far that band's soft edge reaches below it — from the drawings, not the spec */
+    --height-mobile-sign-in-option: 4rem; /* Sign in 1k, 64: a job in the step's list, at least — from the drawings, not the spec */
+    --spacing-mobile-sign-in-option-inline: 1rem; /* Sign in 1k, 16: the least room from a job's words to its check — from the drawings, not the spec */
+    --size-mobile-sign-in-check: 1.5rem; /* Sign in 1k, 24: a job's round check — from the drawings, not the spec */
+    --size-mobile-sign-in-check-mark: 0.875rem; /* Sign in 1k, 14: the check inside it — from the drawings, not the spec */
+    --spacing-mobile-sign-in-list-empty-inset-y: 2rem; /* Sign in 1k, 32: above and below what the list says when a search finds nothing — from the drawings, not the spec */
     --height-mobile-code-caret: 1.625rem; /* 1a, 26: the caret's height in a phone's box — from the drawings, not the spec */
     --size-mobile-log-dot: 0.375rem; /* Log, 6: the dot */
     --spacing-mobile-log-gap: 0.75rem; /* Log, 12: beside the dot */

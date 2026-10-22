@@ -424,7 +424,13 @@ function runCode({ check, assert, log }) {
         code: "012345",
     };
     const html = SIGN_IN_COPY.mail.html(facts);
-    assert("it carries the code, leading zero and all", html.includes(">012345<"));
+    // IN TWO GROUPS OF THREE (1h, #554): the figures at 8 of tracking and the first group's last
+    // at 20, so the groups stand 12 further apart with no character between them — a copy of
+    // the code is the six figures, and the code itself is never written any other way.
+    assert("it carries the code, leading zero and all, in two groups by tracking", html.includes('>01<span style="letter-spacing: 20px;">2</span>345</td>'));
+    assert("  set at 8 of tracking", /font-weight: 700; letter-spacing: 8px; color: #202329;">01<span/.test(html));
+    const codeCell = html.match(/>01<span[^]*?<\/td>/)?.[0] ?? "";
+    check("  and a copy of it is the six figures alone", codeCell.replace(/<[^>]*>/g, "").replace(/^>/, ""), "012345");
     check(
         "it carries two links, the button's and the address's (#495)",
         [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1]).join(" | "),
@@ -438,7 +444,10 @@ function runCode({ check, assert, log }) {
     assert("its title is the sign-in line", html.includes(`>${SIGN_IN_TITLE}</td>`) && html.includes(`<title>${SIGN_IN_TITLE}</title>`));
     assert("its head is the wordmark, split where the product's name splits", html.includes(`>${WORDMARK.lead}</span> <span`) && html.includes(`>${WORDMARK.rest.trim()}</span>`));
     // NO CODE WHERE A LOCK SCREEN SHOWS IT: the subject and the hidden first line.
-    assert("the code is in neither the subject nor the hidden first line", !SIGN_IN_COPY.mail.subject.includes("012345") && !/>Use the link[^<]*012345/.test(html));
+    assert(
+        "the code is in neither the subject nor the hidden first line",
+        ![SIGN_IN_COPY.mail.subject, SIGN_IN_COPY.mail.preheader].some((line) => /d{3}/.test(line)) && !/>Use the link[^<]*d{3}/.test(html)
+    );
     // A LONG ADDRESS BREAKS RATHER THAN RUNNING PAST A NARROW PHONE'S EDGE, which the
     // design's own mail held to one line.
     const addressSpan = html.match(/<a href="mailto:soo\+code471@hanyang\.example" class="ink"[^>]*>soo\+code471@hanyang\.example<\/a>/)?.[0] ?? "";
@@ -471,7 +480,7 @@ function runCode({ check, assert, log }) {
             "Use this link to sign in as soo+code471@hanyang.example:",
             "https://portal.example.com/login/confirm?token=abc&destination=%2Fassets%2FX",
             "",
-            "Or enter this code on the sign-in page: 012345",
+            "Or enter this code on the sign-in page: 012 345",
             "",
             "This link and code work once and expire in 15 minutes.",
             "",
@@ -479,6 +488,10 @@ function runCode({ check, assert, log }) {
             "",
         ].join("\n")
     );
+    // THE TEXT PART SAYS THE GROUPS WITH A SPACE, having no tracking to set (#554), and the
+    // space is one the code step takes out of a paste.
+    const textCode = SIGN_IN_COPY.mail.text(facts).match(/sign-in page: (.*)/)?.[1] ?? "";
+    check("  the text part's code, pasted, is the code", normalizeCode(textCode), "012345");
     for (const words of ["Or enter this code on the sign-in page:", "This link and code work once and expire in 15 minutes.", "If you didn&#39;t try to sign in, you can safely ignore this email."]) {
         assert(`  and the HTML says it too: ${words.slice(0, 40)}`, html.includes(words));
     }

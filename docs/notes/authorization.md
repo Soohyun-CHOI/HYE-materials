@@ -238,7 +238,7 @@ Eleven rows, every one holding its own email's local part. `scripts/import/clear
 
 #### Two renderings, and where the line is drawn
 
-A screen that NAMES a person prints the first name. Three kinds of place print both: where a person is CHOSEN from a list, where somebody outside this company reads the result, and — since #463 — where a person is named as the one who DID something, which the tools axis reaches first: a tool item's history and the refusal naming who recorded first. That third is `actorName`, which prints the address's local part for a row missing either name where the first two print a first name alone; a request's history and `Recorded by` on a delivery or an invoice still print the first name until their screens take the design.
+A screen that NAMES a person prints the first name. Four kinds of place print both: where a person is CHOSEN from a list, where somebody outside this company reads the result, where a person is named as the one who DID something — since #463, which the tools axis reaches first: a tool item's history and the refusal naming who recorded first — and, since #554, where the reader is named to themselves: the account at the rail's foot (`selfName`). That third is `actorName`, which prints the address's local part for a row missing either name where the first two print a first name alone; a request's history and `Recorded by` on a delivery or an invoice still print the first name until their screens take the design.
 
 **The collision is real and is already in the data.** Two addresses on this base would produce one first name, and `/login/confirm`'s own note records that one person can hold two addresses here. What the split does is put the full name exactly where the ambiguity is expensive: picking the wrong signer routes an approval chain to them and is awkward to undo, while a first name on a REPORTING surface is recoverable — the reader clicks the row. So there is no collision detection, no conditional label and nothing to go stale.
 
@@ -247,6 +247,53 @@ A screen that NAMES a person prints the first name. Three kinds of place print b
 **The residual risk is named in `lib/userName.js`'s header rather than filed**, because nobody has observed it: two Active users sharing a first name make a reporting surface ambiguous. Nine accounts, no such pair today, and if one appears the change is to that module and to nothing else — which is the property the split buys.
 
 **`offline/user-name.mjs` holds all of it structurally.** Nothing outside `lib/userName.js` reads either name field off a user; the files allowed to print a full name are declared in that module and compared against the files that actually import `fullUserName` or `actorName`, in two places that have to agree (`offline/file-route.mjs`'s shape); the gate reaches the name step through imported identifiers and the literal is barred from `lib/authz.js`; and `createUser`'s payload carries neither field, which is the signal that makes the step reachable at all. Five mutations were run against it and all five failed it, including two that leave the app working: the PO PDF quietly narrowed to a first name, and a list quietly widened to both.
+
+---
+
+### Asking a reader with no job for their jobs (#554)
+
+A person's jobs were set by hand in Airtable and nowhere else, so somebody who signed in before the office had assigned them stood on Tools & Equipment's `No job yet` with nothing they could do until the office was told, and an account that had signed in with no job stayed that way until somebody noticed. A signed-in reader with a name and no job, who is neither the office nor the President, is now asked which jobs they work on before anything else, and what they choose is their `Assigned Jobs`. It is a first assignment only: a reader holding a job never meets the step, and their jobs are the office's to change from then on.
+
+#### Where the question is asked, and what it costs
+
+**`requireUser()` asks it, right after the name, through `askForJobsIfMissing`**, on #381's terms throughout. `needsJobs` (`lib/userJobs.js`) is a property test on the row `getActiveUser()` already fetched, so no screen's count moved: the gate is zero operations, and a page sending a reader to the step costs the session's one read before the redirect. **The order is structural**: `needsJobs` answers no for a reader with no name, so on the name step a nameless reader is left there, and the job step is asked for by the next page's gate once the name is saved. The two steps do not know each other's address — the name step's action redirects to the destination as it always did, and that page's gate sends the reader on — which costs the destination's session read once more on a first sign-in. **The loop is closed as the name's is**: the step is excluded by `isJobsStep`, which `lib/userJobs.js` owns and `lib/authz.js` imports rather than spells, and everything under `/login` is barred as a destination. Route Handlers are not gated on it: a job is what a reader works on, not what lets them read, which each record's own rule decides.
+
+**The step is `/login/jobs`, the design's own address (Sign in 1k, 1l)**, a step of the sign-in flow under its layout. Its page reads the session and every job — `getAllJobs`, one query per hundred — and sends on anybody it is not for before reading the jobs. Every job there is is offered, in code order (`compareCatalogText`, the asset lists' order): which jobs a person works on is theirs to say, and the office corrects it.
+
+#### Who is not asked
+
+**The office (`Is Admin`) and the President.** Neither needs an assignment to work: the office stands on every job on the asset lists, and `canAccessJobDeliveries` admits both to every job's deliveries. The clause is `needsJobs`' own rather than a shared "on every job" rule, because the app has no such rule to share — the asset lists follow `Is Admin` alone (`assetListScope`) while deliveries admit the President too — and the question here is a third one: whether to ask. **A flag that is merely truthy is not the office**, as everywhere `Is Admin` is read.
+
+#### What the write may reach
+
+**The reader's own row, only while it holds no job, and `Assigned Jobs` alone.** `chooseJobsAction` takes the row's id from `requireUser()`'s return and nothing the submission carries, so no other person's row is reachable; it asks `needsJobs` of that row before anything else and, for a reader the step is not for — one holding a job, the office, the President — writes nothing and sends them on, which is what the page does for them. It is a `requireUser()` exemption in `offline/authz-structure.mjs` for the name step's reason: what gates it is a state of the caller's own row, which no role describes. The ids sent are matched against the jobs read now (`chosenJobIds`), so a job gone since the page was drawn is left out and anything that is not a job's id never reaches the write; a choice left with nothing is refused with the step's own sentence and the page drawn again (#378).
+
+**`lib/airtable/users.js:assignFirstJobs` reads the row again and writes only if it still holds no job**, so a job the office assigned by hand while the reader was choosing is kept rather than replaced. The read is a `RECORD_ID()` select on `Users` (#444's probe R), the write the batch form, and the payload one field. **What it cannot close is named in its header**: the read and the write are two requests, and a hand edit landing between them is replaced; no lock spans the office's own edits in Airtable. `offline/user-jobs.mjs` holds the payload, the read before the write, the row id's source, the order of the question, the form's two names, and that the app has exactly two writers of the field — the demo seed's additive `addAssignedJob` and this. **The live base is where this writes on real people's rows**, which #531's guard does not reach — that guard is for scripts — so the fence is that check.
+
+**Four operations a save**: the session, the jobs, the row read again, and the write.
+
+#### What stays reachable of `No job yet`
+
+**The list's `No job yet` / `Items show here once the office assigns you to a job.`** is drawn for a reader on no job whom the list does not count as the office. After this step that is a President who is not marked `Is Admin` and holds no job — no such account exists on either base, `soo@` being both — so it is reachable by data and by nobody today. **`Ask the office to assign you to a job`**, before an opener a site manager cannot use, stays reachable by the office or the President marked as a site manager with no assignment, since what a registration files against is the person's own assignments with no office clause (#338). Both stay, as the design still draws them (Tools 1a2); 1a2's own reader — `lee, Site manager`, neither office nor President — is one this step now asks first.
+
+#### The fixtures
+
+**`authz-fixture@` and `name-fixture@` hold no job, so every page sends either to the step.** The pair's first half proves its refusals on Route Handlers — `verify-authz.mjs` Part E, `verify-file-route-331.mjs` — which the step does not gate, so nothing that runs moved; a page's gate refusing it is behind the step now, as an unnamed Admin's was behind the name step (#196). Neither is given a job: what the first proves is that it holds none.
+
+#### Walked on 2026-10-22
+
+On the test base, on `jobs.localhost:3554`, a host whose cookies stay apart from `localhost`'s, with `soo+code471@` — its name emptied before each walk, and its `Code`/`Fixture`, no job and no flag put back after — and `soo@` for the rail:
+
+| What | Seen |
+|---|---|
+| signed out at a label's address, a code pasted as `832 898` | the name step, carrying the item's address |
+| the name saved | the item's page, whose gate sent the reader to the job step with the same address |
+| two jobs chosen and saved | the item's page; the row holding those two jobs |
+| the jobs taken off by hand, the session kept | the next page sent the reader to the step |
+| `Is Admin` ticked, no job | the list, unasked; `/login/jobs` opened by hand went to the list |
+| a sign-in by the link, no destination | the name step, then the job step, then Tools & Equipment |
+
+From the dev log: the step 2 operations, its save 4, and a page sending a reader to it 1. Measured against the drawings at 373 × 810 and 1598 × 898, every box of 1k and 1l stood where the drawing puts it — the step's column 10% from the top and the foot, the search band holding to the top with its soft edge once rows ran under it, a press with nothing chosen saying so 12 over the action on a phone, and the action disabled under its line at a desk.
 
 ---
 
@@ -361,6 +408,7 @@ The design settled the three steps and their email — Claude Design's Sign in 1
 - **A plain-text part goes beside it**, through Resend's `text`, in the same words and order, the button a sentence and its URL.
 - **The address is a `mailto:` link in Ink, and the button's cell carries Outlook's padding**, since #495 (below).
 - **Neither the subject nor the preheader carries the code**, the two lines an inbox shows before the mail is opened. The design writes both without it, and `offline/auth-token-state.mjs` holds that.
+- **The code stands in two groups of three since #554**, as the final mail draws it (1h): the figures at 8 of tracking and the third at 20, so 12 more opens between the groups with no character there — a copy of the code is the six figures. The plain-text part has no tracking to set and says `482 913` with a space, which `normalizeCode` and the code step's field take out of a paste, measured in a browser with a pasted `832 898`. Drawn from the builder beside 1h's own three cells, the figures stepped 25.6, 25.6, 37.6, 25.6 and 25.6 in both.
 - **Drawn in a browser on 2026-10-02.** Light and dark: the dark block, and Outlook.com's `data-ogsc` and `data-ogsb` selectors, take the ground to `#17191E` and the two inks to `#EDEEF1` and `#BBBEC3`. Outlook's faces, from the block only it reads, with every corner square: the button and the code's box kept their sizes, six Consolas figures 154 wide in a 440 box. A 70-character address at 375 and at 320: two lines and three, inside the column, with nothing scrolling sideways. The mail holds no image and no background image, so a client that blocks them draws it unchanged.
 
 #### Walked on 2026-10-02

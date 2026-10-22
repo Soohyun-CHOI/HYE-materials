@@ -166,9 +166,11 @@ under one frame, so the steps of one flow read as one flow.
 
 **There is a third screen for somebody signing in for the first time** —
 `/login/name`, which asks what to call them, after the code works or after the
-confirm screen's button. Nothing here mentions it, and that is right: a returning
-reader never sees it, and promising it would be wrong for almost everyone who reads
-this screen.
+confirm screen's button — **and a fourth, `/login/jobs`** (#554), which asks a
+reader with no job which jobs they work on, unless they are the office or the
+President. Nothing here mentions either, and that is right: a returning reader never
+sees them, and promising them would be wrong for almost everyone who reads this
+screen.
 
 **`Sign in` is the confirm screen's button and the email's**, from the confirm
 screen's own constant, so the email names the control the page it opens draws.
@@ -179,6 +181,12 @@ says it; this screen does not.
 
 **Six digits and five tries are the rule's own numbers**, from the constants that
 decide them.
+
+**The email sets the code in two groups of three** (#554), `482 913` as the design
+draws it: in the email's HTML the gap is spacing between the third and fourth
+figures rather than a character, so a copy of it is the six figures, and the plain
+text part says it with a space. The field here takes either — whitespace in what is
+typed or pasted is dropped — and the code itself is the six figures everywhere.
 
 **The product name lives in exactly one place** and appears on screen only through
 it. The company's legal name is a different constant and belongs on the purchase

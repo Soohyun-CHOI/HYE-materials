@@ -716,6 +716,7 @@ office. Invoicing is Admin because invoicing is office work.
 | Screen | Who |
 |---|---|
 | `/login`, `/login/confirm` | anyone, signed in or not |
+| `/login/name`, `/login/jobs` | a signed-in reader with no name (#381), and then one with no job who is neither Admin nor the President (#554) |
 | `/prs`, `/prs/[prId]`, `/pos`, `/pos/[poId]` | row-scoped by `canViewPR` |
 | `/invoices`, `/invoices/[invoiceId]` | row-scoped, reaching `canViewPR` through the orders the invoice charges (#211) |
 | `/prs/new` | anyone signed in |
@@ -857,7 +858,7 @@ the sign-in screen, so both steps of signing in happen on the phone before the
 asset is ever drawn.
 
 **Those two, and the name step after them, are drawn at both widths, and #473 is
-where that was settled.** Each tools brief says which width it is drawn for; these
+where that was settled** — and the job step after the name since #554. Each tools brief says which width it is drawn for; these
 are one page in two looks — a centered column at a desk, and the phone's step page
 with the action at its foot, riding on the keyboard — because each step is one
 field and one button with nothing to fold, so neither width is the other folded

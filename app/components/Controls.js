@@ -628,8 +628,12 @@ export function TextInput({ size = "lg", suffix, value, onChange, readOnly = fal
     );
 }
 
-/** A phone field's clear × (Tools 0a Field): drawn below the phone's edge only, and a text button's press. */
-function ClearButton({ onClear }) {
+/**
+ * A phone field's clear × (Tools 0a Field): drawn below the phone's edge only, and a text button's
+ * press. The job step's search is the second field to carry it (#554), a field whose desk look is
+ * a search's rather than a form field's, so it takes the × rather than the whole `TextInput`.
+ */
+export function ClearButton({ onClear }) {
     return (
         <button
             type="button"

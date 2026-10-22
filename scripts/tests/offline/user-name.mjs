@@ -42,7 +42,7 @@ import { callsTo, listJsFiles, parseFile, parseSource, repoPath, resolveFunction
 import { isPageFile, routeTemplate } from "./_entrypoints.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 import { DEFAULT_DESTINATION } from "../../../lib/loginDestination.js";
-import { FULL_NAME_SURFACES, actorName, fullUserName, isNameStep, judgeName, namePath, needsName, selfName, userName } from "../../../lib/userName.js";
+import { FULL_NAME_SURFACES, USER_NAME_COPY, actorName, fullUserName, isNameStep, judgeName, namePath, needsName, selfName, userName } from "../../../lib/userName.js";
 
 export const title = "One rule for a person's name, and two audiences (#381)";
 
@@ -144,10 +144,19 @@ export function run({ check, assert, log }) {
     check("  and one too long by the design's figure", judgeName({ firstName: "Soo", lastName: "x".repeat(61) }).refusals?.last, "Max 60 characters.");
     check("  while sixty is a name", judgeName({ firstName: "Soo", lastName: "x".repeat(60) }).lastName, "x".repeat(60));
     check("  and a good pair comes back trimmed", judgeName({ firstName: "  Soo  ", lastName: "Choi " }).firstName, "Soo");
-    // The third rendering (#478): a reader naming themselves gets their address's local
-    // part whether or not they have a name, which is what sets it apart from the fallback.
-    check("a reader naming themselves gets the local part, named or not", selfName(person), "soohyun.c");
-    check("  and so does a nameless one", selfName(nameless), "bsws9803");
+    // WHAT IS TYPED IS KEPT AS TYPED (#554): the step shows an example in each field, and
+    // the case a person typed is theirs — nothing capitalizes it, and nothing lowers it.
+    const typedCase = judgeName({ firstName: "soo", lastName: "McDONALD" });
+    check("  a typed case is kept, first", typedCase.firstName, "soo");
+    check("  and last", typedCase.lastName, "McDONALD");
+    check("  each field shows half the app's name example", [USER_NAME_COPY.firstPlaceholder, USER_NAME_COPY.lastPlaceholder].join(" | "), "e.g. Jane | e.g. Doe");
+    // The third rendering, a reader naming themselves (#478, #554): both names, and the
+    // local part of their address for a row missing either — a doer's rule, which since
+    // #554 it is. It was the local part, named or not, until then.
+    const halfSelf = { firstName: "Soo", email: "soo@x.com" };
+    check("a reader naming themselves gets both names", selfName(person), "Soo Choi");
+    check("  and a nameless one the local part", selfName(nameless), "bsws9803");
+    check("  and one with half a name the local part too", selfName(halfSelf), "soo");
     check("  and nobody is nothing", selfName(null), "");
     // THE FOURTH (#463): a place naming the person who DID something prints both names,
     // and a row missing either prints the local part where a picker prints a first name
@@ -185,9 +194,9 @@ export function run({ check, assert, log }) {
         "  and every reason says something",
         Object.values(FULL_NAME_SURFACES).every((why) => typeof why === "string" && why.length > 20)
     );
-    // EITHER FULL RENDERING (#463): `fullUserName` for a picker and a vendor, `actorName`
-    // for a place naming who did something.
-    const FULL_RENDERINGS = ["fullUserName", "actorName"];
+    // EVERY FULL RENDERING: `fullUserName` for a picker and a vendor, `actorName` for a place
+    // naming who did something (#463), and `selfName` for the reader naming themselves (#554).
+    const FULL_RENDERINGS = ["fullUserName", "actorName", "selfName"];
     const importers = new Set(
         files.filter((rel) => rel !== OWNER && FULL_RENDERINGS.some((name) => importsFromOwner(rel).has(name)))
     );

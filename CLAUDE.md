@@ -94,6 +94,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/idSequence.js` — the pure half: the daily ID families and the child relations.
 - `lib/productName.js` — the product's name. Not the company's legal name, which is `lib/poPdf.js:HYE_BUYER_NAME`.
 - `lib/userName.js` — the name a screen prints for a user (#381). **A name field is read nowhere else.**
+- `lib/userJobs.js` — who is asked for their jobs at sign-in (#554), the step's address, what a choice keeps, and its words.
 - `lib/authTokenState.js` — whether a sign-in row can still be used, by link or code (#471), the TTL, every word either says, and the email carrying both (#473).
 - `lib/companyEmail.js` — the company's address as the sign-in field takes it and the server admits it (#473).
 - `lib/signInLimit.js` — how often a sign-in email may be asked for (#148): the ceilings, `Resend email`'s rest, the mailbox and the IP a request counts against, and the judgment.
@@ -248,11 +249,11 @@ Read `docs/notes/uploads-and-drafts.md` before changing an upload path or `persi
 
 ## Auth (lib/auth.js, lib/session.js, lib/email.js, lib/authz.js)
 
-- A magic link, or the code beside it in the same email, restricted to the company email domain. `requestMagicLink()` domain-checks, holds the mailbox and the IP to their ceilings (#148), then emails both; **a code works only in the browser that asked (#471)**, and `consumeAuthToken` and `consumeAuthCode` spend the one row under one `withKeyLock` key. New signups always land as plain Employee (`Is Admin: false`) and **with no name** — `requireUser()` sends a nameless reader to `/login/name` (#381); promotion is a manual Airtable edit.
+- A magic link, or the code beside it in the same email, restricted to the company email domain. `requestMagicLink()` domain-checks, holds the mailbox and the IP to their ceilings (#148), then emails both; **a code works only in the browser that asked (#471)**, and `consumeAuthToken` and `consumeAuthCode` spend the one row under one `withKeyLock` key. New signups always land as plain Employee (`Is Admin: false`) and **with no name** — `requireUser()` sends a nameless reader to `/login/name` (#381), then one with no job who is neither Admin nor President to `/login/jobs` (#554); promotion is a manual Airtable edit.
 - **Every sign-in POST refuses a cross-origin submission** — `Origin` against `Host`, and absence fails open.
 - `lib/session.js`: iron-session, payload `{ userId }`. `getCurrentUser()` treats a missing Users record as logged-out and re-throws real Airtable errors. `getActiveUser()` also treats `Status: Inactive` as logged-out.
 - Env vars: `SESSION_SECRET`, `RESEND_API_KEY`, `ALLOWED_EMAIL_DOMAIN`, `EMAIL_FROM` (optional). Fail-fast at module load; set in Vercel too. **`lib/auth.js` alone reads `ALLOWED_EMAIL_DOMAIN`**; a screen showing the domain is handed its export (#473).
-- **There is no user-creation screen.** A Users record appears as a side effect of a first magic-link sign-in and in no other way. `lib/airtable/users.js:addAssignedJob` is the only writer of `Assigned Jobs` and is additive.
+- **There is no user-creation screen.** A Users record appears as a side effect of a first magic-link sign-in and in no other way. `Assigned Jobs` has two writers, `lib/airtable/users.js`'s additive `addAssignedJob` and `assignFirstJobs`, which writes only a row holding none (#554).
 - The product is named in one place, `lib/productName.js`. `offline/product-name.mjs` fails on any superseded name under `app/` or `lib/`, and on `PRODUCT_NAME`'s value appearing as a literal outside its own module.
 
 ## Route protection (lib/authz.js)

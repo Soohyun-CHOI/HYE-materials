@@ -230,6 +230,18 @@ The design set the code on a tool label in Inconsolata at 500 with −0.04em of 
 
 **A DIALOG'S HEAD HOLDS 16 OVER A BODY THAT SCROLLS IN THE LANE (2026-10-12, no issue).** 1b pads the head over its second step 16 under its line and draws the Rule the chips show once they scroll in that 16's last row. `--spacing-dialog-header-inset-bottom` is that 16, from the drawing and not the spec, declared with its one reader, `DialogBody` in the lane; the 4 left of 0l's 20 to the body sits inside the lane, written as the two names' difference, so it takes no name.
 
+## The files of 2026-10-22 (#554)
+
+**The Sign in file drew the job step (1k on a phone, 1l at a desk), the mail's code in two groups (1h), and a new 0o Column for every step.** The Tools and Invoices files of the same sending changed nothing a sign-in step reads.
+
+- **0o's Column is a share of the window now.** A step's wordmark stands 24% of the window's height from the top, never under 64 nor over 240, where 1d–1g drew it 268 from the top whatever the window; a step whose column holds a list to choose from stands at 10%, never under 48 nor over 112, and keeps the same room under the column, which its list fills. `--spacing-sign-in-inset-top` is `clamp(4rem, 24dvh, 15rem)` and `--spacing-sign-in-list-step-inset-y` `clamp(3rem, 10dvh, 7rem)`: `dvh` because the frame is `h-dvh`, the share the drawings' `cqh` takes of a frame the window's height. Measured: 215.52 at 1598 × 898, as 1d's 24% of 898, and 64 and 240 at 250 and 1100 tall. **A step marks itself `data-sign-in-list` and the layout reads it** (`has-[[data-sign-in-list]]`), so the frame needs no prop and the job step is the one that does. The phone's Step page is untouched, 72 from the top.
+- **The job step's list at a desk is 0f's search at a sign-in page's 40 over a list in 0i's lane**: the search on the Field ground with no border, its 14 mark 12 in, white with the Edge focus border while it holds the caret, and no × as 1l draws none; the rows 36 at the Control radius, their text on the column's edge and the hover face 12 past it, the box 16 at the Badge radius, the code and then the name, 10 and 8 apart; a Rule at each edge rows are hidden past. Five names, each the drawing's and not the spec's: the 12 from the search to the list, the 4 inside it, the 16 to the line saying why the action waits, the 40 above and below `No jobs match`, and the 11 check in a chosen box — 1l draws 11 where a list row's box (0b, 1d) draws 12, so the list's box takes the drawing's.
+- **On a phone it is a 50 form field in a band 8 deep that holds to the page's top**, its soft edge reaching 24 below once rows run under it, and rows 64 at least, the code over the name, the round 24 check last with a 14 mark, 16 from the words, and an Inner rule between rows. Seven names, the drawing's. **The field carries Tools 0a's clear × once it holds anything**, which 1k-b's searching state does not draw: 0a gives every phone field holding a value one.
+- **Nothing chosen is said two ways, as drawn**: at a desk `Continue` is 0f's Disabled with the reason over it at 13 and Ink 3; on a phone, where 0a's newest line says no button is ever disabled, `Continue` stays live and a press says the reason in Red at 15, 12 over the button, until a job is chosen. The action is drawn once a width, each hidden at the other.
+- **Not drawn, and decided here.** The list at a desk never stands shorter than three rows, and below that the column scrolls in the page's lane; a write that did not happen says `Couldn't save your jobs. Try again.` where the name step says its own.
+- **Against the spec, at Soo's asking.** 0o says a name field on a sign-in page shows no placeholder; the name step's two show `e.g. Jane` and `e.g. Doe`, and Soo is asking Design to change the rule. And 0m's account says a name, which the drawings show as the address's local part (`lee`); the rail's account says the reader's first and last names since #554 (`authorization.md`).
+- **1h's code stands in two groups** by its third figure's tracking, 20 where the others take 8; no name, since the mail's values are inline (`lib/authTokenState.js`).
+
 ## From the design's words to the names
 
 Every declaration, by the design's row and the figure the design draws, and after them the values read under Tailwind's own names. A length's rem is the design's px over 16, and the px is given beside it.
@@ -472,12 +484,18 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 1f's drawing, between entries — not the spec | `--spacing-log-stack` | 1.5rem (24) |
 | 1h's drawing, the sentence of a record that is not there — not the spec | `--max-width-empty-state` | 27.5rem (440) |
 | 0o Column | `--container-sign-in` | 22.5rem (360) |
-| 0o Column, the wordmark from the page's top | `--spacing-sign-in-inset-top` | 16.75rem (268) |
+| 0o Column, the wordmark from the page's top | `--spacing-sign-in-inset-top` | clamp(4rem, 24dvh, 15rem) (24%, 64 to 240) |
+| 0o Column, a step holding a list to choose from, above the wordmark and under the column | `--spacing-sign-in-list-step-inset-y` | clamp(3rem, 10dvh, 7rem) (10%, 48 to 112) |
 | 0o Wordmark, above the title | `--spacing-sign-in-brand-stack` | 2.5rem (40) |
 | 0o Head, the sentence under the title and the pill under it | `--spacing-sign-in-title-stack` | 0.5rem (8) |
 | 0o Head, to the first field or the actions | `--spacing-sign-in-header-stack` | 2rem (32) |
 | 0o Action under the last field, Refusal under the fields, and Code's line under the action | `--spacing-sign-in-form-stack` | 1.5rem (24) |
 | 1g's drawing, two name fields in a row — not the spec | `--spacing-sign-in-form-inline` | 0.75rem (12) |
+| Sign in 1l's drawing, from the job step's search to its list — not the spec | `--spacing-sign-in-list-stack` | 0.75rem (12) |
+| Sign in 1l's drawing, inside that list above and below its rows — not the spec | `--spacing-sign-in-list-inset-y` | 0.25rem (4) |
+| Sign in 1l's drawing, from that list to the line saying why the action waits — not the spec | `--spacing-sign-in-list-note-stack` | 1rem (16) |
+| Sign in 1l's drawing, above and below `No jobs match` — not the spec | `--spacing-sign-in-list-empty-inset-y` | 2.5rem (40) |
+| Sign in 1l's drawing, a chosen row's check — not the spec | `--size-sign-in-check-mark` | 0.6875rem (11) |
 | 0o Refusal and 0l Actions, from a message's info mark to its sentence | `--spacing-refusal-gap` | 0.375rem (6) |
 | 0o Address pill, inside before the avatar | `--spacing-avatar-chip-inset-left` | 0.25rem (4) |
 | 0o Address pill, inside after its words | `--spacing-avatar-chip-inset-right` | 0.75rem (12) |
@@ -544,6 +562,13 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | Tools 0a Section | `--spacing-mobile-stack` | 2rem (32) |
 | Tools 0a Step page, the wordmark from the top | `--spacing-mobile-sign-in-inset-top` | 4.5rem (72) |
 | Tools 0a Step page, the wordmark to the title | `--spacing-mobile-sign-in-brand-stack` | 2rem (32) |
+| Sign in 1k's drawing, the job step's search band above and below its field, and from it to the first row — not the spec | `--spacing-mobile-sign-in-search-inset-y` | 0.5rem (8) |
+| Sign in 1k's drawing, how far that band's soft edge reaches below it — not the spec | `--spacing-mobile-sign-in-search-bleed` | 1.5rem (24) |
+| Sign in 1k's drawing, a job's row, at least — not the spec | `--height-mobile-sign-in-option` | 4rem (64) |
+| Sign in 1k's drawing, from a job's words to its check — not the spec | `--spacing-mobile-sign-in-option-inline` | 1rem (16) |
+| Sign in 1k's drawing, a job's round check — not the spec | `--size-mobile-sign-in-check` | 1.5rem (24) |
+| Sign in 1k's drawing, the check inside it — not the spec | `--size-mobile-sign-in-check-mark` | 0.875rem (14) |
+| Sign in 1k's drawing, above and below `No jobs match` — not the spec | `--spacing-mobile-sign-in-list-empty-inset-y` | 2rem (32) |
 | Tools 0a Keypad, the code under the address pill | `--spacing-mobile-code-stack` | 1.5rem (24) |
 | Tools 0a Code, the line under the field | `--spacing-mobile-code-help-stack` | 1.25rem (20) |
 | 1a's drawing, the caret's height in a phone's box — not the spec | `--height-mobile-code-caret` | 1.625rem (26) |

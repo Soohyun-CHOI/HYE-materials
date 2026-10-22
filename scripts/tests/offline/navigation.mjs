@@ -93,6 +93,7 @@ const SECTION_OF_ROUTE = {
     "/invoices/new": "invoices",
     "/login": null,
     "/login/confirm": null,
+    "/login/jobs": null,
     "/login/name": null,
     "/materials": "material-prices",
     "/materials/[materialId]": "material-prices",
@@ -423,6 +424,17 @@ export async function run({ check, assert, log }) {
     // ── 6: the account at the rail's foot (#478) ─────────────────────────────
     log("");
     log("the account says who is reading, in one string, from the page's own read:");
+    // #554 — A NAMED READER IS THEIR FIRST AND LAST NAMES, in the button, its tooltip and the
+    // row, and the avatar is the name's first letter as it was typed. Every reader below this
+    // block holds no name, so it reads the local part, as every reader did from #478 to #554.
+    const named = (firstName, lastName, email, role, isAdmin, isSiteManager = false) => accountOf({ firstName, lastName, email, role, isAdmin, isSiteManager });
+    check(
+        "  a named reader, by both names",
+        JSON.stringify(named("Soo", "Choi", "soo@hanyangengusa.com", "President", true, true)),
+        JSON.stringify({ name: "Soo Choi", email: "soo@hanyangengusa.com", initial: "S", role: "President, Admin, Site manager", label: "Soo Choi, President, Admin, Site manager" })
+    );
+    check("  the avatar takes the name's first letter as it was typed", named("jongha", "Baek", "whdgk0818@hanyangengusa.com", "Employee", false).initial, "j");
+    check("  a row with half a name is the local part", named("Soo", "", "soo@hanyangengusa.com", "Employee", false).name, "soo");
     // Each kind of reader the base holds — `soo@` is the President and the office both.
     const reader = (email, role, isAdmin) => accountOf({ email, role, isAdmin });
     check(
