@@ -285,6 +285,18 @@ const EXEMPTIONS = [
         mustCall: "requireUser",
         reason: SESSION_ONLY_AXIS,
     },
+    {
+        file: "app/(assets)/asset-categories/actions.js",
+        name: "exportAssetListAction",
+        mustCall: "requireUser",
+        reason:
+            "#553 — the Tools & Equipment list's own gate, every signed-in reader with no role (#337), and a READ: " +
+            "it writes nothing. What a reader may have in the file is decided per reader by assetListScope over the " +
+            "jobs they may stand on — the judgment the list's page stands on — so the session is half the gate and " +
+            "the scope the other half. No wrapper fits, as none fits the page: withSiteManagerAction would refuse " +
+            "every reader who is not one and withAdminAction the site. WHAT THIS EXEMPTION CANNOT SAY is that the " +
+            "scope is asked with the user requireUser answered; offline/asset-export.mjs holds that off the AST.",
+    },
     { file: "app/prs/new/actions.js", name: "saveDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "deleteDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "createPRAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },

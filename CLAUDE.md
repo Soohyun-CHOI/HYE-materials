@@ -18,7 +18,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 | `app/addresses/**`, `lib/address*.js` | `docs/notes/addresses.md` |
 | `app/(assets)/**`, `lib/asset*.js` | `docs/notes/tools.md` |
 | `app/designValues.css`, `app/globals.css`, `app/components/Icon.js` | `docs/notes/design-system.md` |
-| `lib/airtable/**`, `lib/airtableBase.js`, `lib/airtableFormula.js`, `lib/airtableOps.js`, `lib/airtableBatch.js` | `docs/notes/airtable-access.md` **and** `docs/notes/naming.md` |
+| `lib/airtable/**`, `lib/airtableBase.js`, `lib/airtableFormula.js`, `lib/airtableOps.js`, `lib/airtableBatch.js`, `lib/airtablePace.js` | `docs/notes/airtable-access.md` **and** `docs/notes/naming.md` |
 | `lib/airtable/**`, `scripts/import/**`, `scripts/demo/**`, `scripts/tests/verify-*.mjs`, adding or changing a field or a table | `docs/notes/data-model.md` |
 | `lib/ids.js`, `lib/idSequence.js` | `docs/notes/id-generation.md` |
 | `lib/auth.js`, `lib/authz*.js`, `lib/signInLimit.js`, `lib/prVisibility.js`, `lib/invoiceVisibility.js`, `lib/siteManager.js`, `app/login/**`, `app/api/**` | `docs/notes/authorization.md` |
@@ -90,6 +90,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/airtableOps.js` — the Airtable operation counter and its attribution scope. Server-only; a forbidden root for client bundles.
 - `lib/airtableFormula.js` — `formulaString`, the one escape for an interpolated value, and the whole-formula builders.
 - `lib/airtableBatch.js` — rows created ten to a request, one request at a time, a failed request read back by its minted ids before it is counted (#470). Pure; `client.js:createRecords` gives it the base.
+- `lib/airtablePace.js` — five Airtable requests a second at most, for a caller sending many (#553).
 - `lib/ids.js` — all ID generation: the lock, the query and the create.
 - `lib/idSequence.js` — the pure half: the daily ID families and the child relations.
 - `lib/productName.js` — the product's name. Not the company's legal name, which is `lib/poPdf.js:HYE_BUYER_NAME`.
@@ -129,6 +130,8 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/assetNote.js` — an item's note (#533): what a typed one keeps, a press's answers in order, and every word. **No event: it appends no `Asset Log` row.**
 - `lib/assetListView.js` — the two asset list screens (#339), the app's first paging, which assets a label run is for (#443), the one job they stand on (#509, #520) or all of a reader's (#548), what the category list's band narrows by (#520), and their own words.
 - `lib/assetStatusMemory.js` — each asset's status as a server keeps it between list views (#560): one question to the base about what changed per view, a minute's overlap, ten minutes' bound. **No write clears it.**
+- `lib/assetListExport.js` — the list as an Excel file (#553): the press, handed its reads, its sheets and its words. It narrows nothing itself.
+- `lib/xlsxWorkbook.js` — an `.xlsx` written whole (#553): text cells are words, a formula's first character `quotePrefix`'d. Server-only.
 - `lib/assetCatalog.js` — the office's catalog page (#527): every row, that band with a toggle, what an add or an edit may save, and its words.
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
 - `lib/materialPriceView.js` — the view rules for those screens: row ordering, the lowest-price mark, the quantity caveat, and `MATERIAL_SEARCH_COPY` (#357).

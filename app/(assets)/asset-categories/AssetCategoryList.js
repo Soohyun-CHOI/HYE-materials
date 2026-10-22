@@ -11,14 +11,15 @@ import {
     ASSET_LIST_COPY as COPY,
     ASSET_LIST_FACETS,
     emptiedListWords,
-    filterAssetCategoryRows,
     pageOfAssetCategories,
     pagerPosition,
     readAssetListFilters,
+    readCategoryList,
 } from "@/lib/assetListView";
 import { assetCategoriesPath, assetCategoryPath } from "@/lib/assetRoutes";
 import { ASSET_STATUS_VALUES } from "@/lib/assetStatus";
 import JobChoice from "../JobChoice";
+import ListExport from "./ListExport";
 
 // 1a's columns since #519: the name, then a count for each status at 96, right-aligned — four
 // since #531, `In repair` between `Out` and `Retired`, the order `ASSET_STATUS_VALUES` holds
@@ -57,7 +58,13 @@ const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(4,var(--width-table-count))]";
  * THE HEAD HOLDS THE JOB'S CHIP AND THE OPENERS. `jobs` are the jobs the chip offers, for a
  * reader on several, and the chip is drawn here so it can carry what the band holds to the job
  * chosen; `catalog` is the office's way to the catalog (#527) and `opener` a site manager's, each
- * drawn by the page, which reads what it needs.
+ * drawn by the page, which reads what it needs. **`Export` stands between them for every reader
+ * (1a, #553)**, drawn here and not by the page because it sends the address this list is
+ * showing, and only here because 1a draws it over a list with rows: the empty states, which the
+ * page draws, have none. `ListExport.js` has what a press reads and what it says.
+ *
+ * THE BAND'S READING IS `readCategoryList`'S, WHICH THE EXPORT ANSWERS TOO (#553): one call
+ * over the address and the text typed, so what the file holds is what this draws.
  *
  * ON ALL OF A READER'S JOBS THE BAND GAINS A `Job` CHIP (1a, #548), after `Category`: the jobs the
  * rows have an asset on, by their codes, each with how many rows it would leave, several taken at
@@ -70,11 +77,7 @@ export default function AssetCategoryList({ rows, job, allJobs = false, jobs, ca
     const params = useSearchParams();
     const asked = readAssetListFilters(params);
     const [typed, setTyped] = useState(asked.q);
-    const reading = filterAssetCategoryRows(
-        rows,
-        { ...asked, q: typed, jobs: allJobs ? params.getAll("job") : [] },
-        { jobs: allJobs ? jobs : [] }
-    );
+    const reading = readCategoryList(rows, params, { allJobs, jobs, q: typed });
     const page = pageOfAssetCategories(reading.rows, params.get("page"));
 
     const write = (filters, toPage = 1) => window.history.replaceState(null, "", assetCategoriesPath(toPage, job, filters));
@@ -98,6 +101,7 @@ export default function AssetCategoryList({ rows, job, allJobs = false, jobs, ca
                 <ListHeader title={COPY.heading} count={count} noun={COPY.itemNoun(reading.rows.length)}>
                     {jobs && <JobChoice jobs={jobs} job={job} filters={reading.held} />}
                     {catalog}
+                    <ListExport />
                     {opener}
                 </ListHeader>
             }

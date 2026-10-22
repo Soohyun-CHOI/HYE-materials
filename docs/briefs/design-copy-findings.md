@@ -295,3 +295,25 @@ one name at both widths and the button's own word stays in it.
 The keys are `ASSET_NOTE_COPY.working`, `.changedFirst` and `.editNote` in
 `lib/assetNote.js`, held by value in `offline/asset-note.mjs`. The base's word is
 the screen's: `Assets."Note"`.
+
+---
+
+## What the list's `Export` says that the files of 2026-10-22 do not (#553)
+
+The files draw 1a's `Export`, its name `Export to Excel` and its wait, and no
+press that comes back with no file. What the screen says there is Soo's ruling,
+in the shape the app's other refusals of a press take, and the next sending
+decides it.
+
+| String | Where | The files |
+|---|---|---|
+| `Couldn't export the list. Try again.` | before `Export` on its line, after a press that made no file, until the next | draw no failure |
+
+**The words are `Couldn't add the items. Try again.`'s**, the registration's
+for a press that wrote nothing, with the export's verb and its object: what
+failed is the list, which is what the button exports. It is set as a refusal
+about the whole of an act is set, the info mark and the line in Ink 2, before
+the control as 0f sets a reason.
+
+The key is `ASSET_EXPORT_COPY.failed` in `lib/assetListExport.js`, held by
+value in `offline/asset-export.mjs`. Nothing on the base is named for it.
