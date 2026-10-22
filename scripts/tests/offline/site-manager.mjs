@@ -74,6 +74,14 @@ const CATALOG_ACTIONS = [
 ];
 
 /**
+ * The list's export (#553): every reader's, as the list is, so wrapped by neither — a READ whose
+ * gate is the page's `requireUser()` and whose rows are the reader's own scope.
+ * `offline/authz-structure.mjs` carries it as an exemption and `offline/asset-export.mjs` holds
+ * the scope it asks.
+ */
+const READ_ACTIONS = ["app/(assets)/asset-categories/actions.js::exportAssetListAction"];
+
+/**
  * The controls a site manager alone uses, by the page that draws them, and how many times
  * each is drawn there. `flag` is what each must stand under: the page's `recorder`, or the
  * list's `selects` the page hands it. `text` names a sentence rather than an element — the
@@ -329,16 +337,17 @@ export function run({ check, assert, log }) {
     });
     const actions = entries.filter((e) => e.kind !== "page" && (e.file.startsWith("app/(assets)/") || e.file.startsWith("app/l/")));
     check(
-        "the axis's server actions are the five this gate is for and the catalog's four, found by walking",
+        "the axis's server actions are the five this gate is for, the catalog's four and the list's export, found by walking",
         actions.map((e) => `${e.file}::${e.name}`).sort().join(" | "),
-        [...ASSET_ACTIONS, ...CATALOG_ACTIONS].sort().join(" | ")
+        [...ASSET_ACTIONS, ...CATALOG_ACTIONS, ...READ_ACTIONS].sort().join(" | ")
     );
     check(
-        "  each withSiteManagerAction around a handler nobody can call round it, the catalog's withAdminAction",
+        "  each withSiteManagerAction around a handler nobody can call round it, the catalog's withAdminAction, the export neither",
         actions.map((e) => `${e.name}: ${wrappingOf(e.ast, e.name)}`).sort().join(" | "),
         [
             ...ASSET_ACTIONS.map((key) => `${key.split("::")[1]}: withSiteManagerAction(1 arg), handler not exported`),
             ...CATALOG_ACTIONS.map((key) => `${key.split("::")[1]}: withAdminAction(2 args), handler not exported`),
+            ...READ_ACTIONS.map((key) => `${key.split("::")[1]}: not a wrapped export`),
         ]
             .sort()
             .join(" | ")

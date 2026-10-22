@@ -5,12 +5,15 @@ import { redirect } from "next/navigation";
 import { requireUser, withSiteManagerAction } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllAssetCategories } from "@/lib/airtable/assetCategories";
-import { createAssets } from "@/lib/airtable/assets";
-import { createFirstAssetLogEntries } from "@/lib/airtable/assetLog";
+import { createAssets, getAssetsByRecordIds } from "@/lib/airtable/assets";
+import { createFirstAssetLogEntries, getAssetLogEntriesByRecordIds } from "@/lib/airtable/assetLog";
 import { readCatalog } from "@/lib/assetCategory";
 import { assignedJobsFor } from "@/lib/assetJob";
 import { ASSET_REGISTRATION_COPY, readRegistration } from "@/lib/assetRegistration";
 import { assetCategoryPath } from "@/lib/assetRoutes";
+import { ASSET_EXPORT_COPY, listExport } from "@/lib/assetListExport";
+import { XLSX_MEDIA_TYPE, workbookBytes } from "@/lib/xlsxWorkbook";
+import { createRequestPace, pagesOf } from "@/lib/airtablePace";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 /**
@@ -180,5 +183,73 @@ async function registerAssetsHandler(prevState, formData) {
                 { job: job.id, asked: count, unwritten: count - created.length, unlogged }
             )
         );
+    });
+}
+
+/**
+ * The Tools & Equipment list as an Excel file (#553): what the list at `search` holds — the
+ * address it was showing, sent with the press — and every item it counts. `timeZone` is the
+ * browser's, the zone the file's days are the reader's in. Answers `{ fileName, type, bytes }`,
+ * or `{ error }` when there is no file to give.
+ *
+ * WHOEVER READS THE LIST EXPORTS IT, AND ONLY WHAT THEIR LIST HOLDS. The gate is the page's —
+ * `requireUser()`, every signed-in reader with no role (#337) — and what the file holds is
+ * `assetListScope`'s answer for this reader over the address's `job`, the one judgment the page
+ * stands its list on, which `listExport` asks with the user handed here: a job they may not stand
+ * on is answered with the first of theirs, as the list answers it, and the file is named for the
+ * job it holds. No wrapper fits, as none fits the page: `withSiteManagerAction` would refuse
+ * every reader who is not one, and `withAdminAction` the site. `offline/authz-structure.mjs`
+ * carries it as an exemption, and `offline/asset-export.mjs` holds that the user `requireUser`
+ * answered is the one `listExport` is handed.
+ *
+ * WHAT IT READS, AND ONLY ON A PRESS. The list's page reads nothing for the button (`ListExport`
+ * is the browser's). A press reads the session, the catalog and the job list — the page's three
+ * — then every asset on what the list stands on, whole, a hundred to a query, and the latest
+ * `Asset Log` row of each asset the file lists, a hundred to a query: `3 + ⌈N/100⌉ + ⌈M/100⌉`,
+ * N the assets in scope and M those the band leaves. The statuses both sheets count by come
+ * with the asset read, so the status memory (#560) is not asked: the file is as of the press,
+ * which a view of the list may not be. `lib/assetListExport.js:listExport` is the whole press
+ * but the gate, the pace and the bytes; docs/notes/tools.md has the figures and the comparison.
+ *
+ * FIVE REQUESTS A SECOND AT MOST, EVERY ONE OF THEM PACED (`lib/airtablePace.js`). The session's
+ * read waits on the pace too, and a whole-table read's later pages are counted when it returns.
+ *
+ * A FAILED READ IS SAID, AND ITS CAUSE LOGGED. Everything after the gate is inside one `try`, so
+ * a read that throws answers `{ error }`, which `ListExport.js` draws before the button; the gate
+ * stays outside it, since `requireUser` redirects by throwing and a `catch` would take the way to
+ * sign-in for a failure. A reader on no job is answered the same way: the list draws them no
+ * button, so only a request made by hand reaches it, and there is no list to give.
+ */
+export async function exportAssetListAction(search, timeZone) {
+    return withOpsLabel("exportAssetListAction", async () => {
+        const pace = createRequestPace();
+        await pace();
+        const user = await requireUser();
+
+        try {
+            // A whole-table read waits for one request and counts the rest of its pages after.
+            const paced = async (read) => {
+                await pace();
+                const rows = await read();
+                pace.spent(pagesOf(rows) - 1);
+                return rows;
+            };
+            const made = await listExport({
+                user,
+                search,
+                timeZone,
+                read: {
+                    categories: () => paced(getAllAssetCategories),
+                    jobs: () => paced(getAllJobs),
+                    assets: (ids) => getAssetsByRecordIds(ids, { pace }),
+                    logRows: (ids) => getAssetLogEntriesByRecordIds(ids, { perQuery: 100, pace }),
+                },
+            });
+            if (!made) return { error: ASSET_EXPORT_COPY.failed };
+            return { fileName: made.fileName, type: XLSX_MEDIA_TYPE, bytes: workbookBytes(made.sheets) };
+        } catch (error) {
+            console.error("exportAssetListAction: no file was made", error);
+            return { error: ASSET_EXPORT_COPY.failed };
+        }
     });
 }

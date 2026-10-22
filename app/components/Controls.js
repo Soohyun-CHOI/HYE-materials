@@ -377,8 +377,12 @@ export function ButtonLabel({ size, busyLabel, children }) {
  * count the reader changes in place holds the width of a longer form of them, unseen and
  * unread, so it does not grow and shrink under the reader's hand — 1b's `Add 1 item`, as wide
  * as `Add 99 items`. Its figures are tabular, so no count is wider than another of its digits.
+ *
+ * `ariaLabel` IS A NAME LONGER THAN THE WORDS (#553): 1a's `Export` is named `Export to Excel`,
+ * which says what the press makes. It holds the words drawn, so a reader who says what they see
+ * still reaches it, and a caller drops it while busy, so the working word is the name then.
  */
-export function Button({ variant = "filled", size = "lg", type = "button", disabled = false, disabledReason, describedBy, busy = false, busyLabel, holdWidthOf, onClick, children }) {
+export function Button({ variant = "filled", size = "lg", type = "button", disabled = false, disabledReason, describedBy, busy = false, busyLabel, holdWidthOf, ariaLabel, onClick, children }) {
     const reasonId = useId();
     // What the form waits on, as the frame said it: its submit, or `"action"` (#527).
     const formWaits = useContext(FormBusyContext);
@@ -390,6 +394,7 @@ export function Button({ variant = "filled", size = "lg", type = "button", disab
             type={type}
             disabled={disabled}
             onClick={state ? (event) => event.preventDefault() : onClick}
+            aria-label={ariaLabel}
             aria-describedby={explained ? reasonId : describedBy}
             aria-busy={working || undefined}
             aria-disabled={state ? true : undefined}

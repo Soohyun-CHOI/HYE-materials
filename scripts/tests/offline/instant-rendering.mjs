@@ -73,6 +73,33 @@ const OFF_BROWSER = {
     "lib/poPdf.js": "the order document, whose reader is a vendor and not a browser",
 };
 
+/**
+ * The files that resolve an instant on a server IN THE READER'S ZONE, handed it by the reader's
+ * browser, and the reason (#553). The list's export is a file made on a server for the person
+ * who pressed, so its days are theirs and it names no zone, as a screen names none. What earns
+ * the place is checked: every day it reads is read in a zone it was HANDED — an argument, never
+ * a literal — and the press sends `readerTimeZone()`, which `offline/asset-export.mjs` holds.
+ */
+const IN_READERS_ZONE = {
+    "lib/assetListExport.js": "the Tools & Equipment list's file, whose days are the presser's, in the zone their browser sent",
+};
+
+/**
+ * How a file reads its days (#553): `every one` when each `dayOf` call is handed its zone as a
+ * name — a parameter or a variable — and otherwise what one call did instead. `none` for a file
+ * that reads no day, so a reader that stopped reading one is seen too.
+ */
+function zonesHanded(ast) {
+    const calls = [];
+    walk(ast, (n) => {
+        if (n.type === "CallExpression" && n.callee?.name === "dayOf") calls.push(n.arguments[1]);
+    });
+    if (calls.length === 0) return "none";
+    if (calls.some((zone) => !zone)) return "a call with no zone";
+    if (calls.some((zone) => zone.type === "Literal" || zone.type === "TemplateLiteral")) return "a literal zone";
+    return calls.every((zone) => zone.type === "Identifier") ? "every one" : "a zone of another shape";
+}
+
 /** Every locale-formatting call in a file, as `{ callee, hasOptions }`. */
 function localeCalls(ast) {
     const found = [];
@@ -217,9 +244,9 @@ export function run({ check, log, assert }) {
     // ── and the formatter is reached only from a browser ────────────────────
     log("");
     log("only a file that runs in a browser resolves an instant against its reader:");
-    const readers = importersOf(["formatInstant", "instantParts", "instantText", "useReaderInstant"]);
+    const readers = importersOf(["formatInstant", "instantParts", "instantText", "useReaderInstant", "dayOf"]);
     assert("  the import walk found readers", readers.length > 0);
-    const serverSide = readers.filter((r) => !r.client && !(r.rel in OFF_BROWSER)).map((r) => r.rel);
+    const serverSide = readers.filter((r) => !r.client && !(r.rel in OFF_BROWSER) && !(r.rel in IN_READERS_ZONE)).map((r) => r.rel);
     // THE DEFECT, STATED AS A CHECK. A Server Component calling this resolves the
     // zone against the render rather than against the reader, which is what every
     // screen did before this issue.
@@ -260,6 +287,26 @@ export function run({ check, log, assert }) {
         });
         assert(`  ${rel} names a zone rather than an offset`, /^[A-Za-z]+\/[A-Za-z_]+$/.test(zoneValue ?? ""));
     }
+
+    // ── a server file writing a reader's days asks them in the zone it was handed (#553) ──
+    log("");
+    log("a file made on a server for its reader reads each day in the zone it was handed:");
+    for (const [rel, why] of Object.entries(IN_READERS_ZONE)) {
+        assert(`  ${rel} — ${why}`, readers.some((r) => r.rel === rel && !r.client));
+        check(`  ${rel} reads its days in a zone handed to it`, zonesHanded(parseFile(rel).ast), "every one");
+    }
+    // ANTI-VACUITY: a day read in a zone the file chose for itself, and one read with no zone, are
+    // each seen.
+    check(
+        "  where a zone written in is seen",
+        zonesHanded(parseSource('import { dayOf } from "./format.js";\nexport const d = (at) => dayOf(at, "America/Chicago");\n', "<planted-zone>").ast),
+        "a literal zone"
+    );
+    check(
+        "  and a day read in no zone",
+        zonesHanded(parseSource('import { dayOf } from "./format.js";\nexport const d = (at) => dayOf(at);\n', "<planted-none>").ast),
+        "a call with no zone"
+    );
 
     // ── the first paint carries no time, which is the hydration answer ──────
     log("");

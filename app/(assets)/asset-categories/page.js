@@ -5,9 +5,8 @@ import { getAssetStatuses } from "@/lib/airtable/assets";
 import { assignedJobsFor } from "@/lib/assetJob";
 import {
     ASSET_LIST_COPY as COPY,
-    countedAssets,
+    categoryListRows,
     idsInScope,
-    summarizeAssetCategories,
     assetListScope,
     assetCategoriesInScope,
 } from "@/lib/assetListView";
@@ -133,7 +132,7 @@ async function renderCategoriesPage({ searchParams }) {
     // and job come off the arrays already read.
     const shownCategories = assetCategoriesInScope(categories, scope.shown);
     const statuses = await getAssetStatuses(shownCategories.flatMap((category) => idsInScope(category.assets, scope.shown)));
-    const rows = summarizeAssetCategories(shownCategories, countedAssets(shownCategories, scope, statuses));
+    const rows = categoryListRows(shownCategories, scope, statuses);
     // A reader on no job — anybody but the office with no assignment — has nothing the list
     // could hold, so the head counts nothing (1a2, #519).
     const onNoJob = scope.jobs.length === 0;

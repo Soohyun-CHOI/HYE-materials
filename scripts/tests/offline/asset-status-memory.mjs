@@ -120,8 +120,11 @@ function topLevelCalls(parsed, name) {
  */
 function countingOf(parsed) {
     const source = parsed.source;
+    // What the rows are made of: the counted assets handed to `summarizeAssetCategories`, or since
+    // #553 the call to `categoryListRows`, the one composition the list and its export share.
     const [summarize] = callsOf(parsed, "summarizeAssetCategories");
-    const counted = summarize?.arguments?.[1];
+    const [composed] = callsOf(parsed, "categoryListRows");
+    const counted = summarize?.arguments?.[1] ?? composed;
     let statusesFrom = null;
     walk(parsed.ast, (node) => {
         if (node.type !== "VariableDeclarator" || node.id.type !== "Identifier" || node.id.name !== "statuses") return;
@@ -316,7 +319,12 @@ export async function run({ check, log }) {
     check(
         "the list counts what countedAssets builds from what getAssetStatuses answered",
         countingOf(page),
-        "countedAssets(shownCategories, scope, statuses) | statuses from getAssetStatuses"
+        "categoryListRows(shownCategories, scope, statuses) | statuses from getAssetStatuses"
+    );
+    check(
+        "  through the one composition, summarizeAssetCategories of countedAssets (#553)",
+        /export function categoryListRows\(categories, scope, statuses\) \{\s*return summarizeAssetCategories\(categories, countedAssets\(categories, scope, statuses\)\);\s*\}/.test(parseFile("lib/assetListView.js").source),
+        true
     );
     check(
         "  a planted list counting the assets it read itself fails it",
@@ -361,7 +369,7 @@ export async function run({ check, log }) {
         ].join(" "),
         "true true true"
     );
-    check("  and fifty unless asked", /export async function findByRecordIds\(tableName, ids, \{ fields, perQuery = BATCH_CHUNK \} = \{\}\)/.test(client.source) && /const BATCH_CHUNK = 50;/.test(client.source), true);
+    check("  and fifty unless asked", /export async function findByRecordIds\(tableName, ids, \{ fields, perQuery = BATCH_CHUNK, pace \} = \{\}\)/.test(client.source) && /const BATCH_CHUNK = 50;/.test(client.source), true);
 
     const memoryFile = parseFile(MEMORY);
     check("the memory imports nothing, so this tier loads it as it is", memoryFile.ast.body.filter((s) => s.type === "ImportDeclaration").length, 0);

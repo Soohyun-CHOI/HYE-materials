@@ -89,6 +89,19 @@ where the office keeps what a registration picks from. It is drawn in every
 state the head takes and for nobody else — a reader who is not the office is
 drawn none, since keeping the catalog is a role and not something asked for.
 
+**action.** `Export`, bordered, between `Catalog` and `Add items`, for every
+reader of the list (1a, #553), drawn over a list with rows and in neither empty
+state: the list as an Excel file. Its first sheet is the list as it stands —
+the job it stands on, or all of them, and whatever the band holds — every row
+the band leaves rather than the page shown, with the same four counts; its
+second is every item those counts are made of, one row each, with its id, the
+catalog's six levels, its status, its job, who has one that is out, its note and
+the day it last changed, as an item's own list says them. The file is named for
+the job, or `All jobs`, and the day. Nothing is read until it is pressed. To
+assistive tech it is `Export to Excel`, and while the file is made it is busy,
+`Exporting…`. What a reader may export is what their list holds: a job they may
+not stand on is answered as the list answers it.
+
 **The list starts on one job (#520), and a design may not make it start on
 several.** It starts on the first of the reader's jobs by its code — the
 office, `Is Admin`, on the first of every job; anybody else on the first of
@@ -185,6 +198,11 @@ face — or `No items match these filters` when only chips narrow — and one
 bordered control, `Clear search` when the search is all that narrows and
 `Clear all` otherwise (1a). No pager stands under it. It was a job chosen with
 nothing on it from #509, which the design did not draw.
+
+**When a press of `Export` makes no file (#553):** before the button on its
+line, `Couldn't export the list. Try again.`, until the next press. The files
+draw no failure; the words are the app's for a press that saved nothing, and
+`design-copy-findings.md` records them.
 
 **When the band narrows the list (#520):** the head's figure reads `N of M`, the
 document lists' words for the same thing, `M` being every item on the job — the

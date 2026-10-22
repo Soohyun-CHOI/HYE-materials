@@ -1935,6 +1935,8 @@ export function run({ check, assert, log }) {
             // the rest of the dialog locks (#527).
             'EntryDialog: button {pending && working === "restore"}, button {pending && working === "discontinue"} · named, named, named · 0 disabled by sending',
             "LabelsDialog: button {pending} · named · 0 disabled by sending",
+            // 1a's `Export`, working while the file is made (#553).
+            "ListExport: button {busy} · named · 0 disabled by sending",
             // An item's note's `Remove note`, working by its own `busy` while the dialog locks (#533).
             "NoteDialog: button {removing} · named, named · 0 disabled by sending",
             // Both lock while the menu's `Send for repair` is on its way, the wait being the
