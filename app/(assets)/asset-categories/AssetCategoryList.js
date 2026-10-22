@@ -35,13 +35,13 @@ const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(4,var(--width-table-count))]";
  * holds, the band that filters and searches them, the rows, and the pager.
  *
  * EVERY ROW ON THE JOB IS HERE, AND THE BAND NARROWS THEM IN THE BROWSER. The page reads every
- * category on the job and every asset there to count them (`summarizeAssetCategories`), so the
+ * category on the job and counts every asset there (`summarizeAssetCategories`), so the
  * rows the band chooses among are all in hand: a chip, a search and a step to another page
  * fetch nothing. **The address follows by `history.replaceState`, as a category's selection
  * does (`[categoryRecordId]/AssetList.js` has why in full)** — no request and no history entry,
  * and `useSearchParams` reads the address back, so a reload, a copied link and a step all carry
  * what the band holds. `router.replace`, the document lists' way, would draw the page again on
- * the server at every keystroke, at five or six operations each.
+ * the server at every keystroke, at four operations or more each (#560).
  *
  * WHAT THE BAND HOLDS IS READ ONCE, BY `filterAssetCategoryRows`: the rows, the count in the
  * head, every figure in a chip's list and what the next write of the address carries. The text
