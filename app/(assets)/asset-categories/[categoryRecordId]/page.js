@@ -84,7 +84,9 @@ export const metadata = { title: "Item" };
  * reader with more than one; it stood in the head beside the opener until then. A category
  * with assets, none of them on the job, draws its head and nothing under it: `Nothing added
  * yet` would be false there, and Design is drawing what it says. An asset off the job still
- * opens from its label.
+ * opens from its label. **On all of the reader's jobs (#548)** the array is cut to the assets
+ * on any of them, still one page read, and each row says its job in a column after its id
+ * (1d), which the breadcrumb says for all of them on one job.
  *
  * AND WHATEVER IS SELECTED (#443). Which assets a label run is for rides in the
  * address as `id`, and this page never reads it: `AssetList.js` beside it reads
@@ -199,7 +201,8 @@ async function renderCategoryPage({ params, searchParams }) {
     // THE ARRAY IS CUT TO THE JOB'S ASSETS FIRST (#509, #520), off ids already in hand, so the
     // read is still one page.
     const scope = assetListScope(user, jobs, sp.job);
-    const job = scope.job?.id ?? null;
+    // What the breadcrumb's choice holds and every write carries: a job, or all of them (#548).
+    const job = scope.choice;
     // Whether the reader chooses a job at all: only with more than one (1d, #519).
     const choosesJob = scope.jobs.length > 1;
     const page = pageOfAssets(idsInScope(category.assets, scope.shown), sp.page);
@@ -301,17 +304,22 @@ async function renderCategoryPage({ params, searchParams }) {
     // latest log row (1d, #520) — the rows read here in one batch, one per asset — where it
     // said the job the asset was last scanned on from #463.
     const latest = new Map((await getAssetLogEntriesByRecordIds(latestLogRowIds(assets))).map((entry) => [entry.id, entry]));
+    // On all of the reader's jobs each row says the job its asset is on (1d, #548), by the code
+    // the job list already read carries, so it costs nothing; on one job the breadcrumb says it.
+    const codeOf = new Map(scope.jobs.map((each) => [each.id, each.jobCode]));
     return (
         <AssetList
             categoryRecordId={category.id}
             itemName={category.itemName}
             selects={recorder}
+            showsJob={scope.allJobs}
             rows={assets.map((asset) => ({
                 id: asset.id,
                 assetId: asset.assetId,
                 status: asset.status,
                 // Its note (#533), a field of the asset's own row, so it came with this read.
                 note: asset.note,
+                ...(scope.allJobs ? { jobCode: codeOf.get(asset.job?.[0]) ?? "" } : {}),
                 ...lastChangeOf(asset, latest),
             }))}
             page={page}

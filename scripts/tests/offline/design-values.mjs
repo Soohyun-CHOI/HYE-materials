@@ -262,6 +262,8 @@ const VALUES = [
     ["--spacing-table-column-inline", "1.25rem", null],
     ["--width-table-count", "6rem", null],
     ["--width-table-id", "15rem", null],
+    // The job's column, on all of a reader's jobs (1d, #548).
+    ["--width-table-job", "6rem", null],
     // The status's column, held again beside the note's (1d, #533).
     ["--width-table-status", "15rem", null],
     ["--width-table-date", "7.5rem", null],

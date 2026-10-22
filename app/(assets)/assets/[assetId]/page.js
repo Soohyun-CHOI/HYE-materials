@@ -313,8 +313,10 @@ async function renderAssetPage({ params }) {
                     category is the row read above, so the path costs nothing. A phone draws the
                     top bar in its place. For a reader on several jobs the job the asset is on
                     stands between the list and the category (1f, #519), a level that takes them
-                    to the category's list on another job, and the category's level carries the
-                    asset's job when the reader may narrow to it. */}
+                    to the category's list on another job, or on `All jobs` (#548) — it holds the
+                    asset's job whatever list it was opened from, since the address carries none —
+                    and the category's level carries the asset's job when the reader may narrow
+                    to it. */}
                 <Breadcrumb
                     levels={[
                         { label: ASSET_LIST_COPY.heading, href: ASSET_CATEGORIES_PATH },

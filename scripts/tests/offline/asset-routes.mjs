@@ -41,6 +41,7 @@ import { posix } from "node:path";
 import { pathToFileURL } from "node:url";
 import { ID_KINDS, dailyIdPrefix, formatSequentialId } from "../../../lib/idSequence.js";
 import {
+    ALL_JOBS,
     LABEL_REWRITE,
     LABEL_ROUTE,
     ASSET_CATALOG_PATH,
@@ -121,6 +122,23 @@ function allText(ast) {
 }
 
 export async function run({ check, assert, log }) {
+    // ── #548: all of a reader's jobs, and the Job chip beside it ────────────
+    // At the head, so an older assertion that throws cannot keep these from printing.
+    log("a list on all of a reader's jobs says `all`, and the band's Job chip follows it as more job values (#548):");
+    check("all of a reader's jobs is `job=all`, which no record id is", assetCategoriesPath(1, ALL_JOBS), "/asset-categories?job=all");
+    check(
+        "  the Job chip's jobs follow it straight after, before the rest of the band and the page",
+        assetCategoriesPath(2, ALL_JOBS, { q: " saw ", level1: ["Tool"], jobs: ["recJob1", "recJob2"] }),
+        "/asset-categories?job=all&job=recJob1&job=recJob2&q=saw&type=Tool&page=2"
+    );
+    check(
+        "  and a list on one job writes no chip's jobs, since it draws no chip",
+        assetCategoriesPath(1, "recJob1", { jobs: ["recJob2"] }),
+        "/asset-categories?job=recJob1"
+    );
+    check("a category's page on all of them carries it the same way", assetCategoryPath("recAbc", 2, ["HYE-AST-260909-004"], { job: ALL_JOBS }), "/asset-categories/recAbc?job=all&page=2&id=HYE-AST-260909-004");
+    log("");
+
     // ── 1: the routes the module names are the routes the app serves ────────
     log("the builders and the page files name the same routes:");
 

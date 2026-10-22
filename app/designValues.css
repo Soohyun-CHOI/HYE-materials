@@ -111,6 +111,7 @@
     --spacing-table-column-inline: 1.25rem; /* 1a and 1d, 20: between two columns — from the drawings, not the spec */
     --width-table-count: 6rem; /* 1a, 96: a column of counts — from the drawings, not the spec */
     --width-table-id: 15rem; /* 1d, 240: a column of printed ids — from the drawings, not the spec */
+    --width-table-job: 6rem; /* 1d, 96: a column of job codes, on all of a reader's jobs — from the drawings, not the spec */
     --width-table-status: 15rem; /* 1d, 240: a column of statuses, beside the note's — from the drawings, not the spec */
     --width-table-date: 7.5rem; /* 1d, 120: a column of days — from the drawings, not the spec */
     --min-width-catalog-name: 20rem; /* 1l, 320: the least the catalog's name column takes, sharing what is left at a weight of 2 — the drawing's, by 0b Row's rule */

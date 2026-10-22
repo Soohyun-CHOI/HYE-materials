@@ -6,7 +6,8 @@ reader DOES here — adding items, and selecting and printing labels — is a si
 manager's (#506); everyone else reads the same screen without those controls.
 The list stands on one of the reader's jobs (#509, #520): any job for the
 office, one they are assigned to for anybody else, the first by its code until
-they move.
+they move — or on all of them at once, when a reader with more than one chooses
+it (#548).
 Which width comes first: **desktop**, and it is the only one: this screen is
 used at a desk and does not support a phone's width (`_shared.md`).
 
@@ -27,9 +28,10 @@ its six here are all items; the screens never set the two side by side in a sent
 **It is reached from the category list, and a registration lands on it (#449).**
 The asset's own screen is the one a machine opens; this one is opened by a
 person who picked a name off a list, or who has just registered assets of
-this category and arrives with them selected — on the whole of what they start
-from, with no job chosen, since what they wrote is on their own job and may be
-off one they had chosen (#509). So the reader is at a desk as often
+this category and arrives with them selected — on the job they wrote to (#520),
+where what they wrote is drawn, whatever job or jobs the list stood on before.
+From #509 until #520 that was the whole of what they start from, with no job
+chosen. So the reader is at a desk as often
 as on a site — printing labels, checking what the company has of something, or
 registering more of it (#451).
 
@@ -72,7 +74,8 @@ category until #552 took it off the catalog.
 behind a chevron (#460), the word the asset's screen opens its path with
 for the same trip. **For a reader on more than one job the breadcrumb is a path
 instead, `Tools & Equipment / 26-DEMO-01`**, its second level the job the list
-stands on, which opens the choice of job (1d, #519; below).
+stands on, which opens the choice of job (1d, #519; below) — `Tools & Equipment /
+All jobs` on all of them (#548).
 
 **action.** A control that opens the registration dialog on this category,
 `Add items` (#519) — `Add tools` from #485, the design's `New tools` from #456, and
@@ -126,15 +129,16 @@ selected; see below.
 
 **action.** For a reader on more than one job, a choice of job as the
 breadcrumb's second level (1d, #519; in the head until then): it holds the job the
-list stands on and opens on each job they may stand on by its code — every job
-for the office, their own for anybody else, a job with nothing on it included.
-Choosing one lists that job's assets under this category, from the first page,
-and keeps whatever is selected. A reader on one job is drawn no choice. It held
-`All jobs` first from #509, the whole of the reader's jobs at once, which the
-design never drew and #520 took away.
+list stands on and opens on `All jobs` and then each job they may stand on by its
+code — every job for the office, their own for anybody else, a job with nothing on
+it included. Choosing one lists that job's assets under this category, from the
+first page, and keeps whatever is selected; choosing `All jobs` lists its assets on
+all of them (#548). A reader on one job is drawn no choice. `All jobs` stood first
+from #509 as where every list started, which #520 took away; since #548 it is a
+choice and not the start.
 
 **evidence.** How many assets this category has on the job the list stands on,
-`13`, on the heading's line (`13 items` to assistive tech) (#509, #520). #326 names this as the fact every list in this app is missing: without it nothing on
+or on all of them (#548), `13`, on the heading's line (`13 items` to assistive tech) (#509, #520). #326 names this as the fact every list in this app is missing: without it nothing on
 screen says whether a reader is looking at everything or at the beginning
 of it. **It is a fact about the list rather than about what the company
 holds** — which is why a single figure is right here and deliberately
@@ -148,7 +152,8 @@ own screen; its status, one of `In stock`, `Out`, `In repair` (#531) or `Retired
 line a site manager keeps on it, in Ink 2 and nothing where it has none; and the day it last
 changed, `09/22/2026` — the day of its latest scan, retirement or registration,
 in the reader's own zone (1d, #520). Each carries its box as well, for a site
-manager; see above.
+manager; see above. On `All jobs` each also carries the job it is on, after its
+id (#548; below).
 
 **The note is one line, cut at its column's end and shown whole above its cell
 under the pointer (#533)**, as the catalog shows a cut value (1l): it is at most
@@ -163,7 +168,10 @@ because an item can sit on a shelf from one year to the next, and `09/22`
 would not say which. **The job each asset is on stood in the day's place from
 #463 until 1d drew the day**: where an asset was last scanned is on its own
 screen, and a reader on several jobs sees the one the list is narrowed to in
-the breadcrumb.
+the breadcrumb. **On `All jobs` it is a column again (1d, #548)**, after the
+printed id, the job's code in a lighter ink, since the breadcrumb no longer says
+it for every row; the note gives up the room. A selection there may hold items on
+several jobs, and one print takes them together.
 
 **Newest first moves every row along at each registration, and that was
 accepted (#463).** A registration's assets go to the top, so a link to a
@@ -247,8 +255,10 @@ draw: `Nothing added yet` would be false there. The rows, the pager and the page
 box are always the job's alone, and the breadcrumb's `Tools & Equipment` keeps the
 job. An asset off the job is left off this list and still opens from its label or a
 link. A job in the address the reader may not stand on is answered with the first
-of theirs, as no job asked is. From #509 a list with no job asked stood on all of
-the reader's jobs, and one narrowed to a job counted `N of M`.
+of theirs, as no job asked is, and so is `All jobs` for a reader with one job or
+none. From #509 a list with no job asked stood on all of the reader's jobs, and
+one narrowed to a job counted `N of M`; on `All jobs` since #548 the head counts
+the category's assets on all of them, a figure and not `N of M`.
 
 **When nothing is selected:** no selection bar, 0b's (#463), where until
 then a sentence, `Nothing is selected, so there is nothing to print.`, stood
@@ -404,7 +414,8 @@ and `Tool item` before it. `Status` names one field and is the word the asset's
 own screen already uses for it. **`Updated` names no field on `Assets`**: it is
 the latest `Asset Log` row's `Event At`, read for each entry on the page in one
 batch (#520), and `docs/notes/naming.md` carries the row. It took the place of
-`Job`.
+`Job`, which stands after `Item ID` again on `All jobs` (#548) — the asset's own
+screen's word for `Assets."Job"`, where the asset is now.
 
 **Every id here links to `/assets/[assetId]`, and this is where a
 registration's ids are listed (#449).** The registration form listed them
