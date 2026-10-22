@@ -84,7 +84,8 @@ import {
     pagerPosition,
 } from "../../../lib/assetListView.js";
 import { MAX_LABELS_PER_REQUEST } from "../../../lib/assetLabelPage.js";
-import { readAssetIds } from "../../../lib/assetRoutes.js";
+import { ALL_JOBS, readAssetIds } from "../../../lib/assetRoutes.js";
+import { FILTERED_LISTS, axesFor } from "../../../lib/listFilters.js";
 import { listJsFiles, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
@@ -281,7 +282,171 @@ function assetsFiles() {
     return out.map((abs) => toPosix(abs).slice(toPosix(REPO_ROOT).length + 1));
 }
 
+// ---------------------------------------------------------------------------
+// #548: all of a reader's jobs at once
+// ---------------------------------------------------------------------------
+
+/**
+ * A list on all of a reader's jobs (#548): the scope that stands on them, the counts a row
+ * carries per job, the band's `Job` chip that narrows to some of them, and where each screen
+ * asks. Called first in `run()`, so an older assertion that throws cannot keep it from printing.
+ */
+function allJobs548({ check, log }) {
+    log("a list may stand on all of a reader's jobs, and the band's Job chip narrows to some of them (#548):");
+    const JOBS = [
+        { id: "recJ2", jobCode: "26-B", assets: ["a3", "a4", "a5"] },
+        { id: "recJ3", jobCode: "26-C", assets: [] },
+        { id: "recJ1", jobCode: "26-A", assets: ["a1", "a2"] },
+    ];
+    const office = { isAdmin: true, assignedJobs: ["recJ2"] };
+    const site = { isAdmin: false, assignedJobs: ["recJ1", "recJ3"] };
+    const single = { isAdmin: false, assignedJobs: ["recJ2"] };
+    const said = (scope) => `${scope.allJobs} ${scope.choice} ${scope.job?.jobCode ?? "-"} ${[...scope.shown].join(",")}`;
+
+    // THE SCOPE, by value: `all` stands on every job the reader may choose between, wherever it
+    // stands among the values, and only for a reader with more than one.
+    check("the office on all jobs stands on every job, their assets together", said(assetListScope(office, JOBS, ALL_JOBS)), "true all - a1,a2,a3,a4,a5");
+    check("  anybody else on all of their own", said(assetListScope(site, JOBS, ALL_JOBS)), "true all - a1,a2");
+    check(
+        "  `all` among the band's job values still stands on all of them, wherever it stands",
+        [said(assetListScope(site, JOBS, [ALL_JOBS, "recJ3"])), said(assetListScope(site, JOBS, ["recJ1", ALL_JOBS]))].join(" | "),
+        "true all - a1,a2 | true all - a1,a2"
+    );
+    check("a reader on one job asking for all is on that job, as for any value not offered", said(assetListScope(single, JOBS, ALL_JOBS)), "false recJ2 26-B a3,a4,a5");
+    check("  and a reader on no job on nothing", said(assetListScope({ isAdmin: false }, JOBS, ALL_JOBS)), "false null - ");
+    check("an address naming one job, as every address did before, stands on it", said(assetListScope(office, JOBS, "recJ2")), "false recJ2 26-B a3,a4,a5");
+    check("  no job asked starts on the first by its code", said(assetListScope(office, JOBS, undefined)), "false recJ1 26-A a1,a2");
+    check("  and several jobs without all are a repeated parameter, answered with the first", said(assetListScope(office, JOBS, ["recJ2", "recJ3"])), "false recJ1 26-A a1,a2");
+
+    // THE COUNTS PER JOB each row carries, which the chip adds up in the browser.
+    const KINDS = [
+        { id: "kSaw", itemName: "Band Saw", level1: "Tool", level2: "Power Tool", assets: ["a1", "a3"] },
+        { id: "kDrill", itemName: "Drill", level1: "Tool", level2: "Power Tool", assets: ["a2", "a4"] },
+        { id: "kWelder", itemName: "TIG Welder", level1: "Equipment", level2: "Welding", assets: ["a5"] },
+    ];
+    const ASSETS = [
+        { id: "a1", category: ["kSaw"], job: ["recJ1"], status: ASSET_STATUS.IN_STOCK },
+        { id: "a2", category: ["kDrill"], job: ["recJ1"], status: ASSET_STATUS.OUT },
+        { id: "a3", category: ["kSaw"], job: ["recJ2"], status: ASSET_STATUS.IN_STOCK },
+        { id: "a4", category: ["kDrill"], job: ["recJ2"], status: ASSET_STATUS.RETIRED },
+        { id: "a5", category: ["kWelder"], job: ["recJ2"], status: ASSET_STATUS.IN_REPAIR },
+    ];
+    const rows = summarizeAssetCategories(KINDS, ASSETS);
+    const counted = (list) => list.map((row) => `${row.id}:${row.counts.map((c) => c.count).join("/")}`).join(" ");
+    const perJob = (list) =>
+        list.map((row) => `${row.id}:${Object.entries(row.perJob).map(([job, figures]) => `${job}=${figures.join("/")}`).join(",")}`).join(" ");
+    check("a row counts its kind on every job it stands on, added up", counted(rows), "kSaw:2/0/0/0 kDrill:0/1/0/1 kWelder:0/0/1/0");
+    check(
+        "  and carries its counts on each job, in the vocabulary's order",
+        perJob(rows),
+        "kSaw:recJ1=1/0/0/0,recJ2=1/0/0/0 kDrill:recJ1=0/1/0/0,recJ2=0/0/0/1 kWelder:recJ2=0/0/1/0"
+    );
+    const jobless = summarizeAssetCategories(KINDS, [...ASSETS, { id: "a6", category: ["kWelder"], job: [], status: ASSET_STATUS.OUT }]);
+    check("  an asset with no job is counted on its row and on no job", `${counted(jobless).split(" ")[2]} ${perJob(jobless).split(" ")[2]}`, "kWelder:0/1/1/0 kWelder:recJ2=0/0/1/0");
+
+    // THE `Job` CHIP, by value: what it offers, what taking a job does to the rows and their
+    // counts, what narrows nothing, and how it composes with the band's other chips.
+    const CHOICE = [
+        { id: "recJ1", jobCode: "26-A" },
+        { id: "recJ2", jobCode: "26-B" },
+        { id: "recJ3", jobCode: "26-C" },
+    ];
+    const ids = (reading) => reading.rows.map((row) => row.id).join(",");
+    const offered = (reading) => reading.jobOptions.map((o) => `${o.label}${o.chosen ? "*" : ""} ${o.count}`).join(" | ");
+    const open = filterAssetCategoryRows(rows, {}, { jobs: CHOICE });
+    check("the Job chip offers the jobs a row stands on, in the choice's order, each with the rows it would leave", offered(open), "26-A 2 | 26-B 3");
+    check("  and narrows nothing until one is taken", `${ids(open)} ${open.narrowed} ${counted(open.rows)}`, "kSaw,kDrill,kWelder false kSaw:2/0/0/0 kDrill:0/1/0/1 kWelder:0/0/1/0");
+    const onA = filterAssetCategoryRows(rows, { jobs: ["recJ1"] }, { jobs: CHOICE });
+    check("a job taken leaves the rows on it, counting that job's alone", `${ids(onA)} ${counted(onA.rows)} ${onA.narrowed}`, "kSaw,kDrill kSaw:1/0/0/0 kDrill:0/1/0/0 true");
+    check("  held by its record id, its own chip still counting each job on its own", `${JSON.stringify(onA.held.jobs)} ${offered(onA)}`, '["recJ1"] 26-A* 2 | 26-B 3');
+    const onBoth = filterAssetCategoryRows(rows, { jobs: ["recJ2", "recJ1"] }, { jobs: CHOICE });
+    check(
+        "  two taken are either, their counts added up, held in the choice's order",
+        `${ids(onBoth)} ${counted(onBoth.rows)} ${JSON.stringify(onBoth.held.jobs)}`,
+        'kSaw,kDrill,kWelder kSaw:2/0/0/0 kDrill:0/1/0/1 kWelder:0/0/1/0 ["recJ1","recJ2"]'
+    );
+    const stale = filterAssetCategoryRows(rows, { jobs: [ALL_JOBS, "recJ3", "recNope"] }, { jobs: CHOICE });
+    check("a job with nothing on it, one not offered and `all` narrow nothing and are not held", `${ids(stale)} ${stale.narrowed} ${stale.held.jobs.length}`, "kSaw,kDrill,kWelder false 0");
+    const noChip = filterAssetCategoryRows(rows, { jobs: ["recJ1"] });
+    check("  and with no jobs to offer — a list on one job, or the catalog — the chip offers none and narrows nothing", `${noChip.jobOptions.length} ${ids(noChip)} ${noChip.narrowed}`, "0 kSaw,kDrill,kWelder false");
+    const composed = filterAssetCategoryRows(rows, { jobs: ["recJ2"], level1: ["Tool"] }, { jobs: CHOICE });
+    check(
+        "the Job chip composes with the other chips, each counting under the other",
+        `${ids(composed)} ${offered(composed)} / ${composed.facets.level1.map((o) => `${o.value} ${o.count}`).join(" | ")}`,
+        "kSaw,kDrill 26-A 2 | 26-B* 2 / Equipment 1 | Tool 2"
+    );
+    check("  and a search that empties a list held to a job clears everything", emptiedListWords(filterAssetCategoryRows(rows, { q: "zzz", jobs: ["recJ1"] }, { jobs: CHOICE })).clear, "Clear all");
+    check(
+        "the chip's words: the asset's page's `Job` and its own clear, and `All jobs` the document lists' word",
+        [ASSET_LIST_COPY.jobLabel, ASSET_LIST_COPY.clearJobs, axesFor(FILTERED_LISTS[0]).find((axis) => axis.param === "job").words.all, ALL_JOBS].join(" | "),
+        "Job | Clear job filter | All jobs | all"
+    );
+
+    // WHERE EACH SCREEN ASKS, off the sources, since no figure shows it.
+    const choiceSource = parseFile("app/(assets)/JobChoice.js").source;
+    check(
+        "the job's choice offers `All jobs` first, in the document lists' word, and holding it says no `Job` before it",
+        [
+            /const ALL_JOBS_LABEL = axesFor\(FILTERED_LISTS\[0\]\)\.find\(\(axis\) => axis\.param === "job"\)\.words\.all;/.test(choiceSource),
+            /const options = \[\{ value: ALL_JOBS, label: ALL_JOBS_LABEL \}, \.\.\.jobs\.map\(\(\{ id, jobCode \}\) => \(\{ value: id, label: jobCode \}\)\)\];/.test(choiceSource),
+            /label=\{job === ALL_JOBS \? undefined : COPY\.jobLabel\}/.test(choiceSource),
+        ].join(" "),
+        "true true true"
+    );
+    const listPage = parseFile(LIST_SCREEN).source;
+    check(
+        "the list carries the scope's choice, a reader on no job is one with no jobs, and the list is told it is on all of them",
+        [
+            /const onNoJob = scope\.jobs\.length === 0;/.test(listPage),
+            /const job = scope\.choice;/.test(listPage),
+            /<AssetCategoryList rows=\{rows\} job=\{job\} allJobs=\{scope\.allJobs\} jobs=\{choosable\}/.test(listPage),
+        ].join(" "),
+        "true true true"
+    );
+    const bandFile = parseFile(CATEGORY_LIST).source;
+    check(
+        "the list hands the band the Job chip's values and its jobs only on all of them, and draws the chip only then",
+        [
+            /\{ \.\.\.asked, q: typed, jobs: allJobs \? params\.getAll\("job"\) : \[\] \},\s*\{ jobs: allJobs \? jobs : \[\] \}/.test(bandFile),
+            /\{allJobs && \(\s*<FilterChip\s*label=\{COPY\.jobLabel\}\s*options=\{reading\.jobOptions\.map\(/.test(bandFile),
+            /values=\{reading\.held\.jobs\}\s*onChange=\{\(values\) => choose\("jobs", values\)\}\s*clearLabel=\{COPY\.clearJobs\}/.test(bandFile),
+        ].join(" "),
+        "true true true"
+    );
+    const categoryPage = parseFile(CATEGORY_SCREEN).source;
+    check(
+        "a category's page carries the scope's choice, and draws each row's job only on all of them",
+        [
+            /const job = scope\.choice;/.test(categoryPage),
+            /showsJob=\{scope\.allJobs\}/.test(categoryPage),
+            /\.\.\.\(scope\.allJobs \? \{ jobCode: codeOf\.get\(asset\.job\?\.\[0\]\) \?\? "" \} : \{\}\)/.test(categoryPage),
+        ].join(" "),
+        "true true true"
+    );
+    const listFile = parseFile(ASSET_LIST).source;
+    check(
+        "its list puts the job at 96 after the id on all of them, with the box and without, headed `Job`",
+        [
+            listFile.includes('"grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-job)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]"'),
+            listFile.includes('"grid-cols-[var(--width-table-id)_var(--width-table-job)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]"'),
+            /const columns = showsJob \? \(selects \? COLUMNS_WITH_JOB : COLUMNS_WITH_JOB_WITHOUT_BOX\) : selects \? COLUMNS : COLUMNS_WITHOUT_BOX;/.test(listFile),
+            /\{COPY\.assetIdLabel\}<\/span>\s*\{showsJob && <span role="columnheader">\{COPY\.jobLabel\}<\/span>\}\s*<span role="columnheader">\{COPY\.statusLabel\}/.test(listFile),
+            /\{showsJob && \(\s*<span role="cell" className="min-w-0 truncate text-foreground-muted tabular-nums">\s*\{row\.jobCode\}/.test(listFile),
+        ].join(" "),
+        "true true true true true"
+    );
+    const assetPage = parseFile("app/(assets)/assets/[assetId]/page.js").source;
+    check(
+        "an asset's page holds the asset's own job, whatever list it was opened from, reading none off its address",
+        [/job=\{asset\.job\?\.\[0\] \?\? null\}/.test(assetPage), !/ALL_JOBS|searchParams/.test(assetPage)].join(" "),
+        "true true"
+    );
+    log("");
+}
+
 export function run({ check, assert, log }) {
+    allJobs548({ check, log });
+
     // ── #522: the status cell centered in its row, as 1d draws it ──────────
     // At the head, so an older assertion that throws cannot keep it from printing. On the row's
     // baseline the 9 mark lifted the status word half a pixel above 1d's.
@@ -1740,7 +1905,7 @@ export function run({ check, assert, log }) {
 
     // ── 2f: which job a reader's lists stand on (#509, #520) ─────────────────
     log("");
-    log("a list stands on one job, the first of the reader's by its code until they move:");
+    log("a list starts on one job, the first of the reader's by its code until they move:");
     // Three jobs out of their codes' order, the third with nothing on it, over the three
     // categories above — the third of those with nothing under it at all. `i1`–`i4` are the
     // assets `ITEMS` holds.
@@ -2029,7 +2194,7 @@ export function run({ check, assert, log }) {
     check(
         "  the list: no figure and no job's words but for a reader on no job, the sentence by who reads it, no opener under a reader on no job",
         [
-            /const onNoJob = scope\.job === null;/.test(listSource),
+            /const onNoJob = scope\.jobs\.length === 0;/.test(listSource),
             /count=\{onNoJob \? null : 0\}/.test(listSource),
             /\{onNoJob \? COPY\.noJobHeading : COPY\.noItemsHeading\}/.test(listSource),
             /\{onNoJob \? COPY\.untilAssigned : recorder \? COPY\.noItems : COPY\.untilASiteManagerAdds\}/.test(listSource),
@@ -2361,10 +2526,11 @@ export function run({ check, assert, log }) {
                 'const COLUMNS = "grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";'
             ),
             assetListSource.includes('const COLUMNS_WITHOUT_BOX = "grid-cols-[var(--width-table-id)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";'),
-            /\{COPY\.assetIdLabel\}<\/span>\s*<span role="columnheader">\{COPY\.statusLabel\}<\/span>\s*<span role="columnheader">\{COPY\.noteLabel\}<\/span>\s*<span role="columnheader">\{COPY\.updatedLabel\}<\/span>/.test(
+            /\{COPY\.assetIdLabel\}<\/span>\s*\{showsJob && [^\n]*\}\s*<span role="columnheader">\{COPY\.statusLabel\}<\/span>\s*<span role="columnheader">\{COPY\.noteLabel\}<\/span>\s*<span role="columnheader">\{COPY\.updatedLabel\}<\/span>/.test(
                 assetListSource
             ),
-            !/COPY\.jobLabel|row\.jobCode/.test(assetListSource),
+            // The job is a column on all of a reader's jobs alone (#548), held in #548's block.
+            (assetListSource.match(/COPY\.jobLabel|row\.jobCode/g) ?? []).length === 2,
         ].join(" "),
         "true true true true"
     );
@@ -2418,7 +2584,7 @@ export function run({ check, assert, log }) {
     check(
         "  and a class asked for narrows nothing and is not held, the band's facets the type and the category alone (#552)",
         `${ids(classed)} ${JSON.stringify(classed.held)} ${Object.keys(classed.facets).join(",")}`,
-        'r3,r4,r5 {"q":"","level1":["Tool"],"level2":[]} level1,level2'
+        'r3,r4,r5 {"q":"","level1":["Tool"],"level2":[],"jobs":[]} level1,level2'
     );
     check("a search takes every word, across the name", ids(filterAssetCategoryRows(BAND, { q: "band  DEWALT" })), "r3");
     check("  the category", ids(filterAssetCategoryRows(BAND, { q: "power" })), "r3,r5");
@@ -2430,7 +2596,7 @@ export function run({ check, assert, log }) {
     check(
         "what the band holds is the values taken, in their spelling, and the search as typed",
         JSON.stringify(filterAssetCategoryRows(BAND, { q: " saw ", level1: ["tool"], level2: ["power tool"] }).held),
-        JSON.stringify({ q: " saw ", level1: ["Tool"], level2: ["Power Tool"] })
+        JSON.stringify({ q: " saw ", level1: ["Tool"], level2: ["Power Tool"], jobs: [] })
     );
     check(
         "the address is read under the chips' words, each value once, and a class left on it is read past (#552)",
@@ -2469,12 +2635,12 @@ export function run({ check, assert, log }) {
     // WHERE THE BAND LIVES, off the sources: the list reads it off the address through the one
     // reader, keeps what is typed while it is typed, narrows once, counts out of the job's rows,
     // and writes every change back with what the band holds; the page reads none of it, and the
-    // job's choice offers the jobs alone and carries what the list hands it.
+    // job's choice offers `All jobs` and the jobs (#548) and carries what the list hands it.
     const bandSource = parseFile(CATEGORY_LIST).source;
     check(
         "the list reads the band off the address, narrows once and counts out of the job's rows",
         [
-            /const asked = readAssetListFilters\(params\);\s*const \[typed, setTyped\] = useState\(asked\.q\);\s*const reading = filterAssetCategoryRows\(rows, \{ \.\.\.asked, q: typed \}\);/.test(bandSource),
+            /const asked = readAssetListFilters\(params\);\s*const \[typed, setTyped\] = useState\(asked\.q\);\s*const reading = filterAssetCategoryRows\(\s*rows,\s*\{ \.\.\.asked, q: typed,/.test(bandSource),
             /const count = reading\.narrowed \? FILTER_BAR_COPY\.count\(reading\.rows\.length, rows\.length\) : rows\.length;/.test(bandSource),
             /setTyped\(text\);\s*write\(\{ \.\.\.reading\.held, q: text \}\);/.test(bandSource),
             /const choose = \(facet, values\) => write\(\{ \.\.\.reading\.held, \[facet\]: values \}\);/.test(bandSource),
@@ -2495,11 +2661,11 @@ export function run({ check, assert, log }) {
     const pageSource = parseFile(LIST_SCREEN).source;
     const jobChoiceSource = parseFile("app/(assets)/JobChoice.js").source;
     check(
-        "the page reads only the job off the address, and the job's choice offers the jobs alone, carrying the band",
+        "the page reads only the job off the address, and the job's choice offers `All jobs` and the jobs, carrying the band",
         [
             !/readAssetListFilters|sp\.(q|type|category|class|page)\b/.test(pageSource),
-            /const options = jobs\.map\(\(\{ id, jobCode \}\) => \(\{ value: id, label: jobCode \}\)\);/.test(jobChoiceSource),
-            !/ALL_JOBS|\.words\.all|useSearchParams\(|value: "", label/.test(jobChoiceSource),
+            /const options = \[\{ value: ALL_JOBS, label: ALL_JOBS_LABEL \}, \.\.\.jobs\.map\(/.test(jobChoiceSource),
+            !/useSearchParams\(|value: "", label/.test(jobChoiceSource),
             /assetCategoriesPath\(1, next, filters\)/.test(jobChoiceSource),
         ].join(" "),
         "true true true true"

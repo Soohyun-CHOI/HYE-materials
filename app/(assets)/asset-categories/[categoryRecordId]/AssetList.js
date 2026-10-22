@@ -31,6 +31,12 @@ const COLUMNS = "grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-t
 // The same four for a reader who selects nothing (#506), with no box to hold room for, as 1d
 // draws the list for a reader with no role.
 const COLUMNS_WITHOUT_BOX = "grid-cols-[var(--width-table-id)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";
+// On all of the reader's jobs (1d, #548), the job each item is on at 96 after its id, the note
+// giving up the room — 244 of the 1080, as 1d draws it. Each a literal, for the stylesheet.
+const COLUMNS_WITH_JOB =
+    "grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-job)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";
+const COLUMNS_WITH_JOB_WITHOUT_BOX =
+    "grid-cols-[var(--width-table-id)_var(--width-table-job)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";
 
 // One page of a category's assets, drawn as 1d's table (#463): a box on each and one for the
 // page in the column head, and the selection bar that opens the labels' dialog on what they
@@ -102,11 +108,13 @@ const COLUMNS_WITHOUT_BOX = "grid-cols-[var(--width-table-id)_var(--width-table-
 // THE JOB THE LIST STANDS ON RIDES EVERY WRITE (#509, #520). `job` is the page's, resolved
 // from the address by `assetListScope` — a job the reader may not stand on is the first of
 // theirs — and a press and a step keep it, so the address goes on naming the list the rows
-// came from.
-export default function AssetList({ categoryRecordId, itemName, selects, rows, page, job = null, top, header, children }) {
+// came from. **It may be all of the reader's jobs (#548)**, and then `showsJob` draws each row's
+// job in a column of its own, as 1d draws it on `All jobs`; a selection may then hold items on
+// several jobs, and one print takes them together.
+export default function AssetList({ categoryRecordId, itemName, selects, showsJob = false, rows, page, job = null, top, header, children }) {
     const params = useSearchParams();
     const selection = selects ? readAssetIds(params.getAll("id")) : [];
-    const columns = selects ? COLUMNS : COLUMNS_WITHOUT_BOX;
+    const columns = showsJob ? (selects ? COLUMNS_WITH_JOB : COLUMNS_WITH_JOB_WITHOUT_BOX) : selects ? COLUMNS : COLUMNS_WITHOUT_BOX;
     const pageIds = rows.map((row) => row.assetId);
     const pageState = pageSelection(selection, pageIds);
     const summary = describeSelection(selection, pageIds);
@@ -181,6 +189,7 @@ export default function AssetList({ categoryRecordId, itemName, selects, rows, p
                         </span>
                     )}
                     <span role="columnheader">{COPY.assetIdLabel}</span>
+                    {showsJob && <span role="columnheader">{COPY.jobLabel}</span>}
                     <span role="columnheader">{COPY.statusLabel}</span>
                     <span role="columnheader">{COPY.noteLabel}</span>
                     <span role="columnheader">{COPY.updatedLabel}</span>
@@ -205,6 +214,13 @@ export default function AssetList({ categoryRecordId, itemName, selects, rows, p
                                     {row.assetId}
                                 </Link>
                             </span>
+                            {/* The job it is on, by its code in Ink 2, its figures tabular (1d,
+                                #548) — only while the list is on all of the reader's jobs. */}
+                            {showsJob && (
+                                <span role="cell" className="min-w-0 truncate text-foreground-muted tabular-nums">
+                                    {row.jobCode}
+                                </span>
+                            )}
                             {/* The status, and after an `Out` who holds it, behind 0e's dot in
                                 Ink 2 (1d, #520) — the value only that state has, which the
                                 item's own page says beside its status too. Centered in the

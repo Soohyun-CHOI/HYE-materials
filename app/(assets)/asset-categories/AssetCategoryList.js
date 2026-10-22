@@ -58,12 +58,23 @@ const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(4,var(--width-table-count))]";
  * reader on several, and the chip is drawn here so it can carry what the band holds to the job
  * chosen; `catalog` is the office's way to the catalog (#527) and `opener` a site manager's, each
  * drawn by the page, which reads what it needs.
+ *
+ * ON ALL OF A READER'S JOBS THE BAND GAINS A `Job` CHIP (1a, #548), after `Category`: the jobs the
+ * rows have an asset on, by their codes, each with how many rows it would leave, several taken at
+ * once. `allJobs` is the page's answer and `jobs` what the chip may offer. It narrows rows in hand
+ * as the other chips do, adding up each row's counts on the jobs taken, and rides the address as
+ * more `job` values after `all`, read here with `getAll` beside the band's own reader, which the
+ * catalog's page shares and which therefore reads no `job`. A move to one job leaves it behind.
  */
-export default function AssetCategoryList({ rows, job, jobs, catalog, opener }) {
+export default function AssetCategoryList({ rows, job, allJobs = false, jobs, catalog, opener }) {
     const params = useSearchParams();
     const asked = readAssetListFilters(params);
     const [typed, setTyped] = useState(asked.q);
-    const reading = filterAssetCategoryRows(rows, { ...asked, q: typed });
+    const reading = filterAssetCategoryRows(
+        rows,
+        { ...asked, q: typed, jobs: allJobs ? params.getAll("job") : [] },
+        { jobs: allJobs ? jobs : [] }
+    );
     const page = pageOfAssetCategories(reading.rows, params.get("page"));
 
     const write = (filters, toPage = 1) => window.history.replaceState(null, "", assetCategoriesPath(toPage, job, filters));
@@ -104,6 +115,16 @@ export default function AssetCategoryList({ rows, job, jobs, catalog, opener }) 
                             several={COPY.selectedCount}
                         />
                     ))}
+                    {allJobs && (
+                        <FilterChip
+                            label={COPY.jobLabel}
+                            options={reading.jobOptions.map(({ value, label, count: held }) => ({ value, label, count: held }))}
+                            values={reading.held.jobs}
+                            onChange={(values) => choose("jobs", values)}
+                            clearLabel={COPY.clearJobs}
+                            several={COPY.selectedCount}
+                        />
+                    )}
                 </>
             }
             footer={

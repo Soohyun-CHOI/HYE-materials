@@ -211,7 +211,7 @@ export function run({ check, assert, log }) {
             "true true"
         );
         const chipLanes = (file) => (parseFile(file).source.match(/<FilterChip\b[\s\S]*?\/>/g) ?? []).map((chip) => (chip.match(/lane="([^"]*)"/) ?? [])[1] ?? "none").join(", ");
-        check("the catalog's band hands its chips 1l's 340 lane, and the category list's none, as 1a draws", `${chipLanes(LIST)} | ${chipLanes(CATEGORY_LIST)}`, "max-h-catalog-filter-list | none");
+        check("the catalog's band hands its chips 1l's 340 lane, and the category list's none, as 1a draws", `${chipLanes(LIST)} | ${chipLanes(CATEGORY_LIST)}`, "max-h-catalog-filter-list | none, none");
     }
     log("");
 

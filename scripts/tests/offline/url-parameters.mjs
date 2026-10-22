@@ -149,16 +149,17 @@ const CARRIED = [
     // AND ONE OF THEM RATHER THAN SEVERAL. The server reads it, before any asset: the job is
     // what the page reads, so it divides the read as `page` does on a category's own list.
     // A list stands on one job since #520, so absence is the first of the reader's by its
-    // code; it was the reader's whole scope from #509.
+    // code; it was the reader's whole scope from #509. **#548 gave the whole of them a value,
+    // `all`**, which an absence could not be, and the band's `Job` chip rides beside it.
     {
         route: "/asset-categories",
         param: "job",
-        note: "#509, #520 — the job the category list stands on; one Job record id, taken only if it is among the jobs this reader may stand on (`lib/assetListView.js:assetListScope`) and answered with the first of them otherwise, as no job asked is. Written by the head's choice, which carries what the band holds, and carried by the pager's steps, the band's own writes and each row's link, through `assetCategoriesPath` and `assetCategoryPath`; the rail's link carries none",
+        note: "#509, #520, #548 — the job the category list stands on; one Job record id, taken only if it is among the jobs this reader may stand on (`lib/assetListView.js:assetListScope`) and answered with the first of them otherwise, as no job asked is — or `all` (`ALL_JOBS`), every one of them at once for a reader with more than one, wherever it stands among the values. Beside `all` the band's `Job` chip rides as more values, Job record ids read by the list in the browser and narrowing nothing they do not offer. Written by the head's choice, which carries what the band holds, and carried by the pager's steps, the band's own writes and each row's link, through `assetCategoriesPath` and `assetCategoryPath`; the rail's link carries none, and a row's link no chip",
     },
     {
         route: "/asset-categories/[categoryRecordId]",
         param: "job",
-        note: "#509, #520 — the same job, on one category's list, read by the same judgment before the page is chosen. Written by the breadcrumb's choice, which keeps the selection (`id`) and starts at the first page, carried by every write the list makes — a box, a step — and by the row's link from `/asset-categories`, and by a registration's landing, which lands on the job it wrote to so what it wrote is drawn",
+        note: "#509, #520, #548 — the same job, or `all`, on one category's list, read by the same judgment before the page is chosen. Written by the breadcrumb's choice, which keeps the selection (`id`) and starts at the first page, carried by every write the list makes — a box, a step — and by the row's link from `/asset-categories`, and by a registration's landing, which lands on the job it wrote to so what it wrote is drawn",
     },
     // #520 — THE CATEGORY LIST'S BAND: its search and its three chips, each a filter of the
     // rows the page already holds. Written by the list itself through `history.replaceState`

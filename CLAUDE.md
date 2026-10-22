@@ -126,7 +126,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/assetLabelPage.js` — the page an asset's label prints as (#353, #467).
 - `lib/assetTransition.js` — what a person may record against an asset (#362, #363, #531): the press, the menu's two, which asks first (#458), the refusals, and every word it says.
 - `lib/assetNote.js` — an item's note (#533): what a typed one keeps, a press's answers in order, and every word. **No event: it appends no `Asset Log` row.**
-- `lib/assetListView.js` — the two asset list screens (#339), the app's first paging, which assets a label run is for (#443), the one job they stand on (#509, #520), what the category list's band narrows by (#520), and their own words.
+- `lib/assetListView.js` — the two asset list screens (#339), the app's first paging, which assets a label run is for (#443), the one job they stand on (#509, #520) or all of a reader's (#548), what the category list's band narrows by (#520), and their own words.
 - `lib/assetCatalog.js` — the office's catalog page (#527): every row, that band with a toggle, what an add or an edit may save, and its words.
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
 - `lib/materialPriceView.js` — the view rules for those screens: row ordering, the lowest-price mark, the quantity caveat, and `MATERIAL_SEARCH_COPY` (#357).

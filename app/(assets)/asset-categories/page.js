@@ -38,8 +38,9 @@ export const metadata = { title: COPY.heading };
  *
  * FOUR READS, AND THE LAST IS THE ONE THAT GROWS. The session find, `getAllAssetCategories` —
  * the whole table, bounded by what the company has bought, one query per hundred rows and two
- * for the 185 #517 loaded — the job list, and then every asset on the job, 50 to a query: five
- * operations on a job with up to fifty assets, four on one with none.
+ * for the 185 #517 loaded — the job list, and then every asset on the job, or on all of the
+ * reader's jobs (#548), 50 to a query: five operations on a job with up to fifty assets, four on
+ * one with none.
  * `getAllAssetCategories` already returns each category's `Assets` link array, so finding the
  * units costs no query per category (#193), and `getAssetsByRecordIds` was written for exactly
  * this call. **The job list is read for every reader since #509**, beside the categories: each
@@ -49,11 +50,17 @@ export const metadata = { title: COPY.heading };
  * registration may pick (`registrationCatalog`, #507) — a kind is the company's, whatever job
  * this list stands on — so it costs nothing.
  *
- * THE LIST STANDS ON ONE JOB (#520). The office may move to any job and anybody else to theirs,
+ * THE LIST STARTS ON ONE JOB (#520). The office may move to any job and anybody else to theirs,
  * and either starts on the first by its code; a category with nothing on the job is left off.
  * `lib/assetListView.js:assetListScope` is the judgment, and a category's own page reads its rows
  * by the same one. **From #509 a list started from all of the reader's jobs at once**, with `All
  * jobs` first in the choice, which the design never drew; docs/notes/tools.md has the turn.
+ *
+ * AND ON ALL OF THEM WHEN THE READER CHOOSES `All jobs` (#548): every job they may choose
+ * between, read as one job is — the assets on them together in the one batched read below, fifty
+ * to a query, and nothing read per job. A row is a kind with an asset on any of them, its counts
+ * those jobs' added up, and each row carries its counts per job for the band's `Job` chip, which
+ * narrows to some of them in the browser.
  *
  * EVERY ROW ON THE JOB GOES TO THE BROWSER, WHICH FILTERS, SEARCHES AND PAGES THEM (#520). Every
  * category's counts need every asset on the job, so the page reads them all whichever page
@@ -70,8 +77,9 @@ export const metadata = { title: COPY.heading };
  * fills it, `Items show here once a site manager adds them.` (1a2, #519).
  *
  * NO PER-STATUS ROLLUP ON `Asset Categories`, WHICH IS A DECISION WITH A MEASURED TRIGGER.
- * The walk is `ceil(assets on the job / 50)` over four fixed operations, so this page
- * passes ten at 301 assets on one job. At that point the count moves into a rollup and
+ * The walk is `ceil(assets on the job / 50)` over four fixed operations — on all of the reader's
+ * jobs, the assets on them together (#548) — so this page passes ten at 301 assets on what it
+ * stands on. At that point the count moves into a rollup and
  * `Purchase Orders."Uninvoiced Items"` (#244) is the worked example of the move.
  * docs/notes/tools.md carries the arithmetic.
  *
@@ -123,10 +131,12 @@ async function renderCategoriesPage({ searchParams }) {
     const rows = summarizeAssetCategories(shownCategories, assets);
     // A reader on no job — anybody but the office with no assignment — has nothing the list
     // could hold, so the head counts nothing (1a2, #519).
-    const onNoJob = scope.job === null;
-    const job = scope.job?.id ?? null;
+    const onNoJob = scope.jobs.length === 0;
+    // What the job's choice holds and the list's writes carry: a job, or all of them (#548).
+    const job = scope.choice;
     // The jobs the head's choice offers, drawn when there is more than one to choose (#509,
     // #519) — by the list, which hands it what the band holds (#520), or here over an empty one.
+    // They are also what the band's `Job` chip may offer while the list is on all of them (#548).
     const choosable = scope.jobs.length > 1 ? scope.jobs.map(({ id, jobCode }) => ({ id, jobCode })) : null;
 
     // The control that opens the registration dialog, carrying that dialog's own title so
@@ -184,5 +194,5 @@ async function renderCategoriesPage({ searchParams }) {
         );
     }
 
-    return <AssetCategoryList rows={rows} job={job} jobs={choosable} catalog={catalog} opener={opener} />;
+    return <AssetCategoryList rows={rows} job={job} allJobs={scope.allJobs} jobs={choosable} catalog={catalog} opener={opener} />;
 }
