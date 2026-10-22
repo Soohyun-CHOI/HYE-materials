@@ -136,10 +136,10 @@ export const metadata = { title: "Item" };
  * adding went with the failed registration it described, until the design drew the two.
  *
  * NO COUNT PER STATUS HERE, DELIBERATELY. That is the question one level up, and
- * answering it on this page would mean reading every asset under the category —
+ * answering it on this page would mean the status of every asset under the category —
  * which is the cost the paging exists to avoid. If it is ever wanted here it
- * comes from a rollup, under the same measured condition docs/notes/tools.md
- * already states for the list.
+ * comes from the statuses the list keeps (`getAssetStatuses`, #560), which this said
+ * would be a rollup until that issue kept them instead.
  *
  * DRAWN AS 1d (#463): the breadcrumb and the list's head with how many items the category has,
  * held still over the rows, the selection bar floating over the pinned pager while anything

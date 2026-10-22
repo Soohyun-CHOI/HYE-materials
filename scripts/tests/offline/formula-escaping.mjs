@@ -51,7 +51,7 @@
 //   - Only `filterByFormula` is inspected. No other Airtable option takes a
 //     formula today.
 
-import { andSearchAll, formulaString, orByField, orByRecordId, prefixMatch } from "../../../lib/airtableFormula.js";
+import { andSearchAll, changedSince, formulaString, orByField, orByRecordId, prefixMatch } from "../../../lib/airtableFormula.js";
 import { isMain, standalone } from "./_harness.mjs";
 import { listJsFiles, parseFile, repoPath, resolveFunction, toPosix, REPO_ROOT, walk } from "./_ast.mjs";
 
@@ -99,7 +99,7 @@ function sourceOf(source, node) {
  * Adding a name here widens what passes, so each must be a function whose entire
  * job is escaping, living in that module, with its own behavioral cases below.
  */
-const ESCAPE_BUILDERS = new Set(["formulaString", "orByRecordId", "orByField", "andSearchAll", "prefixMatch"]);
+const ESCAPE_BUILDERS = new Set(["formulaString", "orByRecordId", "orByField", "andSearchAll", "prefixMatch", "changedSince"]);
 
 /**
  * Builders that return a COMPLETE formula, so a bare call to one is an accepted
@@ -110,7 +110,7 @@ const ESCAPE_BUILDERS = new Set(["formulaString", "orByRecordId", "orByField", "
  * here the entire string comes from the audited module. formulaString is
  * deliberately absent — it escapes a value, it does not produce a predicate.
  */
-const WHOLE_FORMULA_BUILDERS = new Set(["orByRecordId", "orByField", "andSearchAll", "prefixMatch"]);
+const WHOLE_FORMULA_BUILDERS = new Set(["orByRecordId", "orByField", "andSearchAll", "prefixMatch", "changedSince"]);
 
 function isEscapeBuilderCall(node) {
     return (
@@ -253,6 +253,18 @@ export function run({ check, log, assert }) {
     // answer MATCH_NOTHING exists to avoid. It refuses instead.
     check("an empty prefix is refused, not matched against everything", refuses(() => prefixMatch("F", "")), "refused");
     check("a braced field name is refused here too", refuses(() => prefixMatch("F}{", "HYE")), "refused");
+
+    // changedSince (#560) is the question the Tools & Equipment list asks on every view: the rows
+    // whose field changed after a moment. Its behavior against the live parser is
+    // verify-asset-status-memory-560.mjs'; these are its shape and its refusals.
+    check(
+        "changedSince compares the field's own modified time with the moment in UTC",
+        changedSince("Status", new Date(Date.UTC(2026, 9, 22, 13, 5, 0))),
+        'IS_AFTER(LAST_MODIFIED_TIME({Status}), DATETIME_PARSE("2026-10-22T13:05:00.000Z"))'
+    );
+    check("a moment that is not a Date is refused, not guessed at", refuses(() => changedSince("Status", "2026-10-22")), "refused");
+    check("an invalid Date is refused", refuses(() => changedSince("Status", new Date("never"))), "refused");
+    check("changedSince refuses a braced field name", refuses(() => changedSince("F}{", new Date(0))), "refused");
 
     // --- Part 2: every call site ----------------------------------------
     log("");

@@ -96,6 +96,7 @@ const PROTECTED_MODULES = ["lib/airtable/assets.js", "lib/airtable/assetLog.js"]
 const CLASSIFIED = {
     "scripts/tests/verify-tools-schema-334.mjs": { writes: ["create", "createAssetLogEntry"] },
     "scripts/tests/verify-tool-item-ids-335.mjs": { writes: ["create", "register", "destroy"] },
+    "scripts/tests/verify-asset-status-memory-560.mjs": { writes: ["create", "update"] },
     "scripts/import/rename_tools_to_assets_513.mjs": { writes: ["apply", "revert"] },
     "scripts/import/replace_asset_catalog_528.mjs": { writes: ["createRecords", "updateRecords", "deleteRecords"] },
     "scripts/demo/remove_demo_catalog_517.mjs": { writes: ["deleteRecords", "create"] },

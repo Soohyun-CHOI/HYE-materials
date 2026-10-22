@@ -194,7 +194,22 @@ export function run({ check, assert, log }) {
         true
     );
     check("the mapper reads the field, and the empty string where it is absent", /note: record\.get\("Note"\) \?\? "",/.test(assets.source), true);
-    check("no reader of Assets names its fields, so the note comes with every asset read", /\bfields\s*:/.test(assets.source.replace(/\/\*[^]*?\*\//g, "").replace(/\/\/.*$/gm, "").replace(/fields: \{ Note:[^}]*\}/, "").replace(/fields: \{\s*Status:[^}]*\}/, "").replace(/\(assetId\) => \(\{[^]*?\}\)/, "")), false);
+    // The status memory's two reads (#560) name `Status` alone and hand back no asset, only its
+    // status (`recordToStatus`) — `offline/asset-status-memory.mjs` holds that — so they are
+    // left out of what this asks of every reader that answers a whole asset.
+    check(
+        "no reader of a whole asset names its fields, so the note comes with every asset read",
+        /\bfields\s*:/.test(
+            assets.source
+                .replace(/\/\*[^]*?\*\//g, "")
+                .replace(/\/\/.*$/gm, "")
+                .replace(/fields: \{ Note:[^}]*\}/, "")
+                .replace(/fields: \{\s*Status:[^}]*\}/, "")
+                .replace(/\(assetId\) => \(\{[^]*?\}\)/, "")
+                .replace(/createAssetStatusMemory\(\{[^]*?\n\}\);/, "")
+        ),
+        false
+    );
     check("  and a registration writes none", /"Asset ID": assetId,\s*Category: \[categoryRecordId\],\s*Status: ASSET_STATUS\.IN_STOCK,\s*Job: \[jobRecordId\],\s*\}\)/.test(assets.source), true);
 
     // ── the screens ─────────────────────────────────────────────────────────
