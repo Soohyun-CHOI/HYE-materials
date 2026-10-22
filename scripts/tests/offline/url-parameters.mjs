@@ -236,6 +236,11 @@ const CARRIED = [
         note: "#381 — the same address, one step further on. The name step is the last thing between a first sign-in and the page the reader asked for, so it carries the destination for the same reason the two screens before it do, and hands it to `setUserNameAction` as a hidden field. Judged by the same predicate on the page, in the builder and again in the action",
     },
     {
+        route: "/login/jobs",
+        param: "destination",
+        note: "#554 — the same address, one step further again. A reader with no job is asked for their jobs after their name and before the page they asked for, so the job step carries the destination as the name step does and hands it to `chooseJobsAction` as a hidden field. Judged by the same predicate on the page, in `jobsPath` and again in the action",
+    },
+    {
         route: "/login/confirm",
         param: "destination",
         note: "#373 — the same address, carried across the mail round trip beside the token and handed to `POST /api/auth/verify` as a hidden field. This is the hop that leaves the app: it is in the recipient's mailbox, which `lib/loginDestination.js` records as the cost of the parameter being here rather than on the `Auth Tokens` row",

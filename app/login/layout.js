@@ -15,16 +15,22 @@ export const viewport = KEYBOARD_VIEWPORT;
 
 /**
  * The frame every sign-in step is drawn in (#473): the sign-in screen, the confirmation a
- * link opens and the name step a first sign-in meets — the design's 0o at a desk and its
- * step page below the phone's edge (Tools 0a).
+ * link opens, the name step a first sign-in meets and the job step after it (#554) — the
+ * design's 0o at a desk and its step page below the phone's edge (Tools 0a).
  *
  * ONE COLUMN UNDER THE WORDMARK, AND THE WORDMARK DOES NOT MOVE. At a desk the column is
- * 360 wide and centered, and the wordmark's top stands 268 from the page's top in every
- * state, so a refusal or a changed state grows the page downward only; on a phone it is set
- * left, 72 from the top, and the column fills the screen between the 16 either side so a
- * step's bottom bar can sit at its foot. The wordmark is the product's name split where
- * `lib/productName.js` splits it, and is where a reader arriving from the email first meets
- * the name the email was sent under.
+ * 360 wide and centered, and the wordmark's top stands 24% of the window's height from the
+ * page's top, never under 64 nor over 240, in every state, so a refusal or a changed state
+ * grows the page downward only — 268 whatever the window until the files of 2026-10-22 (0o
+ * Column, #554). On a phone it is set left, 72 from the top, and the column fills the screen
+ * between the 16 either side so a step's bottom bar can sit at its foot. The wordmark is the
+ * product's name split where `lib/productName.js` splits it, and is where a reader arriving
+ * from the email first meets the name the email was sent under.
+ *
+ * A STEP WHOSE COLUMN HOLDS A LIST TO CHOOSE FROM STANDS AT 10% (0o, Sign in 1l): the room
+ * above the wordmark is 10% of the window, never under 48 nor over 112, the same room is kept
+ * under the column, and the list fills what lies between. The step marks itself
+ * `data-sign-in-list`, which is all this frame reads of it — the job step is the one (#554).
  *
  * AT A DESK THE COLUMN SCROLLS, AND THE PAGE DOES NOT (0i, #495). The frame never scrolls:
  * the column scrolls in 0i's 8 lane, reserved on both sides so the centered column stays
@@ -50,14 +56,14 @@ export default function SignInLayout({ children }) {
             className={`${uiFace.variable} ${brandFace.variable} flex flex-1 flex-col bg-white font-ui text-foreground-default sm:h-dvh sm:flex-none`}
         >
             <main
-                className={`flex flex-1 justify-center px-page-gutter pt-sign-in-inset-top max-sm:px-mobile-gutter max-sm:pt-mobile-sign-in-inset-top sm:min-h-0 sm:items-start sm:overflow-y-auto sm:overscroll-y-contain sm:pb-scroll-inset-bottom sm:[scrollbar-gutter:stable_both-edges] ${SCROLL_LANE}`}
+                className={`flex flex-1 justify-center px-page-gutter pt-sign-in-inset-top max-sm:px-mobile-gutter max-sm:pt-mobile-sign-in-inset-top sm:has-[[data-sign-in-list]]:items-stretch sm:has-[[data-sign-in-list]]:pt-sign-in-list-step-inset-y sm:has-[[data-sign-in-list]]:pb-sign-in-list-step-inset-y sm:min-h-0 sm:items-start sm:overflow-y-auto sm:overscroll-y-contain sm:pb-scroll-inset-bottom sm:[scrollbar-gutter:stable_both-edges] ${SCROLL_LANE}`}
             >
                 <div className="flex w-full max-w-sign-in flex-col max-sm:max-w-none">
                     <p className="whitespace-nowrap text-center font-brand text-brand-lg tracking-brand max-sm:text-left max-sm:text-mobile-brand">
                         <span className="font-bold">{WORDMARK.lead}</span>
                         <span className="text-foreground-muted">{WORDMARK.rest}</span>
                     </p>
-                    <div className="mt-sign-in-brand-stack flex flex-1 flex-col max-sm:mt-mobile-sign-in-brand-stack">{children}</div>
+                    <div className="mt-sign-in-brand-stack flex min-h-0 flex-1 flex-col max-sm:mt-mobile-sign-in-brand-stack">{children}</div>
                 </div>
             </main>
         </div>

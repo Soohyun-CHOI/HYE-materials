@@ -159,6 +159,7 @@ const MARKS_BY_FILE = {
     "app/components/Menu.js": ["check", "ellipsis"],
     "app/components/Rail.js": ["clipboard-list", "file-text", "panel-left", "receipt", "tag", "truck", "wrench"],
     "app/components/RailAccount.js": ["chevron-up"],
+    "app/login/jobs/JobsForm.js": ["check", "circle-alert", "search"],
 };
 
 const repoRelative = (abs) => toPosix(abs).slice(toPosix(REPO_ROOT).length + 1);

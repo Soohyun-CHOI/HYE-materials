@@ -36,8 +36,9 @@ front of the reader and why a last name was asked at all.
 before it, and the title `Add your name`.
 
 **action.** Two labelled text fields, `First name` and `Last name` — side by side at
-a desk, one above the other on a phone — and one full-width filled button,
-`Continue`.
+a desk, one above the other on a phone — each showing an example, `e.g. Jane` and
+`e.g. Doe` (#554), and one full-width filled button, `Continue`. What is typed is
+kept as typed; nothing changes its case.
 
 That is the whole screen. Like the two before it, it carries no navigation of any
 kind — there is nowhere else to go from here.
@@ -79,15 +80,20 @@ edit until an issue decides who may change whose name.
 
 **The first name is what every screen naming a person then shows** — the
 request list's Requester column, the signing chain, the history timeline,
-`Recorded by`, an asset's log. The full name appears in exactly two kinds of
-place: where a person is chosen from a list (the signer pickers), and where
-somebody outside this company reads it (the purchase order PDF and the order
-email).
+`Recorded by`. The full name appears in four kinds of place: where a person is
+chosen from a list (the signer pickers), where somebody outside this company reads
+it (the purchase order PDF and the order email), where a person is named as the one
+who did something (an asset's history, #463), and where the reader is named to
+themselves (the account at the rail's foot, #554).
 
 **While a name is blank the app prints the local part of the person's email**,
 which is what every screen printed before this screen existed. So an account
 that has not signed in since is not blank on screen — it reads exactly as it
 always did, and improves the moment its owner comes through here.
+
+**The job step comes after it** for a reader with no job who is neither the office
+nor the President (#554, `login-jobs.md`): the name first, then the jobs, then the
+page the reader was going to.
 
 **This screen is used at a phone width as well as at a monitor**, along with the
 two sign-in screens before it, because a scan that arrives signed out comes

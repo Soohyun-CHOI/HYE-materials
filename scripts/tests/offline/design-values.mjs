@@ -505,12 +505,21 @@ const VALUES = [
     // 0o · Sign-in page (#473); the name fields' 12 and the caret's height are the drawings'.
     // Its chip's avatar is the account's, above.
     ["--container-sign-in", "22.5rem", null],
-    ["--spacing-sign-in-inset-top", "16.75rem", null],
+    // 0o's Column is a share of the window since the files of 2026-10-22 (#554): 24% for a step,
+    // and 10% above and below one whose column holds a list, each held between two figures.
+    ["--spacing-sign-in-inset-top", "clamp(4rem, 24dvh, 15rem)", null],
+    ["--spacing-sign-in-list-step-inset-y", "clamp(3rem, 10dvh, 7rem)", null],
     ["--spacing-sign-in-brand-stack", "2.5rem", null],
     ["--spacing-sign-in-title-stack", "0.5rem", null],
     ["--spacing-sign-in-header-stack", "2rem", null],
     ["--spacing-sign-in-form-stack", "1.5rem", null],
     ["--spacing-sign-in-form-inline", "0.75rem", null],
+    // The job step's list at a desk (Sign in 1l, #554).
+    ["--spacing-sign-in-list-stack", "0.75rem", null],
+    ["--spacing-sign-in-list-inset-y", "0.25rem", null],
+    ["--spacing-sign-in-list-note-stack", "1rem", null],
+    ["--spacing-sign-in-list-empty-inset-y", "2.5rem", null],
+    ["--size-sign-in-check-mark", "0.6875rem", null],
     ["--spacing-avatar-chip-inset-left", "0.25rem", null],
     ["--spacing-avatar-chip-inset-right", "0.75rem", null],
     ["--size-code-slot", "3.25rem", null],
@@ -605,6 +614,14 @@ const VALUES = [
     ["--spacing-mobile-sign-in-brand-stack", "2rem", null],
     ["--spacing-mobile-code-stack", "1.5rem", null],
     ["--spacing-mobile-code-help-stack", "1.25rem", null],
+    // The job step's list on a phone (Sign in 1k, #554).
+    ["--spacing-mobile-sign-in-search-inset-y", "0.5rem", null],
+    ["--spacing-mobile-sign-in-search-bleed", "1.5rem", null],
+    ["--height-mobile-sign-in-option", "4rem", null],
+    ["--spacing-mobile-sign-in-option-inline", "1rem", null],
+    ["--size-mobile-sign-in-check", "1.5rem", null],
+    ["--size-mobile-sign-in-check-mark", "0.875rem", null],
+    ["--spacing-mobile-sign-in-list-empty-inset-y", "2rem", null],
     ["--height-mobile-code-caret", "1.625rem", null],
     ["--size-mobile-log-dot", "0.375rem", null],
     ["--spacing-mobile-log-gap", "0.75rem", null],

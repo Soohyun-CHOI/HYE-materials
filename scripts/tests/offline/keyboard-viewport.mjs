@@ -108,7 +108,7 @@ export function run({ check, assert, log }) {
     check(
         "  the screens that draw it",
         pages.filter(reachesBar).join(" | "),
-        ["app/(assets)/assets/[assetId]/page.js", "app/login/confirm/page.js", "app/login/name/page.js", "app/login/page.js"].join(" | ")
+        ["app/(assets)/assets/[assetId]/page.js", "app/login/confirm/page.js", "app/login/jobs/page.js", "app/login/name/page.js", "app/login/page.js"].join(" | ")
     );
     check("  the route files that ask", [...asks].filter(([, a]) => a).map(([rel]) => rel).sort().join(" | "), "app/(assets)/assets/[assetId]/page.js | app/login/layout.js");
     check("  and none that draws it asks for nothing", judge({ pages, reachesBar, asks }).join(" | "), "");

@@ -269,6 +269,17 @@ const EXEMPTIONS = [
             "place in it where a wrapper would cover everything and still be wrong.",
     },
     {
+        file: "app/login/jobs/actions.js",
+        name: "chooseJobsAction",
+        mustCall: "requireUser",
+        reason:
+            "#554 — the name step's shape again: the record written is the caller's own session's row, its id " +
+            "requireUser()'s return and nothing the submission carries, so no other person's row is reachable. " +
+            "What gates it is a STATE of that row rather than a role — a reader holding no job, who is neither " +
+            "the office nor the President — which no wrapper describes; needsJobs is asked before the write, and " +
+            "offline/user-jobs.mjs holds the order, the id's source and the one field written.",
+    },
+    {
         file: "app/addresses/new/actions.js",
         name: "createAddressAction",
         mustCall: "requireUser",
