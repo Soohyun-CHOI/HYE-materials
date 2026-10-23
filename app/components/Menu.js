@@ -41,6 +41,10 @@ const MENU_HEADING = "shrink-0 truncate px-control-inset-x py-menu-heading-inset
  * `strong` is set at 500 in even figures, as those lists and 1d's and 1f's draw a job's code.
  * Label and note are two boxes of the row, so assistive tech reads a space between them.
  *
+ * A LIST THAT HOLDS ITS CHECK'S ROOM ON EVERY OPTION IS `checkSlot` (#540), the sort's: the check
+ * stands 10 past the words in a 14 that every option keeps, so the list is as wide whichever option
+ * is chosen, as 1a, 1d and 1l draw it.
+ *
  * A LIST THAT TAKES SEVERAL VALUES MARKS EACH OPTION WITH A BOX (0a Menu, #520) — the filter
  * chips over the category list — checked for one taken, 10 before its name as 1a draws it, and
  * says so as `aria-multiselectable`, each option's `aria-selected` then whether it is taken. A
@@ -101,7 +105,7 @@ const MENU_HEADING = "shrink-0 truncate px-control-inset-x py-menu-heading-inset
  * either side, and the bar runs its height. 1l pads the scrolling box itself, which leaves a row
  * scrolled to the middle touching the Edge; at rest the two draw alike.
  */
-export default function Menu({ id, anchorRef, shown, labelId, heading, options, active, shade = true, onPick, fit = "field", minWidth, rows = "lg", multiselectable = false, lane }) {
+export default function Menu({ id, anchorRef, shown, labelId, heading, options, active, shade = true, onPick, fit = "field", minWidth, rows = "lg", multiselectable = false, checkSlot = false, lane }) {
     const listRef = useRef(null);
     const checkedIndex = options.findIndex((option) => option.checked);
 
@@ -181,9 +185,9 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
                         aria-selected={option.selected ? "true" : "false"}
                         onMouseDown={(event) => event.preventDefault()}
                         onClick={() => onPick(index)}
-                        className={`flex ${rows === "sm" ? "h-control" : "h-control-lg"} shrink-0 cursor-pointer items-center justify-between gap-gap rounded-control px-control-inset-x hover:bg-hover ${
-                            index === active && shade ? "bg-hover" : ""
-                        }`}
+                        className={`flex ${rows === "sm" ? "h-control" : "h-control-lg"} shrink-0 cursor-pointer items-center justify-between ${
+                            checkSlot ? "gap-sort-check-gap" : "gap-gap"
+                        } rounded-control px-control-inset-x hover:bg-hover ${index === active && shade ? "bg-hover" : ""}`}
                     >
                         {multiselectable && (
                             <span
@@ -196,7 +200,7 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
                             </span>
                         )}
                         <span
-                            className={`${option.note ? "shrink-0" : `min-w-0 truncate ${multiselectable ? "flex-1" : ""}`} ${option.strong ? "font-medium tabular-nums" : ""}`}
+                            className={`${option.note ? "shrink-0" : `min-w-0 truncate ${multiselectable || checkSlot ? "flex-1" : ""}`} ${option.strong ? "font-medium tabular-nums" : ""}`}
                         >
                             {option.match ? (
                                 <>
@@ -214,7 +218,13 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
                                 {option.detail}
                             </span>
                         )}
-                        {option.checked && <Icon name="check" className="size-icon-sm shrink-0 text-primary" />}
+                        {checkSlot ? (
+                            <span aria-hidden="true" className="flex size-icon-sm shrink-0">
+                                {option.checked && <Icon name="check" className="size-icon-sm text-primary" />}
+                            </span>
+                        ) : (
+                            option.checked && <Icon name="check" className="size-icon-sm shrink-0 text-primary" />
+                        )}
                     </div>
                 ))}
             </div>

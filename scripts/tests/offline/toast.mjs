@@ -112,7 +112,9 @@ export function run({ check, assert, log }) {
     assert("  one that closes on Escape over an open dialog is seen", planted(' || document.querySelector("dialog[open]")', "").escape === false);
     assert("  one that leaves focus to fall is seen", planted("opener?.current?.focus();", "").handsBack === false);
     assert("  one that says a word of its own is seen", planted("{action}", "{action} now").texts === "now");
-    assert("  one centered on the window is seen", planted('toast.closest("[data-content-area]");\n        const box', "null;\n        const box").layer !== "true true true");
+    // The `place` callback's lookup, the one followed by `const box`, matched over either line ending:
+    // a checkout made with `core.autocrlf` holds CRLF, where a planted `\n` matched nothing.
+    assert("  one centered on the window is seen", planted(/toast\.closest\("\[data-content-area\]"\);(?=\r?\n\s*const box)/, "null;").layer !== "true true true");
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

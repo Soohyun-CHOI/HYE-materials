@@ -9,7 +9,7 @@ import { createAssets, getAssetByAssetId, getAssetsByRecordIds } from "@/lib/air
 import { createFirstAssetLogEntries, getAssetLogEntriesByRecordIds } from "@/lib/airtable/assetLog";
 import { readCatalog } from "@/lib/assetCategory";
 import { assignedJobsFor } from "@/lib/assetJob";
-import { lastChangeOf, latestLogRowIds } from "@/lib/assetListView";
+import { holderRowIds, lastChangeOf } from "@/lib/assetListView";
 import { ASSET_REGISTRATION_COPY, readRegistration } from "@/lib/assetRegistration";
 import { assetCategoryPath, searchedAssetId } from "@/lib/assetRoutes";
 import { ASSET_STATUS } from "@/lib/assetStatus";
@@ -266,7 +266,7 @@ export async function exportAssetListAction(search, timeZone) {
  * asked of the base; the holder is on the asset's latest `Asset Log` row, and reading every
  * holder for every view is a read per view the list does not make. So the list asks this once,
  * when the item it found is out: the session, the asset by its id, and its latest log row, three
- * operations — `latestLogRowIds` and `lastChangeOf`, 1d's reading of who holds an asset.
+ * operations — `holderRowIds` and `lastChangeOf`, 1d's reading of who holds an asset.
  *
  * WHOEVER READS THE LIST, AND ANY ASSET. `requireUser()`, the page's gate (#337); an asset's own
  * page says who holds it to every signed-in reader whatever job it is on, so this answers no
@@ -282,7 +282,7 @@ export async function readFoundHolderAction(assetId) {
         try {
             const asset = await getAssetByAssetId(asked);
             if (asset?.status !== ASSET_STATUS.OUT) return { holder: null };
-            const entries = new Map((await getAssetLogEntriesByRecordIds(latestLogRowIds([asset]))).map((entry) => [entry.id, entry]));
+            const entries = new Map((await getAssetLogEntriesByRecordIds(holderRowIds([asset]))).map((entry) => [entry.id, entry]));
             return { holder: lastChangeOf(asset, entries).holder };
         } catch (error) {
             console.error("readFoundHolderAction: no holder was read", error);

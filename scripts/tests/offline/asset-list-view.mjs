@@ -71,10 +71,11 @@ import {
     filterAssetCategoryRows,
     idsInScope,
     lastChangeOf,
-    latestLogRowIds,
+    holderRowIds,
     readAssetListFilters,
     readCategoryList,
     pageOfAssets,
+    sortedAssets,
     pageOfAssetCategories,
     pageSelection,
     summarizeAssetCategories,
@@ -85,7 +86,7 @@ import {
     pagerPosition,
 } from "../../../lib/assetListView.js";
 import { MAX_LABELS_PER_REQUEST } from "../../../lib/assetLabelPage.js";
-import { ALL_JOBS, readAssetIds } from "../../../lib/assetRoutes.js";
+import { ALL_JOBS, ASSET_SORT, LIST_SORTS, readAssetIds, readSort } from "../../../lib/assetRoutes.js";
 import { FILTERED_LISTS, axesFor } from "../../../lib/listFilters.js";
 import { listJsFiles, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
@@ -523,7 +524,179 @@ function total569({ check, log }) {
     log("");
 }
 
+// ---------------------------------------------------------------------------
+// #540: the order each list stands in
+// ---------------------------------------------------------------------------
+
+/**
+ * Wires #540 asks of the screens' sources, one fact each: \`sources\` holds the category list, the
+ * catalog's list, a kind's page, its sort, its job choice, the shared job choice, the item list and
+ * the control — each read off the tree, or planted beside it.
+ */
+function sortWiring540({ band, catalog, kindPage, kindSort, kindJob, jobChoice, itemList, control }) {
+    return [
+        // 1a: the band's last control, the order read and written with the band, kept by Clear all.
+        /<div className="-mr-sort-inset-right ml-auto">\s*<SortChoice list=\{LIST_SORTS\.kinds\} sort=\{reading\.held\.sort\} onChange=\{\(sort\) => write\(\{ \.\.\.reading\.held, sort \}\)\} \/>\s*<\/div>\s*<\/>/.test(band) &&
+            /setTyped\(""\);\s*write\(\{ sort: reading\.held\.sort \}\);/.test(band),
+        // 1l: the same, after its toggle.
+        /clearLabel=\{COPY\.clearDiscontinued\}\s*\/>\s*<div className="-mr-sort-inset-right ml-auto">\s*<SortChoice list=\{LIST_SORTS\.kinds\} sort=\{reading\.held\.sort\} onChange=\{\(sort\) => write\(\{ \.\.\.reading\.held, sort \}\)\} \/>/.test(catalog) &&
+            /setTyped\(""\);\s*write\(\{ sort: reading\.held\.sort \}\);/.test(catalog),
+        // 1d: the order read off the address, the page cut in it, and the control at the foot of a
+        // stacked head while the list has rows, pulled out by its own room and 14 over the column head.
+        /const sort = readSort\(sp\.sort, LIST_SORTS\.items\);/.test(kindPage) &&
+            /pageOfAssets\(await getAssetsByRecordIds\(idsInScope\(category\.assets, scope\.shown\)\), sp\.page, sort\)/.test(kindPage),
+        /underBreadcrumb\s*stacked\s*>\s*\{recorder && <RegistrationDialog \{\.\.\.registration\} \/>\}\s*\{page\.total > 0 && \(\s*<div className="-mr-sort-inset-right -mb-\[calc\(var\(--spacing-list-header-inset-bottom\)-var\(--spacing-gap-lg\)\)\]">\s*<CategorySort categoryRecordId=\{category\.id\} job=\{job\} sort=\{sort\} selects=\{recorder\} \/>/.test(kindPage),
+        /selects=\{recorder\}\s*sort=\{sort\}\s*\/>/.test(kindPage) && /job=\{job\}\s*sort=\{sort\}\s*top=\{top\}/.test(kindPage),
+        // A change of order is a navigation to the first page, keeping the job and, for a site
+        // manager alone, the run.
+        /const selection = selects \? readAssetIds\(params\.getAll\("id"\)\) : \[\];/.test(kindSort) &&
+            /list=\{LIST_SORTS\.items\}\s*sort=\{sort\}\s*onChange=\{\(next\) => router\.push\(assetCategoryPath\(categoryRecordId, 1, selection, \{ job, sort: next \}\)\)\}/.test(kindSort),
+        // The job's choice keeps the order, on a kind's page by \`sort\`.
+        /selection=\{selection\} sort=\{sort\} \/>/.test(kindJob) && /assetCategoryPath\(categoryRecordId, 1, selection, \{ job: next, sort \}\)/.test(jobChoice),
+        // A box keeps it, as a step does.
+        /assetCategoryPath\(categoryRecordId, page\.page, next, \{ job, sort \}\)/.test(itemList),
+        // The control: the field's hidden \`Sort\`, the sort's look, the list's options by their words,
+        // and a pick of the held order going nowhere.
+        /<Field label=\{COPY\.sortLabel\} labelAs="span" labelHidden>\s*<Choice\s*look="sort"/.test(control) &&
+            /list\.options\.map\(\(value\) => \(\{ value, label: COPY\.sortNames\[value\] \}\)\)/.test(control) &&
+            /if \(next && next !== sort\) onChange\(next\);/.test(control),
+    ].join(" ");
+}
+
+/**
+ * The order each list stands in (#540): by value, what an address may ask, each kind's latest
+ * event on what the category list stands on and the order it gives, a kind's items in both their
+ * orders, and the moment no event leaves; then the screens wired to it, beside planted ones. Called
+ * first in \`run()\`, so an older assertion that throws cannot keep it from printing.
+ */
+function sort540({ check, log }) {
+    log("the three lists stand by name, by printed id or by most recent change (#540):");
+    check(
+        "each list's orders, in its control's order, and where it starts",
+        `${LIST_SORTS.kinds.options.join(",")}>${LIST_SORTS.kinds.start} ${LIST_SORTS.items.options.join(",")}>${LIST_SORTS.items.start}`,
+        "name,updated>name id,updated>updated"
+    );
+    check(
+        "  an address's order is taken where its list offers it, and its start otherwise",
+        [
+            readSort("updated", LIST_SORTS.kinds),
+            readSort("id", LIST_SORTS.kinds),
+            readSort(["id", "updated"], LIST_SORTS.items),
+            readSort(undefined, LIST_SORTS.items),
+            readSort("Updated", LIST_SORTS.kinds),
+        ].join(" "),
+        "updated name id updated name"
+    );
+    check(
+        "  the control's words: its name, and each order's",
+        `${ASSET_LIST_COPY.sortLabel} | ${LIST_SORTS.kinds.options.map((o) => ASSET_LIST_COPY.sortNames[o]).join(", ")} | ${LIST_SORTS.items.options.map((o) => ASSET_LIST_COPY.sortNames[o]).join(", ")}`,
+        "Sort | Name, Recently updated | Item ID, Recently updated"
+    );
+    check("  an order named for a column says that column's head", `${ASSET_LIST_COPY.sortNames.name === ASSET_LIST_COPY.nameLabel} ${ASSET_LIST_COPY.sortNames.id === ASSET_LIST_COPY.assetIdLabel}`, "true true");
+
+    // THE CATEGORY LIST: each kind's latest event on what the list stands on, and the rows by it.
+    const KINDS = [
+        { id: "kSaw", itemName: "Band Saw", level1: "Tool", level2: "Power Tool" },
+        { id: "kDrill", itemName: "Drill", level1: "Tool", level2: "Power Tool" },
+        { id: "kWelder", itemName: "TIG Welder", level1: "Equipment", level2: "Welding" },
+    ];
+    const item = (id, kind, job, at) => ({ id, assetId: `HYE-AST-261001-00${id.slice(1)}`, category: [kind], job: [job], status: ASSET_STATUS.IN_STOCK, lastEventAt: at });
+    // `a6` after `a1` on the same job and earlier: the job's latest is not its last item's.
+    const ITEMS = [
+        item("a1", "kSaw", "recJ1", "2026-10-10T10:00:00.000Z"),
+        item("a6", "kSaw", "recJ1", "2026-10-02T10:00:00.000Z"),
+        item("a2", "kSaw", "recJ2", "2026-10-20T10:00:00.000Z"),
+        item("a3", "kDrill", "recJ1", "2026-10-15T10:00:00.000Z"),
+        item("a4", "kWelder", "recJ2", "2026-10-25T10:00:00.000Z"),
+        item("a5", "kWelder", "recJ1", "2026-10-01T10:00:00.000Z"),
+    ];
+    const CHOICE = [
+        { id: "recJ1", jobCode: "26-A" },
+        { id: "recJ2", jobCode: "26-B" },
+    ];
+    const rows = summarizeAssetCategories(KINDS, ITEMS);
+    check(
+        "a row carries its items' latest event, and the latest on each job",
+        rows.map((row) => `${row.id}:${row.lastEventAt.slice(5, 10)}/${Object.entries(row.lastEventOnJob).map(([job, at]) => `${job}=${at.slice(5, 10)}`).join(",")}`).join(" "),
+        "kSaw:10-20/recJ1=10-10,recJ2=10-20 kDrill:10-15/recJ1=10-15 kWelder:10-25/recJ2=10-25,recJ1=10-01"
+    );
+    const read = (list, search, allJobs = false) => readCategoryList(list, new URLSearchParams(search), { allJobs, jobs: allJobs ? CHOICE : [] });
+    const order = (reading) => `${reading.rows.map((row) => row.id).join(",")} ${reading.held.sort}`;
+    check("by name where the list starts, and held so", order(read(rows, "job=all", true)), "kSaw,kDrill,kWelder name");
+    check("  by most recent change when the address asks", order(read(rows, "job=all&sort=updated", true)), "kWelder,kSaw,kDrill updated");
+    check(
+        "  each row's moment the one it is ordered by",
+        read(rows, "job=all&sort=updated", true).rows.map((row) => row.updatedAt.slice(5, 10)).join(","),
+        "10-25,10-20,10-15"
+    );
+    check("  under the Job chip, the latest on the jobs it takes", order(read(rows, "job=all&job=recJ1&sort=updated", true)), "kDrill,kSaw,kWelder updated");
+    check(
+        "  and the moment it says is that job's",
+        read(rows, "job=all&job=recJ1&sort=updated", true).rows.map((row) => row.updatedAt.slice(5, 10)).join(","),
+        "10-15,10-10,10-01"
+    );
+    const onJob1 = summarizeAssetCategories(KINDS, ITEMS.filter((each) => each.job[0] === "recJ1"));
+    check("  on one job, its items' alone", order(read(onJob1, "sort=updated")), "kDrill,kSaw,kWelder updated");
+    check("  an order the list does not offer is by name", order(read(rows, "job=all&sort=id", true)), "kSaw,kDrill,kWelder name");
+    const tied = summarizeAssetCategories(KINDS, ITEMS.map((each) => ({ ...each, lastEventAt: "2026-10-20T10:00:00.000Z" })));
+    check("  two kinds changed at one moment stand by name", order(read(tied, "sort=updated")), "kSaw,kDrill,kWelder updated");
+    const unlogged = summarizeAssetCategories(KINDS, [...ITEMS, { ...item("a7", "kDrill", "recJ2", null) }]);
+    check("  a kind holding an item with no event yet reads as the newest", order(read(unlogged, "job=all&sort=updated", true)), "kDrill,kWelder,kSaw updated");
+    check(
+        "  and the band's narrowing and the order compose",
+        order(read(rows, "job=all&type=Tool&sort=updated", true)),
+        "kSaw,kDrill updated"
+    );
+
+    // A KIND'S ITEMS: newest change first, a tie by printed id the other way and no event first;
+    // or by printed id, its sequence read as a number.
+    const OWN = [
+        { id: "i1", assetId: "HYE-AST-261001-002", lastEventAt: "2026-10-05T09:00:00.000Z" },
+        { id: "i2", assetId: "HYE-AST-261001-1000", lastEventAt: "2026-10-07T09:00:00.000Z" },
+        { id: "i3", assetId: "HYE-AST-260930-001", lastEventAt: "2026-10-07T09:00:00.000Z" },
+        { id: "i4", assetId: "HYE-AST-261001-999", lastEventAt: null },
+    ];
+    const ids = (list) => list.map((each) => each.id).join(",");
+    check("a kind's items newest change first: no event first, a tie by printed id the later minted first", ids(sortedAssets(OWN, ASSET_SORT.UPDATED)), "i4,i2,i3,i1");
+    check("  by printed id, day then sequence as a number", ids(sortedAssets(OWN, ASSET_SORT.ITEM_ID)), "i3,i1,i4,i2");
+    check("  an order the page does not offer is newest change first", ids(sortedAssets(OWN, ASSET_SORT.NAME)), "i4,i2,i3,i1");
+    check("  and the items handed are left in their order", ids(OWN), "i1,i2,i3,i4");
+    check(
+        "a page is cut in the order asked",
+        `${ids(pageOfAssets(OWN, 1, ASSET_SORT.ITEM_ID).assets)} | ${ids(pageOfAssets(OWN, 1).assets)}`,
+        "i3,i1,i4,i2 | i4,i2,i3,i1"
+    );
+
+    // THE SCREENS, off their sources, beside planted ones each missing one wire.
+    const sources = {
+        band: parseFile(CATEGORY_LIST).source,
+        catalog: parseFile("app/(assets)/asset-catalog/CatalogList.js").source,
+        kindPage: parseFile(CATEGORY_SCREEN).source,
+        kindSort: parseFile("app/(assets)/asset-categories/[categoryRecordId]/CategorySort.js").source,
+        kindJob: parseFile("app/(assets)/asset-categories/[categoryRecordId]/CategoryJobChoice.js").source,
+        jobChoice: parseFile("app/(assets)/JobChoice.js").source,
+        itemList: parseFile(ASSET_LIST).source,
+        control: parseFile("app/(assets)/SortChoice.js").source,
+    };
+    check(
+        "1a and 1l end their bands on the sort, a kind's page draws it at its head's foot, and every write keeps the order",
+        sortWiring540(sources),
+        "true true true true true true true true true"
+    );
+    const planted = (key, from, to) => sortWiring540({ ...sources, [key]: sources[key].replace(from, to) });
+    check("  a Clear all dropping the order is seen", planted("band", "write({ sort: reading.held.sort });", "write({});").split(" ")[0], "false");
+    check("  a catalog writing its band without the order is seen", planted("catalog", "write({ ...reading.held, sort })", "write({ sort })").split(" ")[1], "false");
+    check("  a kind's page cutting a page in no order is seen", planted("kindPage", "sp.page, sort)", "sp.page)").split(" ")[2], "false");
+    check("  a head drawing the sort over an empty list is seen", planted("kindPage", "{page.total > 0 && (", "{true && (").split(" ")[3], "false");
+    check("  a sort that drops the run is seen", planted("kindSort", "{ job, sort: next }", "{ sort: next }").split(" ")[5], "false");
+    check("  a job's choice leaving the order behind is seen", planted("jobChoice", "{ job: next, sort }", "{ job: next }").split(" ")[6], "false");
+    check("  a box leaving it behind is seen", planted("itemList", "page.page, next, { job, sort }", "page.page, next, { job }").split(" ")[7], "false");
+    check("  and a control writing the order it holds is seen", planted("control", "if (next && next !== sort) onChange(next);", "onChange(next);").split(" ")[8], "false");
+    log("");
+}
+
 export function run({ check, assert, log }) {
+    sort540({ check, log });
     total569({ check, log });
     allJobs548({ check, log });
 
@@ -689,8 +862,9 @@ export function run({ check, assert, log }) {
     // since #538 (docs/briefs/asset-categories-categoryRecordId.md); moving it is an
     // edit to these literals in the same commit.
     check("a page holds this many assets", ASSET_PAGE_SIZE, 50);
-    // Above 50 a page would cost two `findChildRecords` queries instead of one,
-    // which is a boundary on this number that is not the design's.
+    // Above 50 a page whose items were all out would read their holders' rows in two queries
+    // instead of one, which is a boundary on this number that is not the design's. It bound the
+    // page's own asset read until #540, which reads every item of the kind on the scope.
     assert("  and stays inside one batched read of fifty", ASSET_PAGE_SIZE <= 50);
     // AND A PAGE IS WHAT ONE PRESS OF THE PAGE BOX SELECTS (#443), the other boundary
     // that is not the design's. The print control acts only on a selection of at most
@@ -701,7 +875,16 @@ export function run({ check, assert, log }) {
     // lives; this is the order between them.
     assert("  and fits what one print takes at once", ASSET_PAGE_SIZE <= MAX_LABELS_PER_REQUEST);
 
-    const idsOfLength = (n) => Array.from({ length: n }, (_, i) => `rec${String(i).padStart(3, "0")}`);
+    // A kind's items, `rec000` first, each one's latest event a minute after the one before and
+    // its printed id one on, so newest change first is their order turned over and by printed id
+    // is their order (#540).
+    const assetsOfLength = (n, prefix = "rec", day = "261001", from = Date.UTC(2026, 9, 1, 8)) =>
+        Array.from({ length: n }, (_, i) => ({
+            id: `${prefix}${String(i).padStart(3, "0")}`,
+            assetId: `HYE-AST-${day}-${String(i + 1).padStart(3, "0")}`,
+            lastEventAt: new Date(from + i * 60_000).toISOString(),
+        }));
+    const pageIds = (page) => page.assets.map((asset) => asset.id);
     // Literal lengths and literal page counts, on both sides of both edges a page of
     // fifty has inside two hundred.
     for (const [n, pages] of [
@@ -714,15 +897,21 @@ export function run({ check, assert, log }) {
         [101, 3],
         [200, 4],
     ]) {
-        const all = idsOfLength(n);
+        const all = assetsOfLength(n);
         const first = pageOfAssets(all, 1);
         check(`  ${n} assets make ${pages} page${pages === 1 ? "" : "s"}`, first.pageCount, pages);
 
         // THE ASSERTION THIS FILE IS FOR: every page, in order, is the whole list — newest
-        // first since #463, the link array turned over.
+        // first since #463, newest change first since #540 — and so in the other order a list
+        // offers, by printed id.
         const reassembled = [];
-        for (let p = 1; p <= first.pageCount; p++) reassembled.push(...pageOfAssets(all, p).ids);
-        check(`    and the pages reassemble into it, newest first`, reassembled.join(), [...all].reverse().join());
+        const byId = [];
+        for (let p = 1; p <= first.pageCount; p++) {
+            reassembled.push(...pageIds(pageOfAssets(all, p)));
+            byId.push(...pageIds(pageOfAssets(all, p, ASSET_SORT.ITEM_ID)));
+        }
+        check(`    and the pages reassemble into it, newest change first`, reassembled.join(), all.map((a) => a.id).reverse().join());
+        check(`    and by printed id, in the ids' order`, byId.join(), all.map((a) => a.id).join());
         check(`    with the total stating the whole list`, first.total, n);
     }
 
@@ -732,16 +921,16 @@ export function run({ check, assert, log }) {
     // and two left over, which puts a middle page between the two ends. Its page count is
     // pinned first, so a fixture that stopped spanning pages fails here rather than
     // quietly asking about page 1 three times.
-    const hundredTwo = idsOfLength(102);
+    const hundredTwo = assetsOfLength(102);
     check("a hundred and two assets make three pages", pageOfAssets(hundredTwo, 1).pageCount, 3);
-    // NEWEST FIRST (#463): the array's last opens page 1, and its first closes the list.
-    check("  page 1 holds the newest fifty", pageOfAssets(hundredTwo, 1).ids.length, 50);
-    check("  opening on the newest of all", pageOfAssets(hundredTwo, 1).ids[0], "rec101");
-    check("  page 2 opens on the fifty-first newest", pageOfAssets(hundredTwo, 2).ids[0], "rec051");
-    check("  and closes on the hundredth", pageOfAssets(hundredTwo, 2).ids.at(-1), "rec002");
-    check("  and page 3 holds the remaining two", pageOfAssets(hundredTwo, 3).ids.length, 2);
-    check("  which are the oldest two, newest first", pageOfAssets(hundredTwo, 3).ids.join(), "rec001,rec000");
-    check("  and the link array it was handed is left as it was", hundredTwo[0], "rec000");
+    // NEWEST FIRST (#463): the latest change opens page 1, and the oldest closes the list.
+    check("  page 1 holds the newest fifty", pageIds(pageOfAssets(hundredTwo, 1)).length, 50);
+    check("  opening on the newest of all", pageIds(pageOfAssets(hundredTwo, 1))[0], "rec101");
+    check("  page 2 opens on the fifty-first newest", pageIds(pageOfAssets(hundredTwo, 2))[0], "rec051");
+    check("  and closes on the hundredth", pageIds(pageOfAssets(hundredTwo, 2)).at(-1), "rec002");
+    check("  and page 3 holds the remaining two", pageIds(pageOfAssets(hundredTwo, 3)).length, 2);
+    check("  which are the oldest two, newest first", pageIds(pageOfAssets(hundredTwo, 3)).join(), "rec001,rec000");
+    check("  and the assets it was handed are left in their order", hundredTwo[0].id, "rec000");
 
     log("");
     log("a page nobody can be on resolves to one they can:");
@@ -758,44 +947,50 @@ export function run({ check, assert, log }) {
     ])
         check(`  ${why} lands on page ${want}`, pageOfAssets(hundredTwo, raw).page, want);
     check("an empty category has one page, not none", pageOfAssets([], 1).pageCount, 1);
-    check("  and that page is empty", pageOfAssets([], 1).ids.length, 0);
+    check("  and that page is empty", pageOfAssets([], 1).assets.length, 0);
 
     // WHERE A REGISTRATION LANDS (#449): the first page since #463, because the list reads
-    // newest first and what a registration wrote is the newest its category holds. Its assets
-    // are appended to the category's link array, so they are seen opening page 1 of a category
-    // that already fills a page, the last written first, and a run longer than a page going
-    // on to page 2 — which is what the action's landing on page 1 rests on, and
-    // `offline/asset-registration.mjs` reads that 1 off its redirect. Until #463 the landing
-    // was `pageHolding`'s page, held here by its edges.
+    // newest first and what a registration wrote is the newest its category holds — since #540
+    // because its `Created` rows are the kind's latest events, written at one moment, so the batch
+    // stands by printed id the other way, the last minted first. So they are seen opening page 1
+    // of a category that already fills a page, and a run longer than a page going on to page 2 —
+    // which is what the action's landing on page 1 rests on, and `offline/asset-registration.mjs`
+    // reads that 1 off its redirect. Until #463 the landing was `pageHolding`'s page.
     log("");
     log("what a registration wrote opens the first page, newest first:");
-    const before = idsOfLength(60);
-    const written = Array.from({ length: 14 }, (_, i) => `new${String(i).padStart(3, "0")}`);
+    const before = assetsOfLength(60);
+    const atOnce = (n, prefix) =>
+        assetsOfLength(n, prefix, "261023").map((asset) => ({ ...asset, lastEventAt: "2026-10-23T15:00:00.000Z" }));
+    const written = atOnce(14, "new");
     check("  the category already fills a page", pageOfAssets(before, 1).pageCount, 2);
     check(
         "  a registration's fourteen open page 1, the last written first",
-        pageOfAssets([...before, ...written], 1).ids.slice(0, 14).join(),
-        [...written].reverse().join()
+        pageIds(pageOfAssets([...before, ...written], 1)).slice(0, 14).join(),
+        written.map((a) => a.id).reverse().join()
     );
-    check("  and the category's newest before them follows", pageOfAssets([...before, ...written], 1).ids[14], "rec059");
-    const run = Array.from({ length: 55 }, (_, i) => `run${String(i).padStart(3, "0")}`);
+    check("  and the category's newest before them follows", pageIds(pageOfAssets([...before, ...written], 1))[14], "rec059");
+    const run = atOnce(55, "run");
     check(
         "  a run longer than a page fills page 1 and goes on to page 2",
-        `${pageOfAssets([...before, ...run], 1).ids.every((id) => id.startsWith("run"))} ${pageOfAssets([...before, ...run], 2).ids.slice(0, 5).join()}`,
+        `${pageIds(pageOfAssets([...before, ...run], 1)).every((id) => id.startsWith("run"))} ${pageIds(pageOfAssets([...before, ...run], 2)).slice(0, 5).join()}`,
         "true run004,run003,run002,run001,run000"
     );
+    // AND ONE WHOSE LOG PASS FAILED (#449) LANDS THERE TOO: an item with no event reads as the
+    // newest, since a registration is the one moment that leaves one (#540).
+    const unlogged = { id: "lost", assetId: "HYE-AST-261023-015", lastEventAt: null };
+    check("  an item with no event yet opens page 1", pageIds(pageOfAssets([...before, ...written, unlogged], 1))[0], "lost");
 
     // ── 2b: the screen reads one page, and its list selects among it (#442, #443) ─
     log("");
-    log("the category's screen reads the page it shows and hands the list those rows alone:");
-    // TWO CLAIMS REST ON ONE ARGUMENT AND NOTHING HELD IT UNTIL #442. The screen is
-    // five operations whatever the category's size (four until #520), and its page box selects one page —
-    // and both are true only because the read hands `getAssetsByCategory` the page's
-    // ids and the list is handed the rows that read returned. Drop `rowIds` and the
-    // screen reads every asset under the category and offers every one of them to the
-    // page box, with no figure on screen to show it. Until #443 the second claim was
-    // the print link, built on this page from the same read — the labels' opener, in the
-    // list, since #457.
+    log("the category's screen reads the kind's items on its scope, cuts its page, and hands the list those rows alone:");
+    // TWO CLAIMS REST ON TWO ARGUMENTS. The page box selects one page only because the list is
+    // handed the page's rows — `pageOfAssets`' `assets` — and not the read's: hand it the read
+    // and the box offers every item of the kind with no figure on screen to show it. And the
+    // read is of the kind's items on the scope alone, `idsInScope` of the link array, whole since
+    // #540 because the page sorts them before it cuts one: from #442 to #540 the read was handed
+    // the page's ids, and five operations held whatever the kind's size. Until #443 the box's
+    // claim was the print link, built on this page from the same read — the labels' opener, in
+    // the list, since #457.
     //
     // AND THE PAGE READS NOTHING BUT `page` OFF ITS ADDRESS (#443). What a label run is
     // for is in the address too, and a page that read it could fetch the assets
@@ -803,8 +998,8 @@ export function run({ check, assert, log }) {
     // screen moving. It is the list's to read, on the client; the page never names it.
     const screenFacts = (ast) => {
         let pageBinding = null;
-        let readBinding = null;
-        let rowIds = null;
+        let rowsBinding = null;
+        let readIds = "none";
         let rowsFrom = null;
         let printLinks = 0;
         let listItemName = null;
@@ -862,26 +1057,19 @@ export function run({ check, assert, log }) {
                 n.type === "VariableDeclarator" &&
                 n.init?.type === "CallExpression" &&
                 n.init.callee?.name === "pageOfAssets"
-            )
+            ) {
                 pageBinding = n.id?.name ?? null;
-            // The read may stand alone or sit in a `Promise.all` destructured by
-            // position; either way its binding is the name that receives it.
-            if (n.type === "VariableDeclarator" && n.init) {
-                const init = n.init.type === "AwaitExpression" ? n.init.argument : n.init;
-                if (init?.type === "CallExpression" && init.callee?.name === "getAssetsByCategory")
-                    readBinding = n.id?.name ?? null;
-                const list = init?.type === "CallExpression" ? init.arguments?.[0] : null;
-                if (list?.type === "ArrayExpression" && n.id?.type === "ArrayPattern") {
-                    list.elements.forEach((element, at) => {
-                        if (element?.type === "CallExpression" && element.callee?.name === "getAssetsByCategory")
-                            readBinding = n.id.elements[at]?.name ?? null;
-                    });
+                // What the page is cut from: the read of the kind's items, and which ids it reads.
+                const first = n.init.arguments?.[0];
+                const read = first?.type === "AwaitExpression" ? first.argument : null;
+                if (read?.type === "CallExpression" && read.callee?.name === "getAssetsByRecordIds") {
+                    const ids = read.arguments?.[0];
+                    readIds = ids?.type === "CallExpression" ? `${ids.callee?.name}(${ids.arguments.map(nameOf).join(", ")})` : nameOf(ids ?? {});
                 }
             }
-            if (n.type === "CallExpression" && n.callee?.name === "getAssetsByCategory") {
-                const option = n.arguments?.[1]?.properties?.find((p) => p.key?.name === "rowIds");
-                rowIds = option ? nameOf(option.value) : "none";
-            }
+            // The binding the page's rows are taken into.
+            if (n.type === "VariableDeclarator" && n.init?.type === "MemberExpression" && n.init.property?.name === "assets")
+                rowsBinding = `${n.id?.name} = ${nameOf(n.init)}`;
         });
         walk(ast, (n) => {
             if (
@@ -894,8 +1082,8 @@ export function run({ check, assert, log }) {
         });
         return {
             pageBinding,
-            readBinding,
-            rowIds,
+            rowsBinding,
+            readIds,
             rowsFrom,
             printLinks,
             listItemName,
@@ -910,18 +1098,17 @@ export function run({ check, assert, log }) {
     };
     const facts = screenFacts(parseFile(CATEGORY_SCREEN).ast);
     assert("the screen chooses its page through pageOfAssets", facts.pageBinding !== null);
-    check("  the read is handed that page's ids", facts.rowIds, `${facts.pageBinding}.ids`);
-    check("  and the list is handed the rows that read returned", facts.rowsFrom, facts.readBinding);
-    assert("  which is a binding the screen really has", facts.readBinding !== null);
+    check("  cutting it from the read of the kind's items on the scope", facts.readIds, "idsInScope(category.assets, scope.shown)");
+    check("  and the list is handed the page's rows", `${facts.rowsFrom} = ${facts.pageBinding}.assets`, facts.rowsBinding);
     // AND A REGISTRATION'S ACCOUNT (#449), which this page does read: it is drawn at
     // render and no box or step moves it, so a server read is right for it where it is
     // wrong for the selection. Pinned by name, so a page that began to read `id` fails
     // here even while it read the account as well. `job` is the job the list is narrowed
     // to (#509), read into `assetListScope` before the page is chosen.
     check(
-        "the page reads `page`, `job` and a registration's account off its address, and never the selection",
+        "the page reads `page`, `job`, `sort` and a registration's account off its address, and never the selection",
         facts.addressReads.join(", "),
-        "asked, job, page, unlogged, unwritten"
+        "asked, job, page, sort, unlogged, unwritten"
     );
     check("  and draws no labels' opener of its own", facts.printLinks, 0);
     // THE LABELS' DIALOG NAMES THE CATEGORY UNDER ITS TITLE (#457), and the name is the one
@@ -975,15 +1162,15 @@ export function run({ check, assert, log }) {
     check("  a notice handed the address is seen so", plantedHandoff.notice, "account: sp");
     check("  the fork put first is seen", plantedHandoff.told, "RegistrationShortfall, RegistrationUnlogged");
     check("  and a list mapped off the address is seen so", plantedHandoff.mappedFromAddress, "sp.unlogged");
-    // ANTI-VACUITY: a planted screen that reads the whole category, hands the list the whole
-    // link array, reads the selection and prints it itself is seen doing all four, so the
-    // answers above are facts about the screen rather than a reader that echoes them.
+    // ANTI-VACUITY: a planted screen that cuts its page from no read, hands the list the whole
+    // link array, reads the selection and prints it itself is seen doing all four, and one that
+    // reads every item of the kind whatever the scope and hands the list the read is seen doing
+    // both, so the answers above are facts about the screen rather than a reader that echoes them.
     const plantedScreen = screenFacts(
         parseSource(
             "async function renderCategoryPage({ searchParams }) {\n" +
                 "  const sp = (await searchParams) ?? {};\n" +
                 "  const page = pageOfAssets(tool.assets, sp.page);\n" +
-                "  const [assets, jobs] = await Promise.all([getAssetsByCategory(tool.id), getAllJobs()]);\n" +
                 "  const picked = await getAssetsByAssetIds(sp.id);\n" +
                 "  return (<>\n" +
                 "    <AssetList rows={tool.assets.map((id) => id)} />\n" +
@@ -993,8 +1180,21 @@ export function run({ check, assert, log }) {
             "<planted-screen>"
         ).ast
     );
-    check("  a read with no page is seen reading none", plantedScreen.rowIds, "none");
+    check("  a page cut from no read is seen reading none", plantedScreen.readIds, "none");
     check("  rows from the whole category are seen so", plantedScreen.rowsFrom, "tool.assets");
+    const plantedWhole = screenFacts(
+        parseSource(
+            "async function renderCategoryPage() {\n" +
+                "  const all = await getAssetsByRecordIds(category.assets);\n" +
+                "  const page = pageOfAssets(await getAssetsByRecordIds(category.assets), sp.page, sort);\n" +
+                "  const assets = page.assets;\n" +
+                "  return <AssetList rows={all.map((asset) => asset)} />;\n" +
+                "}\n",
+            "<planted-whole>"
+        ).ast
+    );
+    check("  a read past the scope is seen so", plantedWhole.readIds, "category.assets");
+    check("  and the read handed to the list is seen not to be the page's rows", `${plantedWhole.rowsFrom} = ${plantedWhole.pageBinding}.assets` === plantedWhole.rowsBinding, false);
     check("  a page reading the selection is seen reading it", plantedScreen.addressReads.join(", "), "id, page");
     check("  a labels' opener drawn on the page is seen", plantedScreen.printLinks, 1);
     check("  and a list handed no category's name is seen so", plantedScreen.listItemName, "none");
@@ -1767,9 +1967,9 @@ export function run({ check, assert, log }) {
         "{pageState === \"all\"} | {selected} ~ {pageState === \"some\"} ~ {COPY.selectPage} | {COPY.selectAsset(row.assetId)}"
     );
     check(
-        "  and both steps carry the selection and the job (#509)",
+        "  and both steps carry the selection, the job (#509) and the order (#540)",
         `${propSources(itemList, "Pager", "previous").join()} ${propSources(itemList, "Pager", "next").join()}`,
-        "{{ href: page.page > 1 ? assetCategoryPath(categoryRecordId, page.page - 1, selection, { job }) : null, label: COPY.previous }} {{ href: page.page < page.pageCount ? assetCategoryPath(categoryRecordId, page.page + 1, selection, { job }) : null, label: COPY.next }}"
+        "{{ href: page.page > 1 ? assetCategoryPath(categoryRecordId, page.page - 1, selection, { job, sort }) : null, label: COPY.previous }} {{ href: page.page < page.pageCount ? assetCategoryPath(categoryRecordId, page.page + 1, selection, { job, sort }) : null, label: COPY.next }}"
     );
 
     // THE FRAME: one lane that holds the rows and stops at its end, a pager whose ground
@@ -1956,7 +2156,7 @@ export function run({ check, assert, log }) {
             countGiven: /\{count != null && \(\s*<p className="shrink-0 text-body tabular-nums text-foreground-subtle">/.test(header),
             centered:
                 /caption \? "items-start" : "items-center"/.test(header) &&
-                /<div className="flex shrink-0 items-center gap-gap">\{children\}<\/div>/.test(header) &&
+                /<div className=\{`flex shrink-0 gap-gap \$\{stacked \? "flex-col items-end justify-end self-stretch" : "items-center"\}`\}>\{children\}<\/div>/.test(header) &&
                 !/-mt-/.test(header),
             figure: /<p className="shrink-0 text-body tabular-nums text-foreground-subtle">\s*\{count\}\s*<span className="sr-only">\{` \$\{noun\}`\}<\/span>\s*<\/p>/.test(header),
             top: /underBreadcrumb \? "pt-breadcrumb-stack" : "min-h-\(--height-control-lg\) pt-list-header-inset-top"/.test(header) && /pb-list-header-inset-bottom/.test(header),
@@ -2059,9 +2259,9 @@ export function run({ check, assert, log }) {
     check("a President not marked Admin stands on their own jobs", `${jobsOf(president)} ${said(president.shown)}`, "26-B i3,i4");
     const nobody = assetListScope({ isAdmin: false }, JOBS);
     check("  and a reader on no job on nothing", `${nobody.job}|${jobsOf(nobody)}|${said(nobody.shown)}|`, "null|||");
-    // A CATEGORY'S OWN LIST IS CUT IN THE LINK ARRAY'S ORDER, BEFORE ANY READ.
+    // A CATEGORY'S OWN LIST READS THE IDS ON THE JOB ALONE, IN THE LINK ARRAY'S ORDER, BEFORE ANY READ.
     check("ids on the job keep their own order", idsInScope(["i2", "i9", "i1"], own.shown).join(), "i2,i1");
-    check("  so a category's page counts only those", pageOfAssets(idsInScope(["i1", "i3", "i2"], own.shown), 1).total, 2);
+    check("  so a category's page counts only those", pageOfAssets(idsInScope(["i1", "i3", "i2"], own.shown).map((id) => ({ id })), 1).total, 2);
     // THE COUNTS ARE OVER THE JOB'S ASSETS ALONE.
     const narrowedRows = summarizeAssetCategories(
         assetCategoriesInScope(CATEGORIES, officeOnB.shown),
@@ -2096,9 +2296,9 @@ export function run({ check, assert, log }) {
         "assetCategoriesInScope(categories, scope.shown) assetListScope(user, allJobs, sp.job) idsInScope(category.assets, scope.shown)"
     );
     check(
-        "  and a tool's page the same one, cutting its page from it",
+        "  and a tool's page the same one, reading and cutting its page from it",
         scopeUse(parseFile(CATEGORY_SCREEN)),
-        "assetListScope(user, jobs, sp.job) idsInScope(category.assets, scope.shown) pageOfAssets(idsInScope(category.assets, scope.shown), sp.page)"
+        "assetListScope(user, jobs, sp.job) idsInScope(category.assets, scope.shown) pageOfAssets(await getAssetsByRecordIds(idsInScope(category.assets, scope.shown)), sp.page, sort)"
     );
     // ANTI-VACUITY: a planted page paging the whole link array and counting with no scope is
     // seen doing it.
@@ -2509,21 +2709,23 @@ export function run({ check, assert, log }) {
 
     // ── #520: when each item last changed, and who holds one that is out ──────────
     log("");
-    log("a category's list says when each item last changed, off its latest log row (#520):");
-    // ONE ROW PER ASSET, AND THE NEWEST. The fifth read is one query whatever the histories
+    log("a category's list says when each item last changed, off the item itself, and who holds one out, off its latest log row (#520, #540):");
+    // ONE ROW PER ASSET OUT, AND THE NEWEST. The last read is one query whatever the histories
     // hold only because the page asks for one row per asset, and it is the right row only
     // because that row is the last of the link array — `newestFirst`'s reading. An older row
-    // standing in the read must not answer for an asset whose latest did not come back.
+    // standing in the read must not answer for an asset whose latest did not come back. **Since
+    // #540 only an asset out is asked for**: the moment is the asset's own `Last Event At`, and a
+    // holder only an asset out has.
     const LOGGED = [
-        { id: "a1", status: ASSET_STATUS.OUT, assetLog: ["l1", "l2", "l3"] },
-        { id: "a2", status: ASSET_STATUS.IN_STOCK, assetLog: ["l4"] },
-        { id: "a3", status: ASSET_STATUS.OUT, assetLog: ["l5", "l6"] },
-        { id: "a4", status: ASSET_STATUS.IN_STOCK, assetLog: [] },
+        { id: "a1", status: ASSET_STATUS.OUT, assetLog: ["l1", "l2", "l3"], lastEventAt: "2026-10-02T15:30:00.000Z" },
+        { id: "a2", status: ASSET_STATUS.IN_STOCK, assetLog: ["l4"], lastEventAt: "2026-10-09T20:45:13.558Z" },
+        { id: "a3", status: ASSET_STATUS.OUT, assetLog: ["l5", "l6"], lastEventAt: "2026-10-05T09:00:00.000Z" },
+        { id: "a4", status: ASSET_STATUS.IN_STOCK, assetLog: [], lastEventAt: null },
         { id: "a5", status: ASSET_STATUS.RETIRED },
-        { id: "a6", status: ASSET_STATUS.OUT, assetLog: ["l1", "l9"] },
+        { id: "a6", status: ASSET_STATUS.OUT, assetLog: ["l1", "l9"], lastEventAt: "2026-10-11T08:00:00.000Z" },
     ];
-    check("the read asks for each asset's last row, and none for an asset with none", latestLogRowIds(LOGGED).join(","), "l3,l4,l6,l9");
-    check("  and nothing for no assets", latestLogRowIds(undefined).length, 0);
+    check("the read asks for each asset out's last row, and none for an asset with none or not out", holderRowIds(LOGGED).join(","), "l3,l6,l9");
+    check("  and nothing for no assets", holderRowIds(undefined).length, 0);
     const ENTRIES = new Map([
         ["l1", { id: "l1", event: ASSET_EVENT.CHECKED_OUT, eventAt: "2026-09-01T12:00:00.000Z", checkedOutTo: "Old Holder" }],
         ["l3", { id: "l3", event: ASSET_EVENT.CHECKED_OUT, eventAt: "2026-10-02T15:30:00.000Z", checkedOutTo: "  Jiho   Lee " }],
@@ -2534,26 +2736,28 @@ export function run({ check, assert, log }) {
         const change = lastChangeOf(asset, ENTRIES);
         return `${change.updatedAt} ${change.holder}`;
     };
-    check("an item out says its latest check-out's moment and who it went to", lastSaid(LOGGED[0]), "2026-10-02T15:30:00.000Z Jiho Lee");
+    check("an item out says its latest event's moment and who it went to", lastSaid(LOGGED[0]), "2026-10-02T15:30:00.000Z Jiho Lee");
     check("  an item in stock its latest moment and nobody", lastSaid(LOGGED[1]), "2026-10-09T20:45:13.558Z null");
     check("  an item out whose latest row is no check-out names nobody", lastSaid(LOGGED[2]), "2026-10-05T09:00:00.000Z null");
     check("  an item with no row says neither", `${lastSaid(LOGGED[3])} | ${lastSaid(LOGGED[4])}`, "null null | null null");
-    check("  and one whose latest row did not come back says neither, not an older row's", lastSaid(LOGGED[5]), "null null");
+    check("  and one whose latest row did not come back names nobody, not an older row's holder", lastSaid(LOGGED[5]), "2026-10-11T08:00:00.000Z null");
+    check(
+        "  the moment is the asset's own, whatever row the read brought",
+        lastChangeOf({ ...LOGGED[0], lastEventAt: "2026-10-20T00:00:00.000Z" }, ENTRIES).updatedAt,
+        "2026-10-20T00:00:00.000Z"
+    );
     check("the column says `Updated`, the design's (1d)", ASSET_LIST_COPY.updatedLabel, "Updated");
 
-    // WHERE THE PAGE TAKES THEM FROM, off its source: the ids from the very assets its read
-    // returned, one batched read of them outside any loop, and each row spread from
-    // `lastChangeOf` over what that read returned — so a page cannot read each asset's whole
-    // log, ask for rows its list does not show, or say a moment its read did not bring.
+    // WHERE THE PAGE TAKES THEM FROM, off its source: the ids from the very assets its page holds,
+    // one batched read of them outside any loop, and each row spread from `lastChangeOf` over what
+    // that read returned — so a page cannot read each asset's whole log, ask for rows its list does
+    // not show, or name a holder its read did not bring.
     const logReadFacts = (ast) => {
         const reads = [];
         let readBinding = null;
         let spreadOver = "none";
         walk(ast, (n) => {
-            if (n.type === "VariableDeclarator" && n.init) {
-                const init = n.init.type === "AwaitExpression" ? n.init.argument : n.init;
-                if (init?.type === "CallExpression" && init.callee?.name === "getAssetsByCategory") readBinding = n.id?.name ?? null;
-            }
+            if (n.type === "VariableDeclarator" && n.init?.type === "MemberExpression" && n.init.property?.name === "assets") readBinding = n.id?.name ?? null;
             if (n.type === "CallExpression" && n.callee?.property?.name === "map") {
                 const body = n.arguments?.[0];
                 walk(body ?? {}, (inner) => {
@@ -2562,7 +2766,7 @@ export function run({ check, assert, log }) {
             }
             if (n.type === "CallExpression" && n.callee?.name === "getAssetLogEntriesByRecordIds") {
                 const ids = n.arguments?.[0];
-                reads.push(ids?.type === "CallExpression" && ids.callee?.name === "latestLogRowIds" ? `latest of ${nameOf(ids.arguments?.[0])}` : `of ${nameOf(ids)}`);
+                reads.push(ids?.type === "CallExpression" && ids.callee?.name === "holderRowIds" ? `holders of ${nameOf(ids.arguments?.[0])}` : `of ${nameOf(ids)}`);
             }
             if (n.type === "SpreadElement" && n.argument?.type === "CallExpression" && n.argument.callee?.name === "lastChangeOf")
                 spreadOver = nameOf(n.argument.arguments?.[1]);
@@ -2578,14 +2782,14 @@ export function run({ check, assert, log }) {
         return { reads: reads.join(", "), readBinding, latestFrom };
     };
     const logFacts = logReadFacts(parseFile(CATEGORY_SCREEN).ast);
-    check("the page reads the latest rows of the assets its read returned, once", logFacts.reads, `latest of ${logFacts.readBinding}`);
+    check("the page reads the latest rows of its page's assets out, once", logFacts.reads, `holders of ${logFacts.readBinding}`);
     check("  and spreads each row from what that read returned", logFacts.latestFrom, "the read");
     // ANTI-VACUITY: a planted page reading each asset's whole log in a loop, and one reading
     // the page's ids and spreading from something else, are each seen.
     const plantedLoop = logReadFacts(
         parseSource(
             "async function renderCategoryPage() {\n" +
-                "  const assets = await getAssetsByCategory(category.id, { rowIds: page.ids });\n" +
+                "  const assets = page.assets;\n" +
                 "  const logs = await Promise.all(assets.map((asset) => getAssetLogByAsset(asset.id)));\n" +
                 "  return <AssetList rows={assets.map((asset) => ({ ...lastChangeOf(asset, logs) }))} />;\n" +
                 "}\n",
@@ -2597,7 +2801,7 @@ export function run({ check, assert, log }) {
     const plantedIds = logReadFacts(
         parseSource(
             "async function renderCategoryPage() {\n" +
-                "  const assets = await getAssetsByCategory(category.id, { rowIds: page.ids });\n" +
+                "  const assets = page.assets;\n" +
                 "  const latest = await getAssetLogEntriesByRecordIds(page.ids);\n" +
                 "  return <AssetList rows={assets.map((asset) => ({ ...lastChangeOf(asset, guessed) }))} />;\n" +
                 "}\n",
@@ -2705,10 +2909,10 @@ export function run({ check, assert, log }) {
     );
     check(
         "the address is read under the chips' words, each value once, and a class left on it is read past (#552)",
-        JSON.stringify(readAssetListFilters(new URLSearchParams("q=tig&type=Tool&type=Tool&category=%20Power%20%20Tool&class=A&job=recX&page=2"))),
-        JSON.stringify({ q: "tig", level1: ["Tool"], level2: ["Power Tool"] })
+        JSON.stringify(readAssetListFilters(new URLSearchParams("q=tig&type=Tool&type=Tool&category=%20Power%20%20Tool&class=A&job=recX&page=2&sort=updated"))),
+        JSON.stringify({ q: "tig", sort: "updated", level1: ["Tool"], level2: ["Power Tool"] })
     );
-    check("  and nothing in it reads as nothing", JSON.stringify(readAssetListFilters(new URLSearchParams(""))), JSON.stringify({ q: "", level1: [], level2: [] }));
+    check("  and nothing in it reads as nothing", JSON.stringify(readAssetListFilters(new URLSearchParams(""))), JSON.stringify({ q: "", sort: null, level1: [], level2: [] }));
     const emptiedSays = (reading) => {
         const words = emptiedListWords(reading);
         return `${words.sentence} | ${words.typed} | ${words.clear} ${words.clearsAll}`;
@@ -2749,7 +2953,7 @@ export function run({ check, assert, log }) {
             /const count = reading\.narrowed \? FILTER_BAR_COPY\.count\(reading\.rows\.length, rows\.length\) : rows\.length;/.test(bandSource),
             /setTyped\(text\);\s*write\(\{ \.\.\.reading\.held, q: text \}\);/.test(bandSource),
             /const choose = \(facet, values\) => write\(\{ \.\.\.reading\.held, \[facet\]: values \}\);/.test(bandSource),
-            /if \(!clearsAll\) return search\(""\);\s*setTyped\(""\);\s*write\(\{\}\);/.test(bandSource),
+            /if \(!clearsAll\) return search\(""\);\s*setTyped\(""\);\s*write\(\{ sort: reading\.held\.sort \}\);/.test(bandSource),
         ].join(" "),
         "true true true true true"
     );

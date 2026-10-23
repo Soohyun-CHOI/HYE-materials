@@ -51,9 +51,16 @@ const NOT_MARKS = {
  * release Design moved the design's marks to on 2026-10-07, after that morning's files drew
  * Lucide as it stood from 0.416.0 to 0.532.0. `search-x` is 1k-c's mark, which Design settled.
  * `book-open` is 1a's `Catalog` (#566), which the files of 2026-10-23 draw in an earlier
- * release's shape, as they draw the note's `message-square` (#533); this is 1.52.0's.
+ * release's shape, as they draw the note's `message-square` (#533); this is 1.52.0's. `arrow-up-down`
+ * leads the sort on 1a, 1d and 1l (#540), drawn as 1.52.0 holds it.
  */
 const DESIGN_SHAPES = {
+    "arrow-up-down": [
+        ["path", { d: "m21 16-4 4-4-4" }],
+        ["path", { d: "M17 20V4" }],
+        ["path", { d: "m3 8 4-4 4 4" }],
+        ["path", { d: "M7 4v16" }],
+    ],
     "book-open": [
         ["path", { d: "M12 5v16" }],
         ["path", { d: "M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z" }],
@@ -162,7 +169,7 @@ const MARKS_BY_FILE = {
     "app/(assets)/assets/[assetId]/TransitionBar.js": ["map-pin", "user"],
     "app/(assets)/assets/[assetId]/page.js": ["map-pin", "search-x", "user"],
     "app/components/Breadcrumb.js": ["chevron-left"],
-    "app/components/Controls.js": ["check", "chevron-down", "circle-alert", "info", "map-pin", "minus", "plus", "search", "x"],
+    "app/components/Controls.js": ["arrow-up-down", "check", "chevron-down", "circle-alert", "info", "map-pin", "minus", "plus", "search", "x"],
     "app/components/DialogFrame.js": ["check", "search", "x"],
     "app/components/ListFrame.js": ["x"],
     "app/components/ListTable.js": ["chevron-left", "chevron-right"],

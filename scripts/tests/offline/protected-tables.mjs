@@ -105,6 +105,9 @@ const CLASSIFIED = {
     "scripts/import/describe_repair_531.mjs": { describes: true },
     // `Assets."Note"`'s description, the field read and made by nothing here (#533).
     "scripts/import/describe_note_533.mjs": { describes: true },
+    // `Assets."Last Event At"` (#540): made on the test base, where the guard lets a create through,
+    // and on the live base the hand step's, its description alone sent there.
+    "scripts/import/add_last_event_at_540.mjs": { describes: true },
     "scripts/import/import_site_assets_544.mjs": {
         writes: [
             "createAssetCategoryGroup",

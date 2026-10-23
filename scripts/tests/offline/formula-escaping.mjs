@@ -275,6 +275,13 @@ export function run({ check, log, assert }) {
     check("a moment that is not a Date is refused, not guessed at", refuses(() => changedSince(["Status"], "2026-10-22")), "refused");
     check("an invalid Date is refused", refuses(() => changedSince(["Status"], new Date("never"))), "refused");
     check("changedSince refuses a braced field name, wherever it stands", refuses(() => changedSince(["Status", "F}{"], new Date(0))), "refused");
+    // A computed moment is asked by its value (#540): `LAST_MODIFIED_TIME` sees no change to it.
+    check(
+        "a computed moment it is handed is asked by its own value, beside the modified time",
+        changedSince(["Status", "Asset ID"], new Date(Date.UTC(2026, 9, 22, 13, 5, 0)), { momentsAfter: ["Last Event At"] }),
+        'OR(IS_AFTER(LAST_MODIFIED_TIME({Status}, {Asset ID}), DATETIME_PARSE("2026-10-22T13:05:00.000Z")), IS_AFTER({Last Event At}, DATETIME_PARSE("2026-10-22T13:05:00.000Z")))'
+    );
+    check("  and a braced one is refused there too", refuses(() => changedSince(["Status"], new Date(0), { momentsAfter: ["F}{"] })), "refused");
 
     // --- Part 2: every call site ----------------------------------------
     log("");

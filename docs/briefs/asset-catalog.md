@@ -58,9 +58,19 @@ a toggle that narrows to the discontinued rows, with a × that turns it off.
 What the band holds rides the address, so a reload and a copied link keep it,
 and it narrows rows already in the browser.
 
+**action.** At the band's end, the order the rows stand in (1l, #540): `Name`,
+where the page starts, or `Recently updated` — each row by when it was itself
+last edited: added, given a new name, size, maker or part number, moved to
+another category, discontinued or restored. An item registered under a row
+leaves it where it is, and so does its category renamed in Airtable, which is
+the group's edit and not the row's. A save that changes nothing is no edit. The
+order rides the address with the band, and a search still puts the name typed in
+full first, the order holding among the rest.
+
 **evidence.** One row per catalog row, fifty to a page with the category
-list's pager under them, in order of name, then size, maker and part number, a
-run of digits read as a number. Each row says its name, size, maker, part
+list's pager under them, in the order the band's control names — by name, then
+size, maker and part number, a run of digits read as a number, where the page
+starts. Each row says its name, size, maker, part
 number, category and type, and how many items stand under it — every
 status counted, since a retired item still stands under its row — with a zero in
 a lighter ink. A level a row leaves empty is an empty cell. A value its column

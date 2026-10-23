@@ -80,7 +80,8 @@ const COLUMNS_WITH_JOB_WITHOUT_BOX =
 // page all carry the selection because it is in the address.
 //
 // THE SERVER NEVER SEES IT, WHICH IS WHAT KEEPS THE PAGE AT FIVE OPERATIONS. The page
-// hands this component the rows it read for its own page and nothing more; the ids
+// hands this component the rows of its own page and nothing more — it reads every item of the
+// kind on the scope since #540, to sort them, and cuts the page before handing them on; the ids
 // selected on other pages exist only in the address, and this file reaches no reader of
 // the base (`offline/client-import-safety.mjs`). The page box therefore reaches this
 // page and no further, by construction. **The labels' dialog is where the selection
@@ -105,13 +106,16 @@ const COLUMNS_WITH_JOB_WITHOUT_BOX =
 // to clear one — and it reads no selection off the address either, so a copied link's
 // `id` neither marks a row nor rides the pager's steps.
 //
+// THE ORDER THE PAGE WAS CUT IN RIDES EVERY WRITE TOO (#540): `sort`, the page's reading of the
+// address, so a box and a step keep the rows in the order the reader chose.
+//
 // THE JOB THE LIST STANDS ON RIDES EVERY WRITE (#509, #520). `job` is the page's, resolved
 // from the address by `assetListScope` — a job the reader may not stand on is the first of
 // theirs — and a press and a step keep it, so the address goes on naming the list the rows
 // came from. **It may be all of the reader's jobs (#548)**, and then `showsJob` draws each row's
 // job in a column of its own, as 1d draws it on `All jobs`; a selection may then hold items on
 // several jobs, and one print takes them together.
-export default function AssetList({ categoryRecordId, itemName, selects, showsJob = false, rows, page, job = null, top, header, children }) {
+export default function AssetList({ categoryRecordId, itemName, selects, showsJob = false, rows, page, job = null, sort = null, top, header, children }) {
     const params = useSearchParams();
     const selection = selects ? readAssetIds(params.getAll("id")) : [];
     const columns = showsJob ? (selects ? COLUMNS_WITH_JOB : COLUMNS_WITH_JOB_WITHOUT_BOX) : selects ? COLUMNS : COLUMNS_WITHOUT_BOX;
@@ -125,7 +129,7 @@ export default function AssetList({ categoryRecordId, itemName, selects, showsJo
 
     // THE ONE WRITE, AND IT IS NOT A NAVIGATION — see the header. It keeps the page
     // the reader is on, resolved rather than as typed.
-    const replaceSelection = (next) => window.history.replaceState(null, "", assetCategoryPath(categoryRecordId, page.page, next, { job }));
+    const replaceSelection = (next) => window.history.replaceState(null, "", assetCategoryPath(categoryRecordId, page.page, next, { job, sort }));
     const clear = () => replaceSelection([]);
 
     return (
@@ -140,8 +144,8 @@ export default function AssetList({ categoryRecordId, itemName, selects, showsJo
                 <Pager
                     range={COPY.range({ from: page.from + 1, to: page.to, total: page.total })}
                     position={pagerPosition(page)}
-                    previous={{ href: page.page > 1 ? assetCategoryPath(categoryRecordId, page.page - 1, selection, { job }) : null, label: COPY.previous }}
-                    next={{ href: page.page < page.pageCount ? assetCategoryPath(categoryRecordId, page.page + 1, selection, { job }) : null, label: COPY.next }}
+                    previous={{ href: page.page > 1 ? assetCategoryPath(categoryRecordId, page.page - 1, selection, { job, sort }) : null, label: COPY.previous }}
+                    next={{ href: page.page < page.pageCount ? assetCategoryPath(categoryRecordId, page.page + 1, selection, { job, sort }) : null, label: COPY.next }}
                 />
             }
             // The bar comes with the first box pressed and goes with the last (0b): the count,
@@ -194,8 +198,8 @@ export default function AssetList({ categoryRecordId, itemName, selects, showsJo
                     <span role="columnheader">{COPY.noteLabel}</span>
                     <span role="columnheader">{COPY.updatedLabel}</span>
                 </div>
-                {/* Newest first, the link array turned over by `pageOfAssets` (#463).
-                    Nothing here sorts. */}
+                {/* In the order the page cut them in, newest change first or by printed id
+                    (`pageOfAssets`, #540). Nothing here sorts. */}
                 {rows.map((row) => {
                     const selected = selection.includes(row.assetId);
                     return (

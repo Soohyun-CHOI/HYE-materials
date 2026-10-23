@@ -102,8 +102,13 @@ export const TABLE_ROW_LINK = "after:absolute after:inset-0";
  * hold. A list that holds nothing yet still says `0`.
  *
  * `fill` IS A LIST ON FILL'S HEAD (1l, #538): the column's whole width rather than the measure.
+ *
+ * `stacked` IS A CATEGORY'S OWN HEAD SINCE #540 (1d, as the files of 2026-10-23 were last sent):
+ * its controls in a column at the head's right, as tall as the title and its caption, standing at
+ * its foot and 8 apart — `Add items` over the sort, either alone at the foot when the other is not
+ * drawn, where the one control stood level with the title's top from #538.
  */
-export function ListHeader({ title, count, noun, caption, underBreadcrumb = false, fill = false, children }) {
+export function ListHeader({ title, count, noun, caption, underBreadcrumb = false, fill = false, stacked = false, children }) {
     return (
         <div
             className={`${fill ? LIST_FILL : LIST_MEASURE} flex justify-between gap-list-header-inline pb-list-header-inset-bottom ${caption ? "items-start" : "items-center"} ${
@@ -124,7 +129,7 @@ export function ListHeader({ title, count, noun, caption, underBreadcrumb = fals
             </div>
             {/* Its controls 8 apart, 0b's Gap within a cluster, as the files of 2026-10-23 draw 1a's
                 head (#566); 1a drew them 12 apart from #519 until then. */}
-            <div className="flex shrink-0 items-center gap-gap">{children}</div>
+            <div className={`flex shrink-0 gap-gap ${stacked ? "flex-col items-end justify-end self-stretch" : "items-center"}`}>{children}</div>
         </div>
     );
 }

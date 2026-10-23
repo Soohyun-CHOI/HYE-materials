@@ -248,6 +248,12 @@ const VALUES = [
     ["--spacing-job-chip-inset-right", "0.5rem", null],
     ["--size-job-chip-chevron", "0.75rem", null],
     ["--min-width-job-chip-list", "10rem", null],
+    // The sort on 1a, 1d and 1l (#540): its room either side of its mark and its chevron, the
+    // chevron, and the room its list's options keep for the check.
+    ["--spacing-sort-inset-left", "0.4375rem", null],
+    ["--spacing-sort-inset-right", "0.5rem", null],
+    ["--size-sort-chevron", "0.75rem", null],
+    ["--spacing-sort-check-gap", "0.625rem", null],
     // 0b · Layout
     ["--container-content", "67.5rem", null],
     ["--spacing-page-gutter", "2rem", null],

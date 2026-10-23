@@ -143,6 +143,15 @@ waits on the base — but for who holds an item its search found that is out
 (#541) — and what it holds rides the address: a reload, a copied
 link and a step to another page all keep it.
 
+**action.** At the band's end, the order the rows stand in (1a, 1a3, #540):
+`Name`, where the list starts, or `Recently updated` — each kind by the latest
+event among its items on what the list stands on, one job, all of them, or the
+jobs the `Job` chip takes — a scan, a check-in, a sending for repair, a
+retirement or a registration. A note is no event and moves nothing. The order
+rides the address with the band, so a chip, the search, the job's choice, `Clear
+all` and a step to another page keep it, and a list opened afresh starts by name.
+The export's first sheet stands in the same order.
+
 **evidence.** One row per item, ordered by name — a run of digits read as a
 number, so `DEMO Circular Saw 7-1/4"` comes before `DEMO Circular Saw 10"`
 (#507) — fifty to a page

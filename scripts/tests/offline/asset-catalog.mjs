@@ -230,9 +230,9 @@ export function run({ check, assert, log }) {
         "bandEq,band,bat1,bat12,bat18,broken,cut,rat9,rat10,blade"
     );
     check(
-        "  each saying its path, its mark and its count, and none of its items — and no class (#552)",
+        "  each saying its path, its mark, its count and when it was last edited (#540), and none of its items — and no class (#552)",
         Object.keys(rows[0]).join(", "),
-        "id, itemName, level1, level2, level3, size, maker, partNumber, discontinued, assetCount"
+        "id, itemName, level1, level2, level3, size, maker, partNumber, discontinued, assetCount, editedAt"
     );
     check("  a class the row is read with is listed nowhere (#552)", "assetClass" in catalogRows([{ ...CATEGORIES[0], assetClass: "A" }])[0], false);
     check("  every item under a row counted", rows.find((row) => row.id === "bat12")?.assetCount, 10);
@@ -290,6 +290,45 @@ export function run({ check, assert, log }) {
         `${filterCatalogRows(rows, GROUPS, { q: "zzz", discontinued: true }).rows.length} ${filterCatalogRows(rows, GROUPS, { q: "zzz" }).narrowed}`,
         "0 true"
     );
+
+    // THE ORDER (#540): by name where the page starts, or by when each row was last edited — every
+    // row but four touched by one write, as #539's link touched the catalog, so those four lead and
+    // the rest keep their order by name. A search ranks as before, the order holding within a rank.
+    log("");
+    log("the rows stand by name, or by when each was last edited (#540):");
+    check("a row carries when it was last edited", catalogRows([{ ...CATEGORIES[0], editedAt: "2026-10-23T09:00:00.000Z" }])[0].editedAt, "2026-10-23T09:00:00.000Z");
+    const EDITED = { rat9: "2026-10-23T09:00:00.000Z", band: "2026-10-22T10:00:00.000Z", cut: "2026-10-22T09:00:00.000Z", bat18: "2026-10-21T09:00:00.000Z" };
+    const edited = rows.map((row) => ({ ...row, editedAt: EDITED[row.id] ?? "2026-10-20T13:46:20.000Z" }));
+    const sorted = (filters) => {
+        const reading = filterCatalogRows(edited, GROUPS, filters);
+        return `${ids(reading.rows)} ${reading.held.sort}`;
+    };
+    check("by name where the page starts", sorted({}), `${ids(rows)} name`);
+    check("  by the latest edit when the address asks, a tie keeping the order by name", sorted({ sort: "updated" }), "rat9,band,cut,bat18,bandEq,bat1,bat12,broken,rat10,blade updated");
+    check("  an order the page does not offer is by name", sorted({ sort: "id" }), `${ids(rows)} name`);
+    check("  a search ranks first and the order holds within a rank", sorted({ sort: "updated", q: "saw" }), "blade,band,bandEq updated");
+    check("  among names typed in full alike", sorted({ sort: "updated", q: "battery" }), "bat18,bat1,bat12 updated");
+    check("  and the toggle and the order compose", sorted({ sort: "updated", discontinued: true }), "cut updated");
+    check(
+        "  a row with no moment reads as the newest",
+        ids(filterCatalogRows([...edited.slice(1), { ...edited[0], editedAt: null }], GROUPS, { sort: "updated" }).rows).split(",")[0],
+        edited[0].id
+    );
+    // A SAVE THAT CHANGES NOTHING WRITES NOTHING: `Edited At` takes any write as an edit, so the
+    // writer answers a row already holding the entry, filed under the group named, as it stands —
+    // after reading it under the lock, and before the one write.
+    const writers = parseFile("lib/airtable/assetCategories.js").source;
+    const updater = (source) => source.slice(source.indexOf("export async function updateAssetCategory("), source.indexOf("export async function setAssetCategoryDiscontinued("));
+    const skipsNoChange = (source) =>
+        /const current = rows\.find\(\(row\) => row\.id === categoryRecordId\);\s*if \(!current\) return \{ gone: true \};/.test(source) &&
+        /const unchanged =\s*current\.categoryGroupId === categoryGroupRecordId &&\s*Object\.keys\(ASSET_CATEGORY_FIELDS\)\.every\(\(key\) => \(current\[key\] \?\? ""\) === \(entry\[key\] \?\? ""\)\);\s*if \(unchanged\) return \{ updated: current \};\s*const \[record\] = await base\(TABLES\.ASSET_CATEGORIES\)\.update\(/.test(source);
+    check("a save holding the row as it stands writes nothing (#540)", skipsNoChange(updater(writers)), true);
+    check(
+        "  and a writer comparing the levels alone, or under no exact spelling, is seen",
+        `${skipsNoChange(updater(writers).replace(/current\.categoryGroupId === categoryGroupRecordId &&\s*/, ""))} ${skipsNoChange(updater(writers).replace('(current[key] ?? "") === (entry[key] ?? "")', 'textMatchKey(current[key]) === textMatchKey(entry[key])'))}`,
+        "false false"
+    );
+    check("  the row read carries the group it is filed under", /categoryGroupId: record\.get\(CATEGORY_GROUP_FIELD\)\?\.\[0\] \?\? null,/.test(writers), true);
 
     // ── 4: the words ────────────────────────────────────────────────────────
     log("");
