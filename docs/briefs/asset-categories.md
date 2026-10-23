@@ -26,7 +26,8 @@ its own screen, and an item in every sentence about any one of them. This brief 
 the word is `item`.
 
 **The question is about the fleet rather than about any one item**, which
-is why a row carries a count per status and no total. A reader looking for one
+is why a row carries a count per status, and since #569 the total of what the
+company still holds of it. A reader looking for one
 particular unit is looking for its printed id, and that is the asset's
 own screen, reached by scanning it, from its category's page one level down,
 or since #541 by typing the id into this screen's search, which finds the
@@ -99,7 +100,8 @@ drawn none, since keeping the catalog is a role and not something asked for.
 reader of the list (1a, #553), drawn over a list with rows and in neither empty
 state: the list as an Excel file. Its first sheet is the list as it stands —
 the job it stands on, or all of them, and whatever the band holds — every row
-the band leaves rather than the page shown, with the same four counts; its
+the band leaves rather than the page shown, with the same four counts and the
+same total, headed as the list heads them (#569); its
 second is every item those counts are made of, one row each, with its id, the
 catalog's six levels, its status, its job, who has one that is out, its note and
 the day it last changed, as an item's own list says them. The file is named for
@@ -174,11 +176,16 @@ row would read as "not known", which is the distinction between nothing
 and no comparison the shared brief already draws. It also means the four
 words appear on every row whatever the base holds.
 
-**There is no total per item, and that is a decision rather than an
-omission.** A single figure would have to count a retired one or not
-count it, and both readings are wanted: what the company holds now, and
-what it has ever bought. The counts answer both without choosing.
-A design that adds them together is making that choice.
+**verdict.** After them, `Total`: how many of that item the company still
+holds — `In stock`, `Out` and `In repair` added up, a retired one not
+counted (1a, #569). It is the row's last figure, as wide as the counts and
+set heavier than them, a zero in the lighter ink theirs takes. On all of a
+reader's jobs it adds up the jobs the `Job` chip takes, as the counts do,
+and a row found by an item's id keeps it whole. **It is the one reading of
+the two a single figure could be, and the counts stay so the other is
+there**: what the company has ever bought is the total and `Retired`
+together. There was no total from #339 until the design drew one, on the
+ground that one figure would have to choose between those readings.
 
 ## What it carries only sometimes
 

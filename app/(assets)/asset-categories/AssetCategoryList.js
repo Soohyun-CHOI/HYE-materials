@@ -24,13 +24,15 @@ import ListExport from "./ListExport";
 
 // 1a's columns since #519: the name, then a count for each status at 56 (96 until #566),
 // right-aligned — four since #531, `In repair` between `Out` and `Retired`, the order
-// `ASSET_STATUS_VALUES` holds them in. The repeat is a literal a stylesheet can be built from, so the count in it is
+// `ASSET_STATUS_VALUES` holds them in — and since #569 the kind's `Total` after them, at the
+// same 56. The repeat is a literal a stylesheet can be built from, so the count in it is
 // written here and `offline/asset-list-view.mjs` holds it to the vocabulary's length. The
 // category stands in the name's cell, 20 after the name at Ink 3, and gives its room up first,
-// so a long name is cut last. From #507 to #519 the class, the type and the category were
+// so a long name is cut last; the total's track took 76 of the name's, 676 of the 1080 at a
+// desk where it was 752. From #507 to #519 the class, the type and the category were
 // columns of their own between the name and the counts; the band's chips filter by the type and
 // the category since #520, the class too until #552, and the category page's caption says them.
-const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(4,var(--width-table-count))]";
+const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(4,var(--width-table-count))_var(--width-table-count)]";
 
 /**
  * The category list on the job it stands on (1a, #520): its head with how many items the job
@@ -170,6 +172,9 @@ export default function AssetCategoryList({ rows, job, jobCode = null, allJobs =
                             {status}
                         </span>
                     ))}
+                    <span role="columnheader" className="text-right">
+                        {COPY.totalLabel}
+                    </span>
                 </div>
                 {page.rows.map((row) => (
                     <div key={row.id} role="row" className={`${TABLE_ROW} ${COLUMNS}`}>
@@ -192,6 +197,12 @@ export default function AssetCategoryList({ rows, job, jobCode = null, allJobs =
                                 {entry.count}
                             </span>
                         ))}
+                        {/* The kind's total, what the company still holds of it (#569): set
+                            at 500 so it reads apart from the counts it adds up, a zero in
+                            Ink 3 as theirs is (1a). */}
+                        <span role="cell" className={`text-right font-medium tabular-nums ${row.total === 0 ? "text-foreground-subtle" : ""}`}>
+                            {row.total}
+                        </span>
                     </div>
                 ))}
             </div>

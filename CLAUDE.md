@@ -118,7 +118,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/addressChoice.js` — how a form asks where material goes, on both screens that ask (#385, #387). **A request stores an ADDRESS and not a choice.**
 - `lib/materialIdentity.js` — what makes two ordered items the same material (#356). The lock key, the cache's grouping key and `getMaterialByKey`'s values all come from here.
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
-- `lib/assetStatus.js` — the assets axis's two closed vocabularies and the six maps over them (#334, #335, #362, #363, #531, #533). No call site passes `createAssetLogEntry` a string literal.
+- `lib/assetStatus.js` — the assets axis's two closed vocabularies and the seven maps over them (#334, #335, #362, #363, #531, #533, #569). No call site passes `createAssetLogEntry` a string literal.
 - `lib/assetJob.js` — the job an `Asset Log` row is filed against (#363), the one assignment used without asking (#458), and the picker's words.
 - `lib/assetCategory.js` — the asset categories a registration picks from (#507): their six levels (#514), the type, the name's formula, which rows a registration may pick and the walk to one, the `Asset Category Groups` row each type and category is (#528), the one reading of a row, its type and category through `Category Group` (`catalogFieldsOf`, #539), and the catalog's words. **Only the catalog's page writes an `Asset Categories` row (#527).**
 - `lib/assetRegistration.js` — registering assets (#338): the ceiling, what the dialog opens with and may submit (#456), a landing's account (#449), and every word a registration says.
