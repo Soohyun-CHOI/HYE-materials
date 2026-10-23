@@ -220,6 +220,8 @@ const VALUES = [
     // The most 1l's two kinds of list stand before they scroll in their lanes (#555).
     ["--max-height-catalog-field-list", "14.25rem", null],
     ["--max-height-catalog-filter-list", "21.25rem", null],
+    // The most 1a's band lists stand before they scroll in their lanes (#566).
+    ["--max-height-category-list-filter-list", "15rem", null],
     ["--spacing-menu-offset", "0.375rem", null],
     ["--spacing-menu-inset", "0.3125rem", null],
     // 0a Menu's head, which names what follows (#495).
@@ -237,6 +239,15 @@ const VALUES = [
     ["--width-clear-button", "1.5rem", null],
     ["--size-clear-icon", "0.8125rem", null],
     ["--spacing-ghost-inset-x", "0.625rem", null],
+    // 1a's head and band as the files of 2026-10-23 draw them (#566): `Catalog`, faced behind its
+    // book, and the job's chip at the band's start behind its pin, with the list it opens.
+    ["--spacing-faced-inset-left", "0.625rem", null],
+    ["--spacing-faced-inset-right", "0.75rem", null],
+    ["--min-width-job-chip", "8rem", null],
+    ["--spacing-job-chip-inset-left", "0.5625rem", null],
+    ["--spacing-job-chip-inset-right", "0.5rem", null],
+    ["--size-job-chip-chevron", "0.75rem", null],
+    ["--min-width-job-chip-list", "10rem", null],
     // 0b · Layout
     ["--container-content", "67.5rem", null],
     ["--spacing-page-gutter", "2rem", null],
@@ -260,7 +271,8 @@ const VALUES = [
     ["--spacing-pager-inset-bottom", "1rem", null],
     // 1a and 1d's drawings, where the spec states no figure — #463's lists.
     ["--spacing-table-column-inline", "1.25rem", null],
-    ["--width-table-count", "6rem", null],
+    // 1a's counts at 56 since the files of 2026-10-23 (#566), 96 until then.
+    ["--width-table-count", "3.5rem", null],
     ["--width-table-id", "15rem", null],
     // The job's column, on all of a reader's jobs (1d, #548).
     ["--width-table-job", "6rem", null],
@@ -399,6 +411,19 @@ const VALUES = [
     ["--transition-delay-tooltip", "360ms", null],
     // From the drawings' stylesheet, not the spec (#460).
     ["--transition-duration-tooltip", "120ms", null],
+    // 0k's Toast (#566), 1a's export failure: the spec's but for its 2 between the two buttons.
+    [
+        "--shadow-toast",
+        "0 8px 24px color-mix(in oklab, var(--color-elevation) 16%, transparent), 0 1px 2px color-mix(in oklab, var(--color-elevation) 10%, transparent)",
+        null,
+    ],
+    ["--height-toast", "2.75rem", null],
+    ["--spacing-toast-inset-left", "0.875rem", null],
+    ["--spacing-toast-inset-right", "0.375rem", null],
+    ["--spacing-toast-inline", "1rem", null],
+    ["--spacing-toast-action-gap", "0.125rem", null],
+    ["--spacing-toast-offset", "1.5rem", null],
+    ["--color-toast-hover", "oklch(1 0 0 / 0.12)", null],
     // 0l · Modal
     ["--container-dialog", "26.25rem", null],
     ["--spacing-dialog-gutter", "1.75rem", null],
@@ -476,8 +501,7 @@ const VALUES = [
     ["--spacing-list-header-inset-bottom", "1.125rem", null],
     ["--spacing-list-header-inline", "2.5rem", null],
     ["--spacing-list-count-inline", "0.5rem", null],
-    // From the drawings, not the spec (#519): between the job's chip and Add items.
-    ["--spacing-list-header-control-inline", "0.75rem", null],
+    // A list header's controls stand at 0b's Gap since #566, which undeclared #519's 12 between them.
     ["--spacing-title-stack", "0.625rem", null],
     ["--spacing-subtitle-stack", "0.75rem", null],
     ["--spacing-heading-sm-stack", "0.75rem", null],
@@ -505,7 +529,9 @@ const VALUES = [
     ["--spacing-log-rule-overhang", "0.1875rem", null],
     ["--spacing-log-line-stack", "0.1875rem", null],
     ["--spacing-log-stack", "1.5rem", null],
-    ["--max-width-empty-state", "27.5rem", null],
+    // Every empty list's and not-found screen's sentence at 480 since the files of 2026-10-23
+    // (1a2, 1d, 1h; #566), 440 until then.
+    ["--max-width-empty-state", "30rem", null],
     // 0o · Sign-in page (#473); the name fields' 12 and the caret's height are the drawings'.
     // Its chip's avatar is the account's, above.
     ["--container-sign-in", "22.5rem", null],

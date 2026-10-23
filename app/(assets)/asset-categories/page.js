@@ -17,6 +17,7 @@ import { ASSET_CATALOG_PATH } from "@/lib/assetRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
 import { isSiteManager } from "@/lib/siteManager";
 import { ButtonLink } from "@/app/components/Controls";
+import Icon from "@/app/components/Icon";
 import ListFrame from "@/app/components/ListFrame";
 import { ListHeader } from "@/app/components/ListTable";
 import JobChoice from "../JobChoice";
@@ -89,19 +90,22 @@ export const metadata = { title: COPY.heading };
  *
  * TWO EMPTY STATES (1a2, #519). A job with nothing on it draws `No items yet` and, for a site
  * manager, its sentence with a second opener under them; for anybody else who fills it — the
- * head's choice still there to move to another job. **A reader on no job** — anybody but the
+ * job's chip still there to move to another job. **A reader on no job** — anybody but the
  * office with no assignment — draws `No job yet` and what the list waits for, with no figure in
- * the head and no opener under it: a site manager among them has the head's opener, drawn
- * disabled with why before it (#456). Neither draws the band or a pager: there is nothing to
- * narrow or to page.
+ * the head and no opener anywhere, a site manager among them (#522). Neither draws the search, a
+ * filter chip or a pager: there is nothing to narrow or to page.
  *
  * THE JOB IS A CHOICE ONLY FOR A READER WITH MORE THAN ONE (#519): 1a draws the chip for a
- * reader on several jobs and nothing for one on one, whose list is that job's.
+ * reader on several jobs and nothing for one on one, whose list is that job's. **It starts the
+ * band since #566**, so a job with nothing on it draws a band holding the chip alone: the files
+ * of 2026-10-23 draw no empty list for a reader on several jobs, and the chip stays where the
+ * list with rows puts it rather than standing in the head on one job and in the band on another.
  *
- * THE OFFICE IS OFFERED THE CATALOG (1a, #527): `Catalog`, bordered, in the head after the job's
- * chip and 12 before `Add items`, in every state the list takes. The office is asked through
- * `requireAdmin`, the gate the catalog's page and its actions ask — one read, since a render reads
- * the person once — and nothing here reads the flag itself (`offline/site-manager.mjs`).
+ * THE OFFICE IS OFFERED THE CATALOG (1a, #527): `Catalog`, a faced action led by a book since #566
+ * where it was bordered, in the head 12 before `Export` or `Add items`, in every state the list
+ * takes. The office is asked through `requireAdmin`, the gate the catalog's page and its actions
+ * ask — one read, since a render reads the person once — and nothing here reads the flag itself
+ * (`offline/site-manager.mjs`).
  *
  * NO WIDTH OF ITS OWN AND NO TEXT IN THE MARKUP — #336 put this axis's only container
  * in the layout, the 1080 here is the content's measure inside it (0b), and every
@@ -169,7 +173,7 @@ async function renderCategoriesPage({ searchParams }) {
     const opener = recorder && !onNoJob && <RegistrationDialog key="registration" {...registration} />;
     // The way to the catalog, the office's alone (#527) and in every state of the head.
     const catalog = office && (
-        <ButtonLink key="catalog" variant="bordered" href={ASSET_CATALOG_PATH}>
+        <ButtonLink key="catalog" variant="faced" mark={<Icon name="book-open" className="size-icon shrink-0" />} href={ASSET_CATALOG_PATH}>
             {ASSET_CATALOG_COPY.heading}
         </ButtonLink>
     );
@@ -182,11 +186,11 @@ async function renderCategoriesPage({ searchParams }) {
             <ListFrame
                 header={
                     <ListHeader title={COPY.heading} count={onNoJob ? null : 0} noun={COPY.itemNoun(0)}>
-                        {choosable && <JobChoice jobs={choosable} job={job} />}
                         {catalog}
                         {opener}
                     </ListHeader>
                 }
+                band={choosable && <JobChoice jobs={choosable} job={job} />}
             >
                 <div className="flex flex-col items-center pt-list-empty-state-inset-top text-center">
                     <h2 className="text-heading font-semibold">{onNoJob ? COPY.noJobHeading : COPY.noItemsHeading}</h2>

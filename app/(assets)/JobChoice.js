@@ -13,17 +13,17 @@ const ALL_JOBS_LABEL = axesFor(FILTERED_LISTS[0]).find((axis) => axis.param === 
 
 // The job an asset list stands on (#509, #520), drawn the design's two ways since #519 and
 // only for a reader with more than one job to choose between — the page asks that. On the
-// category list it is 1a's chip in the head, `Job` and the job beside `Add items`; on a
+// category list it is 1a's chip at the start of the band, the job behind a pin, since the files
+// of 2026-10-23 (#566), where #519 drew `Job` and the job in the head beside `Add items`; on a
 // category's page and an asset's it is a level of the breadcrumb, 1d's and 1f's, after
 // `Tools & Equipment` (`look="crumb"`). Both are `Choice`, 0l's select-only combobox, named
-// by the field's `Job`.
+// by the field's `Job`, which neither shows.
 //
 // IT OFFERS `All jobs` FIRST AND THEN THE JOBS (#548), as the files draw it on all three screens.
 // A list starts on the first job by its code, and `All jobs` is every job the reader may choose
-// between at once, which the address carries as `ALL_JOBS`. Holding it, 1a's chip says `All
-// jobs` alone, without the `Job` before it, as 1a draws it; the breadcrumb says it as it says a
-// job. From #509 to #520 `All jobs` stood first as where every list started, and #520 took it
-// away; it is back as a choice and not as the start.
+// between at once, which the address carries as `ALL_JOBS`, and which the chip and the level
+// say as they say a job. From #509 to #520 `All jobs` stood first as where every list started,
+// and #520 took it away; it is back as a choice and not as the start.
 //
 // WHAT IT OFFERS AND WHAT IT HOLDS ARE THE PAGE'S, from `lib/assetListView.js:assetListScope`,
 // the one judgment the page read its rows by. This file only turns a choice into an address.
@@ -57,7 +57,6 @@ export default function JobChoice({ jobs, job, look = "chip", shownAs, categoryR
         <Field label={COPY.jobLabel} labelAs="span" labelHidden>
             <Choice
                 look={look}
-                label={job === ALL_JOBS ? undefined : COPY.jobLabel}
                 options={options}
                 value={job ?? ""}
                 onChange={choose}

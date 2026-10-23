@@ -942,10 +942,11 @@ export function run({ check, assert, log }) {
         "true true"
     );
     // A LIST A CHIP OR A BREADCRUMB LEVEL OPENS IS SIZED THE MENU'S WAY (#519): 140 to 280 by its
-    // longest option, against the chip's right end at least as wide as the chip, or from the
-    // level's left; 32 rows under an inline level. And the two looks that open them: the job's
-    // chip, a 36 control with a 36 control's 16 before its words and a field's 12 on its chevron
-    // side, its words at 500; and the level, the breadcrumb's 26 with its 12 chevron 6 on.
+    // longest option, from the control's left — the job's chip at least 160 and as wide as it
+    // since #566, where its list stood against its right end — and 32 rows under both. And the two
+    // looks that open them: the job's chip, 1a's 32 at least 128 wide behind a pin, 9 before the
+    // pin and 8 on its 12 chevron's side, its words at 13 and 500 (#566); and the level, the
+    // breadcrumb's 26 with its 12 chevron 6 on.
     const choiceLooks = parseFile(CONTROLS).source;
     const looksOf = (source) => {
         const at = source.indexOf("const CHOICE_LOOK");
@@ -955,19 +956,29 @@ export function run({ check, assert, log }) {
     const chipLook = choiceFrames.slice(choiceFrames.indexOf("chip:"), choiceFrames.indexOf("crumb:"));
     const crumbLook = choiceFrames.slice(choiceFrames.indexOf("crumb:"));
     check(
-        "a list a chip or a level opens is 140 to 280, against the chip's end or from the level's start, 32 rows under a level",
+        "a list a chip or a level opens is 140 to 280, from the control's start, the job's at least 160 and its chip, 32 rows under both",
         [
             /fit === "field" \? "" : "w-max min-w-menu max-w-menu"/.test(fieldListSource),
             /if \(fit === "end"\) \{\s*list\.style\.left = "auto";\s*list\.style\.right = `\$\{document\.documentElement\.clientWidth - box\.right\}px`;\s*list\.style\.minWidth = `max\(var\(--min-width-menu\), \$\{box\.width\}px\)`;/.test(fieldListSource),
+            /if \(minWidth\) list\.style\.minWidth = `max\(\$\{minWidth\}, \$\{box\.width\}px\)`;/.test(fieldListSource),
             /rows === "sm" \? "h-control" : "h-control-lg"/.test(fieldListSource),
-            /fit=\{look === "chip" \? "end" : look === "crumb" \? "start" : "field"\}/.test(choiceLooks) && /rows=\{look === "crumb" \? "sm" : "lg"\}/.test(choiceLooks),
+            /fit=\{look === "field" \? "field" : "start"\}/.test(choiceLooks) &&
+                /minWidth=\{look === "chip" \? "var\(--min-width-job-chip-list\)" : undefined\}/.test(choiceLooks) &&
+                /rows=\{look === "field" \? "lg" : "sm"\}/.test(choiceLooks),
         ].join(" "),
-        "true true true true"
+        "true true true true true"
     );
     check(
-        "  the chip: 36, 16 before its words and 12 on its chevron side, at 500 on an Edge, its Wash held while open",
-        ["h-control-lg", "pl-control-lg-inset-x", "pr-input-inset-x", "font-medium", "border-border", "aria-expanded:bg-hover-subtle"].filter((t) => !chipLook.includes(t)).join(" "),
-        ""
+        "  the chip: 32 and at least 128, 9 before its pin and 8 on its chevron's side, 6 apart, at 13 and 500 on an Edge, its Wash held while open (#566)",
+        [
+            ["h-control ", "min-w-job-chip", "pl-job-chip-inset-left", "pr-job-chip-inset-right", "gap-control-icon-gap", "text-body-sm", "font-medium", "border-border", "bg-white", "aria-expanded:bg-hover-subtle"]
+                .filter((t) => !chipLook.includes(t))
+                .join(" "),
+            /\{look === "chip" && <Icon name="map-pin" className="size-icon-sm shrink-0 text-foreground-subtle" \/>\}/.test(choiceLooks),
+            /: look === "chip"\s*\? "size-job-chip-chevron shrink-0 text-foreground-subtle"/.test(choiceLooks),
+            /look === "chip" && label|aria-hidden="true" className="shrink-0 text-foreground-subtle">\s*\{label\}/.test(choiceLooks),
+        ].join(" · "),
+        " · true · true · false"
     );
     check(
         "  the level: the breadcrumb's 26, its side room pulled back, 13 at 600 in Ink 2, the chevron 6 on",
@@ -1304,7 +1315,19 @@ export function run({ check, assert, log }) {
             /\{secondary && <div className="mr-auto -ml-ghost-inset-x flex">\{secondary\}<\/div>\}\s*\{children\}/.test(actionsPart),
             /ghost: "text-foreground-default not-disabled:not-aria-disabled:hover:bg-hover",/.test(controlSource),
             /const GHOSTS = \["ghost", "ghostDanger"\];/.test(controlSource) &&
-                /const insetOf = \(variant, size\) => \(GHOSTS\.includes\(variant\) \? "px-ghost-inset-x" : BUTTON_INSET\[size\]\);/.test(controlSource),
+                /const insetOf = \(variant, size\) =>\s*GHOSTS\.includes\(variant\) \? "px-ghost-inset-x" : variant === "faced" \? "pr-faced-inset-right pl-faced-inset-left" : BUTTON_INSET\[size\];/.test(controlSource),
+        ].join(" "),
+        "true true true"
+    );
+    // A FACED ACTION (0f Faced, 1a's `Catalog`, #566): no outline at a 36, its mark and word in Ink
+    // 2 lifting to Ink as it fills at Hover, 10 before the mark and 12 after the word, and the
+    // mark the caller's, 8 before the word.
+    check(
+        "  a faced action is no outline at a 36 in Ink 2, filling at Hover and lifting to Ink, its mark 8 before its word (#566)",
+        [
+            /faced: "text-foreground-muted not-disabled:not-aria-disabled:hover:bg-hover not-disabled:not-aria-disabled:hover:text-foreground-default",/.test(controlSource),
+            /export function ButtonLink\(\{ variant = "filled", size = "lg", href, mark, children \}\)/.test(controlSource),
+            /\$\{SHEET_BUTTON_VARIANT\[variant\]\}\$\{mark \? " gap-gap" : ""\}`\}\s*>\s*\{mark\}\s*\{children\}/.test(controlSource),
         ].join(" "),
         "true true true"
     );
@@ -1813,7 +1836,7 @@ export function run({ check, assert, log }) {
             /onDocument: document\.activeElement === null \|\| document\.activeElement === document\.body \|\| document\.activeElement === held/.test(hook),
             /samePage: heldAt === window\.location\.pathname/.test(hook) && /dialogOpen: Boolean\(document\.querySelector\("dialog\[open\]"\)\)/.test(hook),
             /if \(!fell\) return;\s*held = null;\s*focusPageHeading\(\);/.test(hook),
-            /useHeadingWhenFocusFalls\(columnRef\);/.test(railSource) && /<div ref=\{columnRef\} className=\{COLUMN\}>/.test(railSource),
+            /useHeadingWhenFocusFalls\(columnRef\);/.test(railSource) && /<div ref=\{columnRef\} data-content-area="" className=\{COLUMN\}>/.test(railSource),
         ].join(" ");
     };
     const railSource = parseFile("app/components/Rail.js").source;

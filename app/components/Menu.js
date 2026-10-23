@@ -60,10 +60,12 @@ const MENU_HEADING = "shrink-0 truncate px-control-inset-x py-menu-heading-inset
  * field — 140 to 280, its longest item — is `ActionMenu` below, which the account at the
  * rail's foot was the first to open (#478). **A list a chip or a breadcrumb level opens is
  * sized the menu's way (#519)**, since neither is a field: `fit="end"` sets it against the
- * chip's right end at least as wide as the chip, as 1a draws the job's, and `fit="start"`
- * from the level's left, as 1d and 1f draw theirs; its rows are as tall as what opened it —
- * 32 under an inline level (`rows="sm"`), "as tall as the control that opens it, and 32 when
- * that control is Inline".
+ * chip's right end at least as wide as the chip, as 1b draws its type's and category's, and
+ * `fit="start"` from the control's left, as 1d and 1f draw a level's and 1a the job's chip's
+ * since #566; its rows are as tall as what opened it — 32 under an inline level or a 32 chip
+ * (`rows="sm"`), "as tall as the control that opens it, and 32 when that control is Inline".
+ * `minWidth` is a least width of the drawing's own, held with the control's: 1a's job list is
+ * at least 160 and never narrower than its chip.
  *
  * AN OPTION IS PRESSED ON `click` AND ITS `mousedown` IS STOPPED, which is what keeps DOM
  * focus on the control: a blur would close the list before the click arrived, and a
@@ -99,7 +101,7 @@ const MENU_HEADING = "shrink-0 truncate px-control-inset-x py-menu-heading-inset
  * either side, and the bar runs its height. 1l pads the scrolling box itself, which leaves a row
  * scrolled to the middle touching the Edge; at rest the two draw alike.
  */
-export default function Menu({ id, anchorRef, shown, labelId, heading, options, active, shade = true, onPick, fit = "field", rows = "lg", multiselectable = false, lane }) {
+export default function Menu({ id, anchorRef, shown, labelId, heading, options, active, shade = true, onPick, fit = "field", minWidth, rows = "lg", multiselectable = false, lane }) {
     const listRef = useRef(null);
     const checkedIndex = options.findIndex((option) => option.checked);
 
@@ -124,6 +126,7 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
             } else {
                 list.style.left = `${box.left}px`;
                 if (fit === "field") list.style.width = `${box.width}px`;
+                if (minWidth) list.style.minWidth = `max(${minWidth}, ${box.width}px)`;
             }
             list.style.top = `${box.bottom}px`;
             // The room under the field, or a lane's own height where that is less: the class
@@ -141,7 +144,7 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
             window.removeEventListener("resize", place);
             document.removeEventListener("scroll", place, true);
         };
-    }, [shown, anchorRef, fit]);
+    }, [shown, anchorRef, fit, minWidth]);
 
     // The option under visual focus stays in view in a list long enough to scroll, and the one
     // it checks while none is.

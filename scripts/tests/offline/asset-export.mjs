@@ -334,8 +334,14 @@ export async function run({ check, log, assert }) {
     );
     check(
         "the button's words",
-        [ASSET_EXPORT_COPY.export, ASSET_EXPORT_COPY.exportName, ASSET_EXPORT_COPY.working, ASSET_EXPORT_COPY.failed].join(" | "),
-        "Export | Export to Excel | Exporting… | Couldn't export the list. Try again."
+        [ASSET_EXPORT_COPY.export, ASSET_EXPORT_COPY.exportName, ASSET_EXPORT_COPY.working].join(" | "),
+        "Export | Export to Excel | Exporting…"
+    );
+    // 1a's failure toast (#566): the line says what happened and the action what to do next.
+    check(
+        "  and the failure toast's, its line, its action and its dismiss (#566)",
+        [ASSET_EXPORT_COPY.failed, ASSET_EXPORT_COPY.retry, ASSET_EXPORT_COPY.dismiss].join(" | "),
+        "Couldn't export. | Try again | Dismiss"
     );
 
     // ── 3: the file, read back by another library ───────────────────────────
@@ -504,13 +510,21 @@ export async function run({ check, log, assert }) {
         "true true true"
     );
     check(
-        "  says it is busy and what it does, and a press that made no file before itself",
+        "  says it is busy and what it does",
+        /<Button ref=\{buttonRef\} variant="bordered" busy=\{busy\} busyLabel=\{COPY\.working\} ariaLabel=\{busy \? undefined : COPY\.exportName\} onClick=\{press\}>\s*\{COPY\.export\}\s*<\/Button>/.test(buttonSource),
+        true
+    );
+    // A press that made no file puts 0k's toast up (1a, #566), and its action is the press again;
+    // a press takes it down as it starts, and focus goes back to the button.
+    check(
+        "  a press that made no file says so in 0k's toast, whose action presses again and hands focus back (#566)",
         [
-            /<Button variant="bordered" busy=\{busy\} busyLabel=\{COPY\.working\} ariaLabel=\{busy \? undefined : COPY\.exportName\} onClick=\{press\}>\s*\{COPY\.export\}\s*<\/Button>/.test(buttonSource),
-            /\{failed && <Refusal>\{COPY\.failed\}<\/Refusal>\}\s*<Button/.test(buttonSource),
+            /<\/Button>\s*<Toast shown=\{failed\} line=\{COPY\.failed\} action=\{COPY\.retry\} onAction=\{press\} dismissLabel=\{COPY\.dismiss\} onDismiss=\{\(\) => setFailed\(false\)\} opener=\{buttonRef\} \/>/.test(buttonSource),
+            /setBusy\(true\);\s*setFailed\(false\);/.test(buttonSource),
             /catch \{\s*setFailed\(true\);\s*\}/.test(buttonSource),
+            /import \{[^}]*\bRefusal\b/.test(buttonSource),
         ].join(" "),
-        "true true true"
+        "true true true false"
     );
     const listSource = parseFile(LIST).source;
     check(

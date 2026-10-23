@@ -300,23 +300,30 @@ the screen's: `Assets."Note"`.
 
 ## What the list's `Export` says that the files of 2026-10-22 do not (#553)
 
-The files draw 1a's `Export`, its name `Export to Excel` and its wait, and no
-press that comes back with no file. What the screen says there is Soo's ruling,
-in the shape the app's other refusals of a press take, and the next sending
-decides it.
+The files of 2026-10-22 drew 1a's `Export`, its name `Export to Excel` and its
+wait, and no press that comes back with no file. What the screen said there was
+Soo's ruling, in the shape the app's other refusals of a press take, until the
+next sending decided it.
 
-| String | Where | The files |
+| String | Where | The files of 2026-10-22 |
 |---|---|---|
-| `Couldn't export the list. Try again.` | before `Export` on its line, after a press that made no file, until the next | draw no failure |
+| `Couldn't export the list. Try again.` | before `Export` on its line, after a press that made no file, until the next | drew no failure |
 
-**The words are `Couldn't add the items. Try again.`'s**, the registration's
+**The words were `Couldn't add the items. Try again.`'s**, the registration's
 for a press that wrote nothing, with the export's verb and its object: what
-failed is the list, which is what the button exports. It is set as a refusal
+failed is the list, which is what the button exports. It was set as a refusal
 about the whole of an act is set, the info mark and the line in Ink 2, before
 the control as 0f sets a reason.
 
-The key is `ASSET_EXPORT_COPY.failed` in `lib/assetListExport.js`, held by
-value in `offline/asset-export.mjs`. Nothing on the base is named for it.
+**The files of 2026-10-23 draw the failure, and the screen says theirs
+(#566)**: 0k's toast, `Couldn't export.` with `Try again` and `Dismiss`
+(`asset-categories.md`), the drawing's `’` written `'` as every sentence in the
+app is, by Soo's ruling. So this is no difference any more, and it stays as the
+record of what #553 asked.
+
+The keys are `ASSET_EXPORT_COPY.failed`, `.retry` and `.dismiss` in
+`lib/assetListExport.js`, held by value in `offline/asset-export.mjs`. Nothing
+on the base is named for them.
 
 ---
 
@@ -340,3 +347,26 @@ says it.
 The keys are `ASSET_LIST_COPY.noIdMatch` and `.noIdMatchOn` in
 `lib/assetListView.js`, held by value in `offline/asset-id-search.mjs`. The
 base's word for an item's id is `Assets."Asset ID"`.
+
+---
+
+## What the registration's search says that the files of 2026-10-23 do not (#547, #566)
+
+The files draw 1b's search as `Search items`, the words the list's band said
+until #541 gave it `or item IDs`. The registration's search finds a kind by its
+name, its maker, its part number and its size since #547, and says what it
+finds one by; the next sending decides it.
+
+| String | Where | The files |
+|---|---|---|
+| `Name, maker or part #` | the registration's search, its placeholder and its name | draw `Search items` |
+
+**The words name what a site knows an item by** (`tools.md`, `The search over
+every level of a row`): `Search items` says what is found and not by what, so a
+site manager who knows an item by its maker or its part number has no reason to
+type either. The size is searched unnamed, and `Search by name, maker or part
+#` was weighed and cut short at the dialog's width once its chips hold a value.
+
+The key is `ASSET_REGISTRATION_COPY.searchLabel` in `lib/assetRegistration.js`,
+held by value in `offline/asset-registration.mjs`. The base names the levels it
+searches `Level 3`, `Size`, `Maker` and `Part Number` in `Asset Categories`.
