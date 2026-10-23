@@ -66,6 +66,11 @@
 // reading the catalog afresh, refusing what it no longer offers and drawing the page again
 // with the refusal, and the dialog's steps, are read off the source beside planted files.
 //
+// AND SINCE #565 THE JOB THE DIALOG OPENS ON: the one its list stands on, when it is among the
+// reader's own jobs — the scope and the choice's start composed by value in section 0, the
+// start read off the dialog in section 8, and what each page hands it off the pages in
+// `offline/asset-list-view.mjs`.
+//
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
 import {
@@ -81,9 +86,10 @@ import {
     readRegistrationAccount,
     searchedIn,
 } from "../../../lib/assetRegistration.js";
-import { ASSET_JOB_COPY } from "../../../lib/assetJob.js";
+import { ASSET_JOB_COPY, assignedJobsFor, chosenJobId } from "../../../lib/assetJob.js";
 import { walkDetails } from "../../../lib/assetCategory.js";
-import { assetCategoryPath } from "../../../lib/assetRoutes.js";
+import { assetListScope } from "../../../lib/assetListView.js";
+import { ALL_JOBS, assetCategoryPath } from "../../../lib/assetRoutes.js";
 import { createInBatches } from "../../../lib/airtableBatch.js";
 import { childKind, formatSequentialIds, nextChildId } from "../../../lib/idSequence.js";
 import { callsTo, insideTry, parseFile, parseSource, resolveFunction, walk } from "./_ast.mjs";
@@ -91,7 +97,7 @@ import { fakeBase } from "./_fakeBase.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title =
-    "Registering assets — the pure half, where a registration lands, and what a failed batch makes of it (#338, #449, #455, #456, #459, #469, #470, #485, #507, #514, #520, #547)";
+    "Registering assets — the pure half, where a registration lands, and what a failed batch makes of it (#338, #449, #455, #456, #459, #469, #470, #485, #507, #514, #520, #547, #565)";
 
 /** The action whose redirect section 8 reads, and the dialog whose submission it reads. */
 const ACTION = "app/(assets)/asset-categories/actions.js";
@@ -138,6 +144,71 @@ function nameOf(node) {
 const TOOL_ITEM_NOUN = /\btool items?\b/i;
 
 export async function run({ check, assert, log }) {
+    // ── 0: the job the dialog opens on (#565) ───────────────────────────────
+    // FIRST IN THE FILE, so no older assertion that throws can keep it from printing. Every
+    // opener hands the dialog the job its list stands on — the scope's answer, `scope.job?.id
+    // ?? null`, which `offline/asset-list-view.mjs` reads off both pages — and the dialog's
+    // choice starts on `chosenJobId` of the reader's own jobs and that one, which section 8
+    // reads off the dialog. This is the two composed, by value: the list's job when it is one
+    // of the reader's, and otherwise where a choice started before — the one job a reader
+    // holds, or none of several.
+    log("the dialog's job starts on the one its list stands on, when that is the reader's:");
+    const sites = [
+        { id: "recUsa09", jobCode: "23-USA-09" },
+        { id: "recUsa13", jobCode: "25-USA-13" },
+        { id: "recDemo01", jobCode: "26-DEMO-01" },
+    ];
+    const opensOn = (user, asked) => chosenJobId(assignedJobsFor(user, sites), assetListScope(user, sites, asked).job?.id ?? null);
+    const office = { assignedJobs: ["recUsa13", "recUsa09"], isAdmin: true, role: "Employee" };
+    const officeOnOne = { assignedJobs: ["recUsa09"], isAdmin: true, role: "Employee" };
+    const site = { assignedJobs: ["recUsa09", "recUsa13"], isAdmin: false, role: "Employee" };
+    check("a list on one of the reader's jobs opens the dialog on it", opensOn(office, "recUsa13"), "recUsa13");
+    check("  and so does the first job a list starts on with no job asked", opensOn(office, undefined), "recUsa09");
+    check("  for a site reader on one of theirs as for the office", opensOn(site, "recUsa13"), "recUsa13");
+    // A JOB THE OFFICE VIEWS AND IS NOT ASSIGNED TO: the list stands on it — which is what makes
+    // this the case and not a job the scope answered with another — and the choice starts on
+    // none of the office's two.
+    check("  the office's list stands on a job it is not assigned to", assetListScope(office, sites, "recDemo01").job?.id, "recDemo01");
+    check("  and the dialog opened there starts on none", opensOn(office, "recDemo01"), "");
+    check("  unless the reader holds one job, which it still starts on", opensOn(officeOnOne, "recDemo01"), "recUsa09");
+    // ALL OF A READER'S JOBS: no one job to hand, so it starts as it did.
+    check("on all of the reader's jobs the list stands on none", String(assetListScope(office, sites, ALL_JOBS).job), "null");
+    check("  and the dialog starts on none of several", opensOn(office, ALL_JOBS), "");
+    check("  for a site reader on all of theirs as for the office", opensOn(site, ALL_JOBS), "");
+    // A JOB TYPED INTO AN ADDRESS THAT IS NOT THE READER'S is answered by the scope with their
+    // first, which the list then shows — so what the choice starts on is that, and never the
+    // job the address named.
+    check("a site reader's address naming a job not theirs stands the list on their first", assetListScope(site, sites, "recDemo01").job?.id, "recUsa09");
+    check("  and the dialog starts on that one", opensOn(site, "recDemo01"), "recUsa09");
+    // THE SECOND GUARD, ALONE: handed that job outright — a page handing the address's `job`
+    // rather than the scope's — the choice still starts on none of the reader's two, so the
+    // job the address named is chosen only if both the scope and the choice fail at once.
+    check("  and the choice handed that job outright starts on none of theirs", chosenJobId(assignedJobsFor(site, sites), "recDemo01"), "");
+    // THE OPENER ON A PAGE HANDS IT THROUGH, as it hands the jobs: the default export draws the
+    // form, and a job it was handed and did not pass on would start every opening as before.
+    const formHanded = ({ ast, source }) => {
+        const handed = [];
+        walk(ast, (n) => {
+            if (n.type !== "ExportDefaultDeclaration") return;
+            walk(n, (inner) => {
+                if (inner.type !== "JSXOpeningElement" || inner.name?.name !== "RegistrationForm") return;
+                for (const name of ["jobs", "listJobId"]) {
+                    const attribute = inner.attributes.find((each) => each.name?.name === name);
+                    handed.push(`${name}: ${attribute?.value ? source.slice(attribute.value.expression.start, attribute.value.expression.end) : "none"}`);
+                }
+            });
+        });
+        return handed.join(", ") || "no form";
+    };
+    check("the page's opener hands the form the job its list stands on, beside the jobs", formHanded(parseFile(DIALOG)), "jobs: jobs, listJobId: listJobId");
+    check(
+        "  and an opener handing the jobs alone is seen (anti-vacuity)",
+        formHanded(
+            parseSource("export default function RegistrationDialog({ jobs, listJobId }) {\n  return <RegistrationForm jobs={jobs} />;\n}\n", "<planted-opener>")
+        ),
+        "jobs: jobs, listJobId: none"
+    );
+
     // ── 1, 2 and 2b went in #507 ────────────────────────────────────────────
     // They held the key a typed name was one tool under, the preview that found by it and
     // the suggestions a partly typed name made. A registration picks a row of the catalog
@@ -1134,14 +1205,16 @@ export async function run({ check, assert, log }) {
     );
     check("  with no action prop anywhere", dialog.actionProps, 0);
     check("  and says only what the reading or the action refused", dialog.saidReads, "error, fields");
-    // The one job there is comes from `onlyJob` since #458, the one spelling of "one
-    // assignment" the transition's dialog starts from too (`offline/asset-job.mjs`). The
+    // The job starts on the one the list stands on when it is among the reader's own, and
+    // otherwise on the one job there is, or none — `chosenJobId` since #565, whose start is
+    // `onlyJob`, the one spelling of "one assignment" the transition's dialog starts from too
+    // (#458, `offline/asset-job.mjs`); section 0 holds the two composed by value. The
     // filters start on nothing and the second step's choices on none made (#514), so each
     // level starts where `walkDetails` starts it.
     check(
-        "its fields start from what the opener handed over: no filter, no level chosen, the count, and the one job there is",
+        "its fields start from what the opener handed over: no filter, no level chosen, the count, and the list's job among the reader's",
         `${dialog.starts.filters} | ${dialog.starts.chosen} | ${dialog.starts.count} | ${dialog.starts.jobId}`,
-        '{ level1: "", level2: "" } | {} | String(openingCount(quantity)) | onlyJob(jobs)?.id ?? ""'
+        '{ level1: "", level2: "" } | {} | String(openingCount(quantity)) | chosenJobId(jobs, listJobId)'
     );
     // THE LINE UNDER THE TITLE IN EACH STATE (#507, #520): the category a page opened it on; the
     // name the first step picked, with where it stands for a name the catalog holds in two places;

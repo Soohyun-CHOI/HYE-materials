@@ -124,7 +124,8 @@ holds its height, so going between the steps never moves its edges.
   side by side, with the size and the model scrolling above them when there
   are more than the dialog's height holds. **Nobody types a job anywhere on
   this axis.** Somebody on one job gets that job without being asked;
-  somebody on several picks from their own.
+  somebody on several picks from their own, starting on the job the screen
+  stands on when it is one of them (#565).
 
 The first step has no actions (1b): a pick goes on, and the close and Escape
 stop. The submit stands on the second, after `Cancel`, with `Back` at the
@@ -164,7 +165,15 @@ every job.
 in a choice holding that one job.
 
 **When the reader is assigned to more than one:** a choice among their own jobs,
-and no other job is offered.
+and no other job is offered. **It starts on the job the screen it opens over
+stands on, when that job is one of theirs (#565)** — the job chosen in the
+list's head or a category's breadcrumb, or the first a list starts on — so the
+job already on the screen is not chosen again by hand. On `All jobs` there is
+no one job to start on, and the office may view a job it is not assigned to,
+which is not among its own; either starts with none chosen, `Choose a job`, as
+every opening did until #565. It is a starting value and nothing more: the
+reader changes it as any choice, and the dialog says nothing about where it
+came from.
 
 **A job is said by its code and its name** (1b, #519): each option the code at
 500 and the job's name after it in Ink 3, cut before the code is, and the field
@@ -188,7 +197,10 @@ nothing about why the count is filled**: a line saying so would be a second
 account of the registration that fell short, which the category's screen already
 gives, and #321 took such lines off every screen. Opening it writes nothing to
 the address, so a reload shows the page it was opened over, and the dialog shut.
-The job is never carried, so a reader on several jobs chooses one as always.
+The job it starts on is the category's screen's, as from every opener (#565):
+after a registration that fell short that screen stands on the job the
+registration wrote to, so `Add 2 more` starts there too. It was never carried
+until #565, and a reader on several jobs chose one again.
 
 **When a registration writes anything, the dialog is left (#449).** The reader
 lands on the category's own screen — the category the assets were written under — on

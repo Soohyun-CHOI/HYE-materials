@@ -87,7 +87,10 @@ its second step, each level already this category's (#507, #514). **It carries n
 nothing on this screen knows how many were bought, so the dialog asks,
 starting where it always starts. **Nor does it carry the selection or the
 page**: the boxes are for printing, and it opens the same dialog from every
-page of the list. It is on this screen for every category it finds, the one with
+page of the list. **It carries the job the list stands on (#565)**, which the
+dialog's job starts on when it is one of the reader's own; on `All jobs`, or on
+a job the office views and is not assigned to, the job starts unchosen
+(`tools-new.md`). It is on this screen for every category it finds, the one with
 nothing under it included, and for every site manager — one assigned to no job
 sees it disabled, with `Ask the office to assign you to a job` before it, as
 they would on `/asset-categories`. **A reader who is not a site manager is drawn none**
@@ -206,7 +209,9 @@ are, `The other 3 were added and are selected on this page.` (#495; it was
 controls that answer them, in the act's verb since #485. `Add 2 more` names
 how many were not written — `Add 1 more` at one — and puts the dialog away
 and opens the registration dialog on this category,
-with that count filled in and still the reader's to change there; canceling
+with that count filled in and still the reader's to change there, and its job
+on the one the screen stands on — the job the registration wrote to — when it
+is the reader's (#565); canceling
 that brings this dialog back, since nothing answered it. `Not now` takes the
 dialog away, and so do its close and `Escape`. **The two are a pair, and the
 pairing is what says what the choice is about**: one goes on adding and the
