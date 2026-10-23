@@ -1362,8 +1362,12 @@ export function Combobox({ name, value, onChange, onPick, onBlur, suggestions, e
  * WHAT IT HOLDS IS THE CALLER'S, as every control's here is. The × hands back an empty string
  * and puts focus in the field, so the next search is typed at once rather than from a page
  * whose focus fell when the × went.
+ *
+ * `onEnter` IS WHAT ENTER DOES, WHEN A CALLER GIVES IT ONE (1a, #541): the list's opens the item
+ * its search found by its id. A key that composes a character — an input method's Enter — is
+ * the method's and does nothing here.
  */
-export function SearchField({ label, value, onChange, clearLabel }) {
+export function SearchField({ label, value, onChange, clearLabel, onEnter }) {
     const inputRef = useRef(null);
     return (
         <div role="search" className="relative h-control w-list-search shrink-0">
@@ -1379,6 +1383,11 @@ export function SearchField({ label, value, onChange, clearLabel }) {
                 placeholder={label}
                 value={value}
                 onChange={(event) => onChange(event.target.value)}
+                onKeyDown={(event) => {
+                    if (!onEnter || event.key !== "Enter" || event.nativeEvent.isComposing) return;
+                    event.preventDefault();
+                    onEnter();
+                }}
                 className="h-control w-full rounded-control border border-transparent bg-background-muted pr-search-inset-right pl-search-inset-left text-body-sm text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle focus:border-border-focus focus:bg-white"
             />
             {value !== "" && (

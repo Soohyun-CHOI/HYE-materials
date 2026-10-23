@@ -9,6 +9,8 @@
 //   them; a reader on no job; a band that empties the list. Each sheet is held by value, and the
 //   two sheets against each other — every first-sheet row is exactly as many second-sheet rows,
 //   status for status, of its own type and category — which is a second path to the counts.
+//   Since #541 a press on an item's id too: its row and every asset under it, and nothing for an
+//   id off the list.
 //
 //   THE FILE IS READ BACK BY A SECOND LIBRARY. `lib/xlsxWorkbook.js` writes the zip with
 //   `node:zlib`; `fflate` unzips it here, since an encoder decoding its own output proves only
@@ -208,7 +210,47 @@ function userHanded(actionText) {
     return declared.length === 1 && declared[0] === "await requireUser()" ? "the user requireUser answered" : `user from ${declared.join(" and ") || "nowhere"}`;
 }
 
+/**
+ * A press while the band's search names an item's id (#541): the file is what the list shows —
+ * the item's row and every asset under it — and the way to the item is in no sheet. Called first
+ * in `run()`, so an older assertion that throws cannot keep it from printing.
+ */
+async function byId541({ check, log }) {
+    log("a press on an item's id, which the list finds the item by (#541):");
+    const byId = await press(OFFICE, "q=HYE-AST-261001-002");
+    check(
+        "the first sheet holds the item's row on the job the list stands on, its counts whole",
+        rowsSaid(byId.made.sheets[0]),
+        "Band Saw, DeWalt (DCS375) ; Tool ; Power Tool ; 1 ; 1 ; 0 ; 0"
+    );
+    check("  the second every asset under that row, not the item alone", byId.made.sheets[1].rows.map((row) => row[0]).join(" "), "HYE-AST-261001-002 HYE-AST-261001-001");
+    check("  each of them read for its day, and every asset on the job for the counts", `${byId.asked.assets.map((ids) => ids.join(",")).join(" / ")} | ${byId.asked.logRows.map((ids) => ids.join(",")).join(" / ")}`, "a1,a2,a5 | l2b,l1");
+    check("  and the two sheets agree", agreement(byId.made.sheets), "agree");
+    check("its label's code presses the same file", rowsSaid((await press(OFFICE, "q=261001-002")).made.sheets[1]), rowsSaid(byId.made.sheets[1]));
+    const onAll = await press(OFFICE, "job=all&q=261001-003");
+    check(
+        "on all of the office's jobs the item's row counts every job, and lists every asset under it",
+        `${rowsSaid(onAll.made.sheets[0])} | ${onAll.made.sheets[1].rows.map((row) => `${row[0]} ${row[8]}`).join(" ")}`,
+        "Band Saw, DeWalt (DCS375) ; Tool ; Power Tool ; 1 ; 1 ; 0 ; 1 | HYE-AST-261001-003 25-USA-13 HYE-AST-261001-002 23-USA-09 HYE-AST-261001-001 23-USA-09"
+    );
+    const offJob = await press(OFFICE, "q=261001-003");
+    check("an item off the job the list stands on is in no sheet", `${offJob.made.sheets[0].rows.length} ${offJob.made.sheets[1].rows.length}`, "0 0");
+    const offChip = await press(OFFICE, "job=all&job=recJ1&q=261001-003");
+    check("  nor one off the jobs the Job chip takes", `${offChip.made.sheets[0].rows.length} ${offChip.made.sheets[1].rows.length}`, "0 0");
+    const offReader = await press(SITE, "job=all&q=HYE-AST-261003-001");
+    check("  nor one on a job the reader may not stand on", `${offReader.made.fileName} ${offReader.made.sheets[0].rows.length}`, "Tools & Equipment - 23-USA-09 - 2026-10-22.xlsx 0");
+    const sequence = await press(OFFICE, "job=all&q=205");
+    check(
+        "a sequence alone is searched in the names, so the kind whose name holds it is the file's",
+        `${sequence.made.sheets[0].rows.map((row) => row[0]).join(" | ")} ${sequence.made.sheets[1].rows.length}`,
+        "TIG Welder, Lincoln Electric (TIG 205) 2"
+    );
+    log("");
+}
+
 export async function run({ check, log, assert }) {
+    await byId541({ check, log });
+
     // ── 1: the press, by value ──────────────────────────────────────────────
     log("one press, over a fixture of three jobs and seven assets:");
     const first = await press(OFFICE, "");
@@ -427,8 +469,8 @@ export async function run({ check, log, assert }) {
         "listExport stands on the page's scope and reads its rows through the list's own functions",
         [
             /const scope = assetListScope\(user, jobs, jobAsked\(params\)\);/.test(pressText),
-            /readCategoryList\(categoryListRows\(shown, scope, statuses\), params, \{ allJobs: scope\.allJobs, jobs: scope\.jobs \}\)/.test(pressText),
-            /exportedAssets\(reading, countedAssets\(shown, scope, statuses\)\)/.test(pressText),
+            /readCategoryList\(categoryListRows\(shown, scope, kept\), params, \{ allJobs: scope\.allJobs, jobs: scope\.jobs \}\)/.test(pressText),
+            /exportedAssets\(reading, countedAssets\(shown, scope, kept\)\)/.test(pressText),
         ].join(" "),
         "true true true"
     );

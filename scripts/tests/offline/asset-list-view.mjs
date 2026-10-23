@@ -399,7 +399,7 @@ function allJobs548({ check, log }) {
         [
             /const onNoJob = scope\.jobs\.length === 0;/.test(listPage),
             /const job = scope\.choice;/.test(listPage),
-            /<AssetCategoryList rows=\{rows\} job=\{job\} allJobs=\{scope\.allJobs\} jobs=\{choosable\}/.test(listPage),
+            /<AssetCategoryList\s+rows=\{rows\}\s+job=\{job\}\s+jobCode=\{scope\.job\?\.jobCode \?\? null\}\s+allJobs=\{scope\.allJobs\}\s+jobs=\{choosable\}/.test(listPage),
         ].join(" "),
         "true true true"
     );
@@ -2223,9 +2223,12 @@ export function run({ check, assert, log }) {
         };
         return [
             inLane(/<div ref=\{topRef\} className="sticky top-0 z-10">\s*\{top\}\s*<\/div>\s*<div ref=\{headerRef\}>\{header\}<\/div>/),
-            inLane(/<div className="sticky top-0 z-10 bg-background-translucent backdrop-blur-sm">\s*\{header\}\s*\{band && <div className=\{BAND\}>\{band\}<\/div>\}\s*<\/div>/),
+            // What the band found by an id stands under its controls, held with them (#541).
+            inLane(
+                /<div className="sticky top-0 z-10 bg-background-translucent backdrop-blur-sm">\s*\{header\}\s*\{band && <div className=\{BAND\}>\{band\}<\/div>\}\s*\{band && found && <div className=\{BAND_FOUND\}>\{found\}<\/div>\}\s*<\/div>/
+            ),
             /const BAND = `\$\{LIST_MEASURE\} flex items-center gap-gap pb-control-band-inset-y`;/.test(source),
-            /\$\{\s*top \? UNDER_BAR : band \? UNDER_HEAD_AND_BAND : UNDER_HEAD\s*\}/.test(frameFn),
+            /\$\{\s*top \? UNDER_BAR : band \? \(found \? UNDER_HEAD_BAND_AND_FOUND : UNDER_HEAD_AND_BAND\) : UNDER_HEAD\s*\}/.test(frameFn),
             /const UNDER_HEAD_AND_BAND =\s*"\[--table-head-top:calc\(var\(--spacing-list-header-inset-top\)\+var\(--height-control-lg\)\+var\(--spacing-list-header-inset-bottom\)\+var\(--height-control\)\+var\(--spacing-control-band-inset-y\)\)\] scroll-pt-\[calc\(var\(--table-head-top\)\+var\(--height-table-header\)\)\]";/.test(source),
             /const UNDER_HEAD =\s*"\[--table-head-top:calc\(var\(--spacing-list-header-inset-top\)\+var\(--height-control-lg\)\+var\(--spacing-list-header-inset-bottom\)\)\] scroll-pt-\[calc\(var\(--table-head-top\)\+var\(--height-table-header\)\)\]";/.test(source),
             /const UNDER_BAR = "\[--table-head-top:var\(--height-breadcrumb\)\] scroll-pt-\[calc\(var\(--table-head-top\)\+var\(--height-table-header\)\)\]";/.test(source),
@@ -2625,7 +2628,7 @@ export function run({ check, assert, log }) {
             ASSET_LIST_COPY.noneMatchFilters,
             ASSET_LIST_COPY.clearAll,
         ].join(" | "),
-        "Search items | Clear search | Type: Clear type filter, Category: Clear category filter | No items match | No items match these filters | Clear all"
+        "Search items or item IDs | Clear search | Type: Clear type filter, Category: Clear category filter | No items match | No items match these filters | Clear all"
     );
     check(
         "  a chip's word and its clear for each facet and for no other, the class's gone with its chip (#552)",
@@ -2652,7 +2655,7 @@ export function run({ check, assert, log }) {
     check(
         "  and draws the search and a chip per facet, each handed its options, its values and its words",
         [
-            /<SearchField label=\{COPY\.searchLabel\} value=\{typed\} onChange=\{search\} clearLabel=\{COPY\.clearSearch\} \/>/.test(bandSource),
+            /<SearchField label=\{COPY\.searchLabel\} value=\{typed\} onChange=\{search\} clearLabel=\{COPY\.clearSearch\} onEnter=\{open\} \/>/.test(bandSource),
             /\{ASSET_LIST_FACETS\.map\(\(facet\) => \(\s*<FilterChip/.test(bandSource),
             /options=\{reading\.facets\[facet\]\.map\(/.test(bandSource) && /values=\{reading\.held\[facet\]\}/.test(bandSource),
             /clearLabel=\{COPY\.clearFacet\[facet\]\}\s*several=\{COPY\.selectedCount\}/.test(bandSource),

@@ -297,6 +297,17 @@ const EXEMPTIONS = [
             "every reader who is not one and withAdminAction the site. WHAT THIS EXEMPTION CANNOT SAY is that the " +
             "scope is asked with the user requireUser answered; offline/asset-export.mjs holds that off the AST.",
     },
+    {
+        file: "app/(assets)/asset-categories/actions.js",
+        name: "readFoundHolderAction",
+        mustCall: "requireUser",
+        reason:
+            "#541 — who holds the item the Tools & Equipment list's search found by its id, for the line the list " +
+            "draws over its rows: the list's own gate, every signed-in reader with no role (#337), and a READ that " +
+            "writes nothing. It answers what an asset's own page says to every signed-in reader whatever job the " +
+            "asset is on — the asset's holder while it is out — so it asks no job. No wrapper fits, as none fits the " +
+            "page: withSiteManagerAction would refuse every reader who is not one and withAdminAction the site.",
+    },
     { file: "app/prs/new/actions.js", name: "saveDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "deleteDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "createPRAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },

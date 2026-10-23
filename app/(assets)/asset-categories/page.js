@@ -70,6 +70,8 @@ export const metadata = { title: COPY.heading };
  * it draws, and the band's narrowing and the paging are of rows already in hand
  * (`AssetCategoryList.js`), so neither fetches anything. **The page reads no filter off the
  * address**: what the band holds is the list's to read there, as a category's selection is.
+ * **Each row carries the ids of the assets it counts (#541)**, which the status memory hands back
+ * with their statuses for no read more, so a search finds an item by its id in the browser too.
  *
  * EACH ROW SAYS ITS KIND'S CATEGORY BESIDE ITS NAME (1a, #519), off the row already read, and
  * carries its type for the band to filter by.
@@ -127,12 +129,12 @@ async function renderCategoriesPage({ searchParams }) {
 
     const [categories, allJobs] = await Promise.all([getAllAssetCategories(), getAllJobs()]);
     const scope = assetListScope(user, allJobs, sp.job);
-    // The categories on the job, and the statuses of theirs there as this server keeps them —
-    // one question about what changed, whatever stands under the list (#560); each asset's kind
-    // and job come off the arrays already read.
+    // The categories on the job, and the statuses of theirs there as this server keeps them, each
+    // with the id its label prints (#541) — one question about what changed, whatever stands under
+    // the list (#560); each asset's kind and job come off the arrays already read.
     const shownCategories = assetCategoriesInScope(categories, scope.shown);
-    const statuses = await getAssetStatuses(shownCategories.flatMap((category) => idsInScope(category.assets, scope.shown)));
-    const rows = categoryListRows(shownCategories, scope, statuses);
+    const kept = await getAssetStatuses(shownCategories.flatMap((category) => idsInScope(category.assets, scope.shown)));
+    const rows = categoryListRows(shownCategories, scope, kept);
     // A reader on no job — anybody but the office with no assignment — has nothing the list
     // could hold, so the head counts nothing (1a2, #519).
     const onNoJob = scope.jobs.length === 0;
@@ -198,5 +200,17 @@ async function renderCategoriesPage({ searchParams }) {
         );
     }
 
-    return <AssetCategoryList rows={rows} job={job} allJobs={scope.allJobs} jobs={choosable} catalog={catalog} opener={opener} />;
+    // The job the list stands on is named where a search for an id finds no item (#541), and on
+    // all of them none is.
+    return (
+        <AssetCategoryList
+            rows={rows}
+            job={job}
+            jobCode={scope.job?.jobCode ?? null}
+            allJobs={scope.allJobs}
+            jobs={choosable}
+            catalog={catalog}
+            opener={opener}
+        />
+    );
 }

@@ -317,3 +317,26 @@ the control as 0f sets a reason.
 
 The key is `ASSET_EXPORT_COPY.failed` in `lib/assetListExport.js`, held by
 value in `offline/asset-export.mjs`. Nothing on the base is named for it.
+
+---
+
+## What the list's search for an item's id says that the files of 2026-10-22 do not (#541)
+
+The files draw 1a's `No ID match` with `No item has the ID` and the id typed
+after it. The app's list finds an item on the job it stands on and nowhere else, so on one
+job the sentence names that job, by Soo's ruling; on all of a reader's jobs it
+is the drawing's. The next sending decides it.
+
+| String | Where | The files |
+|---|---|---|
+| `No item on 23-USA-09 has the ID` | where the rows stood, on a list standing on one job, before the id typed | draw `No item has the ID` |
+
+**The job is named because the drawing's sentence would be false there**: an
+item on another of the reader's jobs is not found on this one, and `No item has
+the ID` would deny it. Nothing finds it on the other job for them — `All jobs`
+does, for a reader on several. The job is said by its code, as the head's chip
+says it.
+
+The keys are `ASSET_LIST_COPY.noIdMatch` and `.noIdMatchOn` in
+`lib/assetListView.js`, held by value in `offline/asset-id-search.mjs`. The
+base's word for an item's id is `Assets."Asset ID"`.

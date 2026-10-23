@@ -147,6 +147,8 @@ const DESIGN_SHAPES = {
 
 /** Which marks each file draws, so a mark gone from a screen is a failure here. */
 const MARKS_BY_FILE = {
+    // The way to the item a search found by its id ends on 0f's chevron (1a, #541).
+    "app/(assets)/asset-categories/FoundItem.js": ["chevron-right"],
     "app/(assets)/assets/[assetId]/AssetNote.js": ["message-square", "plus"],
     "app/(assets)/assets/[assetId]/MoreActions.js": ["ellipsis"],
     "app/(assets)/assets/[assetId]/TransitionBar.js": ["map-pin", "user"],
