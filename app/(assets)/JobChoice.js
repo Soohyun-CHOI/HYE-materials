@@ -40,17 +40,19 @@ const ALL_JOBS_LABEL = axesFor(FILTERED_LISTS[0]).find((axis) => axis.param === 
 // nothing off the address. On a category's own list it keeps the label run
 // selected (#443), which `CategoryJobChoice.js` beside that page hands it — a selection outlives
 // a page turn, and a change of job is one more of those, the run's ids off it counted `not on
-// this page`. An asset's page lands on its category's list with nothing selected. A choice of
+// this page`. Either keeps the order the list is sorted in (#540): the category list's rides in
+// `filters` with its band, and a category's own list hands it as `sort`. An asset's page lands on
+// its category's list with nothing selected and in the order that list starts in. A choice of
 // what the control already holds goes nowhere, which is also what keeps a blur with the list
 // open from leaving the page: the pattern chooses what is under visual focus as focus leaves,
 // and that is the held option until the reader moves.
-export default function JobChoice({ jobs, job, look = "chip", shownAs, categoryRecordId = null, selection = [], filters = {} }) {
+export default function JobChoice({ jobs, job, look = "chip", shownAs, categoryRecordId = null, selection = [], sort = null, filters = {} }) {
     const router = useRouter();
     const options = [{ value: ALL_JOBS, label: ALL_JOBS_LABEL }, ...jobs.map(({ id, jobCode }) => ({ value: id, label: jobCode }))];
 
     const choose = (next) => {
         if (!next || next === job) return;
-        router.push(categoryRecordId ? assetCategoryPath(categoryRecordId, 1, selection, { job: next }) : assetCategoriesPath(1, next, filters));
+        router.push(categoryRecordId ? assetCategoryPath(categoryRecordId, 1, selection, { job: next, sort }) : assetCategoriesPath(1, next, filters));
     };
 
     return (

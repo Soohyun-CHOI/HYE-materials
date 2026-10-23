@@ -182,6 +182,15 @@ accepted (#463).** A registration's assets go to the top, so a link to a
 later page names different assets after one. The selection is printed ids
 and moves with nothing. It read oldest first until #463, for that reason.
 
+**action.** The order is the reader's (1d, #540): `Recently updated`, where the
+page starts — each item by its latest event, so a registration's items begin
+the first page and an item checked out or in rises to it — or `Item ID`, the
+order a label run prints in. The control stands at the foot of the head's
+controls, under `Add items`, and only over a list with entries in it. A change
+of order goes to the first page; a box, a step and the job's choice keep it, and
+a visit afresh starts newest first. The day each entry says is the moment it is
+ordered by, so the two cannot part.
+
 **evidence.** Which rows the page shows of how many, `1–50 of 76`, stated
 whether or not there is a second page, because a count that appears only once a
 list is long leaves the short case saying nothing — the one figure where a page
@@ -354,7 +363,9 @@ ascending id, whatever order the boxes were pressed in, so the labels print as
 their ids count up — the list's own order until #463, which turned the list
 newest first and left the selection as it was. **A design must not offer
 "select all of this category"**, for the reason this screen never offered
-"print all": it is a read of every asset under the category. **A
+"print all": it was a read of every asset under the category, and since #540,
+which reads them all to sort them, the screen still hands its list one page,
+and a kind may hold more than one print takes. **A
 registration's arrival is such an address (#449)**: it carries what the
 registration wrote, which is why what it wrote survives a reload.
 

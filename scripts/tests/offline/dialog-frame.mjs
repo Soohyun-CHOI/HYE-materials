@@ -954,7 +954,8 @@ export function run({ check, assert, log }) {
     };
     const choiceFrames = looksOf(choiceLooks);
     const chipLook = choiceFrames.slice(choiceFrames.indexOf("chip:"), choiceFrames.indexOf("crumb:"));
-    const crumbLook = choiceFrames.slice(choiceFrames.indexOf("crumb:"));
+    const crumbLook = choiceFrames.slice(choiceFrames.indexOf("crumb:"), choiceFrames.indexOf("sort:"));
+    const sortLook = choiceFrames.slice(choiceFrames.indexOf("sort:"));
     check(
         "a list a chip or a level opens is 140 to 280, from the control's start, the job's at least 160 and its chip, 32 rows under both",
         [
@@ -962,7 +963,7 @@ export function run({ check, assert, log }) {
             /if \(fit === "end"\) \{\s*list\.style\.left = "auto";\s*list\.style\.right = `\$\{document\.documentElement\.clientWidth - box\.right\}px`;\s*list\.style\.minWidth = `max\(var\(--min-width-menu\), \$\{box\.width\}px\)`;/.test(fieldListSource),
             /if \(minWidth\) list\.style\.minWidth = `max\(\$\{minWidth\}, \$\{box\.width\}px\)`;/.test(fieldListSource),
             /rows === "sm" \? "h-control" : "h-control-lg"/.test(fieldListSource),
-            /fit=\{look === "field" \? "field" : "start"\}/.test(choiceLooks) &&
+            /fit=\{look === "field" \? "field" : look === "sort" \? "end" : "start"\}/.test(choiceLooks) &&
                 /minWidth=\{look === "chip" \? "var\(--min-width-job-chip-list\)" : undefined\}/.test(choiceLooks) &&
                 /rows=\{look === "field" \? "lg" : "sm"\}/.test(choiceLooks),
         ].join(" "),
@@ -986,11 +987,36 @@ export function run({ check, assert, log }) {
         ""
     );
     check("  and a chip with no look of its own is seen (anti-vacuity)", looksOf("const X = 1;").length, 0);
+    // THE SORT (1a, 1d, 1l, #540): a 32 with no outline, 7 and 8 inside a border kept transparent
+    // for the keyboard's Edge focus, a 14 \`arrow-up-down\` and a 12 chevron in Ink 3, 6 apart, at 13
+    // and 500, Hover under the pointer and while open; its list from its right end, 32 rows, each
+    // keeping its check's room 10 past its words.
+    const sortFacts = (looks, choice, list) =>
+        [
+            ["h-control ", "border border-transparent", "pr-[calc(var(--spacing-sort-inset-right)-1px)]", "pl-[calc(var(--spacing-sort-inset-left)-1px)]", "gap-control-icon-gap", "rounded-control", "text-body-sm", "font-medium", "not-aria-readonly:hover:bg-hover", "focus-visible:border-border-focus", "aria-expanded:bg-hover"]
+                .filter((t) => !looks.includes(t))
+                .join(" "),
+            /\{look === "sort" && <Icon name="arrow-up-down" className="size-icon-sm shrink-0 text-foreground-subtle" \/>\}/.test(choice),
+            /: look === "sort"\s*\? "size-sort-chevron shrink-0 text-foreground-subtle"/.test(choice),
+            /checkSlot=\{look === "sort"\}/.test(choice),
+            /checkSlot \? "gap-sort-check-gap" : "gap-gap"/.test(list) &&
+                /\{checkSlot \? \(\s*<span aria-hidden="true" className="flex size-icon-sm shrink-0">\s*\{option\.checked && <Icon name="check" className="size-icon-sm text-primary" \/>\}\s*<\/span>/.test(list),
+        ].join(" · ");
+    check("the sort is a ghost 32 behind its mark, its list from its right end keeping the check's room (#540)", sortFacts(sortLook, choiceLooks, fieldListSource), " · true · true · true · true");
+    check(
+        "  and a sort drawn on an Edge, with the field's chevron and a list that grows with its check, is seen (anti-vacuity)",
+        sortFacts(
+            sortLook.replace("border border-transparent", "border border-border"),
+            choiceLooks.replace('? "size-sort-chevron shrink-0 text-foreground-subtle"', '? "size-icon-sm shrink-0 text-foreground-subtle"'),
+            fieldListSource.replace('checkSlot ? "gap-sort-check-gap" : "gap-gap"', '"gap-gap"')
+        ),
+        "border border-transparent · true · false · true · false"
+    );
     // AN OPTION'S NOTE (#519): a job's name after its code, at Ink 3 and 8 on, cut before the code
     // is — in the list as two boxes of the row, and in the field the same way (1b, 1i). A list
     // with a note in it, and a level's, sets each label at 500 in even figures (1b, 1d, 1f, 1i).
     const noteOf = ({ list, choice }) => [
-        /<span\s+className=\{`\$\{option\.note \? "shrink-0" : `min-w-0 truncate \$\{multiselectable \? "flex-1" : ""\}`\} \$\{option\.strong \? "font-medium tabular-nums" : ""\}`\}\s*>/.test(list),
+        /<span\s+className=\{`\$\{option\.note \? "shrink-0" : `min-w-0 truncate \$\{multiselectable \|\| checkSlot \? "flex-1" : ""\}`\} \$\{option\.strong \? "font-medium tabular-nums" : ""\}`\}\s*>/.test(list),
         /\{option\.note && <span className="min-w-0 flex-1 truncate text-foreground-subtle">\{option\.note\}<\/span>\}/.test(list),
         /const strong = look === "crumb" \|\| options\.some\(\(option\) => option\.note\);/.test(choice),
         /note: option\.note,\s*strong,/.test(choice),

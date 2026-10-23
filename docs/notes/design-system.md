@@ -257,6 +257,14 @@ The design set the code on a tool label in Inconsolata at 500 with −0.04em of 
 - **0k's Toast** is 1a's export failure (#566), named in the row's words: 44 (`--height-toast`), 14 from the start and 6 from the end (`--spacing-toast-inset-left`, `--spacing-toast-inset-right`), 16 from its line to its action (`--spacing-toast-inline`), 24 above the content area's end (`--spacing-toast-offset`), its shadow (`--shadow-toast`, the shadow ink at 16% and 10%) and its buttons' hover, white at 12% (`--color-toast-hover`). The 2 between the action and the dismiss is the drawing's (`--spacing-toast-action-gap`). The rest are names already: the Ink ground, the Group radius, the alert mark's 16 and 0b's 8 before the line, a 32 control at a ghost's 10, and the dismiss's 14 ×.
 - **Not taken.** The files draw `book-open` in Lucide's shape before 1.52.0, its spine `M12 7v14` under square corners, as they drew the note's mark (`What the drawings carry that the spec does not state`); every other mark they draw is 1.52.0's, and the app draws 1.52.0's book too (#502). The Sign in file's 1k draws the check in a chosen job's round box at a line of 2, where 0a's Icon box gives every mark 1.25, and keeps 1.25, the spec, as #522 settled a drawing against its own spec. And the Sign in file writes every apostrophe `’`, where the Tools file writes `'` but in two sentences: **the app keeps `'` everywhere, by Soo's ruling**, one rule over every screen and every check that holds a sentence by value.
 
+## The sort, as the files of 2026-10-23 were last sent (#540)
+
+**Design sent the Tools file once more on 2026-10-23, and it moved one thing: 1d's head.** The sort stood in a row before `Add items` in the sending before it; it stands under it now, at the foot of a column as tall as the title and its caption, and alone at the foot where `Add items` is not drawn, which takes `Add items` down to the foot too where a kind has no items. Every other canvas read the same.
+
+- **The sort is a 32 with no outline**, 7 before a 14 `arrow-up-down` in Ink 3 and 8 after a 12 chevron in Ink 3 (`--spacing-sort-inset-left`, `--spacing-sort-inset-right`, `--size-sort-chevron`), the order's name between them at 13 and 500 in Ink, 0b's 6 apart, at the Control's corner, Hover under the pointer and while its list is open. It pulls its own 8 out past the content's edge, so its chevron's ink meets it, on 1a, 1d and 1l alike — the bleed is the right room, written as that name. The app holds a transparent 1px border for the keyboard's Edge focus, which the drawing does not draw, and takes the 1 out of each room.
+- **Its list is 0a's Menu set against its right end**, 6 under it, at least as wide as it, with 32 rows; every option keeps a 14 for the check 10 past its name (`--spacing-sort-check-gap`), the check in the Accent on the order held, so the list is one width whichever order is held. Measured against the drawing at 1600 × 900, 1a's, 1d's and 1l's lists stood at the drawing's box to the hundredth: 160.89 × 76, each option 148.89.
+- **1d's head stacks its controls.** `ListHeader`'s `stacked`: a column at the head's right, stretched to the head and standing at its foot, 8 apart, the sort pulled 4 under the head's content — 14 over the column head where the head's foot is 18, written as that difference rather than a name. The head is 104 with both, 94 with one.
+
 ## From the design's words to the names
 
 Every declaration, by the design's row and the figure the design draws, and after them the values read under Tailwind's own names. A length's rem is the design's px over 16, and the px is given beside it.
@@ -487,6 +495,10 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 1a's drawing, its room on its chevron's side — not the spec | `--spacing-job-chip-inset-right` | 0.5rem (8) |
 | 1a's drawing, its chevron — not the spec | `--size-job-chip-chevron` | 0.75rem (12) |
 | 1a's drawing, the least the list that chip opens takes, its room and Edge counted — not the spec | `--min-width-job-chip-list` | 10rem (160) |
+| 1a's, 1d's and 1l's drawings, the sort's room before its mark — not the spec | `--spacing-sort-inset-left` | 0.4375rem (7) |
+| their drawings, its room on its chevron's side, which it pulls out past the content's edge — not the spec | `--spacing-sort-inset-right` | 0.5rem (8) |
+| their drawings, its chevron — not the spec | `--size-sort-chevron` | 0.75rem (12) |
+| their drawings, from an order's name to the room its list keeps for the check — not the spec | `--spacing-sort-check-gap` | 0.625rem (10) |
 | 1a's drawing, above and below what a band-emptied list says — not the spec | `--spacing-list-emptied-inset-y` | 3.75rem (60) |
 | 1a's drawing, that sentence to the control under it — not the spec | `--spacing-list-emptied-stack` | 0.75rem (12) |
 | 0n Header stack, from the title | `--spacing-title-stack` | 0.625rem (10) |

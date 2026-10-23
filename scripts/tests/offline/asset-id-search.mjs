@@ -95,7 +95,7 @@ function holderReadOf(source) {
     const asked = at(/const asked = searchedAssetId\(assetId\);/);
     const read = at(/await getAssetByAssetId\(asked\)/);
     const outOnly = at(/if \(asset\?\.status !== ASSET_STATUS\.OUT\) return \{ holder: null \};/);
-    const log = at(/getAssetLogEntriesByRecordIds\(latestLogRowIds\(\[asset\]\)\)/);
+    const log = at(/getAssetLogEntriesByRecordIds\(holderRowIds\(\[asset\]\)\)/);
     const holder = at(/return \{ holder: lastChangeOf\(asset, entries\)\.holder \};/);
     const label = /return withOpsLabel\("readFoundHolderAction", async \(\) => \{/.test(body);
     const ordered = [gate, asked, read, outOnly, log, holder].every((each, index, all) => each >= 0 && (index === 0 || each > all[index - 1]));
@@ -253,7 +253,7 @@ export function run({ check, log }) {
     check(
         "  where a planted action reading the log before it asks the status is seen",
         holderReadOf(
-            'export async function readFoundHolderAction(assetId) {\n    return withOpsLabel("readFoundHolderAction", async () => {\n        await requireUser();\n        const asked = searchedAssetId(assetId);\n        const asset = await getAssetByAssetId(asked);\n        const entries = new Map((await getAssetLogEntriesByRecordIds(latestLogRowIds([asset]))).map((e) => [e.id, e]));\n        if (asset?.status !== ASSET_STATUS.OUT) return { holder: null };\n        return { holder: lastChangeOf(asset, entries).holder };\n    });\n}\n'
+            'export async function readFoundHolderAction(assetId) {\n    return withOpsLabel("readFoundHolderAction", async () => {\n        await requireUser();\n        const asked = searchedAssetId(assetId);\n        const asset = await getAssetByAssetId(asked);\n        const entries = new Map((await getAssetLogEntriesByRecordIds(holderRowIds([asset]))).map((e) => [e.id, e]));\n        if (asset?.status !== ASSET_STATUS.OUT) return { holder: null };\n        return { holder: lastChangeOf(asset, entries).holder };\n    });\n}\n'
         ),
         "true false"
     );

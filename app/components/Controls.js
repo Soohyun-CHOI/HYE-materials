@@ -964,8 +964,13 @@ const TYPEAHEAD_MS = 500;
  * the keyboard alone (#522): 1a draws a chip a press opened on its Edge, a bordered control's
  * Open being its Wash (0f). `look="crumb"` is the same choice standing as a breadcrumb
  * level (1d, 1f): the level's 26, its side room pulled back and its 13 at 600 in Ink 2, a 12
- * chevron 6 after the word, and its list from the level's left with 32 rows. Neither shows the
- * field's label, which a screen reader hears as the name.
+ * chevron 6 after the word, and its list from the level's left with 32 rows. `look="sort"` is the
+ * order a list stands in (1a, 1d, 1l, #540): a 32 with no outline, 7 before a 14 `arrow-up-down` in
+ * Ink 3, the order's name at 13 and 500 in Ink and a 12 chevron in Ink 3, 6 between each and 8
+ * after it, Hover under the pointer and while its list is open, and its list set against its right
+ * end with 32 rows, each holding room for the check at its end so the list does not change width
+ * with what is chosen. None of the three shows the field's label, which a screen reader hears as
+ * the name.
  *
  * AN OPTION MAY CARRY A `note`, SAID AFTER ITS LABEL (#519): a job's name after its code, at Ink
  * 3 and 8 on, in the field and in its list, as 1b and 1i draw a dialog's job. A list with a
@@ -1071,6 +1076,7 @@ export function Choice({ name, options, value, onChange, placeholder, look = "fi
                 className={CHOICE_LOOK[look](field.refused)}
             >
                 {look === "chip" && <Icon name="map-pin" className="size-icon-sm shrink-0 text-foreground-subtle" />}
+                {look === "sort" && <Icon name="arrow-up-down" className="size-icon-sm shrink-0 text-foreground-subtle" />}
                 {chosen >= 0 && options[chosen].note ? (
                     <span className="flex min-w-0 flex-1 gap-gap text-foreground-default">
                         <span className="shrink-0">{options[chosen].label}</span>
@@ -1085,8 +1091,8 @@ export function Choice({ name, options, value, onChange, placeholder, look = "fi
                         {chosen >= 0 ? options[chosen].label : placeholder}
                     </span>
                 )}
-                {/* Each look's chevron: a field's 14 at its end, the chip's 12 (1a, #566), and the
-                    level's 12 running into its side room (1d, 1f). */}
+                {/* Each look's chevron: a field's 14 at its end, the chip's 12 (1a, #566), the
+                    level's 12 running into its side room (1d, 1f), and the sort's 12 (#540). */}
                 <Icon
                     name="chevron-down"
                     className={
@@ -1094,7 +1100,9 @@ export function Choice({ name, options, value, onChange, placeholder, look = "fi
                             ? "-mr-breadcrumb-chevron-bleed size-breadcrumb-chevron shrink-0"
                             : look === "chip"
                               ? "size-job-chip-chevron shrink-0 text-foreground-subtle"
-                              : "size-icon-sm shrink-0 text-foreground-subtle"
+                              : look === "sort"
+                                ? "size-sort-chevron shrink-0 text-foreground-subtle"
+                                : "size-icon-sm shrink-0 text-foreground-subtle"
                     }
                 />
             </div>
@@ -1104,9 +1112,10 @@ export function Choice({ name, options, value, onChange, placeholder, look = "fi
                 anchorRef={anchorRef}
                 shown={open}
                 labelId={field.labelId}
-                fit={look === "field" ? "field" : "start"}
+                fit={look === "field" ? "field" : look === "sort" ? "end" : "start"}
                 minWidth={look === "chip" ? "var(--min-width-job-chip-list)" : undefined}
                 rows={look === "field" ? "lg" : "sm"}
+                checkSlot={look === "sort"}
                 options={options.map((option, index) => ({
                     key: option.value,
                     label: option.label,
@@ -1136,6 +1145,10 @@ const CHOICE_LOOK = {
         "flex h-control min-w-job-chip cursor-pointer items-center gap-control-icon-gap rounded-control border border-border bg-white pr-job-chip-inset-right pl-job-chip-inset-left text-body-sm font-medium whitespace-nowrap tabular-nums outline-none not-aria-readonly:hover:bg-hover-subtle focus-visible:border-border-focus aria-expanded:bg-hover-subtle",
     crumb: () =>
         "-mx-control-inline-inset-x flex h-control-inline cursor-pointer items-center gap-breadcrumb-chevron-gap rounded-control px-control-inline-inset-x text-body-sm font-semibold whitespace-nowrap text-foreground-muted tabular-nums not-aria-readonly:hover:bg-hover aria-expanded:bg-hover",
+    // The sort (#540): drawn with no outline, so its Edge focus stands on a border that is
+    // transparent at rest, its room either side taken in by that border's 1.
+    sort: () =>
+        "flex h-control cursor-pointer items-center gap-control-icon-gap rounded-control border border-transparent pr-[calc(var(--spacing-sort-inset-right)-1px)] pl-[calc(var(--spacing-sort-inset-left)-1px)] text-body-sm font-medium whitespace-nowrap outline-none not-aria-readonly:hover:bg-hover focus-visible:border-border-focus aria-expanded:bg-hover",
 };
 
 /**

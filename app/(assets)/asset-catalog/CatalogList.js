@@ -10,7 +10,8 @@ import { useTooltip } from "@/app/components/Tooltip";
 import { FILTER_BAR_COPY } from "@/lib/listFilters";
 import { ASSET_CATALOG_COPY as COPY, filterCatalogRows } from "@/lib/assetCatalog";
 import { ASSET_LIST_COPY, ASSET_LIST_FACETS, pageOfAssetCategories, pagerPosition, readAssetListFilters } from "@/lib/assetListView";
-import { ASSET_CATEGORIES_PATH, assetCatalogPath } from "@/lib/assetRoutes";
+import { ASSET_CATEGORIES_PATH, LIST_SORTS, assetCatalogPath } from "@/lib/assetRoutes";
+import SortChoice from "../SortChoice";
 import { EntryDialog, RemoveDialog } from "./CatalogDialogs";
 
 // 1l's columns since 2026-10-21 (0b Row): the name, then the size, the maker, the part number,
@@ -60,6 +61,10 @@ const CUT_CELLS = [{ key: "size", figures: true }, { key: "maker" }, { key: "par
  * band scrolling away under the bar and the name coming into the bar; Fill brings no name in.
  * Narrower than the table at its least, it scrolls sideways with the name's column held at its
  * start (1l since 2026-10-21, #552).
+ *
+ * THE BAND ENDS ON THE ORDER THE ROWS STAND IN (1l, #540): by name, where the page starts, or by when
+ * each row was last edited, `filterCatalogRows`' reading of the address's `sort`, which every write
+ * of the band carries and `Clear all`, clearing what narrows, keeps.
  *
  * A VALUE ITS COLUMN CUTS SHOWS WHOLE ABOVE ITS CELL UNDER THE POINTER (1l): every column but the
  * count ends its text in an ellipsis, and the row hands the tooltip the cell the pointer is on.
@@ -118,7 +123,7 @@ export default function CatalogList({ rows, groups }) {
     };
     const clearAll = () => {
         setTyped("");
-        write({});
+        write({ sort: reading.held.sort });
     };
 
     const count = reading.narrowed ? FILTER_BAR_COPY.count(reading.rows.length, reading.total) : reading.total;
@@ -163,6 +168,9 @@ export default function CatalogList({ rows, groups }) {
                             onChange={(on) => write({ ...reading.held, discontinued: on })}
                             clearLabel={COPY.clearDiscontinued}
                         />
+                        <div className="-mr-sort-inset-right ml-auto">
+                            <SortChoice list={LIST_SORTS.kinds} sort={reading.held.sort} onChange={(sort) => write({ ...reading.held, sort })} />
+                        </div>
                     </>
                 }
                 label={COPY.heading}

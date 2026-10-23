@@ -99,6 +99,10 @@
     --spacing-job-chip-inset-right: 0.5rem; /* 1a, 8: its room on its chevron's side — from the drawings, not the spec */
     --size-job-chip-chevron: 0.75rem; /* 1a, 12: its chevron — from the drawings, not the spec */
     --min-width-job-chip-list: 10rem; /* 1a, 160: the least the list that chip opens takes, its room and Edge counted, and never less than the chip — from the drawings, not the spec */
+    --spacing-sort-inset-left: 0.4375rem; /* 1a, 1d, 1l, 7: the sort's room before its mark — from the drawings, not the spec */
+    --spacing-sort-inset-right: 0.5rem; /* 1a, 1d, 1l, 8: its room on its chevron's side, which it pulls out past the content's edge so its chevron meets it — from the drawings, not the spec */
+    --size-sort-chevron: 0.75rem; /* 1a, 1d, 1l, 12: its chevron — from the drawings, not the spec */
+    --spacing-sort-check-gap: 0.625rem; /* 1a, 1d, 1l, 10: from an order's name to the room its check keeps, in the sort's list — from the drawings, not the spec */
 
     /* 0b · Layout — the page's own measure. */
     --container-content: 67.5rem; /* Content, 1080: the centered measure, for short text */

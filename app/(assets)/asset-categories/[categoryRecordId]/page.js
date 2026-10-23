@@ -1,20 +1,20 @@
 import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
-import { getAssetsByCategory } from "@/lib/airtable/assets";
+import { getAssetsByRecordIds } from "@/lib/airtable/assets";
 import { getAssetLogEntriesByRecordIds } from "@/lib/airtable/assetLog";
 import { getAssetCategoriesByRecordIds } from "@/lib/airtable/assetCategories";
 import { assignedJobsFor } from "@/lib/assetJob";
 import {
     ASSET_LIST_COPY as COPY,
+    holderRowIds,
     idsInScope,
     lastChangeOf,
-    latestLogRowIds,
     pageOfAssets,
     assetListScope,
 } from "@/lib/assetListView";
 import { registrationCatalog } from "@/lib/assetCategory";
 import { ASSET_REGISTRATION_COPY, canRegisterAssets, readRegistrationAccount } from "@/lib/assetRegistration";
-import { ASSET_CATEGORIES_PATH, assetCategoriesPath } from "@/lib/assetRoutes";
+import { ASSET_CATEGORIES_PATH, LIST_SORTS, assetCategoriesPath, readSort } from "@/lib/assetRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
 import { isSiteManager } from "@/lib/siteManager";
 import Breadcrumb from "@/app/components/Breadcrumb";
@@ -26,6 +26,7 @@ import CategoryCaption from "../../CategoryCaption";
 import RegistrationShortfall from "./RegistrationShortfall";
 import RegistrationUnlogged from "./RegistrationUnlogged";
 import CategoryJobChoice from "./CategoryJobChoice";
+import CategorySort from "./CategorySort";
 import AssetList from "./AssetList";
 
 // Static, the way `/materials/[materialId]` is and for the same reason: the
@@ -61,22 +62,30 @@ export const metadata = { title: "Item" };
  * what the page is a list of — a route rendering two different tables is a shape
  * the brief system, one file per page, cannot describe.
  *
- * FIVE OPERATIONS, WHATEVER THE CATEGORY'S SIZE. The session find, the category, the one
- * batched read of this page's assets, the job list, and since #520 the one batched read of
- * those assets' latest log rows. The page is chosen
- * from the category's own `Assets` link array BEFORE anything is fetched, so a
- * category with three hundred units costs exactly what one with three costs, and
- * the total the screen states comes from that array's length for nothing.
+ * FIVE OPERATIONS UP TO A HUNDRED ITEMS ON WHAT IT STANDS ON, AND FOUR WITH NONE OF A PAGE'S OUT.
+ * The session find, the category, the job list, the one batched read of the kind's items on the
+ * scope — a hundred to a query — and the one batched read of the latest log rows of the page's
+ * items that are out. **The items are read whole since #540**, which sorts them by their latest
+ * event or their printed id before it cuts the page (`pageOfAssets`): from #339 the page was
+ * chosen from the category's `Assets` link array before anything was fetched and its ids alone
+ * were read, so a kind of three hundred cost what one of three did. Now a kind past a hundred on
+ * the scope reads once more per hundred; the test base's largest is 86 (`docs/notes/tools.md`).
  *
- * AND WHATEVER THE ASSETS' HISTORIES HOLD (#520). Each row says when its asset last changed
- * and, while it is out, who holds it — both off the asset's latest `Asset Log` row, the last
- * of its link array — so the fifth read asks for one row per asset on the page
- * (`latestLogRowIds`), however many scans are behind each. `Assets` carries no copy of the
- * moment; docs/notes/tools.md weighs that against this read.
+ * AND WHATEVER THE ASSETS' HISTORIES HOLD (#520). Each row says when its asset last changed —
+ * its `Last Event At`, the latest `Asset Log` event's moment Airtable keeps on the asset since
+ * #540, the moment the rows are sorted by — and, while it is out, who holds it, off its latest
+ * `Asset Log` row, the last of its link array (`holderRowIds`): one row per item out, however
+ * many scans are behind each. From #520 until #540 the moment came off that row too, read for
+ * every item on the page.
+ *
+ * AND THE ORDER ASKED (#540): newest change first, where the page starts and a registration
+ * lands, or by printed id — the address's `sort`, read by `readSort` over `LIST_SORTS.items`. The
+ * control stands at the foot of the head's controls (1d), and the job's choice, a step and a box
+ * keep the order.
  *
  * AND WHATEVER JOB IT STANDS ON (#509, #520). The array is first cut to the job's assets —
  * `assetListScope`, the judgment `/asset-categories` reads its rows by — which comes off the
- * job list's own link arrays, so the page is still chosen before anything is fetched. A list
+ * job list's own link arrays, so only the scope's items are read. A list
  * stands on one job since #520, the first of the reader's by its code until they move, and
  * the head counts what this category holds there; from #509 it started from all of the
  * reader's jobs, counted `N of M` once a job narrowed it. **The job is chosen in the
@@ -85,8 +94,8 @@ export const metadata = { title: "Item" };
  * with assets, none of them on the job, draws its head and nothing under it: `Nothing added
  * yet` would be false there, and Design is drawing what it says. An asset off the job still
  * opens from its label. **On all of the reader's jobs (#548)** the array is cut to the assets
- * on any of them, still one page read, and each row says its job in a column after its id
- * (1d), which the breadcrumb says for all of them on one job.
+ * on any of them, and each row says its job in a column after its id (1d), which the breadcrumb
+ * says for all of them on one job.
  *
  * AND WHATEVER IS SELECTED (#443). Which assets a label run is for rides in the
  * address as `id`, and this page never reads it: `AssetList.js` beside it reads
@@ -135,18 +144,17 @@ export const metadata = { title: "Item" };
  * The heading stood alone for everybody from #507, when the sentence that spoke to whoever was
  * adding went with the failed registration it described, until the design drew the two.
  *
- * NO COUNT PER STATUS HERE, DELIBERATELY. That is the question one level up, and
- * answering it on this page would mean the status of every asset under the category —
- * which is the cost the paging exists to avoid. If it is ever wanted here it
- * comes from the statuses the list keeps (`getAssetStatuses`, #560), which this said
- * would be a rollup until that issue kept them instead.
+ * NO COUNT PER STATUS HERE, DELIBERATELY. That is the question one level up, and 1d draws
+ * none. Every item of the kind on the scope is read since #540, so the statuses are in hand
+ * and a count would cost nothing; until then answering it meant reading them all, which the
+ * paging existed to avoid.
  *
  * DRAWN AS 1d (#463): the breadcrumb and the list's head with how many items the category has,
  * held still over the rows, the selection bar floating over the pinned pager while anything
  * is selected — `ListFrame.js` and `ListTable.js` for the parts, `AssetList.js` for the
  * rows, the boxes and the bar, which read the selection off the address. **Newest first,
- * as 1d draws it** (`pageOfAssets`), so a registration moves every page's edges, which
- * was accepted: the selection is printed ids and moves with nothing.
+ * as 1d draws it** (`pageOfAssets`), so a registration and a change move every page's edges,
+ * which was accepted: the selection is printed ids and moves with nothing.
  *
  * NO WIDTH OF ITS OWN AND NO TEXT IN THE MARKUP — see the layout (#336), lib/assetListView.js
  * for the rules and lib/assetRoutes.js for the addresses.
@@ -185,28 +193,26 @@ async function renderCategoryPage({ params, searchParams }) {
         );
     }
 
-    // The slice is decided here and the read follows it. `pageOfAssets` clamps
-    // as well as slices, so a typed or copied `?page=` never lands on an empty
-    // screen for a page that exists.
+    // The kind's items on the scope, read whole and sorted, and the page cut from them (#540).
+    // `pageOfAssets` orders, clamps and slices, so a typed or copied `?page=` never lands on an
+    // empty screen for a page that exists, and no page is cut in another order.
     //
-    // `rowIds: page.ids` IS WHAT DIVIDES THE READ, AND TWO CLAIMS REST ON IT (#442):
-    // the five operations above, and the page box below selecting one page (#443;
-    // until then the second claim was the print control sending one page). Without
-    // it `getAssetsByCategory` reads the category's whole link array, and this screen
-    // reads every asset under the category and offers every one of them to the page
-    // box with nothing on screen to show it — so `offline/asset-list-view.mjs` reads
-    // the argument off the source, and the rows this hands the list, rather than
-    // trusting a figure.
+    // `page.assets` IS WHAT THE LIST IS HANDED, AND THE PAGE BOX RESTS ON IT (#443): every item
+    // on the scope is read, and the list is handed the page's alone, so the page box selects one
+    // page — `offline/asset-list-view.mjs` reads the binding off the source and the rows this hands
+    // the list, rather than trusting a figure.
     //
-    // THE ARRAY IS CUT TO THE JOB'S ASSETS FIRST (#509, #520), off ids already in hand, so the
-    // read is still one page.
+    // THE ARRAY IS CUT TO THE JOB'S ASSETS FIRST (#509, #520), off ids already in hand, so only the
+    // scope's are read.
     const scope = assetListScope(user, jobs, sp.job);
     // What the breadcrumb's choice holds and every write carries: a job, or all of them (#548).
     const job = scope.choice;
     // Whether the reader chooses a job at all: only with more than one (1d, #519).
     const choosesJob = scope.jobs.length > 1;
-    const page = pageOfAssets(idsInScope(category.assets, scope.shown), sp.page);
-    const assets = await getAssetsByCategory(category.id, { rowIds: page.ids });
+    // The order the address asks for, the page's start when it asks for none it offers (#540).
+    const sort = readSort(sp.sort, LIST_SORTS.items);
+    const page = pageOfAssets(await getAssetsByRecordIds(idsInScope(category.assets, scope.shown)), sp.page, sort);
+    const assets = page.assets;
 
     const account = readRegistrationAccount({ asked: sp.asked, unwritten: sp.unwritten, unlogged: sp.unlogged });
     // Whether this reader adds assets and prints their labels here at all (#506): every
@@ -243,6 +249,7 @@ async function renderCategoryPage({ params, searchParams }) {
                                       job={job}
                                       categoryRecordId={category.id}
                                       selects={recorder}
+                                      sort={sort}
                                   />
                               ),
                           },
@@ -258,6 +265,9 @@ async function renderCategoryPage({ params, searchParams }) {
     const opened = { id: category.id, itemName: category.itemName };
     const catalog = registrationCatalog([category]);
     const registration = { opener: ASSET_REGISTRATION_COPY.heading, canRegister, jobs: assignedJobs, listJobId, category: opened, catalog };
+    // The head's controls stand in a column at its foot (1d, #540): `Add items` for a site manager,
+    // and under it, while the list has rows to order, the sort — pulled out past the content's edge by
+    // its own room, so its chevron meets it, and 14 over the column head where the head's foot is 18.
     const header = (
         <ListHeader
             title={category.itemName}
@@ -265,8 +275,14 @@ async function renderCategoryPage({ params, searchParams }) {
             noun={COPY.itemNoun(page.total)}
             caption={<CategoryCaption category={category} className="text-body text-foreground-subtle" />}
             underBreadcrumb
+            stacked
         >
             {recorder && <RegistrationDialog {...registration} />}
+            {page.total > 0 && (
+                <div className="-mr-sort-inset-right -mb-[calc(var(--spacing-list-header-inset-bottom)-var(--spacing-gap-lg))]">
+                    <CategorySort categoryRecordId={category.id} job={job} sort={sort} selects={recorder} />
+                </div>
+            )}
         </ListHeader>
     );
 
@@ -303,10 +319,11 @@ async function renderCategoryPage({ params, searchParams }) {
     // count; the category's name is the line under that dialog's title (#457). The boxes and the
     // bar are a site manager's (#506), so `selects` is the page's one answer to that.
     //
-    // Each row says when its asset last changed, and who holds one that is out, off its
-    // latest log row (1d, #520) — the rows read here in one batch, one per asset — where it
-    // said the job the asset was last scanned on from #463.
-    const latest = new Map((await getAssetLogEntriesByRecordIds(latestLogRowIds(assets))).map((entry) => [entry.id, entry]));
+    // Each row says when its asset last changed, its own `Last Event At` (#540), and who holds one
+    // that is out, off its latest log row (1d, #520) — those rows read here in one batch, one per
+    // item out, and none at all for a page with nothing out — where it said the job the asset was
+    // last scanned on from #463.
+    const latest = new Map((await getAssetLogEntriesByRecordIds(holderRowIds(assets))).map((entry) => [entry.id, entry]));
     // On all of the reader's jobs each row says the job its asset is on (1d, #548), by the code
     // the job list already read carries, so it costs nothing; on one job the breadcrumb says it.
     const codeOf = new Map(scope.jobs.map((each) => [each.id, each.jobCode]));
@@ -327,6 +344,7 @@ async function renderCategoryPage({ params, searchParams }) {
             }))}
             page={page}
             job={job}
+            sort={sort}
             top={top}
             header={header}
         >

@@ -206,6 +206,24 @@ const CARRIED = [
         param: "discontinued",
         note: "#527 — `1` narrows to the discontinued rows, the document lists' shape for a toggle; absence is every row",
     },
+    // #540 — THE ORDER EACH LIST STANDS IN. Narrows nothing: it orders what the rest leaves. Written
+    // only for an order that is not the list's start (`lib/assetRoutes.js:LIST_SORTS`), so absence is
+    // the start, and a list opened afresh — the rail, a row's way into a kind, a landing — starts there.
+    {
+        route: "/asset-categories",
+        param: "sort",
+        note: "#540 — `updated`, the kinds by the latest event among their items on what the list stands on (the `Job` chip's jobs when it takes any); absence is by name. Read with the band through `readAssetListFilters` and answered by `readSort`, written by the band's control through `assetCategoriesPath` and carried by every write of the band, the job's choice and `Clear all`",
+    },
+    {
+        route: "/asset-catalog",
+        param: "sort",
+        note: "#540 — `updated`, the rows by when each was last edited (`Asset Categories.\"Edited At\"`); absence is by name. Read and written as the category list's is, through `assetCatalogPath`",
+    },
+    {
+        route: "/asset-categories/[categoryRecordId]",
+        param: "sort",
+        note: "#540 — `id`, the kind's items by their printed id; absence is newest change first, where the page starts and a registration lands. Read by the server render, which cuts the page in that order; written by the head's control as a navigation to the first page, and carried by a box, a step and the breadcrumb's job choice through `assetCategoryPath`",
+    },
 
     // ── navigation: which record the form opens on ──────────────────────────
     { route: "/prs/new", param: "draft", note: "the saved Draft to resume (#72/#74); written by a Link on the drafts list and by both actions that raise one" },

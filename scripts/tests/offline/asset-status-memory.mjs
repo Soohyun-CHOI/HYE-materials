@@ -53,10 +53,16 @@ const CLIENT = "lib/airtable/client.js";
 function rig({ statuses, slow = false } = {}) {
     let t = 1_000_000;
     // Each asset's printed id is its record id's, upper-cased after the token, until renamed.
-    const base = new Map(Object.entries(statuses ?? {}).map(([id, status]) => [id, { status, assetId: `HYE-AST-${id.toUpperCase()}`, modifiedAt: 0 }]));
+    // Each asset's latest event is the first of the month until one is logged (#540).
+    const base = new Map(
+        Object.entries(statuses ?? {}).map(([id, status]) => [
+            id,
+            { status, assetId: `HYE-AST-${id.toUpperCase()}`, modifiedAt: 0, lastEventAt: "2026-10-01T00:00:00.000Z", loggedAt: 0 },
+        ])
+    );
     const calls = { reads: [], changes: [] };
     const held = [];
-    const rowOf = (id) => ({ id, status: base.get(id).status, assetId: base.get(id).assetId });
+    const rowOf = (id) => ({ id, status: base.get(id).status, assetId: base.get(id).assetId, lastEventAt: base.get(id).lastEventAt });
     // A read answers the base as it stood when the read was sent, however late it lands.
     const readByIds = (ids) => {
         calls.reads.push([...ids]);
@@ -66,7 +72,8 @@ function rig({ statuses, slow = false } = {}) {
     };
     const readChangedSince = (moment) => {
         calls.changes.push(moment.getTime());
-        return Promise.resolve([...base].filter(([, row]) => row.modifiedAt > moment.getTime()).map(([id]) => rowOf(id)));
+        // The status or the id modified after the moment, or an event logged after it (#540).
+        return Promise.resolve([...base].filter(([, row]) => row.modifiedAt > moment.getTime() || row.loggedAt > moment.getTime()).map(([id]) => rowOf(id)));
     };
     const memory = createAssetStatusMemory({ readByIds, readChangedSince, now: () => t });
     return {
@@ -80,6 +87,8 @@ function rig({ statuses, slow = false } = {}) {
         write: (id, status) => base.set(id, { ...base.get(id), status, modifiedAt: t }),
         // A printed id edited by hand, which the question asks about as it asks about a status.
         rename: (id, assetId) => base.set(id, { ...base.get(id), assetId, modifiedAt: t }),
+        // An event logged whose status write did not land (\`statusNotUpdated\`): the rollup moves alone.
+        logged: (id, at) => base.set(id, { ...base.get(id), lastEventAt: at, loggedAt: t }),
         release: () => held.splice(0).forEach((go) => go()),
         reset: () => {
             calls.reads.length = 0;
@@ -195,6 +204,22 @@ export async function run({ check, log }) {
     const p = rig({ statuses: { a: ASSET_STATUS.IN_STOCK, b: ASSET_STATUS.OUT } });
     const met = await p.memory(["a", "b"]);
     check("each answer carries the asset's printed id beside its status (#541)", `${idsSaid(met)} | ${said(met)}`, "a=HYE-AST-A b=HYE-AST-B | a=In stock b=Out");
+
+    // The moment the list sorts by, kept beside them since #540, and an event shown on the next view
+    // even where nothing modified the status — the question asks by the moment's own value.
+    const momentsSaid = (map) => [...map].map(([id, facts]) => `${id}=${facts.lastEventAt}`).join(" ");
+    const e = rig({ statuses: { a: ASSET_STATUS.IN_STOCK, b: ASSET_STATUS.OUT } });
+    check("each answer carries the asset's latest event's moment (#540)", momentsSaid(await e.memory(["a", "b"])), "a=2026-10-01T00:00:00.000Z b=2026-10-01T00:00:00.000Z");
+    e.advance(MINUTE);
+    e.logged("b", "2026-10-23T09:00:00.000Z");
+    e.advance(1000);
+    e.reset();
+    const eventSeen = await e.memory(["a", "b"]);
+    check(
+        "  an event logged with no status written shows on the next view, reading no asset",
+        `${momentsSaid(eventSeen)} | ${said(eventSeen)} | ${e.calls.reads.length}`,
+        "a=2026-10-01T00:00:00.000Z b=2026-10-23T09:00:00.000Z | a=In stock b=Out | 0"
+    );
     p.reset();
     p.advance(MINUTE);
     p.rename("b", "HYE-AST-261019-430");
@@ -387,22 +412,24 @@ export async function run({ check, log }) {
         "async (recordIds) => (await findByRecordIds(TABLES.ASSETS, recordIds, { fields: KEPT_FIELDS, perQuery: 100 })).map(recordToStatus)"
     );
     check(
-        "  and asks which of those two changed since a moment, reading those two alone",
+        "  and asks which of the two were modified, or whose latest event happened, since a moment, reading the three alone",
         reads.changed,
-        "async (moment) => ( await base(TABLES.ASSETS) .select({ filterByFormula: changedSince(KEPT_FIELDS, moment), fields: KEPT_FIELDS }) .all() ).map(recordToStatus)"
+        "async (moment) => ( await base(TABLES.ASSETS) .select({ filterByFormula: changedSince(MODIFIED_FIELDS, moment, { momentsAfter: [LAST_EVENT_AT_FIELD] }), fields: KEPT_FIELDS }) .all() ).map(recordToStatus)"
     );
     check(
-        "  the fields being Status and Asset ID (#541)",
+        "  the fields being Status and Asset ID (#541), and Last Event At (#540)",
         [
             /const STATUS_FIELD = "Status";/.test(assets.source),
             /const ASSET_ID_FIELD = "Asset ID";/.test(assets.source),
-            /const KEPT_FIELDS = \[STATUS_FIELD, ASSET_ID_FIELD\];/.test(assets.source),
+            /const MODIFIED_FIELDS = \[STATUS_FIELD, ASSET_ID_FIELD\];/.test(assets.source),
+            /const LAST_EVENT_AT_FIELD = "Last Event At";/.test(assets.source),
+            /const KEPT_FIELDS = \[\.\.\.MODIFIED_FIELDS, LAST_EVENT_AT_FIELD\];/.test(assets.source),
         ].join(" "),
-        "true true true"
+        "true true true true true"
     );
     check(
-        "  and each answer the record's id, its Status and its Asset ID",
-        /function recordToStatus\(record\) \{\s*return \{ id: record\.id, status: record\.get\(STATUS_FIELD\), assetId: record\.get\(ASSET_ID_FIELD\) \};\s*\}/.test(assets.source),
+        "  and each answer the record's id, its Status, its Asset ID and its Last Event At",
+        /function recordToStatus\(record\) \{\s*return \{\s*id: record\.id,\s*status: record\.get\(STATUS_FIELD\),\s*assetId: record\.get\(ASSET_ID_FIELD\),\s*lastEventAt: record\.get\(LAST_EVENT_AT_FIELD\) \?\? null,\s*\};\s*\}/.test(assets.source),
         true
     );
 

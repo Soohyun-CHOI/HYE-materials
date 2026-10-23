@@ -71,16 +71,17 @@ const CATEGORIES = [
     // A catalog row nobody has bought (#507): on no list, and in no file.
     kind("recK5", "Grinder", "Tool", "Power Tool", "Grinder", "", "", "", []),
 ];
-const asset = (id, assetId, status, job, category, note, assetLog) => ({ id, assetId, status, job: [job], category: [category], note, assetLog });
+// Each asset's \`Last Event At\` (#540) is its latest log row's \`Event At\` below, as Airtable rolls it up.
+const asset = (id, assetId, status, job, category, note, assetLog, lastEventAt) => ({ id, assetId, status, job: [job], category: [category], note, assetLog, lastEventAt });
 const ASSETS_HELD = [
-    asset("a1", "HYE-AST-261001-001", ASSET_STATUS.IN_STOCK, "recJ1", "recK1", "", ["l1"]),
-    asset("a2", "HYE-AST-261001-002", ASSET_STATUS.OUT, "recJ1", "recK1", "Kept in bay 2", ["l2a", "l2b"]),
-    asset("a3", "HYE-AST-261001-003", ASSET_STATUS.RETIRED, "recJ2", "recK1", "", ["l3"]),
-    asset("a4", "HYE-AST-261002-001", ASSET_STATUS.IN_REPAIR, "recJ2", "recK2", "", ["l4"]),
-    asset("a5", "HYE-AST-261002-002", ASSET_STATUS.IN_STOCK, "recJ1", "recK2", '=HYPERLINK("http://x","y")', ["l5"]),
-    asset("a6", "HYE-AST-261003-001", ASSET_STATUS.IN_STOCK, "recJ3", "recK3", "@SUM(A1)", ["l6"]),
+    asset("a1", "HYE-AST-261001-001", ASSET_STATUS.IN_STOCK, "recJ1", "recK1", "", ["l1"], "2026-10-01T15:00:00.000Z"),
+    asset("a2", "HYE-AST-261001-002", ASSET_STATUS.OUT, "recJ1", "recK1", "Kept in bay 2", ["l2a", "l2b"], "2026-10-22T03:30:00.000Z"),
+    asset("a3", "HYE-AST-261001-003", ASSET_STATUS.RETIRED, "recJ2", "recK1", "", ["l3"], "2026-10-05T12:00:00.000Z"),
+    asset("a4", "HYE-AST-261002-001", ASSET_STATUS.IN_REPAIR, "recJ2", "recK2", "", ["l4"], "2026-10-10T12:00:00.000Z"),
+    asset("a5", "HYE-AST-261002-002", ASSET_STATUS.IN_STOCK, "recJ1", "recK2", '=HYPERLINK("http://x","y")', ["l5"], "2026-10-02T12:00:00.000Z"),
+    asset("a6", "HYE-AST-261003-001", ASSET_STATUS.IN_STOCK, "recJ3", "recK3", "@SUM(A1)", ["l6"], "2026-10-03T12:00:00.000Z"),
     // Out, but its latest entry is a check-in — the cache and the log disagree — so nobody is named.
-    asset("a7", "HYE-AST-261004-001", ASSET_STATUS.OUT, "recJ2", "recK4", "", ["l7"]),
+    asset("a7", "HYE-AST-261004-001", ASSET_STATUS.OUT, "recJ2", "recK4", "", ["l7"], "2026-10-04T12:00:00.000Z"),
 ];
 const entry = (id, event, eventAt, checkedOutTo = null) => ({ id, event, eventAt, checkedOutTo });
 const LOG_ROWS = [
@@ -228,14 +229,14 @@ async function byId541({ check, log }) {
         "Band Saw, DeWalt (DCS375) ; Tool ; Power Tool ; 1 ; 1 ; 0 ; 0 ; 2"
     );
     check("  the second every asset under that row, not the item alone", byId.made.sheets[1].rows.map((row) => row[0]).join(" "), "HYE-AST-261001-002 HYE-AST-261001-001");
-    check("  each of them read for its day, and every asset on the job for the counts", `${byId.asked.assets.map((ids) => ids.join(",")).join(" / ")} | ${byId.asked.logRows.map((ids) => ids.join(",")).join(" / ")}`, "a1,a2,a5 | l2b,l1");
+    check("  the one out read for its holder, and every asset on the job for the counts", `${byId.asked.assets.map((ids) => ids.join(",")).join(" / ")} | ${byId.asked.logRows.map((ids) => ids.join(",")).join(" / ")}`, "a1,a2,a5 | l2b");
     check("  and the two sheets agree", agreement(byId.made.sheets), "agree");
     check("its label's code presses the same file", rowsSaid((await press(OFFICE, "q=261001-002")).made.sheets[1]), rowsSaid(byId.made.sheets[1]));
     const onAll = await press(OFFICE, "job=all&q=261001-003");
     check(
         "on all of the office's jobs the item's row counts every job, and lists every asset under it",
         `${rowsSaid(onAll.made.sheets[0])} | ${onAll.made.sheets[1].rows.map((row) => `${row[0]} ${row[8]}`).join(" ")}`,
-        "Band Saw, DeWalt (DCS375) ; Tool ; Power Tool ; 1 ; 1 ; 0 ; 1 ; 2 | HYE-AST-261001-003 25-USA-13 HYE-AST-261001-002 23-USA-09 HYE-AST-261001-001 23-USA-09"
+        "Band Saw, DeWalt (DCS375) ; Tool ; Power Tool ; 1 ; 1 ; 0 ; 1 ; 2 | HYE-AST-261001-002 23-USA-09 HYE-AST-261001-003 25-USA-13 HYE-AST-261001-001 23-USA-09"
     );
     const offJob = await press(OFFICE, "q=261001-003");
     check("an item off the job the list stands on is in no sheet", `${offJob.made.sheets[0].rows.length} ${offJob.made.sheets[1].rows.length}`, "0 0");
@@ -259,14 +260,14 @@ export async function run({ check, log, assert }) {
     log("one press, over a fixture of three jobs and seven assets:");
     const first = await press(OFFICE, "");
     check("the office on no job asked stands on the first by its code, and the file says so", first.made.fileName, "Tools & Equipment - 23-USA-09 - 2026-10-22.xlsx");
-    check("  each read asked once — the catalog, the jobs, the job's assets, their latest rows", `${first.asked.categories} ${first.asked.jobs} ${first.asked.assets.map((ids) => ids.join(",")).join(" / ")} | ${first.asked.logRows.map((ids) => ids.join(",")).join(" / ")}`, "1 1 a1,a2,a5 | l2b,l1,l5");
+    check("  each read asked once — the catalog, the jobs, the job's assets, the latest rows of those out", `${first.asked.categories} ${first.asked.jobs} ${first.asked.assets.map((ids) => ids.join(",")).join(" / ")} | ${first.asked.logRows.map((ids) => ids.join(",")).join(" / ")}`, "1 1 a1,a2,a5 | l2b");
     check(
         "  the first sheet is the list on that job: each kind, its type, its category, its four counts and its total",
         rowsSaid(first.made.sheets[0]),
         "Band Saw, DeWalt (DCS375) ; Tool ; Power Tool ; 1 ; 1 ; 0 ; 0 ; 2 | TIG Welder, Lincoln Electric (TIG 205) ; Equipment ; Welding Equipment ; 1 ; 0 ; 0 ; 0 ; 1"
     );
     check(
-        "  the second its assets, newest first under each kind, with the holder of one out and each one's day",
+        "  the second its assets, newest change first under each kind, with the holder of one out and each one's day",
         rowsSaid(first.made.sheets[1]),
         "HYE-AST-261001-002 ; Tool ; Power Tool ; Band Saw ; - ; DeWalt ; DCS375 ; Out ; 23-USA-09 ; Dana K ; Kept in bay 2 ; 10/22/2026 | " +
             "HYE-AST-261001-001 ; Tool ; Power Tool ; Band Saw ; - ; DeWalt ; DCS375 ; In stock ; 23-USA-09 ; - ; - ; 10/1/2026 | " +
@@ -282,11 +283,26 @@ export async function run({ check, log, assert }) {
         'Band Saw, DeWalt (DCS375) ; Tool ; Power Tool ; 1 ; 1 ; 0 ; 1 ; 2 | Drill 1/2" ; Tool ; Power Tool ; 0 ; 1 ; 0 ; 0 ; 1 | Hammer ; Tool ; Hand Tool ; 1 ; 0 ; 0 ; 0 ; 1 | TIG Welder, Lincoln Electric (TIG 205) ; Equipment ; Welding Equipment ; 1 ; 0 ; 1 ; 0 ; 2'
     );
     check(
-        "  the second lists them in the first's order, each kind newest first, each with its own job",
+        "  the second lists them in the first's order, each kind newest change first, each with its own job",
         all.made.sheets[1].rows.map((row) => `${row[0]} ${row[8]} ${said(row[9])}`).join(" | "),
-        "HYE-AST-261001-003 25-USA-13 - | HYE-AST-261001-002 23-USA-09 Dana K | HYE-AST-261001-001 23-USA-09 - | HYE-AST-261004-001 25-USA-13 - | HYE-AST-261003-001 26-USA-12 - | HYE-AST-261002-002 23-USA-09 - | HYE-AST-261002-001 25-USA-13 -"
+        "HYE-AST-261001-002 23-USA-09 Dana K | HYE-AST-261001-003 25-USA-13 - | HYE-AST-261001-001 23-USA-09 - | HYE-AST-261004-001 25-USA-13 - | HYE-AST-261003-001 26-USA-12 - | HYE-AST-261002-001 25-USA-13 - | HYE-AST-261002-002 23-USA-09 -"
     );
-    check("  every asset on them read, once", all.asked.assets.map((ids) => ids.join(",")).join(" / "), "a1,a2,a3,a4,a5,a6,a7");
+    check("  every asset on them read, once, and the rows of the two out", `${all.asked.assets.map((ids) => ids.join(",")).join(" / ")} | ${all.asked.logRows.map((ids) => ids.join(",")).join(" / ")}`, "a1,a2,a3,a4,a5,a6,a7 | l2b,l7");
+
+    // THE LIST'S ORDER (#540): the first sheet by most recent change when the list is sorted so,
+    // and the second's blocks with it, each still newest change first within.
+    const recent = await press(OFFICE, "job=all&sort=updated");
+    check(
+        "a list sorted by most recent change gives a first sheet in that order",
+        recent.made.sheets[0].rows.map((row) => row[0]).join(" | "),
+        'Band Saw, DeWalt (DCS375) | TIG Welder, Lincoln Electric (TIG 205) | Drill 1/2" | Hammer'
+    );
+    check(
+        "  and a second whose blocks follow it, each newest change first",
+        recent.made.sheets[1].rows.map((row) => row[0]).join(" "),
+        "HYE-AST-261001-002 HYE-AST-261001-003 HYE-AST-261001-001 HYE-AST-261002-001 HYE-AST-261002-002 HYE-AST-261004-001 HYE-AST-261003-001"
+    );
+    check("  the two sheets agree", agreement(recent.made.sheets), "agree");
     check("  and the two sheets agree", agreement(all.made.sheets), "agree");
 
     const narrowed = await press(OFFICE, "job=all&job=recJ1&type=Tool&q=saw");
@@ -296,7 +312,7 @@ export async function run({ check, log, assert }) {
         "Band Saw, DeWalt (DCS375) ; Tool ; Power Tool ; 1 ; 1 ; 0 ; 0 ; 2"
     );
     check("  the second sheet lists that job's assets of it alone", narrowed.made.sheets[1].rows.map((row) => row[0]).join(" "), "HYE-AST-261001-002 HYE-AST-261001-001");
-    check("  every asset on what the list stands on still read, and only the listed ones' rows", `${narrowed.asked.assets.map((ids) => ids.length).join(",")} | ${narrowed.asked.logRows.map((ids) => ids.join(",")).join(" / ")}`, "7 | l2b,l1");
+    check("  every asset on what the list stands on still read, and only the listed ones' rows out", `${narrowed.asked.assets.map((ids) => ids.length).join(",")} | ${narrowed.asked.logRows.map((ids) => ids.join(",")).join(" / ")}`, "7 | l2b");
     check("  and the two sheets agree", agreement(narrowed.made.sheets), "agree");
 
     const second = await press(OFFICE, "job=recJ2");
@@ -383,7 +399,7 @@ export async function run({ check, log, assert }) {
         '@SUM(A1) | =HYPERLINK("http://x","y")'
     );
     check("  the holder as the history says it", items.filter((cell) => cell.col === "J" && cell.row > 1).map((cell) => cell.value).join(" | "), "Dana K");
-    check("  each day a serial under the day's style", items.filter((cell) => cell.col === "L" && cell.row > 1).map((cell) => `${cell.value}:${cell.s}:${cell.t}`).join(" "), "46300:3:null 46317:3:null 46296:3:null 46299:3:null 46298:3:null 46297:3:null 46305:3:null");
+    check("  each day a serial under the day's style", items.filter((cell) => cell.col === "L" && cell.row > 1).map((cell) => `${cell.value}:${cell.s}:${cell.t}`).join(" "), "46317:3:null 46300:3:null 46296:3:null 46299:3:null 46298:3:null 46305:3:null 46297:3:null");
     check("  a blank written as no cell: an item with no size, holder or note has none of those cells", items.filter((cell) => cell.row === 4).map((cell) => cell.col).join(" "), "A B C D F G H I L");
     const counts = cellsOf(parts["xl/worksheets/sheet1.xml"]).filter((cell) => cell.row > 1 && ["D", "E", "F", "G"].includes(cell.col));
     check("the counts are figures, a zero included", counts.map((cell) => `${cell.value}${cell.t ?? ""}`).join(" "), "1 1 0 1 0 1 0 0 1 0 0 0 1 0 1 0");

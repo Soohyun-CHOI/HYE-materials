@@ -16,9 +16,10 @@ import {
     readAssetListFilters,
     readCategoryList,
 } from "@/lib/assetListView";
-import { assetCategoriesPath, assetCategoryPath, assetPath } from "@/lib/assetRoutes";
+import { LIST_SORTS, assetCategoriesPath, assetCategoryPath, assetPath } from "@/lib/assetRoutes";
 import { ASSET_STATUS_VALUES } from "@/lib/assetStatus";
 import JobChoice from "../JobChoice";
+import SortChoice from "../SortChoice";
 import FoundItem from "./FoundItem";
 import ListExport from "./ListExport";
 
@@ -82,6 +83,13 @@ const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(4,var(--width-table-count))_var
  * more `job` values after `all`, read here with `getAll` beside the band's own reader, which the
  * catalog's page shares and which therefore reads no `job`. A move to one job leaves it behind.
  *
+ * THE BAND ENDS ON THE ORDER THE ROWS STAND IN (1a, #540): by name, where a list starts, or by the
+ * most recent change among each kind's items on what the list stands on — the `Job` chip's jobs
+ * when it takes any. `readCategoryList` sorts, so the export's first sheet stands in the same order,
+ * and `held.sort` rides every write of the address as the band's chips do: a chip, the search, a
+ * step, the job's choice and `Clear all`, which clears what narrows and not the order, keep it. The
+ * control stands at the band's end, its chevron on the content's edge (1a, 1a3).
+ *
  * A SEARCH FOR AN ITEM'S ID FINDS IT IN THE ROWS IN HAND (1a, #541): its row stays, and the way to
  * the item stands under the band (`FoundItem`), which Enter in the search takes too. An id no
  * item here carries says so, naming the job the list stands on — `jobCode`, null on all of them —
@@ -108,7 +116,7 @@ export default function AssetCategoryList({ rows, job, jobCode = null, allJobs =
     const clear = ({ clearsAll }) => {
         if (!clearsAll) return search("");
         setTyped("");
-        write({});
+        write({ sort: reading.held.sort });
     };
 
     const count = reading.narrowed ? FILTER_BAR_COPY.count(reading.rows.length, rows.length) : rows.length;
@@ -150,6 +158,9 @@ export default function AssetCategoryList({ rows, job, jobCode = null, allJobs =
                             lane="max-h-category-list-filter-list"
                         />
                     )}
+                    <div className="-mr-sort-inset-right ml-auto">
+                        <SortChoice list={LIST_SORTS.kinds} sort={reading.held.sort} onChange={(sort) => write({ ...reading.held, sort })} />
+                    </div>
                 </>
             }
             found={reading.found && <FoundItem found={reading.found} />}

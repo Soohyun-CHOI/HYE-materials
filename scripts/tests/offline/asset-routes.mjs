@@ -122,6 +122,24 @@ function allText(ast) {
 }
 
 export async function run({ check, assert, log }) {
+    // ── #540: the order each list stands in rides as `sort`, unless it is the list's start ──
+    // At the head, so an older assertion that throws cannot keep these from printing.
+    log("each list's order rides as `sort`, and only when it is not where the list starts (#540):");
+    check("the category list by name writes none", assetCategoriesPath(1, null, { sort: "name" }), "/asset-categories");
+    check(
+        "  by most recent change writes it after the band and before the page",
+        assetCategoriesPath(2, "recJob1", { q: "saw", level2: ["Power Tools"], sort: "updated" }),
+        "/asset-categories?job=recJob1&q=saw&category=Power+Tools&sort=updated&page=2"
+    );
+    check("the catalog the same", `${assetCatalogPath(1, { sort: "name" })} ${assetCatalogPath(2, { discontinued: true, sort: "updated" })}`, "/asset-catalog /asset-catalog?discontinued=1&sort=updated&page=2");
+    check("a kind's page newest change first writes none", assetCategoryPath("recAbc", 1, [], { sort: "updated" }), "/asset-categories/recAbc");
+    check(
+        "  by printed id writes it after the job and before the page and the run",
+        assetCategoryPath("recAbc", 2, ["HYE-AST-260909-004"], { job: ALL_JOBS, sort: "id" }),
+        "/asset-categories/recAbc?job=all&sort=id&page=2&id=HYE-AST-260909-004"
+    );
+    log("");
+
     // ── #548: all of a reader's jobs, and the Job chip beside it ────────────
     // At the head, so an older assertion that throws cannot keep these from printing.
     log("a list on all of a reader's jobs says `all`, and the band's Job chip follows it as more job values (#548):");

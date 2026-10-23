@@ -123,16 +123,16 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/assetCategory.js` — the asset categories a registration picks from (#507): their six levels (#514), the type, the name's formula, which rows a registration may pick and the walk to one, the `Asset Category Groups` row each type and category is (#528), the one reading of a row, its type and category through `Category Group` (`catalogFieldsOf`, #539), and the catalog's words. **Only the catalog's page writes an `Asset Categories` row (#527).**
 - `lib/assetRegistration.js` — registering assets (#338): the ceiling, what the dialog opens with and may submit (#456), a landing's account (#449), and every word a registration says.
 - `lib/assetView.js` — what one asset's page shows (#340), and every word it says.
-- `lib/assetRoutes.js` — every address on the assets axis (#348), the code a label prints (#411), and which search names an id (#541). **That code and the printed path's segment are one string.**
+- `lib/assetRoutes.js` — every address on the assets axis (#348), the code a label prints (#411), which search names an id (#541), and what `sort` says (#540). **That code and the printed path's segment are one string.**
 - `lib/assetLabelQR.js` — the QR symbol an asset's label carries (#351).
 - `lib/assetLabelPage.js` — the page an asset's label prints as (#353, #467).
 - `lib/assetTransition.js` — what a person may record against an asset (#362, #363, #531): the press, the menu's two, which asks first (#458), the refusals, and every word it says.
 - `lib/assetNote.js` — an item's note (#533): what a typed one keeps, a press's answers in order, and every word. **No event: it appends no `Asset Log` row.**
-- `lib/assetListView.js` — the two asset list screens (#339), the app's first paging, which assets a label run is for (#443), the one job they stand on (#509, #520) or all of a reader's (#548), what the category list's band narrows by (#520), an item it finds by its id (#541), and their own words.
-- `lib/assetStatusMemory.js` — each asset's status and printed id as a server keeps them between list views (#560, #541): one question to the base about what changed per view, a minute's overlap, ten minutes' bound. **No write clears it.**
+- `lib/assetListView.js` — the two asset list screens (#339), the app's first paging, which assets a label run is for (#443), the one job they stand on (#509, #520) or all of a reader's (#548), what the category list's band narrows by (#520), an item it finds by its id (#541), the order each stands in (#540), and their own words.
+- `lib/assetStatusMemory.js` — each asset's status, printed id and latest event as a server keeps them between list views (#560, #541, #540): one question to the base about what changed per view, a minute's overlap, ten minutes' bound. **No write clears it.**
 - `lib/assetListExport.js` — the list as an Excel file (#553): the press, handed its reads, its sheets and its words. It narrows nothing itself.
 - `lib/xlsxWorkbook.js` — an `.xlsx` written whole (#553): text cells are words, a formula's first character `quotePrefix`'d. Server-only.
-- `lib/assetCatalog.js` — the office's catalog page (#527): every row, that band with a toggle, what an add or an edit may save, and its words.
+- `lib/assetCatalog.js` — the office's catalog page (#527): every row, that band with a toggle, what an add or an edit may save, its order (#540), and its words.
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
 - `lib/materialPriceView.js` — the view rules for those screens: row ordering, the lowest-price mark, the quantity caveat, and `MATERIAL_SEARCH_COPY` (#357).
 - `lib/poItemQty.js` — what leaves an order open: `uninvoicedQty`, `hasUninvoicedQty`, `countsAsOrdered`, and `hasUninvoicedItems` per order.
