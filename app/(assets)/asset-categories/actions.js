@@ -5,12 +5,14 @@ import { redirect } from "next/navigation";
 import { requireUser, withSiteManagerAction } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllAssetCategories } from "@/lib/airtable/assetCategories";
-import { createAssets, getAssetsByRecordIds } from "@/lib/airtable/assets";
+import { createAssets, getAssetByAssetId, getAssetsByRecordIds } from "@/lib/airtable/assets";
 import { createFirstAssetLogEntries, getAssetLogEntriesByRecordIds } from "@/lib/airtable/assetLog";
 import { readCatalog } from "@/lib/assetCategory";
 import { assignedJobsFor } from "@/lib/assetJob";
+import { lastChangeOf, latestLogRowIds } from "@/lib/assetListView";
 import { ASSET_REGISTRATION_COPY, readRegistration } from "@/lib/assetRegistration";
-import { assetCategoryPath } from "@/lib/assetRoutes";
+import { assetCategoryPath, searchedAssetId } from "@/lib/assetRoutes";
+import { ASSET_STATUS } from "@/lib/assetStatus";
 import { ASSET_EXPORT_COPY, listExport } from "@/lib/assetListExport";
 import { XLSX_MEDIA_TYPE, workbookBytes } from "@/lib/xlsxWorkbook";
 import { createRequestPace, pagesOf } from "@/lib/airtablePace";
@@ -250,6 +252,41 @@ export async function exportAssetListAction(search, timeZone) {
         } catch (error) {
             console.error("exportAssetListAction: no file was made", error);
             return { error: ASSET_EXPORT_COPY.failed };
+        }
+    });
+}
+
+/**
+ * Who holds the item a search found by its id, while it is out (1a, #541): the name 1d says after
+ * `Out`, for the way to the item the list draws over its rows — `{ holder }`, or a null holder for
+ * an item not out, an id no asset carries, and a read that failed.
+ *
+ * THE ONE FACT THE LIST CANNOT DRAW FROM WHAT ITS PAGE READ. The status and the id ride on the
+ * status memory's reads (#560, #541), so a search finds the item and says its status with nothing
+ * asked of the base; the holder is on the asset's latest `Asset Log` row, and reading every
+ * holder for every view is a read per view the list does not make. So the list asks this once,
+ * when the item it found is out: the session, the asset by its id, and its latest log row, three
+ * operations — `latestLogRowIds` and `lastChangeOf`, 1d's reading of who holds an asset.
+ *
+ * WHOEVER READS THE LIST, AND ANY ASSET. `requireUser()`, the page's gate (#337); an asset's own
+ * page says who holds it to every signed-in reader whatever job it is on, so this answers no
+ * more than that page does, and asks no job. No wrapper fits, as none fits the export:
+ * `offline/authz-structure.mjs` carries it as an exemption. A failed read draws `Out` alone, as an
+ * asset whose latest row names nobody is drawn (`currentHolder`), and is logged.
+ */
+export async function readFoundHolderAction(assetId) {
+    return withOpsLabel("readFoundHolderAction", async () => {
+        await requireUser();
+        const asked = searchedAssetId(assetId);
+        if (!asked) return { holder: null };
+        try {
+            const asset = await getAssetByAssetId(asked);
+            if (asset?.status !== ASSET_STATUS.OUT) return { holder: null };
+            const entries = new Map((await getAssetLogEntriesByRecordIds(latestLogRowIds([asset]))).map((entry) => [entry.id, entry]));
+            return { holder: lastChangeOf(asset, entries).holder };
+        } catch (error) {
+            console.error("readFoundHolderAction: no holder was read", error);
+            return { holder: null };
         }
     });
 }

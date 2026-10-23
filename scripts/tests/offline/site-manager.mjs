@@ -77,9 +77,13 @@ const CATALOG_ACTIONS = [
  * The list's export (#553): every reader's, as the list is, so wrapped by neither — a READ whose
  * gate is the page's `requireUser()` and whose rows are the reader's own scope.
  * `offline/authz-structure.mjs` carries it as an exemption and `offline/asset-export.mjs` holds
- * the scope it asks.
+ * the scope it asks. **And who holds the item the list's search found by its id (#541)**, the
+ * same gate's read, answering what an asset's own page says to every reader.
  */
-const READ_ACTIONS = ["app/(assets)/asset-categories/actions.js::exportAssetListAction"];
+const READ_ACTIONS = [
+    "app/(assets)/asset-categories/actions.js::exportAssetListAction",
+    "app/(assets)/asset-categories/actions.js::readFoundHolderAction",
+];
 
 /**
  * The controls a site manager alone uses, by the page that draws them, and how many times
@@ -337,12 +341,12 @@ export function run({ check, assert, log }) {
     });
     const actions = entries.filter((e) => e.kind !== "page" && (e.file.startsWith("app/(assets)/") || e.file.startsWith("app/l/")));
     check(
-        "the axis's server actions are the five this gate is for, the catalog's four and the list's export, found by walking",
+        "the axis's server actions are the five this gate is for, the catalog's four and the list's two reads, found by walking",
         actions.map((e) => `${e.file}::${e.name}`).sort().join(" | "),
         [...ASSET_ACTIONS, ...CATALOG_ACTIONS, ...READ_ACTIONS].sort().join(" | ")
     );
     check(
-        "  each withSiteManagerAction around a handler nobody can call round it, the catalog's withAdminAction, the export neither",
+        "  each withSiteManagerAction around a handler nobody can call round it, the catalog's withAdminAction, the list's reads neither",
         actions.map((e) => `${e.name}: ${wrappingOf(e.ast, e.name)}`).sort().join(" | "),
         [
             ...ASSET_ACTIONS.map((key) => `${key.split("::")[1]}: withSiteManagerAction(1 arg), handler not exported`),

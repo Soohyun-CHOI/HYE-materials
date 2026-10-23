@@ -770,13 +770,14 @@ export function run({ check, assert, log }) {
         "Type | Category | Name | Size | Maker | Part #"
     );
     check("  a word for every level and no other", Object.keys(ASSET_CATEGORY_COPY.levelLabel).join(" "), ASSET_PATH_LEVELS.join(" "));
-    // THE SEARCH'S AND THE FILTERS' WORDS ARE THE DESIGN'S, ONE STRING FOR THE CATEGORY LIST'S BAND
-    // AND THE REGISTRATION'S FIRST STEP (1a, 1b; #520). The registration's filters said `All types`
-    // and `All categories` from #514, `All jobs`' shape, and its search `Choose a name`.
+    // THE SEARCH'S × AND THE FILTERS' ARE THE DESIGN'S, ONE STRING FOR THE CATEGORY LIST'S BAND AND
+    // THE REGISTRATION'S FIRST STEP (1a, 1b; #520). The registration's filters said `All types`
+    // and `All categories` from #514, `All jobs`' shape, and its search `Choose a name`; the two
+    // searches' own words parted with #547 and #541, and each is its screen's constant's.
     check(
-        "the search's words and each filter's ×, the band's and the registration's alike",
-        [ASSET_CATEGORY_COPY.searchItems, ASSET_CATEGORY_COPY.clearSearch, ...Object.values(ASSET_CATEGORY_COPY.clearFilter)].join(" | "),
-        "Search items | Clear search | Clear type filter | Clear category filter"
+        "the search's × and each filter's, the band's and the registration's alike",
+        [ASSET_CATEGORY_COPY.clearSearch, ...Object.values(ASSET_CATEGORY_COPY.clearFilter)].join(" | "),
+        "Clear search | Clear type filter | Clear category filter"
     );
     check("  a × for each filter a chip draws, the class's gone with its chip (#552)", Object.keys(ASSET_CATEGORY_COPY.clearFilter).join(" "), "level1 level2");
     // THE SECOND STEP'S WORDS ARE 1b's (#520): its second choice, and each choice's empty option,

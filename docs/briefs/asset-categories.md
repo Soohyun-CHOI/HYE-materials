@@ -28,7 +28,9 @@ the word is `item`.
 **The question is about the fleet rather than about any one item**, which
 is why a row carries a count per status and no total. A reader looking for one
 particular unit is looking for its printed id, and that is the asset's
-own screen, reached by scanning it or from its category's page one level down.
+own screen, reached by scanning it, from its category's page one level down,
+or since #541 by typing the id into this screen's search, which finds the
+unit on the list and opens it from there.
 
 **The asset's screen is the only one on this axis used at a phone
 width**, with the sign-in a scan can arrive through, and what that means
@@ -118,8 +120,9 @@ has bought yet for it. An asset off the job still opens from its label or a link
 the list is what a reader is shown, not what they may see.
 
 **action.** Under the head, a band of controls held at the top with it (1a,
-0i): a search, `Search items`, over each row's name, its category and its type
-— every word typed must be in one of them — and two chips, `Type` and
+0i): a search, `Search items or item IDs`, over each row's name, its category
+and its type — every word typed must be in one of them — or, when what is typed
+is an item's id, for that item (#541; `Search items` until then), and two chips, `Type` and
 `Category`, each listing the values the job's rows hold with how many rows
 each would leave, several taken at once. A third, `Class`, went with the class
 in #552, and an address still naming one reads as naming nothing. A chip holding one value says it,
@@ -130,7 +133,8 @@ the jobs the rows have an asset on, by their codes, each with how many rows it
 would leave, several taken at once; it leaves the rows with an asset on a job
 taken and counts their assets on those jobs alone, and empties with `Clear job
 filter`. The band narrows rows already in the browser, so nothing it does
-waits on the base, and what it holds rides the address: a reload, a copied
+waits on the base — but for who holds an item its search found that is out
+(#541) — and what it holds rides the address: a reload, a copied
 link and a step to another page all keep it.
 
 **evidence.** One row per item, ordered by name — a run of digits read as a
@@ -198,6 +202,24 @@ face — or `No items match these filters` when only chips narrow — and one
 bordered control, `Clear search` when the search is all that narrows and
 `Clear all` otherwise (1a). No pager stands under it. It was a job chosen with
 nothing on it from #509, which the design did not draw.
+
+**When the search names an item's id (#541):** the id whole, `HYE-AST-261019-430`,
+or the code its label prints, `261019-430`, in any case and with spaces round
+it; a piece of one — `430`, a day's `261019` — is searched for in the names as
+any word is, since it stands in many ids. The item is looked for on the job the
+list stands on, or on all of the reader's jobs and among those the `Job` chip
+takes, and never on a job the reader may not stand on. Found, its row is the
+one row left, with the counts it always has, and under the band, held with it,
+one line is the way to the item's own screen: its id in the id's face, its
+name, its status with the mark an item's list draws it with and, while it is
+out, who holds it — the one fact read from the base for it — a dot between
+each, and a chevron at its end (1a). Enter in the search opens it too. **The
+line is a way there and narrows nothing**: the list's head, chips and pager
+count the row, and `Export` holds that row and every item under it. Not found,
+the list says so where the rows stood: `No item has the ID` and the id typed, or
+on one job `No item on 23-USA-09 has the ID`, naming the job it looked on (Soo's
+words, `design-copy-findings.md`), with `Clear search`, or `Clear all` when a
+chip narrows too — a chip that leaves the item's row off says it as well.
 
 **When a press of `Export` makes no file (#553):** before the button on its
 line, `Couldn't export the list. Try again.`, until the next press. The files

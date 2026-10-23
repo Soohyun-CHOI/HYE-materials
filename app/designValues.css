@@ -131,6 +131,9 @@
     --spacing-list-empty-state-inset-top: 15rem; /* 1a and 1d, 240: above a list's empty state — from the drawings, not the spec */
     --spacing-list-emptied-inset-y: 3.75rem; /* 1a, 60: above and below what a list says once its band has emptied it — from the drawings, not the spec */
     --spacing-list-emptied-stack: 0.75rem; /* 1a, 12: from that sentence to the control under it — from the drawings, not the spec */
+    --height-found-item: 2.5rem; /* 1a, 40: the way to the item a search found by its id, on the Face under the band — from the drawings, not the spec */
+    --spacing-found-item-inset-x: 0.75rem; /* 1a, 12: inside that way's Edge, either side — from the drawings, not the spec */
+    --spacing-found-item-inline: 1rem; /* 1a, 16: the least room from its words to its chevron — from the drawings, not the spec */
 
     /* 0c · Blue — a face pair and an accent. Blue marks what is chosen: what is
        selected, current, or the single action a screen exists for (0f Chosen). */

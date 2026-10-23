@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Button, FilterChip, SearchField } from "@/app/components/Controls";
 import ListFrame from "@/app/components/ListFrame";
@@ -16,9 +16,10 @@ import {
     readAssetListFilters,
     readCategoryList,
 } from "@/lib/assetListView";
-import { assetCategoriesPath, assetCategoryPath } from "@/lib/assetRoutes";
+import { assetCategoriesPath, assetCategoryPath, assetPath } from "@/lib/assetRoutes";
 import { ASSET_STATUS_VALUES } from "@/lib/assetStatus";
 import JobChoice from "../JobChoice";
+import FoundItem from "./FoundItem";
 import ListExport from "./ListExport";
 
 // 1a's columns since #519: the name, then a count for each status at 96, right-aligned — four
@@ -72,13 +73,23 @@ const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(4,var(--width-table-count))]";
  * as the other chips do, adding up each row's counts on the jobs taken, and rides the address as
  * more `job` values after `all`, read here with `getAll` beside the band's own reader, which the
  * catalog's page shares and which therefore reads no `job`. A move to one job leaves it behind.
+ *
+ * A SEARCH FOR AN ITEM'S ID FINDS IT IN THE ROWS IN HAND (1a, #541): its row stays, and the way to
+ * the item stands under the band (`FoundItem`), which Enter in the search takes too. An id no
+ * item here carries says so, naming the job the list stands on — `jobCode`, null on all of them —
+ * since the list finds an item there and nowhere else. The address carries the id as it carries a
+ * name, so a reload and a copied link find it again on the server's first render.
  */
-export default function AssetCategoryList({ rows, job, allJobs = false, jobs, catalog, opener }) {
+export default function AssetCategoryList({ rows, job, jobCode = null, allJobs = false, jobs, catalog, opener }) {
+    const router = useRouter();
     const params = useSearchParams();
     const asked = readAssetListFilters(params);
     const [typed, setTyped] = useState(asked.q);
     const reading = readCategoryList(rows, params, { allJobs, jobs, q: typed });
     const page = pageOfAssetCategories(reading.rows, params.get("page"));
+    const open = () => {
+        if (reading.found) router.push(assetPath(reading.found.assetId));
+    };
 
     const write = (filters, toPage = 1) => window.history.replaceState(null, "", assetCategoriesPath(toPage, job, filters));
     const search = (text) => {
@@ -93,7 +104,7 @@ export default function AssetCategoryList({ rows, job, allJobs = false, jobs, ca
     };
 
     const count = reading.narrowed ? FILTER_BAR_COPY.count(reading.rows.length, rows.length) : rows.length;
-    const emptied = reading.rows.length === 0 ? emptiedListWords(reading) : null;
+    const emptied = reading.rows.length === 0 ? emptiedListWords(reading, { jobCode }) : null;
 
     return (
         <ListFrame
@@ -107,7 +118,7 @@ export default function AssetCategoryList({ rows, job, allJobs = false, jobs, ca
             }
             band={
                 <>
-                    <SearchField label={COPY.searchLabel} value={typed} onChange={search} clearLabel={COPY.clearSearch} />
+                    <SearchField label={COPY.searchLabel} value={typed} onChange={search} clearLabel={COPY.clearSearch} onEnter={open} />
                     {ASSET_LIST_FACETS.map((facet) => (
                         <FilterChip
                             key={facet}
@@ -131,6 +142,7 @@ export default function AssetCategoryList({ rows, job, allJobs = false, jobs, ca
                     )}
                 </>
             }
+            found={reading.found && <FoundItem found={reading.found} />}
             footer={
                 !emptied && (
                     <Pager

@@ -9,19 +9,20 @@
 //   changes from the last, less a minute; a change shows on the next view; an asset not met is
 //   read alone; the ten-minute bound reads again what nothing said had changed, and a memory
 //   left for ten minutes is dropped whole; an older read never replaces a newer; views at once
-//   share a read; and nothing answers an id it was not asked for.
+//   share a read; and nothing answers an id it was not asked for. Since #541 each answer carries
+//   the asset's printed id beside its status, and an id edited in the base shows as a status does.
 //
 //   WHAT THE LIST COUNTS IS PURE TOO (`lib/assetListView.js:countedAssets`): each asset's kind
-//   off its category's array, its job off the scope's (`onJob`), its status off the memory's
-//   answer — held by value over a fixture with two jobs, two kinds, an asset off the scope with
-//   a status known, and one whose status nobody answered.
+//   off its category's array, its job off the scope's (`onJob`), its status and printed id off
+//   the memory's answer — held by value over a fixture with two jobs, two kinds, an asset off the
+//   scope with a status known, and one whose status nobody answered.
 //
 //   WHAT NO VALUE CAN SHOW IS READ OFF THE SOURCE: that the list counts what `countedAssets`
 //   builds from what `getAssetStatuses` answered; that `lib/airtable/assets.js` makes the
 //   memory once, when it loads — one made per call would meet every asset on every view and
-//   every figure here would still pass; that its two reads name `Status` alone, a hundred ids to
-//   a query, and the question is `changedSince`; and that the memory imports nothing. Each is
-//   held beside a planted file doing it wrong.
+//   every figure here would still pass; that its two reads name `Status` and `Asset ID` alone, a
+//   hundred ids to a query, and the question is `changedSince` on the same two; and that the
+//   memory imports nothing. Each is held beside a planted file doing it wrong.
 //
 // WHAT IT CANNOT SEE. Whether the base answers the question at once — the freshness the whole
 // design rests on — which is Airtable's property and `verify-asset-status-memory-560.mjs`'s to
@@ -51,21 +52,21 @@ const CLIENT = "lib/airtable/client.js";
  */
 function rig({ statuses, slow = false } = {}) {
     let t = 1_000_000;
-    const base = new Map(Object.entries(statuses ?? {}).map(([id, status]) => [id, { status, modifiedAt: 0 }]));
+    // Each asset's printed id is its record id's, upper-cased after the token, until renamed.
+    const base = new Map(Object.entries(statuses ?? {}).map(([id, status]) => [id, { status, assetId: `HYE-AST-${id.toUpperCase()}`, modifiedAt: 0 }]));
     const calls = { reads: [], changes: [] };
     const held = [];
+    const rowOf = (id) => ({ id, status: base.get(id).status, assetId: base.get(id).assetId });
     // A read answers the base as it stood when the read was sent, however late it lands.
     const readByIds = (ids) => {
         calls.reads.push([...ids]);
-        const rows = ids.filter((id) => base.has(id)).map((id) => ({ id, status: base.get(id).status }));
+        const rows = ids.filter((id) => base.has(id)).map(rowOf);
         if (!slow) return Promise.resolve(rows);
         return new Promise((resolve) => held.push(() => resolve(rows)));
     };
     const readChangedSince = (moment) => {
         calls.changes.push(moment.getTime());
-        return Promise.resolve(
-            [...base].filter(([, row]) => row.modifiedAt > moment.getTime()).map(([id, row]) => ({ id, status: row.status }))
-        );
+        return Promise.resolve([...base].filter(([, row]) => row.modifiedAt > moment.getTime()).map(([id]) => rowOf(id)));
     };
     const memory = createAssetStatusMemory({ readByIds, readChangedSince, now: () => t });
     return {
@@ -76,7 +77,9 @@ function rig({ statuses, slow = false } = {}) {
         },
         now: () => t,
         // A write in the base, from any instance or by hand: the status and when it was modified.
-        write: (id, status) => base.set(id, { status, modifiedAt: t }),
+        write: (id, status) => base.set(id, { ...base.get(id), status, modifiedAt: t }),
+        // A printed id edited by hand, which the question asks about as it asks about a status.
+        rename: (id, assetId) => base.set(id, { ...base.get(id), assetId, modifiedAt: t }),
         release: () => held.splice(0).forEach((go) => go()),
         reset: () => {
             calls.reads.length = 0;
@@ -85,7 +88,8 @@ function rig({ statuses, slow = false } = {}) {
     };
 }
 
-const said = (map) => [...map].map(([id, status]) => `${id}=${status}`).join(" ");
+const said = (map) => [...map].map(([id, facts]) => `${id}=${facts.status}`).join(" ");
+const idsSaid = (map) => [...map].map(([id, facts]) => `${id}=${facts.assetId}`).join(" ");
 /** Lets the memory's own continuations run until `ready()` holds, or gives up. */
 async function settle(ready) {
     for (let i = 0; i < 50 && !ready(); i += 1) await Promise.resolve();
@@ -125,13 +129,14 @@ function countingOf(parsed) {
     const [summarize] = callsOf(parsed, "summarizeAssetCategories");
     const [composed] = callsOf(parsed, "categoryListRows");
     const counted = summarize?.arguments?.[1] ?? composed;
+    // What stands for the statuses, `kept` since #541 carried the printed ids beside them.
     let statusesFrom = null;
     walk(parsed.ast, (node) => {
-        if (node.type !== "VariableDeclarator" || node.id.type !== "Identifier" || node.id.name !== "statuses") return;
+        if (node.type !== "VariableDeclarator" || node.id.type !== "Identifier" || node.id.name !== "kept") return;
         const init = node.init?.type === "AwaitExpression" ? node.init.argument : node.init;
         if (init?.type === "CallExpression") statusesFrom = init.callee.name;
     });
-    return `${counted ? source.slice(counted.start, counted.end) : "-"} | statuses from ${statusesFrom ?? "-"}`;
+    return `${counted ? source.slice(counted.start, counted.end) : "-"} | kept from ${statusesFrom ?? "-"}`;
 }
 
 /** What the memory's two reads are, off `lib/airtable/assets.js`'s source. */
@@ -185,6 +190,31 @@ export async function run({ check, log }) {
     a.reset();
     const fifth = await a.memory(["c"]);
     check("nothing answers an id it was not asked for, whatever is kept", said(fifth), "c=In stock");
+
+    // The printed id, kept beside the status since #541 so the list finds an item by it.
+    const p = rig({ statuses: { a: ASSET_STATUS.IN_STOCK, b: ASSET_STATUS.OUT } });
+    const met = await p.memory(["a", "b"]);
+    check("each answer carries the asset's printed id beside its status (#541)", `${idsSaid(met)} | ${said(met)}`, "a=HYE-AST-A b=HYE-AST-B | a=In stock b=Out");
+    p.reset();
+    p.advance(MINUTE);
+    p.rename("b", "HYE-AST-261019-430");
+    p.advance(1000);
+    const renamed = await p.memory(["a", "b"]);
+    check(
+        "  an id edited in the base shows on the next view, as a status does, reading no asset",
+        `${idsSaid(renamed)} ${p.calls.changes.length} ${p.calls.reads.length}`,
+        "a=HYE-AST-A b=HYE-AST-261019-430 1 0"
+    );
+    p.reset();
+    p.advance(MINUTE);
+    const keptSince = await p.memory(["b"]);
+    check("  and is answered from memory after, its status with it", `${idsSaid(keptSince)} ${said(keptSince)} ${p.calls.reads.length}`, "b=HYE-AST-261019-430 b=Out 0");
+    const bare = createAssetStatusMemory({
+        readByIds: async (ids) => ids.map((id) => ({ id, status: ASSET_STATUS.IN_STOCK })),
+        readChangedSince: async () => [],
+        now: () => 7_000_000,
+    });
+    check("  a row the base answers with no id is kept with none rather than a guess", idsSaid(await bare(["z"])), "z=null");
 
     // The bound, and a memory left alone.
     const k = rig({ statuses: { a: ASSET_STATUS.IN_STOCK, b: ASSET_STATUS.OUT } });
@@ -287,29 +317,34 @@ export async function run({ check, log }) {
     ];
     const office = { isAdmin: true, assignedJobs: [] };
     const site = { isAdmin: false, assignedJobs: ["recJ1", "recJ2"] };
-    const statuses = new Map([
-        ["a1", ASSET_STATUS.IN_STOCK],
-        ["a2", ASSET_STATUS.OUT],
-        ["a3", ASSET_STATUS.RETIRED],
-        ["a4", ASSET_STATUS.IN_REPAIR],
+    const kept = new Map([
+        ["a1", { status: ASSET_STATUS.IN_STOCK, assetId: "HYE-AST-261019-001" }],
+        ["a2", { status: ASSET_STATUS.OUT, assetId: "HYE-AST-261019-002" }],
+        ["a3", { status: ASSET_STATUS.RETIRED, assetId: "HYE-AST-261019-003" }],
+        ["a4", { status: ASSET_STATUS.IN_REPAIR, assetId: "HYE-AST-261019-004" }],
     ]);
     const all = assetListScope(site, JOBS, ALL_JOBS);
     check("the scope names the job whose array holds each asset", [...all.onJob].map(([id, job]) => `${id}>${job}`).join(" "), "a1>recJ1 a2>recJ1 a3>recJ2");
     check("  and one job's scope names that job's alone", [...assetListScope(site, JOBS, "recJ2").onJob].map(([id, job]) => `${id}>${job}`).join(" "), "a3>recJ2");
-    const counted = countedAssets(KINDS, all, statuses);
+    const counted = countedAssets(KINDS, all, kept);
     check(
-        "each asset is counted with its category's kind, its job's array and its kept status",
-        counted.map((x) => `${x.id}:${x.category[0]}:${x.job[0]}:${x.status}`).join(" "),
-        "a1:recK1:recJ1:In stock a3:recK1:recJ2:Retired a2:recK2:recJ1:Out"
+        "each asset is counted with its category's kind, its job's array, its kept status and its printed id (#541)",
+        counted.map((x) => `${x.id}:${x.category[0]}:${x.job[0]}:${x.status}:${x.assetId}`).join(" "),
+        "a1:recK1:recJ1:In stock:HYE-AST-261019-001 a3:recK1:recJ2:Retired:HYE-AST-261019-003 a2:recK2:recJ1:Out:HYE-AST-261019-002"
     );
     check("  an asset off the scope is not counted, though its status is known", counted.some((x) => x.id === "a4"), false);
-    check("  an asset whose status nobody answered is counted nowhere", countedAssets(KINDS, assetListScope(office, JOBS, ALL_JOBS), statuses).some((x) => x.id === "a9"), false);
+    check("  an asset whose status nobody answered is counted nowhere", countedAssets(KINDS, assetListScope(office, JOBS, ALL_JOBS), kept).some((x) => x.id === "a9"), false);
     check("  and an asset under two kinds' arrays is counted once, under the first", counted.filter((x) => x.id === "a3").map((x) => x.category[0]).join(","), "recK1");
     const rows = summarizeAssetCategories(KINDS, counted);
     check(
         "the rows count it, each job's figures under the jobs the reader stands on alone",
         rows.map((row) => `${row.itemName} ${row.counts.map((c) => c.count).join("/")} ${Object.keys(row.perJob).join(",")}`).join(" | "),
         "Grinder 1/0/0/1 recJ1,recJ2 | Welder 0/1/0/0 recJ1"
+    );
+    check(
+        "  and each row carries the assets it counts by printed id, with their jobs and statuses (#541)",
+        rows.map((row) => `${row.itemName} ${JSON.stringify(row.assetIds)}`).join(" | "),
+        'Grinder {"recJ1":{"In stock":["HYE-AST-261019-001"]},"recJ2":{"Retired":["HYE-AST-261019-003"]}} | Welder {"recJ1":{"Out":["HYE-AST-261019-002"]}}'
     );
 
     // ── the source ──────────────────────────────────────────────────────────
@@ -319,17 +354,17 @@ export async function run({ check, log }) {
     check(
         "the list counts what countedAssets builds from what getAssetStatuses answered",
         countingOf(page),
-        "categoryListRows(shownCategories, scope, statuses) | statuses from getAssetStatuses"
+        "categoryListRows(shownCategories, scope, kept) | kept from getAssetStatuses"
     );
     check(
         "  through the one composition, summarizeAssetCategories of countedAssets (#553)",
-        /export function categoryListRows\(categories, scope, statuses\) \{\s*return summarizeAssetCategories\(categories, countedAssets\(categories, scope, statuses\)\);\s*\}/.test(parseFile("lib/assetListView.js").source),
+        /export function categoryListRows\(categories, scope, kept\) \{\s*return summarizeAssetCategories\(categories, countedAssets\(categories, scope, kept\)\);\s*\}/.test(parseFile("lib/assetListView.js").source),
         true
     );
     check(
         "  a planted list counting the assets it read itself fails it",
-        countingOf(parseSource("const assets = await getAssetsByRecordIds(ids);\nconst statuses = null;\nconst rows = summarizeAssetCategories(shownCategories, assets);\n", "<planted-count>")),
-        "assets | statuses from -"
+        countingOf(parseSource("const assets = await getAssetsByRecordIds(ids);\nconst kept = null;\nconst rows = summarizeAssetCategories(shownCategories, assets);\n", "<planted-count>")),
+        "assets | kept from -"
     );
     check("  and it reads no asset of its own", callsOf(page, "getAssetsByRecordIds").length + callsOf(page, "getAssetsByCategory").length, 0);
 
@@ -347,17 +382,29 @@ export async function run({ check, log }) {
     );
     const reads = memoryReadsOf(assets);
     check(
-        "the memory reads an asset by id for its Status alone, a hundred to a query",
+        "the memory reads an asset by id for its Status and its Asset ID alone, a hundred to a query",
         reads.byIds,
-        "async (recordIds) => (await findByRecordIds(TABLES.ASSETS, recordIds, { fields: [STATUS_FIELD], perQuery: 100 })).map(recordToStatus)"
+        "async (recordIds) => (await findByRecordIds(TABLES.ASSETS, recordIds, { fields: KEPT_FIELDS, perQuery: 100 })).map(recordToStatus)"
     );
     check(
-        "  and asks which statuses changed since a moment, for the Status alone",
+        "  and asks which of those two changed since a moment, reading those two alone",
         reads.changed,
-        "async (moment) => ( await base(TABLES.ASSETS) .select({ filterByFormula: changedSince(STATUS_FIELD, moment), fields: [STATUS_FIELD] }) .all() ).map(recordToStatus)"
+        "async (moment) => ( await base(TABLES.ASSETS) .select({ filterByFormula: changedSince(KEPT_FIELDS, moment), fields: KEPT_FIELDS }) .all() ).map(recordToStatus)"
     );
-    check("  the field being Status", /const STATUS_FIELD = "Status";/.test(assets.source), true);
-    check("  and each answer the record's id and its Status", /function recordToStatus\(record\) \{\s*return \{ id: record\.id, status: record\.get\(STATUS_FIELD\) \};\s*\}/.test(assets.source), true);
+    check(
+        "  the fields being Status and Asset ID (#541)",
+        [
+            /const STATUS_FIELD = "Status";/.test(assets.source),
+            /const ASSET_ID_FIELD = "Asset ID";/.test(assets.source),
+            /const KEPT_FIELDS = \[STATUS_FIELD, ASSET_ID_FIELD\];/.test(assets.source),
+        ].join(" "),
+        "true true true"
+    );
+    check(
+        "  and each answer the record's id, its Status and its Asset ID",
+        /function recordToStatus\(record\) \{\s*return \{ id: record\.id, status: record\.get\(STATUS_FIELD\), assetId: record\.get\(ASSET_ID_FIELD\) \};\s*\}/.test(assets.source),
+        true
+    );
 
     const client = parseFile(CLIENT);
     check(

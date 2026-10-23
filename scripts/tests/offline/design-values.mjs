@@ -287,6 +287,10 @@ const VALUES = [
     // What a list says once its band has emptied it (1a, #520).
     ["--spacing-list-emptied-inset-y", "3.75rem", null],
     ["--spacing-list-emptied-stack", "0.75rem", null],
+    // The way to the item a search found by its id, under the band (1a, #541).
+    ["--height-found-item", "2.5rem", null],
+    ["--spacing-found-item-inset-x", "0.75rem", null],
+    ["--spacing-found-item-inline", "1rem", null],
     // 0c · Blue
     ["--color-selected", "#F0F9FF", null],
     ["--color-selected-hover", "#E6F5FF", null],

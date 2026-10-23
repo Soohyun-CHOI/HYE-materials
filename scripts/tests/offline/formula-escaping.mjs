@@ -259,12 +259,22 @@ export function run({ check, log, assert }) {
     // verify-asset-status-memory-560.mjs'; these are its shape and its refusals.
     check(
         "changedSince compares the field's own modified time with the moment in UTC",
-        changedSince("Status", new Date(Date.UTC(2026, 9, 22, 13, 5, 0))),
+        changedSince(["Status"], new Date(Date.UTC(2026, 9, 22, 13, 5, 0))),
         'IS_AFTER(LAST_MODIFIED_TIME({Status}), DATETIME_PARSE("2026-10-22T13:05:00.000Z"))'
     );
-    check("a moment that is not a Date is refused, not guessed at", refuses(() => changedSince("Status", "2026-10-22")), "refused");
-    check("an invalid Date is refused", refuses(() => changedSince("Status", new Date("never"))), "refused");
-    check("changedSince refuses a braced field name", refuses(() => changedSince("F}{", new Date(0))), "refused");
+    check(
+        "  and the latest of several fields' when it names several (#541)",
+        changedSince(["Status", "Asset ID"], new Date(Date.UTC(2026, 9, 22, 13, 5, 0))),
+        'IS_AFTER(LAST_MODIFIED_TIME({Status}, {Asset ID}), DATETIME_PARSE("2026-10-22T13:05:00.000Z"))'
+    );
+    check(
+        "  and no field at all is refused, since it would ask after the whole row",
+        [refuses(() => changedSince([], new Date(0))), refuses(() => changedSince("Status", new Date(0)))].join(" "),
+        "refused refused"
+    );
+    check("a moment that is not a Date is refused, not guessed at", refuses(() => changedSince(["Status"], "2026-10-22")), "refused");
+    check("an invalid Date is refused", refuses(() => changedSince(["Status"], new Date("never"))), "refused");
+    check("changedSince refuses a braced field name, wherever it stands", refuses(() => changedSince(["Status", "F}{"], new Date(0))), "refused");
 
     // --- Part 2: every call site ----------------------------------------
     log("");

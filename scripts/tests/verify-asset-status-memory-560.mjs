@@ -160,9 +160,9 @@ try {
             await base(TABLES.ASSETS).update([{ id, fields: { Status: ASSET_STATUS.OUT } }]);
             resetOps();
             const now = await getAssetStatuses(made);
-            if (now.get(id) === ASSET_STATUS.OUT) answered.changed += 1;
+            if (now.get(id)?.status === ASSET_STATUS.OUT) answered.changed += 1;
             if (snapshot().total === 1) answered.oneOp += 1;
-            if (made.slice(index + 1).every((other) => now.get(other) === ASSET_STATUS.IN_STOCK)) answered.othersKept += 1;
+            if (made.slice(index + 1).every((other) => now.get(other)?.status === ASSET_STATUS.IN_STOCK)) answered.othersKept += 1;
         }
         check("the new status is answered on the very next read", answered.changed, TRIALS);
         check("  for one operation each time", answered.oneOp, TRIALS);
