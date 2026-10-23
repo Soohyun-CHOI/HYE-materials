@@ -253,6 +253,7 @@ The design set the code on a tool label in Inconsolata at 500 with −0.04em of 
 - **A faced action** is 1a's `Catalog`: no outline at a 36, filling at Hover (0f Faced), a 16 mark 8 before its word in Ink 2, both lifting to Ink (0f Ink on hover). It stands 10 before the mark and 12 after the word (`--spacing-faced-inset-left`, `--spacing-faced-inset-right`), where a ghost's word alone takes 10 either side.
 - **A column of counts is 56** (`--width-table-count`, 96 until now), and **a sentence with nothing to show stands in 480** (`--max-width-empty-state`, 440 until now), 1a2's, 1d's and 1h's alike.
 - **A chip's list in the category list's band stands at most 240** (`--max-height-category-list-filter-list`): the drawings scroll 228 of rows inside the Menu's 5 and its Edge, so the name holds the outside, as 1l's 340 does.
+- **0k's Toast** is 1a's export failure (#566), named in the row's words: 44 (`--height-toast`), 14 from the start and 6 from the end (`--spacing-toast-inset-left`, `--spacing-toast-inset-right`), 16 from its line to its action (`--spacing-toast-inline`), 24 above the content area's end (`--spacing-toast-offset`), its shadow (`--shadow-toast`, the shadow ink at 16% and 10%) and its buttons' hover, white at 12% (`--color-toast-hover`). The 2 between the action and the dismiss is the drawing's (`--spacing-toast-action-gap`). The rest are names already: the Ink ground, the Group radius, the alert mark's 16 and 0b's 8 before the line, a 32 control at a ghost's 10, and the dismiss's 14 ×.
 - **Not taken.** The files draw `book-open` in Lucide's shape before 1.52.0, its spine `M12 7v14` under square corners, as they drew the note's mark (`What the drawings carry that the spec does not state`); every other mark they draw is 1.52.0's, and the app draws 1.52.0's book too (#502). The Sign in file's 1k draws the check in a chosen job's round box at a line of 2, where 0a's Icon box gives every mark 1.25, and keeps 1.25, the spec, as #522 settled a drawing against its own spec. And the Sign in file writes every apostrophe `’`, where the Tools file writes `'` but in two sentences: **the app keeps `'` everywhere, by Soo's ruling**, one rule over every screen and every check that holds a sentence by value.
 
 ## From the design's words to the names
@@ -403,6 +404,14 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0k Tooltip, beside a rail icon | `--spacing-tooltip-rail-offset` | 0.625rem (10) |
 | 0k Tooltip, its delay | `--transition-delay-tooltip` | 360ms |
 | The drawings' tooltip, fading in — not the spec | `--transition-duration-tooltip` | 120ms |
+| 0k Toast | `--shadow-toast` | 0 8px 24px at 16% over 0 1px 2px at 10% |
+| 0k Toast, its height | `--height-toast` | 2.75rem (44) |
+| 0k Toast, its line from the start | `--spacing-toast-inset-left` | 0.875rem (14) |
+| 0k Toast, its dismiss from the end | `--spacing-toast-inset-right` | 0.375rem (6) |
+| 0k Toast, its line to its action | `--spacing-toast-inline` | 1rem (16) |
+| 1a's drawing, the toast's action to its dismiss — not the spec | `--spacing-toast-action-gap` | 0.125rem (2) |
+| 0k Toast, above the content area's end | `--spacing-toast-offset` | 1.5rem (24) |
+| 0k Toast, its action and its dismiss under the pointer | `--color-toast-hover` | white at 12% |
 | 0l Width | `--container-dialog` | 26.25rem (420) |
 | 0l Position | `--spacing-dialog-gutter` | 1.75rem (28) |
 | 0l Compact, all round | `--spacing-dialog-inset` | 1.5rem (24) |

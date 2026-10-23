@@ -256,6 +256,14 @@
     --spacing-tooltip-rail-offset: 0.625rem; /* Tooltip, 10: beside an icon in the collapsed rail */
     --transition-delay-tooltip: 360ms; /* Tooltip: how long before it appears */
     --transition-duration-tooltip: 120ms; /* Tooltip: how long it takes to fade in — from the drawings' stylesheet, not the spec */
+    --shadow-toast: 0 8px 24px color-mix(in oklab, var(--color-elevation) 16%, transparent), 0 1px 2px color-mix(in oklab, var(--color-elevation) 10%, transparent); /* Toast: a line that reports how a finished action went */
+    --height-toast: 2.75rem; /* Toast, 44 */
+    --spacing-toast-inset-left: 0.875rem; /* Toast, 14: its line from the start */
+    --spacing-toast-inset-right: 0.375rem; /* Toast, 6: its dismiss from the end */
+    --spacing-toast-inline: 1rem; /* Toast, 16: its line to its action */
+    --spacing-toast-action-gap: 0.125rem; /* 1a, 2: its action to its dismiss — from the drawings, not the spec */
+    --spacing-toast-offset: 1.5rem; /* Toast, 24: above the content area's end */
+    --color-toast-hover: oklch(1 0 0 / 0.12); /* Toast: its action and its dismiss under the pointer */
 
     /* 0l · Modal — the frame every dialog shares, in the Compact build and, since #457,
        with a preview beside it (1e). */

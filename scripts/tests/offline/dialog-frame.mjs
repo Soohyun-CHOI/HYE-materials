@@ -1836,7 +1836,7 @@ export function run({ check, assert, log }) {
             /onDocument: document\.activeElement === null \|\| document\.activeElement === document\.body \|\| document\.activeElement === held/.test(hook),
             /samePage: heldAt === window\.location\.pathname/.test(hook) && /dialogOpen: Boolean\(document\.querySelector\("dialog\[open\]"\)\)/.test(hook),
             /if \(!fell\) return;\s*held = null;\s*focusPageHeading\(\);/.test(hook),
-            /useHeadingWhenFocusFalls\(columnRef\);/.test(railSource) && /<div ref=\{columnRef\} className=\{COLUMN\}>/.test(railSource),
+            /useHeadingWhenFocusFalls\(columnRef\);/.test(railSource) && /<div ref=\{columnRef\} data-content-area="" className=\{COLUMN\}>/.test(railSource),
         ].join(" ");
     };
     const railSource = parseFile("app/components/Rail.js").source;

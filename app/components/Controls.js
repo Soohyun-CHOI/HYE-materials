@@ -386,8 +386,11 @@ export function ButtonLabel({ size, busyLabel, children }) {
  * `ariaLabel` IS A NAME LONGER THAN THE WORDS (#553): 1a's `Export` is named `Export to Excel`,
  * which says what the press makes. It holds the words drawn, so a reader who says what they see
  * still reaches it, and a caller drops it while busy, so the working word is the name then.
+ *
+ * `ref` IS THE BUTTON ITSELF (#566), for a caller that hands focus back to it — 1a's `Export`,
+ * which a toast reporting its press returns focus to.
  */
-export function Button({ variant = "filled", size = "lg", type = "button", disabled = false, disabledReason, describedBy, busy = false, busyLabel, holdWidthOf, ariaLabel, onClick, children }) {
+export function Button({ variant = "filled", size = "lg", type = "button", disabled = false, disabledReason, describedBy, busy = false, busyLabel, holdWidthOf, ariaLabel, ref, onClick, children }) {
     const reasonId = useId();
     // What the form waits on, as the frame said it: its submit, or `"action"` (#527).
     const formWaits = useContext(FormBusyContext);
@@ -396,6 +399,7 @@ export function Button({ variant = "filled", size = "lg", type = "button", disab
     const explained = disabled && Boolean(disabledReason);
     const button = (
         <button
+            ref={ref}
             type={type}
             disabled={disabled}
             onClick={state ? (event) => event.preventDefault() : onClick}

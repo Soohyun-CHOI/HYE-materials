@@ -1,8 +1,9 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
-import { Button, Refusal } from "@/app/components/Controls";
+import { useRef, useState } from "react";
+import { Button } from "@/app/components/Controls";
+import Toast from "@/app/components/Toast";
 import { ASSET_EXPORT_COPY as COPY } from "@/lib/assetListExport";
 import { readerTimeZone } from "@/lib/format";
 import { exportAssetListAction } from "./actions";
@@ -25,14 +26,17 @@ import { exportAssetListAction } from "./actions";
  * is `Export to Excel` at rest. The file arrives as a download, which says the press worked, so
  * nothing else is said (#321).
  *
- * A PRESS THAT MADE NO FILE SAYS SO BEFORE THE BUTTON, ON ITS LINE (#553): the action's `{ error }`
- * or a request that never came back, in the words the app's other refusals of a press take —
- * `Couldn't export the list. Try again.` — in `Refusal`'s look, where 0f sets a reason for a
- * control. It stays until the next press. The files draw no failure; `design-copy-findings.md`
- * records the line.
+ * A PRESS THAT MADE NO FILE SAYS SO IN A TOAST (1a, #566): the action's `{ error }` or a request
+ * that never came back puts 0k's failure toast at the foot of the content area, `Couldn't
+ * export.` with `Try again`, which presses `Export` again, and its dismiss. It stays until one of
+ * the two is pressed, `Escape` is, or `Export` is pressed again, which takes it down as the press
+ * starts and a second failure puts it up again; whatever closes it hands focus back to `Export`.
+ * From #553 until the files of 2026-10-23 drew the failure, the press said it before the button,
+ * on its line, in `Refusal`'s look.
  */
 export default function ListExport() {
     const params = useSearchParams();
+    const buttonRef = useRef(null);
     const [busy, setBusy] = useState(false);
     const [failed, setFailed] = useState(false);
 
@@ -56,11 +60,11 @@ export default function ListExport() {
     };
 
     return (
-        <div className="flex items-center gap-gap-lg">
-            {failed && <Refusal>{COPY.failed}</Refusal>}
-            <Button variant="bordered" busy={busy} busyLabel={COPY.working} ariaLabel={busy ? undefined : COPY.exportName} onClick={press}>
+        <>
+            <Button ref={buttonRef} variant="bordered" busy={busy} busyLabel={COPY.working} ariaLabel={busy ? undefined : COPY.exportName} onClick={press}>
                 {COPY.export}
             </Button>
-        </div>
+            <Toast shown={failed} line={COPY.failed} action={COPY.retry} onAction={press} dismissLabel={COPY.dismiss} onDismiss={() => setFailed(false)} opener={buttonRef} />
+        </>
     );
 }

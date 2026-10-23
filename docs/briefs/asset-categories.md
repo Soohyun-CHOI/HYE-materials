@@ -89,8 +89,9 @@ all of them, and the chip then says `All jobs`. A reader on one job is drawn no
 choice: their list is that job's.
 
 **action.** For the office, `Catalog` before `Export` (1a, #527), led by a book
-and with no outline since #566, bordered until then: the way to the catalog's own screen, `/asset-catalog`,
-where the office keeps what a registration picks from. It is drawn in every
+and with no outline since #566, bordered until then: the way to the catalog's
+own screen, `/asset-catalog`, where the office keeps what a registration picks
+from. It is drawn in every
 state the head takes and for nobody else — a reader who is not the office is
 drawn none, since keeping the catalog is a role and not something asked for.
 
@@ -225,10 +226,14 @@ on one job `No item on 23-USA-09 has the ID`, naming the job it looked on (Soo's
 words, `design-copy-findings.md`), with `Clear search`, or `Clear all` when a
 chip narrows too — a chip that leaves the item's row off says it as well.
 
-**When a press of `Export` makes no file (#553):** before the button on its
-line, `Couldn't export the list. Try again.`, until the next press. The files
-draw no failure; the words are the app's for a press that saved nothing, and
-`design-copy-findings.md` records them.
+**When a press of `Export` makes no file (#553, #566):** 0k's failure toast,
+centered at the foot of the content area — `Couldn't export.` led by the alert
+mark, then `Try again`, which presses `Export` again, and `Dismiss`, a ×, as 1a
+draws it. It stays until one of the two is pressed, `Escape` is, or `Export` is
+pressed again, and a press that fails again puts it up again; whatever closes
+it hands focus back to `Export`. From #553 until the files of 2026-10-23 drew
+the failure, the press said `Couldn't export the list. Try again.` before the
+button, on its line.
 
 **When the band narrows the list (#520):** the head's figure reads `N of M`, the
 document lists' words for the same thing, `M` being every item on the job — the

@@ -169,6 +169,8 @@ const MARKS_BY_FILE = {
     "app/components/Menu.js": ["check", "ellipsis"],
     "app/components/Rail.js": ["clipboard-list", "file-text", "panel-left", "receipt", "tag", "truck", "wrench"],
     "app/components/RailAccount.js": ["chevron-up"],
+    // 0k's failure toast leads its line with the alert mark and dismisses on a × (#566).
+    "app/components/Toast.js": ["circle-alert", "x"],
     "app/login/jobs/JobsForm.js": ["check", "circle-alert", "search"],
 };
 

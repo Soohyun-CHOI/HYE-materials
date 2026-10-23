@@ -411,6 +411,19 @@ const VALUES = [
     ["--transition-delay-tooltip", "360ms", null],
     // From the drawings' stylesheet, not the spec (#460).
     ["--transition-duration-tooltip", "120ms", null],
+    // 0k's Toast (#566), 1a's export failure: the spec's but for its 2 between the two buttons.
+    [
+        "--shadow-toast",
+        "0 8px 24px color-mix(in oklab, var(--color-elevation) 16%, transparent), 0 1px 2px color-mix(in oklab, var(--color-elevation) 10%, transparent)",
+        null,
+    ],
+    ["--height-toast", "2.75rem", null],
+    ["--spacing-toast-inset-left", "0.875rem", null],
+    ["--spacing-toast-inset-right", "0.375rem", null],
+    ["--spacing-toast-inline", "1rem", null],
+    ["--spacing-toast-action-gap", "0.125rem", null],
+    ["--spacing-toast-offset", "1.5rem", null],
+    ["--color-toast-hover", "oklch(1 0 0 / 0.12)", null],
     // 0l · Modal
     ["--container-dialog", "26.25rem", null],
     ["--spacing-dialog-gutter", "1.75rem", null],
