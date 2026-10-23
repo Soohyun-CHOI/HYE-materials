@@ -79,17 +79,17 @@ with a reason would send them nowhere. **It carries the job the list stands on
 on `All jobs`, or on a job the office views and is not assigned to, the job
 starts unchosen (`tools-new.md`).
 
-**action.** For a reader on more than one job, a choice of job in the head, 12
-before `Add items` (#509, 1a since #519): a chip saying `Job` and the job the
-list stands on, opening on `All jobs` and then each job they may stand on by its
-code — every job for the office, their own for anybody else, a job with nothing
-on it included (#548). Choosing one moves the list to that job, from the first
-page, keeping what the band holds; choosing `All jobs` moves it to all of them,
-and the chip then says `All jobs` alone, as 1a draws it. A reader on one job is
-drawn no choice: their list is that job's.
+**action.** For a reader on more than one job, a choice of job at the start of
+the band (#509; 1a's head from #519, its band since #566): a chip saying the job
+the list stands on behind a pin, opening on `All jobs` and then each job they may
+stand on by its code — every job for the office, their own for anybody else, a
+job with nothing on it included (#548). Choosing one moves the list to that job,
+from the first page, keeping what the band holds; choosing `All jobs` moves it to
+all of them, and the chip then says `All jobs`. A reader on one job is drawn no
+choice: their list is that job's.
 
-**action.** For the office, `Catalog`, bordered, between the job's choice and
-`Add items` (1a, #527): the way to the catalog's own screen, `/asset-catalog`,
+**action.** For the office, `Catalog` before `Export` (1a, #527), led by a book
+and with no outline since #566, bordered until then: the way to the catalog's own screen, `/asset-catalog`,
 where the office keeps what a registration picks from. It is drawn in every
 state the head takes and for nobody else — a reader who is not the office is
 drawn none, since keeping the catalog is a role and not something asked for.
@@ -123,7 +123,7 @@ has bought yet for it. An asset off the job still opens from its label or a link
 the list is what a reader is shown, not what they may see.
 
 **action.** Under the head, a band of controls held at the top with it (1a,
-0i): a search, `Search items or item IDs`, over each row's name, its category
+0i): the job's chip for a reader on several jobs (above), then a search, `Search items or item IDs`, over each row's name, its category
 and its type — every word typed must be in one of them — or, when what is typed
 is an item's id, for that item (#541; `Search items` until then), and two chips, `Type` and
 `Category`, each listing the values the job's rows hold with how many rows
@@ -186,16 +186,17 @@ sentence, `No items yet` and `Each item shows here with how many are in
 stock, out, in repair and retired.` — `in repair` since #531, where the files
 of 2026-10-15 still name three — and under them a second, bordered `Add items`
 (1a, #463, #519). The control in the head is still there, and both are the way to
-make one; so is the job's choice, to move to another job. No band and no pager
-stand over or under an empty list. **For a reader who is not a site manager,
+make one; so is the job's choice, to move to another job, alone in the band where
+the list with rows puts it (#566). No search, chip or pager stands over or under
+an empty list. **For a reader who is not a site manager,
 `No items yet` and who fills it, `Items show here once a site manager adds
 them.` (1a2, #519)**, and no opener: both are a site manager's.
 
 **When the reader is on no job** — anybody but the office, with no assignment:
 the head is the heading alone, with no figure, and in place of the rows `No job
 yet` and `Items show here once the office assigns you to a job.` (1a2, #519). A
-site manager among them keeps the head's opener, drawn disabled with `Ask the
-office to assign you to a job` before it, and is drawn no second one.
+site manager among them is drawn no opener at all, as 1a2 draws that state
+(#522).
 
 **The shared brief's three empty states all have a producer here.** "Nothing
 exists yet" is a job with no items; "nothing you can see" a reader on no job;

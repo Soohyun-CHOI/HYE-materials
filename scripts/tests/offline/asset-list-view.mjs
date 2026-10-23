@@ -393,11 +393,11 @@ function allJobs548({ check, log }) {
     // WHERE EACH SCREEN ASKS, off the sources, since no figure shows it.
     const choiceSource = parseFile("app/(assets)/JobChoice.js").source;
     check(
-        "the job's choice offers `All jobs` first, in the document lists' word, and holding it says no `Job` before it",
+        "the job's choice offers `All jobs` first, in the document lists' word, and shows no `Job` before what it holds (#566)",
         [
             /const ALL_JOBS_LABEL = axesFor\(FILTERED_LISTS\[0\]\)\.find\(\(axis\) => axis\.param === "job"\)\.words\.all;/.test(choiceSource),
             /const options = \[\{ value: ALL_JOBS, label: ALL_JOBS_LABEL \}, \.\.\.jobs\.map\(\(\{ id, jobCode \}\) => \(\{ value: id, label: jobCode \}\)\)\];/.test(choiceSource),
-            /label=\{job === ALL_JOBS \? undefined : COPY\.jobLabel\}/.test(choiceSource),
+            /<Choice\s+look=\{look\}\s+options=\{options\}/.test(choiceSource) && !/<Choice[^>]*\blabel=/.test(choiceSource),
         ].join(" "),
         "true true true"
     );
@@ -1655,7 +1655,19 @@ export function run({ check, assert, log }) {
         propSources(listScreen, "ListFrame", "footer").map((f) => /^\{\s*!emptied && \(\s*<Pager/.test(f)).join(),
         "true"
     );
-    check("  nor a list on a job with nothing on it, which the page draws without a band (1a2)", /if \(rows\.length === 0\) \{\s*return \(\s*<ListFrame\s+header=/.test(parseFile(LIST_SCREEN).source) && !/band=/.test(parseFile(LIST_SCREEN).source), true);
+    // A list on a job with nothing on it draws no pager, and a band holding the job's chip alone, at
+    // the start of the band where the list with rows draws it (1a2, #566).
+    const emptyPage = parseFile(LIST_SCREEN).source;
+    check(
+        "  nor a list on a job with nothing on it, whose band holds the job's chip alone (1a2, #566)",
+        [
+            /if \(rows\.length === 0\) \{\s*return \(\s*<ListFrame\s+header=/.test(emptyPage),
+            (emptyPage.match(/band=/g) ?? []).length,
+            /<\/ListHeader>\s*\}\s*band=\{choosable && <JobChoice jobs=\{choosable\} job=\{job\} \/>\}\s*>/.test(emptyPage),
+            /footer=/.test(emptyPage),
+        ].join(" · "),
+        "true · 1 · true · false"
+    );
 
     // A CATEGORY'S LIST FLOATS THE BAR WHILE ANYTHING IS SELECTED, and hands the print control
     // what the selection makes of it, the reason with it.
@@ -1870,7 +1882,7 @@ export function run({ check, assert, log }) {
             countGiven: /\{count != null && \(\s*<p className="shrink-0 text-body tabular-nums text-foreground-subtle">/.test(header),
             centered:
                 /caption \? "items-start" : "items-center"/.test(header) &&
-                /<div className="flex shrink-0 items-center gap-list-header-control-inline">\{children\}<\/div>/.test(header) &&
+                /<div className="flex shrink-0 items-center gap-gap">\{children\}<\/div>/.test(header) &&
                 !/-mt-/.test(header),
             figure: /<p className="shrink-0 text-body tabular-nums text-foreground-subtle">\s*\{count\}\s*<span className="sr-only">\{` \$\{noun\}`\}<\/span>\s*<\/p>/.test(header),
             top: /underBreadcrumb \? "pt-breadcrumb-stack" : "min-h-\(--height-control-lg\) pt-list-header-inset-top"/.test(header) && /pb-list-header-inset-bottom/.test(header),
@@ -2189,11 +2201,12 @@ export function run({ check, assert, log }) {
         "1 1 1 false"
     );
     check(
-        "  the list's in its head as a chip, a category's and an asset's as a breadcrumb level",
+        "  the list's as a chip starting its band (#566), a category's and an asset's as a breadcrumb level",
         [
             /const choosable = scope\.jobs\.length > 1 \?/.test(listSource) &&
-                /\{choosable && <JobChoice jobs=\{choosable\} job=\{job\} \/>\}/.test(listSource) &&
-                /\{jobs && <JobChoice jobs=\{jobs\} job=\{job\} filters=\{reading\.held\} \/>\}/.test(categoryListSource),
+                /band=\{choosable && <JobChoice jobs=\{choosable\} job=\{job\} \/>\}/.test(listSource) &&
+                /band=\{\s*<>\s*\{jobs && <JobChoice jobs=\{jobs\} job=\{job\} filters=\{reading\.held\} \/>\}\s*<SearchField/.test(categoryListSource) &&
+                ![listSource, categoryListSource].some((source) => /<ListHeader(?:(?!<\/ListHeader>)[\s\S])*<JobChoice/.test(source)),
             /key: "job",\s*control: \(\s*<CategoryJobChoice/.test(categorySource) && !/<ListHeader[\s\S]*?<CategoryJobChoice[\s\S]*?<\/ListHeader>/.test(categorySource),
             /key: "job",\s*control: \(\s*<JobChoice\s+look="crumb"/.test(assetSource),
         ].join(" "),

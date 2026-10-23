@@ -77,6 +77,7 @@
     --max-width-menu: 17.5rem; /* Menu, 280: to here */
     --max-height-catalog-field-list: 14.25rem; /* 1l, 228: the most the list the catalog dialog's Category or Name opens stands before it scrolls in its lane — six 36 rows inside the Menu's 5 and its Edge — from the drawings, not the spec */
     --max-height-catalog-filter-list: 21.25rem; /* 1l, 340: the most the list a chip in the catalog's band opens stands before it scrolls in its lane — from the drawings, not the spec */
+    --max-height-category-list-filter-list: 15rem; /* 1a, 240: the most the list a chip in the category list's band opens stands before it scrolls in its lane — 228 of rows inside the Menu's 5 and its Edge — from the drawings, not the spec */
     --spacing-menu-offset: 0.375rem; /* Menu, 6: under the control that opens it */
     --spacing-menu-inset: 0.3125rem; /* Menu, 5: inside it */
     --spacing-menu-heading-inset-y: 0.375rem; /* Menu, 6: above and below a head that names what follows */
@@ -91,6 +92,13 @@
     --width-clear-button: 1.5rem; /* 1a, 24: the × that empties a search field or a filter chip — from the drawings, not the spec */
     --size-clear-icon: 0.8125rem; /* 1a, 13: that ×'s mark — from the drawings, not the spec */
     --spacing-ghost-inset-x: 0.625rem; /* Ghost, 10: either side of an action that is its word alone, in a row of 36 buttons, and how far it pulls out at the row's end so its ink meets the edge */
+    --spacing-faced-inset-left: 0.625rem; /* 1a, 10: a faced action's room before the mark that leads its word, the category list's way to the catalog — from the drawings, not the spec */
+    --spacing-faced-inset-right: 0.75rem; /* 1a, 12: its room after the word — from the drawings, not the spec */
+    --min-width-job-chip: 8rem; /* 1a, 128: the least the job's chip takes at the start of the category list's band — from the drawings, not the spec */
+    --spacing-job-chip-inset-left: 0.5625rem; /* 1a, 9: that chip's room before the pin that leads its job — from the drawings, not the spec */
+    --spacing-job-chip-inset-right: 0.5rem; /* 1a, 8: its room on its chevron's side — from the drawings, not the spec */
+    --size-job-chip-chevron: 0.75rem; /* 1a, 12: its chevron — from the drawings, not the spec */
+    --min-width-job-chip-list: 10rem; /* 1a, 160: the least the list that chip opens takes, its room and Edge counted, and never less than the chip — from the drawings, not the spec */
 
     /* 0b · Layout — the page's own measure. */
     --container-content: 67.5rem; /* Content, 1080: the centered measure, for short text */
@@ -109,7 +117,7 @@
     --transition-duration-selection-bar: 160ms; /* Selection bar: how long it takes to fade in */
     --spacing-selection-bar-reason-gap: 0.375rem; /* Selection bar, 6: from the info mark that leads an action's reason to its words */
     --spacing-table-column-inline: 1.25rem; /* 1a and 1d, 20: between two columns — from the drawings, not the spec */
-    --width-table-count: 6rem; /* 1a, 96: a column of counts — from the drawings, not the spec */
+    --width-table-count: 3.5rem; /* 1a, 56: a column of counts — from the drawings, not the spec */
     --width-table-id: 15rem; /* 1d, 240: a column of printed ids — from the drawings, not the spec */
     --width-table-job: 6rem; /* 1d, 96: a column of job codes, on all of a reader's jobs — from the drawings, not the spec */
     --width-table-status: 15rem; /* 1d, 240: a column of statuses, beside the note's — from the drawings, not the spec */
@@ -324,7 +332,6 @@
     --spacing-list-header-inset-bottom: 1.125rem; /* Header right, 18: under a list header, to its column head */
     --spacing-list-header-inline: 2.5rem; /* Header right, 40: the least room between a list header's title and its control */
     --spacing-list-count-inline: 0.5rem; /* Header right, 8: from a list header's title to the count on its baseline */
-    --spacing-list-header-control-inline: 0.75rem; /* 1a, 12: between two controls in a list header, the job's chip and Add items — from the drawings, not the spec */
     --spacing-title-stack: 0.625rem; /* Header stack, 10: from the title to the line of text under it */
     --spacing-subtitle-stack: 0.75rem; /* Header stack, 12: from the line of text under the title to the status */
     --spacing-heading-sm-stack: 0.75rem; /* Rail blocks, 12: from a block's name to what it heads, the phone's Block name too */
@@ -348,7 +355,7 @@
     --spacing-log-rule-overhang: 0.1875rem; /* 1f, 3: how far the rule runs into the next entry — from the drawings, not the spec */
     --spacing-log-line-stack: 0.1875rem; /* 1f and 1j, 3: between an entry's lines — from the drawings, not the spec */
     --spacing-log-stack: 1.5rem; /* 1f, 24: between entries — from the drawings, not the spec */
-    --max-width-empty-state: 27.5rem; /* 1h, 440: the sentence of a screen saying a record is not there — from the drawings, not the spec. The tool item page's refusal at a desk reads it too, which no row sizes, so it moves with this */
+    --max-width-empty-state: 30rem; /* 1a2, 1d and 1h, 480: the sentence of a list with nothing on it and of a screen saying a record is not there — from the drawings, not the spec. The tool item page's refusal at a desk reads it too, which no row sizes, so it moves with this */
 
     /* 0o · Sign-in page — one column, centered, with the wordmark at its head (#473). */
     --container-sign-in: 22.5rem; /* 0o, 360: the page's one column */

@@ -122,7 +122,9 @@ export function ListHeader({ title, count, noun, caption, underBreadcrumb = fals
                 </div>
                 {caption}
             </div>
-            <div className="flex shrink-0 items-center gap-list-header-control-inline">{children}</div>
+            {/* Its controls 8 apart, 0b's Gap within a cluster, as the files of 2026-10-23 draw 1a's
+                head (#566); 1a drew them 12 apart from #519 until then. */}
+            <div className="flex shrink-0 items-center gap-gap">{children}</div>
         </div>
     );
 }

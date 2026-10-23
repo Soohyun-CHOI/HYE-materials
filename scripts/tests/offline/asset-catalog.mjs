@@ -211,7 +211,13 @@ export function run({ check, assert, log }) {
             "true true"
         );
         const chipLanes = (file) => (parseFile(file).source.match(/<FilterChip\b[\s\S]*?\/>/g) ?? []).map((chip) => (chip.match(/lane="([^"]*)"/) ?? [])[1] ?? "none").join(", ");
-        check("the catalog's band hands its chips 1l's 340 lane, and the category list's none, as 1a draws", `${chipLanes(LIST)} | ${chipLanes(CATEGORY_LIST)}`, "max-h-catalog-filter-list | none, none");
+        // The category list's band takes 1a's own 240 since the files of 2026-10-23 (#566), where
+        // its lists grew to their options from #520.
+        check(
+            "the catalog's band hands its chips 1l's 340 lane, and the category list's 1a's 240",
+            `${chipLanes(LIST)} | ${chipLanes(CATEGORY_LIST)}`,
+            "max-h-catalog-filter-list | max-h-category-list-filter-list, max-h-category-list-filter-list"
+        );
     }
     log("");
 
@@ -353,8 +359,8 @@ export function run({ check, assert, log }) {
     // component, where each stands among the head's children and React warned on every load
     // for the opener that had none.
     check(
-        "  to the catalog, in the catalog's word, keyed as the opener beside it is",
-        `${/<ButtonLink key="catalog" variant="bordered" href=\{ASSET_CATALOG_PATH\}>\s*\{ASSET_CATALOG_COPY\.heading\}\s*<\/ButtonLink>/.test(categoryPage.source)} ${/<RegistrationDialog key="registration" \{\.\.\.registration\} \/>/.test(categoryPage.source)}`,
+        "  to the catalog, in the catalog's word and faced behind a book (1a, #566), keyed as the opener beside it is",
+        `${/<ButtonLink key="catalog" variant="faced" mark=\{<Icon name="book-open" className="size-icon shrink-0" \/>\} href=\{ASSET_CATALOG_PATH\}>\s*\{ASSET_CATALOG_COPY\.heading\}\s*<\/ButtonLink>/.test(categoryPage.source)} ${/<RegistrationDialog key="registration" \{\.\.\.registration\} \/>/.test(categoryPage.source)}`,
         "true true"
     );
     check(

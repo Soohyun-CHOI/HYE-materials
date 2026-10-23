@@ -252,7 +252,8 @@ const BUTTON_SIZE = {
 // The room either side of the words, by size — and a ghost's own, whatever its size (#520).
 const BUTTON_INSET = { md: "px-control-md-inset-x", lg: "px-control-lg-inset-x", xl: "px-control-lg-inset-x" };
 const GHOSTS = ["ghost", "ghostDanger"];
-const insetOf = (variant, size) => (GHOSTS.includes(variant) ? "px-ghost-inset-x" : BUTTON_INSET[size]);
+const insetOf = (variant, size) =>
+    GHOSTS.includes(variant) ? "px-ghost-inset-x" : variant === "faced" ? "pr-faced-inset-right pl-faced-inset-left" : BUTTON_INSET[size];
 
 // A ghost is "one step under what stands around it — 32 with 10 in a row of 36 buttons" (0f
 // Ghost), so one standing with 0a's 36 is the Control's 32 and keeps the row's 14 (1l, #527);
@@ -269,12 +270,15 @@ const sizeOf = (variant, size) => (GHOSTS.includes(variant) && size === "lg" ? "
 // against what is NOT disabled rather than what is enabled, so a link drawn as an action
 // hovers too. A ghost that removes or reverses the record is 0f's Destructive at a ghost's
 // size: transparent at rest, red on red's Face under the pointer — 1l's `Discontinue` (#527).
+// A faced action is 0f's Faced, no outline at a 36, its mark and word in Ink 2 lifting to Ink as
+// it fills at Hover (0f Ink on hover) — the category list's way to the catalog (1a, #566).
 const BUTTON_VARIANT = {
     filled: "bg-primary text-white not-disabled:not-aria-disabled:hover:bg-primary-hover disabled:bg-primary-disabled",
     bordered: "border border-border bg-white text-foreground-default not-disabled:not-aria-disabled:hover:bg-hover-subtle",
     danger: "bg-danger text-white not-disabled:not-aria-disabled:hover:bg-danger-hover",
     ghost: "text-foreground-default not-disabled:not-aria-disabled:hover:bg-hover",
     ghostDanger: "text-foreground-default not-disabled:not-aria-disabled:hover:bg-danger-subtle not-disabled:not-aria-disabled:hover:text-danger",
+    faced: "text-foreground-muted not-disabled:not-aria-disabled:hover:bg-hover not-disabled:not-aria-disabled:hover:text-foreground-default",
 };
 
 // In a sheet below the phone's edge (Tools 0a Button, #458): full width, 48, 17 at 600, at
@@ -290,6 +294,7 @@ const SHEET_BUTTON_VARIANT = {
     danger: "max-sm:in-data-[sheet]:not-aria-disabled:active:bg-danger-hover",
     ghost: "",
     ghostDanger: "",
+    faced: "",
 };
 
 /**
@@ -431,13 +436,19 @@ const FIELD_MESSAGE =
     "min-h-[var(--text-body-sm--line-height)] text-body-sm max-sm:in-data-[sheet]:min-h-[var(--text-mobile-body-sm--line-height)] max-sm:in-data-[sheet]:text-mobile-body-sm";
 
 /**
- * A link drawn as an action, for the one place an action goes somewhere rather than doing
- * something — the sign-in screens' `Go to sign in` (#473). It is `Button`'s look and has
- * none of its states: a link is never disabled and never busy.
+ * A link drawn as an action, for the places an action goes somewhere rather than doing
+ * something — the sign-in screens' `Go to sign in` (#473) and the category list's `Catalog`
+ * (#527). It is `Button`'s look and has none of its states: a link is never disabled and never
+ * busy. `mark` is the caller's 16 mark leading the words, 8 before them — `Catalog`'s book
+ * (1a, #566) — drawn by the caller so the shape it names is a literal there.
  */
-export function ButtonLink({ variant = "filled", size = "lg", href, children }) {
+export function ButtonLink({ variant = "filled", size = "lg", href, mark, children }) {
     return (
-        <Link href={href} className={`${BUTTON} ${sizeOf(variant, size)} ${insetOf(variant, size)} ${BUTTON_VARIANT[variant]} ${SHEET_BUTTON} ${SHEET_BUTTON_VARIANT[variant]}`}>
+        <Link
+            href={href}
+            className={`${BUTTON} ${sizeOf(variant, size)} ${insetOf(variant, size)} ${BUTTON_VARIANT[variant]} ${SHEET_BUTTON} ${SHEET_BUTTON_VARIANT[variant]}${mark ? " gap-gap" : ""}`}
+        >
+            {mark}
             {children}
         </Link>
     );
@@ -940,22 +951,24 @@ const TYPEAHEAD_MS = 500;
  * INSIDE A BUSY FORM IT IS READ-ONLY (#469): it keeps focus and its look, and no key and no
  * press opens it or changes what it holds. Tab still leaves.
  *
- * TWO MORE LOOKS, ONE PATTERN (#519). `look="chip"` is the job a list narrows to, in its head
- * (1a): a 36 control as wide as what it holds, `label` before its value at Ink 3 and the value
- * at Ink, both at 14 and 500 — the words 16 from its left edge as a 36 control's are and the
- * chevron a field's 12 from its right — on an Edge, holding its Wash while its list is open, the
- * list set against its right end. Its Edge turns to Edge focus for the keyboard alone (#522):
- * 1a draws a chip a press opened on its Edge, a bordered control's Open being its Wash (0f). `look="crumb"` is the same choice standing as a breadcrumb
+ * TWO MORE LOOKS, ONE PATTERN (#519). `look="chip"` is the job a list stands on, at the start of
+ * its band since the files of 2026-10-23 (1a, #566), where #519 drew it in the head with `Job`
+ * before the value at 36: a 32 control at least 128 wide, a 14 pin in Ink 3 leading the job at 13
+ * and 500 in Ink, its 12 chevron in Ink 3 at the end, 6 between each, 9 before the pin and 8 after
+ * the chevron, on an Edge and white, holding its Wash under the pointer and while its list is
+ * open, the list from its left at least 160 wide with 32 rows. Its Edge turns to Edge focus for
+ * the keyboard alone (#522): 1a draws a chip a press opened on its Edge, a bordered control's
+ * Open being its Wash (0f). `look="crumb"` is the same choice standing as a breadcrumb
  * level (1d, 1f): the level's 26, its side room pulled back and its 13 at 600 in Ink 2, a 12
- * chevron 6 after the word, and its list from the level's left with 32 rows. In both the label
- * the chip shows is hidden from a screen reader, which hears the field's label as the name.
+ * chevron 6 after the word, and its list from the level's left with 32 rows. Neither shows the
+ * field's label, which a screen reader hears as the name.
  *
  * AN OPTION MAY CARRY A `note`, SAID AFTER ITS LABEL (#519): a job's name after its code, at Ink
  * 3 and 8 on, in the field and in its list, as 1b and 1i draw a dialog's job. A list with a
  * note in it, and a level's list, sets each label at 500 (`Menu.js`). The type-ahead reads the
  * label alone, so a key goes to the code it starts.
  */
-export function Choice({ name, options, value, onChange, placeholder, look = "field", label }) {
+export function Choice({ name, options, value, onChange, placeholder, look = "field" }) {
     const field = useField();
     const formBusy = Boolean(useContext(FormBusyContext));
     const listId = `${field.control}list`;
@@ -1053,24 +1066,32 @@ export function Choice({ name, options, value, onChange, placeholder, look = "fi
                 }}
                 className={CHOICE_LOOK[look](field.refused)}
             >
-                {look === "chip" && label && (
-                    <span aria-hidden="true" className="shrink-0 text-foreground-subtle">
-                        {label}
-                    </span>
-                )}
+                {look === "chip" && <Icon name="map-pin" className="size-icon-sm shrink-0 text-foreground-subtle" />}
                 {chosen >= 0 && options[chosen].note ? (
                     <span className="flex min-w-0 flex-1 gap-gap text-foreground-default">
                         <span className="shrink-0">{options[chosen].label}</span>
                         <span className="min-w-0 truncate text-foreground-subtle">{options[chosen].note}</span>
                     </span>
                 ) : (
-                    <span className={`min-w-0 truncate ${look === "crumb" ? "" : chosen >= 0 ? "text-foreground-default" : "text-foreground-subtle"}`}>
+                    <span
+                        className={`min-w-0 truncate ${look === "chip" ? "flex-1 text-left" : ""} ${
+                            look === "crumb" ? "" : chosen >= 0 ? "text-foreground-default" : "text-foreground-subtle"
+                        }`}
+                    >
                         {chosen >= 0 ? options[chosen].label : placeholder}
                     </span>
                 )}
+                {/* Each look's chevron: a field's 14 at its end, the chip's 12 (1a, #566), and the
+                    level's 12 running into its side room (1d, 1f). */}
                 <Icon
                     name="chevron-down"
-                    className={look === "crumb" ? "-mr-breadcrumb-chevron-bleed size-breadcrumb-chevron shrink-0" : "size-icon-sm shrink-0 text-foreground-subtle"}
+                    className={
+                        look === "crumb"
+                            ? "-mr-breadcrumb-chevron-bleed size-breadcrumb-chevron shrink-0"
+                            : look === "chip"
+                              ? "size-job-chip-chevron shrink-0 text-foreground-subtle"
+                              : "size-icon-sm shrink-0 text-foreground-subtle"
+                    }
                 />
             </div>
             {name && <input type="hidden" name={name} value={value} />}
@@ -1079,8 +1100,9 @@ export function Choice({ name, options, value, onChange, placeholder, look = "fi
                 anchorRef={anchorRef}
                 shown={open}
                 labelId={field.labelId}
-                fit={look === "chip" ? "end" : look === "crumb" ? "start" : "field"}
-                rows={look === "crumb" ? "sm" : "lg"}
+                fit={look === "field" ? "field" : "start"}
+                minWidth={look === "chip" ? "var(--min-width-job-chip-list)" : undefined}
+                rows={look === "field" ? "lg" : "sm"}
                 options={options.map((option, index) => ({
                     key: option.value,
                     label: option.label,
@@ -1107,7 +1129,7 @@ const CHOICE_LOOK = {
             refused ? "border-danger" : "border-border focus:border-border-focus"
         }`,
     chip: () =>
-        "flex h-control-lg cursor-pointer items-center gap-gap rounded-control border border-border bg-white pr-input-inset-x pl-control-lg-inset-x text-body font-medium whitespace-nowrap tabular-nums outline-none not-aria-readonly:hover:bg-hover-subtle focus-visible:border-border-focus aria-expanded:bg-hover-subtle",
+        "flex h-control min-w-job-chip cursor-pointer items-center gap-control-icon-gap rounded-control border border-border bg-white pr-job-chip-inset-right pl-job-chip-inset-left text-body-sm font-medium whitespace-nowrap tabular-nums outline-none not-aria-readonly:hover:bg-hover-subtle focus-visible:border-border-focus aria-expanded:bg-hover-subtle",
     crumb: () =>
         "-mx-control-inline-inset-x flex h-control-inline cursor-pointer items-center gap-breadcrumb-chevron-gap rounded-control px-control-inline-inset-x text-body-sm font-semibold whitespace-nowrap text-foreground-muted tabular-nums not-aria-readonly:hover:bg-hover aria-expanded:bg-hover",
 };

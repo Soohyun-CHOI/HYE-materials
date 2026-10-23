@@ -50,8 +50,14 @@ const NOT_MARKS = {
  * Every shape, element by element and in Lucide's order, as lucide-react 1.52.0 holds it: the
  * release Design moved the design's marks to on 2026-10-07, after that morning's files drew
  * Lucide as it stood from 0.416.0 to 0.532.0. `search-x` is 1k-c's mark, which Design settled.
+ * `book-open` is 1a's `Catalog` (#566), which the files of 2026-10-23 draw in an earlier
+ * release's shape, as they draw the note's `message-square` (#533); this is 1.52.0's.
  */
 const DESIGN_SHAPES = {
+    "book-open": [
+        ["path", { d: "M12 5v16" }],
+        ["path", { d: "M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z" }],
+    ],
     check: [["path", { d: "M20 6 9 17l-5-5" }]],
     "chevron-down": [["path", { d: "m6 9 6 6 6-6" }]],
     "chevron-left": [["path", { d: "m15 18-6-6 6-6" }]],
@@ -149,12 +155,14 @@ const DESIGN_SHAPES = {
 const MARKS_BY_FILE = {
     // The way to the item a search found by its id ends on 0f's chevron (1a, #541).
     "app/(assets)/asset-categories/FoundItem.js": ["chevron-right"],
+    // The office's way to the catalog is led by a book (1a, #566).
+    "app/(assets)/asset-categories/page.js": ["book-open"],
     "app/(assets)/assets/[assetId]/AssetNote.js": ["message-square", "plus"],
     "app/(assets)/assets/[assetId]/MoreActions.js": ["ellipsis"],
     "app/(assets)/assets/[assetId]/TransitionBar.js": ["map-pin", "user"],
     "app/(assets)/assets/[assetId]/page.js": ["map-pin", "search-x", "user"],
     "app/components/Breadcrumb.js": ["chevron-left"],
-    "app/components/Controls.js": ["check", "chevron-down", "circle-alert", "info", "minus", "plus", "search", "x"],
+    "app/components/Controls.js": ["check", "chevron-down", "circle-alert", "info", "map-pin", "minus", "plus", "search", "x"],
     "app/components/DialogFrame.js": ["check", "search", "x"],
     "app/components/ListFrame.js": ["x"],
     "app/components/ListTable.js": ["chevron-left", "chevron-right"],

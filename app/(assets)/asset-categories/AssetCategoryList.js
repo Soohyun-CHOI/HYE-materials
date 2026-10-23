@@ -22,9 +22,9 @@ import JobChoice from "../JobChoice";
 import FoundItem from "./FoundItem";
 import ListExport from "./ListExport";
 
-// 1a's columns since #519: the name, then a count for each status at 96, right-aligned — four
-// since #531, `In repair` between `Out` and `Retired`, the order `ASSET_STATUS_VALUES` holds
-// them in. The repeat is a literal a stylesheet can be built from, so the count in it is
+// 1a's columns since #519: the name, then a count for each status at 56 (96 until #566),
+// right-aligned — four since #531, `In repair` between `Out` and `Retired`, the order
+// `ASSET_STATUS_VALUES` holds them in. The repeat is a literal a stylesheet can be built from, so the count in it is
 // written here and `offline/asset-list-view.mjs` holds it to the vocabulary's length. The
 // category stands in the name's cell, 20 after the name at Ink 3, and gives its room up first,
 // so a long name is cut last. From #507 to #519 the class, the type and the category were
@@ -56,13 +56,19 @@ const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(4,var(--width-table-count))]";
  * rows stood, naming what was typed, with one control that clears the search alone when that
  * is all that narrows and everything otherwise (`emptiedListWords`); no pager stands under it.
  *
- * THE HEAD HOLDS THE JOB'S CHIP AND THE OPENERS. `jobs` are the jobs the chip offers, for a
- * reader on several, and the chip is drawn here so it can carry what the band holds to the job
- * chosen; `catalog` is the office's way to the catalog (#527) and `opener` a site manager's, each
- * drawn by the page, which reads what it needs. **`Export` stands between them for every reader
- * (1a, #553)**, drawn here and not by the page because it sends the address this list is
- * showing, and only here because 1a draws it over a list with rows: the empty states, which the
- * page draws, have none. `ListExport.js` has what a press reads and what it says.
+ * THE HEAD HOLDS THE OPENERS, AND THE BAND STARTS ON THE JOB'S CHIP (1a, #566). `jobs` are the
+ * jobs the chip offers, for a reader on several, and the chip is drawn here so it can carry what
+ * the band holds to the job chosen; it stood in the head before `Catalog` from #519 until the
+ * files of 2026-10-23 moved it ahead of the search. `catalog` is the office's way to the catalog
+ * (#527) and `opener` a site manager's, each drawn by the page, which reads what it needs.
+ * **`Export` stands between them for every reader (1a, #553)**, drawn here and not by the page
+ * because it sends the address this list is showing, and only here because 1a draws it over a
+ * list with rows: the empty states, which the page draws, have none. `ListExport.js` has what a
+ * press reads and what it says.
+ *
+ * A CHIP'S LIST STANDS AT MOST 240, AND SCROLLS PAST IT (1a, #566), as the catalog's stand at 340:
+ * the files of 2026-10-23 draw the category list's band lists as lanes of their own, where until
+ * then they grew to their options.
  *
  * THE BAND'S READING IS `readCategoryList`'S, WHICH THE EXPORT ANSWERS TOO (#553): one call
  * over the address and the text typed, so what the file holds is what this draws.
@@ -110,7 +116,6 @@ export default function AssetCategoryList({ rows, job, jobCode = null, allJobs =
         <ListFrame
             header={
                 <ListHeader title={COPY.heading} count={count} noun={COPY.itemNoun(reading.rows.length)}>
-                    {jobs && <JobChoice jobs={jobs} job={job} filters={reading.held} />}
                     {catalog}
                     <ListExport />
                     {opener}
@@ -118,6 +123,7 @@ export default function AssetCategoryList({ rows, job, jobCode = null, allJobs =
             }
             band={
                 <>
+                    {jobs && <JobChoice jobs={jobs} job={job} filters={reading.held} />}
                     <SearchField label={COPY.searchLabel} value={typed} onChange={search} clearLabel={COPY.clearSearch} onEnter={open} />
                     {ASSET_LIST_FACETS.map((facet) => (
                         <FilterChip
@@ -128,6 +134,7 @@ export default function AssetCategoryList({ rows, job, jobCode = null, allJobs =
                             onChange={(values) => choose(facet, values)}
                             clearLabel={COPY.clearFacet[facet]}
                             several={COPY.selectedCount}
+                            lane="max-h-category-list-filter-list"
                         />
                     ))}
                     {allJobs && (
@@ -138,6 +145,7 @@ export default function AssetCategoryList({ rows, job, jobCode = null, allJobs =
                             onChange={(values) => choose("jobs", values)}
                             clearLabel={COPY.clearJobs}
                             several={COPY.selectedCount}
+                            lane="max-h-category-list-filter-list"
                         />
                     )}
                 </>
