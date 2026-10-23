@@ -213,12 +213,20 @@ function dialogProps(openingElement, ast) {
     // A call reads as its callee and its arguments, so `canRegisterAssets(user, jobs)`
     // is told from a literal `true` and from the same predicate asked of another list;
     // a function handed as an argument reads as `…`, since only its caller matters here.
+    // A fallback reads as its two sides and an optional read as one (#565), so the job a
+    // list stands on, `scope.job?.id ?? null`, is told from the address's `sp.job`.
     const sourceOf = (node) => {
         if (node?.type === "CallExpression")
             return `${sourceOf(node.callee)}(${node.arguments
                 .map((argument) => (argument.type === "ArrowFunctionExpression" ? "…" : sourceOf(argument)))
                 .join(", ")})`;
-        if (node?.type === "MemberExpression" && !node.computed) return `${sourceOf(node.object)}.${node.property.name}`;
+        if (node?.type === "ChainExpression") return sourceOf(node.expression);
+        if (node?.type === "MemberExpression" && !node.computed)
+            return `${sourceOf(node.object)}${node.optional ? "?." : "."}${node.property.name}`;
+        if (node?.type === "LogicalExpression") {
+            const side = (each) => (each?.type === "Literal" ? String(each.value) : sourceOf(each));
+            return `${side(node.left)} ${node.operator} ${side(node.right)}`;
+        }
         return nameOf(node);
     };
     const valueOf = (node) => {
@@ -859,11 +867,12 @@ export function run({ check, assert, log }) {
     // register, asked once on this page, and the jobs the dialog offers — the same two the
     // page's own opener is handed, so the two openers cannot answer the reader differently.
     // Since #507 the category it opens on is the page's opener's too, and so is the catalog that
-    // admits it; what those two are is read off their declarations below, beside the openers.
+    // admits it, and since #565 the job the list stands on; what those three are is read off
+    // their declarations below, beside the openers.
     check(
         "  the fork is handed the page opener's tool and catalog, that reading and the page's answer about the reader",
         facts.fork,
-        "account: account, canRegister: canRegister, catalog: catalog, category: opened, jobs: assignedJobs"
+        "account: account, canRegister: canRegister, catalog: catalog, category: opened, jobs: assignedJobs, listJobId: listJobId"
     );
     check("  and the notice the category's name and the same reading", facts.notice, "account: account, itemName: category.itemName");
     check("  which the page no longer lists itself", facts.mappedFromAddress, "");
@@ -1154,10 +1163,12 @@ export function run({ check, assert, log }) {
     );
     // The category and the catalog are the page's, handed through (#507): the dialog starts on
     // the category's second step, and the reading admits it only while that catalog offers it.
+    // So is the job the landing stands on (#565), which its choice starts on when it is the
+    // reader's.
     check(
         "  onto the registration form on this tool and its catalog, with the count it was handed",
         fork.opens,
-        "catalog: catalog, category: category, jobs: jobs, key: registration.opening, onClose: registration.close, open: registration.open, quantity: account.unwritten"
+        "catalog: catalog, category: category, jobs: jobs, key: registration.opening, listJobId: listJobId, onClose: registration.close, open: registration.open, quantity: account.unwritten"
     );
     // ONE VALUE FOR THE WORDS AND THE FORM (#485): the answer names how many it will add, and
     // the dialog it opens starts at that count, so both are handed the same expression.
@@ -1335,55 +1346,58 @@ export function run({ check, assert, log }) {
     };
     // TWO OPENERS EACH SINCE #463, HANDED ONE OBJECT: the head's, under the reader being a site
     // manager alone (#506), and an empty list's second one, bordered, under the branch that
-    // draws the empty state as well (1a, 1d).
+    // draws the empty state as well (1a, 1d). Each hands the job the list stands on since #565.
     const openers = dialogOpeners(parseFile(CATEGORY_SCREEN).ast);
     check("a category's page opens the registration dialog from its head, and from an empty list", openers.length, 2);
     check(
         "  on this tool and its catalog, with no count, in the dialog's own title",
         openers[0]?.handed,
-        "canRegister: canRegister, catalog: catalog, category: opened, jobs: assignedJobs, opener: ASSET_REGISTRATION_COPY.heading"
+        "canRegister: canRegister, catalog: catalog, category: opened, jobs: assignedJobs, listJobId: listJobId, opener: ASSET_REGISTRATION_COPY.heading"
     );
     check("  asking the one predicate every opener asks", openers[0]?.asks, "canRegisterAssets");
     check("  and under the reader being a site manager alone — not the list's, not a job (#506)", openers[0]?.under, "recorder");
     check(
         "  the empty list's the same opener, bordered, under the empty branch and the same reader",
         `${openers[1]?.handed} | ${openers[1]?.asks} | ${openers[1]?.under}`,
-        "canRegister: canRegister, catalog: catalog, category: opened, jobs: assignedJobs, opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | canRegisterAssets | page.total === 0, recorder"
+        "canRegister: canRegister, catalog: catalog, category: opened, jobs: assignedJobs, listJobId: listJobId, opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | canRegisterAssets | page.total === 0, recorder"
     );
     // WHAT THE CATEGORY AND THE CATALOG ARE (#507), off their declarations, since `category: opened`
     // above reads alike whatever `opened` is: the row the page read, by the id the action
     // admits and the name its line says — the class it said until #520, and carried unread until
     // #552 — and the catalog the reading admits it from —
     // that one row, while the catalog offers it, as `registrationCatalog` hands a dialog a row,
-    // so the second step starts on its levels (#514).
+    // so the second step starts on its levels (#514). And the job is the one the scope stands the
+    // list on (#565) — the page's reading of the address, none on all of the reader's jobs — and
+    // never the address's own `job`.
     const handedOn = ({ ast, source }) => {
         const declared = {};
         walk(ast, (n) => {
-            if (n.type === "VariableDeclarator" && ["opened", "catalog"].includes(n.id?.name) && !(n.id.name in declared))
+            if (n.type === "VariableDeclarator" && ["opened", "catalog", "listJobId"].includes(n.id?.name) && !(n.id.name in declared))
                 declared[n.id.name] = source.slice(n.init.start, n.init.end).replace(/\s+/g, " ");
         });
-        return `${declared.opened ?? "none"} | ${declared.catalog ?? "none"}`;
+        return `${declared.opened ?? "none"} | ${declared.catalog ?? "none"} | ${declared.listJobId ?? "none"}`;
     };
     check(
-        "  the tool is the row the page read, and the catalog that row while the catalog offers it",
+        "  the tool is the row the page read, the catalog that row while the catalog offers it, and the job the scope's",
         handedOn(parseFile(CATEGORY_SCREEN)),
-        "{ id: category.id, itemName: category.itemName } | registrationCatalog([category])"
+        "{ id: category.id, itemName: category.itemName } | registrationCatalog([category]) | scope.job?.id ?? null"
     );
     check(
-        "  and a page handing a row of its own making, and the whole table as its catalog, is seen (anti-vacuity)",
-        handedOn(parseSource("const opened = { id: sp.tool };\nconst catalog = tools;\n", "<planted-handed>")),
-        "{ id: sp.tool } | tools"
+        "  and a page handing a row of its own making, the whole table as its catalog and the address's job, is seen (anti-vacuity)",
+        handedOn(parseSource("const opened = { id: sp.tool };\nconst catalog = tools;\nconst listJobId = sp.job;\n", "<planted-handed>")),
+        "{ id: sp.tool } | tools | sp.job"
     );
     const listOpeners = dialogOpeners(parseFile(LIST_SCREEN).ast);
     check("the category list opens it from its head, and from an empty list", listOpeners.length, 2);
     // THE CATALOG IS THE WHOLE READ'S (#507), and never the scope's (#509): a kind is the
     // company's, and one off the reader's jobs or with nothing under it is one to add to. And
     // a key since #527, since the page hands it to the list, a client component, among the
-    // head's children there.
+    // head's children there. The job is the scope's (#565): the one the list stands on, which
+    // the dialog's choice starts on when it is the reader's, and none on all of their jobs.
     check(
         "  on no tool, in the same title, with the whole catalog to pick from — whatever the list's scope (#509, #507)",
         listOpeners[0]?.handed,
-        "canRegister: canRegisterAssets(user, allJobs), catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), key: registration, opener: ASSET_REGISTRATION_COPY.heading"
+        "canRegister: canRegisterAssets(user, allJobs), catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), key: registration, listJobId: scope.job?.id ?? null, opener: ASSET_REGISTRATION_COPY.heading"
     );
     check("  asking the same predicate", listOpeners[0]?.asks, "canRegisterAssets");
     // A READER ON NO JOB MEETS NO OPENER IN THE HEAD (1a2, #522): the design draws the no-job
@@ -1392,7 +1406,7 @@ export function run({ check, assert, log }) {
     check(
         "  the empty list's the same opener, bordered, under the empty branch and the same reader",
         `${listOpeners[1]?.handed} | ${listOpeners[1]?.asks} | ${listOpeners[1]?.under}`,
-        "canRegister: canRegisterAssets(user, allJobs), catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | canRegisterAssets | rows.length === 0, recorder && !onNoJob"
+        "canRegister: canRegisterAssets(user, allJobs), catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), listJobId: scope.job?.id ?? null, opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | canRegisterAssets | rows.length === 0, recorder && !onNoJob"
     );
     // The count a suggested tool carried, its link array's length (#456), was held here until
     // #507: a suggestion is a name of the catalog now, beside its category, and how many of a

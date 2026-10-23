@@ -149,11 +149,14 @@ async function renderCategoriesPage({ searchParams }) {
     // the two cannot drift (#338). It is in the list's head rather than under it because a
     // reader with no assets yet needs it most, and it opens on no kind (#456). What it picks
     // from is the whole catalog, whatever the job (#509, #507): a kind is the company's, and
-    // one off this job, or with nothing under it yet, is still one to add to.
+    // one off this job, or with nothing under it yet, is still one to add to. Its job starts on
+    // the one the list stands on when that is one of the reader's own (#565) — none on all of
+    // them — which the scope already answered off the address, so the opener reads nothing more.
     const registration = {
         opener: ASSET_REGISTRATION_COPY.heading,
         canRegister: canRegisterAssets(user, allJobs),
         jobs: assignedJobsFor(user, allJobs).map(({ id, jobCode, jobName }) => ({ id, jobCode, jobName })),
+        listJobId: scope.job?.id ?? null,
         catalog: registrationCatalog(categories),
     };
     // A reader on no job meets no opener in the head (1a2, #522): the design draws its no-job

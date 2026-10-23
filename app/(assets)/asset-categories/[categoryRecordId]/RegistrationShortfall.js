@@ -36,7 +36,9 @@ import { RegistrationForm, RegistrationOpener, useRegistrationOpening } from "..
 // the person's to change there — 1c's own answer, which
 // closes the one before it opens the other rather than stacking them. The words and the
 // dialog are handed one value, `account.unwritten`, so they cannot name two numbers
-// (#485); it said `Create the rest` until then and named none. The
+// (#485); it said `Create the rest` until then and named none. Its job starts on the one the
+// landing stands on (#565), which is the job the registration wrote to (#520), as every
+// opener on this page hands the job its list stands on. The
 // registration's rule is #456's and is not repeated here: it is open while the address
 // is the one it was opened at (`useRegistrationOpening`). Canceling it brings the fork
 // back, because nothing answered it — the question stands until `Not now`, and the
@@ -67,7 +69,7 @@ import { RegistrationForm, RegistrationOpener, useRegistrationOpening } from "..
 // EVERY WORD IS `ASSET_REGISTRATION_COPY`'s, this axis's rule since #338: they are a
 // registration's words wherever they are drawn, which is also why the fork is a file of
 // its own rather than part of the list.
-export default function RegistrationShortfall({ category, catalog, account, canRegister, jobs }) {
+export default function RegistrationShortfall({ category, catalog, account, canRegister, jobs, listJobId }) {
     const address = useSearchParams();
     const registration = useRegistrationOpening();
     const told = accountToTell(account, address) === "shortfall";
@@ -106,6 +108,7 @@ export default function RegistrationShortfall({ category, catalog, account, canR
                     open={registration.open}
                     onClose={registration.close}
                     jobs={jobs}
+                    listJobId={listJobId}
                     category={category}
                     catalog={catalog}
                     quantity={account.unwritten}

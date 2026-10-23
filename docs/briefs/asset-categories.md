@@ -74,7 +74,10 @@ an office reader assigned to no job it is drawn disabled, with `Ask the office
 to assign you to a job` before it, and **a
 reader who is not a site manager is drawn none (#506)** — being one is not
 something the office assigns on request the way a job is, so a disabled control
-with a reason would send them nowhere.
+with a reason would send them nowhere. **It carries the job the list stands on
+(#565)**, which the dialog's job starts on when it is one of the reader's own;
+on `All jobs`, or on a job the office views and is not assigned to, the job
+starts unchosen (`tools-new.md`).
 
 **action.** For a reader on more than one job, a choice of job in the head, 12
 before `Add items` (#509, 1a since #519): a chip saying `Job` and the job the

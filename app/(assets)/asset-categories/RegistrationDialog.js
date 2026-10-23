@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Button, ChipChoice, Choice, Field, FilterChip, NumberField, useRefusalFocus } from "@/app/components/Controls";
 import { DialogActions, DialogBody, DialogFrame, DialogSearch } from "@/app/components/DialogFrame";
 import Dot from "@/app/components/Dot";
-import { onlyJob } from "@/lib/assetJob";
+import { chosenJobId } from "@/lib/assetJob";
 import { ASSET_CATEGORY_COPY as CATALOG, catalogLevelValues, catalogRowsOf, searchCatalogNames, walkDetails } from "@/lib/assetCategory";
 import { ASSET_LIST_COPY } from "@/lib/assetListView";
 import {
@@ -79,6 +79,15 @@ import { registerAssetsAction } from "./actions";
  * is written to the address to open it, and nothing about where it was opened from is said
  * inside it.
  *
+ * AND EACH HANDS OVER THE JOB ITS LIST STANDS ON (#565), which the job's choice starts on when
+ * it is one the choice offers — the reader's own assignments, as the page read them — so a list
+ * on one of their jobs opens the dialog on it, the first a list starts on included. On all of
+ * a reader's jobs there is none to hand, and a job the office may view and is not assigned to is
+ * not offered, so either starts as every opening did until then: on the one job a reader holds,
+ * or on none of several (`chosenJobId`). What is handed is the page's reading of the address
+ * and not the address, and the choice takes it only through the assignments, so a job typed
+ * into an address is chosen for nobody it is not assigned to.
+ *
  * THE OFFER'S OPENER STANDS IN A DIALOG OF ITS OWN SINCE #459, so it cannot be this
  * component: the offer puts itself away as the registration opens, and a control inside
  * a dialog that is gone cannot hold the one that replaced it. So the parts are exported —
@@ -135,7 +144,7 @@ import { registerAssetsAction } from "./actions";
  * while it is open, because a modal dialog leaves the page behind it inert. Each opening
  * starts from what the opener hands over, and not from what the last one was left holding.
  */
-export default function RegistrationDialog({ opener, variant, canRegister, jobs, category = null, catalog = [], quantity }) {
+export default function RegistrationDialog({ opener, variant, canRegister, jobs, listJobId, category = null, catalog = [], quantity }) {
     const registration = useRegistrationOpening();
 
     return (
@@ -149,6 +158,7 @@ export default function RegistrationDialog({ opener, variant, canRegister, jobs,
                     open={registration.open}
                     onClose={registration.close}
                     jobs={jobs}
+                    listJobId={listJobId}
                     category={category}
                     catalog={catalog}
                     quantity={quantity}
@@ -204,9 +214,11 @@ export function RegistrationOpener({ variant = "filled", canRegister, onOpen, ch
  *
  * `catalog` is the rows a registration may pick (`registrationCatalog`) — every one on the
  * list's dialog, and on a category's own page that category alone while the catalog offers it.
- * `category` is the row a page opened it on, which skips the first step.
+ * `category` is the row a page opened it on, which skips the first step. `listJobId` is the
+ * Job record id of the job the list it opens over stands on, and nothing on all of a reader's
+ * jobs (#565).
  */
-export function RegistrationForm({ open, onClose, jobs, category, catalog = [], quantity }) {
+export function RegistrationForm({ open, onClose, jobs, listJobId, category, catalog = [], quantity }) {
     const [state, formAction, pending] = useActionState(registerAssetsAction, null);
     const focusRefused = useRefusalFocus();
     // What the first step picked last: a name in its place, whose rows the second narrows
@@ -222,9 +234,11 @@ export function RegistrationForm({ open, onClose, jobs, category, catalog = [], 
     // starts it (#514, #520).
     const [chosen, setChosen] = useState({});
     const [count, setCount] = useState(() => String(openingCount(quantity)));
-    // With one job it is already chosen, and with several nothing is (0l) — `onlyJob`, the
-    // one spelling of "one assignment" the transition's dialog starts from too (#458).
-    const [jobId, setJobId] = useState(onlyJob(jobs)?.id ?? "");
+    // The job the list stands on is already chosen when it is one of the reader's (#565), and
+    // otherwise the one job there is, or none of several (0l) — `chosenJobId`, whose start is
+    // `onlyJob`, the one spelling of "one assignment" the transition's dialog starts from too
+    // (#458).
+    const [jobId, setJobId] = useState(chosenJobId(jobs, listJobId));
     // The dialog's own refusal of the last press, or null when that press was sent.
     const [guarded, setGuarded] = useState(null);
     // The fields changed since the last press, whose refusals no longer stand.

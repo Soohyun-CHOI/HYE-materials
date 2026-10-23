@@ -213,10 +213,13 @@ async function renderCategoryPage({ params, searchParams }) {
     // control below that does either is drawn under it, and nothing else on the page is.
     const recorder = isSiteManager(user);
     // What both openers on this page hand the registration dialog (#456): whether this
-    // site manager may register, which is the one predicate every opener asks, and the
-    // jobs its choice offers.
+    // site manager may register, which is the one predicate every opener asks, the
+    // jobs its choice offers, and the job this list stands on, which that choice starts on
+    // when it is one of them (#565) — none on all of the reader's jobs, and the scope's answer
+    // rather than the address's, so it costs nothing.
     const canRegister = canRegisterAssets(user, jobs);
     const assignedJobs = assignedJobsFor(user, jobs).map(({ id, jobCode, jobName }) => ({ id, jobCode, jobName }));
+    const listJobId = scope.job?.id ?? null;
 
     // The way back is the breadcrumb's one level since #460, the list's own heading behind a
     // chevron (1d) — and for a reader on several jobs a path, the list's heading and then the job
@@ -254,7 +257,7 @@ async function renderCategoryPage({ params, searchParams }) {
     // level its second step asks has this row's value already chosen (#514).
     const opened = { id: category.id, itemName: category.itemName };
     const catalog = registrationCatalog([category]);
-    const registration = { opener: ASSET_REGISTRATION_COPY.heading, canRegister, jobs: assignedJobs, category: opened, catalog };
+    const registration = { opener: ASSET_REGISTRATION_COPY.heading, canRegister, jobs: assignedJobs, listJobId, category: opened, catalog };
     const header = (
         <ListHeader
             title={category.itemName}
@@ -338,7 +341,14 @@ async function renderCategoryPage({ params, searchParams }) {
                 them reaches anybody else only as a copied link, and tells them nothing. */}
             {recorder && account.unlogged.length > 0 && <RegistrationUnlogged itemName={category.itemName} account={account} />}
             {recorder && account.unwritten > 0 && (
-                <RegistrationShortfall category={opened} catalog={catalog} account={account} canRegister={canRegister} jobs={assignedJobs} />
+                <RegistrationShortfall
+                    category={opened}
+                    catalog={catalog}
+                    account={account}
+                    canRegister={canRegister}
+                    jobs={assignedJobs}
+                    listJobId={listJobId}
+                />
             )}
         </AssetList>
     );
