@@ -144,9 +144,10 @@ choice and not the start.
 or on all of them (#548), `13`, on the heading's line (`13 items` to assistive tech) (#509, #520). #326 names this as the fact every list in this app is missing: without it nothing on
 screen says whether a reader is looking at everything or at the beginning
 of it. **It is a fact about the list rather than about what the company
-holds** — which is why a single figure is right here and deliberately
-absent from the category list, where a total would have to decide whether a
-retired one still counts.
+holds** — which is why a single figure is right here and counts a retired
+one. The category list's `Total` (#569) is the other figure: what the
+company still holds of the kind, a retired one not counted, so a kind with a
+retired item reads more here than in that column, by as many as are retired.
 
 **evidence.** One entry per asset, **newest first** (1d), each carrying
 four facts: its printed `Asset ID`, which is the way into that asset's

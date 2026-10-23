@@ -33,9 +33,9 @@ export const metadata = { title: COPY.heading };
  *
  * WHAT IT ANSWERS IS A QUESTION ABOUT THE FLEET rather than about any one asset:
  * how many of each kind of asset there are, and how many of them are out. That is
- * why the row carries a count per status and no total — see `summarizeAssetCategories` for why a
- * single figure cannot be written without deciding whether a retired asset is
- * still owned.
+ * why the row carries a count per status, and since #569 the kind's total beside them: what
+ * the company still holds, a retired asset not counted (`lib/assetStatus.js:countedInTotal`),
+ * with `Retired` still its own count.
  *
  * FOUR READS, HOWEVER MANY ASSETS STAND UNDER THE LIST, ONCE THIS SERVER HAS COUNTED THEM (#560).
  * The session find, `getAllAssetCategories` — the whole table, bounded by what the company has

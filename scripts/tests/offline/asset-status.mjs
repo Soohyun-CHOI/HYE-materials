@@ -41,6 +41,7 @@ import { readFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import {
+    COUNTED_IN_TOTAL_BY_STATUS,
     EVENT_OFFERED_BY_STATUS,
     JOB_SOURCE,
     JOB_SOURCE_OF_EVENT,
@@ -52,6 +53,7 @@ import {
     ASSET_EVENT_VALUES,
     ASSET_STATUS,
     ASSET_STATUS_VALUES,
+    countedInTotal,
     eventOfferedBy,
     jobSourceOf,
     mayRetireFrom,
@@ -61,7 +63,7 @@ import {
 } from "../../../lib/assetStatus.js";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Tool status and event vocabularies, and the maps between them (#334, #362, #363, #531)";
+export const title = "Tool status and event vocabularies, and the maps between them (#334, #362, #363, #531, #569)";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PY_PATH = resolve(HERE, "../../import/create_tools_334.py");
@@ -84,7 +86,34 @@ function pythonChoiceList(source, name) {
     );
 }
 
+/**
+ * The seventh map (#569): which statuses a kind's total counts — every one but `Retired` — by
+ * value, total over the vocabulary, and throwing on a status outside it. Called first in `run()`,
+ * so an older assertion that throws cannot keep it from printing.
+ */
+function total569({ check, log, assert }) {
+    log("which statuses a kind's total counts, by value (#569):");
+    check("a total counts In stock", COUNTED_IN_TOTAL_BY_STATUS["In stock"], true);
+    check("  and Out", COUNTED_IN_TOTAL_BY_STATUS["Out"], true);
+    check("  and In repair", COUNTED_IN_TOTAL_BY_STATUS["In repair"], true);
+    check("  and not Retired", COUNTED_IN_TOTAL_BY_STATUS["Retired"], false);
+    check("  the total's map has four entries, one per status", Object.keys(COUNTED_IN_TOTAL_BY_STATUS).sort().join(" | "), "In repair | In stock | Out | Retired");
+    check("  each of them a boolean", Object.values(COUNTED_IN_TOTAL_BY_STATUS).filter((v) => typeof v !== "boolean").length, 0);
+    check("countedInTotal applies it", ASSET_STATUS_VALUES.map((s) => countedInTotal(s)).join(","), "true,true,true,false");
+    let threw = null;
+    try {
+        countedInTotal("Lost");
+    } catch (err) {
+        threw = err.message;
+    }
+    assert("a status outside the vocabulary throws rather than leaving a total short", Boolean(threw));
+    assert("  and that throw names the module and the map to edit", (threw || "").includes("lib/assetStatus.js") && (threw || "").includes("COUNTED_IN_TOTAL_BY_STATUS"));
+    log("");
+}
+
 export function run({ check, log, assert }) {
+    total569({ check, log, assert });
+
     // ── the two vocabularies, by value ──────────────────────────────────────
     // Spelled out rather than derived from the module: this is the pin, and a pin
     // that reads its subject asserts nothing. These are the strings printed into

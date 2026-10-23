@@ -73,6 +73,7 @@ import {
     lastChangeOf,
     latestLogRowIds,
     readAssetListFilters,
+    readCategoryList,
     pageOfAssets,
     pageOfAssetCategories,
     pageSelection,
@@ -453,7 +454,77 @@ function allJobs548({ check, log }) {
     log("");
 }
 
+/**
+ * Each kind's total (#569): what `readCategoryList` adds to a row once its counts are final —
+ * every count but `Retired`'s — by value on one job, on all of them, under the `Job` chip and
+ * on an item's id, then the list drawing that figure and nothing it sums itself. Called first in
+ * `run()`, so an older assertion that throws cannot keep it from printing.
+ */
+function total569({ check, log }) {
+    log("each kind's total is every item under it but the retired ones (#569):");
+    const KINDS = [
+        { id: "kSaw", itemName: "Band Saw", level1: "Tool", level2: "Power Tool" },
+        { id: "kDrill", itemName: "Drill", level1: "Tool", level2: "Power Tool" },
+        { id: "kWelder", itemName: "TIG Welder", level1: "Equipment", level2: "Welding" },
+    ];
+    const asset = (id, kind, job, status) => ({ id, assetId: `HYE-AST-261001-00${id.slice(1)}`, category: [kind], job: [job], status });
+    const ASSETS = [
+        asset("a1", "kSaw", "recJ1", ASSET_STATUS.IN_STOCK),
+        asset("a2", "kSaw", "recJ1", ASSET_STATUS.OUT),
+        asset("a3", "kSaw", "recJ2", ASSET_STATUS.IN_REPAIR),
+        asset("a4", "kSaw", "recJ2", ASSET_STATUS.RETIRED),
+        asset("a5", "kSaw", "recJ1", ASSET_STATUS.RETIRED),
+        asset("a6", "kDrill", "recJ1", ASSET_STATUS.RETIRED),
+        asset("a7", "kWelder", "recJ2", ASSET_STATUS.OUT),
+    ];
+    const CHOICE = [
+        { id: "recJ1", jobCode: "26-A" },
+        { id: "recJ2", jobCode: "26-B" },
+    ];
+    const said = (reading) => reading.rows.map((row) => `${row.id}:${row.counts.map((c) => c.count).join("/")}=${row.total}`).join(" ");
+    const onJob1 = summarizeAssetCategories(KINDS.slice(0, 2), ASSETS.filter((a) => a.job[0] === "recJ1"));
+    const onAll = summarizeAssetCategories(KINDS, ASSETS);
+    const read = (rows, search, allJobs = false) => readCategoryList(rows, new URLSearchParams(search), { allJobs, jobs: allJobs ? CHOICE : [] });
+
+    check("on one job: in stock, out and in repair added up, a retired one left out", said(read(onJob1, "")), "kSaw:1/1/0/1=2 kDrill:0/0/0/1=0");
+    check("  a kind whose every item is retired totals none", read(onJob1, "").rows.find((row) => row.id === "kDrill").total, 0);
+    check("on all of a reader's jobs: every job's added up", said(read(onAll, "job=all", true)), "kSaw:1/1/1/2=3 kDrill:0/0/0/1=0 kWelder:0/1/0/0=1");
+    check("under the Job chip: the jobs it takes alone, as the counts are", said(read(onAll, "job=all&job=recJ2", true)), "kSaw:0/0/1/1=1 kWelder:0/1/0/0=1");
+    check(
+        "  a search and a type narrow which rows, and leave each row's total whole",
+        said(read(onAll, "job=all&type=Tool&q=saw", true)),
+        "kSaw:1/1/1/2=3"
+    );
+    const byId = read(onAll, "job=all&q=HYE-AST-261001-004", true);
+    check("on an item's id the kind's row keeps its total whole, the item a retired one (1a3)", `${said(byId)} ${byId.found?.assetId} ${byId.found?.status}`, "kSaw:1/1/1/2=3 HYE-AST-261001-004 Retired");
+    check("  and on one job, its label's code alone", said(read(onJob1, "q=261001-002")), "kSaw:1/1/0/1=2");
+    // A SECOND PATH TO EVERY FIGURE ABOVE: the counts less `Retired`'s, spelled here by the
+    // status's own word rather than through the map the module reads.
+    const readings = [read(onJob1, ""), read(onAll, "job=all", true), read(onAll, "job=all&job=recJ1", true), read(onAll, "job=all&job=recJ2", true), byId];
+    const parted = readings.flatMap((reading) =>
+        reading.rows.filter((row) => row.total !== row.counts.reduce((sum, c) => sum + (c.status === "Retired" ? 0 : c.count), 0)).map((row) => row.id)
+    );
+    check("  every row of every reading: its counts but `Retired`'s, added up", parted.join(","), "");
+    check("the catalog's page, which reads the filter itself, gets rows with no total", `${"total" in filterAssetCategoryRows(onAll, {}).rows[0]}`, "false");
+    check("the column's head, the design's word", ASSET_LIST_COPY.totalLabel, "Total");
+
+    // WHERE IT IS DRAWN, off the source: the last column, read off the row and summed nowhere.
+    const list = parseFile(CATEGORY_LIST).source;
+    const lastHead = /\{COPY\.totalLabel\}\s*<\/span>\s*<\/div>/.test(list);
+    const lastCell =
+        /<span role="cell" className=\{`text-right font-medium tabular-nums \$\{row\.total === 0 \? "text-foreground-subtle" : ""\}`\}>\s*\{row\.total\}\s*<\/span>\s*<\/div>/.test(list);
+    check("1a heads its last column `Total` and draws each row's total there, at 500, a zero in Ink 3", `${lastHead} ${lastCell}`, "true true");
+    const sumsItself = (source) => /countedInTotal|counts\.reduce|\.filter\(\(entry\) => entry\.status/.test(source);
+    check(
+        "  neither the list nor the export adds the counts up itself",
+        `${sumsItself(list)} ${sumsItself(parseFile("lib/assetListExport.js").source)} ${sumsItself("const total = row.counts.reduce((sum, c) => sum + c.count, 0);")}`,
+        "false false true"
+    );
+    log("");
+}
+
 export function run({ check, assert, log }) {
+    total569({ check, log });
     allJobs548({ check, log });
 
     // ── #522: the status cell centered in its row, as 1d draws it ──────────
@@ -579,16 +650,19 @@ export function run({ check, assert, log }) {
         return heads.join(", ");
     };
     check(
-        "the list heads its columns the name and each status",
+        "the list heads its columns the name, each status and the total (#569)",
         columnHeads(parseFile(CATEGORY_LIST)),
-        "COPY.nameLabel, status"
+        "COPY.nameLabel, status, COPY.totalLabel"
     );
     // ONE TRACK PER STATUS, AND THE COUNT IN THE REPEAT IS A LITERAL (#531): a class a
     // stylesheet is built from cannot be computed, so the repeat says 4 and is held to the
-    // vocabulary's length — a new status fails here until its track is drawn.
-    const countTracks = Number(parseFile(CATEGORY_LIST).source.match(/const COLUMNS = "grid-cols-\[minmax\(0,1fr\)_repeat\((\d+),var\(--width-table-count\)\)\]";/)?.[1]);
-    check("  one 96 track per status, four", countTracks, 4);
+    // vocabulary's length — a new status fails here until its track is drawn. The total's
+    // track follows the repeat, at the counts' width (#569).
+    const tracks = parseFile(CATEGORY_LIST).source.match(/const COLUMNS = "grid-cols-\[minmax\(0,1fr\)_repeat\((\d+),var\(--width-table-count\)\)((?:_var\(--[\w-]+\))*)\]";/);
+    const countTracks = Number(tracks?.[1]);
+    check("  one 56 track per status, four", countTracks, 4);
     check("  as many as the vocabulary holds", countTracks, ASSET_STATUS_VALUES.length);
+    check("  and the total's after them, one track at the counts' 56", tracks?.[2], "_var(--width-table-count)");
     check(
         "  and a list with the type left out is seen (anti-vacuity)",
         columnHeads(parseSource('<div><span role="columnheader">{COPY.nameLabel}</span><span role="columnheader">{ASSET_CATEGORY_COPY.levelLabel.level2}</span></div>', "<planted-heads>")),
