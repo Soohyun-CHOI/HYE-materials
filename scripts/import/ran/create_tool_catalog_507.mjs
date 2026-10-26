@@ -1,0 +1,407 @@
+// Makes `Tools` the catalog a tool is chosen from (issue #507), and reports the catalog.
+//
+// WHAT CHANGES. A tool was a name somebody typed on the registration form, found or created
+// as they submitted (#338). Since #507 the office keeps the catalog here instead: a row is
+// one kind of tool, named by its path — `Level 1` the category, `Level 2` the tool, `Size`
+// the size — and carrying a `Class`, and a registration picks a row. `Tool Name` stays the
+// primary field and becomes a formula, `{Level 2} {Size}`, so every screen that names a kind
+// keeps reading the field it read. lib/assetCategory.js holds the fields, the class's two
+// values and the expression, and this script imports them rather than spelling them.
+//
+// TWO PHASES, WITH ONE HAND STEP BETWEEN THEM, AND THE STEP IS FORCED. A field's TYPE cannot
+// be PATCHed through the Metadata API (422) and a formula field cannot be created through it
+// (docs/notes/airtable-access.md), but an existing formula's `options.formula` PATCHes
+// cleanly. So the first run adds the four fields and copies each row's typed name into
+// `Level 2`; Soo converts `Tool Name` to a formula in the Airtable UI with any expression at
+// all; and the second run PATCHes the real one, writes the descriptions and checks.
+//
+// THE COPY IS WHAT MAKES THE CONVERSION LOSE NOTHING. Converting a text field to a formula
+// replaces every value it held, and a kind's typed name was its only record. Each row's name
+// is copied into `Level 2` before the conversion, where it stays the tool's own word, and the
+// hand step is not printed while any row with a name still has an empty `Level 2`.
+//
+// IT WAS THE CATALOG'S CHECK UNTIL #514, WHICH CLASSIFIED THE CATALOG IN SIX LEVELS AND MOVED
+// THE CHECK TO scripts/import/classify_asset_categories_514.mjs. A run on a base with #514's
+// levels refuses before it writes: this spec's `Level 1` is #507's category, and its
+// descriptions would overwrite #514's. Until then a run on a matching schema wrote nothing,
+// compared each name the base computed with lib/assetCategory.js's rule, and listed every
+// row a registration could not choose. The fields and the rule it imports are #514's now,
+// which is a second reason it cannot be run again as written.
+//
+// IT TALKS TO THE REST API DIRECTLY, for create_material_categories_354.mjs' reason: the
+// schema half has no SDK. lib/airtableOps.js cannot see these calls, so the run counts them.
+//
+// Usage (from the repo root):
+//   node --env-file=.env.local scripts/import/ran/create_tool_catalog_507.mjs --dry-run
+//   node --env-file=.env.local scripts/import/ran/create_tool_catalog_507.mjs
+//
+// No loader flag: this file and lib/assetCategory.js import only built-ins and files whose
+// extension they spell.
+//
+// Airtable PAT scopes: schema.bases:read, schema.bases:write, data.records:read,
+// data.records:write.
+//
+// Exit codes, per docs/notes/verification.md: 0 the base matches the spec, 1 something
+// failed, 2 nothing failed but something is incomplete (a dry run, or the hand step).
+
+import {
+    ASSET_CATEGORY_FIELDS,
+    ITEM_NAME_FORMULA,
+    composeItemName,
+    readCatalog,
+} from "../../../lib/assetCategory.js";
+import { resolveAirtableBase } from "../../../lib/airtableBase.js";
+import { CLASS_FIELD } from "../keep_asset_class_552_plan.mjs";
+
+// The catalog's fields as this script read and wrote them: lib/assetCategory.js's path and the
+// class, which #552 took off the catalog and lib/ names no longer, its name from
+// keep_asset_class_552_plan.mjs. The run stops on the base as it stands before it reads a row,
+// so nothing here reaches the class; it is kept as the record of what ran.
+const CATALOG_FIELDS = Object.freeze({ ...ASSET_CATEGORY_FIELDS, assetClass: CLASS_FIELD.name });
+
+const API_ROOT = "https://api.airtable.com/v0";
+const META_ROOT = `${API_ROOT}/meta`;
+
+// `Tools` and `Tool Name` until #513 renamed them; this is still the catalog's check.
+const TABLE_NAME = "Asset Categories";
+const NAME_FIELD = "Item Name";
+
+/** Airtable's own ceiling on one record-write request. */
+const RECORDS_PER_REQUEST = 10;
+
+/**
+ * The colors walk Airtable's light palette in declaration order — the rule
+ * create_tools_334.py states for the tools axis's two other selects — and the class has no
+ * terminal value to give gray.
+ */
+const CLASS_COLORS = ["blueLight2", "cyanLight2"];
+
+const TABLE_DESCRIPTION =
+    "The asset categories (#507; Tools until #513): one row per kind, named by its path — Level 1 the " +
+    "category, Level 2 the tool, Size the size — and carrying a Class. The office fills it here, and the app " +
+    "never writes a row of it: a registration picks a row and writes assets under it. One path is one kind; two " +
+    "rows naming one path are one choice, and only the first is offered (lib/assetCategory.js). A brand or a " +
+    "model, when it matters, goes in Level 2. Assets holds the physical tools and equipment, one row each.";
+
+const NAME_DESCRIPTION =
+    "The kind's name, {Level 2} {Size}, and the name every screen says (#507; Tool Name until #513). A " +
+    "formula since #507 — it was typed on the registration form from #338, and the app no longer creates a " +
+    "kind. Its expression is generated by lib/assetCategory.js and PATCHed by " +
+    "scripts/import/create_tool_catalog_507.mjs; edit it there.";
+
+/** The four fields, as the base should hold them once this has run. */
+const FIELDS = [
+    {
+        name: CATALOG_FIELDS.level1,
+        type: "singleLineText",
+        description:
+            "The category, the catalog's first level (#507), said Category on screen. A registration filters " +
+            "the tools by it.",
+    },
+    {
+        name: CATALOG_FIELDS.level2,
+        type: "singleLineText",
+        description:
+            "The tool, the catalog's second level (#507), said Tool on screen, and the first half of Item Name. " +
+            "A brand or a model, when two kinds would otherwise share a path, goes here. A level the catalog " +
+            "grows goes between this and Size, as a field inserted then.",
+    },
+    {
+        name: CATALOG_FIELDS.size,
+        type: "singleLineText",
+        description:
+            "The size, the catalog's last level (#507), and the second half of Item Name. It stays last when a " +
+            "level is inserted before it.",
+    },
+    {
+        name: CATALOG_FIELDS.assetClass,
+        type: "singleSelect",
+        options: { choices: CLASS_FIELD.values.map((name, i) => ({ name, color: CLASS_COLORS[i] })) },
+        description:
+            "How much the tool matters (#507): A for one that matters more, usually a dearer one, B otherwise. " +
+            "Information only — no act in the app reads it. A row without one is not offered to a registration.",
+    },
+];
+
+class Airtable {
+    constructor(token, baseId) {
+        this.baseId = baseId;
+        this.headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+        this.calls = 0;
+    }
+
+    async request(method, url, body) {
+        this.calls++;
+        const response = await fetch(url, {
+            method,
+            headers: this.headers,
+            ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+        });
+        const text = await response.text();
+        if (!response.ok) throw new Error(`${method} ${url.replace(this.baseId, "{base}")} -> ${response.status} ${text}`);
+        return text === "" ? null : JSON.parse(text);
+    }
+
+    async table() {
+        const { tables } = await this.request("GET", `${META_ROOT}/bases/${this.baseId}/tables`);
+        return tables.find((t) => t.name === TABLE_NAME) ?? null;
+    }
+
+    createField(tableId, field) {
+        return this.request("POST", `${META_ROOT}/bases/${this.baseId}/tables/${tableId}/fields`, field);
+    }
+
+    patchField(tableId, fieldId, patch) {
+        return this.request("PATCH", `${META_ROOT}/bases/${this.baseId}/tables/${tableId}/fields/${fieldId}`, patch);
+    }
+
+    patchTable(tableId, patch) {
+        return this.request("PATCH", `${META_ROOT}/bases/${this.baseId}/tables/${tableId}`, patch);
+    }
+
+    async listRecords(tableId, fields) {
+        const out = [];
+        let offset;
+        do {
+            const params = new URLSearchParams({ pageSize: "100" });
+            for (const f of fields) params.append("fields[]", f);
+            if (offset) params.set("offset", offset);
+            const page = await this.request("GET", `${API_ROOT}/${this.baseId}/${tableId}?${params}`);
+            out.push(...page.records);
+            offset = page.offset;
+        } while (offset);
+        return out;
+    }
+
+    /** No `typecast` on this path: every value is a string into a text field. */
+    updateRecords(tableId, records) {
+        return this.request("PATCH", `${API_ROOT}/${this.baseId}/${tableId}`, { records });
+    }
+}
+
+function log(message = "") {
+    console.log(message);
+}
+
+function finish(air, code, verdict) {
+    log("");
+    log(`${air.calls} Airtable API call(s). ${verdict}.`);
+    return code;
+}
+
+/**
+ * A formula as the Metadata API returned it, with every field it names by id put back to
+ * the field's name. The API renders some formulas with `{fldXXXXXXXXXXXXXX}` and some with
+ * `{Field Name}` (docs/notes/airtable-access.md counted 12 and 6 of 18), so a comparison of
+ * the raw text would call a correct expression wrong.
+ */
+function byName(table, formula) {
+    const names = new Map(table.fields.map((f) => [f.id, f.name]));
+    return String(formula ?? "").replace(/\{(fld[A-Za-z0-9]{14})\}/g, (whole, id) => (names.has(id) ? `{${names.get(id)}}` : whole));
+}
+
+/** A row in the shape lib/assetCategory.js reads, from a REST record. */
+function categoryOf(record) {
+    const f = record.fields;
+    return {
+        id: record.id,
+        itemName: f[NAME_FIELD] ?? "",
+        level1: f[CATALOG_FIELDS.level1] ?? "",
+        level2: f[CATALOG_FIELDS.level2] ?? "",
+        size: f[CATALOG_FIELDS.size] ?? "",
+        assetClass: f[CATALOG_FIELDS.assetClass] ?? "",
+    };
+}
+
+async function main() {
+    const dryRun = process.argv.includes("--dry-run");
+    let airtable;
+    try {
+        airtable = resolveAirtableBase();
+    } catch (error) {
+        log(`${error.message} — run with --env-file=.env.local`);
+        return 1;
+    }
+    const { apiKey: token, baseId } = airtable;
+
+    const air = new Airtable(token, baseId);
+    log(`create_tool_catalog_507 — base ${baseId}${dryRun ? "  (DRY RUN — nothing is written)" : ""}\n`);
+
+    let table = await air.table();
+    if (!table) {
+        log(`no table named ${TABLE_NAME}; scripts/import/ran/create_tools_334.py creates it.`);
+        return finish(air, 1, "nothing to make a catalog of");
+    }
+    const nameField = table.fields.find((f) => f.name === NAME_FIELD);
+    if (!nameField || nameField.id !== table.primaryFieldId) {
+        log(`${TABLE_NAME}."${NAME_FIELD}" is not the primary field — stopping.`);
+        return finish(air, 1, "the table is not the shape this expects");
+    }
+    // #514 MOVED THE LEVELS, AND THIS SCRIPT'S SPEC IS #507's. Its `Level 1` is a category in
+    // text where #514's is the type in a select, so a run would stop on the type, and before
+    // that would write #507's descriptions over #514's. The catalog's check is #514's script.
+    if (table.fields.some((f) => f.name === "Level 3")) {
+        log(`${TABLE_NAME} has #514's six levels — this script's spec is #507's three.`);
+        log("The catalog's check is scripts/import/classify_asset_categories_514.mjs; run that instead.");
+        return finish(air, 1, "refused: the catalog is #514's");
+    }
+
+    // --- the four fields --------------------------------------------------
+    log("the catalog's fields:");
+    for (const spec of FIELDS) {
+        const live = table.fields.find((f) => f.name === spec.name);
+        if (live && live.type !== spec.type) {
+            log(`  ${spec.name} exists as a ${live.type}, not the ${spec.type} this needs; a type cannot be PATCHed.`);
+            return finish(air, 1, "a field is in the way");
+        }
+        if (live) {
+            log(`  [SKIP]   ${spec.name} (${live.id}) is a ${live.type}`);
+        } else if (dryRun) {
+            log(`  [WOULD]  create ${spec.name} as a ${spec.type}${spec.options ? ` ${JSON.stringify(spec.options)}` : ""}`);
+        } else {
+            const made = await air.createField(table.id, spec);
+            log(`  [CREATE] ${spec.name} (${made.id}) as a ${made.type}`);
+        }
+    }
+    if (!dryRun) table = await air.table();
+
+    // --- the hand step, and the copy that makes it lose nothing -----------
+    if (nameField.type !== "formula") {
+        // A dry run on a base without the field reads the names alone: a field the read
+        // names and the base lacks is a 422, and every row's `Level 2` is empty then anyway.
+        const hasLevel2 = table.fields.some((f) => f.name === CATALOG_FIELDS.level2);
+        const rows = await air.listRecords(table.id, hasLevel2 ? [NAME_FIELD, CATALOG_FIELDS.level2] : [NAME_FIELD]);
+        const toCopy = rows.filter((r) => (r.fields[NAME_FIELD] ?? "").trim() !== "" && (r.fields[CATALOG_FIELDS.level2] ?? "").trim() === "");
+        log(`\n${NAME_FIELD} is still \`${nameField.type}\`: ${rows.length} row(s), ${toCopy.length} whose name is not yet in ${CATALOG_FIELDS.level2}.`);
+        for (let i = 0; i < toCopy.length; i += RECORDS_PER_REQUEST) {
+            const chunk = toCopy.slice(i, i + RECORDS_PER_REQUEST);
+            for (const r of chunk) log(`  ${dryRun ? "[WOULD]" : "[COPY]  "} ${r.id}  ${JSON.stringify(r.fields[NAME_FIELD])} into ${CATALOG_FIELDS.level2}`);
+            if (!dryRun) {
+                await air.updateRecords(
+                    table.id,
+                    chunk.map((r) => ({ id: r.id, fields: { [CATALOG_FIELDS.level2]: r.fields[NAME_FIELD] } }))
+                );
+            }
+        }
+        if (dryRun) return finish(air, 2, "dry run — nothing was written");
+
+        const after = await air.listRecords(table.id, [NAME_FIELD, CATALOG_FIELDS.level2]);
+        const uncopied = after.filter((r) => (r.fields[NAME_FIELD] ?? "").trim() !== "" && r.fields[CATALOG_FIELDS.level2] !== r.fields[NAME_FIELD]);
+        if (uncopied.length > 0) {
+            log(`\n${uncopied.length} row(s) hold a name ${CATALOG_FIELDS.level2} does not, so the hand step would lose it:`);
+            for (const r of uncopied) log(`  ${r.id}  ${JSON.stringify(r.fields[NAME_FIELD])} / ${JSON.stringify(r.fields[CATALOG_FIELDS.level2] ?? "")}`);
+            return finish(air, 1, "not safe to convert yet");
+        }
+        log(`  every name is in ${CATALOG_FIELDS.level2}, as typed.`);
+        return handStep(air);
+    }
+
+    // --- the formula and the words ------------------------------------------
+    log(`\n${NAME_FIELD} is a formula.`);
+    if (byName(table, nameField.options?.formula) === ITEM_NAME_FORMULA) {
+        log(`  its expression is already ${ITEM_NAME_FORMULA}`);
+    } else if (dryRun) {
+        log(`  [WOULD]  PATCH its expression to ${ITEM_NAME_FORMULA}`);
+    } else {
+        await air.patchField(table.id, nameField.id, { options: { formula: ITEM_NAME_FORMULA } });
+        log(`  [PATCH]  its expression is ${ITEM_NAME_FORMULA}`);
+    }
+
+    // Descriptions are synced, not only set on create: the base's copy is the one somebody
+    // reads while typing into the cell (create_material_categories_354.mjs has the reason).
+    const wantDescriptions = [[NAME_FIELD, NAME_DESCRIPTION], ...FIELDS.map((f) => [f.name, f.description])];
+    for (const [name, description] of wantDescriptions) {
+        const live = table.fields.find((f) => f.name === name);
+        if (!live || (live.description ?? "") === description) continue;
+        if (dryRun) {
+            log(`  [WOULD]  update ${name}'s description`);
+            continue;
+        }
+        await air.patchField(table.id, live.id, { description });
+        log(`  [PATCH]  ${name}'s description`);
+    }
+    if ((table.description ?? "") !== TABLE_DESCRIPTION) {
+        if (dryRun) log(`  [WOULD]  update the table's description`);
+        else {
+            await air.patchTable(table.id, { description: TABLE_DESCRIPTION });
+            log(`  [PATCH]  the table's description`);
+        }
+    }
+    if (dryRun) return finish(air, 2, "dry run — nothing was written");
+
+    // --- verification is part of the run ----------------------------------
+    log(`\nverifying against the base it wrote:`);
+    table = await air.table();
+    const failures = [];
+    const field = (name) => table.fields.find((f) => f.name === name);
+    if (field(NAME_FIELD)?.type !== "formula") failures.push(`${NAME_FIELD} is ${field(NAME_FIELD)?.type}, not a formula`);
+    if (byName(table, field(NAME_FIELD)?.options?.formula) !== ITEM_NAME_FORMULA) {
+        failures.push(`${NAME_FIELD}'s expression is ${JSON.stringify(byName(table, field(NAME_FIELD)?.options?.formula))}`);
+    }
+    for (const spec of FIELDS) {
+        const live = field(spec.name);
+        if (!live) failures.push(`${spec.name} is missing`);
+        else if (live.type !== spec.type) failures.push(`${spec.name} is ${live.type}, not ${spec.type}`);
+    }
+    const choices = (field(CATALOG_FIELDS.assetClass)?.options?.choices ?? []).map((c) => `${c.name}/${c.color}`);
+    const wantChoices = CLASS_FIELD.values.map((name, i) => `${name}/${CLASS_COLORS[i]}`);
+    if (choices.join(" | ") !== wantChoices.join(" | ")) failures.push(`Class's choices are ${choices.join(" | ")}, not ${wantChoices.join(" | ")}`);
+
+    const records = await air.listRecords(table.id, [
+        NAME_FIELD,
+        CATALOG_FIELDS.level1,
+        CATALOG_FIELDS.level2,
+        CATALOG_FIELDS.size,
+        CATALOG_FIELDS.assetClass,
+    ]);
+    const categories = records.map(categoryOf);
+    for (const category of categories) {
+        const expected = composeItemName(category);
+        if (category.itemName !== expected) {
+            failures.push(`${category.id}: the base named it ${JSON.stringify(category.itemName)}, the rule names it ${JSON.stringify(expected)}`);
+        }
+    }
+
+    const { offered, setAside } = readCatalog(categories);
+    log(`  ${categories.length} row(s); ${offered.length} a registration may pick.`);
+    if (setAside.length > 0) {
+        log(`  ${setAside.length} row(s) a registration cannot pick, for the office to fill or remove:`);
+        for (const { category, reason, missing, of } of setAside) {
+            const why = reason === "incomplete" ? `missing ${missing.map((m) => CATALOG_FIELDS[m]).join(", ")}` : `the path ${of.id} already names`;
+            log(`    ${category.id}  ${JSON.stringify(category.itemName)} — ${why}`);
+        }
+    }
+
+    if (failures.length > 0) {
+        log(`  ${failures.length} problem(s):`);
+        for (const line of failures) log(`    ${line}`);
+        return finish(air, 1, "the base does not match the spec");
+    }
+    log(`  the fields, the class's choices, the expression and every name match.`);
+    return finish(air, 0, "the base matches the spec");
+}
+
+/** The one step the API cannot take, printed where it cannot be lost. */
+function handStep(air) {
+    log("");
+    log("=".repeat(72));
+    log("HAND STEP — in the Airtable UI, then run this again:");
+    log("");
+    log(`  Open ${TABLE_NAME} and change ${NAME_FIELD}'s type from "Single line text"`);
+    log(`  to "Formula". The expression does not matter — put anything in, or leave`);
+    log(`  the editor's default. The next run PATCHes the real one.`);
+    log("");
+    log("  Why by hand: a field's type cannot be PATCHed through the Metadata API,");
+    log("  and a formula field cannot be created through it; an existing formula's");
+    log("  expression can be PATCHed, which is what the next run does.");
+    log("=".repeat(72));
+    return finish(air, 2, "waiting on the hand step above");
+}
+
+main().then(
+    (code) => process.exit(code),
+    (error) => {
+        console.error(`\nfailed: ${error.message}`);
+        process.exit(1);
+    }
+);

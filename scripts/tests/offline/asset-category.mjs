@@ -43,7 +43,7 @@
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
-import { relative } from "path";
+import { posix, relative } from "path";
 import * as assetCategoryModule from "../../../lib/assetCategory.js";
 import {
     ASSET_CATEGORY_COPY,
@@ -93,9 +93,9 @@ const CATALOG_ACTIONS = "app/(assets)/asset-catalog/actions.js";
 const WRITERS = ["createAssetCategory", "removeAssetCategory", "setAssetCategoryDiscontinued", "updateAssetCategory"];
 const SCRIPT = "scripts/import/classify_asset_categories_514.mjs";
 const SEED = "scripts/demo/seed_asset_catalog_514.mjs";
-const LOAD = "scripts/import/load_asset_catalog_517.mjs";
+const LOAD = "scripts/import/ran/load_asset_catalog_517.mjs";
 const REMOVAL = "scripts/demo/remove_demo_catalog_517.mjs";
-const REPLACEMENT = "scripts/import/replace_asset_catalog_528.mjs";
+const REPLACEMENT = "scripts/import/ran/replace_asset_catalog_528.mjs";
 
 /** A row as `recordToAssetCategory` returns it, named as the base would name it — with no class since #552. */
 const row = (id, [level1, level2, level3, size, maker, partNumber]) => ({
@@ -259,11 +259,12 @@ function fieldLiterals({ ast }) {
     return { spelled: spelled.join(", "), renamedFrom: renamedFrom.join(", ") };
 }
 
-/** The names a file imports from `lib/assetCategory.js`, alphabetically. */
-function importedFromModule({ ast }) {
+/** The names a file imports from `lib/assetCategory.js`, alphabetically, spelled from the file's own directory. */
+function importedFromModule({ ast, relPath }) {
+    const specifier = posix.relative(posix.dirname(relPath), "lib/assetCategory.js");
     const imported = [];
     walk(ast, (n) => {
-        if (n.type === "ImportDeclaration" && n.source.value === "../../lib/assetCategory.js") imported.push(...n.specifiers.map((s) => s.imported.name));
+        if (n.type === "ImportDeclaration" && n.source.value === specifier) imported.push(...n.specifiers.map((s) => s.imported.name));
     });
     return imported.sort().join(", ");
 }

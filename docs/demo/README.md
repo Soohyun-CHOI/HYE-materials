@@ -5,6 +5,11 @@ What this directory holds, and the order things run in.
 `runbook.md` is the thing to have open while presenting: six acts, one screen at a
 time, with the exact values to type. Everything else here is setup.
 
+**The materials screens are closed for now (#542).** While
+`lib/openScreens.js:MATERIALS_SCREENS_OPEN` is false, the request, order, invoice,
+delivery and material screens the runbook opens lead to the Tools & Equipment list
+instead, so the runbook can be walked only once that switch is set to true.
+
 ## Between rehearsals — the one command
 
 A rehearsal leaves the base changed, not just fuller: Act IV's overage request re-points
@@ -42,8 +47,8 @@ All live in `scripts/demo/` and all take the same two flags
 | Script | What it does |
 |---|---|
 | `reset_demo.mjs` | Wipe, then seed, then check. Dry run unless `--confirm`. Calls the two below rather than reimplementing them, passing this run's node flags through. |
-| `wipe_base.mjs` | Empties every table except `Users`, children first. Dry run unless `--confirm`. |
-| `seed_full_demo.mjs` | Builds the whole demo set. Bootstraps its own Job, Line, vendors and addresses, so it runs on an empty base. `--cleanup` removes what it made; `--only=NAME,NAME` narrows both. |
+| `wipe_base.mjs` | Empties the demo's tables, children first. Keeps `Users`, `Material Categories`, `Asset Categories`, `Asset Category Groups`, `Assets`, `Asset Log`, `Jobs` and `Disciplines`. Dry run unless `--confirm`. |
+| `seed_full_demo.mjs` | Builds the whole demo set. Bootstraps its own Job, Discipline, vendors and addresses, so it runs on an empty base. `--cleanup` removes what it made; `--only=NAME,NAME` narrows both. |
 | `mint_session.mjs` | Prints a sign-in link for an account with no mailbox. |
 | `_demo_ids.mjs` | Which record belongs to which scenario. Read by the seed's id table and by the reset's check, so the two cannot disagree. |
 
@@ -109,16 +114,16 @@ above after any rebuild and reconcile before presenting.
 
 ## What the wipe does not restore
 
-`Users` is the one table the wipe spares, because it is the one nothing can
-rebuild: a row appears as a side effect of a first magic-link sign-in and in no
+`Users` is kept because nothing can rebuild it: a row appears as a side effect of a first magic-link sign-in and in no
 other way. That includes `authz-fixture@` and `scoped-fixture@`, which the
 authorization checks and Act VI both need.
 
-The 36 real company jobs are deleted and come back from
-`scripts/import/import_jobs.py --folder ./data`, which reads the six Excel files
-in the repo. It writes Job Code, Job Name and Business Unit only — no PIC, no
-manager, no address, no Disciplines — and it skips any code off the `##-USA-@@`
-pattern, which is why it never touches the demo Job.
+The wipe keeps the catalogs, the jobs and their disciplines, and the assets and
+their log as well, so the real company jobs are never deleted; `wipe_base.mjs`
+says why for each. `scripts/import/import_jobs.py` syncs the jobs from the monthly
+closing reports, which are not in the repo. It writes Job Code, Job Name and
+Business Unit only — no PIC, no manager, no address, no Disciplines — and it skips
+any code off the `##-USA-@@` pattern, which is why it never touches the demo Job.
 
 ## Verified
 

@@ -1,7 +1,7 @@
 // The demo's scripts reach the test base alone (#537).
 //
 // WHY. The demo's records — its jobs, its accounts, its vendors and addresses, the documents of the
-// materials flow — were removed from the live base by `scripts/import/remove_demo_data_537.mjs`,
+// materials flow — were removed from the live base by `scripts/import/ran/remove_demo_data_537.mjs`,
 // which leaves the site's real records alone there, and they stay on the test base for checking
 // changes. Every script in this directory seeds that demo, empties it or rebuilds it, so on the live
 // base one would put the demo back among the real records, or — `wipe_base.mjs`, `reset_demo.mjs` —

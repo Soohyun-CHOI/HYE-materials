@@ -41,7 +41,7 @@ import {
 
 export const title = "The catalog's class is kept in a ledger before it goes, and named in one place (#552)";
 
-const SCRIPT_PATH = "scripts/import/keep_asset_class_552.mjs";
+const SCRIPT_PATH = "scripts/import/ran/keep_asset_class_552.mjs";
 const PLAN_PATH = "scripts/import/keep_asset_class_552_plan.mjs";
 const CLASSIFY_PATH = "scripts/import/classify_asset_categories_514.mjs";
 
@@ -178,7 +178,7 @@ export function run({ check, assert, log }) {
         [isLedgerOf("keep_asset_class_552-live-x.jsonl", "live"), isLedgerOf("keep_asset_class_552-test-x.jsonl", "live"), isLedgerOf("describe_note_533-live-x.jsonl", "live"), isLedgerOf("keep_asset_class_552-live-x.json", "live")].join(" "),
         "true false false false"
     );
-    check("the hand step names the column and waits for the ledger", DELETE_STEP, "In Asset Categories, open the Class column's menu and choose Delete field — once scripts/import/keep_asset_class_552.mjs has written that base's ledger or found it unchanged.");
+    check("the hand step names the column and waits for the ledger", DELETE_STEP, "In Asset Categories, open the Class column's menu and choose Delete field — once scripts/import/ran/keep_asset_class_552.mjs has written that base's ledger or found it unchanged.");
 
     // ── the script's shape ──────────────────────────────────────────────────
     log("");
@@ -200,7 +200,7 @@ export function run({ check, assert, log }) {
     check("  and one file written, the ledger", writes.join(", "), "writeFileSync");
     const fromPlan = [];
     walk(script.ast, (n) => {
-        if (n.type === "ImportDeclaration" && n.source.value === "./keep_asset_class_552_plan.mjs") for (const s of n.specifiers) fromPlan.push(s.imported.name);
+        if (n.type === "ImportDeclaration" && n.source.value === "../keep_asset_class_552_plan.mjs") for (const s of n.specifiers) fromPlan.push(s.imported.name);
     });
     check(
         "  every judgment the plan's",
@@ -235,7 +235,7 @@ export function run({ check, assert, log }) {
     assert("  (anti-vacuity) the walk reads the plan, which does", walked.includes(PLAN_PATH) && stringsOf(parseFile(PLAN_PATH).ast).includes(CLASS_FIELD.name));
     assert(
         "  and reaches every script that takes it from there",
-        ["scripts/import/replace_asset_catalog_528.mjs", "scripts/demo/seed_asset_catalog_514.mjs", CLASSIFY_PATH, "scripts/tests/offline/asset-category.mjs"].every((path) => walked.includes(path))
+        ["scripts/import/ran/replace_asset_catalog_528.mjs", "scripts/demo/seed_asset_catalog_514.mjs", CLASSIFY_PATH, "scripts/tests/offline/asset-category.mjs"].every((path) => walked.includes(path))
     );
 }
 

@@ -3,7 +3,7 @@
 //
 // WHAT GOES. #507 and #514 gave the catalog demo rows, every one named `DEMO …`
 // (`seed_asset_catalog_514.mjs`), and the assets the walks from #338 on registered stand under
-// them. #517 loads the office's catalog (`scripts/import/load_asset_catalog_517.mjs`), and the
+// them. #517 loads the office's catalog (`scripts/import/ran/load_asset_catalog_517.mjs`), and the
 // demo rows go with what stands under them, as that issue says: each `Asset Categories` row
 // whose `Level 3` begins `DEMO `, each `Assets` row whose `Category` is one of those, and each
 // `Asset Log` row whose `Asset` is one of those assets. Nothing else is touched — not the demo
@@ -23,7 +23,7 @@
 // it, which the revert writes as typed text (`link_category_groups_539_plan.mjs:filedByLink`);
 // the demo's categories were never groups, so its ledger cannot be put back on this base.
 //
-// THE LEDGER IS WRITTEN BEFORE THE FIRST DELETE AND IS COMMITTED, beside this script, for
+// THE LEDGER IS WRITTEN BEFORE THE FIRST DELETE AND IS COMMITTED, in scripts/import/ledgers/, for
 // rewrite_po_year_313.mjs' reason (docs/notes/verification.md): every row about to go, each
 // field as the API returned it. Then the asset log rows go, then the assets, then the catalog
 // rows — a child before its parent, so a run that stops part way never leaves a row pointing at
@@ -82,7 +82,7 @@ if (refusesLiveBase({ script: "remove_demo_catalog_517" })) process.exit(1);
 // so nothing here reaches the class; it is kept as the record of what ran.
 const CATALOG_FIELDS = Object.freeze({ ...ASSET_CATEGORY_FIELDS, assetClass: CLASS_FIELD.name });
 
-const HERE = dirname(fileURLToPath(import.meta.url));
+const LEDGERS = join(dirname(fileURLToPath(import.meta.url)), "..", "import", "ledgers");
 const LEDGER_PREFIX = "remove_demo_catalog_517-";
 
 const API_ROOT = "https://api.airtable.com/v0";
@@ -245,7 +245,7 @@ async function remove(air, apply) {
     }
     if (!apply) return finish(air, 2, `dry run — ${plan.categories.length + plan.assets.length + plan.log.length} row(s) would go, nothing was removed`);
 
-    const ledger = join(HERE, `${LEDGER_PREFIX}${new Date().toISOString().replace(/[:.]/g, "-")}.jsonl`);
+    const ledger = join(LEDGERS, `${LEDGER_PREFIX}${new Date().toISOString().replace(/[:.]/g, "-")}.jsonl`);
     const lines = [
         ...plan.categories.map((record) => ({ table: CATEGORIES.name, id: record.id, createdTime: record.createdTime, fields: record.fields })),
         ...plan.assets.map((record) => ({ table: ASSETS.name, id: record.id, createdTime: record.createdTime, fields: record.fields })),

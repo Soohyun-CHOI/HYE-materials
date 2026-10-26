@@ -16,9 +16,9 @@
 //
 // THE CORPUS IS WIDER THAN THE SUBJECT, and that is the half most likely to be
 // got wrong. The subject is `lib/**`; the importers are every `.js`/`.jsx`/`.mjs`
-// under `app/`, `lib/`, `scripts/` and `components/` PLUS the repo-root files,
-// which a walk of those four directories misses — `proxy.js` is live source at
-// the root, and reading only the four would have reported anything it alone
+// under `app/`, `lib/` and `scripts/` PLUS the repo-root files,
+// which a walk of those three directories misses — `proxy.js` is live source at
+// the root, and reading only the three would have reported anything it alone
 // imports as unread. `source-bytes.mjs` learned the same lesson from the other
 // side when 24 tracked files sat outside its extension scope.
 //
@@ -68,7 +68,7 @@ export const title = "No export in lib/ that nothing outside its own file import
 const SUBJECT_DIR = "lib/";
 
 /** The corpus: every file that could be an importer. */
-const SCAN_DIRS = ["app", "lib", "scripts", "components"];
+const SCAN_DIRS = ["app", "lib", "scripts"];
 
 /**
  * Repo-root files, named rather than walked. There are four and only one is

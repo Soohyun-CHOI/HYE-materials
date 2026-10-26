@@ -45,20 +45,21 @@ import {
 
 export const title = "Linking each catalog row to its category group judges the base first (#539)";
 
-const SCRIPT_PATH = "scripts/import/link_category_groups_539.mjs";
+const SCRIPT_PATH = "scripts/import/ran/link_category_groups_539.mjs";
 const PLAN_PATH = "scripts/import/link_category_groups_539_plan.mjs";
 const PLAN_SPECIFIER = "./link_category_groups_539_plan.mjs";
+const PLAN_SPECIFIER_FROM_RAN = "../link_category_groups_539_plan.mjs";
 const CATEGORY_MODULE_PATH = "lib/assetCategory.js";
 const CATALOG_MODULE_PATH = "lib/assetCatalog.js";
 const WRITER_PATH = "lib/airtable/assetCategories.js";
 const ACTIONS_PATH = "app/(assets)/asset-catalog/actions.js";
-const IMPORT_PATH = "scripts/import/import_site_assets_544.mjs";
+const IMPORT_PATH = "scripts/import/ran/import_site_assets_544.mjs";
 const SYNC_PATH = "scripts/import/sync_test_catalog_544.mjs";
 const CLASSIFY_PATH = "scripts/import/classify_asset_categories_514.mjs";
 
 /** The catalog's earlier loads, each with the steps in its entry that read the catalog's rows. */
 const EARLIER_LOADS = [
-    { path: "scripts/import/replace_asset_catalog_528.mjs", work: ["load", "remove", "revert"] },
+    { path: "scripts/import/ran/replace_asset_catalog_528.mjs", work: ["load", "remove", "revert"] },
     { path: "scripts/demo/remove_demo_catalog_517.mjs", work: ["remove", "revert"] },
     { path: "scripts/demo/seed_asset_catalog_514.mjs", work: ["listRecords"] },
 ];
@@ -303,11 +304,11 @@ export function run({ check, assert }) {
     const planImports = importsFrom(plan, "../../lib/assetCategory.js");
     assert("the plan asks lib/assetCategory.js which group a row stands in", planImports.includes("categoryGroupOf"));
     assert("the plan takes the link's name from lib/assetCategory.js", planImports.includes("CATEGORY_GROUP_FIELD"));
-    const scriptImports = importsFrom(script, PLAN_SPECIFIER);
+    const scriptImports = importsFrom(script, PLAN_SPECIFIER_FROM_RAN);
     for (const name of ["schemaState", "planLinks", "readLinks", "planRevert", "linkLine", "unlinkLine", "catalogRowOf", "groupRowOf"]) {
         assert(`the script takes ${name} from the plan`, scriptImports.includes(name));
     }
-    assert("the script asks lib/airtableBase.js which base it reaches", importsFrom(script, "../../lib/airtableBase.js").includes("resolveAirtableBase"));
+    assert("the script asks lib/airtableBase.js which base it reaches", importsFrom(script, "../../../lib/airtableBase.js").includes("resolveAirtableBase"));
 
     const literals = (ast, value) => {
         let count = 0;

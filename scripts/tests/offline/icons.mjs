@@ -1,7 +1,7 @@
 // Every mark drawn from one source, as the design draws it (#502).
 //
 // FOUR CLAIMS, AND EACH IS ONE THE ISSUE'S BODY MAKES.
-//   1. ONE SOURCE: every `<svg>` under `app/`, `components/` and `lib/` — as JSX or in a
+//   1. ONE SOURCE: every `<svg>` under `app/` and `lib/` — as JSX or in a
 //      string — is drawn by `app/components/Icon.js` or by a file `NOT_MARKS` names with the
 //      reason it is no mark, and an entry whose file draws none is stale. So the next icon
 //      cannot be drawn path by path where it is needed, which is how every mark the design
@@ -360,7 +360,7 @@ export function judgeCalls({ callsByFile, shapeNames }) {
 }
 
 export function run({ check, assert, log }) {
-    const files = ["app", "components", "lib"].flatMap((d) => listJsFiles(repoPath(d))).map(repoRelative).sort();
+    const files = ["app", "lib"].flatMap((d) => listJsFiles(repoPath(d))).map(repoRelative).sort();
     const drawing = new Map();
     const callsByFile = new Map();
     for (const rel of files) {

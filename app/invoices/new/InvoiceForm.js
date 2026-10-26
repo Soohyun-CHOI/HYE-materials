@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import { upload } from "@vercel/blob/client";
 import { refuseOversizeUpload } from "@/lib/uploadLimit";
 import { createInvoiceAction, createDirectPurchaseAction } from "./actions";
-import ConfirmDialog from "@/components/ConfirmDialog";
+import ConfirmDialog from "@/app/components/ConfirmDialog";
 import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";
 // Issue #422 — the document this form transcribes, drawn beside it, in the box that
 // took the file in the first place. It is drawn by the component the file viewer

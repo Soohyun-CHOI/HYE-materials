@@ -446,7 +446,7 @@ async function main() {
         if (spec.link) {
             if (!live) {
                 due++;
-                log(`  [STEP]   ${spec.name} is missing: scripts/import/link_category_groups_539.mjs --apply makes it and links every row`);
+                log(`  [STEP]   ${spec.name} is missing: scripts/import/ran/link_category_groups_539.mjs --apply makes it and links every row`);
             } else if (live.type !== spec.type || live.options?.linkedTableId !== groupsTable?.id) {
                 log(`  ${spec.name} is a ${live.type} to ${live.options?.linkedTableId ?? "nothing"}, not a link to ${GROUPS_TABLE} — stopping.`);
                 return finish(air, 1, "a field is in the way");

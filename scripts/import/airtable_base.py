@@ -5,7 +5,7 @@ base (AIRTABLE_TEST_API_KEY + AIRTABLE_TEST_BASE_ID) unless the run names the li
 one with AIRTABLE_BASE=live, whose id is a constant in that module and in no other
 file. Python cannot import JavaScript, and a second copy of the rule here would be
 two answers to one question that could disagree, so this asks `node` for the
-answer instead: the four scripts in this directory call `resolve_airtable_base()`
+answer instead: the four scripts here and in `ran/` call `resolve_airtable_base()`
 after `load_dotenv`, and `node` inherits the environment they loaded.
 
 `node` hands back the base id and the NAME of the variable holding its key, never

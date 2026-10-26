@@ -16,7 +16,7 @@
 // (`_ast.mjs`), and a browser is where the screens are seen.
 //
 // WHAT IT CANNOT SEE: whether `Assets."Note"` exists on a base, or is a single line of text —
-// that is `scripts/import/describe_note_533.mjs`'s read, and `verify-tools-schema-334.mjs`'s.
+// that is `scripts/import/ran/describe_note_533.mjs`'s read, and `verify-tools-schema-334.mjs`'s.
 //
 // EXIT CODES, per `docs/notes/verification.md`: 0 all clear, 1 something failed.
 
