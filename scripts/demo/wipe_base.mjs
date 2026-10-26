@@ -1,7 +1,8 @@
 // Empties every table on the base but the ones it keeps — Users, the material and asset
 // catalogs, the jobs and their disciplines, and the assets and their log (`KEPT`,
-// `KEPT_FOR_THEIR_LINKS`). This said every table but Users, which stopped being true when #358
-// began keeping more.
+// `KEPT_FOR_THEIR_LINKS`, in `_wipe_tables.mjs` with the order it empties the rest in, since
+// #575 had `reset_demo.mjs` read them too). This said every table but Users, which stopped
+// being true when #358 began keeping more.
 //
 // SINCE #531 IT REFUSES TO RUN IF ITS ORDER EVER REACHES `Assets` OR `Asset Log`, or a table
 // they link to: the two hold the site's records, which no script writes, and emptying a table
@@ -57,118 +58,11 @@
 import { base, TABLES } from "../../lib/airtable/client.js";
 import { refusesProtectedWrite } from "../protectedTables.mjs";
 import { refusesLiveBase } from "./_testBaseOnly.mjs";
+import { KEPT, KEPT_FOR_THEIR_LINKS, ORDER } from "./_wipe_tables.mjs";
 
 if (refusesLiveBase({ script: "wipe_base" })) process.exit(1);
 
 const CONFIRM = process.argv.includes("--confirm");
-
-/**
- * The deletion order, children before parents.
- *
- * `Users` IS ABSENT RATHER THAN FLAGGED, and the difference matters: a list with a
- * `skip: true` entry is one edit away from deleting the accounts, while a table that
- * is not in the list cannot be reached by this script at all. The assertion at the
- * foot checks the base against `TABLES` so a table added later cannot be silently
- * missed either way.
- */
-const ORDER = [
-    // The invoice side, deepest first.
-    TABLES.INVOICE_ITEMS,
-    TABLES.INVOICES,
-    // The delivery side.
-    TABLES.DELIVERY_ITEMS,
-    TABLES.DELIVERIES,
-    // The item axis. Prices before materials: a price row is keyed on a material and
-    // a vendor, so clearing the cache first leaves nothing pointing at a gap.
-    TABLES.MATERIAL_PRICES,
-    TABLES.MATERIALS,
-    // The order side.
-    TABLES.PO_ITEMS,
-    TABLES.PURCHASE_ORDERS,
-    // The office's record of a purchase with no order behind it (#272), before the
-    // request side: a row points AT the request a site raised from it, so clearing
-    // it first leaves nothing pointing at a gap — the reason prices go before
-    // materials above.
-    TABLES.DIRECT_PURCHASES,
-    // The request side and its history.
-    TABLES.PR_EDIT_LOG,
-    TABLES.PR_EDIT_REQUESTS,
-    TABLES.QUOTATIONS,
-    TABLES.PR_SIGNERS,
-    TABLES.PR_ITEMS,
-    TABLES.PURCHASE_REQUESTS,
-    // Reference data. Jobs and Disciplines left #358 — see KEPT_FOR_THEIR_LINKS.
-    TABLES.VENDORS,
-    TABLES.ADDRESSES,
-    // Independent of everything. Single-use and 15-minute-lived, so every row here is
-    // either spent or stale.
-    TABLES.AUTH_TOKENS,
-];
-
-/**
- * Tables this script cannot reach, each for a reason that is checkable rather
- * than remembered — the same standard the ORDER comments hold themselves to.
- *
- * `Users` is the original entry: an account appears as a side effect of a first
- * magic-link sign-in and in NO other way, so a deleted one comes back only when
- * that person signs in again.
- *
- * **THE OTHER FOUR WERE ADDED IN #358, AND FINDING THEM IS WHAT THAT ISSUE
- * ACTUALLY COST.** The assertion below has failed since #334 put three tools
- * tables into `TABLES`, so this script exited 1 without deleting anything for
- * twenty-odd issues and nobody noticed, because nobody ran it. The guard did its
- * job; what was missing was anything that asks the question without a person
- * choosing to. `scripts/tests/offline/wipe-coverage.mjs` asks it in CI now.
- */
-const KEPT = [
-    TABLES.USERS,
-    // #354's catalog: 777 rows loaded from a committed CSV, plus whatever paths
-    // have been added by hand since — and a hand-added path is in no file, so
-    // rebuilding from the CSV would drop it silently. `materials.md` records
-    // hand-adding as the normal way a path arrives, which is what makes this
-    // reference data rather than demo data. Re-running the loader after a wipe
-    // would also cost 78 write requests for rows that never changed.
-    TABLES.MATERIAL_CATEGORIES,
-    // The assets axis (#334-#362). `Asset Categories` is the office's catalog since
-    // #517, revised by #528 from scripts/import/sources/asset_categories_528.csv,
-    // and edited by hand after, a hand edit being in no file — so it is reference
-    // data, as #354's is. `Asset Category Groups` (#528) is the same list's types
-    // and categories, kept for the same reason: loaded from its own CSV and edited
-    // by hand since, and a category waiting for its first item is in no file at
-    // all. Its first reader is the catalog's page (#527).
-    // An asset is registered through the app and is the row a printed label
-    // points at, which nothing in this directory rebuilds. None of the four sits
-    // on a screen the document demo shows, so clearing them would cost real work to
-    // make a set of pages tidier that never render them.
-    TABLES.ASSET_CATEGORIES,
-    TABLES.ASSET_CATEGORY_GROUPS,
-    TABLES.ASSETS,
-    TABLES.ASSET_LOG,
-];
-
-/**
- * Kept because something else keeps a link INTO them, rather than for their own
- * sake — listed apart so the distinction survives the next reader.
- *
- * `Assets."Job"` is required and app-enforced, and `Asset Log."Job"` is on
- * every row and never blank. Deleting Jobs while keeping assets would leave
- * every asset and log row with a required link pointing at nothing, which is a
- * worse state than either wiping both or keeping both. `Disciplines` follows its
- * parent.
- *
- * Nothing in the document chain is left inconsistent by this: a request links a
- * discipline and a delivery links a job, and both of those go, so what survives
- * is a childless job and its childless discipline — exactly what
- * `seed_demo_fixtures.mjs` expects to find, since it is skip-if-exists.
- *
- * IT ALSO SAVES A ROW NO SEED MAKES. `26-DEMO-02` was created through
- * `/admin/jobs/new` in #338 and `seed_demo_fixtures.mjs` builds only
- * `26-DEMO-01`; `verification.md` records the second job as the only way to
- * exercise a picker with more than one choice. That is a consequence rather than
- * the reason, and it is written down so nobody removes the reason and keeps the
- * consequence by accident.
- */
-const KEPT_FOR_THEIR_LINKS = [TABLES.JOBS, TABLES.DISCIPLINES];
 
 // A table this script has never heard of is a failure rather than a silent pass —
 // #162 added two tables at once, and a wipe that quietly skipped them would leave
@@ -178,7 +72,7 @@ const known = new Set([...ORDER, ...KEPT, ...KEPT_FOR_THEIR_LINKS]);
 const missing = Object.values(TABLES).filter((t) => !known.has(t));
 if (missing.length) {
     console.error(`These tables are in TABLES but not in this script's order: ${missing.join(", ")}`);
-    console.error("Add each to ORDER at the right depth, or to KEPT with a reason.");
+    console.error("Add each to ORDER at the right depth, or to KEPT with a reason, in _wipe_tables.mjs.");
     process.exit(1);
 }
 
@@ -252,6 +146,6 @@ if (leaked) {
     process.exit(1);
 }
 
-console.log(`Done — ${totalRows} records deleted, ${KEPT.join(", ")} untouched.`);
+console.log(`Done — ${totalRows} records deleted, ${[...KEPT, ...KEPT_FOR_THEIR_LINKS].join(", ")} untouched.`);
 console.log("");
-console.log("Next: scripts/demo/seed_full_demo.mjs   (it bootstraps its own Job, Line and vendors)");
+console.log("Next: scripts/demo/seed_full_demo.mjs   (it bootstraps its own Job, Discipline and vendors)");

@@ -45,6 +45,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 - **What a screen carries, the distinctions it must show, and a word locked on it** → `docs/briefs/`, one file per page (#260), and a page that became a dialog keeps its own (#456). A page added, removed or given new content updates its brief in the SAME COMMIT; `offline/screen-briefs.mjs` fails on a page with no brief and on a tone the shared brief does not list.
 - **Every string a screen can render** → nowhere. `scripts/screen-strings.mjs` produces the list on demand (#288), and `docs/briefs/strings/` records only what it CANNOT produce and what no reader can reach. A file per screen was built, measured and dropped; the README there carries the figures and how a naming decision is made from the tool instead.
 - **No phase, milestone or branch status, ever.** What has merged is in the git history and in the tracker, and a document that restates it goes stale without anyone noticing.
+- **A path this file names in backticks is a present one** — `offline/claude-md-paths.mjs` fails one that does not resolve (#575) — so a record naming a path that has gone belongs in the notes.
 - If no area file fits, add one and an index row above it, in the same commit.
 - **The audience test decides ties.** A rule whose readers are wider than any one glob stays here; a rule only its own area's editor needs goes to that area's file. That is why "records in this base are not removed as tidying-up" is here rather than in `verification.md`.
 
@@ -283,7 +284,7 @@ Read `docs/notes/authorization.md` before adding an endpoint, an exemption or a 
 
 ## Utility scripts (scripts/)
 
-- `npm test` runs the whole offline tier and CI runs it on every push; `npx eslint .` is a second CI job and stays clean, a rule this repo deliberately breaks taking a scoped disable with its reason rather than a tolerated error (#187). **It resolves names under `scripts/` since #426** — `no-undef` and, since #427, `no-unused-vars`, against Node's globals alone, since flat config MERGES globals and the wide set would leave a rule reporting 0 while blind. **An unread binding may still be load-bearing**, so read one before deleting it.
+- `npm test` runs the whole offline tier and CI runs it on every pull request and every push to `main`; `npx eslint .` is a second CI job and stays clean, a rule this repo deliberately breaks taking a scoped disable with its reason rather than a tolerated error (#187). **It resolves names under `scripts/` since #426** — `no-undef` and, since #427, `no-unused-vars`, against Node's globals alone, since flat config MERGES globals and the wide set would leave a rule reporting 0 while blind. **An unread binding may still be load-bearing**, so read one before deleting it.
 - **Every run reaches the test base unless it names the live one (#534)**: `AIRTABLE_BASE=live` per command, or the production deployment. A schema change goes to the test base first and to the live one once Soo approves.
 - **Do not run a `verify-*.mjs` casually** — one run costs hundreds of Airtable operations.
 - **Dummy records on the test base are deliberate, not leftovers; the live base holds none since #537**, and every `scripts/demo/` script that writes refuses it. Nothing in either base is to be removed as tidying-up.

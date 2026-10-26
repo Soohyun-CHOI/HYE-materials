@@ -20,11 +20,16 @@
 // of the app is in it.
 // The guard's answer is held by value here too, a name beside a description refused among it.
 //
+// A FILE THAT ONLY LISTS THE TWO WRITES NOTHING (#575), and is classified `lists`: the wipe's
+// tables, `scripts/demo/_wipe_tables.mjs`, name both because the wipe keeps them, and the scripts
+// that read those lists are the ones that ask. Such a file imports `lib/airtable/client.js` for
+// `TABLES` and nothing else, and makes no call at all — so nothing that could write is in it.
+//
 // WHICH SCRIPTS COULD, FOUND RATHER THAN LISTED. Every `.mjs`, `.js` and `.py` file under
 // `scripts/` is read, and one REACHES the two tables when it names either as a whole string —
 // `"Assets"`, `"Asset Log"` — or by `TABLES.ASSETS` / `TABLES.ASSET_LOG`, or by its id on this
-// base, or imports `lib/airtable/assets.js` or `lib/airtable/assetLog.js`, or names one of the
-// app's four actions that write them — the note's among them since #533, which writes
+// base, or imports `lib/airtable/assets.js` or `lib/airtable/assetLog.js` or a `lists` file, whose
+// names it then holds, or names one of the app's four actions that write them — the note's among them since #533, which writes
 // `Assets."Note"` from the item's page and is the app's write, not a script's. Each one that reaches is classified in `CLASSIFIED`
 // below, and both directions fail: a script that reaches and is not classified, and an entry
 // that names a file which no longer reaches. A description that merely mentions assets in a
@@ -44,7 +49,7 @@
 // WHAT IT CANNOT SEE. A script reaching a table through a name it builds at runtime — every
 // table of `Object.values(TABLES)`, or a name read off the Metadata API — names neither. No
 // script does that and writes today; `wipe_base.mjs`, which empties the tables in its ORDER, asks
-// with ORDER itself.
+// with ORDER itself, and so does `reset_demo.mjs`, which runs it.
 //
 // EXIT CODES, per `docs/notes/verification.md`: 0 all clear, 1 something failed.
 
@@ -101,6 +106,10 @@ const CLASSIFIED = {
     "scripts/import/ran/replace_asset_catalog_528.mjs": { writes: ["createRecords", "updateRecords", "deleteRecords"] },
     "scripts/demo/remove_demo_catalog_517.mjs": { writes: ["deleteRecords", "create"] },
     "scripts/demo/wipe_base.mjs": { writes: ["destroy"] },
+    // What the wipe empties and keeps (#575): it keeps the two, and the two scripts reading it ask.
+    "scripts/demo/_wipe_tables.mjs": { lists: true },
+    // Runs `wipe_base.mjs --confirm`, and says in its dry run what that empties (#575).
+    "scripts/demo/reset_demo.mjs": { writes: ["run"] },
     "scripts/import/ran/create_tools_334.py": { python: true },
     "scripts/import/ran/describe_repair_531.mjs": { describes: true },
     // `Assets."Note"`'s description, the field read and made by nothing here (#533).
@@ -121,6 +130,9 @@ const CLASSIFIED = {
         ledgered: true,
     },
 };
+
+/** The files classified `lists`, which a script importing reaches the two through (#575). */
+const LIST_FILES = Object.keys(CLASSIFIED).filter((path) => CLASSIFIED[path].lists);
 
 /** Every `.mjs`, `.js` and `.py` file under `scripts/`, but this tier's and the module's own. */
 function scriptFiles() {
@@ -155,6 +167,7 @@ export function reachesJs(ast, fromPath) {
         if (node.type === "ImportDeclaration" && typeof node.source.value === "string") {
             const target = toPosix(join(fromPath, "..", node.source.value)).replace(/^\.\//, "");
             if (PROTECTED_MODULES.some((module) => target === module || target === module.replace(/\.js$/, ""))) reaches = true;
+            if (LIST_FILES.includes(target)) reaches = true;
         }
     });
     return reaches;
@@ -274,6 +287,26 @@ export function describerFindings(ast, fromPath) {
             const source = node.source.value;
             const target = toPosix(join(fromPath, "..", source)).replace(/^\.\//, "");
             if (!source.startsWith("node:") && target !== GUARD_MODULE && target !== BASE_MODULE) findings.push(`imports ${source}`);
+        }
+    });
+    return findings;
+}
+
+/** The one module a `lists` file may import, for `TABLES`. */
+const CLIENT_MODULE = "lib/airtable/client.js";
+
+/**
+ * What is wrong with a `lists` file (#575): any call — a function's, a constructor's, a tag's or a
+ * dynamic import's — and any import or re-export from anywhere but the client.
+ */
+export function listerFindings(ast, fromPath) {
+    const findings = [];
+    walk(ast, (node) => {
+        if (node.type === "CallExpression") findings.push(`calls ${calleeName(node) ?? "something"}`);
+        if (node.type === "NewExpression" || node.type === "TaggedTemplateExpression" || node.type === "ImportExpression") findings.push(`makes a ${node.type}`);
+        if ((node.type === "ImportDeclaration" || node.type === "ExportAllDeclaration" || node.type === "ExportNamedDeclaration") && typeof node.source?.value === "string") {
+            const target = toPosix(join(fromPath, "..", node.source.value)).replace(/^\.\//, "");
+            if (target !== CLIENT_MODULE) findings.push(`imports ${node.source.value}`);
         }
     });
     return findings;
@@ -579,6 +612,10 @@ export function run({ check, assert, log }) {
             check("    and sends descriptions alone, through it, to the Metadata API", describerFindings(ast, path).join("; "), "");
             continue;
         }
+        if (entry.lists) {
+            check(`  ${path} only lists them: it imports the client alone and calls nothing`, listerFindings(ast, path).join("; "), "");
+            continue;
+        }
         assert(`  ${path} imports ${GUARD} from ${GUARD_MODULE}`, importsGuard(ast, path));
         check(`    and asks before ${entry.writes.join(", ")}`, unguardedWrites(ast, entry.writes).join("; "), "");
         check("    and every question names its base", guardCallsWithoutBase(ast).join("; "), "");
@@ -600,15 +637,18 @@ export function run({ check, assert, log }) {
         return names;
     });
     check("  the scripts naming refusesBeyondLedger or the import", namers.join(" | "), Object.keys(CLASSIFIED).filter((path) => CLASSIFIED[path].ledgered).join(" | "));
-    const wipe = parseSource(readFileSync(join(REPO_ROOT, "scripts/demo/wipe_base.mjs"), "utf8"), "wipe_base").ast;
-    let wipesOrder = false;
-    walk(wipe, (node) => {
-        if (calleeName(node) !== GUARD) return;
-        for (const prop of node.arguments[0]?.properties ?? []) {
-            if (prop.key?.name === "wipes" && prop.value?.type === "Identifier" && prop.value.name === "ORDER") wipesOrder = true;
-        }
-    });
-    assert("  wipe_base asks with its ORDER as what it empties", wipesOrder);
+    // The wipe and the reset that runs it (#575) each ask with the ORDER a wipe empties.
+    for (const script of ["wipe_base", "reset_demo"]) {
+        const ast = parseSource(readFileSync(join(REPO_ROOT, `scripts/demo/${script}.mjs`), "utf8"), script).ast;
+        let wipesOrder = false;
+        walk(ast, (node) => {
+            if (calleeName(node) !== GUARD) return;
+            for (const prop of node.arguments[0]?.properties ?? []) {
+                if (prop.key?.name === "wipes" && prop.value?.type === "Identifier" && prop.value.name === "ORDER") wipesOrder = true;
+            }
+        });
+        assert(`  ${script} asks with the wipe's ORDER as what it empties`, wipesOrder);
+    }
 
     // ── the readers see what they are for ────────────────────────────────────
     log("");
@@ -618,6 +658,8 @@ export function run({ check, assert, log }) {
     assert("  TABLES.ASSETS reaches", reachesJs(planted(`base(TABLES.ASSETS).select();`), "scripts/demo/x.mjs"));
     assert("  a table id reaches", reachesJs(planted(`const T = { A: "tblXtmDonSyOyOvV3" };`), "scripts/import/x.mjs"));
     assert("  an import of the writer's module reaches", reachesJs(planted(`import { createAssets } from "../../lib/airtable/assets.js";`), "scripts/tests/x.mjs"));
+    assert("  an import of a lists file reaches (#575)", reachesJs(planted(`import { ORDER } from "./_wipe_tables.mjs";`), "scripts/demo/x.mjs"));
+    assert("  an import of another file beside it does not", !reachesJs(planted(`import { pick } from "./_demo_ids.mjs";`), "scripts/demo/x.mjs"));
     assert("  an action of the app that writes them reaches", reachesJs(planted(`await post("retireAssetAction", []);`), "scripts/tests/x.mjs"));
     assert("  the note's action reaches too (#533)", reachesJs(planted(`await post("updateAssetNoteAction", []);`), "scripts/tests/x.mjs"));
     assert("  a sentence mentioning assets does not", !reachesJs(planted(`const d = "Assets holds the physical tools.";`), "scripts/import/x.mjs"));
@@ -684,6 +726,19 @@ async function request(method, path, body) {
         describerFindings(planted(`import { resolveAirtableBase } from "../../lib/airtableBase.js";\n${describer}`), describerAt).join("; "),
         ""
     );
+
+    const lister = `import { TABLES } from "../../lib/airtable/client.js";\nexport const KEPT = [TABLES.USERS, TABLES.ASSETS];`;
+    const listerAt = "scripts/demo/_x.mjs";
+    check("  a list naming the two from the client passes", listerFindings(planted(lister), listerAt).join("; "), "");
+    check("  a list that calls is found", listerFindings(planted(`${lister}\nKEPT.push(TABLES.ASSET_LOG);`), listerAt).join("; "), "calls push");
+    check("  a list that writes is found", listerFindings(planted(`${lister}\nawait base(TABLES.ASSETS).destroy([id]);`), listerAt).join("; "), "calls destroy; calls base");
+    check("  a constructor is found", listerFindings(planted(`${lister}\nconst S = new Set(KEPT);`), listerAt).join("; "), "makes a NewExpression");
+    check(
+        "  an import of a writer is found",
+        listerFindings(planted(`import { createAssets } from "../../lib/airtable/assets.js";\n${lister}`), listerAt).join("; "),
+        "imports ../../lib/airtable/assets.js"
+    );
+    check("  a re-export from elsewhere is found", listerFindings(planted(`${lister}\nexport * from "../protectedTables.mjs";`), listerAt).join("; "), "imports ../protectedTables.mjs");
 
     const fenceGood = `function fenceRequests(baseFunctor) {
     const instance = baseFunctor._base;

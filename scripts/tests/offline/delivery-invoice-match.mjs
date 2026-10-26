@@ -715,7 +715,8 @@ export function run({ check, assert, log }) {
             !spoken.some((t) => t.toLowerCase().includes(word))
         );
     }
-    // `line` names a Lines row under a Job. offline/line-vocabulary.mjs bars the
+    // `line` named a Lines row under a Job until #280, and an item row takes its own
+    // table's name since #303. offline/line-vocabulary.mjs bars the
     // bare word from every *_COPY object under lib/, so this is the same rule
     // exercised rather than inspected.
     assert(

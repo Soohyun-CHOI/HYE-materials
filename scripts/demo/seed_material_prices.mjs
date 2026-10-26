@@ -136,7 +136,7 @@ async function main() {
     const discipline = disciplines.find((l) => (l.disciplineLabel || "").includes("DEMO")) || disciplines[0];
 
     if (!requester || !discipline) {
-        console.error("Need at least one active User and one Line. Run seed_demo_fixtures.mjs first.");
+        console.error("Need at least one active User and one Discipline. Run seed_demo_fixtures.mjs first.");
         process.exitCode = 1;
         return;
     }

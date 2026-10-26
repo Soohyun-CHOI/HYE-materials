@@ -14,7 +14,7 @@
 // So the answer is not a smarter delete. It is to rebuild, which the seed already does
 // from empty — and this runs the two scripts that exist rather than reimplementing
 // either. `wipe_base.mjs` keeps its own `--confirm` contract and its own exit codes;
-// `seed_full_demo.mjs` bootstraps its own Job, Line and vendors. This orders them,
+// `seed_full_demo.mjs` bootstraps its own Job, Discipline and vendors. This orders them,
 // checks each one's exit code, and then reads the base back.
 //
 // THE CHILD PROCESSES INHERIT THIS RUN'S NODE FLAGS, which is why the documented
@@ -43,9 +43,15 @@ import { base, TABLES } from "../../lib/airtable/client.js";
 import { getItemsByPO } from "../../lib/airtable/poItems.js";
 import { getItemsByDelivery } from "../../lib/airtable/deliveryItems.js";
 import { resolveDemoRecords, pickRecordId, pick } from "./_demo_ids.mjs";
+import { refusesProtectedWrite } from "../protectedTables.mjs";
 import { refusesLiveBase } from "./_testBaseOnly.mjs";
+import { KEPT, KEPT_FOR_THEIR_LINKS, ORDER } from "./_wipe_tables.mjs";
 
 if (refusesLiveBase({ script: "reset_demo" })) process.exit(1);
+
+// The wipe this runs empties ORDER, so ORDER is what is asked (#531), as `wipe_base.mjs` asks it,
+// before the dry run below says what the wipe would empty.
+if (refusesProtectedWrite({ script: "reset_demo", baseId: base.getId(), wipes: ORDER, log: console.error })) process.exit(1);
 
 const CONFIRM = process.argv.includes("--confirm");
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -137,12 +143,18 @@ console.log(
     `  ${blobs.others.count} object(s) with no script pattern (${(blobs.others.bytes / 1024).toFixed(0)}KB) — left alone`
 );
 
+// WHAT THE WIPE KEEPS IS READ OFF ITS OWN LISTS, so this plan names the tables the wipe
+// leaves as it leaves them. It said "every table except Users" from #358, when the wipe
+// began keeping more, until #575.
+const kept = [...KEPT, ...KEPT_FOR_THEIR_LINKS];
+
 if (!CONFIRM) {
     console.log("");
     console.log("Dry run. With --confirm this would:");
-    console.log("  1. run wipe_base.mjs --confirm   (every table except Users)");
+    console.log(`  1. run wipe_base.mjs --confirm   (empties ${ORDER.length} tables and keeps ${kept.length}:`);
+    console.log(`       ${kept.join(", ")})`);
     console.log(`  2. delete ${blobs.mine.length} script-written Blob object(s)`);
-    console.log("  3. run seed_full_demo.mjs        (bootstraps its own Job, Line, vendors)");
+    console.log("  3. run seed_full_demo.mjs        (bootstraps its own Job, Discipline, vendors)");
     console.log("  4. read the base back and check the states a rehearsal moves");
     console.log("");
     console.log("Re-run with --confirm.");

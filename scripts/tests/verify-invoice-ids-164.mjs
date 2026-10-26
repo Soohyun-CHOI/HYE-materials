@@ -55,7 +55,7 @@
 // PR Items and Quotations (no attachments), and DELETES ALL OF THEM in this same
 // run — children before their parent, with every cleanup failure counted as a run
 // failure. Creates nothing in Vercel Blob. Reuses (never modifies, never deletes)
-// one active User, one Vendor, one Line and one Job. The only record it updates is
+// one active User, one Vendor, one Discipline and one Job. The only record it updates is
 // a PO it created itself, to backdate the field Part D is about.
 //
 // Exit codes: 0 all clear, 1 something failed, 2 clean but incomplete.
@@ -355,7 +355,7 @@ try {
     const disciplines = await getAllDisciplines();
     const jobs = await getAllJobs();
     if (users.length === 0 || disciplines.length === 0 || jobs.length === 0) {
-        throw new Error("need one active User, one Line and one Job for the PR/PO/Delivery fixtures");
+        throw new Error("need one active User, one Discipline and one Job for the PR/PO/Delivery fixtures");
     }
     const user = users[0];
 

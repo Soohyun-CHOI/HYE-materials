@@ -552,7 +552,7 @@ export function runEntryPointScopes({ check, assert, log }) {
     const byKind = {};
     for (const e of entries) byKind[e.kind] = (byKind[e.kind] || 0) + 1;
     // This log IS #224's census. A number in a document goes stale unread; this
-    // one is recomputed on every push.
+    // one is recomputed on every CI run.
     log(
         `entry points: ${entries.length} — ` +
             Object.entries(byKind)

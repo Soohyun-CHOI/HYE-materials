@@ -1,8 +1,8 @@
-// Creates a reusable Job -> Line, and Vendor -> Address fixture set for
+// Creates a reusable Job -> Discipline, and Vendor -> Address fixture set for
 // live product demos (PR -> sign -> PO -> President sign -> Invoice).
 //
 // IMPORTABLE AS WELL AS RUNNABLE, and the import is what makes the big seed
-// self-sufficient. `seed_full_demo.mjs` needs exactly this Job, Line and Vendor and
+// self-sufficient. `seed_full_demo.mjs` needs exactly this Job, Discipline and Vendor and
 // used to state that as a prerequisite in its header -- which held only as long as
 // somebody read it. Restating the bootstrap over there would be two implementations
 // of one thing; calling `ensureDemoFixtures()` is one. Running this file directly
@@ -95,7 +95,7 @@ export async function ensureDemoFixtures() {
     }
     console.log(`Using ${userName(user)} (${DEMO_PIC_EMAIL}) as the demo Job's PIC/Manager.\n`);
 
-    // Job + Line: skipped as one unit if the Job Code already exists.
+    // Job + Discipline: skipped as one unit if the Job Code already exists.
     let jobRecordId;
     const existingJob = await getJobByCode(JOB_CODE);
     if (existingJob) {

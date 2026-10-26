@@ -1,7 +1,7 @@
 // Unit select options in Airtable vs CANONICAL_UNITS — credentialed tier (#18).
 //
 // The companion to scripts/tests/offline/unit-options.mjs. That one proves the
-// two hand-maintained FILES agree; this one proves the four Airtable FIELDS
+// two hand-maintained FILES agree; this one proves the five Airtable FIELDS
 // agree with them. Neither subsumes the other, and the gap between them is not
 // hypothetical: a 20th option, DRUM, existed on PR Items and on no other table,
 // held by no record, creatable by no code path in this repo — added by hand in
@@ -132,8 +132,8 @@ if (tables) {
         check(`  no canonical values missing`, missing.join(",") || "(none)", "(none)");
 
         // Display order only — a reordering in Airtable breaks no write. Worth
-        // a line anyway: the four fields are read side by side by anyone
-        // comparing them, and today all four match the file's order exactly.
+        // a line anyway: the five fields are read side by side by anyone
+        // comparing them.
         check(`  same order as the file (display only)`, choices.join(","), CANONICAL_UNITS.join(","));
 
         log("");

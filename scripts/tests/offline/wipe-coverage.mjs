@@ -19,27 +19,59 @@
 // IT CANNOT ASK WHETHER THE ANSWER IS RIGHT. A table put in the delete order at
 // the wrong depth, or kept for a reason that has since lapsed, passes this
 // check — the shape of every structural check in this tier, and the reason
-// `wipe_base.mjs` carries its ORDER comments and its two separate keep lists.
+// the lists carry their ORDER comments and two separate keep lists.
 // What this holds is that no table is un-classified.
+//
+// THE LISTS ARE A MODULE OF THEIR OWN SINCE #575, AND THIS HOLDS THAT THEY STAY
+// ONE. `scripts/demo/_wipe_tables.mjs` declares them; `wipe_base.mjs` empties by
+// them and `reset_demo.mjs` names the kept tables from them. A copy declared in
+// either script would be a second answer to what the wipe keeps — which is how
+// `reset_demo.mjs` came to say "every table except Users" for a wipe that kept
+// eight — so each must import all three and declare none.
 //
 // EXIT CODES, per `docs/notes/verification.md`: 0 all clear, 1 something failed.
 
-import { parseFile, walk } from "./_ast.mjs";
+import { parseFile, parseSource, walk } from "./_ast.mjs";
 import { tableEntriesFromSource } from "./table-field-names.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "The wipe classifies every table (#358)";
+export const title = "The wipe classifies every table (#358), from one module (#575)";
 
-const WIPE = "scripts/demo/wipe_base.mjs";
+const WIPE_TABLES = "scripts/demo/_wipe_tables.mjs";
 
-/** The array declarations `wipe_base.mjs` sorts tables into. */
+/** The array declarations the wipe sorts tables into. */
 const LISTS = ["ORDER", "KEPT", "KEPT_FOR_THEIR_LINKS"];
+
+/** The scripts that read the lists, each by importing all three. */
+const READERS = ["scripts/demo/wipe_base.mjs", "scripts/demo/reset_demo.mjs"];
+
+/** The specifier both readers import the lists by, from beside them. */
+const WIPE_TABLES_SPECIFIER = "./_wipe_tables.mjs";
+
+/** The names a source imports from one specifier. */
+function importedFrom(ast, specifier) {
+    const names = [];
+    walk(ast, (node) => {
+        if (node.type !== "ImportDeclaration" || node.source.value !== specifier) return;
+        for (const s of node.specifiers) if (s.imported?.name) names.push(s.imported.name);
+    });
+    return names;
+}
+
+/** Which of the list names a source declares itself, at any depth. */
+function declaredLists(ast) {
+    const names = [];
+    walk(ast, (node) => {
+        if (node.type === "VariableDeclarator" && LISTS.includes(node.id?.name)) names.push(node.id.name);
+    });
+    return names;
+}
 
 /**
  * The `TABLES.X` keys named inside one top-level array declaration.
  *
- * Read off the AST rather than by importing the script, for this tier's own
- * reason: `wipe_base.mjs` imports `lib/airtable/client.js`, which throws
+ * Read off the AST rather than by importing the module, for this tier's own
+ * reason: `_wipe_tables.mjs` imports `lib/airtable/client.js`, which throws
  * `Missing AIRTABLE_TEST_API_KEY` at module load.
  */
 function keysInList(ast, name) {
@@ -61,7 +93,7 @@ function keysInList(ast, name) {
 }
 
 export function run({ check, assert, log }) {
-    const { ast } = parseFile(WIPE);
+    const { ast } = parseFile(WIPE_TABLES);
     const entries = tableEntriesFromSource();
     const tableKeys = entries.map((e) => e.key);
 
@@ -109,6 +141,27 @@ export function run({ check, assert, log }) {
         "no table classified twice",
         twice.length === 0 ? "none" : [...new Set(twice)].join(", "),
         "none"
+    );
+
+    log("");
+    log("the lists are one module's, read and never copied (#575):");
+    check("  the module declares all three", declaredLists(ast).sort().join(", "), [...LISTS].sort().join(", "));
+    for (const reader of READERS) {
+        const { ast: readerAst } = parseFile(reader);
+        check(`  ${reader} imports all three from ${WIPE_TABLES_SPECIFIER}`, importedFrom(readerAst, WIPE_TABLES_SPECIFIER).sort().join(", "), [...LISTS].sort().join(", "));
+        check(`    and declares none of its own`, declaredLists(readerAst).join(", ") || "none", "none");
+    }
+
+    // ANTI-VACUITY for the two readers above: each finds what it looks for when it
+    // is there, so "none declared" and "all imported" are answers rather than
+    // the sound of a walk that matched nothing.
+    const planted = (source) => parseSource(source, "planted").ast;
+    check("  a planted copy of a list is found", declaredLists(planted("const KEPT = [TABLES.USERS];")).join(", "), "KEPT");
+    check("  a list declared inside a block is found too", declaredLists(planted("if (x) { const ORDER = []; }")).join(", "), "ORDER");
+    check(
+        "  a planted import is read by its specifier",
+        importedFrom(planted(`import { ORDER, KEPT as K } from "${WIPE_TABLES_SPECIFIER}";\nimport { KEPT_FOR_THEIR_LINKS } from "./other.mjs";`), WIPE_TABLES_SPECIFIER).join(", "),
+        "ORDER, KEPT"
     );
 }
 

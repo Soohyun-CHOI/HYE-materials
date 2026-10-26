@@ -45,7 +45,7 @@
 // including the item-axis rows, which are TAG-prefixed and referenced by nothing
 // outside the run, so leaving them would put fixture items on the /materials
 // screen for good. Creates nothing in Vercel Blob. Reuses (never modifies, never
-// deletes) one active User, two Vendors and one Line.
+// deletes) one active User, two Vendors and one Discipline.
 //
 // Exit codes: 0 all clear, 1 something failed, 2 clean but incomplete.
 
@@ -291,7 +291,7 @@ let complete = false;
 if (incomplete && incomplete.startsWith("the Deliveries")) {
     // Nothing below can run without the tables.
 } else if (!requester || !vendorA || !vendorB || !discipline) {
-    incomplete = "need one active User, TWO Vendors and one Line attached to a Job in the base";
+    incomplete = "need one active User, TWO Vendors and one Discipline attached to a Job in the base";
     console.log(`\n  SKIP  ${incomplete}`);
 } else {
   // EVERY FIXTURE THIS RUN CREATES IS DELETED BELOW, so an unexpected throw in

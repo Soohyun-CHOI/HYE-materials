@@ -1127,7 +1127,8 @@ export function run({ check, log, assert }) {
         everySentence.some((t) => t.includes("has not invoiced everything it sent")) &&
             everySentence.some((t) => t.includes("More is invoiced than was delivered"))
     );
-    // A `Line` on this base is a child of a Job, so an ordered item is never a line.
+    // An ordered item is never a line: each item table's row takes its own table's
+    // name (#303). `line` named a Job's child, the table #280 renamed `Disciplines`.
     assert(
         'no message calls an ordered item a "line"',
         !everySentence.some((t) => /\bline(s)?\b/i.test(t))
