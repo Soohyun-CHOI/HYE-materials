@@ -838,7 +838,7 @@ export function run({ check, assert, log }) {
             // what it holds at 400 (0a Side room, #505): until then a dialog's field and choice held a
             // 36 button's 16, and the choice its value at 500, which no drawing drew.
             fieldSideRoom: [
-                /lg: "h-control-lg px-input-inset-x text-body"/.test(constant("TEXT_INPUT_SIZE")),
+                /lg: "h-control-lg px-input-inset-x text-body[ "]/.test(constant("TEXT_INPUT_SIZE")),
                 /xl: "h-control-xl px-input-inset-x /.test(constant("TEXT_INPUT_SIZE")),
                 /field: \(refused\) =>\s*`[^`]*rounded-control border bg-white px-input-inset-x text-body outline-none/.test(constant("CHOICE_LOOK")),
                 /rounded-control border bg-white px-input-inset-x text-body /.test(functionSource("Combobox")),
@@ -1453,7 +1453,7 @@ export function run({ check, assert, log }) {
         return {
             sheet: [
                 /max-sm:mt-auto/.test(sheet),
-                /max-sm:mb-0/.test(sheet),
+                /max-sm:mb-\(--keyboard-cover\)/.test(sheet),
                 /max-sm:max-w-none/.test(sheet),
                 /max-sm:rounded-t-mobile-drawer/.test(sheet),
                 /max-sm:shadow-mobile-drawer/.test(sheet),

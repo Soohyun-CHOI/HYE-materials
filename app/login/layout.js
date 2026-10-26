@@ -23,9 +23,13 @@ export const viewport = KEYBOARD_VIEWPORT;
  * page's top, never under 64 nor over 240, in every state, so a refusal or a changed state
  * grows the page downward only — 268 whatever the window until the files of 2026-10-22 (0o
  * Column, #554). On a phone it is set left, 72 from the top, and the column fills the screen
- * between the 16 either side so a step's bottom bar can sit at its foot. The wordmark is the
- * product's name split where `lib/productName.js` splits it, and is where a reader arriving
- * from the email first meets the name the email was sent under.
+ * between the 16 either side so a step's bottom bar can sit at its foot. **The screen is the
+ * dynamic viewport there (#568)**, `min-h-dvh` as the assets' column is (`Rail.js`): until
+ * then the frame filled `<body>`, which fills the initial containing block, and a phone
+ * keeps that at its height with the browser's bars shown — so a step taller than that and
+ * shorter than the screen with the bars hidden stood its bar above the screen's foot. The
+ * wordmark is the product's name split where `lib/productName.js` splits it, and is where a
+ * reader arriving from the email first meets the name the email was sent under.
  *
  * A STEP WHOSE COLUMN HOLDS A LIST TO CHOOSE FROM STANDS AT 10% (0o, Sign in 1l): the room
  * above the wordmark is 10% of the window, never under 48 nor over 112, the same room is kept
@@ -53,7 +57,7 @@ export const viewport = KEYBOARD_VIEWPORT;
 export default function SignInLayout({ children }) {
     return (
         <div
-            className={`${uiFace.variable} ${brandFace.variable} flex flex-1 flex-col bg-white font-ui text-foreground-default sm:h-dvh sm:flex-none`}
+            className={`${uiFace.variable} ${brandFace.variable} flex flex-1 flex-col bg-white font-ui text-foreground-default max-sm:min-h-dvh sm:h-dvh sm:flex-none`}
         >
             <main
                 className={`flex flex-1 justify-center px-page-gutter pt-sign-in-inset-top max-sm:px-mobile-gutter max-sm:pt-mobile-sign-in-inset-top sm:has-[[data-sign-in-list]]:items-stretch sm:has-[[data-sign-in-list]]:pt-sign-in-list-step-inset-y sm:has-[[data-sign-in-list]]:pb-sign-in-list-step-inset-y sm:min-h-0 sm:items-start sm:overflow-y-auto sm:overscroll-y-contain sm:pb-scroll-inset-bottom sm:[scrollbar-gutter:stable_both-edges] ${SCROLL_LANE}`}

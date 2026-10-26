@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import useKeyboardCover from "./useKeyboardCover";
 
 /*
  * Tools 0a's Foot bar — where a phone screen's action stands, at the foot of the page —
@@ -13,35 +14,6 @@ import { useEffect, useRef, useState } from "react";
  * be two keyboards to keep in step. Both screens are on the design's axes, so it reads the
  * design's names (`offline/design-values.mjs`).
  */
-
-/** How far the keyboard covers the page from below, which the bar rides on (Tools 0a Keyboard). */
-function useKeyboardCover() {
-    const [cover, setCover] = useState(0);
-    const [typing, setTyping] = useState(false);
-    useEffect(() => {
-        const view = window.visualViewport;
-        const coarse = window.matchMedia("(pointer: coarse)");
-        const measure = () => {
-            if (view) setCover(Math.max(0, Math.round(window.innerHeight - view.height - view.offsetTop)));
-        };
-        // A browser that shrinks the page for its keyboard rather than covering it reports
-        // no cover, so a phone with a field in use counts as typing either way.
-        const onFocus = (event) => setTyping(coarse.matches && event.target instanceof HTMLInputElement);
-        const onBlur = () => setTyping(false);
-        measure();
-        view?.addEventListener("resize", measure);
-        view?.addEventListener("scroll", measure);
-        document.addEventListener("focusin", onFocus);
-        document.addEventListener("focusout", onBlur);
-        return () => {
-            view?.removeEventListener("resize", measure);
-            view?.removeEventListener("scroll", measure);
-            document.removeEventListener("focusin", onFocus);
-            document.removeEventListener("focusout", onBlur);
-        };
-    }, []);
-    return { cover, keyboard: cover > 0 || typing };
-}
 
 /** Whether the content above the bar runs on under it, which is when its soft edge shows. */
 function useRunsUnder(markRef, barRef) {
@@ -87,7 +59,18 @@ const BAR_STACK = {
  * shrinks the page for its keyboard keeps a sticky bar above it by itself — every screen that
  * draws this asks for that (`keyboardViewport.js`), the asset page only since #495,
  * though this said both did from #463 — and one that covers the page instead reports how far
- * it covers, which the bar is lifted by.
+ * it covers, which the bar is lifted by (`useKeyboardCover.js`, which a sheet reads too).
+ *
+ * **A SCROLL THAT MEETS THE PAGE'S END DOES NOT MOVE IT (#568).** Below the phone's edge the
+ * document scrolls, and a phone stretches or bounces it past either end; the bar is sticky at
+ * the foot of its column, which is the page's end, so the bounce carried it up with the page.
+ * While the bar is drawn the page's root takes `overscroll-behavior-y: none`, which WebKit
+ * reads as no bounce on its root scroller and Chrome as no stretch — and, in Chrome on
+ * Android, no pull-to-refresh either, since the property has no value that keeps one without
+ * the other. So it is keyed to the bar rather than to a layout: a screen drawing no bar — a
+ * list, the asset page for a reader who records nothing — keeps the root at `auto` and keeps
+ * pull-to-refresh. Safari's pull-to-refresh does not answer to the property at all (WebKit
+ * bug 275947). `docs/notes/design-system.md` has the sources.
  *
  * `bleed` reaches the bar out over the gutter of a column that has one, which a sign-in
  * step's does; the asset page holds no gutter of its own, so its bar takes the gutter as
@@ -107,7 +90,7 @@ export default function BottomBar({ stack = "form", bleed = true, phoneOnly = fa
                 ref={barRef}
                 data-keyboard={keyboard || undefined}
                 style={{ "--keyboard-cover": `${cover}px` }}
-                className={`${BAR_STACK[stack] ?? ""} ${phoneOnly ? "sm:hidden" : ""} ${bleed ? "max-sm:-mx-mobile-gutter" : ""} max-sm:sticky max-sm:bottom-(--keyboard-cover) max-sm:isolate max-sm:order-last max-sm:mt-auto max-sm:flex max-sm:flex-col max-sm:gap-mobile-bottom-bar-stack max-sm:px-mobile-gutter max-sm:pt-mobile-bottom-bar-inset-top max-sm:pb-mobile-bottom-bar-inset-bottom max-sm:data-keyboard:pb-mobile-bottom-bar-keyboard-inset-bottom`}
+                className={`${BAR_STACK[stack] ?? ""} ${phoneOnly ? "sm:hidden" : ""} ${bleed ? "max-sm:-mx-mobile-gutter" : ""} max-sm:sticky max-sm:bottom-(--keyboard-cover) max-sm:isolate max-sm:order-last max-sm:mt-auto max-sm:flex max-sm:flex-col max-sm:gap-mobile-bottom-bar-stack max-sm:px-mobile-gutter max-sm:pt-mobile-bottom-bar-inset-top max-sm:pb-mobile-bottom-bar-inset-bottom max-sm:data-keyboard:pb-mobile-bottom-bar-keyboard-inset-bottom max-sm:[:root:has(&)]:overscroll-y-none`}
             >
                 <span
                     aria-hidden="true"

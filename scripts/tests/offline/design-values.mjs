@@ -816,8 +816,11 @@ const keysOf = (css) => new Set([...withoutComments(css).matchAll(/(--[a-z0-9-]+
 
 const requireFromRepo = createRequire(join(REPO_ROOT, "package.json"));
 
-/** The app's own stylesheet, loaded the way the build loads it. */
-async function loadDesignSystem(stylesheet = STYLESHEET) {
+/**
+ * The app's own stylesheet, loaded the way the build loads it. `phone-screens-still.mjs`
+ * asks it too (#568), so a second loader cannot read the stylesheet another way.
+ */
+export async function loadDesignSystem(stylesheet = STYLESHEET) {
     const tailwind = requireFromRepo("tailwindcss");
     const path = join(REPO_ROOT, stylesheet);
     return tailwind.__unstable__loadDesignSystem(readFileSync(path, "utf8"), {

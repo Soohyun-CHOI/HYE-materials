@@ -222,7 +222,10 @@ export function EntryDialog({ entry, open, onClose, onRemove, rows, groups }) {
                         <Field label={COPY.fields.size} labelNote={COPY.optional} refusal={fields.size}>
                             <TextInput name="size" autoComplete="off" value={values.size} onChange={set("size")} placeholder={COPY.placeholders.size} />
                         </Field>
-                        <div className="grid grid-cols-2 gap-dialog-inline">
+                        {/* One under the other under a finger on a phone (#568): at 16 a 317 dialog's
+                            two halves cut `e.g. Milwaukee` and three of the catalog's makers and part
+                            numbers, which 14 at a desk does not. */}
+                        <div className="grid grid-cols-2 gap-dialog-inline max-sm:pointer-coarse:grid-cols-1 max-sm:pointer-coarse:gap-y-gap-lg">
                             <Field label={COPY.fields.maker} labelNote={COPY.optional} refusal={fields.maker}>
                                 <TextInput name="maker" autoComplete="off" value={values.maker} onChange={set("maker")} placeholder={COPY.placeholders.maker} />
                             </Field>
