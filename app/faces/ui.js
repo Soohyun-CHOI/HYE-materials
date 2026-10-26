@@ -18,5 +18,13 @@ import { Instrument_Sans } from "next/font/google";
  * LOADING ONE STYLES NOTHING (#456). The call defines the variable on whichever element
  * carries `uiFace.variable`; only what asks for `font-ui` draws in the face. It is a
  * variable font, so the three weights the design uses — 400, 500 and 600 — are one file.
+ *
+ * A FACE THAT ARRIVES LATE IS NOT SWAPPED IN (#568): `display: "optional"`, where next/font's
+ * own is `swap`. Swapped in after the first paint, the face moved every line drawn in its
+ * fallback — `next/font`'s Arial with the face's metrics, which Safari takes only the width of
+ * and a phone with no Arial does not take at all — so the text jumped on a phone's first,
+ * slow load. An optional face is used if it is there within the first moment and otherwise
+ * not for that page, which the next load then has from the cache. All three faces take it,
+ * so no line on one screen swaps while another does not.
  */
-export const uiFace = Instrument_Sans({ subsets: ["latin"], variable: "--font-instrument-sans" });
+export const uiFace = Instrument_Sans({ subsets: ["latin"], display: "optional", variable: "--font-instrument-sans" });

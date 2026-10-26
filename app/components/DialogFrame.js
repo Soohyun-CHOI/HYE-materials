@@ -6,6 +6,7 @@ import { DIALOG_FRAME_COPY as COPY, focusLost } from "@/lib/dialogFrame";
 import { ButtonLabel, FormBusy, Refusal } from "./Controls";
 import Icon from "./Icon";
 import { SCROLL_LANE } from "./scrollLane";
+import useKeyboardCover from "./useKeyboardCover";
 
 /*
  * The frame a dialog opens in — Claude Design's 0l, drawn once (#456).
@@ -253,9 +254,15 @@ const WITH_PREVIEW =
  * and its full width, the top corners 28 and none below, no room of its own but 20 at the
  * foot plus the safe area — what it holds takes its own sides — cast upward over Shadow ink
  * at 24%. `--dialog-sheet` is how a press on the backdrop learns which layout it is in.
+ *
+ * IT STANDS ON A KEYBOARD THAT COVERS THE PAGE (#568), as 1j draws the name sheet: its foot
+ * is `--keyboard-cover` above the screen's (`useKeyboardCover.js`), and it is that much
+ * shorter at most. Where the browser shrinks the page for its keyboard instead the cover is
+ * 0 and the screen's foot is already above the keyboard; Safari covers, and until #568 a
+ * sheet's field could raise a keyboard over the sheet holding it.
  */
 const SHEET =
-    "max-sm:mx-0 max-sm:mt-auto max-sm:mb-0 max-sm:max-w-none max-sm:rounded-t-mobile-drawer max-sm:rounded-b-none max-sm:px-0 max-sm:pt-0 " +
+    "max-sm:mx-0 max-sm:mt-auto max-sm:mb-(--keyboard-cover) max-sm:max-h-[calc(100dvh-2*var(--spacing-dialog-gutter)-var(--keyboard-cover))] max-sm:max-w-none max-sm:rounded-t-mobile-drawer max-sm:rounded-b-none max-sm:px-0 max-sm:pt-0 " +
     "max-sm:pb-[calc(var(--spacing-mobile-drawer-inset-bottom)+env(safe-area-inset-bottom))] max-sm:shadow-mobile-drawer " +
     "max-sm:backdrop:bg-mobile-drawer-overlay max-sm:[--dialog-sheet:1]";
 
@@ -315,6 +322,7 @@ export function DialogFrame({
     const openerRef = useRef(null);
     const titleRef = useRef(null);
     const titleId = useId();
+    const { cover } = useKeyboardCover();
 
     useLayoutEffect(() => {
         const dialog = dialogRef.current;
@@ -479,6 +487,7 @@ export function DialogFrame({
                 if (open) onClose();
             }}
             onClick={closesOnBackdrop ? onBackdropPress : undefined}
+            style={sheet ? { "--keyboard-cover": `${cover}px` } : undefined}
             className={`${DIALOG} ${withPreview ? WITH_PREVIEW : `${wide ? WIDTH.search : WIDTH.compact} ${fixed ? FIXED : COMPACT}`}${sheet ? ` ${SHEET}` : ""}`}
         >
             {open && (
@@ -659,7 +668,7 @@ export function DialogSearch({ label, value, onChange, clearLabel, filters, resu
                     value={value}
                     onChange={(event) => type(event.target.value)}
                     onKeyDown={onKeyDown}
-                    className="min-w-0 flex-1 self-stretch bg-transparent text-body text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle"
+                    className="min-w-0 flex-1 self-stretch bg-transparent text-body text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle pointer-coarse:text-mobile-body"
                 />
                 {value !== "" && (
                     <button

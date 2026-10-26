@@ -563,9 +563,19 @@ export function Field({ label, labelNote, labelAs = "label", labelHidden = false
     );
 }
 
+/**
+ * A FIELD TAKES 16 UNDER A FINGER, WHATEVER IT IS DRAWN AT (#568): Safari zooms the page to a
+ * field set smaller than 16 as it takes focus, and a desk's field is 13 or 14. So every field
+ * a press can type into — here, `NumberField`, `Combobox`, `SearchField`, the dialog's search
+ * and the job step's — reads Tools 0a's field value, `--text-mobile-body`, under
+ * `pointer: coarse`, and keeps its height. Touch rather than the phone's edge, because a phone
+ * turned on its side is wider than the edge and draws the desk; and no drawing sets a desk's
+ * field under a finger, so the size is this app's decision rather than the design's
+ * (`docs/notes/design-system.md`). `offline/phone-screens-still.mjs` holds every field.
+ */
 const TEXT_INPUT_SIZE = {
-    lg: "h-control-lg px-input-inset-x text-body",
-    xl: "h-control-xl px-input-inset-x text-body max-sm:h-mobile-input max-sm:gap-mobile-input-gap max-sm:rounded-mobile-control max-sm:px-mobile-input-inset-x max-sm:text-mobile-body",
+    lg: "h-control-lg px-input-inset-x text-body pointer-coarse:text-mobile-body",
+    xl: "h-control-xl px-input-inset-x text-body max-sm:h-mobile-input max-sm:gap-mobile-input-gap max-sm:rounded-mobile-control max-sm:px-mobile-input-inset-x max-sm:text-mobile-body pointer-coarse:text-mobile-body",
 };
 
 /**
@@ -922,7 +932,7 @@ export function NumberField({ name, value, onChange, min, max }) {
                 readOnly={formBusy}
                 aria-describedby={field.messageId}
                 aria-invalid={field.refused || undefined}
-                className="h-control-sm min-w-0 flex-1 bg-transparent text-center text-body tabular-nums text-foreground-default caret-primary outline-none"
+                className="h-control-sm min-w-0 flex-1 bg-transparent text-center text-body tabular-nums text-foreground-default caret-primary outline-none pointer-coarse:text-mobile-body"
             />
             <button type="button" aria-label={COPY.more} aria-disabled={formBusy || undefined} onClick={step(1)} className={STEP}>
                 <Icon name="plus" className="size-icon-sm" />
@@ -1353,7 +1363,7 @@ export function Combobox({ name, value, onChange, onPick, onBlur, suggestions, e
                     onBlur?.();
                 }}
                 onKeyDown={onKeyDown}
-                className={`h-control-lg w-full rounded-control border bg-white px-input-inset-x text-body text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle ${
+                className={`h-control-lg w-full rounded-control border bg-white px-input-inset-x text-body text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle pointer-coarse:text-mobile-body ${
                     field.refused ? "border-danger" : "border-border focus:border-border-focus"
                 } ${mark?.word ? "pr-input-mark-inset-right" : ""}`}
             />
@@ -1427,7 +1437,7 @@ export function SearchField({ label, value, onChange, clearLabel, onEnter }) {
                     event.preventDefault();
                     onEnter();
                 }}
-                className="h-control w-full rounded-control border border-transparent bg-background-muted pr-search-inset-right pl-search-inset-left text-body-sm text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle focus:border-border-focus focus:bg-white"
+                className="h-control w-full rounded-control border border-transparent bg-background-muted pr-search-inset-right pl-search-inset-left text-body-sm text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle focus:border-border-focus focus:bg-white pointer-coarse:text-mobile-body"
             />
             {value !== "" && (
                 <button

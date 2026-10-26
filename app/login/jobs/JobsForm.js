@@ -196,7 +196,7 @@ function SearchBand({ value, onChange, readOnly, inputRef }) {
                     autoCapitalize="none"
                     spellCheck={false}
                     enterKeyHint="done"
-                    className="w-full min-w-0 bg-transparent text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle max-sm:h-full max-sm:flex-1 max-sm:text-mobile-body sm:h-control-xl sm:rounded-control sm:border sm:border-transparent sm:bg-background-muted sm:pr-input-inset-x sm:pl-[calc(var(--spacing-input-inset-x)+var(--size-icon-sm)+var(--spacing-gap))] sm:text-body sm:focus:border-border-focus sm:focus:bg-white"
+                    className="w-full min-w-0 bg-transparent text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle max-sm:h-full max-sm:flex-1 max-sm:text-mobile-body pointer-coarse:text-mobile-body sm:h-control-xl sm:rounded-control sm:border sm:border-transparent sm:bg-background-muted sm:pr-input-inset-x sm:pl-[calc(var(--spacing-input-inset-x)+var(--size-icon-sm)+var(--spacing-gap))] sm:text-body sm:focus:border-border-focus sm:focus:bg-white"
                 />
                 {value !== "" && !readOnly && (
                     <ClearButton
