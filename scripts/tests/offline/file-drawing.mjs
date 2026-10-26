@@ -49,7 +49,7 @@ const ENGINE = "pdfjs-dist";
 
 /** Every source file a bundle can reach, as repo-relative paths. */
 function sourceFiles() {
-    return ["app", "lib", "components"]
+    return ["app", "lib"]
         .flatMap((dir) => listJsFiles(join(REPO_ROOT, dir)))
         .map((abs) => toPosix(relative(REPO_ROOT, abs)))
         .sort();

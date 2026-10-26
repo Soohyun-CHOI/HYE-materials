@@ -346,7 +346,7 @@ export async function run({ check, assert, log }) {
     // ── 4: who calls the rail and the breadcrumb ─────────────────────────────
     log("");
     log("only the assets layout calls the rail, and only the three pages the design draws one on call the breadcrumb:");
-    const appFiles = ["app", "components", "lib"].flatMap((d) => listJsFiles(repoPath(d))).map(repoRelative);
+    const appFiles = ["app", "lib"].flatMap((d) => listJsFiles(repoPath(d))).map(repoRelative);
     const importers = (target) =>
         appFiles.filter((rel) => [...importedPairs(rel, parseFile(rel).ast)].some((p) => p.startsWith(`${target}::`))).sort();
     check("  the rail's callers", importers(RAIL).join(" "), ASSETS_LAYOUT);

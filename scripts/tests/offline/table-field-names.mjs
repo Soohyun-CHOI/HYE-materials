@@ -186,7 +186,7 @@ const RETIRED = {
     "Tool Item": "#513 — the `Asset Log` link is `Asset`",
     // #552 — A FIELD DELETED WITH NOTHING IN ITS PLACE, #334's kind: `Asset Categories."Class"`,
     // `A` or `B` from #507, which no act read and the office stopped keeping. Its values are in
-    // `scripts/import/keep_asset_class_552.mjs`' ledgers, and that script's plan names the field
+    // `scripts/import/ran/keep_asset_class_552.mjs`' ledgers, and that script's plan names the field
     // for it, the catalog's check and the earlier catalog scripts — all under `scripts/`, which
     // this file does not read. Under `app/` and `lib/` the name addresses nothing, whether the
     // hand step has taken it off a base yet or not.

@@ -8,14 +8,17 @@
 // request picks a category instead of typing a name (#355) and the item axis is
 // keyed on that category instead of on a spelling (#356).
 //
-// RE-RUNNABLE, BECAUSE THE BASE IS WIPED AND REBUILT. Re-entering 777 rows by
+// RE-RUNNABLE, BECAUSE A BASE CAN LACK IT. `wipe_base.mjs` keeps this table
+// since #358, so a wipe no longer calls for it; a base without the table or with
+// part of it does, and `scripts/tests/_categories.mjs` names this script when a
+// code it needs is missing. Re-entering 777 rows by
 // hand is a way to enter them wrong. A second run finds every row by its
 // `Level 4 Code` and creates nothing; a run against a half-filled table creates
 // only what is missing. A row that exists but disagrees with the CSV is
 // REPORTED and never rewritten — reference data linked from `Materials` is not
 // something a re-run should silently edit.
 //
-// WHY THIS ONE IS NODE WHERE THE OTHER FOUR IN THIS DIRECTORY ARE PYTHON. The
+// WHY THIS ONE IS NODE WHERE THE FOUR BEFORE IT WERE PYTHON. The
 // label rule lives in `lib/materialCategory.js`, and Python cannot import it.
 // `add_unit_options.py` pays that cost with a duplicated 19-item list and an
 // offline check comparing the two, which is affordable for a list; here the

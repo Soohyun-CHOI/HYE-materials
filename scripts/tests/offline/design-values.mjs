@@ -1118,7 +1118,7 @@ export async function run({ check, assert, log }) {
 
     // A key already declared is a key the materials screens read.
     const tailwindKeys = keysOf(readFileSync(requireFromRepo.resolve("tailwindcss/theme.css"), "utf8"));
-    const otherStylesheets = ["app", "components"].flatMap((d) => cssFiles(join(REPO_ROOT, d))).map(repoRelative).filter((f) => f !== DECLARATION);
+    const otherStylesheets = cssFiles(join(REPO_ROOT, "app")).map(repoRelative).filter((f) => f !== DECLARATION);
     const appKeys = new Set(otherStylesheets.flatMap((rel) => [...keysOf(readFileSync(join(REPO_ROOT, rel), "utf8"))]));
     assert("  Tailwind's own keys are read, the ones the materials screens use among them", ["--text-sm", "--radius-lg", "--font-sans", "--color-red-500"].every((k) => tailwindKeys.has(k)));
     assert("  and so are the app's own", ["--color-foreground", "--color-background", "--font-sans", "--font-mono"].every((k) => appKeys.has(k)));
@@ -1158,7 +1158,7 @@ export async function run({ check, assert, log }) {
     // ── the corpus, the graph and the reads ──────────────────────────────────
     log("");
     log("the corpus and the graph are seen to reach what they should:");
-    const jsFiles = ["app", "components", "lib"].flatMap((d) => (existsSync(join(REPO_ROOT, d)) ? listJsFiles(join(REPO_ROOT, d)) : [])).map(repoRelative);
+    const jsFiles = ["app", "lib"].flatMap((d) => (existsSync(join(REPO_ROOT, d)) ? listJsFiles(join(REPO_ROOT, d)) : [])).map(repoRelative);
     const graph = new Map();
     const readsByFile = new Map();
     const loaders = [];

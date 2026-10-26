@@ -92,7 +92,7 @@ export function run({ check, assert, log }) {
     log("the one value a screen with a foot bar asks for:");
     check("  a phone's keyboard shrinks the page rather than covering it", JSON.stringify(KEYBOARD_VIEWPORT), JSON.stringify({ interactiveWidget: "resizes-content" }));
 
-    const files = ["app", "components", "lib"].flatMap((d) => listJsFiles(repoPath(d))).map(repoRelative);
+    const files = ["app", "lib"].flatMap((d) => listJsFiles(repoPath(d))).map(repoRelative);
     const graph = new Map();
     const asks = new Map();
     for (const rel of files) {

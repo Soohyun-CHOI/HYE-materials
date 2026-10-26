@@ -45,7 +45,7 @@
 // on every NUL-bearing tracked file plus the synthetic accident:
 //
 //   app/favicon.ico            00 00 01 00   no BOM   invalid UTF-8   binary
-//   assets/fonts/*.ttf         00 01 00 00   no BOM   invalid UTF-8   binary
+//   lib/fonts/*.ttf            00 01 00 00   no BOM   invalid UTF-8   binary
 //   scripts/import/req*.txt    ff fe 23 00   utf-16le                 text
 //   a .js with a stray NUL     (source)      no BOM   VALID UTF-8     text
 //
@@ -286,7 +286,7 @@ export function run({ check, assert, log }) {
     );
     // And so are the three the old extension scope could not see, named because
     // losing them again would be silent — a scope narrowing is not a failure.
-    for (const f of ["CLAUDE.md", ".github/workflows/checks.yml", "components/ConfirmDialog.js"]) {
+    for (const f of ["CLAUDE.md", ".github/workflows/checks.yml", "proxy.js"]) {
         assert(`  and so is ${f}, which the extension scope never reached`, tracked.includes(f));
     }
     // The NUL branch has to be reached on a real file, or the loop above is

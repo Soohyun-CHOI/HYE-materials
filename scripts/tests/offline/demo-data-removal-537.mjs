@@ -45,8 +45,8 @@ import {
 
 export const title = "Removing the demo data judges the base first (#537)";
 
-const SCRIPT_PATH = "scripts/import/remove_demo_data_537.mjs";
-const PLAN_SPECIFIER = "./remove_demo_data_537_plan.mjs";
+const SCRIPT_PATH = "scripts/import/ran/remove_demo_data_537.mjs";
+const PLAN_SPECIFIER = "../remove_demo_data_537_plan.mjs";
 const WRITES = ["deleteRecords", "createRecords", "updateRecords", "uploadAttachment"];
 
 // ── a schema: every table, each owned link with a mirror on a kept catalog ──────

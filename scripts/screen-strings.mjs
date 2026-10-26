@@ -147,7 +147,7 @@ function resolveImport(spec, fromRel) {
  * Its own directory's files, the layouts above it, and every COMPONENT those reach —
  * stopping at another screen's directory, which is what keeps `/invoices` from
  * swallowing `/invoices/new`. A component renders its own text, so all of it counts,
- * and `components/ConfirmDialog.js` is why: two of this app's dialog labels exist
+ * and `app/components/ConfirmDialog.js` is why: two of this app's dialog labels exist
  * only as its default parameters.
  *
  * A `lib/` MODULE COUNTS ONLY FOR THE NAMES THIS SCREEN IMPORTS FROM IT, and that is

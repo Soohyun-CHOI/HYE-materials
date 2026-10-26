@@ -22,7 +22,7 @@
 // renders, so it cannot see color at all, which is the gap #218 was raised
 // about.
 //
-// SCOPE IS `app/` + `components/`, plus the repository-root build configuration
+// SCOPE IS `app/`, plus the repository-root build configuration
 // for the switch. That is where screens live, and it is what lets this check
 // carry no exemption list: this file spells the forbidden token in its own
 // source and sits under `scripts/`, outside the scan, so it needs no
@@ -59,7 +59,7 @@ import { isMain, standalone } from "./_harness.mjs";
 export const title = "Dark mode — no variants, no switch, one declared appearance (#218)";
 
 const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
-const SCANNED_DIRS = ["app", "components"];
+const SCANNED_DIRS = ["app"];
 
 // Built from parts so the token does not appear in this file as the very
 // string the scan forbids — the scan does not read this file, but a grep by a

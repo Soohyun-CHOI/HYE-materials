@@ -97,18 +97,18 @@ const CLASSIFIED = {
     "scripts/tests/verify-tools-schema-334.mjs": { writes: ["create", "createAssetLogEntry"] },
     "scripts/tests/verify-tool-item-ids-335.mjs": { writes: ["create", "register", "destroy"] },
     "scripts/tests/verify-asset-status-memory-560.mjs": { writes: ["create", "update"] },
-    "scripts/import/rename_tools_to_assets_513.mjs": { writes: ["apply", "revert"] },
-    "scripts/import/replace_asset_catalog_528.mjs": { writes: ["createRecords", "updateRecords", "deleteRecords"] },
+    "scripts/import/ran/rename_tools_to_assets_513.mjs": { writes: ["apply", "revert"] },
+    "scripts/import/ran/replace_asset_catalog_528.mjs": { writes: ["createRecords", "updateRecords", "deleteRecords"] },
     "scripts/demo/remove_demo_catalog_517.mjs": { writes: ["deleteRecords", "create"] },
     "scripts/demo/wipe_base.mjs": { writes: ["destroy"] },
-    "scripts/import/create_tools_334.py": { python: true },
-    "scripts/import/describe_repair_531.mjs": { describes: true },
+    "scripts/import/ran/create_tools_334.py": { python: true },
+    "scripts/import/ran/describe_repair_531.mjs": { describes: true },
     // `Assets."Note"`'s description, the field read and made by nothing here (#533).
-    "scripts/import/describe_note_533.mjs": { describes: true },
+    "scripts/import/ran/describe_note_533.mjs": { describes: true },
     // `Assets."Last Event At"` (#540): made on the test base, where the guard lets a create through,
     // and on the live base the hand step's, its description alone sent there.
-    "scripts/import/add_last_event_at_540.mjs": { describes: true },
-    "scripts/import/import_site_assets_544.mjs": {
+    "scripts/import/ran/add_last_event_at_540.mjs": { describes: true },
+    "scripts/import/ran/import_site_assets_544.mjs": {
         writes: [
             "createAssetCategoryGroup",
             "createAssetCategory",
@@ -554,7 +554,7 @@ export function run({ check, assert, log }) {
     const files = scriptFiles();
     log(`  ${files.length} script files read`);
     assert("the walk read more than fifty scripts", files.length > 50);
-    for (const expected of ["scripts/screen-strings.mjs", "scripts/import/create_tools_334.py", "scripts/demo/seed_full_demo.mjs"]) {
+    for (const expected of ["scripts/screen-strings.mjs", "scripts/import/ran/create_tools_334.py", "scripts/demo/seed_full_demo.mjs"]) {
         assert(`  the walk reached ${expected}`, files.includes(expected));
     }
     const reaching = files.filter((path) => {

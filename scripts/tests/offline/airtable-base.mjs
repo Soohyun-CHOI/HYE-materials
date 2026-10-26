@@ -12,7 +12,7 @@
 //      fail rather than fall back.
 //   2. NO OTHER FILE READS THE VARIABLES. A script that read `AIRTABLE_API_KEY` itself would
 //      reach whatever that key reaches, past every refusal above. Every JavaScript file under
-//      `app/`, `components/`, `lib/` and `scripts/`, and every file at the root, is parsed: a
+//      `app/`, `lib/` and `scripts/`, and every file at the root, is parsed: a
 //      `process.env` read of one of the five names, or the name as a whole string anywhere but
 //      in the module, is a finding. Every Python file is read for an `os.environ`/`os.getenv`
 //      read or a whole quoted name; the four scripts there ask through `airtable_base.py`,
@@ -102,7 +102,7 @@ const isJs = (path) => /\.(m?js|jsx)$/.test(path);
 const inJsScope = (path) =>
     isJs(path) &&
     !path.startsWith("scripts/tests/offline/") &&
-    (/^(app|components|lib|scripts)\//.test(path) || !path.includes("/"));
+    (/^(app|lib|scripts)\//.test(path) || !path.includes("/"));
 
 export function run({ check, assert, log }) {
     // ── 1. the answer, by value ──────────────────────────────────────────────

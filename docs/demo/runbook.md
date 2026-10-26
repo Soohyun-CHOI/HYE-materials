@@ -68,11 +68,11 @@ and this is the only place you see which one you are.
 | Field | Value |
 |---|---|
 | Job | `26-DEMO-01 — Round Rock Compressor Station` |
-| Line | `Unit 2 Piping` |
+| Discipline | `Unit 2 Piping` |
 | Vendor | `Lone Star Pipe & Supply` |
 
-Point at Line being empty until a Job is chosen, and at it clearing when the Job
-changes. A line from the previous job no longer applies.
+Point at Discipline being empty until a Job is chosen, and at it clearing when the
+Job changes. A discipline from the previous job no longer applies.
 
 ### 3. `/prs/new` — quotations
 
@@ -102,9 +102,9 @@ Signer 1: **the attendee**. Signer 2: yourself. Confirmation type per signer —
 Press `Submit PR`. **It does not go through.** A yellow box names
 `HYE-PR-260819-01`, who raised it and when, and asks `Submit this one anyway?`
 
-> **Why those numbers.** The duplicate rule keys on the same **Line** plus the
+> **Why those numbers.** The duplicate rule keys on the same **Discipline** plus the
 > multiset of *item name + qty + unit price* — size, unit and remark are
-> deliberately not in the key, and every prior request on the line counts
+> deliberately not in the key, and every prior request on the discipline counts
 > whatever its status. The merge runs **before** the check, so two rows of 5
 > become one key of 10, which is what the seeded request carries. Two rows of 5
 > is therefore the only way to show the merge note and the duplicate warning on

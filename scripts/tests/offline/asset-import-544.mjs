@@ -41,9 +41,9 @@ import {
 
 export const title = "The three sites' import judges the list against the base (#544)";
 
-const SCRIPT_PATH = "scripts/import/import_site_assets_544.mjs";
+const SCRIPT_PATH = "scripts/import/ran/import_site_assets_544.mjs";
 const PLAN_PATH = "scripts/import/import_site_assets_544_plan.mjs";
-const PLAN_SPECIFIER = "./import_site_assets_544_plan.mjs";
+const PLAN_SPECIFIER = "../import_site_assets_544_plan.mjs";
 
 /**
  * The committed list's digest, of its text with `\n` endings: the reviewed list less its notes

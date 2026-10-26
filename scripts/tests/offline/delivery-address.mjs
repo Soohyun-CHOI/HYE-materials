@@ -27,7 +27,7 @@
 //     split are browser work, and all of it was walked.
 //   - Whether `Deliveries."Delivery Address"` exists on the base. No offline check
 //     reads the base in either direction (docs/notes/verification.md);
-//     `scripts/import/add_delivery_address_387.mjs` is what asks.
+//     `scripts/import/ran/add_delivery_address_387.mjs` is what asks.
 //   - Whether a delivery can actually reach two orders with different addresses.
 //     That is a fact about the base, not about this code; the browser walk built
 //     the case rather than assuming it.

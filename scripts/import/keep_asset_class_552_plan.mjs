@@ -42,7 +42,7 @@ export const CLASS_FIELD = Object.freeze({
 /** The hand step that takes the field off a base, once its ledger stands. */
 export const DELETE_STEP =
     `In ${CATALOG_TABLE}, open the ${CLASS_FIELD.name} column's menu and choose Delete field — ` +
-    `once scripts/import/${SCRIPT}.mjs has written that base's ledger or found it unchanged.`;
+    `once scripts/import/ran/${SCRIPT}.mjs has written that base's ledger or found it unchanged.`;
 
 /**
  * The class field on a table as the Metadata API returns it, and every reason it is not the one

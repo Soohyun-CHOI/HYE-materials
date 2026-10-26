@@ -9,7 +9,7 @@
 // JSX shows no text at all where the space was lost. Nothing failed and every figure read right
 // off the DOM; only the drawn line was wrong.
 //
-// WHAT IT READS. Every `.js` file under `app/` and `components/`, parsed, and in it every element
+// WHAT IT READS. Every `.js` file under `app/`, parsed, and in it every element
 // whose `className` holds `flex`, `inline-flex`, `grid` or `inline-grid` — bare or under a variant,
 // since a box that is flex at one width drops the space there. Two shapes fail:
 //   - a text child whose own words begin or end with a space where an element or an expression
@@ -114,7 +114,7 @@ function lineOf(source, offset) {
 }
 
 export async function run({ check, log, assert }) {
-    const files = [...listJsFiles(repoPath("app")), ...listJsFiles(repoPath("components"))].map(repoRelative).sort();
+    const files = listJsFiles(repoPath("app")).map(repoRelative).sort();
     let boxes = 0;
     const found = [];
     for (const file of files) {
@@ -124,8 +124,8 @@ export async function run({ check, log, assert }) {
         });
         found.push(...findDroppedSpaces(parsed));
     }
-    log(`read ${files.length} files under app/ and components/, holding ${boxes} flex or grid boxes`);
-    assert("  more than a hundred and fifty files, the pager's own and the root's among them", files.length > 150 && files.includes("app/components/ListTable.js") && files.includes("components/ConfirmDialog.js"));
+    log(`read ${files.length} files under app/, holding ${boxes} flex or grid boxes`);
+    assert("  more than a hundred and fifty files, the pager's own among them", files.length > 150 && files.includes("app/components/ListTable.js"));
     assert("  and more than two hundred and fifty boxes", boxes > 250);
     check("no flex or grid box drops a space between the words it holds", found.join(" | "), "");
 

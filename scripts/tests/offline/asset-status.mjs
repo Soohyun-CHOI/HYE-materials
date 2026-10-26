@@ -66,7 +66,7 @@ import { isMain, standalone } from "./_harness.mjs";
 export const title = "Tool status and event vocabularies, and the maps between them (#334, #362, #363, #531, #569)";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const PY_PATH = resolve(HERE, "../../import/create_tools_334.py");
+const PY_PATH = resolve(HERE, "../../import/ran/create_tools_334.py");
 
 /**
  * Pull a top-level Python list of `{"name": ..., "color": ...}` dicts out of the

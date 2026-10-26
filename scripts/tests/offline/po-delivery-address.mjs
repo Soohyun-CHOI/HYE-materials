@@ -27,7 +27,7 @@
 //   - Whether `Purchase Orders."Delivery Address"` exists on the base, or whether
 //     `Delivery Address Used` has been deleted. No offline check reads the base in
 //     either direction (docs/notes/verification.md);
-//     `scripts/import/add_po_delivery_address_386.mjs` is what asks, and
+//     `scripts/import/ran/add_po_delivery_address_386.mjs` is what asks, and
 //     `offline/table-field-names.mjs` holds that no reference names the old one.
 //   - What an order generated BEFORE #385 holds. That is a fact about 34 rows and
 //     not about this code; the script asserts all 34 carry one select value, which
