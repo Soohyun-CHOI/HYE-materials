@@ -248,7 +248,7 @@ try {
     const vendor = vendors[0];
     const discipline = disciplines.find((l) => l.jobId);
     if (!requester || !vendor || !discipline) {
-        incomplete = "need one active User, one Vendor and one Line attached to a Job";
+        incomplete = "need one active User, one Vendor and one Discipline attached to a Job";
         console.log(`\n  SKIP  ${incomplete}`);
         throw new Error("__skip__");
     }

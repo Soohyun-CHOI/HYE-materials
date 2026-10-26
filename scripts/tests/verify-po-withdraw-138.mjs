@@ -24,7 +24,7 @@
 // about production call sites and they kept decaying in the same way. They were
 // text matching on `export async function NAME`; #147 wrapped two of these
 // exports and they silently reported false for weeks while the guards were
-// intact. They are AST-based now and run on every push via `npm test`.
+// intact. They are AST-based now and run in CI via `npm test`.
 //
 // Part C exercises the real searchPOs()/getPOsExceptWithdrawn() to prove a withdrawn PO
 // drops out of the invoice-side candidate set, before and after withdrawal.

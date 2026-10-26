@@ -8,7 +8,7 @@
 //
 // This file keeps no issue number because it is not one issue's evidence, but
 // it is no longer a standing check either — that role moved to the offline tier,
-// which runs on every push. Run this one by hand when you have reason to.
+// which CI runs. Run this one by hand when you have reason to.
 //
 // #152 moved this script's two offline parts out. What used to be Part A (the
 // endpoint inventory) is scripts/tests/offline/authz-structure.mjs and what

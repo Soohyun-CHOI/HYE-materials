@@ -176,10 +176,10 @@
 // argues about two paragraphs up, now demonstrated rather than described.
 //
 // THE ASSERTION THAT WAS CONSIDERED AND REJECTED: "no barred word is a table name".
-// It is false by design. `Lines` IS a table and the bare word is barred in COPY
-// anyway, because no screen in this app shows a `Lines` row — a fact about screens,
-// which this tier cannot reach. Encoding it would mean one hard-coded exception,
-// which is the shape the paragraph above declines for the scope.
+// It was false by design until #280. `Lines` was a table and the bare word was barred
+// in COPY anyway, because no screen in this app showed a `Lines` row — a fact about
+// screens, which this tier cannot reach. Encoding it would have meant one hard-coded
+// exception, which is the shape the paragraph above declines for the scope.
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -232,8 +232,9 @@ const WORD_RE = /\blines?\b/i;
  * Which table's name beats each word this file bars (#269).
  *
  * THIS IS THE RULE'S PREMISE, MADE BREAKABLE. CLAUDE.md bars `shipment` because
- * `Deliveries` exists and `line` for a child row because `Lines` does; if either
- * table were renamed the ban would still be enforced while its justification had
+ * `Deliveries` exists, and barred `line` for a child row because `Lines` did until
+ * #280 (`BEATEN_BY_RULE`, below); if a table were renamed the ban would still be
+ * enforced while its justification had
  * quietly gone. Renaming a table on this base is cheap and encouraged, so this is a
  * premise that really can lapse — and whoever renames one now has to come back
  * through the vocabulary.
@@ -349,9 +350,9 @@ export function isQualified(entry) {
  *
  * THE REASON STRING IS THE POINT, not decoration. Without it this is a snapshot of
  * whatever the code happened to say on the day it was written, and the next reader
- * cannot tell a survivor from an oversight. Each one says which of the three
- * legitimate senses the name is in: a `Lines` row, a line of text, or a word that
- * merely contains the letters.
+ * cannot tell a survivor from an oversight. Each one says which legitimate sense the
+ * name is in: a line of text, or a word that merely contains the letters. A `Lines`
+ * row was a third until #280, whose names are the `discipline*` family below.
  *
  * THERE WAS A FOURTH SENSE AND IT IS GONE (#274). Ten entries stood here for `billed`
  * and its family, each reading "the verb, which `Invoices` does not compete for" —

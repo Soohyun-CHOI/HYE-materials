@@ -26,7 +26,7 @@
 // Items, 1 Invoice + Invoice Items, and deletes all of them in
 // this same run through scripts/tests/_fixtures.mjs (#171). Creates nothing in
 // Vercel Blob. Reuses (never modifies, never deletes) two existing Vendors and
-// one existing Line.
+// one existing Discipline.
 //
 // Exit codes: 0 all clear, 1 something failed OR this run left rows on the base,
 // 2 clean but incomplete.
@@ -284,7 +284,7 @@ const [vendorA, vendorB] = vendors;
 const discipline = disciplines[0];
 
 if (!requester || !vendorA || !vendorB || !discipline) {
-    incomplete = "need one active User, TWO Vendors and one Line in the base";
+    incomplete = "need one active User, TWO Vendors and one Discipline in the base";
     console.log(`\n  SKIP  ${incomplete}`);
 } else {
   // EVERY FIXTURE THIS RUN CREATES IS DELETED BELOW, so an unexpected throw in

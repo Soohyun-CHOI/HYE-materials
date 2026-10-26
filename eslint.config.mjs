@@ -10,7 +10,7 @@ import globals from "globals";
 // file — which for scripts/tests/verify-*.mjs means a credentialed run costing
 // hundreds of Airtable operations, made for some other reason. #191 fixed two
 // such names that had been standing for months. This turns them into a failure
-// of the lint job, which runs on every push.
+// of the lint job, which CI runs.
 //
 // THE SET IS NARROWED BECAUSE FLAT CONFIG MERGES GLOBALS RATHER THAN REPLACING
 // THEM, which is the trap this section exists to avoid. Adding

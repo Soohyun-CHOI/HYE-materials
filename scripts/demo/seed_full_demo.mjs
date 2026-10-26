@@ -54,7 +54,7 @@
 // awaiting-order strip sorts by `PR ID`, which already encodes the date.
 //
 // RE-RUNNABLE, PER SCENARIO. Each block checks for its own tag in the Notes of the
-// PRs already on the demo Line and skips if it is there, so a run that died halfway
+// PRs already on the demo Discipline and skips if it is there, so a run that died halfway
 // finishes on the next attempt instead of duplicating what succeeded. One read
 // serves every check.
 //
@@ -71,7 +71,7 @@
 // SELF-SUFFICIENT ON AN EMPTY BASE, WHICH IS THE ONLY THING THAT PROVES IT. It used
 // to name seed_demo_fixtures.mjs as a prerequisite in this header, which held exactly
 // as long as somebody read the header. It now CALLS that file's `ensureDemoFixtures()`
-// — one implementation of the bootstrap, not two — so the Job, its Line, the vendor,
+// — one implementation of the bootstrap, not two — so the Job, its Discipline, the vendor,
 // both addresses and the scoped fixture account are created if they are not there.
 // The one thing it cannot create is a Users row: those appear as a side effect of a
 // first magic-link sign-in and in no other way, so a wipe deliberately spares them
@@ -235,7 +235,7 @@ console.log(`seed_full_demo — ${CLEANUP ? "CLEANUP" : "the full demo set"}`);
 console.log("=".repeat(72));
 
 // THE BOOTSTRAP RUNS FIRST, AND IT RUNS ON A CLEANUP TOO. `--cleanup` reads the
-// demo Line to find this seed's requests, so a base with no Line at all would make
+// demo Discipline to find this seed's requests, so a base with no Discipline at all would make
 // the cleanup silently find nothing rather than report that there was nothing to
 // find. Import-not-sync, so on a base that already has them this costs three reads.
 await ensureDemoFixtures();
@@ -282,7 +282,7 @@ console.log(`requester  ${userName(requester)} <${requester.email}>`);
 console.log(`signers    ${userName(signerA)}, ${userName(signerB)}`);
 console.log(`president  ${president ? userName(president) : "(none — signed orders will be skipped)"}`);
 
-/** Every PR already on the demo Line, read once and reused by every skip check. */
+/** Every PR already on the demo Discipline, read once and reused by every skip check. */
 const existingPRs = await getPRsByDiscipline(discipline.id);
 const seeded = new Set(
     existingPRs.flatMap((pr) => [...String(pr.notes || "").matchAll(/\[DEMO26:([A-Z_]+)\]/g)].map((m) => m[1]))

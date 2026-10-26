@@ -3,7 +3,7 @@
 //
 // THE COMPANION TO `offline/material-categories.mjs`, AND NEITHER SUBSUMES THE
 // OTHER. That one proves the committed CSV and `lib/materialCategory.js` agree:
-// two files, in CI, on every push. This one proves the BASE agrees — and it is
+// two files, in CI. This one proves the BASE agrees — and it is
 // the only thing that can, because `Material Categories."Category Label"` is an
 // Airtable formula, which `docs/notes/verification.md` calls a third tier no
 // test reaches cheaply: not in the repo, not in git history, rewritable between

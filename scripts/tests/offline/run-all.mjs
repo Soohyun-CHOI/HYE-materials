@@ -1,4 +1,4 @@
-// The offline check tier — what `npm test` runs, and what CI runs on push.
+// The offline check tier — what `npm test` runs, and what CI runs.
 //
 // Issue #152. The problem this solves is not "a check was wrong", it is that
 // the cheap checks were welded to the expensive ones. Source-shape assertions

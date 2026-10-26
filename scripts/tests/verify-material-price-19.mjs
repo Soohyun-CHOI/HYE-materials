@@ -23,7 +23,7 @@
 // Fixtures: 3 PRs + PR Items, 3 POs + PO Items, and the Materials / Material
 // Prices rows #18's cache writes for them — all deleted in this same run through
 // scripts/tests/_fixtures.mjs (#171). Creates nothing in Vercel Blob. Reuses
-// (never modifies, never deletes) two Vendors, one Line, and the authz-fixture
+// (never modifies, never deletes) two Vendors, one Discipline, and the authz-fixture
 // user.
 //
 // Exit codes: 0 all clear, 1 something failed OR this run left rows on the base,
@@ -209,7 +209,7 @@ const [vendorA, vendorB] = vendors;
 const discipline = disciplines[0];
 
 if (!admin || !vendorA || !vendorB || !discipline) {
-    incomplete = "need an Admin user, TWO Vendors and one Line in the base";
+    incomplete = "need an Admin user, TWO Vendors and one Discipline in the base";
 } else if (!fixtureUser) {
     incomplete = `${FIXTURE_EMAIL} is missing — it is the permanent non-Admin fixture this check needs`;
 }

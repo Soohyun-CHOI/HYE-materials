@@ -48,7 +48,7 @@
 // and the whole body sits in a try/catch so a mid-run throw cannot skip that —
 // #165 learned that the hard way when four aborted runs left 100 records on the
 // shared base. Creates nothing in Vercel Blob. Reuses (never modifies, never
-// deletes) one active User, one Vendor and one Line.
+// deletes) one active User, one Vendor and one Discipline.
 //
 // Exit codes: 0 all clear, 1 something failed, 2 clean but incomplete.
 
@@ -240,7 +240,7 @@ try {
     const vendor = vendors[0];
     const discipline = disciplines.find((l) => l.jobId);
     if (!requester || !vendor || !discipline) {
-        incomplete = "need one active User, one Vendor and one Line attached to a Job";
+        incomplete = "need one active User, one Vendor and one Discipline attached to a Job";
         console.log(`\n  SKIP  ${incomplete}`);
     } else {
         console.log(

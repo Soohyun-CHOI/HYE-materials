@@ -7,7 +7,7 @@ WHAT THE TABLE IS FOR. A site buys material directly from a vendor with no
 order behind it. The vendor's invoice reaches the office, `/invoices/new`
 has no order for it to charge, and until now that was a dead end: the
 office cannot raise the purchase request either, because a request needs a
-Line and only the site knows which one. So the office records what the
+Discipline and only the site knows which one. So the office records what the
 invoice says here, the row appears on a strip above `/prs` for its Job, and
 the site raises the request from it. The request's KIND is then read from
 the `Purchase Request` link on this table -- there is no field on
