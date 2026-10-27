@@ -21,6 +21,10 @@
 //   4. THE FRAME AND THE BARS TAKE THEM: the hold before the opening, only for a sheet laid
 //      out as one; the sheet's classes reading what was read; the foot bar asking for the
 //      page's keyboard; the top bar asking the page's scroll.
+//   5. A FIELD IN A HELD SHEET TAKES FOCUS WITHOUT A SCROLL (`focusTurn`): focus leaving
+//      anything for a field in an open dialog focuses the field first with `preventScroll`,
+//      and a field letting focus go to nothing within the page — the keyboard's Done — puts
+//      it on the dialog's title, so the next tap leaves the title.
 //
 // WHAT IT CANNOT SEE. Whether a phone does what the hold assumes — that a canceled move stops
 // Safari's pull-to-refresh, that its view pans for a field and reports it, that the bars do
@@ -30,7 +34,7 @@
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
 import { readFileSync } from "node:fs";
-import { cancelsTouch, holdPage, pageScroll, resizeKind, sheetRereads, watchSheet } from "../../../app/components/sheetHold.js";
+import { cancelsTouch, focusTurn, holdPage, pageScroll, resizeKind, sheetRereads, watchSheet } from "../../../app/components/sheetHold.js";
 import { isTyping, keyboardCover, keyboardHeight, keyboardPan } from "../../../app/components/keyboardViewport.js";
 import { parseFile, repoPath, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
@@ -68,6 +72,8 @@ function fakePage({ scrollY = 0, innerWidth = 373, clientWidth = 373, innerHeigh
         scrolls: [],
         listeners,
         element,
+        pageFocused: true,
+        ids: {},
     };
     page.body = element({ style: { position: "", top: "", left: "", right: "", transform: "" } });
     page.root = element({
@@ -77,7 +83,15 @@ function fakePage({ scrollY = 0, innerWidth = 373, clientWidth = 373, innerHeigh
             child.remove = () => {};
         },
     });
-    page.doc = { body: page.body, documentElement: page.root, activeElement: page.body, createElement: () => element(), ...target("doc") };
+    page.doc = {
+        body: page.body,
+        documentElement: page.root,
+        activeElement: page.body,
+        createElement: () => element(),
+        hasFocus: () => page.pageFocused,
+        getElementById: (id) => page.ids[id] ?? null,
+        ...target("doc"),
+    };
     page.view = { height: innerHeight, offsetTop: 0, scale: 1, ...target("view") };
     page.win = {
         scrollX: 0,
@@ -351,6 +365,59 @@ export async function run({ check, assert, log }) {
     );
     check("  the top bar asks the page's scroll, which a held page keeps", [/setUnder\(pageScroll\(window\) > 0\)/.test(topBar), /window\.scrollY/.test(topBar)].join(" "), "true false");
     check("  and the hold reads no scroll of the view", /addEventListener\("scroll"/.test(hold), false);
+
+    // ── 5. a field in a held sheet takes focus without a scroll ──────────────
+    log("");
+    log("5. a field in a held sheet takes focus without the browser's scroll to show it:");
+    check(
+        "  the judgment, by value: to a field, from a field to nothing, anything else",
+        [
+            focusTurn({ toField: true, fromField: false, toNothing: false }),
+            focusTurn({ toField: false, fromField: true, toNothing: true }),
+            focusTurn({ toField: false, fromField: true, toNothing: false }),
+            focusTurn({ toField: false, fromField: false, toNothing: true }),
+        ].map(String).join(" "),
+        "field title null null"
+    );
+    {
+        const page = fakePage();
+        const focuses = [];
+        const dialog = page.element({ getAttribute: (name) => (name === "aria-labelledby" ? "sheet-title" : null) });
+        const focusing = (name, props, inside) =>
+            page.element({
+                ...props,
+                closest: (selector) => (inside && selector === "dialog[open]" ? dialog : null),
+                focus(options) {
+                    focuses.push(`${name}${options?.preventScroll ? "" : " with a scroll"}`);
+                    page.doc.activeElement = this;
+                },
+            });
+        const field = focusing("field", { tagName: "INPUT", type: "text" }, true);
+        const done = focusing("done", { tagName: "BUTTON" }, true);
+        const outside = focusing("outside", { tagName: "INPUT", type: "text" }, false);
+        const title = focusing("title", { tagName: "H2", hasAttribute: (name) => name === "tabindex" && title.tabIndex !== undefined }, true);
+        page.ids["sheet-title"] = title;
+        const blur = (leaving, gaining) => {
+            const before = focuses.length;
+            page.fire("doc", "blur", { target: leaving, relatedTarget: gaining });
+            return focuses.slice(before).join(", ") || "nothing";
+        };
+
+        const hold = holdPage(page.win, page.doc);
+        const listener = page.listeners.find((l) => l.type === "blur");
+        check("  one listener takes focus leaving anything, in the capture phase", [page.count("blur"), listener?.options].join(" "), "1 true");
+        check("  the keyboard's Done, focus going nowhere, puts it on the sheet's title, made focusable", [blur(field, null), title.tabIndex].join(" | "), "title | -1");
+        check("  a tap on the field from there focuses it first, with no scroll", blur(title, field), "field");
+        check("  as does focus leaving the sheet's Done for its field, the opening's way", blur(done, field), "field");
+        check(
+            "  and focus going to a button, a field outside a dialog, or another app is left alone",
+            [blur(field, done), blur(title, outside), blur(outside, null), ((page.pageFocused = false), blur(field, null))].join(" | "),
+            "nothing | nothing | nothing | nothing"
+        );
+        page.pageFocused = true;
+        hold.release();
+        check("  and letting the page go takes the listener away", [page.count("blur"), blur(field, null)].join(" | "), "0 | nothing");
+    }
 
     // ── anti-vacuity ─────────────────────────────────────────────────────────
     log("");

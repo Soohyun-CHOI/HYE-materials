@@ -27,6 +27,19 @@ import { isTyping, keyboardHeight, takesTyping } from "./keyboardViewport.js";
  *   it is moved the body is a containing block for anything fixed inside it, of which the
  *   asset page draws none with a sheet open.
  *
+ * A FIELD IN A HELD SHEET TAKES FOCUS WITHOUT SAFARI'S OWN SCROLL TO SHOW IT (`focusTurn`).
+ * A tap that focuses a field makes Safari move the view to show it, which a focus given with
+ * `preventScroll` does not; the pan is told only once the view has moved, so the sheet rose
+ * off the keyboard and came back down. Seen on a phone when the keyboard's Done had let focus
+ * go and the field was tapped again; the sheet's opening, which focuses the field itself, did
+ * not show it. So while a sheet holds the page: focus leaving anything for a field in an open
+ * dialog gives the field focus here first, with `preventScroll`, so the tap's own focus finds
+ * it focused; and a field in an open dialog letting focus go to nothing — Done — puts focus on
+ * that dialog's title, so the next tap on the field leaves the title, where it is caught. It is
+ * React Aria's way with Safari (`usePreventScroll`); no WebKit page read says what a tap's
+ * focus scrolls, and that a focus with `preventScroll` scrolls nothing there is an inference
+ * from it.
+ *
  * THE SHEET'S HEIGHT AND FOOT ARE READ, NOT FOLLOWED (`watchSheet`). The screen's height
  * (`100dvh`) and the safe area at its foot (`env(safe-area-inset-bottom)`) both change with
  * the browser's bars, and the keyboard's cover changed with every scroll of the view; read
@@ -59,6 +72,29 @@ export function cancelsTouch({ touches, cancelable, onField, scrolls }) {
     return cancelable && touches === 1 && !onField && !scrolls;
 }
 
+/**
+ * What a held page does as focus leaves something (the header): `"field"` when focus is going
+ * to a field in an open dialog, which is focused here first without a scroll; `"title"` when a
+ * field in an open dialog lets focus go to nothing within the page, so focus waits on the
+ * dialog's title; and null otherwise.
+ */
+export function focusTurn({ toField, fromField, toNothing }) {
+    if (toField) return "field";
+    if (fromField && toNothing) return "title";
+    return null;
+}
+
+/** Whether an element is a field in an open dialog. */
+const fieldInDialog = (element) => takesTyping(element) && Boolean(element.closest?.("dialog[open]"));
+
+/** The title an open dialog is labeled by, made focusable as `DialogFrame.js` makes a heading. */
+function titleOf(element, doc) {
+    const dialog = element.closest("dialog[open]");
+    const title = dialog ? doc.getElementById(dialog.getAttribute("aria-labelledby") ?? "") : null;
+    if (title && !title.hasAttribute("tabindex")) title.tabIndex = -1;
+    return title;
+}
+
 /** Whether something from an element up overflows a box that scrolls it — a list or a body that does. */
 function scrollsUnder(element, win) {
     for (let at = element; at && at.nodeType === 1; at = at.parentElement) {
@@ -83,10 +119,20 @@ export function holdPage(win, doc) {
             const answer = cancelsTouch({ touches: event.touches.length, cancelable: event.cancelable, onField: takesTyping(target), scrolls: scrollsUnder(target, win) });
             if (answer) event.preventDefault();
         };
+        const onBlur = (event) => {
+            const leaving = event.target;
+            const gaining = event.relatedTarget ?? null;
+            // Nothing within the page: a window losing focus to another app keeps the field's.
+            const toNothing = gaining === null && doc.hasFocus();
+            const turn = focusTurn({ toField: gaining !== null && fieldInDialog(gaining), fromField: fieldInDialog(leaving), toNothing });
+            if (turn === "field") gaining.focus({ preventScroll: true });
+            else if (turn === "title") titleOf(leaving, doc)?.focus({ preventScroll: true });
+        };
         held = {
             x,
             y,
             onTouchMove,
+            onBlur,
             body: { position: body.style.position, top: body.style.top, left: body.style.left, right: body.style.right, transform: body.style.transform },
             rootOverflowY: root.style.overflowY,
         };
@@ -97,6 +143,7 @@ export function holdPage(win, doc) {
         body.style.right = `${x}px`;
         if (scrollbar > 0) root.style.overflowY = "scroll";
         doc.addEventListener("touchmove", onTouchMove, { passive: false });
+        doc.addEventListener("blur", onBlur, true);
     }
     let released = false;
     return {
@@ -113,6 +160,7 @@ export function holdPage(win, doc) {
             Object.assign(body.style, held.body);
             root.style.overflowY = held.rootOverflowY;
             doc.removeEventListener("touchmove", held.onTouchMove, { passive: false });
+            doc.removeEventListener("blur", held.onBlur, true);
             const { x, y } = held;
             held = null;
             win.scrollTo(x, y);
