@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { pageScroll } from "./sheetHold";
 
 /*
  * Tools 0a's Top bar — a phone screen's head, where a desk has the breadcrumb (#463). The
@@ -26,7 +27,8 @@ import { useEffect, useRef, useState } from "react";
  * STICKY AT THE TOP, DRAWING NO RULE (0a, 0k): white at 0.82 over a blur while the page runs
  * under it, fading out over the 24 below it, and nothing at all with the page at its top.
  * The document scrolls below the phone's edge rather than the rail's column (`Rail.js`), so
- * whether anything runs under it is the window's scroll.
+ * whether anything runs under it is the window's scroll — the page's, as `sheetHold.js`
+ * counts it, since a sheet holding the page leaves the document no scroll of its own (#579).
  */
 export default function TopBar({ name, children }) {
     const barRef = useRef(null);
@@ -34,7 +36,7 @@ export default function TopBar({ name, children }) {
     const [named, setNamed] = useState(false);
     useEffect(() => {
         const measure = () => {
-            setUnder(window.scrollY > 0);
+            setUnder(pageScroll(window) > 0);
             const bar = barRef.current;
             const heading = name ? document.querySelector("h1") : null;
             setNamed(Boolean(bar && heading && heading.getBoundingClientRect().bottom <= bar.getBoundingClientRect().bottom));

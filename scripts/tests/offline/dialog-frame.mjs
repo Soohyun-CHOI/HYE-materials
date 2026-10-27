@@ -1458,7 +1458,7 @@ export function run({ check, assert, log }) {
                 /max-sm:rounded-t-mobile-drawer/.test(sheet),
                 /max-sm:shadow-mobile-drawer/.test(sheet),
                 /max-sm:backdrop:bg-mobile-drawer-overlay/.test(sheet),
-                /var\(--spacing-mobile-drawer-inset-bottom\)\+env\(safe-area-inset-bottom\)/.test(sheet),
+                /var\(--spacing-mobile-drawer-inset-bottom\)\+var\(--sheet-safe-area,env\(safe-area-inset-bottom\)\)/.test(sheet),
                 /max-sm:\[--dialog-sheet:1\]/.test(sheet),
             ].join(" "),
             marked: /data-sheet=\{sheet \? \(confirm \? "confirm" : "drawer"\) : undefined\}/.test(frameSource),

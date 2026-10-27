@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { keyboardCover, takesTyping } from "./keyboardViewport";
+import { isTyping, keyboardCover, keyboardPan } from "./keyboardViewport";
 
 /**
  * How far a phone's keyboard covers the page, and whether one is up (Tools 0a Keyboard):
@@ -19,27 +19,32 @@ import { keyboardCover, takesTyping } from "./keyboardViewport";
  * field and not with a field focused as the page opened — the code step's, which raises no
  * keyboard on a phone until it is pressed — so the bar keeps its 20 under it until then, as
  * it did before #568.
+ *
+ * `pan` IS HOW FAR THE BROWSER HAS MOVED THE VIEW FOR THE KEYBOARD (#579), which a sheet puts
+ * the page it holds back by (`sheetHold.js`). `onPage` is the foot bar's: a keyboard a field
+ * in an open dialog raised is the dialog's, and the bar behind it does not ride it.
  */
-export default function useKeyboardCover() {
+export default function useKeyboardCover({ onPage = false } = {}) {
     const [cover, setCover] = useState(0);
+    const [pan, setPan] = useState(0);
     const [typing, setTyping] = useState(false);
     useEffect(() => {
         const view = window.visualViewport;
         const coarse = window.matchMedia("(pointer: coarse)");
         const measure = () => {
             if (!view) return;
-            setCover(
-                keyboardCover({
-                    layoutHeight: window.innerHeight,
-                    viewportHeight: view.height,
-                    viewportTop: view.offsetTop,
-                    scale: view.scale,
-                    typing: coarse.matches && takesTyping(document.activeElement),
-                })
-            );
+            const reading = {
+                layoutHeight: window.innerHeight,
+                viewportHeight: view.height,
+                viewportTop: view.offsetTop,
+                scale: view.scale,
+                typing: isTyping({ coarse: coarse.matches, element: document.activeElement, onPage }),
+            };
+            setCover(keyboardCover(reading));
+            setPan(keyboardPan(reading));
         };
         const onFocus = (event) => {
-            setTyping(coarse.matches && takesTyping(event.target));
+            setTyping(isTyping({ coarse: coarse.matches, element: event.target, onPage }));
             measure();
         };
         const onBlur = () => {
@@ -57,6 +62,6 @@ export default function useKeyboardCover() {
             document.removeEventListener("focusin", onFocus);
             document.removeEventListener("focusout", onBlur);
         };
-    }, []);
-    return { cover, keyboard: cover > 0 || typing };
+    }, [onPage]);
+    return { cover, pan, keyboard: cover > 0 || typing };
 }
