@@ -1721,10 +1721,12 @@ export function run({ check, assert, log }) {
     );
     assert("  a row chooses and puts the sheet away", /onChoose\(option\.value\);\s*onClose\(\);/.test(jobSheet.source));
     assert("  and the row already chosen is the one checked", /chosen: option\.value === value/.test(jobSheet.source));
+    // Its handle closes it as every sheet's does, which is the frame's since #580 and
+    // `offline/sheet-drag.mjs`'s to hold.
     check(
-        "the name sheet closes on a press behind it and on its handle, and ends in Done",
-        ["sheet", "closesOnBackdrop", "onHandlePress", "done"].map((a) => attributeSources(nameSheet.ast, nameSheet.source, "DialogFrame", a).join()).join(" | "),
-        "true | true | {onClose} | {{ label: COPY.sheetDone, onPress: onClose }}"
+        "the name sheet closes on a press behind it, and ends in Done",
+        ["sheet", "closesOnBackdrop", "done"].map((a) => attributeSources(nameSheet.ast, nameSheet.source, "DialogFrame", a).join()).join(" | "),
+        "true | true | {{ label: COPY.sheetDone, onPress: onClose }}"
     );
     // ITS FIELD IS `SheetInput` SINCE THE NOTE SHEET TYPED INTO ONE TOO (#533): the sheet hands it
     // the opener's value and change, `onClose` as its done key, and the clear mark's name, and

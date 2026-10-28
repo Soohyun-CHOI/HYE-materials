@@ -222,7 +222,8 @@ function NoteDialog({ open, onClose, note, pending, sentBy, refusal, onSend }) {
  * The phone's sheet (1j-b2): Tools 0a's sheet holding one field, titled as the dialog is, with
  * `Done` at its head's end — which saves, and on a cleared field removes the note (0a Note) —
  * and the line under the field, at 15 and Ink 3, 4 in, the count at its end. A press behind it
- * or on its handle puts it away and saves nothing, as the name sheet's does.
+ * or on its handle, or a drag down (#580), puts it away and saves nothing, as the name sheet's
+ * does — and none of them while it saves, the frame's `busy`; until #580 its handle did.
  */
 function NoteSheet({ open, onClose, note, pending, refusal, onSend }) {
     const [draft, setDraft] = useState(note);
@@ -250,7 +251,6 @@ function NoteSheet({ open, onClose, note, pending, refusal, onSend }) {
             title={note ? COPY.editNote : COPY.addNote}
             sheet
             closesOnBackdrop
-            onHandlePress={onClose}
             done={{ label: COPY.done, onPress: done, busyLabel: COPY.working[working] }}
         >
             <div className="flex flex-col px-mobile-gutter">

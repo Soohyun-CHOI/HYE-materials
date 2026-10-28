@@ -20,6 +20,10 @@ import { isTyping, keyboardHeight, takesTyping } from "./keyboardViewport.js";
  *   selection are the browser's. That is Safari's pull-to-refresh, which no
  *   `overscroll-behavior` stops, and its pan of the view while the keyboard is up. A pinch
  *   is left alone. The root's overscroll is not touched: `BottomBar.js` alone sets it (#568).
+ *   Touch Events says a canceled move should keep the mouse events it would cause from
+ *   following, a tap's click among them, so a tap on `Done` or a row whose finger moved a
+ *   little may lose its click on a phone; that has not been seen either way. The handle's tap
+ *   is judged from the touch for that reason (`sheetDrag.js`, #580).
  * - THE PAGE IS PUT BACK WHERE THE KEYBOARD MOVED IT FROM (`pan`): Safari pans the view to
  *   show a field the keyboard would cover, which moves everything placed on the layout
  *   viewport up the screen, so the held page is moved down by the same amount
@@ -95,8 +99,11 @@ function titleOf(element, doc) {
     return title;
 }
 
-/** Whether something from an element up overflows a box that scrolls it — a list or a body that does. */
-function scrollsUnder(element, win) {
+/**
+ * Whether something from an element up overflows a box that scrolls it — a list or a body that
+ * does. A drag on a sheet asks it too (`sheetDrag.js`, #580): where nothing scrolls, a move drags.
+ */
+export function scrollsUnder(element, win) {
     for (let at = element; at && at.nodeType === 1; at = at.parentElement) {
         const { overflowY } = win.getComputedStyle(at);
         if ((overflowY === "auto" || overflowY === "scroll") && at.scrollHeight - at.clientHeight > 1) return true;

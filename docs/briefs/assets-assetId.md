@@ -149,12 +149,15 @@ held a name.
 the field's words, with the system keyboard up. A name can be typed there or
 picked from the list below it, and both are the same value as the field behind.
 It closes by picking, by its own `Done`, by the keyboard's done key, by
-`Escape`, on its handle and on what lies behind it, and focus returns to the
-field. **Opening it is a press rather than a focus** — returning focus to the
-field would otherwise reopen it. **At a desk there is no sheet**: the field is
-the one the registration types a name in (1b), and the list opens under it. The
-pill opens 1j's job sheet the same way for a person on several jobs; for a
-person on one it states the job and opens nothing.
+`Escape`, on its handle, dragged down and on what lies behind it, and focus
+returns to the field. **A drag follows the finger and goes back when let go
+short of closing, the keyboard staying up through it** (#580). **Opening it is
+a press rather than a focus** — returning focus to the field would otherwise
+reopen it. **At a desk there is no sheet**: the field is the one the
+registration types a name in (1b), and the list opens under it. The pill opens
+1j's job sheet the same way for a person on several jobs, which closes by
+picking, on its handle, dragged down, by `Escape` and on what lies behind it;
+for a person on one it states the job and opens nothing.
 
 **The list of names is headed `Recently at this job`** while nothing is typed,
 and holds the people that job has recently handed tools to, most recent first.
@@ -412,7 +415,8 @@ and was just refreshed.
 
 **The retirement's dialog, which is closed until `Retire this item` is chosen.**
 The page behind it stays legible, and it closes by `Cancel`, by `Escape`, by its
-close at a desk and on a press behind it as a phone's sheet, with focus returning
+close at a desk and on a press behind it as a phone's sheet, which draws no
+handle and is not dragged (#580), with focus returning
 to `More actions`; the confirm takes it away with the page's offer, and focus
 goes to the page's heading (#458). It does not close while a confirmation is in
 flight, and while it is, the commitment keeps its red and its width, a spinner
@@ -435,8 +439,9 @@ field `Note`, its example `e.g. At the Riverside yard`, and under it
 at the actions' left while there is a note; `Cancel`; and `Save`, or `Add note`
 over none. A phone opens a sheet over the keyboard (1j-b2) with the same title,
 the same field and line, and `Done` at its head's end, which saves — and on a
-field left empty removes the note; a press behind the sheet puts it away and
-saves nothing. **More than 50 is refused, and nothing is cut**: the field turns
+field left empty removes the note; a press behind the sheet, on its handle or a
+drag down puts it away and saves nothing, and none of them while it saves
+(#580). **More than 50 is refused, and nothing is cut**: the field turns
 Red and its line says `Max 50 characters.` with the count in Red, the field
 keeping what was typed. What is kept is trimmed, each run of spaces one, its case
 as typed; a note that comes out as the one already there writes nothing. **A

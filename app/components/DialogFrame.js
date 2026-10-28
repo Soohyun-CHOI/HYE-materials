@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState } from "react";
 import { searchResultsKey } from "@/lib/controls";
 import { DIALOG_FRAME_COPY as COPY, focusLost } from "@/lib/dialogFrame";
 import { ButtonLabel, FormBusy, Refusal } from "./Controls";
 import Icon from "./Icon";
 import { SCROLL_LANE } from "./scrollLane";
+import { liesBehind, watchDrag } from "./sheetDrag";
 import { watchSheet } from "./sheetHold";
 import useKeyboardCover from "./useKeyboardCover";
 
@@ -107,10 +108,21 @@ import useKeyboardCover from "./useKeyboardCover";
  * is held, again only as the width changes or the keyboard comes or goes. A dialog at a desk's
  * width holds nothing and reads nothing, and a phone turned on its side lets the page go.
  *
+ * A SHEET THAT DRAWS A HANDLE CLOSES BY IT (#580): on a tap on the handle and on a drag down,
+ * which `sheetDrag.js` judges from the touch and says why. The handle is drawn and nothing more,
+ * and over it is the button that is its press, from the sheet's top down to the title's line —
+ * 30, where the row the handle stands in is 16 — so no box drawn moves, and `Done`, standing
+ * over it at the head's end, keeps its own press. The button is the frame's close, named so:
+ * below the phone's edge a sheet draws no close, and what lies behind it is nothing a screen
+ * reader reaches, so the handle is the one way out every handle sheet has for one. It is out of
+ * Tab's order, since a keyboard has `Escape` and the design draws the handle no focus. A tap and
+ * a drag ask the close the close asks, so a busy sheet stays. One condition draws the handle and
+ * takes the drag (`handled`), and the Confirm, which draws no handle, is not dragged.
+ *
  * 1j's THREE SHEETS ARE PARTS ON THIS FRAME, built to be opened as they are. The job sheet
  * and the name sheet beside the asset page, and the retirement's Confirm, close on a
- * press on what lies behind them while drawn as sheets (`closesOnBackdrop`), the name
- * sheet on its handle too (`onHandlePress`), and the name sheet ends in `done`, a text
+ * press on what lies behind them while drawn as sheets (`closesOnBackdrop`), the job and
+ * name sheets on their handle too, and the name sheet ends in `done`, a text
  * button at its head's end in place of the close, since it holds a field (0a Sheet). The job
  * and name sheets open from #463's foot bar — 1j's — and the Confirm from the phone's
  * `More actions`, with nothing about them changed; the fields in the page's dialog that
@@ -313,7 +325,7 @@ function laidOutAsSheet(dialog) {
  * no press opened, which hands focus to the page's heading when it closes. `preview` is
  * the second build (#457): what it holds is drawn in a pane beside the column, which is
  * the Compact build's inside — see the header. `recordId` is 0l's Confirm, and `sheet`,
- * `closesOnBackdrop`, `onHandlePress` and `done` are the phone's sheet (#458), the header
+ * `closesOnBackdrop` and `done` are the phone's sheet (#458), the header
  * again — and a sheet whose `Done` sends what it holds, the note sheet's (#533), names its
  * `-ing` word as `done.busyLabel`, so while the frame is `busy` its `Done` is 0f's Working, the
  * phone's spinner alone, as a sheet's commitment is. `onHidden` runs before the frame closes a
@@ -339,7 +351,6 @@ export function DialogFrame({
     fixed = false,
     sheet = false,
     closesOnBackdrop = false,
-    onHandlePress,
     done,
     menu,
     children,
@@ -355,6 +366,31 @@ export function DialogFrame({
     // what holds the page behind it (#579 — `sheetHold.js`).
     const [sheetSize, setSheetSize] = useState(null);
     const sheetWatchRef = useRef(null);
+    const confirm = recordId !== undefined;
+    // A sheet that draws a handle, and closes by it (#580 — the header).
+    const handled = sheet && !confirm;
+    const handleRef = useRef(null);
+
+    // Escape, the close, the handle and what lies behind a sheet all ask this.
+    const ask = () => {
+        if (!busy) onClose();
+    };
+    const busyNow = useEffectEvent(() => Boolean(busy));
+    const askNow = useEffectEvent(() => ask());
+
+    // A tap on the handle and a drag down, while a sheet that draws one is open (#580).
+    useLayoutEffect(() => {
+        const dialog = dialogRef.current;
+        const handle = handleRef.current;
+        if (!open || !handled || !dialog || !handle) return undefined;
+        const watch = watchDrag(window, dialog, {
+            handle,
+            isSheet: () => laidOutAsSheet(dialog),
+            isBusy: () => busyNow(),
+            onClose: () => askNow(),
+        });
+        return () => watch.stop();
+    }, [open, handled]);
 
     // While a sheet is open the page behind it is held, and then its height and foot are read
     // (#579). Before the opening below, so the page is held before a field takes focus and its
@@ -454,21 +490,15 @@ export function DialogFrame({
         };
     }, []);
 
-    const ask = () => {
-        if (!busy) onClose();
-    };
     const Content = onSubmit ? "form" : "div";
     const withPreview = preview !== undefined;
-    const confirm = recordId !== undefined;
 
     // What lies behind is the dialog's own box only past its edges: a press inside it that
     // lands on no child — its room at the foot — is still a press on the sheet.
     const onBackdropPress = (event) => {
         const dialog = event.currentTarget;
         if (event.target !== dialog || !laidOutAsSheet(dialog)) return;
-        const box = dialog.getBoundingClientRect();
-        const outside = event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom;
-        if (outside) ask();
+        if (liesBehind({ x: event.clientX, y: event.clientY, box: dialog.getBoundingClientRect() })) ask();
     };
 
     // The head and what the dialog holds are one arrangement in both builds. With a
@@ -550,11 +580,21 @@ export function DialogFrame({
         >
             {open && (
                 <>
-                    {sheet && !confirm && (
-                        // The handle: 36 by 4 on the Edge, 12 from the sheet's top — drawn, and
-                        // a press on it closes a sheet that says so (1j's name sheet).
-                        <div aria-hidden="true" onClick={onHandlePress} className="hidden shrink-0 justify-center pt-mobile-drawer-inset-top max-sm:flex">
-                            <span className="h-mobile-drawer-handle w-mobile-drawer-handle rounded-full bg-border" />
+                    {handled && (
+                        // The handle: 36 by 4 on the Edge, 12 from the sheet's top, drawn and
+                        // nothing more; over it the close that is its press, down to the title's
+                        // line (#580 — the header).
+                        <div className="relative hidden shrink-0 justify-center pt-mobile-drawer-inset-top max-sm:flex">
+                            <span aria-hidden="true" className="h-mobile-drawer-handle w-mobile-drawer-handle rounded-full bg-border" />
+                            <button
+                                ref={handleRef}
+                                type="button"
+                                tabIndex={-1}
+                                aria-label={COPY.close}
+                                aria-disabled={busy ? true : undefined}
+                                onClick={ask}
+                                className="absolute inset-x-0 top-0 h-[calc(var(--spacing-mobile-drawer-inset-top)+var(--height-mobile-drawer-handle)+var(--spacing-mobile-drawer-title-inset-y))]"
+                            />
                         </div>
                     )}
                     {head}
