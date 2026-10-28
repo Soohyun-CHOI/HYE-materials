@@ -281,6 +281,19 @@ const SHEET =
     "max-sm:pb-[calc(var(--spacing-mobile-drawer-inset-bottom)+var(--sheet-safe-area,env(safe-area-inset-bottom)))] max-sm:shadow-mobile-drawer " +
     "max-sm:backdrop:bg-mobile-drawer-overlay max-sm:[--dialog-sheet:1]";
 
+/**
+ * What lies under a sheet's foot below the phone's edge (#579): the sheet's own white, from
+ * its foot down a screen's height, so whatever opens there shows the sheet and not the page.
+ * A keyboard coming, going or panning the view moves before the sheet is told where it is, and
+ * for that while it opened a band under the foot that showed the page through: seen on a phone.
+ * It starts on the line the sheet stands on, `--keyboard-cover` above the screen's foot, and
+ * the two move in one render. Fixed, so the dialog's clip does not cut it — a fixed box's
+ * containing block is the viewport, not the dialog — and while the sheet sits where it should
+ * it lies under the keyboard or past the screen's foot. A press on it is a press on the sheet,
+ * not on what lies behind.
+ */
+const SHEET_UNDER = "fixed inset-x-0 top-[calc(100%-var(--keyboard-cover))] hidden h-dvh bg-white max-sm:block";
+
 /** Whether a dialog is laid out as a sheet right now — below the phone's edge, and marked so. */
 function laidOutAsSheet(dialog) {
     return getComputedStyle(dialog).getPropertyValue("--dialog-sheet").trim() === "1";
@@ -558,6 +571,10 @@ export function DialogFrame({
                     >
                         <FormBusy busy={busy}>{children}</FormBusy>
                     </Content>
+                    {sheet && (
+                        // The sheet's white under its foot, a screen deep (#579 — `SHEET`).
+                        <div aria-hidden="true" className={SHEET_UNDER} />
+                    )}
                 </>
             )}
         </dialog>

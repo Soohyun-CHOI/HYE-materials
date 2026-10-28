@@ -354,6 +354,31 @@ export async function run({ check, assert, log }) {
         true
     );
     check("  and it stands on the keyboard's top, which stays live", /margin-bottom: var\(--keyboard-cover\);/.test(cssOf("max-sm:mb-")), true);
+    const underClasses = frame.match(/const SHEET_UNDER = "([^"]+)";/)?.[1] ?? "";
+    const underCss = underClasses
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((t) => ds.candidatesToCss([t])[0] ?? "")
+        .join("");
+    check(
+        "  under its foot lies its white: fixed past the dialog's clip, from the line it stands on, a screen deep, below the phone's edge alone",
+        [
+            /position: fixed;/,
+            /top: calc\(100% - var\(--keyboard-cover\)\);/,
+            /height: 100dvh;/,
+            /background-color: var\(--color-white\);/,
+            /\.hidden \{\s*display: none;/,
+            /@media \(width < 40rem\) \{\s*display: block;/,
+        ]
+            .map((re) => re.test(underCss))
+            .join(" "),
+        "true true true true true true"
+    );
+    check(
+        "  drawn for a sheet alone, and taking a press as the sheet does",
+        [/\{sheet && \(\s*\/\/[^\n]*\n\s*<div aria-hidden="true" className=\{SHEET_UNDER\} \/>/.test(frame), /pointer-events-none/.test(underClasses)].join(" "),
+        "true false"
+    );
 
     const hold = readFileSync(repoPath(HOLD), "utf8");
     const bar = readFileSync(repoPath("app/components/BottomBar.js"), "utf8");
