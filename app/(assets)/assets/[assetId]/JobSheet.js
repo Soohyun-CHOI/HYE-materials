@@ -13,8 +13,10 @@ import { DialogFrame, SheetRows } from "@/app/components/DialogFrame";
  * opener but the options, the one chosen and what to do with a choice.
  *
  * IT CLOSES ON A PRESS ON WHAT LIES BEHIND IT, which 1j draws and the frame gives a sheet
- * that says so: a sheet of rows holds nothing a stray press could lose. Escape closes it,
- * as every dialog on the frame does, and focus goes back to the field that opened it.
+ * that says so: a sheet of rows holds nothing a stray press could lose. Its handle and a drag
+ * down close it, as they close every sheet that draws a handle (#580); until then its handle
+ * did nothing. Escape closes it, as every dialog on the frame does, and focus goes back to the
+ * field that opened it.
  *
  * IT OPENS ON ITS TITLE (#531), the frame's rule for a sheet holding no field: focus on its
  * first row drew that row shaded beside the chosen one whenever the browser kept a keyboard's

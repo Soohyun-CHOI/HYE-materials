@@ -1466,10 +1466,14 @@ export function run({ check, assert, log }) {
             backdrop: [
                 /onClick=\{closesOnBackdrop \? onBackdropPress : undefined\}/.test(frameSource),
                 /if \(event\.target !== dialog \|\| !laidOutAsSheet\(dialog\)\) return;/.test(frameSource),
-                /event\.clientX < box\.left \|\| event\.clientX > box\.right \|\| event\.clientY < box\.top \|\| event\.clientY > box\.bottom/.test(frameSource),
+                // Past its box is `sheetDrag.js:liesBehind`'s since #580, which a touch asks too and
+                // `offline/sheet-drag.mjs` holds by value at each edge.
+                /if \(liesBehind\(\{ x: event\.clientX, y: event\.clientY, box: dialog\.getBoundingClientRect\(\) \}\)\) ask\(\);/.test(frameSource),
                 /getPropertyValue\("--dialog-sheet"\)\.trim\(\) === "1"/.test(source),
             ].join(" "),
-            handle: /\{sheet && !confirm && \(/.test(frameSource),
+            // The handle is drawn for a sheet that does not confirm, the one condition the drag
+            // takes too (#580).
+            handle: /const handled = sheet && !confirm;/.test(frameSource) && /\{handled && \(/.test(frameSource),
             noClose: /items-center max-sm:in-data-\[sheet\]:hidden/.test(frameSource),
             confirm: [/const confirm = recordId !== undefined;/.test(frameSource), /"font-id text-body-sm tracking-id text-foreground-default /.test(frameSource)].join(" "),
             done: /\{done \? \(/.test(frameSource) && /onClick=\{busy \? undefined : done\.onPress\}/.test(frameSource),

@@ -37,7 +37,8 @@ import { ASSET_TRANSITION_COPY as COPY, matchedPart, namesAreRecent } from "@/li
  * names on (`textMatchKey`). The heading names the recent list, so it stands only while
  * nothing is typed, and a typed fragment's match in each row is set at 600 (1j, #495).
  *
- * IT CLOSES ON A PRESS ON WHAT LIES BEHIND IT AND ON ITS HANDLE, both of which 1j draws.
+ * IT CLOSES ON A PRESS ON WHAT LIES BEHIND IT AND ON ITS HANDLE, both of which 1j draws, and
+ * on a drag down — the frame's, for every sheet that draws a handle (#580).
  */
 export default function NameSheet({ open, onClose, value, onChange, names, jobChosen, hasRecent }) {
     const typed = textMatchKey(value);
@@ -49,7 +50,6 @@ export default function NameSheet({ open, onClose, value, onChange, names, jobCh
             title={COPY.checkedOutToLabel}
             sheet
             closesOnBackdrop
-            onHandlePress={onClose}
             done={{ label: COPY.sheetDone, onPress: onClose }}
         >
             <div className="flex min-h-0 flex-col">
