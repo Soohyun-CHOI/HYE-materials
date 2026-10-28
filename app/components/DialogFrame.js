@@ -6,6 +6,7 @@ import { DIALOG_FRAME_COPY as COPY, focusLost } from "@/lib/dialogFrame";
 import { ButtonLabel, FormBusy, Refusal } from "./Controls";
 import Icon from "./Icon";
 import { SCROLL_LANE } from "./scrollLane";
+import { watchSheet } from "./sheetHold";
 import useKeyboardCover from "./useKeyboardCover";
 
 /*
@@ -99,6 +100,12 @@ import useKeyboardCover from "./useKeyboardCover";
  * the frame is a desk's. The frame marks the dialog `data-sheet` — `drawer` or `confirm` —
  * and what it holds takes its phone sizes from `max-sm:in-data-[sheet]:` classes, so CSS
  * decides both conditions and none of it is a second account of the phone's edge.
+ *
+ * A SHEET HOLDS STILL WHILE IT IS OPEN, AND SO DOES THE PAGE BEHIND IT (#579). While a dialog
+ * marked `sheet` is laid out as one, `sheetHold.js` holds the page where it was — no scroll,
+ * no pull, no pan of the view moving it — and reads the sheet's height and foot once the page
+ * is held, again only as the width changes or the keyboard comes or goes. A dialog at a desk's
+ * width holds nothing and reads nothing, and a phone turned on its side lets the page go.
  *
  * 1j's THREE SHEETS ARE PARTS ON THIS FRAME, built to be opened as they are. The job sheet
  * and the name sheet beside the asset page, and the retirement's Confirm, close on a
@@ -256,15 +263,36 @@ const WITH_PREVIEW =
  * at 24%. `--dialog-sheet` is how a press on the backdrop learns which layout it is in.
  *
  * IT STANDS ON A KEYBOARD THAT COVERS THE PAGE (#568), as 1j draws the name sheet: its foot
- * is `--keyboard-cover` above the screen's (`useKeyboardCover.js`), and it is that much
- * shorter at most. Where the browser shrinks the page for its keyboard instead the cover is
- * 0 and the screen's foot is already above the keyboard; Safari covers, and until #568 a
- * sheet's field could raise a keyboard over the sheet holding it.
+ * is `--keyboard-cover` above the screen's (`useKeyboardCover.js`), and it is the keyboard's
+ * height shorter at most. Where the browser shrinks the page for its keyboard instead the
+ * cover is 0 and the screen's foot is already above the keyboard; Safari covers, and until
+ * #568 a sheet's field could raise a keyboard over the sheet holding it.
+ *
+ * ITS HEIGHT AND ITS FOOT ARE READ AS IT OPENS, NOT FOLLOWED (#579): `--sheet-screen` is the
+ * screen's height less the keyboard's and `--sheet-safe-area` the safe area at its foot, both
+ * read by `sheetHold.js:watchSheet` once the page is held and again only as the width changes
+ * or the keyboard comes or goes. Until then the height was `100dvh` and the foot the live safe
+ * area, which move with the browser's bars, less the cover, which moved with every scroll of
+ * the view. The `100dvh` and the safe area in the fallbacks are what the first frame takes
+ * before the read, and what a sheet laid out at a desk's width never reads.
  */
 const SHEET =
-    "max-sm:mx-0 max-sm:mt-auto max-sm:mb-(--keyboard-cover) max-sm:max-h-[calc(100dvh-2*var(--spacing-dialog-gutter)-var(--keyboard-cover))] max-sm:max-w-none max-sm:rounded-t-mobile-drawer max-sm:rounded-b-none max-sm:px-0 max-sm:pt-0 " +
-    "max-sm:pb-[calc(var(--spacing-mobile-drawer-inset-bottom)+env(safe-area-inset-bottom))] max-sm:shadow-mobile-drawer " +
+    "max-sm:mx-0 max-sm:mt-auto max-sm:mb-(--keyboard-cover) max-sm:max-h-[calc(var(--sheet-screen,100dvh)-2*var(--spacing-dialog-gutter))] max-sm:max-w-none max-sm:rounded-t-mobile-drawer max-sm:rounded-b-none max-sm:px-0 max-sm:pt-0 " +
+    "max-sm:pb-[calc(var(--spacing-mobile-drawer-inset-bottom)+var(--sheet-safe-area,env(safe-area-inset-bottom)))] max-sm:shadow-mobile-drawer " +
     "max-sm:backdrop:bg-mobile-drawer-overlay max-sm:[--dialog-sheet:1]";
+
+/**
+ * What lies under a sheet's foot below the phone's edge (#579): the sheet's own white, from
+ * its foot down a screen's height, so whatever opens there shows the sheet and not the page.
+ * A keyboard coming, going or panning the view moves before the sheet is told where it is, and
+ * for that while it opened a band under the foot that showed the page through: seen on a phone.
+ * It starts on the line the sheet stands on, `--keyboard-cover` above the screen's foot, and
+ * the two move in one render. Fixed, so the dialog's clip does not cut it — a fixed box's
+ * containing block is the viewport, not the dialog — and while the sheet sits where it should
+ * it lies under the keyboard or past the screen's foot. A press on it is a press on the sheet,
+ * not on what lies behind.
+ */
+const SHEET_UNDER = "fixed inset-x-0 top-[calc(100%-var(--keyboard-cover))] hidden h-dvh bg-white max-sm:block";
 
 /** Whether a dialog is laid out as a sheet right now — below the phone's edge, and marked so. */
 function laidOutAsSheet(dialog) {
@@ -322,7 +350,30 @@ export function DialogFrame({
     const openerRef = useRef(null);
     const titleRef = useRef(null);
     const titleId = useId();
-    const { cover } = useKeyboardCover();
+    const { cover, pan } = useKeyboardCover();
+    // The sheet's height and foot as last read (`--sheet-screen`, `--sheet-safe-area`), and
+    // what holds the page behind it (#579 — `sheetHold.js`).
+    const [sheetSize, setSheetSize] = useState(null);
+    const sheetWatchRef = useRef(null);
+
+    // While a sheet is open the page behind it is held, and then its height and foot are read
+    // (#579). Before the opening below, so the page is held before a field takes focus and its
+    // keyboard comes; and its release runs before a closing hands focus back.
+    useLayoutEffect(() => {
+        const dialog = dialogRef.current;
+        if (!open || !sheet || !dialog) return undefined;
+        const watch = watchSheet(window, document, { isSheet: () => laidOutAsSheet(dialog), onSize: setSheetSize });
+        sheetWatchRef.current = watch;
+        return () => {
+            sheetWatchRef.current = null;
+            watch.stop();
+        };
+    }, [open, sheet]);
+
+    // The held page goes back where the keyboard moved the view from (#579).
+    useLayoutEffect(() => {
+        sheetWatchRef.current?.pan(pan);
+    }, [pan, open]);
 
     useLayoutEffect(() => {
         const dialog = dialogRef.current;
@@ -487,7 +538,14 @@ export function DialogFrame({
                 if (open) onClose();
             }}
             onClick={closesOnBackdrop ? onBackdropPress : undefined}
-            style={sheet ? { "--keyboard-cover": `${cover}px` } : undefined}
+            style={
+                sheet
+                    ? {
+                          "--keyboard-cover": `${cover}px`,
+                          ...(sheetSize && { "--sheet-screen": `${sheetSize.screen}px`, "--sheet-safe-area": `${sheetSize.safeArea}px` }),
+                      }
+                    : undefined
+            }
             className={`${DIALOG} ${withPreview ? WITH_PREVIEW : `${wide ? WIDTH.search : WIDTH.compact} ${fixed ? FIXED : COMPACT}`}${sheet ? ` ${SHEET}` : ""}`}
         >
             {open && (
@@ -513,6 +571,10 @@ export function DialogFrame({
                     >
                         <FormBusy busy={busy}>{children}</FormBusy>
                     </Content>
+                    {sheet && (
+                        // The sheet's white under its foot, a screen deep (#579 — `SHEET`).
+                        <div aria-hidden="true" className={SHEET_UNDER} />
+                    )}
                 </>
             )}
         </dialog>

@@ -20,8 +20,10 @@
 //      `pointer-coarse:text-mobile-body`, or that sets nothing under 16 — and Tailwind sorts
 //      the touch size after every size beside it, so it is the one that holds.
 //   4. A KEYBOARD THAT COVERS THE PAGE LIFTS THE BAR AND THE SHEET ALIKE, and only while
-//      something takes typing on a page nobody has zoomed: `keyboardViewport.js`'s two
-//      judgments by value, and both readers taking them through one hook.
+//      something takes typing on a page nobody has zoomed: `keyboardViewport.js`'s
+//      judgments by value, and both readers taking them through one hook. A sheet's height
+//      takes the keyboard off the screen it reads as it opens (#579), which
+//      `offline/sheet-still.mjs` holds.
 //   5. NO FACE IS SWAPPED IN LATE. Every `next/font` call in `app/faces/` is `optional`.
 //
 // WHAT IT CANNOT SEE. Whether a phone honors any of it: that WebKit stops its root's bounce
@@ -349,17 +351,17 @@ export async function run({ check, assert, log }) {
     const readers = files.filter((rel) => [...importedPairs(rel, parsed.get(rel))].includes(`${hook}::default`));
     check("  the bar and the sheet read it through the one hook", readers.join(" | "), "app/components/BottomBar.js | app/components/DialogFrame.js");
     check(
-        "  which reads both judgments",
-        ["keyboardCover", "takesTyping"].map((name) => [...importedPairs(hook, parsed.get(hook))].includes(`app/components/keyboardViewport.js::${name}`)).join(" "),
-        "true true"
+        "  which reads its judgments: the cover, the pan and what counts as typing",
+        ["keyboardCover", "keyboardPan", "isTyping"].map((name) => [...importedPairs(hook, parsed.get(hook))].includes(`app/components/keyboardViewport.js::${name}`)).join(" "),
+        "true true true"
     );
     const frameSheet = fragmentsOf(moduleConstants(parsed.get("app/components/DialogFrame.js")).get("SHEET"), new Map()).join(" ");
     check(
-        "  the bar stands on the cover, and a sheet does too and is that much shorter at most",
+        "  the bar stands on the cover, and a sheet does too, its height the screen it read (#579)",
         [
             stringTokens(parsed.get(BOTTOM_BAR)).has("max-sm:bottom-(--keyboard-cover)"),
             tokensOf(frameSheet).includes("max-sm:mb-(--keyboard-cover)"),
-            tokensOf(frameSheet).some((t) => t.startsWith("max-sm:max-h-[") && t.includes("-var(--keyboard-cover))]")),
+            tokensOf(frameSheet).some((t) => t.startsWith("max-sm:max-h-[") && t.includes("var(--sheet-screen,100dvh)")),
         ].join(" "),
         "true true true"
     );

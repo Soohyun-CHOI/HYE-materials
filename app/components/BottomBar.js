@@ -60,6 +60,8 @@ const BAR_STACK = {
  * draws this asks for that (`keyboardViewport.js`), the asset page only since #495,
  * though this said both did from #463 — and one that covers the page instead reports how far
  * it covers, which the bar is lifted by (`useKeyboardCover.js`, which a sheet reads too).
+ * **Only the page's keyboard (#579)**: one a field in an open dialog raised is the dialog's,
+ * and the bar, on the page behind the sheet, holds its place under it.
  *
  * **A SCROLL THAT MEETS THE PAGE'S END DOES NOT MOVE IT (#568).** Below the phone's edge the
  * document scrolls, and a phone stretches or bounces it past either end; the bar is sticky at
@@ -81,7 +83,7 @@ const BAR_STACK = {
 export default function BottomBar({ stack = "form", bleed = true, phoneOnly = false, children }) {
     const markRef = useRef(null);
     const barRef = useRef(null);
-    const { cover, keyboard } = useKeyboardCover();
+    const { cover, keyboard } = useKeyboardCover({ onPage: true });
     const under = useRunsUnder(markRef, barRef);
     return (
         <>

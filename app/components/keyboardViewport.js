@@ -13,7 +13,7 @@
  *
  * A PLAIN MODULE AND NOT THE BAR'S, because `BottomBar.js` is a client module, and what a
  * client module exports reaches a Server Component as a reference rather than as its value.
- * It imports nothing, so the offline tier calls the two judgments below as they are.
+ * It imports nothing, so the offline tier calls the judgments below as they are.
  */
 export const KEYBOARD_VIEWPORT = { interactiveWidget: "resizes-content" };
 
@@ -42,6 +42,18 @@ export function takesTyping(element) {
 const UNZOOMED = 0.01;
 
 /**
+ * Whether focus on an element counts as typing for what stands on a keyboard: a phone's
+ * pointer (`coarse`) and an element that takes typing. `onPage` is the foot bar's question,
+ * which stands on the page behind any dialog: a keyboard a field in an open dialog raised
+ * is the dialog's (#579), so the bar under a sheet holds its place while the sheet's field is
+ * typed in, where until then it rode that keyboard up behind the sheet.
+ */
+export function isTyping({ coarse, element, onPage = false }) {
+    if (!coarse || !takesTyping(element)) return false;
+    return !onPage || !element.closest?.("dialog[open]");
+}
+
+/**
  * How far a phone's keyboard covers the page from below, in px: the layout viewport's
  * height less the visual viewport's, less how far the visual viewport stands below the
  * layout viewport's top. A browser that shrinks the page for its keyboard shrinks both, and
@@ -51,8 +63,34 @@ const UNZOOMED = 0.01;
  * opens with no keyboard at all: a pinch, or Safari zooming a field smaller than 16 as it
  * takes focus, shrinks the visual viewport by the zoom, and its top moves as the zoomed view
  * pans. Until #568 the bar was lifted by any of them and drew its keyboard room.
+ *
+ * IT IS THE KEYBOARD'S HEIGHT LESS THE PAN (#579), the two below: where on the screen the
+ * keyboard's top is, which is where a sheet stands, and which a pan of the view moves.
  */
 export function keyboardCover({ layoutHeight, viewportHeight, viewportTop, scale, typing }) {
+    return Math.max(0, keyboardHeight({ layoutHeight, viewportHeight, scale, typing }) - keyboardPan({ viewportTop, scale, typing }));
+}
+
+/**
+ * How tall a keyboard that covers the page is, in px: the layout viewport's height less the
+ * visual viewport's, on the same terms as the cover. A pan of the view does not change it,
+ * which is why a sheet takes its height from this and not from the cover (#579): the cover
+ * also moved with every scroll of the visual viewport, so a sheet's height did too.
+ */
+export function keyboardHeight({ layoutHeight, viewportHeight, scale, typing }) {
     if (!typing || Math.abs(scale - 1) > UNZOOMED) return 0;
-    return Math.max(0, Math.round(layoutHeight - viewportHeight - viewportTop));
+    return Math.max(0, Math.round(layoutHeight - viewportHeight));
+}
+
+/**
+ * How far the browser has moved the view down over the page while a keyboard is up, in px
+ * (#579): the visual viewport's top below the layout viewport's. Safari pans the view so a
+ * field the keyboard would cover shows, and everything placed on the layout viewport — the
+ * page held behind a sheet, the sheet itself — moves up the screen by this much unless it is
+ * put back. On the cover's terms, so a pinch's pan and a stale top with no keyboard up count
+ * for nothing.
+ */
+export function keyboardPan({ viewportTop, scale, typing }) {
+    if (!typing || Math.abs(scale - 1) > UNZOOMED) return 0;
+    return Math.max(0, Math.round(viewportTop));
 }
