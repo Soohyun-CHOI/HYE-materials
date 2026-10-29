@@ -19,7 +19,8 @@ import { updateAssetNoteAction } from "./actions";
  *
  * AT A DESK THE OPENER STANDS BESIDE THE NOTE, ON A PHONE THE LINE IS THE OPENER. 1f draws
  * `Edit` after the note, an Inline control 8 after it, and `Add note` in Accent with its plus
- * mark where no note is; 0a makes the phone's whole line the target, at least 48 tall and
+ * mark where no note is — under the pointer `Edit` fills at Hover and `Add note` takes the Face,
+ * its word and mark in Accent hover, as the files of 2026-10-27 draw it (#584); 0a makes the phone's whole line the target, at least 48 tall and
  * reaching 12 past the text either side, washed while pressed at the phone's Radius. Each
  * width opens its own: the desk's dialog (1f) and the phone's sheet over the keyboard
  * (1j-b2), each inside the part of the page only its width draws, so the frame closes one
@@ -101,7 +102,7 @@ export default function AssetNote({ assetId, note, writable }) {
                     <button
                         type="button"
                         onClick={() => open("desk")}
-                        className="-my-[calc((var(--height-control-inline)-var(--text-body--line-height))/2)] -mr-control-inline-inset-x -ml-note-add-bleed-left inline-flex h-control-inline items-center gap-note-add-gap rounded-control pr-control-inline-inset-x pl-note-add-bleed-left text-body-sm font-semibold text-primary hover:bg-hover"
+                        className="-my-[calc((var(--height-control-inline)-var(--text-body--line-height))/2)] -mr-control-inline-inset-x -ml-note-add-bleed-left inline-flex h-control-inline items-center gap-note-add-gap rounded-control pr-control-inline-inset-x pl-note-add-bleed-left text-body-sm font-semibold text-primary hover:bg-selected hover:text-primary-hover"
                     >
                         <Icon name="plus" className="size-icon-sm shrink-0" />
                         {COPY.addNote}
