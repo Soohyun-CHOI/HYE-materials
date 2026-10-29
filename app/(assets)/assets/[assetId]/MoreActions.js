@@ -5,7 +5,7 @@ import { ButtonLabel } from "@/app/components/Controls";
 import Icon from "@/app/components/Icon";
 import { ActionMenu } from "@/app/components/Menu";
 import { useTooltip } from "@/app/components/Tooltip";
-import { menuButtonKey } from "@/lib/controls";
+import { clickFromKeys, menuButtonKey } from "@/lib/controls";
 import { NAVIGATION_COPY } from "@/lib/navigation";
 import { ASSET_EVENT } from "@/lib/assetStatus";
 import { ASSET_COPY } from "@/lib/assetView";
@@ -64,6 +64,7 @@ export default function MoreActions({ phone = false, account = null }) {
     const busy = Boolean(transition?.repairPending);
     const [open, setOpen] = useState(false);
     const [focusOn, setFocusOn] = useState("first");
+    const [keyed, setKeyed] = useState(false);
     const buttonRef = useRef(null);
     const id = useId();
     const tip = useTooltip({ enabled: !phone, placement: "above" });
@@ -72,9 +73,10 @@ export default function MoreActions({ phone = false, account = null }) {
     const menuId = `${id}-more-menu`;
     const formId = `${id}-sign-out`;
 
-    const openOn = (where) => {
+    const openOn = (where, byKey) => {
         tip.hide();
         setFocusOn(where);
+        setKeyed(byKey);
         setOpen(true);
     };
     const close = (how) => {
@@ -95,16 +97,16 @@ export default function MoreActions({ phone = false, account = null }) {
                 aria-busy={busy || undefined}
                 aria-disabled={busy || undefined}
                 data-busy={busy || undefined}
-                onClick={() => {
+                onClick={(event) => {
                     if (busy) return;
                     if (open) close("toggle");
-                    else openOn("first");
+                    else openOn("first", clickFromKeys(event));
                 }}
                 onKeyDown={(event) => {
                     const where = menuButtonKey(event);
                     if (!where || open || busy) return;
                     event.preventDefault();
-                    openOn(where);
+                    openOn(where, true);
                 }}
                 {...(open ? {} : tip.targetProps(word))}
                 className={
@@ -124,6 +126,7 @@ export default function MoreActions({ phone = false, account = null }) {
                 labelledBy={buttonId}
                 look="record"
                 focusOn={focusOn}
+                keyed={keyed}
                 items={[
                     ...(maySendForRepair
                         ? [
