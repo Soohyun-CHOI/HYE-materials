@@ -17,8 +17,8 @@ import { KEYBOARD_VIEWPORT } from "@/app/components/keyboardViewport";
 import TopBar from "@/app/components/TopBar";
 import { QR_SIDE_MODULES, buildAssetLabel } from "@/lib/assetLabelQR";
 import { ASSET_LABEL_PAGE_COPY as LABEL_COPY, labelBudget, symbolBox } from "@/lib/assetLabelPage";
-import { ASSET_LIST_COPY, assetListScope } from "@/lib/assetListView";
-import { ASSET_CATEGORIES_PATH, labelCodeFor, assetPath, assetCategoryPath } from "@/lib/assetRoutes";
+import { ASSET_LIST_COPY, assetListScope, listJobFromAsset } from "@/lib/assetListView";
+import { ASSET_CATEGORIES_PATH, labelCodeFor, assetPath, assetCategoriesPath, assetCategoryPath } from "@/lib/assetRoutes";
 import { ASSET_EVENT } from "@/lib/assetStatus";
 import { ASSET_TRANSITION_COPY as TRANSITION_COPY, planTransition } from "@/lib/assetTransition";
 import { withOpsLabel } from "@/lib/airtableOps";
@@ -247,10 +247,10 @@ async function renderAssetPage({ params }) {
     const transition = planTransition({ user, jobs, status: asset.status });
     // The jobs this reader's lists hold, the same judgment the lists read by (#509): with more
     // than one, the breadcrumb names the asset's job as a level they may change (#519), and the
-    // category's level carries it when it is one of theirs.
+    // list's level and the category's carry it when it is one of theirs (#581).
     const scope = assetListScope(user, jobs, null);
     const choosesJob = scope.jobs.length > 1;
-    const jobInScope = choosesJob && scope.jobs.some((each) => each.id === asset.job?.[0]) ? asset.job[0] : null;
+    const listJob = listJobFromAsset(scope, asset);
     // Whether this reader prints labels (#506) — the question `planTransition` asked above,
     // asked of the one control outside the transition.
     const recorder = isSiteManager(user);
@@ -315,11 +315,11 @@ async function renderAssetPage({ params }) {
                     stands between the list and the category (1f, #519), a level that takes them
                     to the category's list on another job, or on `All jobs` (#548) — it holds the
                     asset's job whatever list it was opened from, since the address carries none —
-                    and the category's level carries the asset's job when the reader may narrow
-                    to it. */}
+                    and the list's level and the category's carry the asset's job when the reader
+                    may narrow to it (#581). */}
                 <Breadcrumb
                     levels={[
-                        { label: ASSET_LIST_COPY.heading, href: ASSET_CATEGORIES_PATH },
+                        { label: ASSET_LIST_COPY.heading, href: assetCategoriesPath(1, listJob) },
                         ...(category && choosesJob
                             ? [
                                   {
@@ -336,7 +336,7 @@ async function renderAssetPage({ params }) {
                                   },
                               ]
                             : []),
-                        ...(category ? [{ label: category.itemName, href: assetCategoryPath(category.id, 1, [], { job: jobInScope }) }] : []),
+                        ...(category ? [{ label: category.itemName, href: assetCategoryPath(category.id, 1, [], { job: listJob }) }] : []),
                     ]}
                     current={labelCodeFor(asset.assetId)}
                     phone={false}
