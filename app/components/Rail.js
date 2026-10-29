@@ -253,7 +253,9 @@ export default function Rail({ account, children }) {
                                 <li key={section.key}>
                                     {/* The row is clipped at its own edge, so a collapsed rail shows the
                                         icon and keeps the word as the link's name; the current section
-                                        sits on the Face, its icon in Accent (0c). */}
+                                        sits on the Face, its icon in Accent and, expanded, its word in
+                                        Ink at every row's 500, as the files of 2026-10-27 set it (0c,
+                                        #584). */}
                                     <Link
                                         href={section.href}
                                         aria-label={word}
@@ -264,7 +266,7 @@ export default function Rail({ account, children }) {
                                             closePanel();
                                         }}
                                         {...tip.targetProps(word)}
-                                        className="group/row flex h-control items-center gap-nav-gap overflow-hidden rounded-control pr-control-inset-x pl-[calc((var(--height-control)-var(--size-icon))/2)] text-body font-medium text-foreground-subtle group-data-expanded:text-foreground-muted data-current:bg-selected data-current:text-primary group-data-expanded:data-current:font-semibold group-data-expanded:data-current:text-foreground-default not-data-current:hover:bg-hover not-data-current:hover:text-foreground-default"
+                                        className="group/row flex h-control items-center gap-nav-gap overflow-hidden rounded-control pr-control-inset-x pl-[calc((var(--height-control)-var(--size-icon))/2)] text-body font-medium text-foreground-subtle group-data-expanded:text-foreground-muted data-current:bg-selected data-current:text-primary group-data-expanded:data-current:text-foreground-default not-data-current:hover:bg-hover not-data-current:hover:text-foreground-default"
                                     >
                                         <Icon name={SECTION_ICONS[section.key]} className="size-icon shrink-0 group-data-current/row:text-primary" />
                                         <span className="whitespace-nowrap">{word}</span>
