@@ -82,8 +82,9 @@ they choose — `All jobs` stood first from #519 until #520 stood every list on
 one job, and stands first again since #548, taking them to the category's list
 on all of them; the level itself always names the asset's job, whatever list the
 asset was opened from, since its address carries none and the asset is on one
-job. The category's own level carries the asset's job when it is one of
-theirs, and the category's list otherwise stands on the first of them. That is what the seven dropped characters were worth:
+job. `Tools & Equipment` and the category's own level carry the asset's job
+when it is one of theirs (#581), and either list otherwise stands on the first
+of them. That is what the seven dropped characters were worth:
 every asset carries them, so they confirmed nothing, and what is left on the
 sticker is exactly the part that tells one asset from another. **A design
 may not close the gap by shortening the id** — this screen names a record and

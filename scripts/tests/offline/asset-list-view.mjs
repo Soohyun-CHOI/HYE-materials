@@ -83,10 +83,11 @@ import {
     toggleAsset,
     assetListScope,
     assetCategoriesInScope,
+    listJobFromAsset,
     pagerPosition,
 } from "../../../lib/assetListView.js";
 import { MAX_LABELS_PER_REQUEST } from "../../../lib/assetLabelPage.js";
-import { ALL_JOBS, ASSET_SORT, LIST_SORTS, readAssetIds, readSort } from "../../../lib/assetRoutes.js";
+import { ALL_JOBS, ASSET_SORT, LIST_SORTS, assetCategoriesPath, assetCategoryPath, readAssetIds, readSort } from "../../../lib/assetRoutes.js";
 import { FILTERED_LISTS, axesFor } from "../../../lib/listFilters.js";
 import { listJsFiles, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
@@ -455,6 +456,130 @@ function allJobs548({ check, log }) {
     log("");
 }
 
+/** The asset's own page, whose breadcrumb #581 reads off the AST. */
+const ASSET_SCREEN = "app/(assets)/assets/[assetId]/page.js";
+
+/** What a page binds `listJobFromAsset` to, `name = call` as written, each binding once. */
+function listJobBindings(parsed) {
+    const found = [];
+    walk(parsed.ast, (n) => {
+        if (n.type === "VariableDeclarator" && n.init?.type === "CallExpression" && n.init.callee?.name === "listJobFromAsset") {
+            found.push(`${n.id.name} = ${parsed.source.slice(n.init.start, n.init.end)}`);
+        }
+    });
+    return found.join(" | ");
+}
+
+/** Each `href` a `<Breadcrumb>`'s levels are handed, as written and in their order; a control's level has none. */
+function crumbHrefs(parsed) {
+    const found = [];
+    walk(parsed.ast, (n) => {
+        if (n.type !== "JSXOpeningElement" || n.name?.name !== "Breadcrumb") return;
+        walk(n.attributes.find((a) => a.name?.name === "levels")?.value?.expression, (level) => {
+            if (level.type === "Property" && level.key?.name === "href") found.push(parsed.source.slice(level.value.start, level.value.end));
+        });
+    });
+    return found;
+}
+
+/**
+ * An asset's page goes back to a list on the asset's job (#581): `listJobFromAsset` by value, each
+ * address it builds followed into the scope the list it opens stands on — which is what a reader
+ * sees — and the page's two levels that lead to a list read off its source, both built from the
+ * one binding. The asset sits on a job that is not the reader's first, so carrying it and carrying
+ * none land on different lists. Called first in `run()`, so an older assertion that throws cannot
+ * keep it from printing.
+ */
+function crumbJob581({ check, log }) {
+    log("an asset's page goes back to the list on the asset's job when it is one of the reader's (#581):");
+    const JOBS = [
+        { id: "recJ2", jobCode: "26-B", assets: ["i3"] },
+        { id: "recJ3", jobCode: "26-C", assets: ["i4"] },
+        { id: "recJ1", jobCode: "26-A", assets: ["i1", "i2"] },
+    ];
+    const office = { isAdmin: true };
+    const site = { isAdmin: false, assignedJobs: ["recJ3", "recJ2"] };
+    const single = { isAdmin: false, assignedJobs: ["recJ3"] };
+    const onA = { job: ["recJ1"] };
+    const onB = { job: ["recJ2"] };
+    const onC = { job: ["recJ3"] };
+    // The scope as the page reads it: with no job asked, since its address carries none.
+    const carried = (user, asset) => listJobFromAsset(assetListScope(user, JOBS, null), asset);
+    check("the office carries the asset's job, every job being one of its", `${carried(office, onB)} ${carried(office, onC)}`, "recJ2 recJ3");
+    check("  a reader on several carries it when it is one of theirs", carried(site, onC), "recJ3");
+    check("  and none when it is not, as before", carried(site, onA), null);
+    check("  a reader on one carries none, a bare address standing on that one", carried(single, onC), null);
+    check("  nor does an asset on no job, nor a reader on none", `${carried(site, { job: [] })} ${carried(site, {})} ${carried({ isAdmin: false }, onC)}`, "null null null");
+    check(
+        "  and it is the asset's job and not the one a list was asked for, `All jobs` included",
+        `${listJobFromAsset(assetListScope(site, JOBS, "recJ2"), onC)} ${listJobFromAsset(assetListScope(site, JOBS, ALL_JOBS), onC)}`,
+        "recJ3 recJ3"
+    );
+
+    // FOLLOWED INTO THE LIST: each level's address, its `job` read as a page reads `searchParams`,
+    // and the scope the list then stands on — the asset's job, or where a bare address stands.
+    const landing = (user, asset) => {
+        const job = carried(user, asset);
+        return [assetCategoriesPath(1, job), assetCategoryPath("recGrinder", 1, [], { job })].map((address) => {
+            const asked = new URL(address, "http://localhost").searchParams.get("job") ?? undefined;
+            return `${address} → ${assetListScope(user, JOBS, asked).job?.jobCode}`;
+        });
+    };
+    check(
+        "the list's level and the category's open on the asset's job, the reader's second",
+        landing(site, onC).join(" | "),
+        "/asset-categories?job=recJ3 → 26-C | /asset-categories/recGrinder?job=recJ3 → 26-C"
+    );
+    check(
+        "  on the reader's first when the asset's job is not theirs, as a bare address does",
+        landing(site, onA).join(" | "),
+        "/asset-categories → 26-B | /asset-categories/recGrinder → 26-B"
+    );
+    check(
+        "  and on the one job of a reader on one, which is the asset's",
+        landing(single, onC).join(" | "),
+        "/asset-categories → 26-C | /asset-categories/recGrinder → 26-C"
+    );
+    check(
+        "  the office's on the asset's job, which is not its first",
+        landing(office, onB).join(" | "),
+        "/asset-categories?job=recJ2 → 26-B | /asset-categories/recGrinder?job=recJ2 → 26-B"
+    );
+
+    // OFF THE PAGE: one binding, off the reader's scope with no job asked, and both levels that
+    // lead to a list built from it — the list's through the builder a category's page builds its
+    // own first level with (`assetCategoriesPath`), the category's through its address's.
+    const page = parseFile(ASSET_SCREEN);
+    check(
+        "the asset's page binds the job once, off the reader's scope with no job asked",
+        `${listJobBindings(page)} ${/const scope = assetListScope\(user, jobs, null\);/.test(page.source)}`,
+        "listJob = listJobFromAsset(scope, asset) true"
+    );
+    check(
+        "  and its breadcrumb's two levels that lead to a list carry it",
+        crumbHrefs(page).join(" | "),
+        "assetCategoriesPath(1, listJob) | assetCategoryPath(category.id, 1, [], { job: listJob })"
+    );
+    check(
+        "  as a category's page builds its own first level, with the job its list stands on",
+        crumbHrefs(parseFile(CATEGORY_SCREEN)).join(" | "),
+        "assetCategoriesPath(1, job)"
+    );
+    // ANTI-VACUITY: a planted page whose first level carries no job and whose job is its own
+    // reading of the asset is seen doing both.
+    const planted = parseSource(
+        "const listJob = asset.job?.[0];\n" +
+            "const top = <Breadcrumb levels={[{ label: l, href: ASSET_CATEGORIES_PATH }, ...(c ? [{ label: n, href: assetCategoryPath(c.id, 1, [], { job: listJob }) }] : [])]} />;\n",
+        "<planted asset crumb>"
+    );
+    check(
+        "  a planted page with no binding and a first level carrying none is seen",
+        `${listJobBindings(planted)}|${crumbHrefs(planted).join(" | ")}`,
+        "|ASSET_CATEGORIES_PATH | assetCategoryPath(c.id, 1, [], { job: listJob })"
+    );
+    log("");
+}
+
 /**
  * Each kind's total (#569): what `readCategoryList` adds to a row once its counts are final —
  * every count but `Retired`'s — by value on one job, on all of them, under the `Job` chip and
@@ -696,6 +821,7 @@ function sort540({ check, log }) {
 }
 
 export function run({ check, assert, log }) {
+    crumbJob581({ check, log });
     sort540({ check, log });
     total569({ check, log });
     allJobs548({ check, log });
