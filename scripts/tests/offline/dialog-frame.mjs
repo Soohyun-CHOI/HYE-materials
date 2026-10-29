@@ -1067,10 +1067,13 @@ export function run({ check, assert, log }) {
         ["min-h-mobile-menu-account", "py-mobile-menu-account-inset-y", "px-mobile-menu-row-inset-x", "flex-col"].filter((t) => !menuConstant("DETAIL_ITEM").includes(t)).join(" "),
         ""
     );
-    // AN ITEM SHOWS FOCUS ONLY AS `focus-visible` (#501). Opening moves focus onto an item by
-    // script, so a look drawn on `:focus` met the press that opened the account's menu with
-    // `Sign out` already shaded, as if pointed at. `focus-visible` is the browser's word for
-    // focus the keyboard put there, so every look an item takes is read for a bare `focus:`.
+    // AN ITEM SHOWS FOCUS ONLY AS `focus-visible` (#501), AND UNDER A FINGER ONLY IN A MENU A KEY
+    // OPENED (#578). Opening moves focus onto an item by script, so a look drawn on `:focus` met
+    // the press that opened the account's menu with `Sign out` already shaded, as if pointed at.
+    // `focus-visible` is the browser's word for focus the keyboard put there, and under a finger
+    // the app's own is `in-data-keyed` (`touch-menu-rows.mjs` holds who sets it), so every look an
+    // item takes is read for a `focus:` standing outside both.
+    const keyedUnderFinger = (variants) => variants.includes("pointer-coarse") && variants.includes("in-data-keyed");
     const focusLooks = ({ ast }) => {
         const texts = [];
         const reached = new Set();
@@ -1081,37 +1084,46 @@ export function run({ check, assert, log }) {
                 if (m.type === "Literal" || m.type === "TemplateElement") reached.add(from);
             });
         walk(ast, (n) => {
-            if (n.type === "VariableDeclarator" && ["ITEM_LOOK", "DANGER_ITEM", "DETAIL_ITEM"].includes(n.id?.name) && n.init) strings(n.init, n.id.name);
+            if (n.type === "VariableDeclarator" && ["ITEM_LOOK", "ITEM_FACE", "DANGER_AT_REST", "DETAIL_ITEM"].includes(n.id?.name) && n.init) strings(n.init, n.id.name);
             if (n.type === "JSXOpeningElement" && n.attributes.some((a) => a.name?.name === "role" && a.value?.value === "menuitem"))
                 strings(n.attributes.find((a) => a.name?.name === "className")?.value ?? {}, "the item");
         });
-        const bare = texts.flatMap((t) => t.split(/\s+/)).filter((t) => t.split(":").slice(0, -1).includes("focus"));
+        const bare = texts
+            .flatMap((t) => t.split(/\s+/))
+            .filter((t) => {
+                const variants = t.split(":").slice(0, -1);
+                return variants.includes("focus") && !keyedUnderFinger(variants);
+            });
         return { bare, reached: [...reached].sort().join(" | ") };
     };
     const looks = focusLooks(menu);
     check("an item a button's menu opens on shows focus only when the keyboard put it there (#501)", looks.bare.join(" "), "");
     check(
-        "  and the plain item, the one with a detail and both destructive looks still show it then",
+        "  and under a mouse the plain item, the one with a detail and the destructive one still show it then (#578)",
         [
-            /: "hover:bg-hover focus-visible:bg-hover"/.test(menuSource),
-            /item\.detail \? "focus-visible:bg-hover active:bg-hover"/.test(menuSource),
-            /account: "hover:bg-danger-subtle hover:text-danger focus-visible:bg-danger-subtle focus-visible:text-danger"/.test(menuConstant("DANGER_ITEM")),
-            /record:\s*"hover:bg-danger-subtle hover:text-danger focus-visible:bg-danger-subtle focus-visible:text-danger /.test(menuConstant("DANGER_ITEM")),
+            /plain:\s*"not-pointer-coarse:hover:bg-hover not-pointer-coarse:focus-visible:bg-hover "/.test(menuConstant("ITEM_FACE")),
+            /item\.tone === "danger" \? `\$\{ITEM_FACE\.danger\} \$\{DANGER_AT_REST\[look\] \?\? ""\}` : ITEM_FACE\.plain/.test(menuSource),
+            /danger:\s*"not-pointer-coarse:hover:bg-danger-subtle not-pointer-coarse:hover:text-danger " \+\s*"not-pointer-coarse:focus-visible:bg-danger-subtle not-pointer-coarse:focus-visible:text-danger "/.test(
+                menuConstant("ITEM_FACE")
+            ),
         ].join(" "),
-        "true true true true"
+        "true true true"
     );
     // Anti-vacuity: the reading reaches the item's classes and the looks it reads, and sees a
-    // planted look drawn on focus — assembled while this runs, so Tailwind never builds it.
-    check("  the reading reaches the item's own classes and every look it reads", looks.reached, "DANGER_ITEM | DETAIL_ITEM | ITEM_LOOK | the item");
+    // planted look drawn on focus — assembled while this runs, so Tailwind never builds it — and
+    // one drawn on focus in a keyed menu under any hand, while the finger's keyed focus passes.
+    check("  the reading reaches the item's own classes and every look it reads", looks.reached, "DANGER_AT_REST | DETAIL_ITEM | ITEM_FACE | ITEM_LOOK | the item");
     const onFocus = ["focus", ":bg-hover"].join("");
-    const plantedLooks = focusLooks(
-        parseSource(
-            'const ITEM_LOOK = { account: "h-control" };\n' +
-                `export function ActionMenu() { return <button role="menuitem" className={"hover:bg-hover ${onFocus}"} />; }`,
-            "<planted Menu>"
-        )
-    );
-    check("  a planted item drawn on focus is seen", plantedLooks.bare.join(" "), onFocus);
+    const plantedLooks = (className) =>
+        focusLooks(
+            parseSource(
+                'const ITEM_LOOK = { account: "h-control" };\n' + `export function ActionMenu() { return <button role="menuitem" className={"hover:bg-hover ${className}"} />; }`,
+                "<planted Menu>"
+            )
+        ).bare.join(" ");
+    check("  a planted item drawn on focus is seen", plantedLooks(onFocus), onFocus);
+    check("  as is one drawn on focus in a keyed menu under any hand (#578)", plantedLooks(`in-data-keyed:${onFocus}`), `in-data-keyed:${onFocus}`);
+    check("  and one drawn on focus in a keyed menu under a finger passes (#578)", plantedLooks(`pointer-coarse:in-data-keyed:${onFocus}`), "");
     const account = parseFile(ACCOUNT);
     const [opener] = elements(account.ast, "button").filter((a) => a["aria-haspopup"] === "menu");
     assert("its opener says it opens a menu", Boolean(opener));

@@ -3,7 +3,7 @@
 import { useId, useRef, useState } from "react";
 import Icon from "./Icon";
 import { ActionMenu } from "./Menu";
-import { menuButtonKey } from "@/lib/controls";
+import { clickFromKeys, menuButtonKey } from "@/lib/controls";
 import { NAVIGATION_COPY as COPY } from "@/lib/navigation";
 
 /*
@@ -48,6 +48,7 @@ import { NAVIGATION_COPY as COPY } from "@/lib/navigation";
 export default function RailAccount({ account: words, expanded = false, tip }) {
     const [open, setOpen] = useState(false);
     const [focusOn, setFocusOn] = useState("first");
+    const [keyed, setKeyed] = useState(false);
     const buttonRef = useRef(null);
     const id = useId();
     if (!words) return null;
@@ -56,9 +57,10 @@ export default function RailAccount({ account: words, expanded = false, tip }) {
     const menuId = `${id}-account-menu`;
     const formId = `${id}-sign-out`;
 
-    const openOn = (where) => {
+    const openOn = (where, byKey) => {
         tip.hide();
         setFocusOn(where);
+        setKeyed(byKey);
         setOpen(true);
     };
     const close = (how) => {
@@ -76,12 +78,12 @@ export default function RailAccount({ account: words, expanded = false, tip }) {
                 aria-expanded={open}
                 aria-controls={open ? menuId : undefined}
                 aria-label={words.label}
-                onClick={() => (open ? close("toggle") : openOn("first"))}
+                onClick={(event) => (open ? close("toggle") : openOn("first", clickFromKeys(event)))}
                 onKeyDown={(event) => {
                     const where = menuButtonKey(event);
                     if (!where || open) return;
                     event.preventDefault();
-                    openOn(where);
+                    openOn(where, true);
                 }}
                 {...(open ? {} : tip.targetProps(words.label))}
                 className="group/account mb-[calc((var(--height-account)-var(--height-control))/2)] flex aspect-square h-control shrink-0 items-center justify-center self-start rounded-full text-foreground-default group-data-expanded:mb-0 group-data-expanded:aspect-auto group-data-expanded:h-account group-data-expanded:justify-start group-data-expanded:gap-account-gap group-data-expanded:self-stretch group-data-expanded:rounded-control group-data-expanded:pr-account-inset-right group-data-expanded:pl-[calc((var(--height-control)-var(--size-avatar))/2)] group-data-expanded:hover:bg-hover group-data-expanded:aria-expanded:bg-hover"
@@ -107,6 +109,7 @@ export default function RailAccount({ account: words, expanded = false, tip }) {
                 placement={expanded ? "above" : "beside"}
                 heading={words.email}
                 focusOn={focusOn}
+                keyed={keyed}
                 items={[{ key: "sign-out", label: COPY.account.signOut, type: "submit", form: formId }]}
                 onClose={close}
             />

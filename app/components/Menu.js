@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useId, useLayoutEffect, useRef, useState } from "react";
-import { menuButtonKey, menuIndex, menuKey, typeaheadIndex } from "@/lib/controls";
+import { clickFromKeys, menuButtonKey, menuIndex, menuKey, typeaheadIndex } from "@/lib/controls";
 import Icon from "./Icon";
 import { SCROLL_LANE } from "./scrollLane";
 
@@ -250,14 +250,28 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
  * opener's to do when `onClose("escape")` reaches it. Escape is marked handled, so a Panel
  * the menu sits in keeps its own Escape for the next press.
  *
- * AN ITEM SHOWS FOCUS ONLY AS `focus-visible` (#501). Opening moves focus onto an item by
- * script, so an item drawn on `:focus` meets the press that opened the menu already shaded,
- * as if pointed at — the account's `Sign out` did until #501. The browser marks a focus a
- * script moves visible after a key and not after a press, so a menu opened from the
- * keyboard, or walked with its keys after a press, still shows where focus is. The field
- * list's shaded option is not focus: it is the option `aria-activedescendant` names, and
- * since #522 it is drawn only once a key has put it there, the same reading of the press
- * against the keyboard (`Menu`'s `shade`).
+ * WHAT SHADES AN ITEM FOLLOWS THE HAND, NOT THE WIDTH (#501, #578), and `ITEM_FACE` below is
+ * all of it. Opening moves focus onto an item by script. Under a mouse an item shows that
+ * focus only as `focus-visible`, so a press that opened the menu meets the item at rest: drawn
+ * on `:focus`, the account's `Sign out` met the press shaded until #501. Under a finger the
+ * browser's verdict is not one to read: on a phone Safari marked the item a tap opened the menu
+ * on `focus-visible`, so the asset page's menu opened on `Send for repair` shaded, and on
+ * `Sign out` where it held nothing else (#578). So under a finger — `pointer: coarse`, as a
+ * field's 16 is (#568), and not the width, since a phone on its side is past the phone's edge
+ * and opens the desk's menu — an item takes its face while held and at no other time, but in a
+ * menu a key opened or walked, where it shows focus on `:focus`. `keyed` is the opener's word
+ * that its key opened the menu — an arrow, or Enter and Space, which reach it as a click no
+ * press is behind (`lib/controls.js:clickFromKeys`) — and every key that moves focus here says
+ * the same, which is the app's reading of the hand rather than the browser's, as the field
+ * list's shaded option is one since #522 (`Menu`'s `shade`). The size, the type and the red at
+ * rest are the phone's frame and follow the width as before.
+ *
+ * WHY SAFARI SAYS `focus-visible` THERE WAS NOT SETTLED FROM ITS SOURCE. WebKit records a press
+ * on a button that takes no focus as a click, and makes a script's focus after one invisible
+ * (webkit.org/b/236782, Safari 15.5); whether a tap on iOS reaches that path was not found. A
+ * mouse keeps the browser's verdict, since the desk was to be left as it was, and the two
+ * readings become one — `in-data-keyed:focus` for the mouse as well — once a desk browser is
+ * seen marking an item a press opened the menu on, or the design asks a mouse to read the same.
  *
  * WHERE IT OPENS IS `placement`. The account sits at the foot of the rail with no room under
  * it, so 0a's "6 under it" is 6 above while the rail is expanded, the menu as wide as the row
@@ -278,7 +292,7 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
  * from the screen's right edge and 4 under the top bar, the phone's Radius and no room of its
  * own, rows 48 with 16 inside at 17. An item of `tone: "danger"` is 0f's Destructive: red
  * on red's Face under the pointer at a desk, and red at rest on a phone, which 1j draws
- * taking the Face while held.
+ * taking the Face while held, as every item takes its face under a finger.
  *
  * AN ITEM WITH A `detail` IS THE ACCOUNT A PHONE'S MENU ENDS ON (#495, Tools 0a Menu): at
  * least 56 tall, 8 and 16 inside, its word at 17 in Ink and the detail under it at 13 in Ink 3
@@ -294,7 +308,7 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
  * as the record's is. The catalog's selection bar opened one above a 36 from #527 until #552,
  * its rows 36 and its 140 counted outside the Edge, and went with `Set class`.
  */
-export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "below", look = "account", focusOn = "first", heading, items, onClose }) {
+export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "below", look = "account", focusOn = "first", keyed = false, heading, items, onClose }) {
     const listRef = useRef(null);
     const headingId = useId();
 
@@ -331,6 +345,8 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
         };
         place();
         if (!list.matches(":popover-open")) list.showPopover();
+        // Whether a key opened it, said before focus lands so the item draws right at once.
+        list.toggleAttribute("data-keyed", keyed);
         const menuItems = list.querySelectorAll('[role="menuitem"]');
         menuItems[focusOn === "last" ? menuItems.length - 1 : 0]?.focus();
         window.addEventListener("resize", place);
@@ -339,7 +355,7 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
             window.removeEventListener("resize", place);
             document.removeEventListener("scroll", place, true);
         };
-    }, [shown, anchorRef, placement, look, focusOn]);
+    }, [shown, anchorRef, placement, look, focusOn, keyed]);
 
     const onKeyDown = (event) => {
         const action = menuKey(event);
@@ -349,6 +365,8 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
             onClose("escape");
             return;
         }
+        // A key moving focus is the keyboard at work, so the menu shows where focus is (#578).
+        listRef.current.toggleAttribute("data-keyed", true);
         const menuItems = [...listRef.current.querySelectorAll('[role="menuitem"]')];
         const current = menuItems.indexOf(document.activeElement);
         const next =
@@ -402,7 +420,7 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
                             aria-labelledby={item.detail ? labelId : undefined}
                             aria-describedby={item.detail ? detailId : undefined}
                             className={`flex w-full shrink-0 text-left outline-none ${item.detail ? DETAIL_ITEM : `items-center ${ITEM_LOOK[look]}`} ${
-                                item.tone === "danger" ? DANGER_ITEM[look] : item.detail ? "focus-visible:bg-hover active:bg-hover" : "hover:bg-hover focus-visible:bg-hover"
+                                item.tone === "danger" ? `${ITEM_FACE.danger} ${DANGER_AT_REST[look] ?? ""}` : ITEM_FACE.plain
                             }`}
                         >
                             {item.detail ? (
@@ -440,14 +458,16 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
 export function MenuButton({ label, locked = false, items }) {
     const [open, setOpen] = useState(false);
     const [focusOn, setFocusOn] = useState("first");
+    const [keyed, setKeyed] = useState(false);
     const buttonRef = useRef(null);
     const id = useId();
     const buttonId = `${id}-button`;
     const menuId = `${id}-menu`;
 
-    const openOn = (where) => {
+    const openOn = (where, byKey) => {
         if (locked) return;
         setFocusOn(where);
+        setKeyed(byKey);
         setOpen(true);
     };
     const close = (how) => {
@@ -466,12 +486,12 @@ export function MenuButton({ label, locked = false, items }) {
                 aria-controls={open ? menuId : undefined}
                 aria-label={label}
                 aria-disabled={locked || undefined}
-                onClick={() => (open ? close("toggle") : openOn("first"))}
+                onClick={(event) => (open ? close("toggle") : openOn("first", clickFromKeys(event)))}
                 onKeyDown={(event) => {
                     const where = menuButtonKey(event);
                     if (!where || open) return;
                     event.preventDefault();
-                    openOn(where);
+                    openOn(where, true);
                 }}
                 className={MENU_BUTTON_LOOK}
             >
@@ -484,6 +504,7 @@ export function MenuButton({ label, locked = false, items }) {
                 labelledBy={buttonId}
                 look="end"
                 focusOn={focusOn}
+                keyed={keyed}
                 items={items.map((item) => ({
                     ...item,
                     onSelect: () => {
@@ -543,18 +564,27 @@ const ITEM_LOOK = {
 };
 
 // The account a phone's menu ends on (Tools 0a Menu, #495): a row at least 56 tall, 8 above
-// and below and 16 either side, its word over its detail. It takes the Hover face while held,
-// as the menu's other rows do on a phone.
+// and below and 16 either side, its word over its detail. Its faces are a plain item's.
 const DETAIL_ITEM = "min-h-mobile-menu-account flex-col items-start justify-center px-mobile-menu-row-inset-x py-mobile-menu-account-inset-y";
 
-// 0f's Destructive item: red on red's Face under the pointer or the keyboard at a desk, and
-// on a phone red at rest, taking the Face while held. The keyboard's is `focus-visible`, as
-// every item's is (`ActionMenu`), so a press that opened the menu meets the item at rest, as
-// 1f draws it.
-const DANGER_ITEM = {
-    account: "hover:bg-danger-subtle hover:text-danger focus-visible:bg-danger-subtle focus-visible:text-danger",
-    record:
-        "hover:bg-danger-subtle hover:text-danger focus-visible:bg-danger-subtle focus-visible:text-danger " +
-        "max-sm:text-danger max-sm:hover:bg-transparent max-sm:focus-visible:bg-transparent max-sm:active:bg-danger-subtle",
-    end: "hover:bg-danger-subtle hover:text-danger focus-visible:bg-danger-subtle focus-visible:text-danger",
+// What shades an item, by its tone and for every look (#578): the Hover face, or 0f's
+// Destructive, red on red's Face. Under a mouse the pointer and the keyboard's `focus-visible`
+// give it, as they did before; under a finger a row takes it while held, and under focus only
+// in a menu a key opened or walked (`ActionMenu`), as 1f and 1j draw a press meeting the item
+// at rest.
+const ITEM_FACE = {
+    plain:
+        "not-pointer-coarse:hover:bg-hover not-pointer-coarse:focus-visible:bg-hover " +
+        "pointer-coarse:active:bg-hover pointer-coarse:in-data-keyed:focus:bg-hover",
+    danger:
+        "not-pointer-coarse:hover:bg-danger-subtle not-pointer-coarse:hover:text-danger " +
+        "not-pointer-coarse:focus-visible:bg-danger-subtle not-pointer-coarse:focus-visible:text-danger " +
+        "pointer-coarse:active:bg-danger-subtle pointer-coarse:active:text-danger " +
+        "pointer-coarse:in-data-keyed:focus:bg-danger-subtle pointer-coarse:in-data-keyed:focus:text-danger",
+};
+
+// A record's destructive item is red at rest on a phone (1j). That is the phone's frame rather
+// than the hand, so it follows the width, as the item's size does.
+const DANGER_AT_REST = {
+    record: "max-sm:text-danger",
 };
