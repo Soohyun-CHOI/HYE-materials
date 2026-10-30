@@ -243,7 +243,7 @@ async function byId541({ check, log }) {
     const offChip = await press(OFFICE, "job=all&job=recJ1&q=261001-003");
     check("  nor one off the jobs the Job chip takes", `${offChip.made.sheets[0].rows.length} ${offChip.made.sheets[1].rows.length}`, "0 0");
     const offReader = await press(SITE, "job=all&q=HYE-AST-261003-001");
-    check("  nor one on a job the reader may not stand on", `${offReader.made.fileName} ${offReader.made.sheets[0].rows.length}`, "Tools & Equipment - 23-USA-09 - 2026-10-22.xlsx 0");
+    check("  nor one on a job the reader may not stand on", `${offReader.made.fileName} ${offReader.made.sheets[0].rows.length}`, "Equipment & Tools - 23-USA-09 - 2026-10-22.xlsx 0");
     const sequence = await press(OFFICE, "job=all&q=205");
     check(
         "a sequence alone is searched in the names, so the kind whose name holds it is the file's",
@@ -259,7 +259,7 @@ export async function run({ check, log, assert }) {
     // ── 1: the press, by value ──────────────────────────────────────────────
     log("one press, over a fixture of three jobs and seven assets:");
     const first = await press(OFFICE, "");
-    check("the office on no job asked stands on the first by its code, and the file says so", first.made.fileName, "Tools & Equipment - 23-USA-09 - 2026-10-22.xlsx");
+    check("the office on no job asked stands on the first by its code, and the file says so", first.made.fileName, "Equipment & Tools - 23-USA-09 - 2026-10-22.xlsx");
     check("  each read asked once — the catalog, the jobs, the job's assets, the latest rows of those out", `${first.asked.categories} ${first.asked.jobs} ${first.asked.assets.map((ids) => ids.join(",")).join(" / ")} | ${first.asked.logRows.map((ids) => ids.join(",")).join(" / ")}`, "1 1 a1,a2,a5 | l2b");
     check(
         "  the first sheet is the list on that job: each kind, its type, its category, its four counts and its total",
@@ -276,7 +276,7 @@ export async function run({ check, log, assert }) {
     check("  and the two sheets agree", agreement(first.made.sheets), "agree");
 
     const all = await press(OFFICE, "job=all");
-    check("on all of the office's jobs the file is named for all of them", all.made.fileName, "Tools & Equipment - All jobs - 2026-10-22.xlsx");
+    check("on all of the office's jobs the file is named for all of them", all.made.fileName, "Equipment & Tools - All jobs - 2026-10-22.xlsx");
     check(
         "  the first sheet holds every kind with an asset on any, by name, and none with nothing",
         rowsSaid(all.made.sheets[0]),
@@ -316,14 +316,14 @@ export async function run({ check, log, assert }) {
     check("  and the two sheets agree", agreement(narrowed.made.sheets), "agree");
 
     const second = await press(OFFICE, "job=recJ2");
-    check("the office asking for another of its jobs stands on it, and the file says which", second.made.fileName, "Tools & Equipment - 25-USA-13 - 2026-10-22.xlsx");
+    check("the office asking for another of its jobs stands on it, and the file says which", second.made.fileName, "Equipment & Tools - 25-USA-13 - 2026-10-22.xlsx");
     check("  holding that job's assets alone", second.made.sheets[1].rows.map((row) => row[0]).join(" "), "HYE-AST-261001-003 HYE-AST-261004-001 HYE-AST-261002-001");
 
     const elsewhere = await press(SITE, "job=recJ2");
-    check("a site reader asking for a job off theirs is answered with theirs, and the file says which", elsewhere.made.fileName, "Tools & Equipment - 23-USA-09 - 2026-10-22.xlsx");
+    check("a site reader asking for a job off theirs is answered with theirs, and the file says which", elsewhere.made.fileName, "Equipment & Tools - 23-USA-09 - 2026-10-22.xlsx");
     check("  holding that job's assets alone", elsewhere.made.sheets[1].rows.map((row) => row[0]).join(" "), "HYE-AST-261001-002 HYE-AST-261001-001 HYE-AST-261002-002");
     check("  and no other job's asset is read for them", elsewhere.asked.assets.map((ids) => ids.join(",")).join(" / "), "a1,a2,a5");
-    check("  nor on all of them, which a reader on one job is answered as any value not offered", (await press(SITE, "job=all")).made.fileName, "Tools & Equipment - 23-USA-09 - 2026-10-22.xlsx");
+    check("  nor on all of them, which a reader on one job is answered as any value not offered", (await press(SITE, "job=all")).made.fileName, "Equipment & Tools - 23-USA-09 - 2026-10-22.xlsx");
 
     // ANTI-VACUITY for the agreement: a pair whose counts and items part is told apart.
     check(
@@ -344,13 +344,13 @@ export async function run({ check, log, assert }) {
     check("a band that empties the list gives both sheets with their heads alone", `${emptied.made.sheets[0].rows.length} ${emptied.made.sheets[1].rows.length}`, "0 0");
 
     const west = await press(OFFICE, "", { timeZone: "America/Los_Angeles", now: new Date("2026-10-22T05:00:00.000Z") });
-    check("a day is the reader's: the evening of the 21st in Los Angeles, the file named for it", `${said(west.made.sheets[1].rows[0][11])} ${west.made.fileName}`, "10/21/2026 Tools & Equipment - 23-USA-09 - 2026-10-21.xlsx");
+    check("a day is the reader's: the evening of the 21st in Los Angeles, the file named for it", `${said(west.made.sheets[1].rows[0][11])} ${west.made.fileName}`, "10/21/2026 Equipment & Tools - 23-USA-09 - 2026-10-21.xlsx");
     check("  and a zone the runtime does not know is read as UTC", `${knownTimeZone("Mars/Olympus")} ${knownTimeZone("")} ${knownTimeZone("Asia/Seoul")}`, "UTC UTC Asia/Seoul");
 
     // ── 2: the heads and the words ──────────────────────────────────────────
     log("");
     log("the sheets say the screens' words:");
-    check("the sheets are the list's heading and its items", first.made.sheets.map((sheet) => sheet.name).join(" | "), "Tools & Equipment | Items");
+    check("the sheets are the list's heading and its items", first.made.sheets.map((sheet) => sheet.name).join(" | "), "Equipment & Tools | Items");
     check("  the first's heads are 1a's, the total last (#569)", first.made.sheets[0].columns.map((c) => c.header).join(" | "), "Name | Type | Category | In stock | Out | In repair | Retired | Total");
     check(
         "  the second's 1d's and the catalog's",
@@ -379,7 +379,7 @@ export async function run({ check, log, assert }) {
         Object.keys(parts).join(" | "),
         "[Content_Types].xml | _rels/.rels | xl/workbook.xml | xl/_rels/workbook.xml.rels | xl/styles.xml | xl/worksheets/sheet1.xml | xl/worksheets/sheet2.xml"
     );
-    check("  the two sheets named in order, the ampersand escaped", [...parts["xl/workbook.xml"].matchAll(/<sheet name="([^"]*)"/g)].map((m) => m[1]).join(" | "), "Tools &amp; Equipment | Items");
+    check("  the two sheets named in order, the ampersand escaped", [...parts["xl/workbook.xml"].matchAll(/<sheet name="([^"]*)"/g)].map((m) => m[1]).join(" | "), "Equipment &amp; Tools | Items");
     check("  and no part holds a formula", Object.values(parts).filter((xml) => /<f[\s>]/.test(xml)).length, 0);
     const styles = cellStyles(parts["xl/styles.xml"]);
     const quoted = styles.map((xf, index) => (/quotePrefix="1"/.test(xf) ? index : null)).filter((index) => index !== null);

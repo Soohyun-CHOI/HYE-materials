@@ -74,7 +74,7 @@ catalog.
 confirmation still works (#411).** The label prints `260909-004` where the page
 reads `HYE-AST-260909-004`, so what a reader matches is the end of the id rather
 than the whole of it — and at a desk the breadcrumb above the heading ends on
-the printed code itself: `Tools & Equipment / DEMO Angle Grinder 4-1/2" /
+the printed code itself: `Equipment & Tools / DEMO Angle Grinder 4-1/2" /
 260909-004`. **For a reader on more than one job the path names the job the asset
 is on between the list and the category** (1f, #519), a level that opens the
 reader's jobs by their code and takes them to the category's list on the one
@@ -82,7 +82,7 @@ they choose — `All jobs` stood first from #519 until #520 stood every list on
 one job, and stands first again since #548, taking them to the category's list
 on all of them; the level itself always names the asset's job, whatever list the
 asset was opened from, since its address carries none and the asset is on one
-job. `Tools & Equipment` and the category's own level carry the asset's job
+job. `Equipment & Tools` and the category's own level carry the asset's job
 when it is one of theirs (#581), and either list otherwise stands on the first
 of them. That is what the seven dropped characters were worth:
 every asset carries them, so they confirmed nothing, and what is left on the
@@ -166,19 +166,25 @@ and holds the people that job has recently handed tools to, most recent first.
 are one, shown in the most recent spelling — and **it is the chosen job's list,
 not the reader's**: a person with two assignments sees it change as the job
 does. Typing narrows it, matching anywhere inside a name and ignoring case and
-spacing, and once a fragment is typed the list is no longer the recent names,
-so the head goes and each name shows the part that matched (#495). **A few are
-shown before anybody types and the number is a display choice over the whole
-list**, so a design may set it: a name below the cut is one keystroke away
-rather than absent.
+spacing, every name it matches, most recent first, and each name shows the part
+that matched (#495). **A few are shown before anybody types and the number is a
+display choice over the whole list**, so a design may set it: a name below the
+cut is one keystroke away rather than absent.
 
-**When that job has handed out nothing yet:** one sentence in place of the
-entries in the phone's sheet, `No items have gone out on this job yet.`, and
-at a desk no list under the field. **This is the first handout of a project
-rather than an error**, and it is the one screen that fills it. **Before a
-job is chosen the list is absent rather than empty** — heading and all —
-because it is about a job and there is not one yet, and so is a list a typed
-name has narrowed to nothing (#458).
+**On a phone the list stands in a space of one height under the field, so the
+sheet keeps its height while a name is typed (#589).** The space holds the
+head and three rows; more scroll inside it, and the room fewer leave stays
+empty. Its head is `Recently at this job` before anything is typed, `Matching
+names` while what is typed matches, and `No past names match`, over no rows,
+when it matches none. **Before a job is chosen, and on a job that has handed
+out nothing yet, the space is empty** — no head and no rows, whatever is
+typed — because the list is about a job's past names and there are none.
+**On a screen too short for the sheet and its keyboard the space gives way
+first**, its rows scrolling under the head, and the field keeps its place. At a
+desk the dialog's suggestions are as they were: the head goes once a fragment
+is typed, and a list narrowed to nothing, or a job with no names, opens none.
+Until #589 the phone's head and rows went once a typed name matched none, and a
+job with none said `No items have gone out on this job yet.` in their place.
 
 **The confirmation is that arriving does not act.** A scan opens the page, the
 page states the id and the status, and one press is the transition. There is no
@@ -508,7 +514,7 @@ would state a time that is not when the asset was created.
 **When no asset carries the code in the address:** the heading `Item not
 found`, the design's (1h, 1k; `Tool not found` until #519). At a desk, centered in the column, a sentence
 naming the code asked for in the id face — `No item has the code
-HYE-AST-260909-099. Check it against the label.` — and `Back to Tools & Equipment`. On a
+HYE-AST-260909-099. Check it against the label.` — and `Back to Equipment & Tools`. On a
 phone, a mark, the code in Ink 3 over the heading (#538; the top bar named it
 until then), and one line,
 `No item has this code. Check it against the label and scan again.`, **and no

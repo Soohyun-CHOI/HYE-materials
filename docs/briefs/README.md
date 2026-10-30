@@ -54,7 +54,7 @@ design work, and the design conversation is what brings the new reasoning back.
 dropped, `/` replaced by `-`, and brackets stripped from a dynamic segment. So
 `/pos/[poId]` is `pos-poId.md` and `/invoices/[invoiceId]/edit` is
 `invoices-invoiceId-edit.md`. A page at `/` would be `root.md`, the one name that is
-not mechanical; there is none since #542, which leads `/` to the Tools & Equipment
+not mechanical; there is none since #542, which leads `/` to the Equipment & Tools
 list.
 
 Every page gets a file. There is no exemption list, and length follows what the

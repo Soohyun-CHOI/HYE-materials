@@ -1,4 +1,4 @@
-# Tools & Equipment
+# Equipment & Tools
 
 Route: `/asset-categories`
 Who reaches it: anyone signed in, with no Role and no Job gate (#337).
@@ -51,9 +51,11 @@ them (0i); until then the rows scrolled alone between the head and the pager.
 
 ## What it always carries
 
-**identity.** The heading `Tools & Equipment`, the axis's name on screen
-(#513): the office calls each thing it labels and tracks an asset, and the site
-calls the same things tools and equipment, so the screen says the site's words.
+**identity.** The heading `Equipment & Tools`, the axis's name on screen
+(#513; `Tools & Equipment` until #591, which the design's files still say —
+`design-copy-findings.md`): the office calls each thing it labels and tracks
+an asset, and the site calls the same things tools and equipment, so the
+screen says the site's words.
 It was `Tools`, the table's name, the rule that makes the other list screens
 `Purchase Requests`, `Purchase Orders`, `Invoices` and `Deliveries`, until the
 axis began holding equipment as well. The rail's section for this screen says
@@ -257,7 +259,7 @@ job is where the list stands rather than a narrowing of it — or on all of them
 which the `Job` chip narrows like any chip (#548). The pager counts
 what the band leaves. The pager's steps, the band's own writes, the job's choice
 and every row's way into an item keep the job, `All jobs` included; the rail's
-`Tools & Equipment` does not, and a row's way in carries none of the band, which
+`Equipment & Tools` does not, and a row's way in carries none of the band, which
 is the list's — so an item's own list opened from `All jobs` stands on all of
 them whatever the `Job` chip held. A job in the address the reader may not
 stand on is answered with the first of theirs, as no job asked is — their whole
@@ -272,8 +274,8 @@ it stopped creating the kind.
 ## What must agree elsewhere
 
 **The heading and the link that leads here are the same word.** The root
-screen carries `Tools & Equipment` as its fifth link and this screen's heading
-is `Tools & Equipment`. That agreement is worth keeping — `Purchase orders` and
+screen carries `Equipment & Tools` as its fifth link and this screen's heading
+is `Equipment & Tools`. That agreement is worth keeping — `Purchase orders` and
 `Purchase Orders` are the pair on the same screen that does not have it,
 and the shared brief records the disagreement.
 

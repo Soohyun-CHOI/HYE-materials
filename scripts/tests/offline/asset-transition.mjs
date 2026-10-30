@@ -1743,12 +1743,14 @@ export function run({ check, assert, log }) {
     assert("  the keyboard's done key ends it", /if \(event\.key !== "Enter"\) return;\s*event\.preventDefault\(\);\s*if \(!locked\) onDone\(\);/.test(sheetInput));
     assert("  with a clear mark once it holds a value, named for a screen reader", /\{clearable && \(\s*<button[\s\S]*?aria-label=\{clearLabel\}/.test(sheetInput) && /const clearable = Boolean\(value\) && !locked;/.test(sheetInput));
     assert("  every keystroke handed back to the opener", /onChange=\{\(event\) => onChange\(event\.target\.value\)\}/.test(sheetInput));
-    // THE HEAD GOES WITH ITS ROWS. A typed name that matches none of them leaves no list,
-    // as the desk's closes on no suggestion, where a head over nothing was what a browser
-    // showed first; and the sentence for a job with none is for that job alone.
-    assert("  the list absent until a job is chosen, and once typing leaves it no row", /\{jobChosen && names\.length > 0 && \(/.test(nameSheet.source));
-    assert("  a job nothing has gone out on saying so in place of the rows", /\{jobChosen && !hasRecent && \(\s*<p[^>]*>\s*\{COPY\.noRecentNames\}/.test(nameSheet.source));
-    assert("  the rows headed as the dialog's suggestions are, while nothing is typed (#495)", /\{namesAreRecent\(value\) && \(\s*<p[^>]*>\s*\{COPY\.recentHeading\}/.test(nameSheet.source));
+    // THE ROWS STAND ONLY UNDER A HEAD, AND THE HEAD IS THE LIST'S JUDGMENT (#589). Before a
+    // job is chosen and on a job with no recent names the list's space is empty, and the head
+    // says what the rows are — `offline/name-sheet-list.mjs` holds the five states by value and
+    // the space's one height. Until #589 the head and its rows went when a typed name matched
+    // none, and a job with none said so in a sentence of its own.
+    assert("  the rows absent until a job with recent names is chosen, under the list's head", /const rows = head \? names : \[\];/.test(nameSheet.source) && /\{rows\.length > 0 && \(\s*<SheetRows\s+rows=\{rows\.map\(/.test(nameSheet.source));
+    assert("  the head the list's judgment, `nameListHead`, over the rows (#589)", /const head = nameListHead\(\{ jobChosen, hasRecent, typed: value, offered: names \}\);/.test(nameSheet.source) && /\{head && \(\s*<p[^>]*>\s*\{head\}/.test(nameSheet.source));
+    assert("  and no sentence of the list's own besides its head (#589)", !/<p[^>]*>\s*\{COPY\.\w+\}\s*<\/p>/.test(nameSheet.source));
     assert("  and each row marking what is typed (#495)", /match: matchedPart\(name, value\),/.test(nameSheet.source));
     assert("  and a name picked is the opener's and puts the sheet away", /onChange\(name\);\s*onClose\(\);/.test(nameSheet.source));
     check("neither sheet draws on the old frame", [jobSheet, nameSheet].filter((f) => /modalStyles/.test(f.source)).length, 0);

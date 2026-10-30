@@ -2470,7 +2470,7 @@ export function run({ check, assert, log }) {
         strings.filter((s) => ASSET_STATUS_VALUES.some((v) => s.includes(v))).length,
         0
     );
-    check("the heading is the axis's name on screen", ASSET_LIST_COPY.heading, "Tools & Equipment");
+    check("the heading is the axis's name on screen", ASSET_LIST_COPY.heading, "Equipment & Tools");
     // THE DESIGN'S `13 items` (#455): a category's own page counts what is under it as items,
     // and since #519 the category list counts its rows as items too, and the column over each
     // code says `Item ID`.

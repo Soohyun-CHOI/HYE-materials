@@ -89,7 +89,7 @@ export const metadata = { title: "Item" };
  * stands on one job since #520, the first of the reader's by its code until they move, and
  * the head counts what this category holds there; from #509 it started from all of the
  * reader's jobs, counted `N of M` once a job narrowed it. **The job is chosen in the
- * breadcrumb since #519**, a level after `Tools & Equipment`, as 1d draws it, and only by a
+ * breadcrumb since #519**, a level after `Equipment & Tools`, as 1d draws it, and only by a
  * reader with more than one; it stood in the head beside the opener until then. A category
  * with assets, none of them on the job, draws its head and nothing under it: `Nothing added
  * yet` would be false there, and Design is drawing what it says. An asset off the job still

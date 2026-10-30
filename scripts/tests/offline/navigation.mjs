@@ -69,7 +69,7 @@ const SECTIONS = [
     ["purchase-orders", "Purchase orders", "/pos", "materials"],
     ["invoices", "Invoices", "/invoices", "materials"],
     ["deliveries", "Deliveries", "/deliveries", "materials"],
-    ["assets", "Tools & Equipment", "/asset-categories", "assets"],
+    ["assets", "Equipment & Tools", "/asset-categories", "assets"],
     ["material-prices", "Material prices", "/materials", "materials"],
 ];
 
@@ -271,7 +271,7 @@ export async function run({ check, assert, log }) {
     );
     check("  every word belongs to a section", Object.keys(NAVIGATION_COPY.sections).join(" "), SECTIONS.map(([k]) => k).join(" "));
     check("  no section says Office", JSON.stringify(NAVIGATION_COPY).includes("Office"), false);
-    check("  Tools & Equipment says the list's own heading", NAVIGATION_COPY.sections.assets, ASSET_LIST_COPY.heading);
+    check("  Equipment & Tools says the list's own heading", NAVIGATION_COPY.sections.assets, ASSET_LIST_COPY.heading);
     check("  and opens the list", NAVIGATION_SECTIONS.find((s) => s.key === "assets").href, ASSET_CATEGORIES_PATH);
     check(
         "  and owns the first segment of every asset screen",

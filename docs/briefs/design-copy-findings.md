@@ -109,9 +109,9 @@ from #455, with `item` only where a category's own screen counted what is under
 it, and #513 moved one word alone, the axis's own name: `Tools & Equipment`, on
 the rail, the category list's heading and tab, the breadcrumb, the root screen's
 link and `Back to Tools & Equipment`, which stays — it is the site's word for what
-the office calls assets. So the screen word and the base's word differ on both
-tables, and the column below says which of the two each string names, since a
-later sweep needs to know.
+the office calls assets, `Equipment & Tools` since #591 (below). So the screen
+word and the base's word differ on both tables, and the column below says which
+of the two each string names, since a later sweep needs to know.
 
 ### What a reader sees
 
@@ -133,7 +133,6 @@ later sweep needs to know.
 | `QR label for this item` | an asset's page: the label's name, assistive tech only | an asset |
 | `No item has the code …`, `No item has this code. …` | an asset's page: not found | an asset |
 | `This item was last scanned on …` | check-out and check-in | an asset |
-| `No items have gone out on this job yet.` | the name sheet | assets |
 | `Retire this item`, `Retire item` | an asset's page: the menu and the confirm | an asset |
 
 `…, and the lists will say so. Do it again.`, a scan whose status was not saved,
@@ -167,7 +166,7 @@ and `Level 2` (#514; over `Level 2` and `Size` until then; beside `Class` too
 until #552 took the class off the catalog). An `Asset
 Log` row is an entry in an asset's history. `Level 1`'s value `Tool` is the type
 and not this word, and stays. `docs/notes/naming.md` has the rows for `tool` /
-`item`, `Tools & Equipment`, `category` and the six level words.
+`item`, `Equipment & Tools`, `category` and the six level words.
 
 ---
 
@@ -370,3 +369,25 @@ type either. The size is searched unnamed, and `Search by name, maker or part
 The key is `ASSET_REGISTRATION_COPY.searchLabel` in `lib/assetRegistration.js`,
 held by value in `offline/asset-registration.mjs`. The base names the levels it
 searches `Level 3`, `Size`, `Maker` and `Part Number` in `Asset Categories`.
+
+---
+
+## What the axis is called on screen, which the files do not say (#591)
+
+The files call the assets axis `Tools & Equipment` everywhere they name it: the
+rail, 1a's heading, the breadcrumb on 1d, 1f and 1l, and 1h's way back. **The
+app says `Equipment & Tools`, by Soo's ruling** — this entry is the app's
+decision, not a finding the design has to settle, and it stands until the files
+read the same.
+
+| String | Where | The files |
+|---|---|---|
+| `Equipment & Tools` | the rail, the category list's heading and tab title, every breadcrumb's first level, the export's file name and first sheet | draw `Tools & Equipment` |
+| `Back to Equipment & Tools` | a category's page and an asset's, not found | draw `Back to Tools & Equipment` |
+
+The keys are `ASSET_LIST_COPY.heading` in `lib/assetListView.js`, which the
+rail, every breadcrumb and the export read, and `ASSET_COPY.backToTools` in
+`lib/assetView.js`; `offline/name-sheet-list.mjs` holds both by value and fails
+any string under `app/` or `lib/` saying the old name. The key `backToTools`
+and every identifier, address and table keep their names: no table is called
+either word, and `docs/notes/naming.md` has the row.

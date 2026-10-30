@@ -70,11 +70,11 @@ B · Tool > DEMO Carpentry > DEMO Jigsaw > T-Shank`, the record header's line
 under its title (0n) until the design drew this one, and the class after the
 category until #552 took it off the catalog.
 
-**action.** A way back to `/asset-categories`: the breadcrumb's one level, `Tools & Equipment`
+**action.** A way back to `/asset-categories`: the breadcrumb's one level, `Equipment & Tools`
 behind a chevron (#460), the word the asset's screen opens its path with
 for the same trip. **For a reader on more than one job the breadcrumb is a path
-instead, `Tools & Equipment / 26-DEMO-01`**, its second level the job the list
-stands on, which opens the choice of job (1d, #519; below) — `Tools & Equipment /
+instead, `Equipment & Tools / 26-DEMO-01`**, its second level the job the list
+stands on, which opens the choice of job (1d, #519; below) — `Equipment & Tools /
 All jobs` on all of them (#548).
 
 **action.** A control that opens the registration dialog on this category,
@@ -267,7 +267,7 @@ stands on (#509).
 **When the job holds none of this category's items (#509, #520):** the head and
 nothing under it, `0` and the breadcrumb's job saying it, which the design does not
 draw: `Nothing added yet` would be false there. The rows, the pager and the page
-box are always the job's alone, and the breadcrumb's `Tools & Equipment` keeps the
+box are always the job's alone, and the breadcrumb's `Equipment & Tools` keeps the
 job. An asset off the job is left off this list and still opens from its label or a
 link. A job in the address the reader may not stand on is answered with the first
 of theirs, as no job asked is, and so is `All jobs` for a reader with one job or
