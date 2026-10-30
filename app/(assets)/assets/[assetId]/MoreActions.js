@@ -10,7 +10,9 @@ import { NAVIGATION_COPY } from "@/lib/navigation";
 import { ASSET_EVENT } from "@/lib/assetStatus";
 import { ASSET_COPY } from "@/lib/assetView";
 import { ASSET_TRANSITION_COPY } from "@/lib/assetTransition";
+import { ASSET_OFFICE_COPY } from "@/lib/assetOfficeActs";
 import { useAssetTransition } from "./AssetTransition";
+import { JobChangeDialog, JobChangeSheet } from "./JobChange";
 
 /** Three dots, 16 at a desk and 24 in a phone's top bar (1f, 1j). */
 function Dots({ phone }) {
@@ -51,16 +53,26 @@ function Dots({ phone }) {
  * 0a Menu, #495). A phone has no rail, so this is where the reader is named and signs out:
  * under a full-width Inner rule, `Sign out` over the reader's email, posting where the rail's
  * account does. Where the record takes no action — a retired asset, a code
- * no asset carries, a reader on no job, a reader who is not a site manager (#506) — the menu
- * holds the account alone, with no rule, and
+ * no asset carries, a reader on no job, a reader who is not a site manager (#506) and not the
+ * office on an item nothing has happened to (#583) — the menu holds the account alone, with no
+ * rule, and
  * there it needs no transition: the screen saying a code is on no asset has none. The desk's
- * menu holds the record's acts alone — `Send for repair` from stock and the retirement —
- * since the rail's foot holds the account there.
+ * menu holds the record's acts alone — `Send for repair` from stock, the office's `Change job`
+ * and the retirement — since the rail's foot holds the account there.
+ *
+ * AND THE OFFICE'S `Change job` AFTER `Send for repair` (#583), while the item's history holds its
+ * `Created` entry alone (1f, 1j-f): an act on the record that ends nothing, so it stands with the
+ * sending, in Ink, and a full-width Inner rule parts the two from the acts that end the item —
+ * the retirement, and #582's deletion beside it. The rule stands only where the office's line
+ * does, as the files draw it: a site manager's menu holds the sending over the retirement with
+ * none. Choosing it hands focus to this button and opens this width's own `Change job` — the
+ * desk's dialog or the phone's sheet, drawn here (`JobChange.js`).
  */
 export default function MoreActions({ phone = false, account = null }) {
     const transition = useAssetTransition();
     const maySendForRepair = Boolean(transition?.plan.maySendForRepair);
     const mayRetire = Boolean(transition?.plan.mayRetire);
+    const mayChangeJob = Boolean(transition?.office?.mayChangeJob);
     const busy = Boolean(transition?.repairPending);
     const [open, setOpen] = useState(false);
     const [focusOn, setFocusOn] = useState("first");
@@ -83,6 +95,54 @@ export default function MoreActions({ phone = false, account = null }) {
         setOpen(false);
         if (how === "escape") buttonRef.current?.focus();
     };
+
+    // The record's acts that end nothing, then those that end the item (#583): the rule over the
+    // first of the second where the office's line stands among the first, which is above it.
+    const acts = [
+        ...(maySendForRepair
+            ? [
+                  {
+                      key: "repair",
+                      label: ASSET_TRANSITION_COPY.control[ASSET_EVENT.SENT_FOR_REPAIR],
+                      onSelect: () => {
+                          buttonRef.current?.focus();
+                          setOpen(false);
+                          transition.sendForRepair();
+                      },
+                  },
+              ]
+            : []),
+        ...(mayChangeJob
+            ? [
+                  {
+                      key: "job",
+                      label: ASSET_OFFICE_COPY.changeJob,
+                      onSelect: () => {
+                          buttonRef.current?.focus();
+                          setOpen(false);
+                          transition.jobChange.start(phone ? "phone" : "desk");
+                      },
+                  },
+              ]
+            : []),
+    ];
+    const ends = [
+        ...(mayRetire
+            ? [
+                  {
+                      key: "retire",
+                      label: ASSET_TRANSITION_COPY.retireOpener,
+                      tone: "danger",
+                      separated: mayChangeJob,
+                      onSelect: () => {
+                          buttonRef.current?.focus();
+                          setOpen(false);
+                          transition.openRetirement();
+                      },
+                  },
+              ]
+            : []),
+    ];
 
     return (
         <div className={phone ? "flex" : "relative -mr-[calc((var(--height-control)-var(--size-icon))/2)] flex"}>
@@ -128,33 +188,8 @@ export default function MoreActions({ phone = false, account = null }) {
                 focusOn={focusOn}
                 keyed={keyed}
                 items={[
-                    ...(maySendForRepair
-                        ? [
-                              {
-                                  key: "repair",
-                                  label: ASSET_TRANSITION_COPY.control[ASSET_EVENT.SENT_FOR_REPAIR],
-                                  onSelect: () => {
-                                      buttonRef.current?.focus();
-                                      setOpen(false);
-                                      transition.sendForRepair();
-                                  },
-                              },
-                          ]
-                        : []),
-                    ...(mayRetire
-                        ? [
-                              {
-                                  key: "retire",
-                                  label: ASSET_TRANSITION_COPY.retireOpener,
-                                  tone: "danger",
-                                  onSelect: () => {
-                                      buttonRef.current?.focus();
-                                      setOpen(false);
-                                      transition.openRetirement();
-                                  },
-                              },
-                          ]
-                        : []),
+                    ...acts,
+                    ...ends,
                     ...(phone && account
                         ? [
                               {
@@ -171,6 +206,7 @@ export default function MoreActions({ phone = false, account = null }) {
                 onClose={close}
             />
             {phone && account && <form id={formId} action="/api/auth/logout" method="POST" hidden />}
+            {mayChangeJob && (phone ? <JobChangeSheet /> : <JobChangeDialog />)}
             {!phone && tip.element}
         </div>
     );

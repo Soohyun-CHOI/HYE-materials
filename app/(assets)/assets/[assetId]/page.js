@@ -21,6 +21,7 @@ import { ASSET_LIST_COPY, assetListScope, listJobFromAsset } from "@/lib/assetLi
 import { ASSET_CATEGORIES_PATH, labelCodeFor, assetPath, assetCategoriesPath, assetCategoryPath } from "@/lib/assetRoutes";
 import { ASSET_EVENT } from "@/lib/assetStatus";
 import { ASSET_TRANSITION_COPY as TRANSITION_COPY, planTransition } from "@/lib/assetTransition";
+import { planOfficeActs } from "@/lib/assetOfficeActs";
 import { withOpsLabel } from "@/lib/airtableOps";
 import { isSiteManager } from "@/lib/siteManager";
 import { actorName } from "@/lib/userName";
@@ -140,7 +141,10 @@ const ID_ON_PHONE = "font-id text-mobile-body-xs tracking-id tabular-nums text-f
  * a phone draws no foot bar; and `Print label` is drawn under the same question, while
  * the label itself, its size and its symbol stay, since what a label looks like is a fact
  * about the asset. The actions behind the controls ask it too, through
- * `withSiteManagerAction`.
+ * `withSiteManagerAction`. **But the office may change the job of an item nothing has happened
+ * to (#583)** — an Admin, whether or not a site manager, while the history holds its `Created`
+ * entry alone — so for the office such an item's `More actions` holds `Change job`, at a desk and
+ * on a phone, and `withAdminAction` is the gate behind it.
  *
  * TWO DRAWINGS OF ONE PAGE (#463). A desk draws 0n's record page under the breadcrumb:
  * a header holding its category's name, the line under it, its status and the actions, the
@@ -245,6 +249,11 @@ async function renderAssetPage({ params }) {
     // asks the same function again, because a Server Action is reachable without
     // this page.
     const transition = planTransition({ user, jobs, status: asset.status });
+    // WHAT THE OFFICE MAY DO HERE (#583), and for no operations either: the reader, the history
+    // and the job list are all in hand. `planOfficeActs` offers `Change job` while the history
+    // holds its `Created` entry alone, with the jobs a list's choice offers, and the action asks
+    // it again on a fresh read.
+    const office = planOfficeActs({ user, log, jobs });
     // The jobs this reader's lists hold, the same judgment the lists read by (#509): with more
     // than one, the breadcrumb names the asset's job as a level they may change (#519), and the
     // list's level and the category's carry it when it is one of theirs (#581).
@@ -300,7 +309,13 @@ async function renderAssetPage({ params }) {
     const name = category?.itemName || asset.assetId;
 
     return (
-        <AssetTransition plan={transition} assetId={asset.assetId} itemName={category?.itemName}>
+        <AssetTransition
+            plan={transition}
+            office={office}
+            assetJobRecordId={asset.job?.[0] ?? null}
+            assetId={asset.assetId}
+            itemName={category?.itemName}
+        >
             <div className="font-ui text-foreground-default max-sm:flex max-sm:flex-1 max-sm:flex-col">
                 {/* THE PHONE'S HEAD (1j): `More actions`, which holds the retirement when there
                     is something to retire and the account always (#495), and the name once the
@@ -404,15 +419,25 @@ async function renderAssetPage({ params }) {
                             Each is asked for separately, because the answers come from three
                             maps (`lib/assetStatus.js`). A READER WHO IS NOT A SITE MANAGER IS
                             OFFERED NONE AND TOLD NOTHING (#506), so the place holds nothing, as
-                            it does for a retired asset. */}
+                            it does for a retired asset. THE OFFICE'S `Change job` IS IN THE SAME
+                            MENU (#583), whoever else the reader is, so `More actions` stands for
+                            it alone too — and beside a site manager's sentence about having no
+                            job, which is about recording and not about this. */}
                         {transition.refusal
                             ? transition.refusal !== TRANSITION_COPY.noTransition && (
-                                  <p className="max-w-empty-state text-body-sm text-pretty text-foreground-subtle max-sm:hidden">{transition.refusal}</p>
+                                  <div className="flex shrink-0 items-start gap-gap max-sm:hidden">
+                                      <p className="max-w-empty-state text-body-sm text-pretty text-foreground-subtle">{transition.refusal}</p>
+                                      {office.mayChangeJob && (
+                                          <div className="-mt-record-header-actions-bleed flex">
+                                              <MoreActions />
+                                          </div>
+                                      )}
+                                  </div>
                               )
-                            : (transition.event || transition.maySendForRepair || transition.mayRetire) && (
+                            : (transition.event || transition.maySendForRepair || transition.mayRetire || office.mayChangeJob) && (
                                   <div className="-mt-record-header-actions-bleed flex shrink-0 items-center gap-gap max-sm:hidden">
                                       {transition.event && <TransitionDialog currentJobCode={jobCode} recentCheckOuts={recentCheckOuts} />}
-                                      {(transition.maySendForRepair || transition.mayRetire) && <MoreActions />}
+                                      {(transition.maySendForRepair || transition.mayRetire || office.mayChangeJob) && <MoreActions />}
                                   </div>
                               )}
                     </header>

@@ -410,7 +410,7 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
                 const detailId = `${id}-${item.key}-detail`;
                 return (
                     <Fragment key={item.key}>
-                        {item.separated && index > 0 && <div aria-hidden="true" className="h-px shrink-0 bg-divider-subtle" />}
+                        {item.separated && index > 0 && <div aria-hidden="true" className={`h-px shrink-0 bg-divider-subtle ${RULE_LOOK[look] ?? ""}`} />}
                         <button
                             type={item.type ?? "button"}
                             form={item.form}
@@ -587,4 +587,12 @@ const ITEM_FACE = {
 // than the hand, so it follows the width, as the item's size does.
 const DANGER_AT_REST = {
     record: "max-sm:text-danger",
+};
+
+// The rule over an item marked `separated`, at each look that has room of its own: a desk's
+// record menu holds its items 5 in, and its rule crosses that room to the menu's Edge with 5
+// above and below, as 1f draws it over the retirement (#583). A phone's has no room, so there
+// the rule meets its edges as it stands.
+const RULE_LOOK = {
+    record: "sm:-mx-menu-inset sm:my-menu-inset",
 };

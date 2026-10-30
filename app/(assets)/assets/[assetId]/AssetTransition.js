@@ -5,6 +5,7 @@ import Instant from "@/app/components/Instant";
 import { ASSET_EVENT } from "@/lib/assetStatus";
 import { ASSET_TRANSITION_COPY as COPY } from "@/lib/assetTransition";
 import { recordAssetEventAction } from "./actions";
+import { changeAssetJobAction } from "./officeActions";
 import RetirementConfirm from "./RetirementConfirm";
 
 /**
@@ -46,6 +47,14 @@ import RetirementConfirm from "./RetirementConfirm";
  * `carried` to the bar, which takes them as its own — a phone turned upright mid-check-out
  * finds the bar filled rather than empty. Only that way: a dialog opened at a desk starts
  * where an opening starts (0l), whatever the bar was left holding.
+ *
+ * THE OFFICE'S JOB CHANGE HOLDS ITS ANSWER HERE TOO (#583), for the reason the transition's is:
+ * it is said in two places. While the dialog or the sheet that sent it stands open, above its
+ * actions or under its rows; otherwise under the status, where a refused press is said (1k) —
+ * which is where a change refused because something was recorded since lands, since that page
+ * holds neither the menu's line nor its dialog. `More actions` opens it at each width, and which
+ * width opened it is held, so the desk's dialog and the phone's sheet are never open together.
+ * Whichever was sent last is the one the status says.
  */
 const TransitionContext = createContext(null);
 
@@ -70,8 +79,23 @@ export function useRefusalSentence(answer) {
     return answer.error ?? null;
 }
 
-export default function AssetTransition({ plan, assetId, itemName, children }) {
+export default function AssetTransition({ plan, office, assetJobRecordId, assetId, itemName, children }) {
     const [answer, formAction, pending] = useActionState(recordAssetEventAction, null);
+    const [jobAnswer, jobFormAction, jobPending] = useActionState(changeAssetJobAction, null);
+    // Which width's job change is open (#583), how many openings there have been, which of them
+    // sent the latest answer, and which action was sent last.
+    const [changingOn, setChangingOn] = useState(null);
+    const [jobOpening, setJobOpening] = useState(0);
+    const [jobSentFor, setJobSentFor] = useState(null);
+    const [lastSent, setLastSent] = useState(null);
+    // A change the plan no longer offers is no longer open: something was recorded since, and the
+    // page drawn again holds no line to open it from.
+    if (changingOn !== null && !office?.mayChangeJob) setChangingOn(null);
+    const jobSaidInDialog = changingOn !== null && jobSentFor === jobOpening;
+    // Each answer as the sentence a screen draws: the transition's with its moment in the reader's
+    // zone, the job change's as it came.
+    const transitionSentence = useRefusalSentence(answer);
+    const jobSentence = jobAnswer?.error ? <>{jobAnswer.error}</> : null;
     const [openedFor, setOpenedFor] = useState(null);
     const [opening, setOpening] = useState(0);
     const [retiring, setRetiring] = useState(false);
@@ -81,6 +105,7 @@ export default function AssetTransition({ plan, assetId, itemName, children }) {
     const repairing = sending === ASSET_EVENT.SENT_FOR_REPAIR;
     const send = (formData) => {
         setSending(String(formData.get("event") ?? ""));
+        setLastSent("event");
         startTransition(() => formAction(formData));
     };
     // The opening ends with the event it was for. A landing takes it away with the page's
@@ -100,7 +125,10 @@ export default function AssetTransition({ plan, assetId, itemName, children }) {
         repairPending: pending && repairing,
         send,
         // A press that posts its own form says which event it sends, as `send` does.
-        sends: (event) => setSending(event),
+        sends: (event) => {
+            setSending(event);
+            setLastSent("event");
+        },
         sendForRepair: () => {
             const formData = new FormData();
             formData.set("assetId", assetId);
@@ -119,6 +147,27 @@ export default function AssetTransition({ plan, assetId, itemName, children }) {
         carried,
         carry: ({ jobId, name }) => setCarried({ jobId, name }),
         openRetirement: () => setRetiring(true),
+        // What is said under the status: the answer of whichever was sent last, unless a dialog of
+        // its own is saying it.
+        statusSentence: lastSent === "job" ? (jobSaidInDialog ? null : jobSentence) : open ? null : transitionSentence,
+        office,
+        jobChange: {
+            assetJobRecordId,
+            openOn: changingOn,
+            opening: jobOpening,
+            start: (on) => {
+                setJobOpening((count) => count + 1);
+                setChangingOn(on);
+            },
+            close: () => setChangingOn(null),
+            pending: jobPending,
+            send: (formData) => {
+                setJobSentFor(jobOpening);
+                setLastSent("job");
+                startTransition(() => jobFormAction(formData));
+            },
+            refusal: jobSaidInDialog ? jobSentence : null,
+        },
     };
 
     return (

@@ -1058,9 +1058,17 @@ export function run({ check, assert, log }) {
         [
             /aria-labelledby=\{item\.detail \? labelId : undefined\}/.test(menuSource),
             /aria-describedby=\{item\.detail \? detailId : undefined\}/.test(menuSource),
-            /\{item\.separated && index > 0 && <div aria-hidden="true" className="h-px shrink-0 bg-divider-subtle" \/>\}/.test(menuSource),
+            /\{item\.separated && index > 0 && <div aria-hidden="true" className=\{`h-px shrink-0 bg-divider-subtle \$\{RULE_LOOK\[look\] \?\? ""\}`\} \/>\}/.test(menuSource),
         ].join(" "),
         "true true true"
+    );
+    // A DESK'S RECORD MENU HOLDS ITS ITEMS IN ITS ROOM, AND ITS RULE CROSSES THE ROOM (#583): 1f
+    // draws the rule over the retirement to the menu's Edge, 5 above and below; a phone's menu
+    // has no room, so its rule meets its edges as the account's always has.
+    check(
+        "  the rule crossing a desk's record menu's room, 5 above and below (#583)",
+        menuConstant("RULE_LOOK").replace(/\s+/g, " "),
+        '{ record: "sm:-mx-menu-inset sm:my-menu-inset", }'
     );
     check(
         "  at least 56, 8 and 16 inside, its word over its detail",
@@ -1612,6 +1620,8 @@ export function run({ check, assert, log }) {
             "app/(assets)/asset-catalog/CatalogDialogs.js",
             // An item's note: the desk's dialog and the phone's sheet (#533).
             "app/(assets)/assets/[assetId]/AssetNote.js",
+            // The office's job change: the desk's dialog and the phone's sheet (#583).
+            "app/(assets)/assets/[assetId]/JobChange.js",
         ]
             .sort()
             .join(", ")
@@ -1934,6 +1944,8 @@ export function run({ check, assert, log }) {
             // The catalog's entry hands its frame what it waits on, its submit or `"action"` (#527),
             // and so does an item's note, `"action"` while `Remove note` is on its way (#533).
             "EntryDialog: submits · busy {busy} · named · 0 disabled by sending",
+            // The office's job change at a desk (#583).
+            "JobChangeForm: submits · busy {pending} · named · 0 disabled by sending",
             'NoteDialog: submits · busy {pending ? (removing ? "action" : true) : false} · named · 0 disabled by sending',
             "RegistrationForm: submits · busy {pending} · named · 0 disabled by sending",
             "RemoveDialog: submits · busy {pending} · named · 0 disabled by sending",
@@ -1942,11 +1954,14 @@ export function run({ check, assert, log }) {
         ].join(" | ")
     );
     // A SHEET THAT SENDS BY ITS `Done` HANDS ITS FRAME THE STATE TOO (#533), which its `Done`
-    // reads: the note's sheet, the one sheet on the axis whose `Done` saves.
+    // reads: the note's sheet, and the office's job change on a phone, whose `Done` is `Save` (#583).
     check(
         "  and every sheet that sends by its Done hands it its state, its Done naming a word",
         dialogs.filter((d) => d.includes(": sends by its Done")).join(" | "),
-        "NoteSheet: sends by its Done · busy {pending} · no submit · 0 disabled by sending"
+        [
+            "JobChangeRows: sends by its Done · busy {pending} · no submit · 0 disabled by sending",
+            "NoteSheet: sends by its Done · busy {pending} · no submit · 0 disabled by sending",
+        ].join(" | ")
     );
     check(
         "  and every one that asks nothing hands it none",
@@ -1959,7 +1974,7 @@ export function run({ check, assert, log }) {
         onNewFrame.filter((rel) => submitFacts(parseFile(rel)).length > 0).length,
         onNewFrame.length
     );
-    check("    a dialog each, and the catalog's file and the note's their two", dialogs.length, onNewFrame.length + 2);
+    check("    a dialog each, and the catalog's file, the note's and the job change's their two", dialogs.length, onNewFrame.length + 3);
 
     // AND EVERY FORM THAT SUBMITS OUTSIDE A FRAME IS HELD TO THE SAME (#463): the asset
     // page's foot bar, which wraps what it holds in `FormBusy` itself, and the desk's press,

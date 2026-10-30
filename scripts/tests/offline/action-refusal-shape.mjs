@@ -173,6 +173,16 @@ const ACTIONS = {
         binding: "awaited",
         why: "the removal's question awaits it and sets the refusal over its actions",
     },
+    // AN ASSET'S JOB CHANGE (#583), the office's act on the asset's page: the page's provider
+    // binds it and says the refusal over the dialog's actions, under the sheet's rows, or under
+    // the status — its sentence pinned by value in `offline/asset-office-acts.mjs`.
+    changeAssetJobAction: {
+        text: "COPY.noAccess",
+        file: "app/(assets)/assets/[assetId]/officeActions.js",
+        shape: "return",
+        binding: "useActionState",
+        why: "AssetTransition.js binds it and says its error in the dialog or under the status",
+    },
 };
 
 /** Bindings that can observe a return. The third, `form-action`, cannot. */

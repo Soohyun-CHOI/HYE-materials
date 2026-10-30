@@ -29,8 +29,9 @@
 // `scripts/` is read, and one REACHES the two tables when it names either as a whole string —
 // `"Assets"`, `"Asset Log"` — or by `TABLES.ASSETS` / `TABLES.ASSET_LOG`, or by its id on this
 // base, or imports `lib/airtable/assets.js` or `lib/airtable/assetLog.js` or a `lists` file, whose
-// names it then holds, or names one of the app's four actions that write them — the note's among them since #533, which writes
-// `Assets."Note"` from the item's page and is the app's write, not a script's. Each one that reaches is classified in `CLASSIFIED`
+// names it then holds, or names one of the app's five actions that write them — the note's among them since #533, which writes
+// `Assets."Note"` from the item's page and is the app's write, not a script's, and the office's job change since #583,
+// which moves an asset and its `Created` entry. Each one that reaches is classified in `CLASSIFIED`
 // below, and both directions fail: a script that reaches and is not classified, and an entry
 // that names a file which no longer reaches. A description that merely mentions assets in a
 // sentence is not a whole string and does not reach. This directory is left out: the tier
@@ -89,7 +90,7 @@ const META_ROOT = "https://api.airtable.com/v0/meta";
 const PROTECTED_TABLE_IDS = ["tblXtmDonSyOyOvV3", "tblrox7y4akPKdbpF"];
 
 /** The app's actions that write the two tables, which a script driving the live app would name. */
-const PROTECTED_ACTIONS = ["recordAssetEventAction", "retireAssetAction", "registerAssetsAction", "updateAssetNoteAction"];
+const PROTECTED_ACTIONS = ["recordAssetEventAction", "retireAssetAction", "registerAssetsAction", "updateAssetNoteAction", "changeAssetJobAction"];
 
 /** The two modules that read and write the two tables. */
 const PROTECTED_MODULES = ["lib/airtable/assets.js", "lib/airtable/assetLog.js"];

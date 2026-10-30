@@ -82,6 +82,9 @@ const STILL_CREATE = new Map([
     ["Create category", "1l's commitment for a category added alone, which puts no asset into stock"],
     ["Creating…", "that commitment while it works"],
     ["Couldn't create the category. Try again.", "that commitment's press when it wrote nothing"],
+    // The history's first entry, by the event it shows: a change of job half done names it (#583),
+    // which adds no asset.
+    ["The Created entry is on", "the history's `Created` entry, said by its event in a job change left half done"],
 ]);
 
 /** The noun #519 replaced, as a word in either number. */

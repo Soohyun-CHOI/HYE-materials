@@ -391,3 +391,38 @@ rail, every breadcrumb and the export read, and `ASSET_COPY.backToTools` in
 any string under `app/` or `lib/` saying the old name. The key `backToTools`
 and every identifier, address and table keep their names: no table is called
 either word, and `docs/notes/naming.md` has the row.
+
+---
+
+## What an item's job change says that the files of 2026-10-30 do not (#583)
+
+The files draw `Change job` in 1f's `More actions` and its dialog, and in
+1j-f's menu and sheet, and none of the moments after a press. What a screen
+says in their place follows a rule the design already states, and the next
+sending decides each.
+
+| String | Where | The files |
+|---|---|---|
+| `Save` | the phone's sheet, at its head's end | draw the sheet's rows and no commitment |
+| `Saving…` | the dialog's `Save` and the sheet's, busy, heard and not seen | draw no wait for either |
+| `Something has been recorded on this item, so its job can't be changed.` | under the status, after a Save on an item something was recorded on since | draw no refused change |
+| `The Created entry is on 26-USA-06 now, but the item is still on 26-USA-05, and the lists will say so. Save again to finish.` | over the dialog's actions or under the sheet's rows, and under the status once it is closed, when the item's own write failed | the same |
+| `Changing an item's job is for Admins.` | under the status, after a Save by a reader no longer the office | the same |
+| `Choose a job.` | under the field, for a job no list offers, which no screen sends | the same |
+
+**The phone's `Save` is Soo's ruling**: a press on a row there moves the check
+and saves nothing, as the desk's choice saves nothing until its `Save`, so the
+sheet takes a commitment where the note's sheet takes `Done` — at its head's
+end, which stays on screen over every job. **The working word is 0f's rule**,
+`Save` in its `-ing` form. **Something recorded since is said, where the note's
+refusal of the same kind says nothing**: the reader pressed `Save` on a dialog
+that goes with its line, so the page drawn again says that nothing moved and
+why. **A change left half done names the history's entry by its event**, the
+word the history shows, and both jobs by their codes. **The two words for a
+reader the office no longer is, and a job no list offers**, are a sentence the
+action owes a request no screen makes, the second the registration's own.
+
+The keys are `ASSET_OFFICE_COPY.save`, `.saving`, `.recordedSince`,
+`.halfDone`, `.noAccess` and `.jobNoneChosen` in `lib/assetOfficeActs.js`, held
+by value in `offline/asset-office-acts.mjs`. The base calls the history's entry
+an `Asset Log` row whose `Event` is `Created`.

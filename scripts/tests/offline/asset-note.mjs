@@ -196,7 +196,8 @@ export function run({ check, assert, log }) {
     check("the mapper reads the field, and the empty string where it is absent", /note: record\.get\("Note"\) \?\? "",/.test(assets.source), true);
     // The status memory's two reads (#560) name `Status` alone and hand back no asset, only its
     // status (`recordToStatus`) — `offline/asset-status-memory.mjs` holds that — so they are
-    // left out of what this asks of every reader that answers a whole asset.
+    // left out of what this asks of every reader that answers a whole asset. So is the third
+    // writer's payload, an asset's job alone (#583, `updateAssetJob`), as the other two's are.
     check(
         "no reader of a whole asset names its fields, so the note comes with every asset read",
         /\bfields\s*:/.test(
@@ -205,6 +206,7 @@ export function run({ check, assert, log }) {
                 .replace(/\/\/.*$/gm, "")
                 .replace(/fields: \{ Note:[^}]*\}/, "")
                 .replace(/fields: \{\s*Status:[^}]*\}/, "")
+                .replace(/fields: \{ Job: \[jobRecordId\] \}/, "")
                 .replace(/\(assetId\) => \(\{[^]*?\}\)/, "")
                 .replace(/createAssetStatusMemory\(\{[^]*?\n\}\);/, "")
         ),

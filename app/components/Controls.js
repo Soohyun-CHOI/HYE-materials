@@ -97,6 +97,11 @@ export function FormBusy({ busy, children }) {
     return <FormBusyContext.Provider value={busy}>{children}</FormBusyContext.Provider>;
 }
 
+/** The busy state `FormBusy` hands down, for a part drawn outside this file (`SheetRows`, #583). */
+export function useFormBusy() {
+    return useContext(FormBusyContext);
+}
+
 /**
  * Where focus goes when a press is refused for what its fields hold (#522): to the first
  * field that refuses, in the order the form draws them, so the reader starts at what to fix

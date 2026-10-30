@@ -381,7 +381,10 @@ export function run({ check, assert, log }) {
         log("");
         log("where each control stands, off the sources:");
         const provider = parseFile(PROVIDER).source;
-        assert("the provider holds which event is on its way, set by every send", /const send = \(formData\) => \{\s*setSending\(String\(formData\.get\("event"\) \?\? ""\)\);\s*startTransition\(\(\) => formAction\(formData\)\);\s*\};/.test(provider));
+        assert(
+            "the provider holds which event is on its way, set by every send, which is then the one sent last (#583)",
+            /const send = \(formData\) => \{\s*setSending\(String\(formData\.get\("event"\) \?\? ""\)\);\s*setLastSent\("event"\);\s*startTransition\(\(\) => formAction\(formData\)\);\s*\};/.test(provider)
+        );
         assert("  and splits the wait: the press's, and the menu's sending", /pending: pending && !repairing,\s*repairPending: pending && repairing,/.test(provider) && /const repairing = sending === ASSET_EVENT\.SENT_FOR_REPAIR;/.test(provider));
         assert(
             "  the menu's sending posts the asset and the event alone",
@@ -409,7 +412,11 @@ export function run({ check, assert, log }) {
         const barSource = parseFile(BAR).source;
         assert("the foot bar draws the pill and posts a job only for a scan", /const asksJob = pressTakesJob\(plan\);/.test(barSource) && /\{asksJob && <input type="hidden" name="jobId" value=\{kept\} \/>\}/.test(barSource) && /\{asksJob && \(\s*<Field label=\{COPY\.jobLabel\}/.test(barSource));
         const pageSource = parseFile(PAGE).source;
-        assert("the desk's header draws More actions for a sending or a retirement", /\{\(transition\.maySendForRepair \|\| transition\.mayRetire\) && <MoreActions \/>\}/.test(pageSource) && /\(transition\.event \|\| transition\.maySendForRepair \|\| transition\.mayRetire\) && \(/.test(pageSource));
+        assert(
+            "the desk's header draws More actions for a sending, a retirement or the office's job change (#583)",
+            /\{\(transition\.maySendForRepair \|\| transition\.mayRetire \|\| office\.mayChangeJob\) && <MoreActions \/>\}/.test(pageSource) &&
+                /\(transition\.event \|\| transition\.maySendForRepair \|\| transition\.mayRetire \|\| office\.mayChangeJob\) && \(/.test(pageSource)
+        );
         log("");
     }
 
@@ -1251,14 +1258,20 @@ export function run({ check, assert, log }) {
     // code no asset carries, since its menu ends on the account (#495).
     check(
         "  and More actions holds the retirement at a desk on its own answer, and stands in every phone top bar (#495)",
-        `${(page.source.match(/\{\(transition\.maySendForRepair \|\| transition\.mayRetire\) && <MoreActions \/>\}/g) ?? []).length} ${(page.source.match(/<MoreActions phone account=\{account\} \/>/g) ?? []).length}`,
+        `${(page.source.match(/\{\(transition\.maySendForRepair \|\| transition\.mayRetire \|\| office\.mayChangeJob\) && <MoreActions \/>\}/g) ?? []).length} ${(page.source.match(/<MoreActions phone account=\{account\} \/>/g) ?? []).length}`,
         "1 2"
     );
     // A RETIRED ASSET SHOWS NOTHING IN THE ACTIONS' PLACE AT A DESK (1f); any other refusal is
     // said there, and a phone's foot bar says the terminal one.
     assert(
         "  a desk says the refusal where the controls would be, but for a status that allows nothing",
-        /transition\.refusal !== TRANSITION_COPY\.noTransition && \(\s*<p[^>]*>\{transition\.refusal\}<\/p>/.test(page.source)
+        /transition\.refusal !== TRANSITION_COPY\.noTransition && \(\s*<div[^>]*>\s*<p[^>]*>\{transition\.refusal\}<\/p>/.test(page.source)
+    );
+    // AND THE OFFICE'S More actions AFTER IT, alone and only for the job change (#583): the
+    // sentence is about recording, and the office may move an item whatever its own jobs.
+    assert(
+        "  with More actions after it only where the office may change the job (#583)",
+        /<\/p>\s*\{office\.mayChangeJob && \(\s*<div[^>]*>\s*<MoreActions \/>\s*<\/div>\s*\)\}\s*<\/div>/.test(page.source)
     );
     // THE TRANSITION IS HANDED THE PLAN THE PAGE REACHED (#458), which its dialog asks
     // `readSubmission` of before it sends — the event the page offered and the jobs it
@@ -1406,7 +1419,14 @@ export function run({ check, assert, log }) {
     );
     check("  which the dialog reads", initSource(dialogFn, dialog.source, "refusal"), "useRefusalSentence(answer)");
     const refusalFile = parseFile(REFUSAL);
-    assert("a refusal stands under the status only while the dialog is closed", /if \(!sentence \|\| open\) return null;/.test(refusalFile.source));
+    // WHAT STANDS UNDER THE STATUS IS THE PROVIDER'S TO SAY SINCE #583, which holds both answers:
+    // the one sent last, unless a dialog of its own says it.
+    assert(
+        "a refusal stands under the status only while the dialog is closed",
+        /statusSentence: lastSent === "job" \? \(jobSaidInDialog \? null : jobSentence\) : open \? null : transitionSentence,/.test(provider.source) &&
+            /const transitionSentence = useRefusalSentence\(answer\);/.test(provider.source) &&
+            /const \{ statusSentence: sentence \} = useAssetTransition\(\);\s*if \(!sentence\) return null;/.test(refusalFile.source)
+    );
     check(
         "  as a desk's refusal line and a phone's notice, one at each width",
         `${/<div className="max-sm:hidden">\s*<Refusal>\{sentence\}<\/Refusal>/.test(refusalFile.source)} ${/sm:hidden">\s*<Notice>\{sentence\}<\/Notice>/.test(refusalFile.source)}`,
