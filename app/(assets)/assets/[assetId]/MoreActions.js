@@ -57,8 +57,8 @@ function Dots({ phone }) {
  * office on an item nothing has happened to (#583) — the menu holds the account alone, with no
  * rule, and
  * there it needs no transition: the screen saying a code is on no asset has none. The desk's
- * menu holds the record's acts alone — `Send for repair` from stock, the office's `Change job`
- * and the retirement — since the rail's foot holds the account there.
+ * menu holds the record's acts alone — `Send for repair` from stock, the office's `Change job`,
+ * the retirement and the office's deletion — since the rail's foot holds the account there.
  *
  * AND THE OFFICE'S `Change job` AFTER `Send for repair` (#583), while the item's history holds its
  * `Created` entry alone (1f, 1j-f): an act on the record that ends nothing, so it stands with the
@@ -67,12 +67,20 @@ function Dots({ phone }) {
  * does, as the files draw it: a site manager's menu holds the sending over the retirement with
  * none. Choosing it hands focus to this button and opens this width's own `Change job` — the
  * desk's dialog or the phone's sheet, drawn here (`JobChange.js`).
+ *
+ * AND THE OFFICE'S `Delete this item` LAST (#582; 1f, 1j), under the same condition, after the
+ * retirement and in its tone — 0f's Destructive — the second act that ends the item. The rule stands
+ * over the first of the two, whichever the reader is offered. Choosing it hands focus to this
+ * button and opens the deletion's question, one for both widths (`DeleteConfirm`), which the page's
+ * provider draws. A deletion left half done offers it alone of the office's two, since its job may
+ * no longer change, and with no rule.
  */
 export default function MoreActions({ phone = false, account = null }) {
     const transition = useAssetTransition();
     const maySendForRepair = Boolean(transition?.plan.maySendForRepair);
     const mayRetire = Boolean(transition?.plan.mayRetire);
     const mayChangeJob = Boolean(transition?.office?.mayChangeJob);
+    const mayDelete = Boolean(transition?.office?.mayDelete);
     const busy = Boolean(transition?.repairPending);
     const [open, setOpen] = useState(false);
     const [focusOn, setFocusOn] = useState("first");
@@ -96,8 +104,8 @@ export default function MoreActions({ phone = false, account = null }) {
         if (how === "escape") buttonRef.current?.focus();
     };
 
-    // The record's acts that end nothing, then those that end the item (#583): the rule over the
-    // first of the second where the office's line stands among the first, which is above it.
+    // The record's acts that end nothing, then those that end the item (#583, #582): the rule over
+    // the first of the second where the office's line stands among the first, which is above it.
     const acts = [
         ...(maySendForRepair
             ? [
@@ -138,6 +146,22 @@ export default function MoreActions({ phone = false, account = null }) {
                           buttonRef.current?.focus();
                           setOpen(false);
                           transition.openRetirement();
+                      },
+                  },
+              ]
+            : []),
+        ...(mayDelete
+            ? [
+                  {
+                      key: "delete",
+                      label: ASSET_OFFICE_COPY.deleteOpener,
+                      tone: "danger",
+                      // The rule over it where it is the first that ends the item (#582).
+                      separated: mayChangeJob && !mayRetire,
+                      onSelect: () => {
+                          buttonRef.current?.focus();
+                          setOpen(false);
+                          transition.openDeletion();
                       },
                   },
               ]

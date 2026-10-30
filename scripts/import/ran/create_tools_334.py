@@ -175,11 +175,16 @@ DATETIME_OPTIONS = {
 # tables. They are here so the list stays the one the base holds, in the order it
 # holds them: the status before `Retired`, as the category list draws it (1a), and
 # the two events before `Retired` too.
+#
+# #582 ADDED `Deleted` TO BOTH THE SAME WAY, by hand, last in each list and red, as
+# the base holds it -- the status of an item the office deleted, which no screen
+# shows, and the event recording who deleted it and when.
 TOOL_STATUS_CHOICES = [
     {"name": "In stock", "color": "blueLight2"},
     {"name": "Out", "color": "cyanLight2"},
     {"name": "In repair", "color": "yellowLight2"},
     {"name": "Retired", "color": "grayLight2"},
+    {"name": "Deleted", "color": "redLight2"},
 ]
 
 TOOL_EVENT_CHOICES = [
@@ -189,6 +194,7 @@ TOOL_EVENT_CHOICES = [
     {"name": "Sent for repair", "color": "yellowLight2"},
     {"name": "Returned from repair", "color": "orangeLight2"},
     {"name": "Retired", "color": "grayLight2"},
+    {"name": "Deleted", "color": "redLight2"},
 ]
 
 # ----------------------------------------------------------------------------

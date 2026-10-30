@@ -220,9 +220,9 @@ checked in before it is sent; one in repair offers its return, and its menu the
 retirement alone. **On a phone the menu ends on
 the reader's account** — `Sign out` over their email, under a rule — since a
 phone has no rail to name the reader in, and where the page offers no
-retirement and no `Change job` — a retired tool, or a reader who is neither a
-site manager nor the office on an item nothing has happened to — it holds the
-account alone (Tools 0a, #495, #583). It is offered from
+retirement and none of the office's acts — a retired tool, or a reader who is
+neither a site manager nor the office on an item nothing has happened to — it
+holds the account alone (Tools 0a, #495, #583, #582). It is offered from
 `In stock`, from `Out` and from `In repair` alike — a tool that broke on a
 site is retired from there, one its maker gives up on is retired while it is
 away, and requiring a check-in or a return first would put an event in the
@@ -488,6 +488,27 @@ half done** — the entry moved and the item not — says, where the press was,
 the lists will say so. Save again to finish.`, and the next Save writes the half
 that is left. An item with any other entry offers no `Change job`, and nothing
 is drawn in its place.
+
+**For the office, on the same item, a way to delete it (#582; 1f, 1j).**
+`Delete this item` stands last in `More actions`, after `Retire this item` and
+in its tone — at a desk in Ink that turns red under the pointer, on a phone in
+red — and the rule stands over the first of the two. It opens the retirement's
+question in the same frame: `Delete Hammer Drill, Hilti (TE6-A36)?`, the item's
+name, its id under it, `It will be deleted along with its history. This can't
+be undone.`, and `Cancel` beside the red `Delete item`, which says `Deleting…`
+while it is on its way. **Deleting lands on the item's kind's list on the job it
+was on, without the item**, and says nothing more. A deleted item is shown
+nowhere again, to anybody: no list, count, search, export or label run holds
+it, and its address and a scan of its label read `Item not found`, as a code no
+item carries does. Its number is never given to another item. **Something
+recorded since the page was drawn** takes the line and its question away, and
+the page drawn again says `Something has been recorded on this item, so it
+can't be deleted.` under the status; a reader who is no longer the office reads
+`Deleting an item is for Admins.` there. **A deletion left half done** — its
+entry recorded and the item still on the lists — shows the `Deleted` entry in
+its history and says, where the press was, `The Deleted entry is recorded, but
+the item is still on the lists. Delete it again to finish.`; `Delete this item`
+stays on that page, alone of the office's two, and finishes it.
 
 **For a site manager assigned to no job, a sentence where the controls would
 be**: in the header's right at a desk and in the foot bar on a phone. Both

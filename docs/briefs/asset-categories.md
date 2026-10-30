@@ -288,7 +288,9 @@ either screen, so this list and `/assets/[assetId]` cannot disagree
 about where an asset is.
 
 **`In stock`, `Out`, `In repair` and `Retired` are the four statuses this
-axis has (`In repair` since #531), and they are not status tones.** The tones in the shared brief are one
+axis draws (`In repair` since #531; an item the office deleted holds a fifth,
+`Deleted`, and no screen counts or draws it, #582), and they are not status
+tones.** The tones in the shared brief are one
 closed vocabulary for how far something has got on an axis; reusing one
 here would make a word mean a stage on one screen and a location on
 another. The words appear as themselves on this screen, so the count is

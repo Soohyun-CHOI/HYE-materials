@@ -72,7 +72,8 @@ list's pager under them, in the order the band's control names — by name, then
 size, maker and part number, a run of digits read as a number, where the page
 starts. Each row says its name, size, maker, part
 number, category and type, and how many items stand under it — every
-status counted, since a retired item still stands under its row — with a zero in
+status counted, since a retired item still stands under its row, but a deleted
+one, which the app treats as never registered (#582) — with a zero in
 a lighter ink. A level a row leaves empty is an empty cell. A value its column
 cuts ends in an ellipsis, and under the pointer shows whole above its cell.
 

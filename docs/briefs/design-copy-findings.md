@@ -426,3 +426,34 @@ The keys are `ASSET_OFFICE_COPY.save`, `.saving`, `.recordedSince`,
 `.halfDone`, `.noAccess` and `.jobNoneChosen` in `lib/assetOfficeActs.js`, held
 by value in `offline/asset-office-acts.mjs`. The base calls the history's entry
 an `Asset Log` row whose `Event` is `Created`.
+
+---
+
+## What an item's deletion says that the files of 2026-10-30 do not (#582)
+
+The files draw `Delete this item` in 1f's and 1j's `More actions`, the desk's
+question and the phone's sheet, and none of the moments after a press, and
+they draw no screen a deletion lands on. What a screen says in their place
+follows a rule the design already states, and the next sending decides each.
+
+| String | Where | The files |
+|---|---|---|
+| `Deleting…` | the question's `Delete item`, busy, at both widths | draw no wait |
+| `Something has been recorded on this item, so it can't be deleted.` | under the status, after a press on an item something was recorded on since | draw no refused deletion |
+| `The Deleted entry is recorded, but the item is still on the lists. Delete it again to finish.` | over the question's actions, and under the status once it is closed, when the item's own write failed | the same |
+| `Deleting an item is for Admins.` | under the status, after a press by a reader no longer the office | the same |
+
+**The working word is 0f's rule**, `Delete` in its `-ing` form, as the
+retirement's `Retiring…` is. **Something recorded since is said**, as the job
+change's is: the reader pressed `Delete item` on a question that goes with its
+line. **A deletion left half done names the history's entry by its event**,
+`Deleted`, the word the history shows beside the item it has not yet left.
+**Where a deletion lands is the item's kind's list on the job it was on**, the
+breadcrumb's level above the page that is gone, with nothing said: the list
+without the item is what says it happened (#321).
+
+The keys are `ASSET_OFFICE_COPY.deleteWorking`, `.deleteRecordedSince`,
+`.deleteHalfDone` and `.deleteNoAccess` in `lib/assetOfficeActs.js`, held by
+value in `offline/asset-office-acts.mjs`, and `deletedLanding` beside them is
+the landing. The base calls the history's entry an `Asset Log` row whose
+`Event` is `Deleted`, and the item's status the same word.

@@ -85,8 +85,9 @@ const ID_ON_PHONE = "font-id text-mobile-body-xs tracking-id tabular-nums text-f
  * case-insensitive for that, and this redirect is what stops the concession from
  * turning one printed address into several. `permanentRedirect` rather than
  * `redirect`, because the mapping is stable forever: an `Asset ID` is minted
- * once and printed, the app offers no deletion, and `Retired` is what takes an asset
- * out of the count while keeping its row — so nothing reassigns the string a
+ * once and printed, and neither way an asset leaves takes its row — `Retired` takes it
+ * out of the count, and the office's deletion (#582) out of every screen, a deleted
+ * asset's address answering as a code no asset carries — so nothing reassigns the string a
  * cached redirect names. **`/l/` uses the plain `redirect` and the difference is
  * not an oversight**: this one maps a variant of an address onto that address, and
  * that one maps a printed entry point onto a screen whose address the app may
@@ -144,7 +145,8 @@ const ID_ON_PHONE = "font-id text-mobile-body-xs tracking-id tabular-nums text-f
  * `withSiteManagerAction`. **But the office may change the job of an item nothing has happened
  * to (#583)** — an Admin, whether or not a site manager, while the history holds its `Created`
  * entry alone — so for the office such an item's `More actions` holds `Change job`, at a desk and
- * on a phone, and `withAdminAction` is the gate behind it.
+ * on a phone, and `withAdminAction` is the gate behind it; and since #582 `Delete this item` too,
+ * behind the same gate, which leaves the item's address answering as 1h does.
  *
  * TWO DRAWINGS OF ONE PAGE (#463). A desk draws 0n's record page under the breadcrumb:
  * a header holding its category's name, the line under it, its status and the actions, the
@@ -249,11 +251,14 @@ async function renderAssetPage({ params }) {
     // asks the same function again, because a Server Action is reachable without
     // this page.
     const transition = planTransition({ user, jobs, status: asset.status });
-    // WHAT THE OFFICE MAY DO HERE (#583), and for no operations either: the reader, the history
-    // and the job list are all in hand. `planOfficeActs` offers `Change job` while the history
-    // holds its `Created` entry alone, with the jobs a list's choice offers, and the action asks
-    // it again on a fresh read.
+    // WHAT THE OFFICE MAY DO HERE (#583, #582), and for no operations either: the reader, the
+    // history and the job list are all in hand. `planOfficeActs` offers `Change job` and `Delete
+    // this item` while the history holds its `Created` entry alone, with the jobs a list's choice
+    // offers, and each action asks it again on a fresh read.
     const office = planOfficeActs({ user, log, jobs });
+    // Whether the office has a line in `More actions` at all — the deletion stands wherever the
+    // change does, and alone where a deletion was left half done.
+    const officeActs = office.mayChangeJob || office.mayDelete;
     // The jobs this reader's lists hold, the same judgment the lists read by (#509) — every job,
     // for every reader, since #593: with more than one, the breadcrumb names the asset's job as a
     // level they may change (#519), and the list's level and the category's carry it when it is
@@ -421,25 +426,26 @@ async function renderAssetPage({ params }) {
                             Each is asked for separately, because the answers come from three
                             maps (`lib/assetStatus.js`). A READER WHO IS NOT A SITE MANAGER IS
                             OFFERED NONE AND TOLD NOTHING (#506), so the place holds nothing, as
-                            it does for a retired asset. THE OFFICE'S `Change job` IS IN THE SAME
-                            MENU (#583), whoever else the reader is, so `More actions` stands for
-                            it alone too — and beside a site manager's sentence about having no
-                            job, which is about recording and not about this. */}
+                            it does for a retired asset. THE OFFICE'S `Change job` AND `Delete this
+                            item` ARE IN THE SAME MENU (#583, #582), whoever else the reader is, so
+                            `More actions` stands for them alone too — and beside a site manager's
+                            sentence about having no job, which is about recording and not about
+                            this. */}
                         {transition.refusal
                             ? transition.refusal !== TRANSITION_COPY.noTransition && (
                                   <div className="flex shrink-0 items-start gap-gap max-sm:hidden">
                                       <p className="max-w-empty-state text-body-sm text-pretty text-foreground-subtle">{transition.refusal}</p>
-                                      {office.mayChangeJob && (
+                                      {officeActs && (
                                           <div className="-mt-record-header-actions-bleed flex">
                                               <MoreActions />
                                           </div>
                                       )}
                                   </div>
                               )
-                            : (transition.event || transition.maySendForRepair || transition.mayRetire || office.mayChangeJob) && (
+                            : (transition.event || transition.maySendForRepair || transition.mayRetire || officeActs) && (
                                   <div className="-mt-record-header-actions-bleed flex shrink-0 items-center gap-gap max-sm:hidden">
                                       {transition.event && <TransitionDialog currentJobCode={jobCode} recentCheckOuts={recentCheckOuts} />}
-                                      {(transition.maySendForRepair || transition.mayRetire || office.mayChangeJob) && <MoreActions />}
+                                      {(transition.maySendForRepair || transition.mayRetire || officeActs) && <MoreActions />}
                                   </div>
                               )}
                     </header>

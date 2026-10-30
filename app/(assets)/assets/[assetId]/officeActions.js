@@ -4,10 +4,11 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser, withAdminAction } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
-import { getAssetByAssetId, updateAssetJob } from "@/lib/airtable/assets";
-import { getAssetLogByAsset, updateCreatedEntryJob } from "@/lib/airtable/assetLog";
+import { getAssetByAssetId, updateAssetCache, updateAssetJob } from "@/lib/airtable/assets";
+import { createAssetLogEntry, getAssetLogByAsset, updateCreatedEntryJob } from "@/lib/airtable/assetLog";
 import { ASSET_COPY } from "@/lib/assetView";
-import { ASSET_OFFICE_COPY as COPY, planOfficeActs, readJobChange } from "@/lib/assetOfficeActs";
+import { ASSET_EVENT, statusAfterEvent } from "@/lib/assetStatus";
+import { ASSET_OFFICE_COPY as COPY, deletedLanding, planOfficeActs, readDeletion, readJobChange } from "@/lib/assetOfficeActs";
 import { assetPath } from "@/lib/assetRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
 
@@ -97,6 +98,93 @@ async function changeAssetJobHandler(prevState, formData) {
         }
 
         redirect(assetPath(asset.assetId));
+    });
+}
+
+/**
+ * Delete an asset whose history holds its `Created` entry alone (#582) — a `Deleted` entry, then the
+ * asset's `Status`, and no row taken off the base, so its number stays taken and the entry keeps who
+ * deleted it and when. The app shows it nowhere again (`lib/assetStatus.js:shownIn`).
+ *
+ * THE OFFICE'S, AND THE CONDITION ASKED AGAIN ON A FRESH READ, as the job change asks it. The
+ * wrapper refuses a reader who is not the office; `planOfficeActs` asks what the history holds now.
+ * One row is read, or two — the `Created` entry and the `Deleted` one a deletion left half done, the
+ * second history the plan admits — and any other length has had something happen to it, so its ids
+ * stand for the rows with nothing read.
+ *
+ * THE ENTRY FIRST, AND NOTHING PUT BACK: `writeEvent`'s order in `actions.js`, written out here
+ * because `readDeletion` writes only what is left — a press after a failed status write writes the
+ * status alone, where `writeEvent` would write a second entry. A failed entry write writes nothing
+ * and throws, as on the page's other acts; a failed status write after it is named on the page and
+ * logged with the record id, never written back (`ASSET_OFFICE_COPY.deleteHalfDone`).
+ *
+ * NO LOCK, the job change's reason: `createAssetLogEntry` takes the asset's own lock to mint the
+ * entry's id, and two locks are never nested. **Unobserved, and recorded here rather than guarded**:
+ * two presses in two invocations can both pass the plan and leave two `Deleted` entries, which hide
+ * the item all the same; a site manager recording an event in the instant of a deletion can pass
+ * their plan too, leaving an event after the `Deleted` entry and the status whichever landed last;
+ * and one recording on a deletion left half done — the item still drawn, its `Deleted` entry in its
+ * history — leaves a history the plan no longer admits, so it can only be finished in Airtable.
+ *
+ * EIGHT OPERATIONS: the session twice — the wrapper's gate and this body — the asset, its rows, THREE
+ * for the entry (`generateChildId`'s parent find, the sibling read and the create) and one for the
+ * status. No job list: the plan asks the office's flag alone of it, and the entry takes the asset's
+ * own job. A press finishing a half-done deletion is the first four and the status; a refusal is at
+ * most the first four and the page drawn again.
+ *
+ * ON SUCCESS IT REDIRECTS TO THE ITEM'S KIND'S LIST ON ITS JOB AND SAYS NOTHING (#321,
+ * `deletedLanding`): the page it came from is gone, and the list without the item says what happened.
+ */
+export const deleteAssetAction = withAdminAction(() => {
+    refresh();
+    return { error: COPY.deleteNoAccess };
+}, deleteAssetHandler);
+
+async function deleteAssetHandler(prevState, formData) {
+    return withOpsLabel("deleteAssetAction", async () => {
+        const user = await requireUser();
+
+        // The printed id, looked up as the page looks it up — and a deleted asset is none (#582).
+        const asset = await getAssetByAssetId(String(formData.get("assetId") ?? ""));
+        if (!asset) return refuse(ASSET_COPY.notFoundHeading);
+
+        const rowIds = asset.assetLog || [];
+        const log =
+            rowIds.length === 1 || rowIds.length === 2
+                ? await getAssetLogByAsset(asset.id, { rowIds })
+                : // The ids stand for the rows, which the plan counts and need not read.
+                  rowIds.map((id) => ({ id }));
+        const plan = planOfficeActs({ user, log, jobs: [] });
+        const answer = readDeletion(plan, { status: asset.status, assetJobRecordId: asset.job?.[0] ?? null });
+        if (answer.refusal) return refuse(answer.refusal);
+
+        if (answer.writesEntry) {
+            await createAssetLogEntry({
+                assetRecordId: asset.id,
+                assetId: asset.assetId,
+                event: ASSET_EVENT.DELETED,
+                jobRecordId: answer.jobRecordId,
+                recordedByUserId: user.id,
+            });
+        }
+        if (answer.writesStatus) {
+            try {
+                await updateAssetCache({
+                    assetRecordId: asset.id,
+                    status: statusAfterEvent(ASSET_EVENT.DELETED),
+                    jobRecordId: answer.jobRecordId,
+                });
+            } catch (error) {
+                console.error("Asset status not set to Deleted after its Deleted entry was written (#582)", {
+                    assetRecordId: asset.id,
+                    assetId: asset.assetId,
+                    error,
+                });
+                return refuse(COPY.deleteHalfDone);
+            }
+        }
+
+        redirect(deletedLanding(asset));
     });
 }
 

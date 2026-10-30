@@ -41,7 +41,7 @@ import { strFromU8, unzipSync } from "fflate";
 import { XLSX_MEDIA_TYPE, excelDaySerial, startsFormula, workbookBytes } from "../../../lib/xlsxWorkbook.js";
 import { AIRTABLE_PAGE_ROWS, AIRTABLE_REQUESTS_PER_SECOND, createRequestPace, pagesOf } from "../../../lib/airtablePace.js";
 import { ASSET_EXPORT_COPY, listExport } from "../../../lib/assetListExport.js";
-import { ASSET_EVENT, ASSET_STATUS, ASSET_STATUS_VALUES } from "../../../lib/assetStatus.js";
+import { ASSET_EVENT, ASSET_STATUS, SHOWN_STATUS_VALUES } from "../../../lib/assetStatus.js";
 import { knownTimeZone } from "../../../lib/format.js";
 import { parseFile, parseSource } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
@@ -138,16 +138,17 @@ const rowsSaid = (sheet) => sheet.rows.map((row) => row.map(said).join(" ; ")).j
 /**
  * Whether the two sheets agree (#553): each first-sheet row, in order, is the next as many
  * second-sheet rows as its counts add up to, of its own type and category, status for status,
- * and its total those of them not retired (#569), spelled here by the status's word.
+ * and its total those of them not retired (#569), spelled here by the status's word. The columns
+ * are the statuses a screen draws (#582), the vocabulary but `Deleted`.
  */
 function agreement([list, items]) {
     let at = 0;
     for (const row of list.rows) {
-        const counts = row.slice(3, 3 + ASSET_STATUS_VALUES.length);
-        const total = row[3 + ASSET_STATUS_VALUES.length];
+        const counts = row.slice(3, 3 + SHOWN_STATUS_VALUES.length);
+        const total = row[3 + SHOWN_STATUS_VALUES.length];
         const block = items.rows.slice(at, at + counts.reduce((sum, n) => sum + n, 0));
         at += block.length;
-        const perStatus = ASSET_STATUS_VALUES.map((status) => block.filter((item) => item[7] === status).length);
+        const perStatus = SHOWN_STATUS_VALUES.map((status) => block.filter((item) => item[7] === status).length);
         if (perStatus.join("/") !== counts.join("/")) return `${row[0]} counts ${counts.join("/")} but lists ${perStatus.join("/")}`;
         const held = block.filter((item) => item[7] !== "Retired").length;
         if (total !== held) return `${row[0]} totals ${total} but holds ${held}`;
@@ -546,8 +547,8 @@ export async function run({ check, log, assert }) {
         true
     );
     check(
-        "the asset reader reads whole, a hundred to a query, paced",
-        /export async function getAssetsByRecordIds\(recordIds, \{ pace \} = \{\}\) \{\s*return \(await findByRecordIds\(TABLES\.ASSETS, recordIds, \{ perQuery: 100, pace \}\)\)\.map\(recordToAsset\);\s*\}/.test(parseFile(ASSETS).source),
+        "the asset reader reads whole, a hundred to a query, paced, handing back what the app shows (#582)",
+        /export async function getAssetsByRecordIds\(recordIds, \{ pace \} = \{\}\) \{\s*return \(await findByRecordIds\(TABLES\.ASSETS, recordIds, \{ perQuery: 100, pace \}\)\)\.map\(recordToAsset\)\.filter\(isShownAsset\);\s*\}/.test(parseFile(ASSETS).source),
         true
     );
     const buttonSource = parseFile(BUTTON).source;

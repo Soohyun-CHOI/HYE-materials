@@ -1,5 +1,6 @@
-// The assets track's two closed vocabularies, and the five mappings over them
-// (#334; the second added by #362, the third by #363, the last two by #531).
+// The assets track's two closed vocabularies, and the eight mappings over them
+// (#334; the second added by #362, the third by #363, two by #531, one each by #533 and
+// #569, and the last by #582, which added `Deleted` to both vocabularies).
 //
 // WHAT THIS GUARDS AND WHY IT IS WORTH A CHECK. `Assets."Status"` and
 // `Asset Log."Event"` are singleSelect fields, and an existing select's option
@@ -48,6 +49,8 @@ import {
     MAY_RETIRE_FROM_STATUS,
     MAY_SEND_FOR_REPAIR_FROM_STATUS,
     MAY_WRITE_NOTE_IN_STATUS,
+    SHOWN_BY_STATUS,
+    SHOWN_STATUS_VALUES,
     STATUS_AFTER_EVENT,
     ASSET_EVENT,
     ASSET_EVENT_VALUES,
@@ -55,15 +58,17 @@ import {
     ASSET_STATUS_VALUES,
     countedInTotal,
     eventOfferedBy,
+    isShownAsset,
     jobSourceOf,
     mayRetireFrom,
     maySendForRepairFrom,
     mayWriteNoteIn,
+    shownIn,
     statusAfterEvent,
 } from "../../../lib/assetStatus.js";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Tool status and event vocabularies, and the maps between them (#334, #362, #363, #531, #569)";
+export const title = "Tool status and event vocabularies, and the maps between them (#334, #362, #363, #531, #569, #582)";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PY_PATH = resolve(HERE, "../../import/ran/create_tools_334.py");
@@ -97,9 +102,10 @@ function total569({ check, log, assert }) {
     check("  and Out", COUNTED_IN_TOTAL_BY_STATUS["Out"], true);
     check("  and In repair", COUNTED_IN_TOTAL_BY_STATUS["In repair"], true);
     check("  and not Retired", COUNTED_IN_TOTAL_BY_STATUS["Retired"], false);
-    check("  the total's map has four entries, one per status", Object.keys(COUNTED_IN_TOTAL_BY_STATUS).sort().join(" | "), "In repair | In stock | Out | Retired");
+    check("  nor Deleted (#582)", COUNTED_IN_TOTAL_BY_STATUS["Deleted"], false);
+    check("  the total's map has five entries, one per status", Object.keys(COUNTED_IN_TOTAL_BY_STATUS).sort().join(" | "), "Deleted | In repair | In stock | Out | Retired");
     check("  each of them a boolean", Object.values(COUNTED_IN_TOTAL_BY_STATUS).filter((v) => typeof v !== "boolean").length, 0);
-    check("countedInTotal applies it", ASSET_STATUS_VALUES.map((s) => countedInTotal(s)).join(","), "true,true,true,false");
+    check("countedInTotal applies it, over five", ASSET_STATUS_VALUES.map((s) => countedInTotal(s)).join(","), "true,true,true,false,false");
     let threw = null;
     try {
         countedInTotal("Lost");
@@ -111,7 +117,82 @@ function total569({ check, log, assert }) {
     log("");
 }
 
+/**
+ * The eighth map (#582): which statuses the app shows at all — every one but `Deleted` — by value,
+ * total over the vocabulary, throwing on a status outside it; the asset-level question every reader
+ * of `Assets` asks; the statuses a screen draws; and `Deleted`'s answer in each of the other seven.
+ * Called first in `run()`, with #569's, so an older assertion that throws cannot keep it from printing.
+ */
+function shown582({ check, log, assert }) {
+    // A map missing an entry throws when asked, so each question here is asked through `safe`,
+    // and a throw reads as a value that fails its line rather than ending the block.
+    const safe = (ask) => {
+        try {
+            return ask();
+        } catch {
+            return "threw";
+        }
+    };
+    log("which statuses the app shows, by value (#582):");
+    check("In stock is shown", SHOWN_BY_STATUS["In stock"], true);
+    check("  and Out", SHOWN_BY_STATUS["Out"], true);
+    check("  and In repair", SHOWN_BY_STATUS["In repair"], true);
+    check("  and Retired, which the total leaves out", SHOWN_BY_STATUS["Retired"], true);
+    check("  and not Deleted", SHOWN_BY_STATUS["Deleted"], false);
+    check("  five entries, one per status", Object.keys(SHOWN_BY_STATUS).sort().join(" | "), "Deleted | In repair | In stock | Out | Retired");
+    check("  each of them a boolean", Object.values(SHOWN_BY_STATUS).filter((v) => typeof v !== "boolean").length, 0);
+    check("shownIn applies it", ASSET_STATUS_VALUES.map((s) => safe(() => shownIn(s))).join(","), "true,true,true,true,false");
+    let threw = null;
+    try {
+        shownIn("Lost");
+    } catch (err) {
+        threw = err.message;
+    }
+    assert("a status outside the vocabulary throws rather than hiding its assets everywhere", Boolean(threw));
+    assert("  and that throw names the module and the map to edit", (threw || "").includes("lib/assetStatus.js") && (threw || "").includes("SHOWN_BY_STATUS"));
+    check("  so false is how Deleted is answered, and not an unknown status", safe(() => shownIn("Deleted")), false);
+
+    log("");
+    log("an asset as every reader of Assets asks it (#582):");
+    check("a deleted one is not shown", safe(() => isShownAsset({ status: "Deleted" })), false);
+    check("  a retired one is", safe(() => isShownAsset({ status: "Retired" })), true);
+    check("  and one in stock", safe(() => isShownAsset({ status: "In stock" })), true);
+    check("  one with no status at all is shown as before, there being nothing to hide it by", [safe(() => isShownAsset({})), safe(() => isShownAsset({ status: "" })), safe(() => isShownAsset({ status: null }))].join(","), "true,true,true");
+    let assetThrew = null;
+    try {
+        isShownAsset({ status: "Lost" });
+    } catch (err) {
+        assetThrew = err.message;
+    }
+    assert("  and one in a status outside the vocabulary throws", Boolean(assetThrew));
+
+    log("");
+    log("the statuses a screen draws (#582):");
+    check("SHOWN_STATUS_VALUES", SHOWN_STATUS_VALUES.join(" | "), "In stock | Out | In repair | Retired");
+    check("  in the option list's order, Deleted left out", SHOWN_STATUS_VALUES.join(" | "), ASSET_STATUS_VALUES.filter((s) => s !== "Deleted").join(" | "));
+
+    // A MAP OF ITS OWN: it parts from the total's on `Retired`, which is shown and not totalled.
+    log("");
+    log("and it is not a reading of the total's map:");
+    check("  statuses shown and not counted in a total", ASSET_STATUS_VALUES.filter((s) => safe(() => shownIn(s) && !countedInTotal(s)) === true).join(" | "), "Retired");
+    assert("  and they are two objects, so a new status has to answer both", SHOWN_BY_STATUS !== COUNTED_IN_TOTAL_BY_STATUS);
+
+    // `Deleted`'S ANSWER IN EVERY MAP, BY VALUE, in one place, since a new status visits all eight.
+    log("");
+    log("what Deleted answers in each of the eight maps:");
+    check("  deleting leaves it Deleted", STATUS_AFTER_EVENT["Deleted"], "Deleted");
+    check("  it offers no press", EVENT_OFFERED_BY_STATUS["Deleted"], null);
+    check("  it may not be retired", MAY_RETIRE_FROM_STATUS["Deleted"], false);
+    check("  nor sent for repair", MAY_SEND_FOR_REPAIR_FROM_STATUS["Deleted"], false);
+    check("  nor have its note written", MAY_WRITE_NOTE_IN_STATUS["Deleted"], false);
+    check("  nor count in a total", COUNTED_IN_TOTAL_BY_STATUS["Deleted"], false);
+    check("  its entry takes the asset's job", JOB_SOURCE_OF_EVENT["Deleted"], "asset");
+    check("  and it is shown nowhere", SHOWN_BY_STATUS["Deleted"], false);
+    log("");
+}
+
 export function run({ check, log, assert }) {
+    shown582({ check, log, assert });
     total569({ check, log, assert });
 
     // ── the two vocabularies, by value ──────────────────────────────────────
@@ -120,20 +201,22 @@ export function run({ check, log, assert }) {
     // Airtable's option lists, and after field CREATE no API can change them.
     // `In repair` WAS ADDED BY #531, by hand in the Airtable UI, and stands before
     // `Retired` because the category list draws its counts in this order (1a).
-    log("the four statuses, in order:");
-    check("ASSET_STATUS_VALUES", ASSET_STATUS_VALUES.join(" | "), "In stock | Out | In repair | Retired");
-    check("four and no more", ASSET_STATUS_VALUES.length, 4);
+    // `Deleted` WAS ADDED BY #582 the same way, last, and no list draws it.
+    log("the five statuses, in order:");
+    check("ASSET_STATUS_VALUES, Deleted last", ASSET_STATUS_VALUES.join(" | "), "In stock | Out | In repair | Retired | Deleted");
+    check("five and no more", ASSET_STATUS_VALUES.length, 5);
     assert("no duplicates", new Set(ASSET_STATUS_VALUES).size === ASSET_STATUS_VALUES.length);
 
     log("");
-    log("the six events, in order:");
+    log("the seven events, in order:");
     // `Created` WAS `Registered` UNTIL #455, and the two scans were `Checked Out` and
     // `Checked In` until #463, each renamed in the Airtable UI with the rows
     // following it — see lib/assetStatus.js's header.
-    // The two repair events (#531) stand before `Retired`, where the base holds them.
-    check("ASSET_EVENT_VALUES", ASSET_EVENT_VALUES.join(" | "),
-        "Created | Checked out | Checked in | Sent for repair | Returned from repair | Retired");
-    check("six and no more", ASSET_EVENT_VALUES.length, 6);
+    // The two repair events (#531) stand before `Retired`, where the base holds them, and
+    // `Deleted` (#582) after it.
+    check("ASSET_EVENT_VALUES, Deleted last", ASSET_EVENT_VALUES.join(" | "),
+        "Created | Checked out | Checked in | Sent for repair | Returned from repair | Retired | Deleted");
+    check("seven and no more", ASSET_EVENT_VALUES.length, 7);
     assert("no duplicates", new Set(ASSET_EVENT_VALUES).size === ASSET_EVENT_VALUES.length);
 
     // ── sentence case, the design's (#463) ──────────────────────────────────
@@ -228,17 +311,18 @@ export function run({ check, log, assert }) {
         !produced.has("Lost") && produced.size > 0
     );
 
-    // ── the one string both vocabularies share ──────────────────────────────
-    // Worth pinning at 1 of 6: an event and a status spelling the same word is a
+    // ── the two strings both vocabularies share ─────────────────────────────
+    // Worth pinning at 2 of 7: an event and a status spelling the same word is a
     // deliberate coincidence, not drift. `Retired` is named for the state it arrives
-    // at; every other event is named for the act — the two scans, and since #531 the
-    // repair's two, whose status `In repair` is neither of them — or is `Created`
-    // (named for an act with no status of its own).
+    // at, and since #582 `Deleted` is too, the office's other end; every other event is
+    // named for the act — the two scans, and since #531 the repair's two, whose status
+    // `In repair` is neither of them — or is `Created` (named for an act with no status
+    // of its own).
     log("");
-    log("`Retired` is the one string both vocabularies carry:");
+    log("`Retired` and `Deleted` are the two strings both vocabularies carry:");
     const shared = ASSET_EVENT_VALUES.filter((e) => ASSET_STATUS_VALUES.includes(e));
-    check("shared strings", shared.join(", "), ASSET_STATUS.RETIRED);
-    check("and there is exactly one", shared.length, 1);
+    check("shared strings, the two ends", shared.join(", "), "Retired, Deleted");
+    check("and there are exactly two", shared.length, 2);
 
     log("");
     log("statusAfterEvent applies the map:");
@@ -248,8 +332,10 @@ export function run({ check, log, assert }) {
         statusAfterEvent(ASSET_EVENT.CHECKED_OUT), ASSET_STATUS.OUT);
     check("a check-in brings it back",
         statusAfterEvent(ASSET_EVENT.CHECKED_IN), ASSET_STATUS.IN_STOCK);
-    check("retiring is the only end",
+    check("retiring ends it",
         statusAfterEvent(ASSET_EVENT.RETIRED), ASSET_STATUS.RETIRED);
+    check("deleting ends it the other way (#582)",
+        statusAfterEvent(ASSET_EVENT.DELETED), "Deleted");
     check("sending one for repair puts it in repair (#531)",
         statusAfterEvent(ASSET_EVENT.SENT_FOR_REPAIR), "In repair");
     check("its return puts it back in stock",
@@ -281,7 +367,8 @@ export function run({ check, log, assert }) {
     check("Out offers", EVENT_OFFERED_BY_STATUS["Out"], "Checked in");
     check("In repair offers its return (#531)", EVENT_OFFERED_BY_STATUS["In repair"], "Returned from repair");
     check("Retired offers", EVENT_OFFERED_BY_STATUS["Retired"], null);
-    check("four entries and no more", Object.keys(EVENT_OFFERED_BY_STATUS).length, 4);
+    check("Deleted offers (#582)", EVENT_OFFERED_BY_STATUS["Deleted"], null);
+    check("five entries and no more", Object.keys(EVENT_OFFERED_BY_STATUS).length, 5);
 
     // TOTAL OVER THE STATUS VOCABULARY. A fourth status with no entry is what this
     // catches, and it is the whole reason `Retired`'s `null` is written out rather
@@ -379,7 +466,8 @@ export function run({ check, log, assert }) {
     check("Out", MAY_RETIRE_FROM_STATUS["Out"], true);
     check("In repair (#531)", MAY_RETIRE_FROM_STATUS["In repair"], true);
     check("Retired", MAY_RETIRE_FROM_STATUS["Retired"], false);
-    check("four entries and no more", Object.keys(MAY_RETIRE_FROM_STATUS).length, 4);
+    check("Deleted (#582)", MAY_RETIRE_FROM_STATUS["Deleted"], false);
+    check("five entries and no more", Object.keys(MAY_RETIRE_FROM_STATUS).length, 5);
     const unretirable = ASSET_STATUS_VALUES.filter(
         (s) => !Object.prototype.hasOwnProperty.call(MAY_RETIRE_FROM_STATUS, s)
     );
@@ -412,7 +500,7 @@ export function run({ check, log, assert }) {
     // Asserting the agreement rather than deriving one from the other is what
     // makes that a visible change instead of a silent one.
     log("");
-    log("the press's map and the retirement's agree on all four values, which is measured rather than assumed:");
+    log("the press's map and the retirement's agree on all five values, which is measured rather than assumed:");
     for (const status of ASSET_STATUS_VALUES) {
         check(
             `  ${status}: offers ${eventOfferedBy(status) ?? "nothing"}, retirable ${mayRetireFrom(status)}`,
@@ -422,10 +510,10 @@ export function run({ check, log, assert }) {
     }
     assert("  and they are two objects, so a new status has to answer both", EVENT_OFFERED_BY_STATUS !== MAY_RETIRE_FROM_STATUS);
 
-    // EXACTLY ONE TERMINAL STATUS, which is what the screen's single sentence in
-    // place of every control is about.
+    // TWO TERMINAL STATUSES SINCE #582: `Retired`, which the screen's single sentence in
+    // place of every control is about, and `Deleted`, which no screen draws at all.
     const terminal = ASSET_STATUS_VALUES.filter((s) => !eventOfferedBy(s) && !mayRetireFrom(s));
-    check("terminal statuses", terminal.join(","), "Retired");
+    check("terminal statuses, the two ends", terminal.join(","), "Retired,Deleted");
 
     let retireThrew = null;
     try {
@@ -446,13 +534,14 @@ export function run({ check, log, assert }) {
     check("Out", MAY_SEND_FOR_REPAIR_FROM_STATUS["Out"], false);
     check("In repair", MAY_SEND_FOR_REPAIR_FROM_STATUS["In repair"], false);
     check("Retired", MAY_SEND_FOR_REPAIR_FROM_STATUS["Retired"], false);
-    check("four entries, one per status", Object.keys(MAY_SEND_FOR_REPAIR_FROM_STATUS).sort().join(" | "), "In repair | In stock | Out | Retired");
+    check("Deleted (#582)", MAY_SEND_FOR_REPAIR_FROM_STATUS["Deleted"], false);
+    check("five entries, one per status", Object.keys(MAY_SEND_FOR_REPAIR_FROM_STATUS).sort().join(" | "), "Deleted | In repair | In stock | Out | Retired");
     check(
         "every entry is a boolean",
         Object.values(MAY_SEND_FOR_REPAIR_FROM_STATUS).filter((v) => typeof v !== "boolean").length,
         0
     );
-    check("maySendForRepairFrom applies it", ASSET_STATUS_VALUES.map((s) => maySendForRepairFrom(s)).join(","), "true,false,false,false");
+    check("maySendForRepairFrom applies it, over five", ASSET_STATUS_VALUES.map((s) => maySendForRepairFrom(s)).join(","), "true,false,false,false,false");
     let repairThrew = null;
     try {
         maySendForRepairFrom("Lost");
@@ -498,9 +587,10 @@ export function run({ check, log, assert }) {
     check("Out", MAY_WRITE_NOTE_IN_STATUS["Out"], true);
     check("In repair", MAY_WRITE_NOTE_IN_STATUS["In repair"], false);
     check("Retired", MAY_WRITE_NOTE_IN_STATUS["Retired"], false);
-    check("  four entries, one per status", Object.keys(MAY_WRITE_NOTE_IN_STATUS).sort().join(" | "), "In repair | In stock | Out | Retired");
+    check("Deleted (#582)", MAY_WRITE_NOTE_IN_STATUS["Deleted"], false);
+    check("  five entries, one per status", Object.keys(MAY_WRITE_NOTE_IN_STATUS).sort().join(" | "), "Deleted | In repair | In stock | Out | Retired");
     check("  every entry is a boolean", Object.values(MAY_WRITE_NOTE_IN_STATUS).filter((v) => typeof v !== "boolean").length, 0);
-    check("mayWriteNoteIn applies it", ASSET_STATUS_VALUES.map((s) => mayWriteNoteIn(s)).join(","), "true,true,false,false");
+    check("mayWriteNoteIn applies it, over five", ASSET_STATUS_VALUES.map((s) => mayWriteNoteIn(s)).join(","), "true,true,false,false,false");
     let noteThrew = null;
     try {
         mayWriteNoteIn("Lost");
@@ -539,13 +629,14 @@ export function run({ check, log, assert }) {
     check("Retired", JOB_SOURCE_OF_EVENT["Retired"], "asset");
     check("Sent for repair", JOB_SOURCE_OF_EVENT["Sent for repair"], "asset");
     check("Returned from repair", JOB_SOURCE_OF_EVENT["Returned from repair"], "asset");
-    check("six entries, one per event", Object.keys(JOB_SOURCE_OF_EVENT).length, 6);
+    check("Deleted (#582)", JOB_SOURCE_OF_EVENT["Deleted"], "asset");
+    check("seven entries, one per event", Object.keys(JOB_SOURCE_OF_EVENT).length, 7);
     check(
         "events with no entry",
         ASSET_EVENT_VALUES.filter((e) => !Object.prototype.hasOwnProperty.call(JOB_SOURCE_OF_EVENT, e)).length,
         0
     );
-    check("jobSourceOf applies it", ASSET_EVENT_VALUES.map((e) => jobSourceOf(e)).join(","), "actor,actor,actor,asset,asset,asset");
+    check("jobSourceOf applies it, over seven", ASSET_EVENT_VALUES.map((e) => jobSourceOf(e)).join(","), "actor,actor,actor,asset,asset,asset,asset");
     let jobThrew = null;
     try {
         jobSourceOf("Job Changed");
@@ -578,8 +669,8 @@ export function run({ check, log, assert }) {
     // before anything is compared with it.
     assert("the parser found TOOL_STATUS_CHOICES in the Python source", Array.isArray(pyStatus));
     assert("the parser found TOOL_EVENT_CHOICES in the Python source", Array.isArray(pyEvent));
-    check("  status choices parsed", (pyStatus || []).length, 4);
-    check("  event choices parsed", (pyEvent || []).length, 6);
+    check("  status choices parsed, Deleted among them", (pyStatus || []).length, 5);
+    check("  event choices parsed, Deleted among them", (pyEvent || []).length, 7);
     assert(
         "  and the parser is seen to say NO on a name that is not there",
         pythonChoiceList(py, "TOOL_NOT_A_CONSTANT") === null
@@ -608,9 +699,12 @@ export function run({ check, log, assert }) {
     // the rule rather than an accident: a red option would claim a meaning this
     // vocabulary does not have. #531's three were added by hand in the UI, in the
     // colors given there — yellow for the repair, orange for the return — read off the
-    // base on 2026-10-15, and held here as the base holds them.
+    // base on 2026-10-15, and held here as the base holds them. **#582's two came back
+    // red**, by hand on the test base and read off it on 2026-10-30: the deletion is the
+    // one value the vocabulary now holds that undoes a registration, so red has a meaning
+    // again, and it is the deletion's alone.
     const paletteRule = [
-        ["In stock", "blueLight2"], ["Out", "cyanLight2"], ["In repair", "yellowLight2"], ["Retired", "grayLight2"],
+        ["In stock", "blueLight2"], ["Out", "cyanLight2"], ["In repair", "yellowLight2"], ["Retired", "grayLight2"], ["Deleted", "redLight2"],
     ];
     check(
         "status colors walk the palette, gray for the end",
@@ -619,14 +713,16 @@ export function run({ check, log, assert }) {
     const eventRule = [
         ["Created", "blueLight2"], ["Checked out", "cyanLight2"],
         ["Checked in", "tealLight2"], ["Sent for repair", "yellowLight2"],
-        ["Returned from repair", "orangeLight2"], ["Retired", "grayLight2"],
+        ["Returned from repair", "orangeLight2"], ["Retired", "grayLight2"], ["Deleted", "redLight2"],
     ];
     check("event colors do the same", JSON.stringify(pyEvent), JSON.stringify(eventRule));
     check("  gray marks the terminal value and nothing else",
         [...(pyStatus || []), ...(pyEvent || [])]
             .filter(([n, c]) => c === "grayLight2" && n !== "Retired").length, 0);
-    check("  and no option is red any more",
-        [...(pyStatus || []), ...(pyEvent || [])].filter(([, c]) => c === "redLight2").length, 0);
+    check("  and red marks the deletion and nothing else (#582)",
+        [...(pyStatus || []), ...(pyEvent || [])].filter(([n, c]) => c === "redLight2" && n !== "Deleted").length, 0);
+    check("  on both lists",
+        [...(pyStatus || []), ...(pyEvent || [])].filter(([n, c]) => c === "redLight2" && n === "Deleted").length, 2);
 
     log("");
     log(`  ${ASSET_STATUS_VALUES.length} statuses and ${ASSET_EVENT_VALUES.length} events, pinned in two files`);

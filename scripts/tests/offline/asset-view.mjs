@@ -37,7 +37,7 @@
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
-import { ASSET_EVENT, ASSET_STATUS, ASSET_STATUS_VALUES } from "../../../lib/assetStatus.js";
+import { ASSET_EVENT, ASSET_STATUS, ASSET_STATUS_VALUES, SHOWN_STATUS_VALUES } from "../../../lib/assetStatus.js";
 import {
     FACT_KIND,
     STATUS_MARK,
@@ -143,7 +143,7 @@ export function run({ check, assert, log }) {
         "Dana K"
     );
     const others = Object.values(ASSET_EVENT).filter((e) => e !== ASSET_EVENT.CHECKED_OUT);
-    check("  and the other events do not, even handed one", others.join(" | "), "Created | Checked in | Sent for repair | Returned from repair | Retired");
+    check("  and the other events do not, even handed one", others.join(" | "), "Created | Checked in | Sent for repair | Returned from repair | Retired | Deleted");
     for (const event of others) check(`  ${event} carries four`, withName(event).join(","), "event,eventAt,job,recordedBy");
     // THE EVENT DECIDES, NOT THE VALUE. A check-out with no name renders the pair
     // empty rather than dropping it — the same treatment the four above get, and
@@ -159,7 +159,7 @@ export function run({ check, assert, log }) {
     // reporting five silent passes.
     assert(
         "the vocabulary this is asked over is the real one",
-        Object.values(ASSET_EVENT).length === 6 && Object.values(ASSET_EVENT).includes(ASSET_EVENT.CHECKED_OUT)
+        Object.values(ASSET_EVENT).length === 7 && Object.values(ASSET_EVENT).includes(ASSET_EVENT.CHECKED_OUT)
     );
 
     // ── 2c: the order the history stands in, and the values only one state has (#463) ─
@@ -189,7 +189,7 @@ export function run({ check, assert, log }) {
     // AN ITEM IN REPAIR WAS SENT AT ITS SENDING'S MOMENT (#531), off the latest entry alone.
     const repairHistory = newestFirst([...oldestFirst.slice(0, 3), row(ASSET_EVENT.SENT_FOR_REPAIR, "2026-10-02T14:15:00.000Z")]);
     check("an item in repair was sent at its sending's moment (#531)", sentForRepairAt(repairHistory, ASSET_STATUS.IN_REPAIR), "2026-10-02T14:15:00.000Z");
-    check("  and an item in any other status was not", ASSET_STATUS_VALUES.filter((s) => s !== ASSET_STATUS.IN_REPAIR).map((s) => sentForRepairAt(repairHistory, s)).join(","), ",,");
+    check("  and an item in any other status was not", ASSET_STATUS_VALUES.filter((s) => s !== ASSET_STATUS.IN_REPAIR).map((s) => sentForRepairAt(repairHistory, s)).join(","), ",,,");
     check("  nor one whose latest entry is not the sending", sentForRepairAt(history, ASSET_STATUS.IN_REPAIR), null);
     check(
         "  nor one returned since, whose latest entry is the return",
@@ -200,9 +200,10 @@ export function run({ check, assert, log }) {
 
     // ── 2d: the mark each status is drawn with (#463) ──────────────────────
     log("");
-    log("each status has its mark, and the map is total over the vocabulary:");
-    check("in stock is settled, out is open, in repair away, retired is ended", ASSET_STATUS_VALUES.map((s) => STATUS_MARK[s]).join(" "), "settled open away ended");
-    check("  with no mark for a status that does not exist", Object.keys(STATUS_MARK).filter((s) => !ASSET_STATUS_VALUES.includes(s)).length, 0);
+    log("each status a screen draws has its mark, and the map is total over them (#582):");
+    check("in stock is settled, out is open, in repair away, retired is ended", SHOWN_STATUS_VALUES.map((s) => STATUS_MARK[s]).join(" "), "settled open away ended");
+    check("  with no mark for a status no screen draws, Deleted among them", Object.keys(STATUS_MARK).filter((s) => !SHOWN_STATUS_VALUES.includes(s)).join(","), "");
+    check("  the statuses it is total over every one but Deleted", ASSET_STATUS_VALUES.filter((s) => !(s in STATUS_MARK)).join(","), "Deleted");
     const markFile = parseFile(STATUS_MARK_FILE);
     // THE COMPONENT DRAWS EACH SHAPE AT EACH WIDTH AND ASKS THE MAP, so a status the map
     // names draws, and a fourth shape in the map draws nothing until the file draws it.

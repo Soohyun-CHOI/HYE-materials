@@ -112,10 +112,10 @@ async function recordAssetEventHandler(prevState, formData) {
         // carries. The lookup is case-insensitive, so a forged or hand-typed
         // spelling resolves the same way the page's own does.
         const asset = await getAssetByAssetId(String(formData.get("assetId") ?? ""));
-        // Reachable only by a submission the screen did not produce — the form
-        // renders under an asset the page has already found, and this app
-        // offers no way to delete one. It answers in the page's own words rather
-        // than coining a refusal of its own for a state with no screen behind it.
+        // Reachable by a submission the screen did not produce, and by a press on
+        // a page drawn before the office deleted the asset (#582), which no reader
+        // hands back since. It answers in the page's own words rather than coining
+        // a refusal of its own: the page drawn again is the code no asset carries.
         if (!asset) return refuse(ASSET_COPY.notFoundHeading);
 
         // THE PLAN IS BUILT FROM THE STORED STATUS, NOT THE SUBMITTED ONE, so the

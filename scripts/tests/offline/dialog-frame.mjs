@@ -1622,6 +1622,8 @@ export function run({ check, assert, log }) {
             "app/(assets)/assets/[assetId]/AssetNote.js",
             // The office's job change: the desk's dialog and the phone's sheet (#583).
             "app/(assets)/assets/[assetId]/JobChange.js",
+            // The office's deletion's question, one for both widths as the retirement's is (#582).
+            "app/(assets)/assets/[assetId]/DeleteConfirm.js",
         ]
             .sort()
             .join(", ")
@@ -1941,6 +1943,8 @@ export function run({ check, assert, log }) {
         "every dialog on the axis that submits hands its frame its busy state and its commitment a word, with nothing disabled for it",
         dialogs.filter((d) => d.includes(": submits")).join(" | "),
         [
+            // The office's deletion's question, handed the provider's wait (#582).
+            "DeleteConfirm: submits · busy {busy} · named · 0 disabled by sending",
             // The catalog's entry hands its frame what it waits on, its submit or `"action"` (#527),
             // and so does an item's note, `"action"` while `Remove note` is on its way (#533).
             "EntryDialog: submits · busy {busy} · named · 0 disabled by sending",

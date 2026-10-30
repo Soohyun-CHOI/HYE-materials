@@ -851,7 +851,8 @@ export function run({ check, assert, log }) {
             if (inner.type === "SpreadElement") readings.push(reader.source.slice(inner.argument.start, inner.argument.end));
         });
     });
-    check("  reading by name only the fields that are not the catalog's path", got.sort().join(", "), '"Assets", "Item Name", CATEGORY_GROUP_FIELD, DISCONTINUED_FIELD, EDITED_AT_FIELD');
+    // `Asset Statuses` since #582, the rollup a row's item count leaves a deleted item out by.
+    check("  reading by name only the fields that are not the catalog's path", got.sort().join(", "), '"Assets", "Item Name", ASSET_STATUSES_FIELD, CATEGORY_GROUP_FIELD, DISCONTINUED_FIELD, EDITED_AT_FIELD');
     check("  and the path through the module's one reading of a record", readings.join(", "), "catalogFieldsOf(record.fields)");
     check("  and spelling none of them", fieldLiterals(reader).spelled, "");
     const script = parseFile(SCRIPT);

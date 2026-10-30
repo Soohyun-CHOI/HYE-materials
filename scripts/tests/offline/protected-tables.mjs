@@ -90,7 +90,7 @@ const META_ROOT = "https://api.airtable.com/v0/meta";
 const PROTECTED_TABLE_IDS = ["tblXtmDonSyOyOvV3", "tblrox7y4akPKdbpF"];
 
 /** The app's actions that write the two tables, which a script driving the live app would name. */
-const PROTECTED_ACTIONS = ["recordAssetEventAction", "retireAssetAction", "registerAssetsAction", "updateAssetNoteAction", "changeAssetJobAction"];
+const PROTECTED_ACTIONS = ["recordAssetEventAction", "retireAssetAction", "registerAssetsAction", "updateAssetNoteAction", "changeAssetJobAction", "deleteAssetAction"];
 
 /** The two modules that read and write the two tables. */
 const PROTECTED_MODULES = ["lib/airtable/assets.js", "lib/airtable/assetLog.js"];
@@ -118,6 +118,9 @@ const CLASSIFIED = {
     // `Assets."Last Event At"` (#540): made on the test base, where the guard lets a create through,
     // and on the live base the hand step's, its description alone sent there.
     "scripts/import/ran/add_last_event_at_540.mjs": { describes: true },
+    // `Asset Categories."Asset Statuses"` (#582): a rollup of `Assets."Status"`, made on the test base,
+    // and on the live base the hand step's, its description alone sent there.
+    "scripts/import/add_asset_statuses_582.mjs": { describes: true },
     "scripts/import/ran/import_site_assets_544.mjs": {
         writes: [
             "createAssetCategoryGroup",
