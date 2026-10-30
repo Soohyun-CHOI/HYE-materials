@@ -31,7 +31,7 @@ const COLUMNS = "grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-t
 // The same four for a reader who selects nothing (#506), with no box to hold room for, as 1d
 // draws the list for a reader with no role.
 const COLUMNS_WITHOUT_BOX = "grid-cols-[var(--width-table-id)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";
-// On all of the reader's jobs (1d, #548), the job each item is on at 96 after its id, the note
+// On all jobs (1d, #548), the job each item is on at 96 after its id, the note
 // giving up the room — 244 of the 1080, as 1d draws it. Each a literal, for the stylesheet.
 const COLUMNS_WITH_JOB =
     "grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-job)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";
@@ -110,9 +110,9 @@ const COLUMNS_WITH_JOB_WITHOUT_BOX =
 // address, so a box and a step keep the rows in the order the reader chose.
 //
 // THE JOB THE LIST STANDS ON RIDES EVERY WRITE (#509, #520). `job` is the page's, resolved
-// from the address by `assetListScope` — a job the reader may not stand on is the first of
-// theirs — and a press and a step keep it, so the address goes on naming the list the rows
-// came from. **It may be all of the reader's jobs (#548)**, and then `showsJob` draws each row's
+// from the address by `assetListScope` — a job the list does not offer is where it starts — and
+// a press and a step keep it, so the address goes on naming the list the rows
+// came from. **It may be all jobs (#548)**, and then `showsJob` draws each row's
 // job in a column of its own, as 1d draws it on `All jobs`; a selection may then hold items on
 // several jobs, and one print takes them together.
 export default function AssetList({ categoryRecordId, itemName, selects, showsJob = false, rows, page, job = null, sort = null, top, header, children }) {
@@ -219,7 +219,7 @@ export default function AssetList({ categoryRecordId, itemName, selects, showsJo
                                 </Link>
                             </span>
                             {/* The job it is on, by its code in Ink 2, its figures tabular (1d,
-                                #548) — only while the list is on all of the reader's jobs. */}
+                                #548) — only while the list is on all jobs. */}
                             {showsJob && (
                                 <span role="cell" className="min-w-0 truncate text-foreground-muted tabular-nums">
                                     {row.jobCode}

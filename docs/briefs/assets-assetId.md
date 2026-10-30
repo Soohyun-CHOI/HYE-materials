@@ -2,7 +2,8 @@
 
 Route: `/assets/[assetId]`
 Who reaches it: anyone signed in, with no Role and no Job gate (#337) — an asset
-off the reader's jobs, which the lists leave off, included (#509). What
+off the reader's own jobs included (#509), which every list has shown since #593.
+What
 a reader DOES here — checking out, checking in, retiring and printing the label
 — is a site manager's (#506); everyone else reads the same screen, at both
 widths, without those controls.
@@ -75,16 +76,17 @@ confirmation still works (#411).** The label prints `260909-004` where the page
 reads `HYE-AST-260909-004`, so what a reader matches is the end of the id rather
 than the whole of it — and at a desk the breadcrumb above the heading ends on
 the printed code itself: `Equipment & Tools / DEMO Angle Grinder 4-1/2" /
-260909-004`. **For a reader on more than one job the path names the job the asset
-is on between the list and the category** (1f, #519), a level that opens the
-reader's jobs by their code and takes them to the category's list on the one
+260909-004`. **Wherever there is more than one job the path names the job the
+asset is on between the list and the category** (1f, #519) — for every reader
+since #593, where it was a reader on more than one of their own — a level that
+opens every job by its code and takes them to the category's list on the one
 they choose — `All jobs` stood first from #519 until #520 stood every list on
 one job, and stands first again since #548, taking them to the category's list
 on all of them; the level itself always names the asset's job, whatever list the
 asset was opened from, since its address carries none and the asset is on one
 job. `Equipment & Tools` and the category's own level carry the asset's job
-when it is one of theirs (#581), and either list otherwise stands on the first
-of them. That is what the seven dropped characters were worth:
+(#581), whoever reads it since #593, so either list stands on the job the asset
+is on. That is what the seven dropped characters were worth:
 every asset carries them, so they confirmed nothing, and what is left on the
 sticker is exactly the part that tells one asset from another. **A design
 may not close the gap by shortening the id** — this screen names a record and

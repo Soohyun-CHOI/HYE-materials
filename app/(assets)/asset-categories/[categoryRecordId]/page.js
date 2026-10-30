@@ -86,14 +86,16 @@ export const metadata = { title: "Item" };
  * AND WHATEVER JOB IT STANDS ON (#509, #520). The array is first cut to the job's assets —
  * `assetListScope`, the judgment `/asset-categories` reads its rows by — which comes off the
  * job list's own link arrays, so only the scope's items are read. A list
- * stands on one job since #520, the first of the reader's by its code until they move, and
- * the head counts what this category holds there; from #509 it started from all of the
- * reader's jobs, counted `N of M` once a job narrowed it. **The job is chosen in the
- * breadcrumb since #519**, a level after `Equipment & Tools`, as 1d draws it, and only by a
- * reader with more than one; it stood in the head beside the opener until then. A category
+ * stands on one job since #520, the first of the reader's own by its code until they move — any
+ * job since #593, and all of them for a reader assigned to none — and the head counts what this
+ * category holds there; from #509 it started from all of the reader's jobs, counted `N of M`
+ * once a job narrowed it. **The job is chosen in the breadcrumb since #519**, a level after
+ * `Equipment & Tools`, as 1d draws it, wherever there are two jobs to choose between — every
+ * reader since #593, where a reader on one job of their own was drawn none; it stood in the
+ * head beside the opener until #519. A category
  * with assets, none of them on the job, draws its head and nothing under it: `Nothing added
  * yet` would be false there, and Design is drawing what it says. An asset off the job still
- * opens from its label. **On all of the reader's jobs (#548)** the array is cut to the assets
+ * opens from its label. **On all jobs (#548)** the array is cut to the assets
  * on any of them, and each row says its job in a column after its id (1d), which the breadcrumb
  * says for all of them on one job.
  *
@@ -125,7 +127,8 @@ export const metadata = { title: "Item" };
  * were bought — and costs nothing: the kind is the row already read, and the reader
  * and the job list are what this page reads anyway. It is drawn for every kind this page
  * finds, the one with nothing under it included — disabled, with the reason before it,
- * for a site manager on no job, as `/asset-categories`' own control and the offer below are (#456).
+ * for a site manager on no job, as the offer below is (#456); `/asset-categories` draws such a
+ * site manager no opener at all (#522, #593).
  * The dialog starts at its second step on this kind (#507): the kind is submitted by its
  * record id, and the dialog is handed the kind as the catalog it may pick from — so the
  * levels it asks start on this kind's values (#514) — which is none at all for a row the
@@ -207,7 +210,7 @@ async function renderCategoryPage({ params, searchParams }) {
     const scope = assetListScope(user, jobs, sp.job);
     // What the breadcrumb's choice holds and every write carries: a job, or all of them (#548).
     const job = scope.choice;
-    // Whether the reader chooses a job at all: only with more than one (1d, #519).
+    // Whether the reader chooses a job at all: wherever there is more than one (1d, #519, #593).
     const choosesJob = scope.jobs.length > 1;
     // The order the address asks for, the page's start when it asks for none it offers (#540).
     const sort = readSort(sp.sort, LIST_SORTS.items);
@@ -221,14 +224,14 @@ async function renderCategoryPage({ params, searchParams }) {
     // What both openers on this page hand the registration dialog (#456): whether this
     // site manager may register, which is the one predicate every opener asks, the
     // jobs its choice offers, and the job this list stands on, which that choice starts on
-    // when it is one of them (#565) — none on all of the reader's jobs, and the scope's answer
+    // when it is one of them (#565) — none on all jobs, and the scope's answer
     // rather than the address's, so it costs nothing.
     const canRegister = canRegisterAssets(user, jobs);
     const assignedJobs = assignedJobsFor(user, jobs).map(({ id, jobCode, jobName }) => ({ id, jobCode, jobName }));
     const listJobId = scope.job?.id ?? null;
 
     // The way back is the breadcrumb's one level since #460, the list's own heading behind a
-    // chevron (1d) — and for a reader on several jobs a path, the list's heading and then the job
+    // chevron (1d) — and wherever there are jobs to choose between a path, the list's heading and then the job
     // the list stands on, which the reader changes there (#519). The category's name is the
     // heading and there is no heading word, which is the shape the asset's page takes.
     // Registering more under this category (#451) is the head's one control, so a category with
@@ -324,7 +327,7 @@ async function renderCategoryPage({ params, searchParams }) {
     // item out, and none at all for a page with nothing out — where it said the job the asset was
     // last scanned on from #463.
     const latest = new Map((await getAssetLogEntriesByRecordIds(holderRowIds(assets))).map((entry) => [entry.id, entry]));
-    // On all of the reader's jobs each row says the job its asset is on (1d, #548), by the code
+    // On all jobs each row says the job its asset is on (1d, #548), by the code
     // the job list already read carries, so it costs nothing; on one job the breadcrumb says it.
     const codeOf = new Map(scope.jobs.map((each) => [each.id, each.jobCode]));
     return (

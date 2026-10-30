@@ -13,7 +13,7 @@
 //   1. THE ONE READING. `isSiteManager` by value, no read of a user's `isSiteManager` under
 //      app/ or lib/ outside lib/siteManager.js, the field's name spelled in the mapper
 //      alone, and nothing on the assets axis asking the office's flag or the role instead —
-//      but for the one read #509 admits, what a list starts from (`SCOPE` below).
+//      but for the one read #509 admits, in the list's scope (`SCOPE` below).
 //   2. THE SERVER. Every export of a `"use server"` file on the assets axis is
 //      `withSiteManagerAction(handler)`, found by walking the tree rather than listed — so
 //      a fifth action fails until it is wrapped and this inventory says so — and no handler
@@ -130,10 +130,12 @@ export function siteManagerReads({ ast, source }) {
 }
 
 /**
- * THE ONE READ OF THE OFFICE'S FLAG THE AXIS ADMITS (#509): what an asset list starts from —
- * every asset for the office, a reader's own jobs' for anybody else — which is a question
- * about the office and not about who records, so the mark cannot answer it. It is the flag
- * alone, in this one function, once; the role is admitted nowhere.
+ * THE ONE READ OF THE OFFICE'S FLAG THE AXIS ADMITS (#509): in `assetListScope`, which until #593
+ * read it for what an asset list starts from — every job for the office, a reader's own for
+ * anybody else — and since #593, when every reader stands on every job, for one thing alone: its
+ * answer's `office`, whether the office's acts on an asset are the reader's (#583). That is a
+ * question about the office and not about who records, so the mark cannot answer it. It is the
+ * flag alone, in this one function, once; the role is admitted nowhere.
  */
 const SCOPE = { file: "lib/assetListView.js", fn: "assetListScope", name: "isAdmin" };
 
@@ -320,7 +322,7 @@ export function run({ check, assert, log }) {
         "1,1"
     );
     check(
-        `  but for what a list starts from (#509): the flag, read once in ${SCOPE.file}:${SCOPE.fn}`,
+        `  but for whether the reader is the office (#509, #583): the flag, read once in ${SCOPE.file}:${SCOPE.fn}`,
         readsInside(parseFile(SCOPE.file).ast, SCOPE.fn, SCOPE.name),
         1
     );

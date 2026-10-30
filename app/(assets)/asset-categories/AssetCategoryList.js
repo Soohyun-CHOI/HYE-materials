@@ -60,7 +60,7 @@ const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(4,var(--width-table-count))_var
  * is all that narrows and everything otherwise (`emptiedListWords`); no pager stands under it.
  *
  * THE HEAD HOLDS THE OPENERS, AND THE BAND STARTS ON THE JOB'S CHIP (1a, #566). `jobs` are the
- * jobs the chip offers, for a reader on several, and the chip is drawn here so it can carry what
+ * jobs the chip offers, wherever there are several, and the chip is drawn here so it can carry what
  * the band holds to the job chosen; it stood in the head before `Catalog` from #519 until the
  * files of 2026-10-23 moved it ahead of the search. `catalog` is the office's way to the catalog
  * (#527) and `opener` a site manager's, each drawn by the page, which reads what it needs.
@@ -76,7 +76,7 @@ const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(4,var(--width-table-count))_var
  * THE BAND'S READING IS `readCategoryList`'S, WHICH THE EXPORT ANSWERS TOO (#553): one call
  * over the address and the text typed, so what the file holds is what this draws.
  *
- * ON ALL OF A READER'S JOBS THE BAND GAINS A `Job` CHIP (1a, #548), after `Category`: the jobs the
+ * ON ALL JOBS THE BAND GAINS A `Job` CHIP (1a, #548), after `Category`: the jobs the
  * rows have an asset on, by their codes, each with how many rows it would leave, several taken at
  * once. `allJobs` is the page's answer and `jobs` what the chip may offer. It narrows rows in hand
  * as the other chips do, adding up each row's counts on the jobs taken, and rides the address as

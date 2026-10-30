@@ -13,7 +13,7 @@ scanner comes through it on the way to the item.
 
 ## What it answers
 
-Which jobs do you work on? Every asset list stands on the reader's jobs, and until
+Which jobs do you work on? Every asset list starts on the reader's jobs, and until
 this step a person's jobs were set by hand in Airtable, so somebody who signed in
 before the office got to it stood on `No job yet` with nothing they could do until
 the office was told.
@@ -75,14 +75,17 @@ step, so the two are asked in that order on the way to one page.
 
 **What this writes is the reader's own assigned jobs, and nothing else**, and only
 while they hold none — a job the office assigned by hand in the meantime is kept.
-Every asset list then stands on these jobs (`asset-categories.md`), and the same
-assignment decides which requests the materials screens show a reader.
+Every asset list then starts on the first of these jobs (`asset-categories.md`),
+while any job may be chosen there (#593), and a site manager adds and records on
+these alone; the same assignment decides which requests the materials screens show
+a reader.
 
-**`No job yet` stays on the Equipment & Tools list** for the one reader this step
-does not ask and the list does not count as the office: a President who is not
-marked as the office and holds no job. A site manager on no job who is the office
-or the President still meets `Ask the office to assign you to a job` where items
-are added.
+**A reader this step does not ask and who holds no job** — the office or the
+President — starts the Equipment & Tools list on all jobs (#593), where the one
+of them not counted as the office stood on a no-job state until then. A site
+manager on no job who is the office or the President still meets `Ask the office
+to assign you to a job` where a category's own screen adds items, and no opener
+on the list.
 
 **The wordmark and the frame are every sign-in step's**, so the four read as one
 flow. At a desk this step's column stands nearer the top than the others — 10% of

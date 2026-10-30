@@ -4,10 +4,11 @@ Route: `/asset-categories/[categoryRecordId]`
 Who reaches it: anyone signed in, with no Role and no Job gate (#337). What a
 reader DOES here — adding items, and selecting and printing labels — is a site
 manager's (#506); everyone else reads the same screen without those controls.
-The list stands on one of the reader's jobs (#509, #520): any job for the
-office, one they are assigned to for anybody else, the first by its code until
-they move — or on all of them at once, when a reader with more than one chooses
-it (#548).
+The list stands on one job (#509, #520) — any job, for every reader (#593) —
+starting on the first of the reader's own by its code, or on all of them at
+once, when a reader chooses it (#548) and from the start for a reader assigned
+to none (#593). Adding items and printing labels stay a site manager's on every
+job the list stands on, theirs or another's (#593).
 Which width comes first: **desktop**, and it is the only one: this screen is
 used at a desk and does not support a phone's width (`_shared.md`).
 
@@ -130,13 +131,14 @@ the label screen with it until #457.
 `3 selected` — with a way out beside it. The words name no noun for what is
 selected; see below.
 
-**action.** For a reader on more than one job, a choice of job as the
-breadcrumb's second level (1d, #519; in the head until then): it holds the job the
-list stands on and opens on `All jobs` and then each job they may stand on by its
-code — every job for the office, their own for anybody else, a job with nothing on
-it included. Choosing one lists that job's assets under this category, from the
-first page, and keeps whatever is selected; choosing `All jobs` lists its assets on
-all of them (#548). A reader on one job is drawn no choice. `All jobs` stood first
+**action.** For every reader, wherever there is more than one job, a choice of
+job as the breadcrumb's second level (1d, #519; in the head until then): it holds
+the job the list stands on and opens on `All jobs` and then every job by its code,
+a job with nothing on it included (#593). Choosing one lists that job's assets
+under this category, from the first page, and keeps whatever is selected; choosing
+`All jobs` lists its assets on all of them (#548). Until #593 it offered the office
+every job and anybody else their own, and a reader on one job of their own was
+drawn no choice. `All jobs` stood first
 from #509 as where every list started, which #520 took away; since #548 it is a
 choice and not the start.
 
@@ -171,8 +173,7 @@ column** — it says `MM/DD` there — and 1d draws it in full; the year stays
 because an item can sit on a shelf from one year to the next, and `09/22`
 would not say which. **The job each asset is on stood in the day's place from
 #463 until 1d drew the day**: where an asset was last scanned is on its own
-screen, and a reader on several jobs sees the one the list is narrowed to in
-the breadcrumb. **On `All jobs` it is a column again (1d, #548)**, after the
+screen, and the breadcrumb says the one the list is narrowed to. **On `All jobs` it is a column again (1d, #548)**, after the
 printed id, the job's code in a lighter ink, since the breadcrumb no longer says
 it for every row; the note gives up the room. A selection there may hold items on
 several jobs, and one print takes them together.
@@ -269,9 +270,8 @@ nothing under it, `0` and the breadcrumb's job saying it, which the design does 
 draw: `Nothing added yet` would be false there. The rows, the pager and the page
 box are always the job's alone, and the breadcrumb's `Equipment & Tools` keeps the
 job. An asset off the job is left off this list and still opens from its label or a
-link. A job in the address the reader may not stand on is answered with the first
-of theirs, as no job asked is, and so is `All jobs` for a reader with one job or
-none. From #509 a list with no job asked stood on all of the reader's jobs, and
+link. A job in the address the list does not offer is answered where the list
+starts, as no job asked is, and so is `All jobs` where there is one job or none. From #509 a list with no job asked stood on all of the reader's jobs, and
 one narrowed to a job counted `N of M`; on `All jobs` since #548 the head counts
 the category's assets on all of them, a figure and not `N of M`.
 

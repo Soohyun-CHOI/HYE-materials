@@ -6,7 +6,8 @@
 //   here over a fixture of three jobs, five kinds and seven assets, and every read it asks for is
 //   written down: the office on its first job, on all of them, and on all of them narrowed by the
 //   `Job` chip, a type and a search; a site reader asking for a job off theirs and for all of
-//   them; a reader on no job; a band that empties the list. Each sheet is held by value, and the
+//   them, each answered since #593; a reader on no job, on all of them; a band that empties the
+//   list. Each sheet is held by value, and the
 //   two sheets against each other — every first-sheet row is exactly as many second-sheet rows,
 //   status for status, of its own type and category — which is a second path to the counts, and
 //   since #569 to the total, those of them not retired. Since #541 a press on an item's id too:
@@ -95,7 +96,8 @@ const LOG_ROWS = [
     entry("l6", ASSET_EVENT.CREATED, "2026-10-03T12:00:00.000Z"),
     entry("l7", ASSET_EVENT.CHECKED_IN, "2026-10-04T12:00:00.000Z"),
 ];
-const OFFICE = { id: "recU1", isAdmin: true, assignedJobs: [] };
+// Assigned to 23-USA-09, so a press with no job stands there, the first of the office's own (#593).
+const OFFICE = { id: "recU1", isAdmin: true, assignedJobs: ["recJ1"] };
 const SITE = { id: "recU2", isAdmin: false, assignedJobs: ["recJ1"] };
 const NO_JOB = { id: "recU3", isAdmin: false, assignedJobs: [] };
 const NOON_22ND = new Date("2026-10-22T12:00:00.000Z");
@@ -242,8 +244,8 @@ async function byId541({ check, log }) {
     check("an item off the job the list stands on is in no sheet", `${offJob.made.sheets[0].rows.length} ${offJob.made.sheets[1].rows.length}`, "0 0");
     const offChip = await press(OFFICE, "job=all&job=recJ1&q=261001-003");
     check("  nor one off the jobs the Job chip takes", `${offChip.made.sheets[0].rows.length} ${offChip.made.sheets[1].rows.length}`, "0 0");
-    const offReader = await press(SITE, "job=all&q=HYE-AST-261003-001");
-    check("  nor one on a job the reader may not stand on", `${offReader.made.fileName} ${offReader.made.sheets[0].rows.length}`, "Equipment & Tools - 23-USA-09 - 2026-10-22.xlsx 0");
+    const offReader = await press(SITE, "q=HYE-AST-261003-001");
+    check("  nor one off the job a site reader's list starts on", `${offReader.made.fileName} ${offReader.made.sheets[0].rows.length}`, "Equipment & Tools - 23-USA-09 - 2026-10-22.xlsx 0");
     const sequence = await press(OFFICE, "job=all&q=205");
     check(
         "a sequence alone is searched in the names, so the kind whose name holds it is the file's",
@@ -259,7 +261,7 @@ export async function run({ check, log, assert }) {
     // ── 1: the press, by value ──────────────────────────────────────────────
     log("one press, over a fixture of three jobs and seven assets:");
     const first = await press(OFFICE, "");
-    check("the office on no job asked stands on the first by its code, and the file says so", first.made.fileName, "Equipment & Tools - 23-USA-09 - 2026-10-22.xlsx");
+    check("the office on no job asked stands on the first of its own, and the file says so", first.made.fileName, "Equipment & Tools - 23-USA-09 - 2026-10-22.xlsx");
     check("  each read asked once — the catalog, the jobs, the job's assets, the latest rows of those out", `${first.asked.categories} ${first.asked.jobs} ${first.asked.assets.map((ids) => ids.join(",")).join(" / ")} | ${first.asked.logRows.map((ids) => ids.join(",")).join(" / ")}`, "1 1 a1,a2,a5 | l2b");
     check(
         "  the first sheet is the list on that job: each kind, its type, its category, its four counts and its total",
@@ -316,14 +318,18 @@ export async function run({ check, log, assert }) {
     check("  and the two sheets agree", agreement(narrowed.made.sheets), "agree");
 
     const second = await press(OFFICE, "job=recJ2");
-    check("the office asking for another of its jobs stands on it, and the file says which", second.made.fileName, "Equipment & Tools - 25-USA-13 - 2026-10-22.xlsx");
+    check("the office asking for another job stands on it, and the file says which", second.made.fileName, "Equipment & Tools - 25-USA-13 - 2026-10-22.xlsx");
     check("  holding that job's assets alone", second.made.sheets[1].rows.map((row) => row[0]).join(" "), "HYE-AST-261001-003 HYE-AST-261004-001 HYE-AST-261002-001");
 
+    // Every reader may stand on every job since #593, where a site reader asking for a job off
+    // theirs was answered with theirs.
     const elsewhere = await press(SITE, "job=recJ2");
-    check("a site reader asking for a job off theirs is answered with theirs, and the file says which", elsewhere.made.fileName, "Equipment & Tools - 23-USA-09 - 2026-10-22.xlsx");
-    check("  holding that job's assets alone", elsewhere.made.sheets[1].rows.map((row) => row[0]).join(" "), "HYE-AST-261001-002 HYE-AST-261001-001 HYE-AST-261002-002");
-    check("  and no other job's asset is read for them", elsewhere.asked.assets.map((ids) => ids.join(",")).join(" / "), "a1,a2,a5");
-    check("  nor on all of them, which a reader on one job is answered as any value not offered", (await press(SITE, "job=all")).made.fileName, "Equipment & Tools - 23-USA-09 - 2026-10-22.xlsx");
+    check("a site reader asking for a job off theirs stands on it, and the file says which", elsewhere.made.fileName, "Equipment & Tools - 25-USA-13 - 2026-10-22.xlsx");
+    check("  holding that job's assets alone", elsewhere.made.sheets[1].rows.map((row) => row[0]).join(" "), "HYE-AST-261001-003 HYE-AST-261004-001 HYE-AST-261002-001");
+    check("  and no other job's asset is read for them", elsewhere.asked.assets.map((ids) => ids.join(",")).join(" / "), "a3,a4,a7");
+    check("  and on all of them, a reader on one job of their own included", (await press(SITE, "job=all")).made.fileName, "Equipment & Tools - All jobs - 2026-10-22.xlsx");
+    const bogus = await press(SITE, "job=recBogus");
+    check("  a job no list offers answered with the first of theirs, as no job asked is", `${bogus.made.fileName} ${bogus.asked.assets.map((ids) => ids.join(",")).join(" / ")}`, "Equipment & Tools - 23-USA-09 - 2026-10-22.xlsx a1,a2,a5");
 
     // ANTI-VACUITY for the agreement: a pair whose counts and items part is told apart.
     check(
@@ -337,8 +343,17 @@ export async function run({ check, log, assert }) {
         "Kind totals 1 but holds 0"
     );
 
+    // A reader on no job stands on all of them since #593, where they got no file.
     const nobody = await press(NO_JOB, "");
-    check("a reader on no job gets no file, and nothing is read past the catalog and the jobs", `${nobody.made} ${nobody.asked.assets.length} ${nobody.asked.logRows.length}`, "null 0 0");
+    check("a reader on no job gets the file on all jobs, every asset read", `${nobody.made.fileName} ${nobody.asked.assets.map((ids) => ids.join(",")).join(" / ")}`, "Equipment & Tools - All jobs - 2026-10-22.xlsx a1,a2,a3,a4,a5,a6,a7");
+    const noJobAtAll = await listExport({
+        user: NO_JOB,
+        search: "",
+        timeZone: "UTC",
+        now: NOON_22ND,
+        read: { categories: async () => CATEGORIES, jobs: async () => [], assets: async () => [], logRows: async () => [] },
+    });
+    check("  and a base with no job at all gives nobody a file", String(noJobAtAll), "null");
 
     const emptied = await press(OFFICE, "job=all&q=zzz");
     check("a band that empties the list gives both sheets with their heads alone", `${emptied.made.sheets[0].rows.length} ${emptied.made.sheets[1].rows.length}`, "0 0");

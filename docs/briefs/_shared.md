@@ -722,10 +722,10 @@ office. Invoicing is Admin because invoicing is office work.
 | `/prs/new` | anyone signed in |
 | `/deliveries`, `/deliveries/[deliveryId]`, `/deliveries/[deliveryId]/edit`, `/deliveries/new` | anyone signed in, then Job assignment |
 | `/materials`, `/materials/[materialId]` | anyone signed in; document identifiers gated per row (#19) |
-| `/asset-categories` | anyone signed in, with no Role and no Job gate (#337); the list starts from the reader's jobs, every job's for an Admin (#509); adding items from it is a site manager's (#506) |
+| `/asset-categories` | anyone signed in, with no Role and no Job gate (#337); the list starts from the reader's jobs, and any job's may be chosen by anyone (#509, #593); adding items from it is a site manager's (#506) |
 | the registration dialog, over `/asset-categories` and `/asset-categories/[categoryRecordId]` (#456) | a site manager on either page (#506); only one assigned to a job can open it (#338) |
 | the labels' dialog, over `/asset-categories/[categoryRecordId]` and `/assets/[assetId]` (#457) | a site manager on either page (#506) |
-| `/asset-categories/[categoryRecordId]` | anyone signed in, with no Role and no Job gate (#337); the list starts from the reader's jobs, every job's for an Admin (#509); selecting and printing labels, and adding items, are a site manager's (#506) |
+| `/asset-categories/[categoryRecordId]` | anyone signed in, with no Role and no Job gate (#337); the list starts from the reader's jobs, and any job's may be chosen by anyone (#509, #593); selecting and printing labels, and adding items, are a site manager's (#506) |
 | `/assets/[assetId]` | anyone signed in, with no Role and no Job gate (#337) — off the reader's jobs included (#509); checking out and in, retiring and printing are a site manager's (#506) |
 | `/l/[labelCode]` | anyone, signed in or not — it draws nothing and redirects (#348) |
 | `/invoices/new`, `/invoices/[invoiceId]/edit`, `/admin/**` | Admin only |

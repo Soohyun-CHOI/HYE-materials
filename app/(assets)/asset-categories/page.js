@@ -54,14 +54,16 @@ export const metadata = { title: COPY.heading };
  * the same read that a registration may pick (`registrationCatalog`, #507) — a kind is the
  * company's, whatever job this list stands on — so it costs nothing.
  *
- * THE LIST STARTS ON ONE JOB (#520). The office may move to any job and anybody else to theirs,
- * and either starts on the first by its code; a category with nothing on the job is left off.
- * `lib/assetListView.js:assetListScope` is the judgment, and a category's own page reads its rows
- * by the same one. **From #509 a list started from all of the reader's jobs at once**, with `All
- * jobs` first in the choice, which the design never drew; docs/notes/tools.md has the turn.
+ * THE LIST STARTS ON ONE JOB (#520). Every reader may move to any job since #593, where the office
+ * alone could until then, and starts on the first of their own by its code; a category with
+ * nothing on the job is left off. `lib/assetListView.js:assetListScope` is the judgment, and a
+ * category's own page reads its rows by the same one. **From #509 a list started from all of the
+ * reader's jobs at once**, with `All jobs` first in the choice, which the design never drew;
+ * docs/notes/tools.md has the turn.
  *
- * AND ON ALL OF THEM WHEN THE READER CHOOSES `All jobs` (#548): every job they may choose
- * between, read as one job is — the assets on them together in the one question below, and
+ * AND ON ALL OF THEM WHEN THE READER CHOOSES `All jobs` (#548), or with no job asked for a reader
+ * assigned to none (#593): every job, read as one job is — the assets on them together in the one
+ * question below, and
  * nothing read per job. A row is a kind with an asset on any of them, its counts
  * those jobs' added up, and each row carries its counts per job for the band's `Job` chip, which
  * narrows to some of them in the browser.
@@ -88,18 +90,19 @@ export const metadata = { title: COPY.heading };
  * table's would and asks nothing of the schema or of the writes. docs/notes/tools.md carries the
  * comparison.
  *
- * TWO EMPTY STATES (1a2, #519). A job with nothing on it draws `No items yet` and, for a site
+ * ONE EMPTY STATE (1a2, #519). A job with nothing on it draws `No items yet` and, for a site
  * manager, its sentence with a second opener under them; for anybody else who fills it — the
- * job's chip still there to move to another job. **A reader on no job** — anybody but the
- * office with no assignment — draws `No job yet` and what the list waits for, with no figure in
- * the head and no opener anywhere, a site manager among them (#522). Neither draws the search, a
- * filter chip or a pager: there is nothing to narrow or to page.
+ * job's chip still there to move to another job. It draws no search, filter chip or pager: there
+ * is nothing to narrow or to page. **A reader on no job drew a second until #593** — `No job
+ * yet` and what the list waited for, with no figure in the head and no opener (#522) — and stands
+ * on all jobs now, where every site's items are.
  *
- * THE JOB IS A CHOICE ONLY FOR A READER WITH MORE THAN ONE (#519): 1a draws the chip for a
- * reader on several jobs and nothing for one on one, whose list is that job's. **It starts the
- * band since #566**, so a job with nothing on it draws a band holding the chip alone: the files
- * of 2026-10-23 draw no empty list for a reader on several jobs, and the chip stays where the
- * list with rows puts it rather than standing in the head on one job and in the band on another.
+ * THE JOB IS A CHOICE WHEREVER THERE ARE TWO JOBS TO CHOOSE BETWEEN (#519, #593): 1a draws the
+ * chip for every reader, where until #593 a reader on one job of their own was drawn none, their
+ * list being that job's. **It starts the band since #566**, so a job with nothing on it draws a
+ * band holding the chip alone: the files of 2026-10-23 draw no empty list for a reader on several
+ * jobs, and the chip stays where the list with rows puts it rather than standing in the head on
+ * one job and in the band on another.
  *
  * THE OFFICE IS OFFERED THE CATALOG (1a, #527): `Catalog`, a faced action led by a book since #566
  * where it was bordered, in the head 12 before `Export` or `Add items`, in every state the list
@@ -121,7 +124,7 @@ export default async function AssetCategoriesPage(props) {
 // only because it records who performed it, and an asset moves between jobs, so the
 // person scanning one is not always assigned to the job it is on. What a reader may DO
 // here is narrower since #506 — adding assets is a site manager's — and what a reader is
-// SHOWN is one of their jobs since #520; neither closes anything to them.
+// SHOWN is one job since #520, any job since #593; neither closes anything to them.
 async function renderCategoriesPage({ searchParams }) {
     // The gate that admits every signed-in reader, and the office's answer with it (#527): a
     // reader who is not the office still reads the list, without the catalog's opener.
@@ -139,14 +142,12 @@ async function renderCategoriesPage({ searchParams }) {
     const shownCategories = assetCategoriesInScope(categories, scope.shown);
     const kept = await getAssetStatuses(shownCategories.flatMap((category) => idsInScope(category.assets, scope.shown)));
     const rows = categoryListRows(shownCategories, scope, kept);
-    // A reader on no job — anybody but the office with no assignment — has nothing the list
-    // could hold, so the head counts nothing (1a2, #519).
-    const onNoJob = scope.jobs.length === 0;
     // What the job's choice holds and the list's writes carry: a job, or all of them (#548).
     const job = scope.choice;
     // The jobs the head's choice offers, drawn when there is more than one to choose (#509,
-    // #519) — by the list, which hands it what the band holds (#520), or here over an empty one.
-    // They are also what the band's `Job` chip may offer while the list is on all of them (#548).
+    // #519) — every job, for every reader, since #593 — by the list, which hands it what the band
+    // holds (#520), or here over an empty one. They are also what the band's `Job` chip may offer
+    // while the list is on all of them (#548).
     const choosable = scope.jobs.length > 1 ? scope.jobs.map(({ id, jobCode }) => ({ id, jobCode })) : null;
 
     // The control that opens the registration dialog, carrying that dialog's own title so
@@ -156,6 +157,11 @@ async function renderCategoriesPage({ searchParams }) {
     // one off this job, or with nothing under it yet, is still one to add to. Its job starts on
     // the one the list stands on when that is one of the reader's own (#565) — none on all of
     // them — which the scope already answered off the address, so the opener reads nothing more.
+    //
+    // WHETHER THERE IS AN OPENER AT ALL IS THE READER'S OWN JOBS (#593), `canRegister`, the
+    // question the dialog asks of `assignedJobsFor` — never the jobs this list may stand on, which
+    // are every job for every reader. A site manager assigned to none meets no opener here, as 1a2
+    // drew their list (#522), where a category's page draws its opener disabled with the reason.
     const registration = {
         opener: ASSET_REGISTRATION_COPY.heading,
         canRegister: canRegisterAssets(user, allJobs),
@@ -163,14 +169,14 @@ async function renderCategoriesPage({ searchParams }) {
         listJobId: scope.job?.id ?? null,
         catalog: registrationCatalog(categories),
     };
-    // A reader on no job meets no opener in the head (1a2, #522): the design draws its no-job
+    // A site manager on no job meets no opener in the head (1a2, #522): the design drew its no-job
     // state with the heading alone, where #509 drew the opener locked with why before it.
     //
     // EACH OF THE HEAD'S CONTROLS MADE HERE CARRIES A KEY (#527). Handed to the list, a client
     // component, they arrive as elements this page made and stand among the head's children
     // there, where React asked a key of them and warned on every load of the list without one —
     // the registration's opener alone did, measured for a reader the catalog's is not drawn for.
-    const opener = recorder && !onNoJob && <RegistrationDialog key="registration" {...registration} />;
+    const opener = recorder && registration.canRegister && <RegistrationDialog key="registration" {...registration} />;
     // The way to the catalog, the office's alone (#527) and in every state of the head.
     const catalog = office && (
         <ButtonLink key="catalog" variant="faced" mark={<Icon name="book-open" className="size-icon shrink-0" />} href={ASSET_CATALOG_PATH}>
@@ -178,14 +184,13 @@ async function renderCategoriesPage({ searchParams }) {
         </ButtonLink>
     );
 
-    // Nothing on the job, or no job at all: the words where the rows would be (1a2, #519) —
-    // a reader on no job's, a site manager's with the opener under them, or who fills it for
-    // anybody else.
+    // Nothing on the job: the words where the rows would be (1a2, #519) — a site manager's with
+    // the opener under them, or who fills it for anybody else.
     if (rows.length === 0) {
         return (
             <ListFrame
                 header={
-                    <ListHeader title={COPY.heading} count={onNoJob ? null : 0} noun={COPY.itemNoun(0)}>
+                    <ListHeader title={COPY.heading} count={0} noun={COPY.itemNoun(0)}>
                         {catalog}
                         {opener}
                     </ListHeader>
@@ -193,11 +198,11 @@ async function renderCategoriesPage({ searchParams }) {
                 band={choosable && <JobChoice jobs={choosable} job={job} />}
             >
                 <div className="flex flex-col items-center pt-list-empty-state-inset-top text-center">
-                    <h2 className="text-heading font-semibold">{onNoJob ? COPY.noJobHeading : COPY.noItemsHeading}</h2>
+                    <h2 className="text-heading font-semibold">{COPY.noItemsHeading}</h2>
                     <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">
-                        {onNoJob ? COPY.untilAssigned : recorder ? COPY.noItems : COPY.untilASiteManagerAdds}
+                        {recorder ? COPY.noItems : COPY.untilASiteManagerAdds}
                     </p>
-                    {recorder && !onNoJob && (
+                    {recorder && registration.canRegister && (
                         <div className="mt-gap-lg">
                             <RegistrationDialog {...registration} variant="bordered" />
                         </div>

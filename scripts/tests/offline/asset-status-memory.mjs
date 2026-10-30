@@ -349,7 +349,8 @@ export async function run({ check, log }) {
         ["a4", { status: ASSET_STATUS.IN_REPAIR, assetId: "HYE-AST-261019-004" }],
     ]);
     const all = assetListScope(site, JOBS, ALL_JOBS);
-    check("the scope names the job whose array holds each asset", [...all.onJob].map(([id, job]) => `${id}>${job}`).join(" "), "a1>recJ1 a2>recJ1 a3>recJ2");
+    // Every job since #593, the site reader's included — a9 on recJ3 among them.
+    check("the scope names the job whose array holds each asset", [...all.onJob].map(([id, job]) => `${id}>${job}`).join(" "), "a1>recJ1 a2>recJ1 a3>recJ2 a9>recJ3");
     check("  and one job's scope names that job's alone", [...assetListScope(site, JOBS, "recJ2").onJob].map(([id, job]) => `${id}>${job}`).join(" "), "a3>recJ2");
     const counted = countedAssets(KINDS, all, kept);
     check(

@@ -197,9 +197,9 @@ async function registerAssetsHandler(prevState, formData) {
  * WHOEVER READS THE LIST EXPORTS IT, AND ONLY WHAT THEIR LIST HOLDS. The gate is the page's —
  * `requireUser()`, every signed-in reader with no role (#337) — and what the file holds is
  * `assetListScope`'s answer for this reader over the address's `job`, the one judgment the page
- * stands its list on, which `listExport` asks with the user handed here: a job they may not stand
- * on is answered with the first of theirs, as the list answers it, and the file is named for the
- * job it holds. No wrapper fits, as none fits the page: `withSiteManagerAction` would refuse
+ * stands its list on, which `listExport` asks with the user handed here: a job the list does not
+ * offer is answered where the list starts, as the list answers it, and the file is named for the
+ * job it holds — any job, for every reader, since #593. No wrapper fits, as none fits the page: `withSiteManagerAction` would refuse
  * every reader who is not one, and `withAdminAction` the site. `offline/authz-structure.mjs`
  * carries it as an exemption, and `offline/asset-export.mjs` holds that the user `requireUser`
  * answered is the one `listExport` is handed.
@@ -219,8 +219,9 @@ async function registerAssetsHandler(prevState, formData) {
  * A FAILED READ IS SAID, AND ITS CAUSE LOGGED. Everything after the gate is inside one `try`, so
  * a read that throws answers `{ error }`, which `ListExport.js` draws before the button; the gate
  * stays outside it, since `requireUser` redirects by throwing and a `catch` would take the way to
- * sign-in for a failure. A reader on no job is answered the same way: the list draws them no
- * button, so only a request made by hand reaches it, and there is no list to give.
+ * sign-in for a failure. A base with no job at all is answered the same way: the list draws no
+ * button over an empty list, so only a request made by hand reaches it, and there is no list to
+ * give. A reader assigned to no job stood there until #593 and stands on all jobs now.
  */
 export async function exportAssetListAction(search, timeZone) {
     return withOpsLabel("exportAssetListAction", async () => {

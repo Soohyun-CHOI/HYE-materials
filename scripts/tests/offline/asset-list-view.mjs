@@ -314,20 +314,22 @@ function allJobs548({ check, log }) {
     const single = { isAdmin: false, assignedJobs: ["recJ2"] };
     const said = (scope) => `${scope.allJobs} ${scope.choice} ${scope.job?.jobCode ?? "-"} ${[...scope.shown].join(",")}`;
 
-    // THE SCOPE, by value: `all` stands on every job the reader may choose between, wherever it
-    // stands among the values, and only for a reader with more than one.
+    // THE SCOPE, by value: `all` stands on every job, wherever it stands among the values, and
+    // only where there are two jobs to choose between — every reader's every job since #593.
     check("the office on all jobs stands on every job, their assets together", said(assetListScope(office, JOBS, ALL_JOBS)), "true all - a1,a2,a3,a4,a5");
-    check("  anybody else on all of their own", said(assetListScope(site, JOBS, ALL_JOBS)), "true all - a1,a2");
+    check("  anybody else on every job too, not their own alone (#593)", said(assetListScope(site, JOBS, ALL_JOBS)), "true all - a1,a2,a3,a4,a5");
     check(
         "  `all` among the band's job values still stands on all of them, wherever it stands",
         [said(assetListScope(site, JOBS, [ALL_JOBS, "recJ3"])), said(assetListScope(site, JOBS, ["recJ1", ALL_JOBS]))].join(" | "),
-        "true all - a1,a2 | true all - a1,a2"
+        "true all - a1,a2,a3,a4,a5 | true all - a1,a2,a3,a4,a5"
     );
-    check("a reader on one job asking for all is on that job, as for any value not offered", said(assetListScope(single, JOBS, ALL_JOBS)), "false recJ2 26-B a3,a4,a5");
-    check("  and a reader on no job on nothing", said(assetListScope({ isAdmin: false }, JOBS, ALL_JOBS)), "false null - ");
+    check("a reader on one job of their own asking for all is on all of them (#593)", said(assetListScope(single, JOBS, ALL_JOBS)), "true all - a1,a2,a3,a4,a5");
+    check("  but with one job there is, `all` is that job, as any value not offered is", said(assetListScope(single, [JOBS[0]], ALL_JOBS)), "false recJ2 26-B a3,a4,a5");
+    check("  and where no job exists, nothing", said(assetListScope({ isAdmin: false }, [], ALL_JOBS)), "false null - ");
     check("an address naming one job, as every address did before, stands on it", said(assetListScope(office, JOBS, "recJ2")), "false recJ2 26-B a3,a4,a5");
-    check("  no job asked starts on the first by its code", said(assetListScope(office, JOBS, undefined)), "false recJ1 26-A a1,a2");
-    check("  and several jobs without all are a repeated parameter, answered with the first", said(assetListScope(office, JOBS, ["recJ2", "recJ3"])), "false recJ1 26-A a1,a2");
+    check("  no job asked starts on the first of the reader's own, the office's too (#593)", said(assetListScope(office, JOBS, undefined)), "false recJ2 26-B a3,a4,a5");
+    check("  and several jobs without all are a repeated parameter, answered where no job asked starts", said(assetListScope(office, JOBS, ["recJ1", "recJ3"])), "false recJ2 26-B a3,a4,a5");
+    check("  as is a job that is no job, never the first by its code", said(assetListScope(office, JOBS, "recNope")), "false recJ2 26-B a3,a4,a5");
 
     // THE COUNTS PER JOB each row carries, which the chip adds up in the browser.
     const KINDS = [
@@ -406,9 +408,9 @@ function allJobs548({ check, log }) {
     );
     const listPage = parseFile(LIST_SCREEN).source;
     check(
-        "the list carries the scope's choice, a reader on no job is one with no jobs, and the list is told it is on all of them",
+        "the list carries the scope's choice, draws no state for a reader on no job (#593), and the list is told it is on all of them",
         [
-            /const onNoJob = scope\.jobs\.length === 0;/.test(listPage),
+            !/onNoJob/.test(listPage),
             /const job = scope\.choice;/.test(listPage),
             /<AssetCategoryList\s+rows=\{rows\}\s+job=\{job\}\s+jobCode=\{scope\.job\?\.jobCode \?\? null\}\s+allJobs=\{scope\.allJobs\}\s+jobs=\{choosable\}/.test(listPage),
         ].join(" "),
@@ -491,7 +493,7 @@ function crumbHrefs(parsed) {
  * keep it from printing.
  */
 function crumbJob581({ check, log }) {
-    log("an asset's page goes back to the list on the asset's job when it is one of the reader's (#581):");
+    log("an asset's page goes back to the list on the asset's job, whoever reads it (#581, #593):");
     const JOBS = [
         { id: "recJ2", jobCode: "26-B", assets: ["i3"] },
         { id: "recJ3", jobCode: "26-C", assets: ["i4"] },
@@ -507,9 +509,12 @@ function crumbJob581({ check, log }) {
     const carried = (user, asset) => listJobFromAsset(assetListScope(user, JOBS, null), asset);
     check("the office carries the asset's job, every job being one of its", `${carried(office, onB)} ${carried(office, onC)}`, "recJ2 recJ3");
     check("  a reader on several carries it when it is one of theirs", carried(site, onC), "recJ3");
-    check("  and none when it is not, as before", carried(site, onA), null);
-    check("  a reader on one carries none, a bare address standing on that one", carried(single, onC), null);
-    check("  nor does an asset on no job, nor a reader on none", `${carried(site, { job: [] })} ${carried(site, {})} ${carried({ isAdmin: false }, onC)}`, "null null null");
+    // Every reader chooses between every job since #593, so it is carried whoever reads.
+    check("  and when it is not, every job being every reader's (#593)", carried(site, onA), "recJ1");
+    check("  a reader on one carries it too, where #581 carried none", carried(single, onC), "recJ3");
+    check("  and a reader on none", carried({ isAdmin: false }, onC), "recJ3");
+    check("  but an asset on no job carries none", `${carried(site, { job: [] })} ${carried(site, {})}`, "null null");
+    check("  nor does any asset where there is one job, a bare address standing on it", listJobFromAsset(assetListScope(single, [JOBS[1]], null), onC), null);
     check(
         "  and it is the asset's job and not the one a list was asked for, `All jobs` included",
         `${listJobFromAsset(assetListScope(site, JOBS, "recJ2"), onC)} ${listJobFromAsset(assetListScope(site, JOBS, ALL_JOBS), onC)}`,
@@ -531,14 +536,14 @@ function crumbJob581({ check, log }) {
         "/asset-categories?job=recJ3 → 26-C | /asset-categories/recGrinder?job=recJ3 → 26-C"
     );
     check(
-        "  on the reader's first when the asset's job is not theirs, as a bare address does",
+        "  on the asset's job when it is not the reader's (#593)",
         landing(site, onA).join(" | "),
-        "/asset-categories → 26-B | /asset-categories/recGrinder → 26-B"
+        "/asset-categories?job=recJ1 → 26-A | /asset-categories/recGrinder?job=recJ1 → 26-A"
     );
     check(
-        "  and on the one job of a reader on one, which is the asset's",
+        "  and for a reader on one, on the asset's",
         landing(single, onC).join(" | "),
-        "/asset-categories → 26-C | /asset-categories/recGrinder → 26-C"
+        "/asset-categories?job=recJ3 → 26-C | /asset-categories/recGrinder?job=recJ3 → 26-C"
     );
     check(
         "  the office's on the asset's job, which is not its first",
@@ -1800,13 +1805,14 @@ export function run({ check, assert, log }) {
         "canRegister: canRegisterAssets(user, allJobs), catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), key: registration, listJobId: scope.job?.id ?? null, opener: ASSET_REGISTRATION_COPY.heading"
     );
     check("  asking the same predicate", listOpeners[0]?.asks, "canRegisterAssets");
-    // A READER ON NO JOB MEETS NO OPENER IN THE HEAD (1a2, #522): the design draws the no-job
-    // state with the heading alone, where #509 drew the opener locked with why before it.
-    check("  and under the reader being a site manager on a job (#506, #522)", listOpeners[0]?.under, "recorder && !onNoJob");
+    // A SITE MANAGER ON NO JOB MEETS NO OPENER IN THE HEAD (1a2, #522), and since #593 that is
+    // asked of their own jobs (`canRegister`) and not of the jobs the list may stand on, which are
+    // every job for every reader.
+    check("  and under the reader being a site manager on a job of their own (#506, #522, #593)", listOpeners[0]?.under, "recorder && registration.canRegister");
     check(
         "  the empty list's the same opener, bordered, under the empty branch and the same reader",
         `${listOpeners[1]?.handed} | ${listOpeners[1]?.asks} | ${listOpeners[1]?.under}`,
-        "canRegister: canRegisterAssets(user, allJobs), catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), listJobId: scope.job?.id ?? null, opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | canRegisterAssets | rows.length === 0, recorder && !onNoJob"
+        "canRegister: canRegisterAssets(user, allJobs), catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), listJobId: scope.job?.id ?? null, opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | canRegisterAssets | rows.length === 0, recorder && registration.canRegister"
     );
     // The count a suggested tool carried, its link array's length (#456), was held here until
     // #507: a suggestion is a name of the catalog now, beside its category, and how many of a
@@ -2347,16 +2353,16 @@ export function run({ check, assert, log }) {
     const named = (categories) => categories.map((category) => category.id).join(",");
     const jobsOf = (scope) => scope.jobs.map((job) => job.jobCode).join(",");
 
-    // THE OFFICE MAY STAND ON EVERY JOB AND STARTS ON THE FIRST BY ITS CODE, its own assignment
-    // notwithstanding. #509 started it from every asset there was, `null`, which went with
-    // `All jobs` (#520).
+    // THE OFFICE MAY STAND ON EVERY JOB AND STARTS ON THE FIRST OF ITS OWN (#593), where until
+    // #593 it started on the first by its code, its assignment notwithstanding. #509 started it
+    // from every asset there was, `null`, which went with `All jobs` (#520).
     const whole = assetListScope(office, JOBS, undefined);
     check("the office may stand on every job, by its code, one with nothing on it included", jobsOf(whole), "26-A,26-B,26-C");
-    check("  starts on the first, its assignment notwithstanding", `${whole.job?.jobCode} ${said(whole.shown)}`, "26-A i1,i2");
-    check("  and lists the categories with an asset there, the one with none left off (#507)", named(assetCategoriesInScope(CATEGORIES, whole.shown)), "recGrinder");
-    // ANYBODY ELSE MAY STAND ON THEIR OWN JOBS, AND STARTS ON THE FIRST OF THOSE.
+    check("  starts on the first of its own, its assignment (#593)", `${whole.job?.jobCode} ${said(whole.shown)}`, "26-B i3,i4");
+    check("  and lists the categories with an asset there, the one with none left off (#507)", named(assetCategoriesInScope(CATEGORIES, whole.shown)), "recGrinder,recDriver");
+    // ANYBODY ELSE MAY STAND ON EVERY JOB TOO (#593), AND STARTS ON THE FIRST OF THEIR OWN.
     const own = assetListScope(site, JOBS, undefined);
-    check("anybody else may stand on their own jobs, by their code, one with nothing on it included", jobsOf(own), "26-A,26-C");
+    check("anybody else may stand on every job too, by its code, one with nothing on it included (#593)", jobsOf(own), "26-A,26-B,26-C");
     check("  starts on the first of them, not on their jobs together", `${own.job?.jobCode} ${said(own.shown)}`, "26-A i1,i2");
     // A CODE'S FIGURES ARE READ AS NUMBERS, so a tenth job comes after a ninth.
     const tenth = assetListScope({ isAdmin: true }, [
@@ -2370,21 +2376,23 @@ export function run({ check, assert, log }) {
     check("  and lists the categories with one there, the empty category left off", named(assetCategoriesInScope(CATEGORIES, officeOnB.shown)), "recGrinder,recDriver");
     const siteOnC = assetListScope(site, JOBS, "recJ3");
     check("a job with nothing on it is stood on, and lists no category", `${siteOnC.job?.jobCode} ${named(assetCategoriesInScope(CATEGORIES, siteOnC.shown))}|`, "26-C |");
-    // THE JOB ASKED FOR IS A REQUEST: one off the reader's list, one that is no job and a
-    // repeated parameter are all answered with the first job, as no job asked is (#520) — the
-    // whole of the reader's jobs from #509.
+    // THE JOB ASKED FOR IS A REQUEST: a job not the reader's own is stood on since #593, where it
+    // was answered with the first of theirs; one that is no job and a repeated parameter are
+    // answered with the first of theirs, as no job asked is (#520) — the whole of the reader's
+    // jobs from #509.
     const asked = (raw) => {
         const scope = assetListScope(site, JOBS, raw);
         return `${scope.job?.jobCode} ${said(scope.shown)}`;
     };
-    check("a job off the reader's list is answered with the first", asked("recJ2"), "26-A i1,i2");
-    check("  so is one that is no job", asked("recNope"), "26-A i1,i2");
+    check("a job off the reader's own is stood on (#593)", asked("recJ2"), "26-B i3,i4");
+    check("  one that is no job is answered with the first of theirs", asked("recNope"), "26-A i1,i2");
     check("  and a repeated parameter", asked(["recJ3"]), "26-A i1,i2");
-    // THE FLAG ALONE: a President who is not marked Admin stands on their own jobs.
+    // NO FLAG DECIDES IT: a President who is not marked Admin stands where anybody does, and
+    // the office where they do (#593).
     const president = assetListScope({ role: "President", isAdmin: false, assignedJobs: ["recJ2"] }, JOBS);
-    check("a President not marked Admin stands on their own jobs", `${jobsOf(president)} ${said(president.shown)}`, "26-B i3,i4");
+    check("a President not marked Admin may stand on every job, and starts on their own", `${jobsOf(president)} ${said(president.shown)}`, "26-A,26-B,26-C i3,i4");
     const nobody = assetListScope({ isAdmin: false }, JOBS);
-    check("  and a reader on no job on nothing", `${nobody.job}|${jobsOf(nobody)}|${said(nobody.shown)}|`, "null|||");
+    check("  and a reader on no job on all of them (#593)", `${nobody.job}|${nobody.allJobs}|${jobsOf(nobody)}|${said(nobody.shown)}|`, "null|true|26-A,26-B,26-C|i1,i2,i3,i4|");
     // A CATEGORY'S OWN LIST READS THE IDS ON THE JOB ALONE, IN THE LINK ARRAY'S ORDER, BEFORE ANY READ.
     check("ids on the job keep their own order", idsInScope(["i2", "i9", "i1"], own.shown).join(), "i2,i1");
     check("  so a category's page counts only those", pageOfAssets(idsInScope(["i1", "i3", "i2"], own.shown).map((id) => ({ id })), 1).total, 2);
@@ -2592,11 +2600,12 @@ export function run({ check, assert, log }) {
         `${/position=\{pagerPosition\(page\)\}/.test(categoryListSource)} ${/position=\{pagerPosition\(page\)\}/.test(listFrameSource)} ${/pagePosition\(/.test(categoryListSource + listFrameSource)}`,
         "true true false"
     );
-    // The job is a choice only for a reader with more than one (1a, 1d, 1f): the list's chip, a
-    // category's breadcrumb level and an asset's, each under the one count.
+    // The job is a choice only where there is more than one (1a, 1d, 1f): the list's chip, a
+    // category's breadcrumb level and an asset's, each under the one count — every job, for every
+    // reader, since #593, where it was a reader's own.
     const choosesJob = (source) => (source.match(/scope\.jobs\.length > 1/g) ?? []).length;
     check(
-        "  the job is offered only to a reader on more than one, on all three screens",
+        "  the job is offered only where there is more than one, on all three screens",
         `${choosesJob(listSource)} ${choosesJob(categorySource)} ${choosesJob(assetSource)} ${/scope\.jobs\.length > 0/.test(listSource + categorySource + assetSource)}`,
         "1 1 1 false"
     );
@@ -2614,19 +2623,20 @@ export function run({ check, assert, log }) {
     );
     check("  and a planted list offering it to a reader on one job is seen (anti-vacuity)", choosesJob("scope.jobs.length > 0 ? <JobChoice /> : null"), 0);
     // THE EMPTY STATES, the design's words by value and who reads each off the pages (1a2, 1d).
+    // 1a2's reader on no job went with #593, who stands on all jobs now: no words of theirs stay.
     check(
-        "  the words for a reader who adds nothing, for a site manager's empty category, and for a reader on no job",
-        [ASSET_LIST_COPY.untilASiteManagerAdds, ASSET_LIST_COPY.untilYouAdd, ASSET_LIST_COPY.noJobHeading, ASSET_LIST_COPY.untilAssigned].join(" | "),
-        "Items show here once a site manager adds them. | Items show here once you add them. | No job yet | Items show here once the office assigns you to a job."
+        "  the words for a reader who adds nothing and for a site manager's empty category, and none for a reader on no job (#593)",
+        [ASSET_LIST_COPY.untilASiteManagerAdds, ASSET_LIST_COPY.untilYouAdd, "noJobHeading" in ASSET_LIST_COPY, "untilAssigned" in ASSET_LIST_COPY].join(" | "),
+        "Items show here once a site manager adds them. | Items show here once you add them. | false | false"
     );
     check(
-        "  the list: no figure and no job's words but for a reader on no job, the sentence by who reads it, no opener under a reader on no job",
+        "  the list: no state for a reader on no job, a figure of none, the sentence by who reads it, the opener under a site manager's own jobs",
         [
-            /const onNoJob = scope\.jobs\.length === 0;/.test(listSource),
-            /count=\{onNoJob \? null : 0\}/.test(listSource),
-            /\{onNoJob \? COPY\.noJobHeading : COPY\.noItemsHeading\}/.test(listSource),
-            /\{onNoJob \? COPY\.untilAssigned : recorder \? COPY\.noItems : COPY\.untilASiteManagerAdds\}/.test(listSource),
-            /\{recorder && !onNoJob && \(/.test(listSource),
+            !/onNoJob|noJobHeading|untilAssigned/.test(listSource),
+            /count=\{0\}/.test(listSource),
+            /<h2 className="text-heading font-semibold">\{COPY\.noItemsHeading\}<\/h2>/.test(listSource),
+            /\{recorder \? COPY\.noItems : COPY\.untilASiteManagerAdds\}/.test(listSource),
+            /\{recorder && registration\.canRegister && \(/.test(listSource),
         ].join(" "),
         "true true true true true"
     );
