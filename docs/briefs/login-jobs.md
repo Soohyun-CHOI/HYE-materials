@@ -40,7 +40,7 @@ page scrolls and the search holds to the top. Then one full-width filled button,
 
 **It also carries one thing it never shows.** Where the reader was going travels
 through this step as it does through the name step, so a person who scanned a tool
-label lands on that item, and anybody else on Tools & Equipment.
+label lands on that item, and anybody else on Equipment & Tools.
 
 ## What it carries only sometimes
 
@@ -78,7 +78,7 @@ while they hold none — a job the office assigned by hand in the meantime is ke
 Every asset list then stands on these jobs (`asset-categories.md`), and the same
 assignment decides which requests the materials screens show a reader.
 
-**`No job yet` stays on the Tools & Equipment list** for the one reader this step
+**`No job yet` stays on the Equipment & Tools list** for the one reader this step
 does not ask and the list does not count as the office: a President who is not
 marked as the office and holds no job. A site manager on no job who is the office
 or the President still meets `Ask the office to assign you to a job` where items

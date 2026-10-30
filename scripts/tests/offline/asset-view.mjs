@@ -253,7 +253,7 @@ export function run({ check, assert, log }) {
     check("the empty history", ASSET_COPY.noHistory, "No history yet");
     check("a code no asset carries, at a desk", `${ASSET_COPY.notFoundHeading} | ${ASSET_COPY.notFoundCode.before}HYE-AST-260909-099${ASSET_COPY.notFoundCode.after}`, "Item not found | No item has the code HYE-AST-260909-099. Check it against the label.");
     check("  and after a scan", ASSET_COPY.notFoundScanned, "No item has this code. Check it against the label and scan again.");
-    check("  with the way back", ASSET_COPY.backToTools, "Back to Tools & Equipment");
+    check("  with the way back", ASSET_COPY.backToTools, "Back to Equipment & Tools");
     check("the label's print size, in text", `${ASSET_COPY.sizeLabel} | ${ASSET_COPY.symbolLabel} ${ASSET_COPY.symbolSize(9.57)}`, "Size | Symbol 9.57 mm");
     check("an entry's two words", `${ASSET_COPY.historyTo} | ${ASSET_COPY.historyBy}`, "to | by");
     check("the retirement's button, at both widths", ASSET_COPY.moreActions, "More actions");

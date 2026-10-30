@@ -30,7 +30,7 @@ three sizes and makers, where the category list joins them into one name each.
 
 ## What it always carries
 
-**evidence.** A bar at the top, `Tools & Equipment` with a chevron back to the
+**evidence.** A bar at the top, `Equipment & Tools` with a chevron back to the
 category list. The list lies across the column's whole width (#538): the bar,
 the head and the band hold still, and only the rows scroll, between the column
 head and the pager, so no name comes into the bar. A window narrower than the

@@ -30,7 +30,7 @@ import Icon from "./Icon";
  * name and its separator — from `lib/navigation.js`.
  *
  * A LEVEL MAY BE A CONTROL RATHER THAN A LINK (#519): `{ key, control }`, the job a reader on
- * several jobs narrows by, which 1d and 1f draw as a level of the path — `Tools & Equipment /
+ * several jobs narrows by, which 1d and 1f draw as a level of the path — `Equipment & Tools /
  * 26-USA-06` on a category's page, the job before the category on an asset's. A path with such
  * a level is a path whatever its length, so a category's page with one draws `/` rather than
  * the chevron, and a path need not end on the screen's own name: 1d's ends on the job.

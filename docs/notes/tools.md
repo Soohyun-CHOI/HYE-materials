@@ -2088,6 +2088,16 @@ An asset's breadcrumb opened `Tools & Equipment` with no job, so a reader on sev
 
 **WHAT THE CHECKS HOLD.** `offline/asset-list-view.mjs` opens on #581's block: `listJobFromAsset` by value — the office, a reader on several in and off their jobs, a reader on one, an asset on no job, a reader on none, and the job a list was asked for left out of it — then each level's address built by the real builders and its `job` read into `assetListScope`, so what is held is the list a reader lands on; off the page's source the one binding, off the scope asked for no job, and both levels' `href`s built from it, beside the category page's own first level; and a planted page doing neither. **Fifteen mutations were run, one at a time, and each of the fourteen new assertions fails under at least one**: a reader on one job, a job off theirs, the list's choice, a code for an id and `undefined` for null in the judgment, and an asset on no job carrying the first; the first level bare, either level carrying the job unasked, the binding asked of the category and the scope asked for a job; the category page's first level bare; and each reader blinded.
 
+## Equipment & Tools on screen (#591)
+
+Everything a reader sees names the assets axis `Equipment & Tools`, where it said `Tools & Equipment` from #513: the rail, the category list's heading and tab title, every breadcrumb's first level, the export's file name and first sheet, and `Back to Equipment & Tools` where a category or an asset is not found. **The order is Soo's ruling and not the design's**: the files still say `Tools & Equipment`, and `docs/briefs/design-copy-findings.md` records it as the app's decision until they read the same.
+
+**TWO STRINGS, AND EVERYTHING ELSE READS THEM.** `ASSET_LIST_COPY.heading` is the axis's name wherever it is said — the rail's section reads it, as do every breadcrumb, the list's heading and tab, the registration's results and the export's file and sheet — and `ASSET_COPY.backToTools` is the way back. No mail the app sends says the name. The key `backToTools`, every identifier, address and table keep their names: no table is called either word, and the issue kept code names and addresses as they were.
+
+**WHAT A BROWSER SHOWED**, as `soo@` on the test base at `k.localhost:3589`: the list's tab `Equipment & Tools · HYE USA Portal`, its heading and the rail's one section; `HYE-AST-261019-104`'s breadcrumb `Equipment & Tools`, leading to 25-USA-13's list; and a code no asset carries, `Back to Equipment & Tools`. The export's file was not downloaded; its name and sheet are held by value.
+
+**WHAT THE CHECKS HOLD.** `offline/name-sheet-list.mjs` holds both strings and the rail by value and fails any string literal, template or JSX text under `app/` or `lib/` saying `Tools & Equipment` — a comment may cite the design's word. `asset-export.mjs`, `asset-list-view.mjs`, `asset-view.mjs` and `navigation.mjs` hold the new values where they held the old, and each fails with the old name put back.
+
 ## Three tables, and what each is for
 
 `Tools` is the KIND. `Tool Items` is the object. `Tool Log` is the history.

@@ -3,7 +3,7 @@
 import { SheetInput } from "@/app/components/Controls";
 import { DialogFrame, SheetRows } from "@/app/components/DialogFrame";
 import { textMatchKey } from "@/lib/itemNaming";
-import { ASSET_TRANSITION_COPY as COPY, matchedPart, namesAreRecent } from "@/lib/assetTransition";
+import { ASSET_TRANSITION_COPY as COPY, matchedPart, nameListHead } from "@/lib/assetTransition";
 
 /**
  * 1j's name sheet (#458) — who an asset goes to, typed or picked, in Tools 0a's Sheet that
@@ -29,19 +29,35 @@ import { ASSET_TRANSITION_COPY as COPY, matchedPart, namesAreRecent } from "@/li
  * the frame's rule for the first field that takes typing, so the keyboard is up; the
  * keyboard's `done` key puts the sheet away as `Done` does.
  *
- * THE LIST IS ABOUT A JOB, SO IT IS ABSENT UNTIL ONE IS CHOSEN — not empty, absent, heading
- * and all (#376). A job nothing has gone out on says so in place of the rows. Typing narrows
- * the rows `names` hands in (`offeredNames`), the list a desk is offered under its field, and
- * a name that matches none leaves no list at all, heading and all, as the desk's closes; the
+ * THE LIST STANDS IN A SPACE OF ONE HEIGHT UNDER THE FIELD, WHATEVER IT HOLDS (#589), so the
+ * sheet keeps its height while a name is typed: 0a's 194, room for the head and three rows. The
+ * head is `nameListHead`'s — `Recently at this job` before anything is typed, `Matching names`
+ * while what is typed matches, `No past names match` over no rows when it matches none — and
+ * the space is empty, no head and no rows, before a job is chosen and on a job nothing has gone
+ * out on, the list being about a job (#376). Typing narrows the rows `names` hands in
+ * (`offeredNames`), every one still matching, the list a desk is offered under its field; rows
+ * past the space scroll inside it under the head, and the room fewer rows leave stays empty. The
  * row naming the person already typed is checked, on the fold the whole app compares people's
- * names on (`textMatchKey`). The heading names the recent list, so it stands only while
- * nothing is typed, and a typed fragment's match in each row is set at 600 (1j, #495).
+ * names on (`textMatchKey`), and a typed fragment's match in each row is set at 600 (1j, #495).
+ * Until #589 the head and the rows went when a typed name matched none, so the sheet's top edge
+ * dropped and came back as it was typed, and a job with none said `No items have gone out on
+ * this job yet.` in their place.
+ *
+ * ON A SCREEN TOO SHORT FOR THE SHEET AND THE KEYBOARD THE SPACE GIVES WAY, AND ALONE. It is the
+ * one part of the sheet that shrinks, from 194 down to nothing if it must, the head staying at
+ * its top and the rows scrolling under it; the handle, the title, the field and the foot keep
+ * theirs, since the field is what the sheet is for and the names are a way to fill it. A move on
+ * the rows scrolls once they overflow, and anywhere else in the space drags the sheet
+ * (`sheetHold.js:scrollsUnder`, #580): the space clips and does not scroll.
  *
  * IT CLOSES ON A PRESS ON WHAT LIES BEHIND IT AND ON ITS HANDLE, both of which 1j draws, and
  * on a drag down — the frame's, for every sheet that draws a handle (#580).
  */
 export default function NameSheet({ open, onClose, value, onChange, names, jobChosen, hasRecent }) {
     const typed = textMatchKey(value);
+    const head = nameListHead({ jobChosen, hasRecent, typed: value, offered: names });
+    // Rows stand only under a head: none before a job is chosen or on a job with no recent names.
+    const rows = head ? names : [];
 
     return (
         <DialogFrame
@@ -63,15 +79,15 @@ export default function NameSheet({ open, onClose, value, onChange, names, jobCh
                         clearLabel={COPY.clearName}
                     />
                 </div>
-                {jobChosen && names.length > 0 && (
-                    <>
-                        {namesAreRecent(value) && (
-                            <p className="shrink-0 px-mobile-drawer-row-inset-x pb-mobile-drawer-heading-stack text-mobile-heading-sm text-foreground-subtle">
-                                {COPY.recentHeading}
-                            </p>
-                        )}
+                <div data-name-list="" className="flex h-mobile-name-sheet-list min-h-0 shrink flex-col overflow-hidden">
+                    {head && (
+                        <p className="shrink-0 px-mobile-drawer-row-inset-x pb-mobile-drawer-heading-stack text-mobile-heading-sm text-foreground-subtle">
+                            {head}
+                        </p>
+                    )}
+                    {rows.length > 0 && (
                         <SheetRows
-                            rows={names.map((name) => ({
+                            rows={rows.map((name) => ({
                                 key: name,
                                 label: name,
                                 match: matchedPart(name, value),
@@ -82,13 +98,8 @@ export default function NameSheet({ open, onClose, value, onChange, names, jobCh
                                 },
                             }))}
                         />
-                    </>
-                )}
-                {jobChosen && !hasRecent && (
-                    <p className="px-mobile-drawer-row-inset-x py-mobile-drawer-row-inset-y text-mobile-body text-foreground-subtle">
-                        {COPY.noRecentNames}
-                    </p>
-                )}
+                    )}
+                </div>
             </div>
         </DialogFrame>
     );

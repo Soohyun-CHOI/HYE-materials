@@ -504,6 +504,7 @@
     --spacing-mobile-drawer-row-inset-y: 0.9375rem; /* Sheet, 15: inside a row */
     --spacing-mobile-drawer-row-inset-x: 1rem; /* Sheet, 16: inside a row, and the Inner rule's inset between rows */
     --spacing-mobile-drawer-inset-bottom: 1.25rem; /* Sheet, 20: at the foot, plus the device's safe area */
+    --height-mobile-name-sheet-list: 12.125rem; /* Sheet, 194: the name sheet's list under its field, a block name and three rows, whatever it holds (#589) */
     --shadow-mobile-drawer: 0 -12px 48px color-mix(in oklab, var(--color-elevation) 16%, transparent); /* Sheet: cast upward */
     --color-mobile-drawer-overlay: color-mix(in oklab, var(--color-elevation) 24%, transparent); /* Sheet: what lies behind it */
     --size-mobile-drawer-row-icon: 1.0625rem; /* Sheet, 17: the check at the end of the row already chosen — from the drawings, not the spec */

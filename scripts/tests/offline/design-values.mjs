@@ -682,6 +682,7 @@ const VALUES = [
     ["--spacing-mobile-drawer-row-inset-y", "0.9375rem", null],
     ["--spacing-mobile-drawer-row-inset-x", "1rem", null],
     ["--spacing-mobile-drawer-inset-bottom", "1.25rem", null],
+    ["--height-mobile-name-sheet-list", "12.125rem", null],
     ["--shadow-mobile-drawer", "0 -12px 48px color-mix(in oklab, var(--color-elevation) 16%, transparent)", null],
     ["--color-mobile-drawer-overlay", "color-mix(in oklab, var(--color-elevation) 24%, transparent)", null],
     // From the drawings, not the spec (#458).

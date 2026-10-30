@@ -16,7 +16,7 @@ const ALL_JOBS_LABEL = axesFor(FILTERED_LISTS[0]).find((axis) => axis.param === 
 // category list it is 1a's chip at the start of the band, the job behind a pin, since the files
 // of 2026-10-23 (#566), where #519 drew `Job` and the job in the head beside `Add items`; on a
 // category's page and an asset's it is a level of the breadcrumb, 1d's and 1f's, after
-// `Tools & Equipment` (`look="crumb"`). Both are `Choice`, 0l's select-only combobox, named
+// `Equipment & Tools` (`look="crumb"`). Both are `Choice`, 0l's select-only combobox, named
 // by the field's `Job`, which neither shows.
 //
 // IT OFFERS `All jobs` FIRST AND THEN THE JOBS (#548), as the files draw it on all three screens.
