@@ -5,7 +5,8 @@ import Instant from "@/app/components/Instant";
 import { ASSET_EVENT } from "@/lib/assetStatus";
 import { ASSET_TRANSITION_COPY as COPY } from "@/lib/assetTransition";
 import { recordAssetEventAction } from "./actions";
-import { changeAssetJobAction } from "./officeActions";
+import { changeAssetJobAction, deleteAssetAction } from "./officeActions";
+import DeleteConfirm from "./DeleteConfirm";
 import RetirementConfirm from "./RetirementConfirm";
 
 /**
@@ -55,6 +56,11 @@ import RetirementConfirm from "./RetirementConfirm";
  * holds neither the menu's line nor its dialog. `More actions` opens it at each width, and which
  * width opened it is held, so the desk's dialog and the phone's sheet are never open together.
  * Whichever was sent last is the one the status says.
+ *
+ * AND THE OFFICE'S DELETION (#582), for the same reason: its question (`DeleteConfirm`) says a
+ * deletion left half done above its actions, and a refusal that takes its line away — something
+ * recorded since, a reader no longer the office — is said under the status of the page drawn
+ * again. One question for both widths, as the retirement's is; a landing leaves the page.
  */
 const TransitionContext = createContext(null);
 
@@ -82,6 +88,16 @@ export function useRefusalSentence(answer) {
 export default function AssetTransition({ plan, office, assetJobRecordId, assetId, itemName, children }) {
     const [answer, formAction, pending] = useActionState(recordAssetEventAction, null);
     const [jobAnswer, jobFormAction, jobPending] = useActionState(changeAssetJobAction, null);
+    const [deleteAnswer, deleteFormAction, deletePending] = useActionState(deleteAssetAction, null);
+    // Whether the deletion's question is open (#582), how many openings there have been, and which
+    // of them sent the latest answer.
+    const [deleting, setDeleting] = useState(false);
+    const [deleteOpening, setDeleteOpening] = useState(0);
+    const [deleteSentFor, setDeleteSentFor] = useState(null);
+    // A deletion the plan no longer offers is no longer open, as a change of job is not.
+    if (deleting && !office?.mayDelete) setDeleting(false);
+    const deleteSaidInDialog = deleting && deleteSentFor === deleteOpening;
+    const deleteSentence = deleteAnswer?.error ? <>{deleteAnswer.error}</> : null;
     // Which width's job change is open (#583), how many openings there have been, which of them
     // sent the latest answer, and which action was sent last.
     const [changingOn, setChangingOn] = useState(null);
@@ -149,7 +165,18 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetI
         openRetirement: () => setRetiring(true),
         // What is said under the status: the answer of whichever was sent last, unless a dialog of
         // its own is saying it.
-        statusSentence: lastSent === "job" ? (jobSaidInDialog ? null : jobSentence) : open ? null : transitionSentence,
+        statusSentence:
+            lastSent === "job"
+                ? jobSaidInDialog
+                    ? null
+                    : jobSentence
+                : lastSent === "delete"
+                  ? deleteSaidInDialog
+                      ? null
+                      : deleteSentence
+                  : open
+                    ? null
+                    : transitionSentence,
         office,
         jobChange: {
             assetJobRecordId,
@@ -168,6 +195,11 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetI
             },
             refusal: jobSaidInDialog ? jobSentence : null,
         },
+        // `More actions` opens the deletion's question at either width (#582).
+        openDeletion: () => {
+            setDeleteOpening((count) => count + 1);
+            setDeleting(true);
+        },
     };
 
     return (
@@ -175,6 +207,21 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetI
             {children}
             {plan.mayRetire && (
                 <RetirementConfirm open={retiring} onClose={() => setRetiring(false)} assetId={assetId} itemName={itemName} />
+            )}
+            {office?.mayDelete && (
+                <DeleteConfirm
+                    open={deleting}
+                    onClose={() => setDeleting(false)}
+                    assetId={assetId}
+                    itemName={itemName}
+                    busy={deletePending}
+                    refusal={deleteSaidInDialog ? deleteSentence : null}
+                    send={(formData) => {
+                        setDeleteSentFor(deleteOpening);
+                        setLastSent("delete");
+                        startTransition(() => deleteFormAction(formData));
+                    }}
+                />
             )}
         </TransitionContext.Provider>
     );

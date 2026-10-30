@@ -260,12 +260,12 @@ export function run({ check, assert, log }) {
             "a site manager on two jobs is offered, status by status",
             ASSET_STATUS_VALUES.map((status) => `${status}: ${shape(planOf(site, status))}`).join(", "),
             "In stock: Checked out/true/true/2/null, Out: Checked in/false/true/2/null, In repair: Returned from repair/false/true/2/null, " +
-                `Retired: null/false/false/0/${ASSET_TRANSITION_COPY.noTransition}`
+                `Retired: null/false/false/0/${ASSET_TRANSITION_COPY.noTransition}, Deleted: null/false/false/0/${ASSET_TRANSITION_COPY.noTransition}`
         );
         check(
             "  a reader who is not a site manager is offered no sending, on any status",
             ASSET_STATUS_VALUES.map((status) => planOf(nonSiteManager(JOB_A, JOB_B), status).maySendForRepair).join(","),
-            "false,false,false,false"
+            "false,false,false,false,false"
         );
         check("  and a site manager on no job is refused an item in repair, as a retirement is", shape(planOf(actor(), ASSET_STATUS.IN_REPAIR)), `null/false/false/0/${ASSET_TRANSITION_COPY.noJob}`);
         check("  and refused the sending from stock", shape(planOf(actor(), ASSET_STATUS.IN_STOCK)), `null/false/false/0/${ASSET_TRANSITION_COPY.noJob}`);
@@ -325,7 +325,7 @@ export function run({ check, assert, log }) {
         check(
             "  the press takes the reader's job for a scan alone",
             ASSET_STATUS_VALUES.map((status) => pressTakesJob(planOf(site, status))).join(","),
-            "true,true,false,false"
+            "true,true,false,false,false"
         );
         const awayFields = fieldRefusals(away, { jobId: "", checkedOutTo: "" });
         check("  and the return's fields refuse nothing", `${awayFields.jobRefusal}|${awayFields.nameRefusal}`, "null|null");
@@ -397,7 +397,11 @@ export function run({ check, assert, log }) {
             /key: "repair",\s*label: ASSET_TRANSITION_COPY\.control\[ASSET_EVENT\.SENT_FOR_REPAIR\],\s*onSelect: \(\) => \{\s*buttonRef\.current\?\.focus\(\);\s*setOpen\(false\);\s*transition\.sendForRepair\(\);/.test(opener) &&
                 opener.indexOf('key: "repair"') < opener.indexOf('key: "retire"')
         );
-        assert("  in the menu's plain tone, the retirement alone Destructive", (opener.match(/tone: "danger"/g) ?? []).length === 1 && !/key: "repair",[^}]*tone:/.test(opener));
+        // The office's deletion is the second Destructive line since #582, an end as the retirement is.
+        assert(
+            "  in the menu's plain tone, the retirement and the deletion alone Destructive",
+            (opener.match(/tone: "danger"/g) ?? []).length === 2 && /key: "retire",[^}]*tone: "danger"/.test(opener) && /key: "delete",[^}]*tone: "danger"/.test(opener) && !/key: "repair",[^}]*tone:/.test(opener)
+        );
         assert(
             "  and the button busy while it is on its way: said, turned away, and the spinner over its dots",
             /const busy = Boolean\(transition\?\.repairPending\);/.test(opener) &&
@@ -413,9 +417,9 @@ export function run({ check, assert, log }) {
         assert("the foot bar draws the pill and posts a job only for a scan", /const asksJob = pressTakesJob\(plan\);/.test(barSource) && /\{asksJob && <input type="hidden" name="jobId" value=\{kept\} \/>\}/.test(barSource) && /\{asksJob && \(\s*<Field label=\{COPY\.jobLabel\}/.test(barSource));
         const pageSource = parseFile(PAGE).source;
         assert(
-            "the desk's header draws More actions for a sending, a retirement or the office's job change (#583)",
-            /\{\(transition\.maySendForRepair \|\| transition\.mayRetire \|\| office\.mayChangeJob\) && <MoreActions \/>\}/.test(pageSource) &&
-                /\(transition\.event \|\| transition\.maySendForRepair \|\| transition\.mayRetire \|\| office\.mayChangeJob\) && \(/.test(pageSource)
+            "the desk's header draws More actions for a sending, a retirement or the office's acts (#583, #582)",
+            /\{\(transition\.maySendForRepair \|\| transition\.mayRetire \|\| officeActs\) && <MoreActions \/>\}/.test(pageSource) &&
+                /\(transition\.event \|\| transition\.maySendForRepair \|\| transition\.mayRetire \|\| officeActs\) && \(/.test(pageSource)
         );
         log("");
     }
@@ -444,7 +448,7 @@ export function run({ check, assert, log }) {
     check(
         "  while the same reader marked a site manager is offered each status's own",
         offeredTo({ ...nonSiteManager(JOB_A, JOB_B), isSiteManager: true }),
-        `${ASSET_STATUS.IN_STOCK}: ${ASSET_EVENT.CHECKED_OUT}/true/2/null, ${ASSET_STATUS.OUT}: ${ASSET_EVENT.CHECKED_IN}/true/2/null, ${ASSET_STATUS.IN_REPAIR}: ${ASSET_EVENT.RETURNED_FROM_REPAIR}/true/2/null, ${ASSET_STATUS.RETIRED}: null/false/0/${ASSET_TRANSITION_COPY.noTransition}`
+        `${ASSET_STATUS.IN_STOCK}: ${ASSET_EVENT.CHECKED_OUT}/true/2/null, ${ASSET_STATUS.OUT}: ${ASSET_EVENT.CHECKED_IN}/true/2/null, ${ASSET_STATUS.IN_REPAIR}: ${ASSET_EVENT.RETURNED_FROM_REPAIR}/true/2/null, ${ASSET_STATUS.RETIRED}: null/false/0/${ASSET_TRANSITION_COPY.noTransition}, ${ASSET_STATUS.DELETED}: null/false/0/${ASSET_TRANSITION_COPY.noTransition}`
     );
 
     // ── 1: what a status and a person are offered ──────────────────────────
@@ -1258,7 +1262,7 @@ export function run({ check, assert, log }) {
     // code no asset carries, since its menu ends on the account (#495).
     check(
         "  and More actions holds the retirement at a desk on its own answer, and stands in every phone top bar (#495)",
-        `${(page.source.match(/\{\(transition\.maySendForRepair \|\| transition\.mayRetire \|\| office\.mayChangeJob\) && <MoreActions \/>\}/g) ?? []).length} ${(page.source.match(/<MoreActions phone account=\{account\} \/>/g) ?? []).length}`,
+        `${(page.source.match(/\{\(transition\.maySendForRepair \|\| transition\.mayRetire \|\| officeActs\) && <MoreActions \/>\}/g) ?? []).length} ${(page.source.match(/<MoreActions phone account=\{account\} \/>/g) ?? []).length}`,
         "1 2"
     );
     // A RETIRED ASSET SHOWS NOTHING IN THE ACTIONS' PLACE AT A DESK (1f); any other refusal is
@@ -1267,11 +1271,12 @@ export function run({ check, assert, log }) {
         "  a desk says the refusal where the controls would be, but for a status that allows nothing",
         /transition\.refusal !== TRANSITION_COPY\.noTransition && \(\s*<div[^>]*>\s*<p[^>]*>\{transition\.refusal\}<\/p>/.test(page.source)
     );
-    // AND THE OFFICE'S More actions AFTER IT, alone and only for the job change (#583): the
-    // sentence is about recording, and the office may move an item whatever its own jobs.
+    // AND THE OFFICE'S More actions AFTER IT, alone and only for the office's acts (#583, #582): the
+    // sentence is about recording, and the office may move or delete an item whatever its own jobs.
     assert(
-        "  with More actions after it only where the office may change the job (#583)",
-        /<\/p>\s*\{office\.mayChangeJob && \(\s*<div[^>]*>\s*<MoreActions \/>\s*<\/div>\s*\)\}\s*<\/div>/.test(page.source)
+        "  with More actions after it only where the office may change the job or delete the item (#583, #582)",
+        /<\/p>\s*\{officeActs && \(\s*<div[^>]*>\s*<MoreActions \/>\s*<\/div>\s*\)\}\s*<\/div>/.test(page.source) &&
+            /const officeActs = office\.mayChangeJob \|\| office\.mayDelete;/.test(page.source)
     );
     // THE TRANSITION IS HANDED THE PLAN THE PAGE REACHED (#458), which its dialog asks
     // `readSubmission` of before it sends — the event the page offered and the jobs it
@@ -1423,7 +1428,7 @@ export function run({ check, assert, log }) {
     // the one sent last, unless a dialog of its own says it.
     assert(
         "a refusal stands under the status only while the dialog is closed",
-        /statusSentence: lastSent === "job" \? \(jobSaidInDialog \? null : jobSentence\) : open \? null : transitionSentence,/.test(provider.source) &&
+        /statusSentence:\s*lastSent === "job"\s*\?\s*jobSaidInDialog\s*\?\s*null\s*:\s*jobSentence\s*:\s*lastSent === "delete"\s*\?\s*deleteSaidInDialog\s*\?\s*null\s*:\s*deleteSentence\s*:\s*open\s*\?\s*null\s*:\s*transitionSentence,/.test(provider.source) &&
             /const transitionSentence = useRefusalSentence\(answer\);/.test(provider.source) &&
             /const \{ statusSentence: sentence \} = useAssetTransition\(\);\s*if \(!sentence\) return null;/.test(refusalFile.source)
     );

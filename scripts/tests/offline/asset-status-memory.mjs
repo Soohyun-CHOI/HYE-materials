@@ -383,8 +383,9 @@ export async function run({ check, log }) {
         "categoryListRows(shownCategories, scope, kept) | kept from getAssetStatuses"
     );
     check(
+        // A category with nothing counted under it is left off since #582, so the composition counts first.
         "  through the one composition, summarizeAssetCategories of countedAssets (#553)",
-        /export function categoryListRows\(categories, scope, kept\) \{\s*return summarizeAssetCategories\(categories, countedAssets\(categories, scope, kept\)\);\s*\}/.test(parseFile("lib/assetListView.js").source),
+        /export function categoryListRows\(categories, scope, kept\) \{\s*const counted = countedAssets\(categories, scope, kept\);[\s\S]*?return summarizeAssetCategories\([\s\S]*?,\s*counted\s*\);\s*\}/.test(parseFile("lib/assetListView.js").source),
         true
     );
     check(
@@ -402,8 +403,9 @@ export async function run({ check, log }) {
     );
     check("  a planted reader making one per call fails it", `${topLevelCalls(plantedPerCall, "createAssetStatusMemory").join(",") || "-"} ${callsOf(plantedPerCall, "createAssetStatusMemory").length}`, "- 1");
     check(
+        // What it answers leaves a deleted asset out since #582 (`offline/asset-deleted.mjs`).
         "  and the reader answers through it",
-        /export async function getAssetStatuses\(recordIds\) \{\s*return statusMemory\(recordIds\);\s*\}/.test(assets.source),
+        /export async function getAssetStatuses\(recordIds\) \{\s*const kept = await statusMemory\(recordIds\);\s*return new Map\(\[\.\.\.kept\]\.filter\(\(\[, facts\]\) => isShownAsset\(facts\)\)\);\s*\}/.test(assets.source),
         true
     );
     const reads = memoryReadsOf(assets);

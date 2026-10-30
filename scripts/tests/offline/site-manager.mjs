@@ -76,9 +76,9 @@ const CATALOG_ACTIONS = [
 
 /**
  * The office's acts on an asset nothing has happened to (#583), in a file of their own beside the
- * site manager's — a job change, and #582's deletion next.
+ * site manager's — a job change, and #582's deletion.
  */
-const OFFICE_ACTIONS = ["app/(assets)/assets/[assetId]/officeActions.js::changeAssetJobAction"];
+const OFFICE_ACTIONS = ["app/(assets)/assets/[assetId]/officeActions.js::changeAssetJobAction", "app/(assets)/assets/[assetId]/officeActions.js::deleteAssetAction"];
 
 /**
  * The list's export (#553): every reader's, as the list is, so wrapped by neither — a READ whose
@@ -350,7 +350,7 @@ export function run({ check, assert, log }) {
     });
     const actions = entries.filter((e) => e.kind !== "page" && (e.file.startsWith("app/(assets)/") || e.file.startsWith("app/l/")));
     check(
-        "the axis's server actions are the five this gate is for, the catalog's four, an asset's office one and the list's two reads, found by walking",
+        "the axis's server actions are the five this gate is for, the catalog's four, an asset's office two (#583, #582) and the list's two reads, found by walking",
         actions.map((e) => `${e.file}::${e.name}`).sort().join(" | "),
         [...ASSET_ACTIONS, ...CATALOG_ACTIONS, ...OFFICE_ACTIONS, ...READ_ACTIONS].sort().join(" | ")
     );

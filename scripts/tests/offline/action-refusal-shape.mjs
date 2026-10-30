@@ -183,6 +183,15 @@ const ACTIONS = {
         binding: "useActionState",
         why: "AssetTransition.js binds it and says its error in the dialog or under the status",
     },
+    // AN ASSET'S DELETION (#582), the office's second act there, bound and said the same way: over
+    // the question's actions, or under the status of the page drawn again.
+    deleteAssetAction: {
+        text: "COPY.deleteNoAccess",
+        file: "app/(assets)/assets/[assetId]/officeActions.js",
+        shape: "return",
+        binding: "useActionState",
+        why: "AssetTransition.js binds it and says its error in the question or under the status",
+    },
 };
 
 /** Bindings that can observe a return. The third, `form-action`, cannot. */

@@ -117,17 +117,18 @@ export function run({ check, assert, log }) {
     check(
         "a site manager on a job, while the item is in stock or out",
         ASSET_STATUS_VALUES.map((status) => `${status}: ${planOf(siteManager(JOB_A), status).mayWriteNote}`).join(", "),
-        "In stock: true, Out: true, In repair: false, Retired: false"
+        "In stock: true, Out: true, In repair: false, Retired: false, Deleted: false"
     );
     check(
         "  nobody who is not a site manager, on any status",
         ASSET_STATUS_VALUES.map((status) => planOf(reader(JOB_A, JOB_B), status).mayWriteNote).join(","),
-        "false,false,false,false"
+        "false,false,false,false,false"
     );
     check(
         "  nor a site manager on no job, who is told so as for every act",
         ASSET_STATUS_VALUES.map((status) => `${planOf(siteManager(), status).mayWriteNote}/${planOf(siteManager(), status).refusal}`).join(", "),
-        [ASSET_TRANSITION_COPY.noJob, ASSET_TRANSITION_COPY.noJob, ASSET_TRANSITION_COPY.noJob, ASSET_TRANSITION_COPY.noTransition].map((r) => `false/${r}`).join(", ")
+        // A deleted item answers as a retired one (#582), though no page draws one.
+        [ASSET_TRANSITION_COPY.noJob, ASSET_TRANSITION_COPY.noJob, ASSET_TRANSITION_COPY.noJob, ASSET_TRANSITION_COPY.noTransition, ASSET_TRANSITION_COPY.noTransition].map((r) => `false/${r}`).join(", ")
     );
     check("  and the plan carries it whatever else it offers", Object.keys(planOf(siteManager(JOB_A), ASSET_STATUS.OUT)).includes("mayWriteNote"), true);
 

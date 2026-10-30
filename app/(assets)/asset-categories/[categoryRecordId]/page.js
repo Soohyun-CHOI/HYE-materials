@@ -12,7 +12,7 @@ import {
     pageOfAssets,
     assetListScope,
 } from "@/lib/assetListView";
-import { registrationCatalog } from "@/lib/assetCategory";
+import { itemCountOf, registrationCatalog } from "@/lib/assetCategory";
 import { ASSET_REGISTRATION_COPY, canRegisterAssets, readRegistrationAccount } from "@/lib/assetRegistration";
 import { ASSET_CATEGORIES_PATH, LIST_SORTS, assetCategoriesPath, readSort } from "@/lib/assetRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
@@ -290,8 +290,10 @@ async function renderCategoryPage({ params, searchParams }) {
     );
 
     // Assets under the category, none of them in the scope (#509): the head alone, whose
-    // count and choice say it, where the empty category's words below would be false.
-    if (page.total === 0 && category.assets.length > 0) {
+    // count and choice say it, where the empty category's words below would be false. A deleted
+    // item stands under nothing (#582), so a kind whose every item was deleted reads as empty:
+    // `itemCountOf` counts its link less what the app does not show, off the row already read.
+    if (page.total === 0 && itemCountOf(category) > 0) {
         return <ListFrame top={top} header={header} />;
     }
 

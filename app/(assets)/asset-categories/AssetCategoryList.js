@@ -17,7 +17,7 @@ import {
     readCategoryList,
 } from "@/lib/assetListView";
 import { LIST_SORTS, assetCategoriesPath, assetCategoryPath, assetPath } from "@/lib/assetRoutes";
-import { ASSET_STATUS_VALUES } from "@/lib/assetStatus";
+import { SHOWN_STATUS_VALUES } from "@/lib/assetStatus";
 import JobChoice from "../JobChoice";
 import SortChoice from "../SortChoice";
 import FoundItem from "./FoundItem";
@@ -25,7 +25,7 @@ import ListExport from "./ListExport";
 
 // 1a's columns since #519: the name, then a count for each status at 56 (96 until #566),
 // right-aligned — four since #531, `In repair` between `Out` and `Retired`, the order
-// `ASSET_STATUS_VALUES` holds them in — and since #569 the kind's `Total` after them, at the
+// `SHOWN_STATUS_VALUES` holds them in — and since #569 the kind's `Total` after them, at the
 // same 56. The repeat is a literal a stylesheet can be built from, so the count in it is
 // written here and `offline/asset-list-view.mjs` holds it to the vocabulary's length. The
 // category stands in the name's cell, 20 after the name at Ink 3, and gives its room up first,
@@ -178,7 +178,7 @@ export default function AssetCategoryList({ rows, job, jobCode = null, allJobs =
             <div role="table" aria-label={COPY.heading}>
                 <div role="row" className={`${TABLE_HEAD} ${COLUMNS}`}>
                     <span role="columnheader">{COPY.nameLabel}</span>
-                    {ASSET_STATUS_VALUES.map((status) => (
+                    {SHOWN_STATUS_VALUES.map((status) => (
                         <span key={status} role="columnheader" className="text-right">
                             {status}
                         </span>

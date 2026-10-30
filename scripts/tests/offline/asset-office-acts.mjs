@@ -21,15 +21,25 @@
 // WHAT IT CANNOT SEE: a write that fails. The half-done sentence is held by value and the catch
 // that says it off the source; the base was never made to refuse the second write.
 //
+// AND THE DELETION (#582), BY THE SAME TWO MEANS. By value: who may delete over the same readers,
+// over the histories a deletion admits — the `Created` entry alone, and it with the `Deleted` entry
+// a deletion left half done — what `readDeletion` writes for each, where `deletedLanding` lands, and
+// every word. Off the source: the action's wrapper, reads, order, catch and landing; the menu's line
+// last among the acts that end the item; the question in the retirement's frame; the provider holding
+// its answer; and the page drawing `More actions` for it. What hides a deleted item afterwards is
+// `offline/asset-deleted.mjs`'s.
+//
 // EXIT CODES, per `docs/notes/verification.md`: 0 all clear, 1 something failed.
 
-import { ASSET_OFFICE_COPY, planOfficeActs, readJobChange, startingJob } from "../../../lib/assetOfficeActs.js";
+import { ASSET_OFFICE_COPY, deletedLanding, planOfficeActs, readDeletion, readJobChange, startingJob } from "../../../lib/assetOfficeActs.js";
 import { assetListScope } from "../../../lib/assetListView.js";
 import { ASSET_EVENT } from "../../../lib/assetStatus.js";
 import { insideTry, parseFile, parseSource, resolveFunction, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "What the office may do to an asset nothing has happened to: its job (#583)";
+export const title = "What the office may do to an asset nothing has happened to: its job (#583) and its deletion (#582)";
+
+const CONFIRM = "app/(assets)/assets/[assetId]/DeleteConfirm.js";
 
 const OFFICE = "lib/assetOfficeActs.js";
 const ACTIONS = "app/(assets)/assets/[assetId]/officeActions.js";
@@ -67,7 +77,195 @@ function firstCall(root, name) {
     return found;
 }
 
+/**
+ * The office's deletion (#582), by value and off the source. Called first in `run()`, so an older
+ * assertion that throws cannot keep it from printing.
+ */
+function deletion582({ check, assert, log }) {
+    // ── who may delete ──────────────────────────────────────────────────────
+    log("who may delete an asset (planOfficeActs, #582):");
+    const mayDelete = (reader, rows) => planOfficeActs({ user: reader, log: rows, jobs: JOBS }).mayDelete;
+    const readers = [
+        ["the office and a site manager", user({ admin: true, manager: true, jobs: [JOB_A] })],
+        ["the office and no site manager", user({ admin: true, manager: false })],
+        ["a site manager and not the office", user({ admin: false, manager: true, jobs: [JOB_A, JOB_B] })],
+        ["neither", user({ admin: false, manager: false, jobs: [JOB_A] })],
+    ];
+    const deletedRow = event(ASSET_EVENT.DELETED, 2);
+    const histories = [
+        ["Created alone", [created(JOB_A)]],
+        ["Created then Deleted", [created(JOB_A), deletedRow]],
+        ["Created then a check-out", [created(JOB_A), event(ASSET_EVENT.CHECKED_OUT, 2)]],
+        ["Deleted then Created", [deletedRow, created(JOB_A)]],
+        ["Created, Deleted and a check-out", [created(JOB_A), deletedRow, event(ASSET_EVENT.CHECKED_OUT, 3)]],
+        ["no row", []],
+    ];
+    check(
+        "the office, whoever else it is, on its Created entry alone or a deletion left half done, and nobody else",
+        readers.map(([who, reader]) => `${who}: ${histories.map(([what, rows]) => `${what} ${mayDelete(reader, rows)}`).join(", ")}`).join(" | "),
+        [
+            "the office and a site manager: Created alone true, Created then Deleted true, Created then a check-out false, Deleted then Created false, Created, Deleted and a check-out false, no row false",
+            "the office and no site manager: Created alone true, Created then Deleted true, Created then a check-out false, Deleted then Created false, Created, Deleted and a check-out false, no row false",
+            "a site manager and not the office: Created alone false, Created then Deleted false, Created then a check-out false, Deleted then Created false, Created, Deleted and a check-out false, no row false",
+            "neither: Created alone false, Created then Deleted false, Created then a check-out false, Deleted then Created false, Created, Deleted and a check-out false, no row false",
+        ].join(" | ")
+    );
+    check("  the flag as true and nothing truthy besides", mayDelete({ isAdmin: "true" }, [created(JOB_A)]), false);
+    check(
+        "a deletion left half done may be finished and its job no longer changed, the Deleted entry named",
+        JSON.stringify(planOfficeActs({ user: user({ admin: true }), log: [created(JOB_A), deletedRow], jobs: JOBS })),
+        '{"mayChangeJob":false,"mayDelete":true,"created":null,"deletedEntry":{"id":"recEntry2"},"jobs":[]}'
+    );
+    check(
+        "  where an item nothing has happened to may have both",
+        JSON.stringify(planOfficeActs({ user: user({ admin: true }), log: [created(JOB_A)], jobs: [JOB_A] })),
+        '{"mayChangeJob":true,"mayDelete":true,"created":{"id":"recEntry1","jobRecordId":"recJobA"},"deletedEntry":null,"jobs":[{"id":"recJobA","jobCode":"26-USA-05"}]}'
+    );
+
+    // ── what a deletion writes ──────────────────────────────────────────────
+    log("");
+    log("what a deletion writes (readDeletion):");
+    const officeReader = user({ admin: true });
+    const planFor = (rows) => planOfficeActs({ user: officeReader, log: rows, jobs: [] });
+    const press = (rows, status, job) => JSON.stringify(readDeletion(planFor(rows), { status, assetJobRecordId: job }));
+    check("an item nothing has happened to: the entry and the status, on the asset's job", press([created(JOB_A)], "In stock", JOB_B.id), '{"jobRecordId":"recJobB","writesEntry":true,"writesStatus":true,"refusal":null}');
+    check("  in any status its one entry stands beside", press([created(JOB_A)], "Out", JOB_A.id), '{"jobRecordId":"recJobA","writesEntry":true,"writesStatus":true,"refusal":null}');
+    check("a deletion left half done: the status alone, no second entry", press([created(JOB_A), deletedRow], "In stock", JOB_A.id), '{"jobRecordId":"recJobA","writesEntry":false,"writesStatus":true,"refusal":null}');
+    check("  and one already Deleted writes nothing", press([created(JOB_A), deletedRow], "Deleted", JOB_A.id), '{"jobRecordId":"recJobA","writesEntry":false,"writesStatus":false,"refusal":null}');
+    check(
+        "something recorded since is refused, writing nothing",
+        press([created(JOB_A), event(ASSET_EVENT.CHECKED_OUT, 2)], "Out", JOB_A.id),
+        `{"jobRecordId":null,"writesEntry":false,"writesStatus":false,"refusal":${JSON.stringify(ASSET_OFFICE_COPY.deleteRecordedSince)}}`
+    );
+    check(
+        "  and so is a reader who is not the office",
+        JSON.stringify(readDeletion(planOfficeActs({ user: user({ admin: false, manager: true, jobs: [JOB_A] }), log: [created(JOB_A)], jobs: [] }), { status: "In stock", assetJobRecordId: JOB_A.id })).includes(ASSET_OFFICE_COPY.deleteRecordedSince),
+        true
+    );
+
+    log("");
+    log("where a deletion lands (deletedLanding):");
+    check("its kind's list on its job", deletedLanding({ category: ["recCat"], job: ["recJobA"] }), "/asset-categories/recCat?job=recJobA");
+    check("  the list of kinds on its job, for an item under no kind", deletedLanding({ category: [], job: ["recJobA"] }), "/asset-categories?job=recJobA");
+    check("  and no job asked for an item on none", deletedLanding({ category: ["recCat"], job: [] }), "/asset-categories/recCat");
+
+    // ── every word ──────────────────────────────────────────────────────────
+    log("");
+    log("every word the deletion says (ASSET_OFFICE_COPY):");
+    check(
+        "the line, the commitment, its working word and the way out",
+        [ASSET_OFFICE_COPY.deleteOpener, ASSET_OFFICE_COPY.deleteSubmit, ASSET_OFFICE_COPY.deleteWorking, ASSET_OFFICE_COPY.cancel].join(" | "),
+        "Delete this item | Delete item | Deleting… | Cancel"
+    );
+    check("the question, naming the kind", ASSET_OFFICE_COPY.deleteHeading({ itemName: "Battery M18, Milwaukee", assetId: "HYE-AST-260909-004" }), "Delete Battery M18, Milwaukee?");
+    check("  or the id, for an item under no kind", ASSET_OFFICE_COPY.deleteHeading({ itemName: "", assetId: "HYE-AST-260909-004" }), "Delete HYE-AST-260909-004?");
+    check("the body", ASSET_OFFICE_COPY.deleteBody, "It will be deleted along with its history. This can't be undone.");
+    check("something recorded since", ASSET_OFFICE_COPY.deleteRecordedSince, "Something has been recorded on this item, so it can't be deleted.");
+    check("a deletion left half done", ASSET_OFFICE_COPY.deleteHalfDone, "The Deleted entry is recorded, but the item is still on the lists. Delete it again to finish.");
+    check("a reader who is not the office", ASSET_OFFICE_COPY.deleteNoAccess, "Deleting an item is for Admins.");
+
+    // ── the action ──────────────────────────────────────────────────────────
+    log("");
+    log("the deletion's action asks again, refuses before it writes, and writes the entry first:");
+    const actions = parseFile(ACTIONS);
+    let wrapped = "none";
+    walk(actions.ast, (n) => {
+        if (n.type === "VariableDeclarator" && n.id?.name === "deleteAssetAction") wrapped = actions.source.slice(n.init.start, n.init.end).replace(/\s+/g, " ");
+    });
+    check(
+        "the office's wrapper round the handler, refusing with the page drawn again and its sentence",
+        wrapped,
+        "withAdminAction(() => { refresh(); return { error: COPY.deleteNoAccess }; }, deleteAssetHandler)"
+    );
+    const handler = resolveFunction(actions.ast, "deleteAssetHandler");
+    const body = functionSource(actions, "deleteAssetHandler");
+    assert("  deleteAssetHandler was found", body !== "");
+    assert("  its scope the action's own name", /withOpsLabel\("deleteAssetAction",/.test(body));
+    assert("  the asset read by the printed id the form carries, and none refused as not found", /const asset = await getAssetByAssetId\(String\(formData\.get\("assetId"\) \?\? ""\)\);\s*if \(!asset\) return refuse\(ASSET_COPY\.notFoundHeading\);/.test(body));
+    assert(
+        "  its rows read only while it has one or two — the ids standing for the rows otherwise",
+        /rowIds\.length === 1 \|\| rowIds\.length === 2\s*\?\s*await getAssetLogByAsset\(asset\.id, \{ rowIds \}\)\s*:\s*(\/\/[^\n]*\n\s*)?rowIds\.map\(\(id\) => \(\{ id \}\)\);/.test(body)
+    );
+    check("  no job list read, the plan asking the office's flag alone", `${/getAllJobs/.test(body)} ${/const plan = planOfficeActs\(\{ user, log, jobs: \[\] \}\);/.test(body)}`, "false true");
+    assert("  the write asked of the asset's status and its job", /const answer = readDeletion\(plan, \{ status: asset\.status, assetJobRecordId: asset\.job\?\.\[0\] \?\? null \}\);/.test(body));
+    const at = (text) => body.indexOf(text);
+    const refusesAt = at("if (answer.refusal) return refuse(answer.refusal);");
+    const entryAt = at("await createAssetLogEntry({");
+    const statusAt = at("await updateAssetCache({");
+    const landsAt = at("redirect(deletedLanding(asset));");
+    check("  a refusal before either write, the entry before the status, and the landing last", [refusesAt > 0, refusesAt < entryAt, entryAt < statusAt, statusAt < landsAt].join(" "), "true true true true");
+    assert(
+        "  each written only where readDeletion says, the entry a Deleted one by the reader on the plan's job",
+        /if \(answer\.writesEntry\) \{\s*await createAssetLogEntry\(\{\s*assetRecordId: asset\.id,\s*assetId: asset\.assetId,\s*event: ASSET_EVENT\.DELETED,\s*jobRecordId: answer\.jobRecordId,\s*recordedByUserId: user\.id,\s*\}\);\s*\}/.test(body) &&
+            /if \(answer\.writesStatus\) \{\s*try \{\s*await updateAssetCache\(\{\s*assetRecordId: asset\.id,\s*status: statusAfterEvent\(ASSET_EVENT\.DELETED\),\s*jobRecordId: answer\.jobRecordId,\s*\}\);/.test(body)
+    );
+    const entryCall = firstCall(handler ?? {}, "createAssetLogEntry");
+    const statusCall = firstCall(handler ?? {}, "updateAssetCache");
+    const landing = firstCall(handler ?? {}, "redirect");
+    check(
+        "  the entry's write not caught and the status's caught, the landing outside both",
+        [entryCall && insideTry(handler, entryCall), statusCall && insideTry(handler, statusCall), landing && insideTry(handler, landing)].join(" "),
+        "false true false"
+    );
+    assert(
+        "  a failed status write named on the page, never written back",
+        /\} catch \(error\) \{[\s\S]*console\.error\([\s\S]*return refuse\(COPY\.deleteHalfDone\);\s*\}/.test(body) && (body.match(/updateAssetCache\(|createAssetLogEntry\(/g) ?? []).length === 2
+    );
+    check("  and nothing destroyed", /destroy\(/.test(actions.source), false);
+
+    // ── the menu, the question and the provider ─────────────────────────────
+    log("");
+    log("More actions holds the line last, the question is the retirement's frame, the provider holds the answer:");
+    const menu = parseFile(MENU).source;
+    assert("  offered where the office's plan says", /const mayDelete = Boolean\(transition\?\.office\?\.mayDelete\);/.test(menu) && /\.\.\.\(mayDelete\s*\?/.test(menu));
+    assert(
+        "  last among the acts that end the item, after the retirement",
+        menu.indexOf("const ends = [") < menu.indexOf('key: "retire"') && menu.indexOf('key: "retire"') < menu.indexOf('key: "delete"') && menu.indexOf('key: "delete"') < menu.indexOf("return (")
+    );
+    assert(
+        "  the line the copy's own, Destructive, opening the question with focus on the button",
+        /key: "delete",\s*label: ASSET_OFFICE_COPY\.deleteOpener,\s*tone: "danger",\s*(\/\/[^\n]*\n\s*)?separated: [^,]+,\s*onSelect: \(\) => \{\s*buttonRef\.current\?\.focus\(\);\s*setOpen\(false\);\s*transition\.openDeletion\(\);/.test(menu)
+    );
+    const confirm = parseFile(CONFIRM);
+    const confirmBody = confirm.source;
+    assert(
+        "  the question in 0l's frame and 1j's sheet, busy while it sends, closing on its backdrop as a sheet",
+        /<DialogFrame\s*open=\{open\}\s*onClose=\{onClose\}\s*busy=\{busy\}\s*title=\{COPY\.deleteHeading\(\{ itemName, assetId \}\)\}\s*recordId=\{assetId\}\s*onSubmit=\{submit\}\s*sheet\s*closesOnBackdrop\s*>/.test(confirmBody)
+    );
+    assert(
+        "  its body, then Cancel and the red commitment saying Deleting… while it sends, the refusal above them",
+        /<DialogMessage>\{COPY\.deleteBody\}<\/DialogMessage>/.test(confirmBody) &&
+            /<DialogActions refusal=\{refusal\}>\s*<Button variant="bordered" onClick=\{onClose\}>\s*\{COPY\.cancel\}\s*<\/Button>\s*<Button variant="danger" type="submit" busyLabel=\{COPY\.deleteWorking\}>\s*\{COPY\.deleteSubmit\}/.test(confirmBody)
+    );
+    check("  posting the asset's id and nothing else", [...confirm.source.matchAll(/<input[^>]*name="(\w+)"/g)].map((m) => m[1]).join(","), "assetId");
+    const confirmWords = [...confirm.source.matchAll(/\bCOPY\.(\w+)/g)].map((m) => m[1]);
+    check("  every word it draws is the copy's", confirmWords.filter((key) => !(key in ASSET_OFFICE_COPY)).join(","), "");
+    assert("  and the reader of it reads words", confirmWords.length >= 5);
+    const retirement = parseFile("app/(assets)/assets/[assetId]/RetirementConfirm.js").source;
+    assert("  the same frame the retirement's question opens in", /\bsheet\s*closesOnBackdrop/.test(retirement) && /<Button variant="danger" type="submit" busyLabel=/.test(retirement));
+    const provider = parseFile(PROVIDER).source;
+    assert("  the provider binds the action, so the answer outlives the question", /const \[deleteAnswer, deleteFormAction, deletePending\] = useActionState\(deleteAssetAction, null\);/.test(provider));
+    assert("  a deletion the plan no longer offers is no longer open", /if \(deleting && !office\?\.mayDelete\) setDeleting\(false\);/.test(provider));
+    assert(
+        "  said in the question only by the opening that sent it, while open, and drawn while the plan offers it",
+        /const deleteSaidInDialog = deleting && deleteSentFor === deleteOpening;/.test(provider) &&
+            /\{office\?\.mayDelete && \(\s*<DeleteConfirm[\s\S]*?busy=\{deletePending\}\s*refusal=\{deleteSaidInDialog \? deleteSentence : null\}/.test(provider)
+    );
+    assert(
+        "  a send recording which opening sent it and that it was last",
+        /send=\{\(formData\) => \{\s*setDeleteSentFor\(deleteOpening\);\s*setLastSent\("delete"\);\s*startTransition\(\(\) => deleteFormAction\(formData\)\);\s*\}\}/.test(provider)
+    );
+    const page = parseFile(PAGE).source;
+    assert(
+        "the page draws More actions at a desk for the office's deletion as for its change of job",
+        /const officeActs = office\.mayChangeJob \|\| office\.mayDelete;/.test(page) && (page.match(/\bofficeActs\b/g) ?? []).length === 4 && !/office\.mayChangeJob &&/.test(page)
+    );
+    log("");
+}
+
 export function run({ check, assert, log }) {
+    deletion582({ check, assert, log });
+
     // ── who may change an asset's job ───────────────────────────────────────
     log("who may change an asset's job (planOfficeActs):");
     const may = (reader, rows) => planOfficeActs({ user: reader, log: rows, jobs: JOBS }).mayChangeJob;
@@ -112,9 +310,9 @@ export function run({ check, assert, log }) {
     check(
         "a reader who may not is handed no entry and no jobs",
         JSON.stringify(planOfficeActs({ user: user({ admin: false, manager: true, jobs: [JOB_A] }), log: [created(JOB_A)], jobs: JOBS })),
-        '{"mayChangeJob":false,"created":null,"jobs":[]}'
+        '{"mayChangeJob":false,"mayDelete":false,"created":null,"deletedEntry":null,"jobs":[]}'
     );
-    check("  nor an item something has happened to", JSON.stringify(planOfficeActs({ user: user({ admin: true }), log: [created(JOB_A), event(ASSET_EVENT.RETIRED, 2)], jobs: JOBS })), '{"mayChangeJob":false,"created":null,"jobs":[]}');
+    check("  nor an item something has happened to", JSON.stringify(planOfficeActs({ user: user({ admin: true }), log: [created(JOB_A), event(ASSET_EVENT.RETIRED, 2)], jobs: JOBS })), '{"mayChangeJob":false,"mayDelete":false,"created":null,"deletedEntry":null,"jobs":[]}');
 
     // ── what a Save writes ──────────────────────────────────────────────────
     log("");
@@ -154,7 +352,7 @@ export function run({ check, assert, log }) {
     check("a reader who is not the office", ASSET_OFFICE_COPY.noAccess, "Changing an item's job is for Admins.");
     check("a job the list does not offer", ASSET_OFFICE_COPY.jobNoneChosen, "Choose a job.");
     const officeSource = parseFile(OFFICE).source;
-    assert("the module reads no flag of its own, asking the list's judgment whether the reader is the office", !/\.isAdmin\b/.test(officeSource) && /const scope = assetListScope\(user, jobs, null\);/.test(officeSource) && /if \(!scope\.office \|\| !created\)/.test(officeSource));
+    assert("the module reads no flag of its own, asking the list's judgment whether the reader is the office", !/\.isAdmin\b/.test(officeSource) && /const scope = assetListScope\(user, jobs, null\);/.test(officeSource) && /if \(!scope\.office \|\| \(!created && !deleted\)\)/.test(officeSource));
 
     // ── the one edit Asset Log takes ────────────────────────────────────────
     log("");
@@ -225,7 +423,8 @@ export function run({ check, assert, log }) {
     const landsAt = at("redirect(assetPath(asset.assetId));");
     check("  a refusal before either write, the entry before the asset, and the landing last", [refusesAt > 0, refusesAt < entryAt, entryAt < assetAt, assetAt < landsAt].join(" "), "true true true true");
     assert("  each half written only where it differs", /if \(answer\.writesEntry\) \{\s*await updateCreatedEntryJob\(/.test(handlerSource) && /if \(answer\.writesAsset\) \{\s*try \{\s*await updateAssetJob\(/.test(handlerSource));
-    check("  the asset's job alone, its status written by no cache write", /updateAssetCache|statusAfterEvent|status:/.test(actions.source), false);
+    // The change's handler alone since #582, whose deletion beside it writes a status and an entry.
+    check("  the asset's job alone, its status written by no cache write", /updateAssetCache|statusAfterEvent|status:/.test(handlerSource), false);
     const entryCall = firstCall(handler ?? {}, "updateCreatedEntryJob");
     const assetCall = firstCall(handler ?? {}, "updateAssetJob");
     const landing = firstCall(handler ?? {}, "redirect");
@@ -239,7 +438,7 @@ export function run({ check, assert, log }) {
         /\} catch \(error\) \{[\s\S]*console\.error\([\s\S]*return refuse\(COPY\.halfDone\(\{ from: codeOf\(asset\.job\?\.\[0\]\), to: codeOf\(answer\.jobRecordId\) \}\)\);\s*\}/.test(handlerSource) &&
             (handlerSource.match(/updateAssetJob\(|updateCreatedEntryJob\(/g) ?? []).length === 2
     );
-    check("  and no row records the change", /createAssetLogEntry|createFirstAssetLogEntries|writeEvent/.test(actions.source), false);
+    check("  and no row records the change", /createAssetLogEntry|createFirstAssetLogEntries|writeEvent/.test(handlerSource), false);
     check("a refusal draws the page again and says its sentence", functionSource(actions, "refuse").replace(/\s+/g, " "), "function refuse(error) { refresh(); return { error }; }");
 
     // ── the page ────────────────────────────────────────────────────────────
@@ -278,7 +477,12 @@ export function run({ check, assert, log }) {
     );
     assert(
         "  the rule over the first that ends it, only where the office's line stands above it",
-        /key: "retire",\s*label: ASSET_TRANSITION_COPY\.retireOpener,\s*tone: "danger",\s*separated: mayChangeJob,/.test(menu) && (menu.match(/separated: /g) ?? []).length === 2
+        // The first of the acts that end the item takes it since #582: the retirement, or the
+        // deletion where nothing is retired.
+        /key: "retire",\s*label: ASSET_TRANSITION_COPY\.retireOpener,\s*tone: "danger",\s*separated: mayChangeJob,/.test(menu) &&
+            /key: "delete",\s*label: ASSET_OFFICE_COPY\.deleteOpener,\s*tone: "danger",\s*(\/\/[^\n]*\n\s*)?separated: mayChangeJob && !mayRetire,/.test(menu) &&
+            menu.indexOf("const ends = [") < menu.indexOf("separated: mayChangeJob") &&
+            (menu.match(/separated: /g) ?? []).length === 3
     );
     assert("  the menu's items the acts, the ends and the account, in that order", /items=\{\[\s*\.\.\.acts,\s*\.\.\.ends,\s*\.\.\.\(phone && account/.test(menu));
     assert(
@@ -338,7 +542,7 @@ export function run({ check, assert, log }) {
     assert("  said in the dialog only by the opening that sent it, while open", /const jobSaidInDialog = changingOn !== null && jobSentFor === jobOpening;/.test(provider) && /refusal: jobSaidInDialog \? jobSentence : null,/.test(provider));
     assert(
         "  and under the status otherwise, when it was sent last",
-        /statusSentence: lastSent === "job" \? \(jobSaidInDialog \? null : jobSentence\) : open \? null : transitionSentence,/.test(provider)
+        /statusSentence:\s*lastSent === "job"\s*\?\s*jobSaidInDialog\s*\?\s*null\s*:\s*jobSentence\s*:\s*lastSent === "delete"\s*\?\s*deleteSaidInDialog\s*\?\s*null\s*:\s*deleteSentence\s*:\s*open\s*\?\s*null\s*:\s*transitionSentence,/.test(provider)
     );
     assert(
         "  a send recording which opening sent it and that it was last",

@@ -7,8 +7,9 @@
 //   under it are, so a status nobody has designated reads `0` rather than going
 //   missing — the app's own distinction between nothing and no measurement. Writing
 //   them out would make a new status appear on no screen and fail nothing; asserting
-//   the row's keys ARE `ASSET_STATUS_VALUES` is what closes that, and #531's
-//   `In repair` arrived through it.
+//   the row's keys ARE `SHOWN_STATUS_VALUES` is what closes that, and #531's
+//   `In repair` arrived through it — the vocabulary but `Deleted`, which #582 added and
+//   no screen draws.
 //
 //   THE PAGING IS THE FIRST IN THIS APP, so there is no second implementation to
 //   compare it against and the assertions have to be properties rather than
@@ -59,7 +60,7 @@
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
-import { ASSET_EVENT, ASSET_STATUS, ASSET_STATUS_VALUES } from "../../../lib/assetStatus.js";
+import { ASSET_EVENT, ASSET_STATUS, ASSET_STATUS_VALUES, SHOWN_STATUS_VALUES } from "../../../lib/assetStatus.js";
 import { ASSET_COPY } from "../../../lib/assetView.js";
 import { ASSET_NOTE_COPY } from "../../../lib/assetNote.js";
 import {
@@ -862,9 +863,10 @@ export function run({ check, assert, log }) {
     check("one row per category", rows.length, CATEGORIES.length);
     for (const row of rows) {
         check(
-            `  ${row.itemName} carries the whole vocabulary`,
+            // Every status a screen draws, which is the vocabulary but `Deleted` since #582.
+            `  ${row.itemName} carries every status a screen draws`,
             row.counts.map((c) => c.status).join(", "),
-            ASSET_STATUS_VALUES.join(", ")
+            SHOWN_STATUS_VALUES.join(", ")
         );
     }
 
@@ -965,7 +967,7 @@ export function run({ check, assert, log }) {
     const tracks = parseFile(CATEGORY_LIST).source.match(/const COLUMNS = "grid-cols-\[minmax\(0,1fr\)_repeat\((\d+),var\(--width-table-count\)\)((?:_var\(--[\w-]+\))*)\]";/);
     const countTracks = Number(tracks?.[1]);
     check("  one 56 track per status, four", countTracks, 4);
-    check("  as many as the vocabulary holds", countTracks, ASSET_STATUS_VALUES.length);
+    check("  as many as a screen draws, Deleted none (#582)", countTracks, SHOWN_STATUS_VALUES.length);
     check("  and the total's after them, one track at the counts' 56", tracks?.[2], "_var(--width-table-count)");
     check(
         "  and a list with the type left out is seen (anti-vacuity)",
