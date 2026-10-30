@@ -12,7 +12,8 @@ import { ALL_JOBS, assetCategoryPath, assetCategoriesPath } from "@/lib/assetRou
 const ALL_JOBS_LABEL = axesFor(FILTERED_LISTS[0]).find((axis) => axis.param === "job").words.all;
 
 // The job an asset list stands on (#509, #520), drawn the design's two ways since #519 and
-// only for a reader with more than one job to choose between — the page asks that. On the
+// only where there is more than one job to choose between — the page asks that, and since #593
+// every reader chooses between every job. On the
 // category list it is 1a's chip at the start of the band, the job behind a pin, since the files
 // of 2026-10-23 (#566), where #519 drew `Job` and the job in the head beside `Add items`; on a
 // category's page and an asset's it is a level of the breadcrumb, 1d's and 1f's, after
@@ -27,8 +28,9 @@ const ALL_JOBS_LABEL = axesFor(FILTERED_LISTS[0]).find((axis) => axis.param === 
 //
 // WHAT IT OFFERS AND WHAT IT HOLDS ARE THE PAGE'S, from `lib/assetListView.js:assetListScope`,
 // the one judgment the page read its rows by. This file only turns a choice into an address.
-// On an asset's page the level holds the job the asset is on (`shownAs`), which the reader may
-// not be able to choose — off their jobs — and then it shows the job's code and marks nothing;
+// On an asset's page the level holds the job the asset is on (`shownAs`), which may not be among
+// the jobs offered — off every reader's until #593, and off the choice for a job #488 takes off
+// it — and then it shows the job's code and marks nothing;
 // it never holds `All jobs` there, since the asset is on one job whatever list it was opened from.
 //
 // A CHOICE IS A NAVIGATION, AND IT ADDS A HISTORY ENTRY. The page reads only the job's assets,

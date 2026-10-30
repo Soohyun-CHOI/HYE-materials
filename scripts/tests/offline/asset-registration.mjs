@@ -175,14 +175,16 @@ export async function run({ check, assert, log }) {
     check("on all of the reader's jobs the list stands on none", String(assetListScope(office, sites, ALL_JOBS).job), "null");
     check("  and the dialog starts on none of several", opensOn(office, ALL_JOBS), "");
     check("  for a site reader on all of theirs as for the office", opensOn(site, ALL_JOBS), "");
-    // A JOB TYPED INTO AN ADDRESS THAT IS NOT THE READER'S is answered by the scope with their
-    // first, which the list then shows — so what the choice starts on is that, and never the
-    // job the address named.
-    check("a site reader's address naming a job not theirs stands the list on their first", assetListScope(site, sites, "recDemo01").job?.id, "recUsa09");
-    check("  and the dialog starts on that one", opensOn(site, "recDemo01"), "recUsa09");
-    // THE SECOND GUARD, ALONE: handed that job outright — a page handing the address's `job`
-    // rather than the scope's — the choice still starts on none of the reader's two, so the
-    // job the address named is chosen only if both the scope and the choice fail at once.
+    // A JOB NOT THE READER'S, which the list stands on for every reader since #593 — where a site
+    // reader's address naming one was answered by the scope with their first until then. So the
+    // choice is the one guard: it starts on none of the reader's two, or on the one they hold, and
+    // never on the job the list stands on.
+    const siteOnOne = { assignedJobs: ["recUsa13"], isAdmin: false, role: "Employee" };
+    check("a site reader's address naming a job not theirs stands the list on it", assetListScope(site, sites, "recDemo01").job?.id, "recDemo01");
+    check("  and the dialog opened there starts on none of theirs", opensOn(site, "recDemo01"), "");
+    check("  or on the one a site reader holds", opensOn(siteOnOne, "recDemo01"), "recUsa13");
+    // THE GUARD, ALONE: handed that job outright — a page handing the address's `job` rather than
+    // the scope's — the choice still starts on none of the reader's two.
     check("  and the choice handed that job outright starts on none of theirs", chosenJobId(assignedJobsFor(site, sites), "recDemo01"), "");
     // THE OPENER ON A PAGE HANDS IT THROUGH, as it hands the jobs: the default export draws the
     // form, and a job it was handed and did not pass on would start every opening as before.

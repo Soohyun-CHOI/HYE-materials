@@ -264,7 +264,7 @@ A person's jobs were set by hand in Airtable and nowhere else, so somebody who s
 
 #### Who is not asked
 
-**The office (`Is Admin`) and the President.** Neither needs an assignment to work: the office stands on every job on the asset lists, and `canAccessJobDeliveries` admits both to every job's deliveries. The clause is `needsJobs`' own rather than a shared "on every job" rule, because the app has no such rule to share — the asset lists follow `Is Admin` alone (`assetListScope`) while deliveries admit the President too — and the question here is a third one: whether to ask. **A flag that is merely truthy is not the office**, as everywhere `Is Admin` is read.
+**The office (`Is Admin`) and the President.** Neither needs an assignment to work: `canAccessJobDeliveries` admits both to every job's deliveries, and the asset lists stand every reader on every job since #593, so a reader with no assignment reads them all. The clause is `needsJobs`' own rather than a shared "on every job" rule, because the app has no such rule to share — the asset lists admit everybody to every job (`assetListScope`) while deliveries admit the office and the President — and the question here is a third one: whether to ask. **A flag that is merely truthy is not the office**, as everywhere `Is Admin` is read.
 
 #### What the write may reach
 
@@ -276,7 +276,7 @@ A person's jobs were set by hand in Airtable and nowhere else, so somebody who s
 
 #### What stays reachable of `No job yet`
 
-**The list's `No job yet` / `Items show here once the office assigns you to a job.`** is drawn for a reader on no job whom the list does not count as the office. After this step that is a President who is not marked `Is Admin` and holds no job — no such account exists on either base, `soo@` being both — so it is reachable by data and by nobody today. **`Ask the office to assign you to a job`**, before an opener a site manager cannot use, stays reachable by the office or the President marked as a site manager with no assignment, since what a registration files against is the person's own assignments with no office clause (#338). Both stay, as the design still draws them (Tools 1a2); 1a2's own reader — `lee, Site manager`, neither office nor President — is one this step now asks first.
+**Nothing, since #593.** The list's `No job yet` and its sentence, that the office would assign a job, were drawn for a reader on no job whom the list did not count as the office — after this step a President not marked `Is Admin` with no job, reachable by data and by nobody, `soo@` being both. #593 stood every reader on every job and starts a reader assigned to none on all of them, so the state and its two strings went. **`Ask the office to assign you to a job`**, before an opener a site manager cannot use, stays reachable on a category's own screen by the office or the President marked as a site manager with no assignment, since what a registration files against is the person's own assignments with no office clause (#338) — and as the registration action's refusal. The category list draws such a site manager no opener at all, which it asks of their assignments (`canRegisterAssets`) since #593. 1a2's own reader — `lee, Site manager`, neither office nor President — is one this step asks first.
 
 #### The fixtures
 

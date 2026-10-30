@@ -155,7 +155,7 @@ const ID_ON_PHONE = "font-id text-mobile-body-xs tracking-id tabular-nums text-f
  * id first as it has been since #411; on a phone the id opens the title block over the name and the caption stands
  * alone under it, where the top bar held the id until #538 — off the category row already read,
  * so it costs nothing (`CategoryCaption`). The job left that line with #519, as 1f draws it: every history
- * entry names its job, and for a reader on several jobs the breadcrumb does. What is
+ * entry names its job, and wherever there are jobs to choose between the breadcrumb does. What is
  * one fact is one element — the heading, the status, an entry — set at each width's size;
  * what only one width draws is drawn there alone. Every word is a constant and every value a
  * name `app/designValues.css` declares, and the column the page sits in is the layout's
@@ -254,9 +254,11 @@ async function renderAssetPage({ params }) {
     // holds its `Created` entry alone, with the jobs a list's choice offers, and the action asks
     // it again on a fresh read.
     const office = planOfficeActs({ user, log, jobs });
-    // The jobs this reader's lists hold, the same judgment the lists read by (#509): with more
-    // than one, the breadcrumb names the asset's job as a level they may change (#519), and the
-    // list's level and the category's carry it when it is one of theirs (#581).
+    // The jobs this reader's lists hold, the same judgment the lists read by (#509) — every job,
+    // for every reader, since #593: with more than one, the breadcrumb names the asset's job as a
+    // level they may change (#519), and the list's level and the category's carry it when it is
+    // one of them (#581). Nothing a reader records here asks it: `planTransition` above reads
+    // their own assignments.
     const scope = assetListScope(user, jobs, null);
     const choosesJob = scope.jobs.length > 1;
     const listJob = listJobFromAsset(scope, asset);
@@ -326,7 +328,7 @@ async function renderAssetPage({ params }) {
                 {/* WHERE THIS ASSET SITS UNDER ITS CATEGORY (#460): the list, the category, and the
                     code its label prints, which is how the design ends the path (1f). The
                     category is the row read above, so the path costs nothing. A phone draws the
-                    top bar in its place. For a reader on several jobs the job the asset is on
+                    top bar in its place. Wherever there are jobs to choose between the job the asset is on
                     stands between the list and the category (1f, #519), a level that takes them
                     to the category's list on another job, or on `All jobs` (#548) — it holds the
                     asset's job whatever list it was opened from, since the address carries none —

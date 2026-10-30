@@ -152,14 +152,15 @@ you to a job` before it on its line (#456). **It says ask, not join (#455)**:
 nothing in the app lets a person join a job — the office assigns one in
 Airtable — so an instruction to join is one the reader cannot follow, which is
 why the design's `Join a job to create tools` went back to the design and this
-came back. **Since #522 the category list draws none for a reader whose list
-stands on no job**: 1a2's no-job state is the heading and its sentence alone,
-where #509 drew the opener there disabled too. A category's own screen, which
-the design does not draw for such a reader, still draws it disabled with that
-sentence. `Assets."Job"` is required, the job comes from the reader's own
-assignments with no exception for the office, so an Admin assigned to no job
-meets the disabled opener on both screens, the office's list standing on
-every job.
+came back. **Since #522 the category list draws none for a site manager
+assigned to no job**: 1a2's no-job state was the heading and its sentence alone,
+where #509 drew the opener there disabled too, and since #593, when every reader
+stands on every job and that state went, the list asks the reader's own
+assignments whether to draw it at all. A category's own screen still draws it
+disabled with that sentence. `Assets."Job"` is required, the job comes from the
+reader's own assignments with no exception for the office, so an Admin assigned
+to no job meets the disabled opener on a category's screen, and none on the
+list.
 
 **When the reader is assigned to exactly one job:** the job is already chosen,
 in a choice holding that one job.
@@ -169,7 +170,7 @@ and no other job is offered. **It starts on the job the screen it opens over
 stands on, when that job is one of theirs (#565)** — the job chosen in the
 list's head or a category's breadcrumb, or the first a list starts on — so the
 job already on the screen is not chosen again by hand. On `All jobs` there is
-no one job to start on, and the office may view a job it is not assigned to,
+no one job to start on, and a reader may view a job they are not assigned to,
 which is not among its own; either starts with none chosen, `Choose a job`, as
 every opening did until #565. It is a starting value and nothing more: the
 reader changes it as any choice, and the dialog says nothing about where it

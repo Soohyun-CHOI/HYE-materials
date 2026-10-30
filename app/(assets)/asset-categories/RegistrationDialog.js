@@ -81,9 +81,9 @@ import { registerAssetsAction } from "./actions";
  *
  * AND EACH HANDS OVER THE JOB ITS LIST STANDS ON (#565), which the job's choice starts on when
  * it is one the choice offers — the reader's own assignments, as the page read them — so a list
- * on one of their jobs opens the dialog on it, the first a list starts on included. On all of
- * a reader's jobs there is none to hand, and a job the office may view and is not assigned to is
- * not offered, so either starts as every opening did until then: on the one job a reader holds,
+ * on one of their jobs opens the dialog on it, the first a list starts on included. On all jobs
+ * there is none to hand, and a job a reader may view and is not assigned to — any job, since
+ * #593 — is not offered, so either starts as every opening did until then: on the one job a reader holds,
  * or on none of several (`chosenJobId`). What is handed is the page's reading of the address
  * and not the address, and the choice takes it only through the assignments, so a job typed
  * into an address is chosen for nobody it is not assigned to.
