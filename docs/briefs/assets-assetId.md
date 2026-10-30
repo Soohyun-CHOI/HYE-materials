@@ -218,8 +218,9 @@ checked in before it is sent; one in repair offers its return, and its menu the
 retirement alone. **On a phone the menu ends on
 the reader's account** — `Sign out` over their email, under a rule — since a
 phone has no rail to name the reader in, and where the page offers no
-retirement — a retired tool, or a reader who is not a site manager — it holds
-the account alone (Tools 0a, #495). It is offered from
+retirement and no `Change job` — a retired tool, or a reader who is neither a
+site manager nor the office on an item nothing has happened to — it holds the
+account alone (Tools 0a, #495, #583). It is offered from
 `In stock`, from `Out` and from `In repair` alike — a tool that broke on a
 site is retired from there, one its maker gives up on is retired while it is
 away, and requiring a check-in or a return first would put an event in the
@@ -461,10 +462,37 @@ field, so a second press writes over it knowingly; a press on an item somebody
 has since sent for repair or retired is answered by the page drawn again, with
 no way to write and nothing said.
 
+**For the office, while the item's history holds its `Created` entry alone, a
+way to change its job (#583; 1f, 1j-f).** `Change job` stands in `More actions`
+after `Send for repair`, in Ink, and a full-width rule parts the two from
+`Retire this item` below — the rule only where `Change job` stands, so a site
+manager's menu is as it was; on a phone the account follows under its own rule.
+It is the office's — an Admin, whether a site manager or not — so an Admin who
+records nothing meets `More actions` holding it alone, at a desk where nothing
+else stands in the header's right and on a phone over the account. A desk opens
+0l's dialog: `Change job`, the field `Job` holding the job the `Created` entry
+is on, its list every job a list's job choice offers in that order, and `Cancel`
+and `Save`. A phone opens a sheet of the same jobs as rows with the chosen one
+checked, and `Save` at its head's end: a press on a row moves the check and
+saves nothing. **Saving moves the item and its `Created` entry to the job
+together**, and its number, label, status and the entry's moment and recorder
+stay as they were; a Save of the job both already hold closes and writes
+nothing. **Something recorded since the page was drawn** takes the line and its
+dialog away, and the page drawn again says `Something has been recorded on this
+item, so its job can't be changed.` under the status; a reader who is no longer
+the office reads `Changing an item's job is for Admins.` there. **A change left
+half done** — the entry moved and the item not — says, where the press was,
+`The Created entry is on 26-USA-06 now, but the item is still on 26-USA-05, and
+the lists will say so. Save again to finish.`, and the next Save writes the half
+that is left. An item with any other entry offers no `Change job`, and nothing
+is drawn in its place.
+
 **For a site manager assigned to no job, a sentence where the controls would
 be**: in the header's right at a desk and in the foot bar on a phone. Both
 controls are absent, not disabled — a control the action would refuse is a
-promise the screen cannot keep. **The status, the job and the history are still
+promise the screen cannot keep. One who is also the office meets `More actions`
+after the sentence on an item nothing has happened to, holding `Change job`
+alone, since moving an item is no record and asks no job of them (#583). **The status, the job and the history are still
 shown to that reader**: what varies is whether they can act, never what they
 can read.
 
@@ -472,7 +500,8 @@ can read.
 would be, and nothing said.** At a desk the header's right is empty and the
 rail holds the label, its size and its symbol with no `Print label`; on a phone
 there is no foot bar at all, on any status, and `More actions` holds the account
-alone — the shape a retired tool already has. No sentence stands in for the
+alone — the shape a retired tool already has — but for the office's `Change job`
+on an item nothing has happened to (#583, above). No sentence stands in for the
 controls: the one a site manager on no job reads tells them to ask the office
 for a job, and nothing the office could give this reader would let them record,
 so there is nothing for a sentence to say. The status, the job, who holds a tool

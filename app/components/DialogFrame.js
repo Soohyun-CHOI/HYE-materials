@@ -3,7 +3,7 @@
 import { useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState } from "react";
 import { searchResultsKey } from "@/lib/controls";
 import { DIALOG_FRAME_COPY as COPY, focusLost } from "@/lib/dialogFrame";
-import { ButtonLabel, FormBusy, Refusal } from "./Controls";
+import { ButtonLabel, FormBusy, Refusal, useFormBusy } from "./Controls";
 import Icon from "./Icon";
 import { SCROLL_LANE } from "./scrollLane";
 import { liesBehind, watchDrag } from "./sheetDrag";
@@ -874,9 +874,13 @@ export function DialogSummary({ children }) {
  * the Wash while held, as a control does under a press (0a). 1j's job sheet and name sheet
  * list theirs this way; a press on a row is the row's `onPress`. The rows stop at their end
  * (0i Chain, #495), so a scroll past the last does not move the page behind the sheet. A row
- * may name the part of it a typed value matched (`match`), set at 600 (1j).
+ * may name the part of it a typed value matched (`match`), set at 600 (1j). **In a sheet that is
+ * sending they lock (#583)**, as every control the frame holds does (#469): the office's job
+ * change saves from its head with its rows on screen, so a row keeps its look, takes no press
+ * and no Wash, and stays focusable.
  */
 export function SheetRows({ rows }) {
+    const locked = Boolean(useFormBusy());
     return (
         <ul role="list" className="flex min-h-0 flex-col overflow-y-auto overscroll-contain">
             {rows.map((row, index) => (
@@ -885,8 +889,9 @@ export function SheetRows({ rows }) {
                     <button
                         type="button"
                         aria-current={row.chosen ? "true" : undefined}
-                        onClick={row.onPress}
-                        className="flex min-h-mobile-drawer-row items-center justify-between gap-gap px-mobile-drawer-row-inset-x py-mobile-drawer-row-inset-y text-left text-mobile-body text-foreground-default tabular-nums outline-none focus-visible:bg-hover-subtle active:bg-hover-subtle"
+                        aria-disabled={locked || undefined}
+                        onClick={locked ? undefined : row.onPress}
+                        className="flex min-h-mobile-drawer-row items-center justify-between gap-gap px-mobile-drawer-row-inset-x py-mobile-drawer-row-inset-y text-left text-mobile-body text-foreground-default tabular-nums outline-none focus-visible:bg-hover-subtle not-aria-disabled:active:bg-hover-subtle"
                     >
                         <span className="min-w-0 truncate">
                             {row.match ? (

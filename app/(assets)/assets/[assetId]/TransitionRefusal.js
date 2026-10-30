@@ -1,7 +1,7 @@
 "use client";
 
 import { Notice, Refusal } from "@/app/components/Controls";
-import { useRefusalSentence, useAssetTransition } from "./AssetTransition";
+import { useAssetTransition } from "./AssetTransition";
 
 /**
  * A refused press, said in the title block under the status (#463) — 1k's Notice on a phone,
@@ -12,12 +12,14 @@ import { useRefusalSentence, useAssetTransition } from "./AssetTransition";
  * page as it refuses (#378), so the status above this is already the one somebody else's scan
  * left, and the sentence says who scanned and when (`moved`). Every other refusal of the
  * press stands here too — the status left unwritten, a job taken away — except while a desk's
- * dialog is open, which says it above its actions instead.
+ * dialog is open, which says it above its actions instead. **And the office's job change says
+ * its refusals here once its dialog or sheet is closed (#583)** — one refused because something
+ * was recorded since lands on a page holding neither — so what this says is the answer of
+ * whichever was sent last, which the provider decides (`statusSentence`).
  */
 export default function TransitionRefusal() {
-    const { answer, open } = useAssetTransition();
-    const sentence = useRefusalSentence(answer);
-    if (!sentence || open) return null;
+    const { statusSentence: sentence } = useAssetTransition();
+    if (!sentence) return null;
     return (
         <>
             <div className="max-sm:hidden">

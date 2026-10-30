@@ -17,10 +17,11 @@
 //   2. THE SERVER. Every export of a `"use server"` file on the assets axis is
 //      `withSiteManagerAction(handler)`, found by walking the tree rather than listed — so
 //      a fifth action fails until it is wrapped and this inventory says so — and no handler
-//      is exported, so the wrapper cannot be stepped round. The catalog's page's are the one
-//      exception and are held file by file: the catalog is the office's (#527), so each of its
-//      five is `withAdminAction` round a handler kept in, and no action of a site manager's
-//      stands in that file or one of the office's in theirs. lib/authz.js binds that wrapper
+//      is exported, so the wrapper cannot be stepped round. The office's are the exception and
+//      are held file by file: the catalog's page's (#527), and an asset's job change in
+//      `officeActions.js` beside its page's (#583), each `withAdminAction` round a handler kept
+//      in, and no action of a site manager's stands in those files or one of the office's in
+//      theirs. lib/authz.js binds that wrapper
 //      to `createFlagGuard` over a gate whose verdict is `isSiteManager`, with a refusal that
 //      re-renders the page and says nothing.
 //   3. THE SCREENS. Each asset page asks `isSiteManager` once, into `recorder`, and every
@@ -72,6 +73,12 @@ const CATALOG_ACTIONS = [
     "app/(assets)/asset-catalog/actions.js::setAssetCategoryDiscontinuedAction",
     "app/(assets)/asset-catalog/actions.js::removeAssetCategoryAction",
 ];
+
+/**
+ * The office's acts on an asset nothing has happened to (#583), in a file of their own beside the
+ * site manager's — a job change, and #582's deletion next.
+ */
+const OFFICE_ACTIONS = ["app/(assets)/assets/[assetId]/officeActions.js::changeAssetJobAction"];
 
 /**
  * The list's export (#553): every reader's, as the list is, so wrapped by neither — a READ whose
@@ -341,16 +348,17 @@ export function run({ check, assert, log }) {
     });
     const actions = entries.filter((e) => e.kind !== "page" && (e.file.startsWith("app/(assets)/") || e.file.startsWith("app/l/")));
     check(
-        "the axis's server actions are the five this gate is for, the catalog's four and the list's two reads, found by walking",
+        "the axis's server actions are the five this gate is for, the catalog's four, an asset's office one and the list's two reads, found by walking",
         actions.map((e) => `${e.file}::${e.name}`).sort().join(" | "),
-        [...ASSET_ACTIONS, ...CATALOG_ACTIONS, ...READ_ACTIONS].sort().join(" | ")
+        [...ASSET_ACTIONS, ...CATALOG_ACTIONS, ...OFFICE_ACTIONS, ...READ_ACTIONS].sort().join(" | ")
     );
     check(
-        "  each withSiteManagerAction around a handler nobody can call round it, the catalog's withAdminAction, the list's reads neither",
+        "  each withSiteManagerAction around a handler nobody can call round it, the office's withAdminAction, the list's reads neither",
         actions.map((e) => `${e.name}: ${wrappingOf(e.ast, e.name)}`).sort().join(" | "),
         [
             ...ASSET_ACTIONS.map((key) => `${key.split("::")[1]}: withSiteManagerAction(1 arg), handler not exported`),
             ...CATALOG_ACTIONS.map((key) => `${key.split("::")[1]}: withAdminAction(2 args), handler not exported`),
+            ...OFFICE_ACTIONS.map((key) => `${key.split("::")[1]}: withAdminAction(2 args), handler not exported`),
             ...READ_ACTIONS.map((key) => `${key.split("::")[1]}: not a wrapped export`),
         ]
             .sort()
