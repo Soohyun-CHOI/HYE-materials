@@ -9,13 +9,13 @@ import {
     idsInScope,
     assetListScope,
     assetCategoriesInScope,
+    listRecording,
 } from "@/lib/assetListView";
 import { registrationCatalog } from "@/lib/assetCategory";
 import { ASSET_CATALOG_COPY } from "@/lib/assetCatalog";
 import { ASSET_REGISTRATION_COPY, canRegisterAssets } from "@/lib/assetRegistration";
 import { ASSET_CATALOG_PATH } from "@/lib/assetRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
-import { isSiteManager } from "@/lib/siteManager";
 import { ButtonLink } from "@/app/components/Controls";
 import Icon from "@/app/components/Icon";
 import ListFrame from "@/app/components/ListFrame";
@@ -82,7 +82,9 @@ export const metadata = { title: COPY.heading };
  * A READER WHO IS NOT A SITE MANAGER READS THE SAME LIST WITH NO OPENER (#506), in the
  * head or under an empty list: adding assets is a site manager's, and the action behind
  * the dialog refuses anybody else through `withSiteManagerAction`. Their empty list says who
- * fills it, `Items show here once a site manager adds them.` (1a2, #519).
+ * fills it, `Items show here once a site manager adds them.` (1a2, #519). **So does a site
+ * manager on another job's list since #597** (1a `Another job`): what a list offers to record
+ * is `listRecording`'s — on one job, `recordsOn` that job; on all jobs, the opener alone.
  *
  * NO PER-STATUS ROLLUP ON `Asset Categories`, AND NO SUMMARY TABLE. Until #560 this said the count
  * would move into a rollup once the page passed ten operations, which #544 passed; what moved
@@ -130,12 +132,13 @@ async function renderCategoriesPage({ searchParams }) {
     // reader who is not the office still reads the list, without the catalog's opener.
     const { user, authorized: office } = await requireAdmin();
     const sp = (await searchParams) ?? {};
-    // Whether this reader adds assets (#506) — the one question every opener below is drawn
-    // under.
-    const recorder = isSiteManager(user);
 
     const [categories, allJobs] = await Promise.all([getAllAssetCategories(), getAllJobs()]);
     const scope = assetListScope(user, allJobs, sp.job);
+    // Whether this reader adds assets from this list (#506, #597) — a site manager, on their own
+    // job's list or on all jobs — the one question every opener below is drawn under. It reads
+    // the scope and the reader, so it costs nothing.
+    const recording = listRecording(user, scope);
     // The categories on the job, and the statuses of theirs there as this server keeps them, each
     // with the id its label prints (#541) — one question about what changed, whatever stands under
     // the list (#560); each asset's kind and job come off the arrays already read.
@@ -158,10 +161,11 @@ async function renderCategoriesPage({ searchParams }) {
     // the one the list stands on when that is one of the reader's own (#565) — none on all of
     // them — which the scope already answered off the address, so the opener reads nothing more.
     //
-    // WHETHER THERE IS AN OPENER AT ALL IS THE READER'S OWN JOBS (#593), `canRegister`, the
-    // question the dialog asks of `assignedJobsFor` — never the jobs this list may stand on, which
-    // are every job for every reader. A site manager assigned to none meets no opener here, as 1a2
-    // drew their list (#522), where a category's page draws its opener disabled with the reason.
+    // WHETHER THERE IS AN OPENER AT ALL IS THE LIST'S JOB AND THE READER'S OWN JOBS (#593, #597):
+    // `recording.adds` — on another job's list a site manager reads what anybody does — and
+    // `canRegister`, the question the dialog asks of `assignedJobsFor`. A site manager assigned to
+    // none meets no opener here, as 1a2 drew their list (#522), where a category's page draws its
+    // opener disabled with the reason.
     const registration = {
         opener: ASSET_REGISTRATION_COPY.heading,
         canRegister: canRegisterAssets(user, allJobs),
@@ -176,7 +180,7 @@ async function renderCategoriesPage({ searchParams }) {
     // component, they arrive as elements this page made and stand among the head's children
     // there, where React asked a key of them and warned on every load of the list without one —
     // the registration's opener alone did, measured for a reader the catalog's is not drawn for.
-    const opener = recorder && registration.canRegister && <RegistrationDialog key="registration" {...registration} />;
+    const opener = recording.adds && registration.canRegister && <RegistrationDialog key="registration" {...registration} />;
     // The way to the catalog, the office's alone (#527) and in every state of the head.
     const catalog = office && (
         <ButtonLink key="catalog" variant="faced" mark={<Icon name="book-open" className="size-icon shrink-0" />} href={ASSET_CATALOG_PATH}>
@@ -185,7 +189,8 @@ async function renderCategoriesPage({ searchParams }) {
     );
 
     // Nothing on the job: the words where the rows would be (1a2, #519) — a site manager's with
-    // the opener under them, or who fills it for anybody else.
+    // the opener under them, or who fills it for anybody else, another job's site manager
+    // included (#597).
     if (rows.length === 0) {
         return (
             <ListFrame
@@ -200,9 +205,9 @@ async function renderCategoriesPage({ searchParams }) {
                 <div className="flex flex-col items-center pt-list-empty-state-inset-top text-center">
                     <h2 className="text-heading font-semibold">{COPY.noItemsHeading}</h2>
                     <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">
-                        {recorder ? COPY.noItems : COPY.untilASiteManagerAdds}
+                        {recording.adds ? COPY.noItems : COPY.untilASiteManagerAdds}
                     </p>
-                    {recorder && registration.canRegister && (
+                    {recording.adds && registration.canRegister && (
                         <div className="mt-gap-lg">
                             <RegistrationDialog {...registration} variant="bordered" />
                         </div>

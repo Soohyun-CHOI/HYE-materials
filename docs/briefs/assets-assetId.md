@@ -5,8 +5,9 @@ Who reaches it: anyone signed in, with no Role and no Job gate (#337) — an ass
 off the reader's own jobs included (#509), which every list has shown since #593.
 What
 a reader DOES here — checking out, checking in, retiring and printing the label
-— is a site manager's (#506); everyone else reads the same screen, at both
-widths, without those controls.
+— is a site manager's (#506), and since #597 only one assigned to the job the
+item is on; everyone else reads the same screen, at both widths, without those
+controls — a site manager on another job or on none among them.
 Which width comes first: **phone**. Both widths must work; this one is
 drawn first and the desktop is what it opens out into.
 
@@ -58,9 +59,9 @@ name. An asset whose category did not resolve is headed by its id. It was the
 `Asset ID` as the heading, and nothing else, until #463.
 
 **identity.** What the item is (1f, 1j, #519): its type and its category —
-`HYE-AST-260909-004 · Tool · Power tools` at a desk, the id first, and `Tool ·
-Power tools` under the name on a phone, 4 under it, its values a step lighter
-there. It says what the name cannot: a name is the item's name and its size,
+`HYE-AST-260909-004 · 26-USA-05 · Tool · Power tools` at a desk, the id first
+and the item's job after it (#597), and `Tool · Power tools` under the name on
+a phone, 4 under it, its values a step lighter there. It says what the name cannot: a name is the item's name and its size,
 then a comma and its maker, then its part number in parentheses, `DEMO Angle
 Grinder 4-1/2", DEMO Makita (GA4570)`, so it says neither which category nor
 which type holds it. The type is information — `Equipment` or `Tool`, which
@@ -112,39 +113,43 @@ or when, and the category's list counts no change for it. **It is not on the
 label**, which prints the code alone.
 
 **evidence.** The category it is one of, which is the heading, and the job it is
-on, which every history entry states at both widths and the phone's foot bar
-states as the job the next event will be recorded on — and for a reader on more
-than one job, the breadcrumb at a desk too, between the list and the category
-(below). The desk stated it under the heading, after the id, until #519, which
-the design dropped. Both are single values, never lists — an asset is one unit of
-one category and sits on one job.
+on, **named once, under the title (#597)**: after the id on the desk's line, and on
+a phone a line of its own under the caption, the code in Ink 2 behind a pin in Ink
+3, 4 under it (1j) — and wherever there are jobs to choose between, the breadcrumb
+at a desk too, between the list and the category (below). The desk stated it under
+the heading until #519, which the design dropped, and every history entry stated
+it, with the phone's foot bar as the job the next event would be recorded on,
+until #597 moved it back under the title and off every entry. **It is the job the
+item sits on, and it says whose item it is to record**: only a site manager on it
+records here. Both are single values, never lists — an asset is one unit of one
+category and sits on one job.
 
-**action.** For a site manager (#506), the one transition the status allows — `Check out` from `In stock`,
-`Check in` from `Out`, `Return from repair` from `In repair` (#531) — and
-the job the event will be recorded on. There is never a choice of transition:
-the status decides which one. **The return asks nothing and records on the
+**action.** For a site manager on the item's job (#506, #597), the one transition the status allows — `Check out` from `In stock`,
+`Check in` from `Out`, `Return from repair` from `In repair` (#531) — recorded on
+the item's own job, which it leaves the item on. There is never a choice of
+transition: the status decides which one, and never a choice of job (#597). **The return asks nothing and records on the
 press**: its row takes the item's own job, since it comes back to the job it
 left, so a phone's foot bar is the press alone (1j-e) and a desk's header the
 press beside `More actions` (1f). An item in repair cannot be checked out. **A desk asks it in
 the header**, on the right and centered on the heading's line: the press or
-the dialog it opens (1f, 1g). **A phone asks it in the foot bar** (1j): the job
-as a pill, for a check-out a field for who it goes to, and the press, at the
-foot of the screen and riding on the keyboard. **They are one transition in two
-drawings**: a phone on its side is wide enough to draw the desk, and a dialog
-left open as it turns upright closes, the job and the name it was given
-standing in the foot bar (#495).
+the dialog it opens (1f, 1g). **A phone asks it in the foot bar** (1j): for a
+check-out a field for who it goes to, and the press, at the foot of the screen
+and riding on the keyboard — where the job stood first as a pill until #597.
+**They are one transition in two drawings**: a phone on its side is wide enough
+to draw the desk, and a dialog left open as it turns upright closes, the name it
+was given standing in the foot bar (#495).
 
 **A CHECK-OUT ALSO ASKS WHO THE TOOL IS GOING TO, AND A CHECK-IN DOES NOT.**
-At a desk the check-out's dialog asks it under the job, in a field labeled
-`Checked out to` that reads `e.g. Jane Doe` while it is empty (#458). On a
+At a desk the check-out's dialog asks it in its one field, labeled
+`Checked out to`, that reads `e.g. Jane Doe` while it is empty (#458) — the
+job's field above it went with #597. On a
 phone the foot bar's field reads `Checked out to` behind a person's mark. The
 people it names have no account here, so it is free text rather than a picker
 over a list of users. **A check-out cannot be recorded without one.** **The
 dialog's `Check out` and the foot bar's press always act (#522), and a press
 with no name is answered under the field**, `Enter a name to check out.`, as 1k
-draws it — and a press with no job chosen is answered under the job the same
-way, both at once when both are missing, focus going to the first of them
-(1k-b). Nothing is written either way. A field of nothing but spaces is the
+draws it, focus going to the field (1k-b). Nothing is written. Until #597 a press
+with no job chosen was answered under the job the same way. A field of nothing but spaces is the
 same refusal. Until #522 the dialog's `Check out` could not act until the field
 held a name.
 
@@ -157,17 +162,16 @@ returns to the field. **A drag follows the finger and goes back when let go
 short of closing, the keyboard staying up through it** (#580). **Opening it is
 a press rather than a focus** — returning focus to the field would otherwise
 reopen it. **At a desk there is no sheet**: the field is the one the
-registration types a name in (1b), and the list opens under it. The pill opens
-1j's job sheet the same way for a person on several jobs, which closes by
-picking, on its handle, dragged down, by `Escape` and on what lies behind it;
-for a person on one it states the job and opens nothing.
+registration types a name in (1b), and the list opens under it. 1j's job sheet,
+which the foot bar's pill opened for a person on several jobs, went with the
+pill (#597).
 
 **The list of names is headed `Recently at this job`** while nothing is typed,
 and holds the people that job has recently handed tools to, most recent first.
 **One entry per person however their name was typed** — `Mike R` and `mike r`
-are one, shown in the most recent spelling — and **it is the chosen job's list,
-not the reader's**: a person with two assignments sees it change as the job
-does. Typing narrows it, matching anywhere inside a name and ignoring case and
+are one, shown in the most recent spelling — and **it is the item's job's list,
+not the reader's** (#597), where it was the chosen job's and changed with the
+choice. Typing narrows it, matching anywhere inside a name and ignoring case and
 spacing, every name it matches, most recent first, and each name shows the part
 that matched (#495). **A few are shown before anybody types and the number is a
 display choice over the whole list**, so a design may set it: a name below the
@@ -178,9 +182,10 @@ sheet keeps its height while a name is typed (#589).** The space holds the
 head and three rows; more scroll inside it, and the room fewer leave stays
 empty. Its head is `Recently at this job` before anything is typed, `Matching
 names` while what is typed matches, and `No past names match`, over no rows,
-when it matches none. **Before a job is chosen, and on a job that has handed
-out nothing yet, the space is empty** — no head and no rows, whatever is
-typed — because the list is about a job's past names and there are none.
+when it matches none. **On a job that has handed out nothing yet, the space is
+empty** — no head and no rows, whatever is typed — because the list is about a
+job's past names and there are none. It was empty before a job was chosen too,
+until #597 left no job to choose.
 **On a screen too short for the sheet and its keyboard the space gives way
 first**, its rows scrolling under the head, and the field keeps its place. At a
 desk the dialog's suggestions are as they were: the head goes once a fragment
@@ -194,22 +199,20 @@ confirming dialog and there must not be one: this happens dozens of times a day,
 and every confirmation in this app that IS a dialog is for something that cannot
 be undone — a withdrawal, a deletion. A check-out is undone by the check-in the
 same control offers a moment later. **The dialog a desk's check-out opens asks
-and does not confirm** (#458): the job and the name are what its row needs, and
-a check-in on one job, which needs neither, still records on the press. A
-check-in on several jobs opens the same dialog for its job alone, with none
-chosen — and on a phone the pill starts with none chosen the same way.
+and does not confirm** (#458): the name is what its row needs, and a check-in,
+which needs none, records on the press — for a person on any number of jobs
+since #597, where one on several was asked which in a dialog of the job alone.
 
 **While the event is on its way the control says so (#469, #463):** the press,
 the dialog's commitment or the foot bar's press keeps its color and its width
 and, after a moment, draws a spinner in place of its words, saying
 `Checking out…` or `Checking in…` to assistive tech — at both widths since
 #495 — and nothing beside it takes a press. **The dialog's commitment never
-waits for what is missing (#522, 1i, 0l)**: a press with the job or the name
-missing sends nothing, says so under each field it is missing, and moves focus
-to the first, as the foot bar's press does; until #522 it was drawn faded until
-both were given.
+waits for what is missing (#522, 0l)**: a press with the name missing sends
+nothing, says so under the field, and moves focus to it, as the foot bar's press
+does; until #522 it was drawn faded until the job and the name were given.
 
-**action.** For a site manager (#506), `Retire this item` (#519; `Retire this tool` until then), behind `More actions` — at a desk a 32 icon
+**action.** For a site manager on the item's job (#506, #597), `Retire this item` (#519; `Retire this tool` until then), behind `More actions` — at a desk a 32 icon
 button beside the transition, named by its tooltip, and on a phone the 48
 button at the top bar's right end (1f, 1j). It is in 0f's destructive red, and
 opens a dialog. **From `In stock` alone, `Send for repair` stands above it
@@ -273,28 +276,27 @@ one of its two grounds went when `Lost` left the status vocabulary, and the
 other — that the act cannot be undone — is what the dialog itself now bears.
 A design must not add a free-text field back; there is no field behind it.
 
-**THE JOB IS NOT ASKED FOR HERE, AND THE SCREEN ASKS IT ONCE.** The transition
-has a job choice because a scan is the person handling the tool, so where they
-are is where it goes. Retiring moves nothing, so the row records where the asset
-already was. **A design must not put a second job control on this
-screen**: the first version of this dialog had one, and one screen asking the
-same question twice let the two answers disagree. For the same reason the
-dialog does not restate the inherited job either, and it carries no line about
-moving the asset to another job — that sentence says the tool has gone
-somewhere, and a retirement is not a move.
+**THE JOB IS NOT ASKED FOR HERE, NOR ANYWHERE ON THIS SCREEN SINCE #597.**
+Retiring moves nothing, so the row records where the asset already was, as every
+event here does now: the item's job, under its title. **A design must not put a
+job control on this screen** — the transition had one until #597, because a scan
+was taken for the person handling the tool, and a check-in could move the item to
+the reader's job; the first version of this dialog had a second one, and one
+screen asking the same question twice let the two answers disagree. The dialog
+does not restate the job, and it carries no line about moving the asset — a
+retirement is not a move.
 
-**The job is already chosen when the person has one and chosen by them when they
-have several, and it is the same control either way** — at a desk a choice
-holding that one job, as the registration's is, and on a phone the pill stating
-the job with no sheet to open (#458, #463). Nobody types a job anywhere on this
-axis, and the two cases must not become two layouts. **If the office takes away
-the job a reader chose before they press**, the press is refused and the job
-starts again as it started — the one job left already chosen, or none of
-several (#469) — in the dialog and in the foot bar alike. **At a desk a job is
-said by its code and its name** (1i, #519), the name after the code in Ink 3 in
-the field and in its list, as the registration's is; the phone's pill and its
-sheet say the code alone, as 1j draws them. Every one lists the jobs by their
-codes (#538).
+**If the item moves, or the reader is taken off its job, while the page is
+open, the press is refused and said (#597).** The office may change an item's
+job (#583), and the office assigns jobs; either can happen between drawing the
+page and pressing. Every press carries the job the page was drawn on, and the
+action, reading the item and the reader again, refuses it under the status of the
+page drawn again: `Only 26-USA-07 can record this item. Your check-out wasn't
+saved.` when the item is no longer the reader's to record, and `This item is on
+26-USA-07 now. Your check-out wasn't saved.` when it moved to another of their
+jobs — the press is refused rather than recorded somewhere they did not see. The
+retirement's and the note's are refused the same way, ending on `Nothing was
+saved.`, and the dialog, the question or the note's sheet that sent it goes.
 
 **The transition has no heading.** The two blocks below it name things —
 `History`, `Label` — and a heading over the act would have to name it in the
@@ -304,8 +306,8 @@ abstract, which is a word the app does not say. The control names itself.
 FUNCTIONAL RATHER THAN AESTHETIC.** Every other control in this app is clicked
 with a mouse at a desk. These are pressed on a phone, on a site, by somebody who
 may be wearing gloves, and the design sets them (Tools 0a): the foot bar's press
-50 tall and the screen's width, every target at least 48 square — the pill's
-reaches up into the bar's room above it — and the menu's row 48. **A target too
+50 tall and the screen's width, every target at least 48 square, and the menu's
+row 48. **A target too
 small to hit in gloves is not an inelegance** — it is a transition somebody
 writes on paper instead, and the app then holds nothing — so a later design may
 not shrink these below the phone's Target.
@@ -334,7 +336,7 @@ code under the symbol is nothing the heading says, so it takes a name rather tha
 hiding. The string sat in the page's copy with nothing drawing it from #352 to
 #463.
 
-**action.** For a site manager (#506), a control that prints this asset's label, `Print label`. It opens
+**action.** For a site manager on the item's job (#506, #597), a control that prints this asset's label, `Print label`. It opens
 the labels' dialog on this one label (#457), rather than printing the page — that
 dialog owns the label's page and the print rule, so printing the page would be a
 second layout of one label.
@@ -347,14 +349,18 @@ one printing a label for the first time.
 
 **evidence.** A history, one entry per `Asset Log` row, **the newest first** (1f,
 1j) — the latest scan is the one a reader standing over the tool came to check.
-It read oldest first until #463. Each entry carries four facts and always all
-four — the event, when it happened, the job it happened on, and who recorded it.
-**There is no fifth and nothing is ever absent** but on a check-out, below.
+It read oldest first until #463. Each entry carries three facts and always all
+three — the event, when it happened, and who recorded it. **There is no fourth
+and nothing is ever absent** but on a check-out, below. **No entry names its job
+since #597** (1f, 1j): the files say a log line never repeats the job, which the
+title block names once, and every event after a registration records on the job
+the item sits on. The base keeps every row's job, which is the history of where
+the item was.
 
 **Each width lays an entry out its own way, and neither labels a fact.** At a desk
-the event heads the entry and one line under it says when, on which job and
-`by` whom. On a phone the event stands alone at 16, each value under it on its
-own line — the job behind a pin — and the moment and who recorded it last. Who
+the event heads the entry and one line under it says when and `by` whom. On a
+phone the event stands alone at 16, who a check-out went to under it behind a
+person's mark, and the moment and who recorded it last. Who
 recorded it is named in full, first and last name, as a place naming who did
 something is (#463).
 
@@ -388,21 +394,16 @@ not assume the facts arrive together.
 
 ## What it carries only sometimes
 
-**A line saying the transition moves the asset to another job**, under the
-dialog's job at a desk. It appears only when the job the event will be recorded
-on is not the job the asset was last scanned on — which is a tool that has
-been carried to another site, and is recorded as it happened rather than
-refused. **This is the one place two `Job` values meet on the page with
-different values under one word**, and the line is what stops that reading as
-a mistake. **A phone's foot bar draws no such line** (1j): its pill states the
-one job the event goes on.
-
 **A refusal of the press, under the status in the title block** — a phone's
 notice and a desk's refusal line (1k) — or above the dialog's actions while a
 dialog stands open for it (#458). Those that reach it: someone else has
-already recorded something, so the press was not saved; the job submitted is
-not one of the reader's; the asset carries no such id; and the event was
-recorded but the asset's own status was not updated. The last is the only
+already recorded something, so the press was not saved; the item is no longer
+the reader's to record, or moved to another of their jobs, since the page was
+drawn (#597, above) — said there whatever control sent the press, the
+retirement's question and the note's included; the asset carries no such id; and
+the event was recorded but the asset's own status was not updated. A line
+saying a check-in would move the item to another job stood under the dialog's
+job until #597, when no press moved an item any more. The last is the only
 one that means something was written, and its sentence says so — the reader is
 told the event is safe, what everybody else will read until it is fixed, and
 that pressing again fixes it. Ordinarily nothing stands there.
@@ -438,7 +439,7 @@ re-renders the page, the page has nothing to offer a retired asset, and the
 dialog disappears with its menu; what the reader is left looking at is the
 status saying it is the end.
 
-**For a site manager on a job, while the item is in stock or out, a way to
+**For a site manager on the item's job (#597), while the item is in stock or out, a way to
 write its note (#533).** At a desk `Edit` stands after the note, an Inline
 control, and `Add note` in Accent with its plus mark stands in its place where
 there is none (1f); on a phone the whole line is the press, at least 48 tall and
@@ -455,9 +456,9 @@ drag down puts it away and saves nothing, and none of them while it saves
 Red and its line says `Max 50 characters.` with the count in Red, the field
 keeping what was typed. What is kept is trimmed, each run of spaces one, its case
 as typed; a note that comes out as the one already there writes nothing. **A
-reader who may not write meets the note, and nothing where there is none** — on
-no job, not a site manager, or an item in repair or retired, whose note stands as
-it was (1f, 1j-c, 1j-d, 1j-e). **A note somebody else changed while this one was
+reader who may not write meets the note, and nothing where there is none** — not
+a site manager on the item's job, or an item in repair or retired, whose note
+stands as it was (1f, 1j-c, 1j-d, 1j-e). **A note somebody else changed while this one was
 being written** is refused with `Nothing was saved. Someone else changed this
 note first.`, the page drawn again with theirs and what was typed still in the
 field, so a second press writes over it knowingly; a press on an item somebody
@@ -510,12 +511,14 @@ its history and says, where the press was, `The Deleted entry is recorded, but
 the item is still on the lists. Delete it again to finish.`; `Delete this item`
 stays on that page, alone of the office's two, and finishes it.
 
-**For a site manager assigned to no job, a sentence where the controls would
-be**: in the header's right at a desk and in the foot bar on a phone. Both
-controls are absent, not disabled — a control the action would refuse is a
-promise the screen cannot keep. One who is also the office meets `More actions`
-after the sentence on an item nothing has happened to, holding `Change job`
-alone, since moving an item is no record and asks no job of them (#583). **The status, the job and the history are still
+**A site manager on another job, or on none, reads the item as anybody does
+(#597; 1f `Another job`, 1j-d)**: no control and no sentence — no foot bar on a
+phone, nothing in the header's right at a desk, no way to write the note and no
+`Print label`. The job under the title says whose item it is. Until #597 one on
+another job was offered every control, and one on no job met a sentence where the
+controls would be, telling them to ask for an assignment. One who is also the
+office meets `More actions` on an item nothing has happened to, holding the
+office's own acts (#583, #582). **The status, the job and the history are still
 shown to that reader**: what varies is whether they can act, never what they
 can read.
 
@@ -525,11 +528,12 @@ rail holds the label, its size and its symbol with no `Print label`; on a phone
 there is no foot bar at all, on any status, and `More actions` holds the account
 alone — the shape a retired tool already has — but for the office's `Change job`
 on an item nothing has happened to (#583, above). No sentence stands in for the
-controls: the one a site manager on no job reads tells them to ask the office
-for a job, and nothing the office could give this reader would let them record,
-so there is nothing for a sentence to say. The status, the job, who holds a tool
-that is out and the whole history are theirs as they are anybody's. Design is
-drawing that reader's foot bar; until then it is absent. **A press on a page
+controls: nothing the office could give this reader would let them record, so
+there is nothing for a sentence to say — and since #597 a site manager on another
+job or on none reads the same, the sentence a site manager on no job read having
+gone. The status, the job, who holds a tool
+that is out and the whole history are theirs as they are anybody's. The files of 2026-11-02 draw
+that reader's phone with no foot bar (1j-d), as it is. **A press on a page
 drawn while they were one** — a dialog left open, a foot bar filled in — is
 answered by the page drawn again for who they are now, without the controls and
 without a sentence, and with nothing written.
@@ -541,19 +545,19 @@ says `Nothing more can be recorded here.` (1j) to a site manager, and the
 sentence names no status, since the status stands above it. A reader who is not
 a site manager has no foot bar to say it in (#506).
 
-**A history entry is four facts, and a `Checked out` entry is five.** The fifth
-is who the tool went to: `Checked out to Dana K` at a desk, the `to` in Ink 3,
+**A history entry is three facts, and a `Checked out` entry is four** — the job
+was one of each until #597. The fourth is who the tool went to: `Checked out to Dana K` at a desk, the `to` in Ink 3,
 and on a phone the name on its own line behind a person's mark. **It is decided
 by the event and not by whether a value is there**: every `Checked out` entry
 carries it and no other entry does, so a design may lay out two fixed shapes and
-must not treat the fifth as an optional extra on all of them. There used to be a
+must not treat the fourth as an optional extra on all of them. There used to be a
 genuinely optional note here, usually absent; the field it read is gone, and
 this is not it returning.
 
 **A `Checked out` entry written before the app asked for a name shows the
-fifth with nothing in it.** Those entries exist on this base and are not
+fourth with nothing in it.** Those entries exist on this base and are not
 repaired — writing a name onto them now would state something nobody
-recorded. A blank in any of the five reads the same way: a defect upstream,
+recorded. A blank in any of the four reads the same way: a defect upstream,
 shown rather than hidden.
 
 **When the asset has no history at all:** one line in place of the entries,

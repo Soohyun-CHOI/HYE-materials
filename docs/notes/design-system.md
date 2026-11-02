@@ -373,6 +373,10 @@ On a phone the check-out's name sheet changed height as a name was typed: its li
 
 **WHAT THE CHECKS HOLD.** `offline/name-sheet-list.mjs` is new: `nameListHead` over the five states by value, the space drawn under no condition with a literal class Tailwind draws at 194 — the head's line and its 4 and three rows and their rules, from the theme's own values — the field's row not giving way, the rows only under a head, the sentence said nowhere, and a move judged as #580 judges one. `offline/asset-transition.mjs`'s three assertions on the old list hold the new one. Thirty mutations were run across the checks this branch added or changed, one at a time, and every one failed; each of the new check's twenty-one labels and each changed assertion fails under at least one, the old list and the old sentence put back among them.
 
+## The item's job in the title block (#597)
+
+The files of 2026-11-02 move an item's job from every history entry to the title block: on a phone a line of its own 4 under the caption, a 14 pin in Ink 3 and 8 after it the job's code at 14 in Ink 2 with tabular figures, and at a desk the code after the id on the line under the title, a value as the type and the category are. **The pin takes a name of its own, `--size-mobile-title-icon`**, though the log's `--size-mobile-log-icon` holds the same 14: a name is for its container (#459's rule), and the log's mark stands before who a check-out went to alone now. The 4 is the title block's `--spacing-mobile-title-block-stack`, whose third reader the job is, and the 8 is 0b's Gap.
+
 ## From the design's words to the names
 
 Every declaration, by the design's row and the figure the design draws, and after them the values read under Tailwind's own names. A length's rem is the design's px over 16, and the px is given beside it.
@@ -706,7 +710,8 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | Tools 0a Radius, a sheet's top corners | `--radius-mobile-drawer` | 1.75rem (28) |
 | Tools 0a Title block, under the top bar | `--spacing-mobile-top-bar-stack` | 0.25rem (4) |
 | Tools 0a Title block, below | `--spacing-mobile-title-stack` | 1.375rem (22) |
-| Tools 0a Top bar, the record's id over its name, and 1j's caption under it | `--spacing-mobile-title-block-stack` | 0.25rem (4) |
+| Tools 0a Top bar, the record's id over its name, 1j's caption under it, and the item's job under that (#597) | `--spacing-mobile-title-block-stack` | 0.25rem (4) |
+| Tools 0a Title block, the pin before the item's job (1j, #597) | `--size-mobile-title-icon` | 0.875rem (14) |
 | Tools 0a Note, the line a writer presses, past its text either side | `--spacing-mobile-note-bleed-x` | 0.75rem (12) |
 | 1j's drawing, that line above and below its text, one line the 48 a target takes — not the spec | `--spacing-mobile-note-bleed-y` | 0.875rem (14) |
 | Tools 0a Section | `--spacing-mobile-stack` | 2rem (32) |
@@ -725,7 +730,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | Tools 0a Log, the dot | `--size-mobile-log-dot` | 0.375rem (6) |
 | Tools 0a Log, beside the dot | `--spacing-mobile-log-gap` | 0.75rem (12) |
 | Tools 0a Log, between entries | `--spacing-mobile-log-stack` | 1.25rem (20) |
-| Tools 0a Log, the icon | `--size-mobile-log-icon` | 0.875rem (14) |
+| Tools 0a Log, the icon before who a check-out went to — and the job, until #597 | `--size-mobile-log-icon` | 0.875rem (14) |
 | 1j's drawing, the dots and rule — not the spec | `--width-mobile-log-track` | 0.75rem (12) |
 | 1j's drawing, the dot from its entry's top — not the spec | `--spacing-mobile-log-dot-inset-top` | 0.5625rem (9) |
 | 1j's drawing, where the rule under a dot starts — not the spec | `--spacing-mobile-log-rule-inset-top` | 1.375rem (22) |

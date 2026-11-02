@@ -7,8 +7,11 @@ manager's (#506); everyone else reads the same screen without those controls.
 The list stands on one job (#509, #520) — any job, for every reader (#593) —
 starting on the first of the reader's own by its code, or on all of them at
 once, when a reader chooses it (#548) and from the start for a reader assigned
-to none (#593). Adding items and printing labels stay a site manager's on every
-job the list stands on, theirs or another's (#593).
+to none (#593). Adding items and printing labels are a site manager's on their
+own job's list (#597) — on another job's list they read it as anybody does, and
+on `All jobs` they add and print nothing from it, the boxes being drawn on no
+row there. From #593 to #597 both stood on every job's list, theirs or
+another's.
 Which width comes first: **desktop**, and it is the only one: this screen is
 used at a desk and does not support a phone's width (`_shared.md`).
 
@@ -92,9 +95,11 @@ page of the list. **It carries the job the list stands on (#565)**, which the
 dialog's job starts on when it is one of the reader's own; on `All jobs`, or on
 a job the office views and is not assigned to, the job starts unchosen
 (`tools-new.md`). It is on this screen for every category it finds, the one with
-nothing under it included, and for every site manager — one assigned to no job
-sees it disabled, with `Ask the office to assign you to a job` before it, as
-they would on `/asset-categories`. **A reader who is not a site manager is drawn none**
+nothing under it included, for a site manager on the job the list stands on, and
+on `All jobs` for every site manager — one assigned to no job sees it disabled
+there, with `Ask the office to assign you to a job` before it. **On another job's
+list it is drawn for nobody** (#597; 1d `Another job`), where the site manager
+reads the list as anybody does. **A reader who is not a site manager is drawn none**
 (#506): being one is not something the office assigns on request the way a job
 is, so a disabled control with a reason would send them nowhere.
 
@@ -105,8 +110,10 @@ dialog — `Add 2 more` with the count that was not written, which it names, thi
 one with none — and `Not now` takes the pair away with the dialog they stand in and
 leaves this standing.
 
-**action.** A box on every entry and one for the page — **for a site manager,
-who is the one who prints labels (#506)** — and together they say
+**action.** A box on every entry and one for the page — **for a site manager on
+the job the list stands on, who is the one who prints its labels (#506, #597)**,
+and on no other list: not another job's, and not `All jobs`, which draws no box
+column (1d) — and together they say
 **which assets a label run is for** (#443). An entry's box selects that asset
 or takes it out. The page box selects every entry on this page, or, when
 all of them are selected already, takes this page out — and a page partly
@@ -158,7 +165,7 @@ own screen; its status, one of `In stock`, `Out`, `In repair` (#531) or `Retired
 line a site manager keeps on it, in Ink 2 and nothing where it has none; and the day it last
 changed, `09/22/2026` — the day of its latest scan, retirement or registration,
 in the reader's own zone (1d, #520). Each carries its box as well, for a site
-manager; see above. On `All jobs` each also carries the job it is on, after its
+manager on the list's job; see above. On `All jobs` each also carries the job it is on, after its
 id (#548; below).
 
 **The note is one line, cut at its column's end and shown whole above its cell
@@ -306,8 +313,10 @@ with more than a hundred assets, selected across pages.
 
 **When the category has no assets at all:** in place of the entries, the
 heading `Nothing added yet` (#519; `No items under this tool` until then), and under
-it who fills it — for a site manager `Items show here once you add them.` over a
-second, bordered `Add items` (1d, #463, #485, #519). **Since #507 this is a kind
+it who fills it — for a site manager on the list's job, or on `All jobs`, `Items
+show here once you add them.` over a second, bordered `Add items` (1d, #463, #485,
+#519), and for anybody else, another job's site manager among them since #597,
+`Items show here once a site manager adds them.` (1d `No items · another job`). **Since #507 this is a kind
 of the catalog nobody has bought yet**, which no list shows — the screen is
 reached by its address. The sentence 1d drew under it until #507, `If you were
 adding some, it stopped before any were saved.`, spoke of a registration that

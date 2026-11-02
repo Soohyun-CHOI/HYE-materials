@@ -31,6 +31,7 @@ export const title = "An item's note: what it keeps, who writes it, and where it
 const ACTIONS = "app/(assets)/assets/[assetId]/actions.js";
 const ASSETS = "lib/airtable/assets.js";
 const NOTE_COMPONENT = "app/(assets)/assets/[assetId]/AssetNote.js";
+const PROVIDER = "app/(assets)/assets/[assetId]/AssetTransition.js";
 const ITEM_PAGE = "app/(assets)/assets/[assetId]/page.js";
 const CATEGORY_PAGE = "app/(assets)/asset-categories/[categoryRecordId]/page.js";
 
@@ -60,7 +61,12 @@ function actionFacts(handler) {
         label: /withOpsLabel\("updateAssetNoteAction",/.test(handler),
         lockKey: /withKeyLock\(`asset-note:\$\{normalizeItemText\(asked\)\.toLowerCase\(\)\}`,/.test(handler),
         readsInLock: /const asset = await getAssetByAssetId\(asked\);/.test(locked),
-        plansInLock: /planTransition\(\{ user, jobs: await getAllJobs\(\), status: asset\.status \}\)/.test(locked),
+        plansInLock: /planTransition\(\{ user, jobs: await getAllJobs\(\), status: asset\.status, assetJobId: asset\.job\?\.\[0\] \}\)/.test(locked),
+        // Whose item it is now, asked of the plan before the note's own rule (#597), and said.
+        asksRecording:
+            /const recording = recordingRefusal\(plan, \{ drawnJobId: String\(formData\.get\("drawnJobId"\) \?\? ""\), attempted: null \}\);\s*if \(recording\) return \{ refusal: recording \};\s*const answer = readNoteSubmission\(/.test(
+                locked
+            ),
         asksRule:
             /readNoteSubmission\(plan, \{\s*typed: String\(formData\.get\("note"\) \?\? ""\),\s*previous: String\(formData\.get\("previous"\) \?\? ""\),\s*stored: asset\.note,\s*\}\)/.test(
                 locked
@@ -113,9 +119,10 @@ export function run({ check, assert, log }) {
     // ── who may write it ────────────────────────────────────────────────────
     log("");
     log("who may write it — planTransition's mayWriteNote, status by status:");
-    const planOf = (user, status) => planTransition({ user, jobs: ALL_JOBS, status });
+    // On JOB_A unless said otherwise, the item's job being what decides since #597.
+    const planOf = (user, status, assetJobId = JOB_A.id) => planTransition({ user, jobs: ALL_JOBS, status, assetJobId });
     check(
-        "a site manager on a job, while the item is in stock or out",
+        "a site manager on the item's job, while the item is in stock or out",
         ASSET_STATUS_VALUES.map((status) => `${status}: ${planOf(siteManager(JOB_A), status).mayWriteNote}`).join(", "),
         "In stock: true, Out: true, In repair: false, Retired: false, Deleted: false"
     );
@@ -124,12 +131,20 @@ export function run({ check, assert, log }) {
         ASSET_STATUS_VALUES.map((status) => planOf(reader(JOB_A, JOB_B), status).mayWriteNote).join(","),
         "false,false,false,false,false"
     );
+    // A SITE MANAGER THE ITEM'S JOB IS NOT ONE OF READS IT AS ANYBODY DOES SINCE #597 — on another
+    // job, or on none, where one on none was told to ask for a job until then — so the plan says
+    // nothing either, on any status.
     check(
-        "  nor a site manager on no job, who is told so as for every act",
-        ASSET_STATUS_VALUES.map((status) => `${planOf(siteManager(), status).mayWriteNote}/${planOf(siteManager(), status).refusal}`).join(", "),
-        // A deleted item answers as a retired one (#582), though no page draws one.
-        [ASSET_TRANSITION_COPY.noJob, ASSET_TRANSITION_COPY.noJob, ASSET_TRANSITION_COPY.noJob, ASSET_TRANSITION_COPY.noTransition, ASSET_TRANSITION_COPY.noTransition].map((r) => `false/${r}`).join(", ")
+        "  nor a site manager on another job, told nothing (#597)",
+        ASSET_STATUS_VALUES.map((status) => `${planOf(siteManager(JOB_B), status).mayWriteNote}/${planOf(siteManager(JOB_B), status).refusal}`).join(", "),
+        ["false/null", "false/null", "false/null", "false/null", "false/null"].join(", ")
     );
+    check(
+        "  nor one on no job, told nothing either (#597)",
+        ASSET_STATUS_VALUES.map((status) => `${planOf(siteManager(), status).mayWriteNote}/${planOf(siteManager(), status).refusal}`).join(", "),
+        ["false/null", "false/null", "false/null", "false/null", "false/null"].join(", ")
+    );
+    check("  the item on JOB_B, the same site manager may", planOf(siteManager(JOB_B), ASSET_STATUS.IN_STOCK, JOB_B.id).mayWriteNote, true);
     check("  and the plan carries it whatever else it offers", Object.keys(planOf(siteManager(JOB_A), ASSET_STATUS.OUT)).includes("mayWriteNote"), true);
 
     // ── the words ───────────────────────────────────────────────────────────
@@ -166,6 +181,7 @@ export function run({ check, assert, log }) {
         [facts.label, facts.lockKey, facts.readsInLock, facts.plansInLock, facts.asksRule].join(" "),
         "true true true true true"
     );
+    check("  whose item it is now asked first, and said (#597)", facts.asksRecording, true);
     check("  a refusal stops before the write, and a note left as it was writes nothing", `${facts.stopsFirst} ${facts.writesInLock}`, "true true");
     check("  a reader who may no longer write gets the page alone, a refusal the page and its sentence, through the one helper", `${facts.ended} ${facts.refuses}`, "true true");
     check("  a note written lands on its page, after the lock", facts.lands, true);
@@ -221,7 +237,7 @@ export function run({ check, assert, log }) {
     const itemPage = parseFile(ITEM_PAGE).source;
     check(
         "the item's page draws it under the status for every reader, writable as the plan says",
-        /<AssetNote assetId=\{asset\.assetId\} note=\{asset\.note\} writable=\{transition\.mayWriteNote\} \/>/.test(itemPage),
+        /<AssetNote note=\{asset\.note\} writable=\{transition\.mayWriteNote\} \/>/.test(itemPage),
         true
     );
     check("a category's rows carry it off the read they came from", /note: asset\.note,/.test(parseFile(CATEGORY_PAGE).source), true);
@@ -232,17 +248,30 @@ export function run({ check, assert, log }) {
     );
     const component = parseFile(NOTE_COMPONENT);
     const noteLine = functionSource(component, "AssetNote");
+    // THE PAGE'S PROVIDER SENDS IT AND HOLDS THE ANSWER SINCE #597, so a note refused because the
+    // item is no longer the reader's to write is said under the status once its dialog has gone.
+    const provider = parseFile(PROVIDER).source;
     check(
-        "the press sends the item, what was typed, and the note the page was drawn with",
+        "the press sends the item, the job the page was drawn on, what was typed, and the note the page was drawn with",
         [
-            /formData\.set\("assetId", assetId\);\s*formData\.set\("note", typed\);\s*formData\.set\("previous", note\);/.test(noteLine),
-            /startTransition\(\(\) => formAction\(formData\)\);/.test(noteLine),
-            /useActionState\(updateAssetNoteAction, null\)/.test(noteLine),
+            /formData\.set\("assetId", assetId\);\s*formData\.set\("drawnJobId", assetJobRecordId \?\? ""\);\s*formData\.set\("note", typed\);\s*formData\.set\("previous", previous\);/.test(provider),
+            /startTransition\(\(\) => noteFormAction\(formData\)\);/.test(provider),
+            /useActionState\(updateAssetNoteAction, null\)/.test(provider),
+            /const send = \(typed, by\) => control\.send\(\{ typed, previous: note, by \}\);/.test(noteLine),
         ].join(" "),
-        "true true true"
+        "true true true true"
     );
     check("  a reader who may not write meets nothing where there is no note", /if \(!note && !writable\) return null;/.test(noteLine), true);
-    check("  the answer said only to the opening that sent it", /const refusal = answer\?\.error && sentFor === opening \? answer\.error : null;/.test(noteLine), true);
+    check(
+        "  the answer said only to the opening that sent it, and under the status once the page ended it",
+        [
+            /const noteSaidInDialog = noteSentFor === noteOpening;/.test(provider),
+            /refusal: noteSaidInDialog \? noteSentence : null,/.test(provider),
+            /note: noteSaidInDialog \? null : noteSentence,/.test(provider),
+            /if \(noteOpenOn !== null && !plan\.mayWriteNote\) endNote\(\);/.test(provider),
+        ].join(" "),
+        "true true true true"
+    );
     check(
         "  each width's opener is drawn for a writer alone, and opens its own",
         [

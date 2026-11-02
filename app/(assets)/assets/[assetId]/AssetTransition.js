@@ -4,7 +4,7 @@ import { Fragment, createContext, startTransition, useActionState, useContext, u
 import Instant from "@/app/components/Instant";
 import { ASSET_EVENT } from "@/lib/assetStatus";
 import { ASSET_TRANSITION_COPY as COPY } from "@/lib/assetTransition";
-import { recordAssetEventAction } from "./actions";
+import { recordAssetEventAction, retireAssetAction, updateAssetNoteAction } from "./actions";
 import { changeAssetJobAction, deleteAssetAction } from "./officeActions";
 import DeleteConfirm from "./DeleteConfirm";
 import RetirementConfirm from "./RetirementConfirm";
@@ -29,9 +29,11 @@ import RetirementConfirm from "./RetirementConfirm";
  * in the header where the control is.
  *
  * THE RETIREMENT'S QUESTION IS HERE TOO, AND OPENED FROM EITHER `More actions` — the desk's
- * beside the transition and the phone's in its top bar (1f, 1j), one question for both. It
- * holds its own answer (`RetirementConfirm`), and whatever opened it gets focus back: the
- * menu hands focus to its button before it opens the question.
+ * beside the transition and the phone's in its top bar (1f, 1j), one question for both — and
+ * whatever opened it gets focus back: the menu hands focus to its button before it opens the
+ * question. **Its answer is held here since #597**, where the question held it: a press the
+ * action refuses because the item is no longer the reader's to record ends the offer, the
+ * question goes with it, and the sentence has to outlive it to be said under the status.
  *
  * SENDING AN ITEM FOR REPAIR IS THE SAME ACTION FROM THE MENU, AND ITS WAIT IS THE MENU'S
  * (#531). `More actions` sends `Sent for repair` through the one answer, so a refusal stands
@@ -44,10 +46,10 @@ import RetirementConfirm from "./RetirementConfirm";
  *
  * WHAT A DESK'S DIALOG HELD GOES TO THE FOOT BAR WHEN THE WINDOW CROSSES THE PHONE'S EDGE
  * (#495). The header row the dialog opens from is not drawn below the edge, so the frame
- * closes the dialog there (`DialogFrame.js`), and the job and the name it was given are
- * `carried` to the bar, which takes them as its own — a phone turned upright mid-check-out
- * finds the bar filled rather than empty. Only that way: a dialog opened at a desk starts
- * where an opening starts (0l), whatever the bar was left holding.
+ * closes the dialog there (`DialogFrame.js`), and the name it was given is `carried` to the
+ * bar, which takes it as its own — a phone turned upright mid-check-out finds the bar filled
+ * rather than empty. Only that way: a dialog opened at a desk starts where an opening starts
+ * (0l), whatever the bar was left holding. The job went with the name until #597 took it out.
  *
  * THE OFFICE'S JOB CHANGE HOLDS ITS ANSWER HERE TOO (#583), for the reason the transition's is:
  * it is said in two places. While the dialog or the sheet that sent it stands open, above its
@@ -61,6 +63,19 @@ import RetirementConfirm from "./RetirementConfirm";
  * deletion left half done above its actions, and a refusal that takes its line away — something
  * recorded since, a reader no longer the office — is said under the status of the page drawn
  * again. One question for both widths, as the retirement's is; a landing leaves the page.
+ *
+ * AND THE NOTE'S (#533), SINCE #597. Its dialog and its sheet say their own answers while the
+ * opening that sent one is the current one — a note somebody else changed, too much typed — as
+ * they did; one the page ends, the note no longer the reader's to write, is said under the status.
+ *
+ * EVERY FORM CARRIES THE ITEM'S JOB AS THE PAGE WAS DRAWN (#597), `drawnJobId`, which each action
+ * compares and never writes (`lib/assetTransition.js:recordingRefusal`). **A page drawn again on
+ * another job ends every opening a reader recorded from** — the transition's dialog, the
+ * retirement's question and the note's — so what the refusal says stands under the status, where
+ * it is said whichever control sent it: the item moved since the page was drawn, and the press
+ * that would have recorded it on the job it left was not saved. A refusal the page ends an
+ * opening for in any other way, the plan no longer offering it, lands there too: the opening
+ * that sent it is ended, and its answer is no longer its dialog's to say.
  */
 const TransitionContext = createContext(null);
 
@@ -87,6 +102,8 @@ export function useRefusalSentence(answer) {
 
 export default function AssetTransition({ plan, office, assetJobRecordId, assetId, itemName, children }) {
     const [answer, formAction, pending] = useActionState(recordAssetEventAction, null);
+    const [retireAnswer, retireFormAction, retirePending] = useActionState(retireAssetAction, null);
+    const [noteAnswer, noteFormAction, notePending] = useActionState(updateAssetNoteAction, null);
     const [jobAnswer, jobFormAction, jobPending] = useActionState(changeAssetJobAction, null);
     const [deleteAnswer, deleteFormAction, deletePending] = useActionState(deleteAssetAction, null);
     // Whether the deletion's question is open (#582), how many openings there have been, and which
@@ -109,16 +126,51 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetI
     if (changingOn !== null && !office?.mayChangeJob) setChangingOn(null);
     const jobSaidInDialog = changingOn !== null && jobSentFor === jobOpening;
     // Each answer as the sentence a screen draws: the transition's with its moment in the reader's
-    // zone, the job change's as it came.
+    // zone, the others as they came.
     const transitionSentence = useRefusalSentence(answer);
     const jobSentence = jobAnswer?.error ? <>{jobAnswer.error}</> : null;
+    const retireSentence = retireAnswer?.error ? <>{retireAnswer.error}</> : null;
+    const noteSentence = noteAnswer?.error ? <>{noteAnswer.error}</> : null;
     const [openedFor, setOpenedFor] = useState(null);
     const [opening, setOpening] = useState(0);
+    // The retirement's question (#363), its openings and which of them sent the latest answer.
     const [retiring, setRetiring] = useState(false);
+    const [retireOpening, setRetireOpening] = useState(0);
+    const [retireSentFor, setRetireSentFor] = useState(null);
+    // The note's opening (#533): which width's, how many there have been, which sent the latest
+    // answer, and what sent it — the commitment, or the desk's `Remove note`.
+    const [noteOpenOn, setNoteOpenOn] = useState(null);
+    const [noteOpening, setNoteOpening] = useState(0);
+    const [noteSentFor, setNoteSentFor] = useState(null);
+    const [noteSentBy, setNoteSentBy] = useState(null);
     const [carried, setCarried] = useState(null);
     // Which event the latest submission sent (#531), so the wait is drawn on what sent it.
     const [sending, setSending] = useState(null);
     const repairing = sending === ASSET_EVENT.SENT_FOR_REPAIR;
+
+    // AN OPENING THE PAGE ENDS (#597): the retirement's and the note's when the plan no longer
+    // offers them, and every opening a reader records from when the page is drawn on another job.
+    // Each ended opening counts as a new one, so the answer it sent is no longer its dialog's.
+    const endRetiring = () => {
+        setRetiring(false);
+        setRetireOpening((count) => count + 1);
+    };
+    const endNote = () => {
+        setNoteOpenOn(null);
+        setNoteOpening((count) => count + 1);
+    };
+    if (retiring && !plan.mayRetire) endRetiring();
+    if (noteOpenOn !== null && !plan.mayWriteNote) endNote();
+    const [drawnOn, setDrawnOn] = useState(assetJobRecordId);
+    if (drawnOn !== assetJobRecordId) {
+        setDrawnOn(assetJobRecordId);
+        setOpenedFor(null);
+        if (retiring) endRetiring();
+        if (noteOpenOn !== null) endNote();
+    }
+    const retireSaidInDialog = retireSentFor === retireOpening;
+    const noteSaidInDialog = noteSentFor === noteOpening;
+
     const send = (formData) => {
         setSending(String(formData.get("event") ?? ""));
         setLastSent("event");
@@ -130,9 +182,22 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetI
     if (openedFor !== null && openedFor !== plan.event) setOpenedFor(null);
     const open = openedFor !== null && openedFor === plan.event;
 
+    // What is said under the status: the answer of whichever was sent last, unless a dialog of its
+    // own is saying it.
+    const said = {
+        event: open ? null : transitionSentence,
+        retire: retireSaidInDialog ? null : retireSentence,
+        note: noteSaidInDialog ? null : noteSentence,
+        job: jobSaidInDialog ? null : jobSentence,
+        delete: deleteSaidInDialog ? null : deleteSentence,
+    };
+
     const shared = {
         plan,
         assetId,
+        // The item's job as this page was drawn (#597), which every form posts beside what it
+        // records, for the action to compare.
+        drawnJobId: assetJobRecordId,
         answer,
         formAction,
         // The press's and its dialog's wait, and the menu's (#531): one action, two places it
@@ -148,6 +213,7 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetI
         sendForRepair: () => {
             const formData = new FormData();
             formData.set("assetId", assetId);
+            formData.set("drawnJobId", assetJobRecordId ?? "");
             formData.set("event", ASSET_EVENT.SENT_FOR_REPAIR);
             send(formData);
         },
@@ -158,25 +224,15 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetI
             setOpenedFor(plan.event);
         },
         closeDialog: () => setOpenedFor(null),
-        // A new object each time, so the bar takes every handing-over, the same choice twice
+        // A new object each time, so the bar takes every handing-over, the same name twice
         // included (#495 — the header).
         carried,
-        carry: ({ jobId, name }) => setCarried({ jobId, name }),
-        openRetirement: () => setRetiring(true),
-        // What is said under the status: the answer of whichever was sent last, unless a dialog of
-        // its own is saying it.
-        statusSentence:
-            lastSent === "job"
-                ? jobSaidInDialog
-                    ? null
-                    : jobSentence
-                : lastSent === "delete"
-                  ? deleteSaidInDialog
-                      ? null
-                      : deleteSentence
-                  : open
-                    ? null
-                    : transitionSentence,
+        carry: ({ name }) => setCarried({ name }),
+        openRetirement: () => {
+            setRetireOpening((count) => count + 1);
+            setRetiring(true);
+        },
+        statusSentence: said[lastSent ?? "event"],
         office,
         jobChange: {
             assetJobRecordId,
@@ -200,13 +256,51 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetI
             setDeleteOpening((count) => count + 1);
             setDeleting(true);
         },
+        // The note's opening and its answer (#533, #597): `AssetNote` draws the line, the dialog
+        // and the sheet, and sends through here.
+        note: {
+            openOn: noteOpenOn,
+            opening: noteOpening,
+            start: (on) => {
+                setNoteOpening((count) => count + 1);
+                setNoteOpenOn(on);
+            },
+            close: () => setNoteOpenOn(null),
+            pending: notePending,
+            sentBy: noteSentBy,
+            send: ({ typed, previous, by }) => {
+                const formData = new FormData();
+                formData.set("assetId", assetId);
+                formData.set("drawnJobId", assetJobRecordId ?? "");
+                formData.set("note", typed);
+                formData.set("previous", previous);
+                setNoteSentFor(noteOpening);
+                setNoteSentBy(by);
+                setLastSent("note");
+                startTransition(() => noteFormAction(formData));
+            },
+            refusal: noteSaidInDialog ? noteSentence : null,
+        },
     };
 
     return (
         <TransitionContext.Provider value={shared}>
             {children}
             {plan.mayRetire && (
-                <RetirementConfirm open={retiring} onClose={() => setRetiring(false)} assetId={assetId} itemName={itemName} />
+                <RetirementConfirm
+                    open={retiring}
+                    onClose={() => setRetiring(false)}
+                    assetId={assetId}
+                    drawnJobId={assetJobRecordId}
+                    itemName={itemName}
+                    busy={retirePending}
+                    refusal={retireSaidInDialog ? retireSentence : null}
+                    send={(formData) => {
+                        setRetireSentFor(retireOpening);
+                        setLastSent("retire");
+                        startTransition(() => retireFormAction(formData));
+                    }}
+                />
             )}
             {office?.mayDelete && (
                 <DeleteConfirm

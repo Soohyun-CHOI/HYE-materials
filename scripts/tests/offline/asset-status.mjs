@@ -617,15 +617,16 @@ export function run({ check, log, assert }) {
         "Out"
     );
 
-    // ── the fifth map: where each event's row takes its job from (#531) ─────
-    // By value: an event that moves the asset between jobs takes the job from the person
-    // recording, one that leaves it on its job takes it from the asset (docs/notes/tools.md).
+    // ── the fifth map: where each event's row takes its job from (#531, #597) ─────
+    // By value: the event that puts the asset on a job takes the job from the person
+    // recording; every other leaves it on the job it sits on and takes it from the asset —
+    // the two scans since #597, which took the actor's until then (docs/notes/tools.md).
     log("");
-    log("where each event's row takes its job from, by value (#531):");
+    log("where each event's row takes its job from, by value (#531, #597):");
     check("the two sources", Object.values(JOB_SOURCE).join(" | "), "actor | asset");
     check("Created", JOB_SOURCE_OF_EVENT["Created"], "actor");
-    check("Checked out", JOB_SOURCE_OF_EVENT["Checked out"], "actor");
-    check("Checked in", JOB_SOURCE_OF_EVENT["Checked in"], "actor");
+    check("Checked out, the item's own since #597", JOB_SOURCE_OF_EVENT["Checked out"], "asset");
+    check("Checked in, the item's own since #597", JOB_SOURCE_OF_EVENT["Checked in"], "asset");
     check("Retired", JOB_SOURCE_OF_EVENT["Retired"], "asset");
     check("Sent for repair", JOB_SOURCE_OF_EVENT["Sent for repair"], "asset");
     check("Returned from repair", JOB_SOURCE_OF_EVENT["Returned from repair"], "asset");
@@ -636,7 +637,8 @@ export function run({ check, log, assert }) {
         ASSET_EVENT_VALUES.filter((e) => !Object.prototype.hasOwnProperty.call(JOB_SOURCE_OF_EVENT, e)).length,
         0
     );
-    check("jobSourceOf applies it, over seven", ASSET_EVENT_VALUES.map((e) => jobSourceOf(e)).join(","), "actor,actor,actor,asset,asset,asset,asset");
+    check("jobSourceOf applies it, over seven", ASSET_EVENT_VALUES.map((e) => jobSourceOf(e)).join(","), "actor,asset,asset,asset,asset,asset,asset");
+    check("  the registration the one event taking the actor's (#597)", ASSET_EVENT_VALUES.filter((e) => jobSourceOf(e) === "actor").join(" | "), "Created");
     let jobThrew = null;
     try {
         jobSourceOf("Job Changed");
@@ -645,13 +647,15 @@ export function run({ check, log, assert }) {
     }
     assert("an event outside the vocabulary throws rather than reading as neither", Boolean(jobThrew));
     assert("  and the throw names the module to edit", (jobThrew || "").includes("lib/assetStatus.js"));
-    // The press's own events are where the split matters on one screen: the scans take the
-    // reader's job, the return the item's.
+    // The press's own events, and the menu's sending: every one takes the item's job since #597,
+    // where the scans took the reader's — which is what lets the action write the plan's job for
+    // whatever it records (`lib/assetTransition.js:readSubmission`).
     check(
         "  of the events a press offers, the ones taking the asset's job",
         ASSET_STATUS_VALUES.map((s) => eventOfferedBy(s)).filter((e) => e && jobSourceOf(e) === "asset").join(" | "),
-        "Returned from repair"
+        "Checked out | Checked in | Returned from repair"
     );
+    check("  and none taking the actor's", ASSET_STATUS_VALUES.map((s) => eventOfferedBy(s)).filter((e) => e && jobSourceOf(e) !== "asset").length, 0);
 
     // ── the Python creation payload says the same thing ─────────────────────
     // The half that cannot be fixed after the fact. `create_tools_334.py` sends

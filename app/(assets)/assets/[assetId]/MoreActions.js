@@ -53,8 +53,9 @@ function Dots({ phone }) {
  * 0a Menu, #495). A phone has no rail, so this is where the reader is named and signs out:
  * under a full-width Inner rule, `Sign out` over the reader's email, posting where the rail's
  * account does. Where the record takes no action — a retired asset, a code
- * no asset carries, a reader on no job, a reader who is not a site manager (#506) and not the
- * office on an item nothing has happened to (#583) — the menu holds the account alone, with no
+ * no asset carries, a reader who does not record on the item (#506, #597) — not a site manager,
+ * or one on another job or on none — and is not the office on an item nothing has happened to
+ * (#583) — the menu holds the account alone, with no
  * rule, and
  * there it needs no transition: the screen saying a code is on no asset has none. The desk's
  * menu holds the record's acts alone — `Send for repair` from stock, the office's `Change job`,

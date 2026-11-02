@@ -166,7 +166,9 @@ const MARKS_BY_FILE = {
     "app/(assets)/asset-categories/page.js": ["book-open"],
     "app/(assets)/assets/[assetId]/AssetNote.js": ["message-square", "plus"],
     "app/(assets)/assets/[assetId]/MoreActions.js": ["ellipsis"],
-    "app/(assets)/assets/[assetId]/TransitionBar.js": ["map-pin", "user"],
+    // The foot bar's job pill went with #597; a check-out's name keeps its mark.
+    "app/(assets)/assets/[assetId]/TransitionBar.js": ["user"],
+    // The pin before the item's job in the title block since #597, where it led every history entry.
     "app/(assets)/assets/[assetId]/page.js": ["map-pin", "search-x", "user"],
     "app/components/Breadcrumb.js": ["chevron-left"],
     "app/components/Controls.js": ["arrow-up-down", "check", "chevron-down", "circle-alert", "info", "map-pin", "minus", "plus", "search", "x"],

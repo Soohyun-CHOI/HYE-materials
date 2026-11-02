@@ -1,19 +1,19 @@
 "use client";
 
-import { startTransition, useActionState, useId, useState } from "react";
+import { useId, useState } from "react";
 import { Button, Field, Refusal, SheetInput, TextInput, useRefusalFocus } from "@/app/components/Controls";
 import { DialogActions, DialogBody, DialogFrame } from "@/app/components/DialogFrame";
 import Icon from "@/app/components/Icon";
 import { ASSET_NOTE_COPY as COPY, readNoteSubmission } from "@/lib/assetNote";
-import { updateAssetNoteAction } from "./actions";
+import { useAssetTransition } from "./AssetTransition";
 
 /**
  * An item's note (#533), 12 under its status at both widths — 0a's Note, which 1f draws at a
  * desk and 1j on a phone — and the dialog and the sheet that write it.
  *
  * READ BY EVERYBODY, WRITTEN BY WHOEVER `writable` SAYS. The page hands down
- * `planTransition`'s `mayWriteNote`: a site manager on a job, while the item is in stock or
- * out. A note there is reads beside its speech-bubble mark in Ink 2 for everybody (1f, 1j-c,
+ * `planTransition`'s `mayWriteNote`: a site manager on the item's job (#597), while the item is
+ * in stock or out. A note there is reads beside its speech-bubble mark in Ink 2 for everybody (1f, 1j-c,
  * 1j-d); with none, a reader who may write meets `Add note` at a desk and the line holding
  * `Add a note` on a phone (1f, 1j-a), and anybody else meets nothing (0a Note).
  *
@@ -37,8 +37,12 @@ import { updateAssetNoteAction } from "./actions";
  * sheet's field — and only to the opening that sent it, so a sentence about a press a reader
  * walked away from does not greet the next opening. The page is drawn again as the action
  * refuses (#378): a note somebody else changed stands above the dialog while what was typed
- * stays in its field, and a second press writes over it knowingly. A reader who may no longer
- * write meets the page without the control and nothing said, and the dialog goes with it.
+ * stays in its field, and a second press writes over it knowingly. A note the plan stopped
+ * allowing — the item retired or sent for repair — meets the page without the control and
+ * nothing said, and the dialog goes with it. **One that is no longer the reader's to write
+ * (#597)** — the item moved to another job, or the reader taken off its — is said under the
+ * status, since the dialog goes: the page's provider holds the answer and the opening
+ * (`AssetTransition.js`), so the sentence outlives this control.
  *
  * A SENDING IS SAID IN WHAT SENT IT (0f Working, #469). The frame is busy while it is on its
  * way: the commitment, the `Remove note` that sent instead (the frame's `"action"`), or the
@@ -48,34 +52,19 @@ import { updateAssetNoteAction } from "./actions";
  * EVERY STRING COMES FROM `ASSET_NOTE_COPY`, which `offline/asset-list-view.mjs` holds by failing
  * on any JSX text under app/(assets)/.
  */
-export default function AssetNote({ assetId, note, writable }) {
-    const [answer, formAction, pending] = useActionState(updateAssetNoteAction, null);
-    // Which width's opening is open, and how many there have been: each opening starts from the
-    // note as the page now draws it.
-    const [openOn, setOpenOn] = useState(null);
-    const [opening, setOpening] = useState(0);
-    const [sentFor, setSentFor] = useState(null);
-    // What sent the note on its way: the form's commitment, or the desk's `Remove note`, which
-    // is an action of the dialog's that is not its submit (#527's `"action"`).
-    const [sentBy, setSentBy] = useState(null);
+export default function AssetNote({ note, writable }) {
+    // Which width's opening is open and how many there have been — each opening starts from the
+    // note as the page now draws it — what sent the note on its way (the form's commitment, or the
+    // desk's `Remove note`, an action of the dialog's that is not its submit, #527's `"action"`),
+    // and the answer this opening is to say: the provider's, since #597.
+    const { note: control } = useAssetTransition();
+    const { openOn, opening, pending, sentBy, refusal } = control;
 
     if (!note && !writable) return null;
 
-    const open = (width) => {
-        setOpening((count) => count + 1);
-        setOpenOn(width);
-    };
-    const close = () => setOpenOn(null);
-    const send = (typed, by) => {
-        const formData = new FormData();
-        formData.set("assetId", assetId);
-        formData.set("note", typed);
-        formData.set("previous", note);
-        setSentFor(opening);
-        setSentBy(by);
-        startTransition(() => formAction(formData));
-    };
-    const refusal = answer?.error && sentFor === opening ? answer.error : null;
+    const open = (width) => control.start(width);
+    const close = control.close;
+    const send = (typed, by) => control.send({ typed, previous: note, by });
     const shared = { note, pending, sentBy, refusal, onClose: close, onSend: send };
 
     return (

@@ -24,9 +24,14 @@
 //      theirs. lib/authz.js binds that wrapper
 //      to `createFlagGuard` over a gate whose verdict is `isSiteManager`, with a refusal that
 //      re-renders the page and says nothing.
-//   3. THE SCREENS. Each asset page asks `isSiteManager` once, into `recorder`, and every
-//      control a site manager alone uses is drawn under it; a category's list is handed it as
-//      `selects` and draws its boxes and its bar under that.
+//   3. THE SCREENS. Each asset page asks its one answer once, and every control a site manager
+//      alone uses is drawn under it. It was `isSiteManager`, bound to `recorder` on each page,
+//      until #597 put the item's job in it: the two lists bind `recording` to
+//      `lib/assetListView.js:listRecording` — `adds` for the registration's openers and its
+//      account, `selects` handed to a category's list for its boxes and its bar — and an item's
+//      page draws its `Print label` under `planTransition`'s `records`, the answer its other
+//      controls already stood under. Each asks `lib/assetJob.js:recordsOn`, which asks
+//      `isSiteManager` first; that is read here too.
 //   4. THE LABELS' DIALOG opens on nothing when the read behind it is refused.
 //
 // WHAT A PASS DOES NOT PROVE. That a refused press re-renders anything — `refresh()` is the
@@ -96,17 +101,17 @@ const READ_ACTIONS = [
 
 /**
  * The controls a site manager alone uses, by the page that draws them, and how many times
- * each is drawn there. `flag` is what each must stand under: the page's `recorder`, or the
- * list's `selects` the page hands it. `text` names a sentence rather than an element — the
+ * each is drawn there. `flag` is what each must stand under: the page's one answer — a list's
+ * `recording` (#597), an item's `transition` — or the list's `selects` the page hands it. `text` names a sentence rather than an element — the
  * empty tool's `COPY.noToolItems` was the one, a site manager's to read, until #507 took the
  * sentence away with the failed registration it described.
  */
 const GATED = [
-    { file: LIST, element: "RegistrationDialog", count: 2, flag: "recorder" },
-    { file: CATEGORY, element: "RegistrationDialog", count: 2, flag: "recorder" },
-    { file: CATEGORY, element: "RegistrationShortfall", count: 1, flag: "recorder" },
-    { file: CATEGORY, element: "RegistrationUnlogged", count: 1, flag: "recorder" },
-    { file: ITEM, element: "LabelsDialog", count: 1, flag: "recorder" },
+    { file: LIST, element: "RegistrationDialog", count: 2, flag: "recording.adds" },
+    { file: CATEGORY, element: "RegistrationDialog", count: 2, flag: "recording.adds" },
+    { file: CATEGORY, element: "RegistrationShortfall", count: 1, flag: "recording.adds" },
+    { file: CATEGORY, element: "RegistrationUnlogged", count: 1, flag: "recording.adds" },
+    { file: ITEM, element: "LabelsDialog", count: 1, flag: "transition.records" },
     { file: ASSET_LIST, element: "Checkbox", count: 2, flag: "selects" },
     { file: ASSET_LIST, element: "SelectionBar", count: 1, flag: "selects" },
 ];
@@ -246,13 +251,16 @@ export function conditionsOf(ast, { element, text }) {
     return found;
 }
 
-/** What a page binds `recorder` to, as written, and how often it asks `isSiteManager`. */
-function recorderOf({ ast, source }) {
+/**
+ * What a page binds its one answer to, as written — `binding` the name, `asks` the function
+ * the answer comes from — and how often it asks that function and `isSiteManager` itself.
+ */
+function recorderOf({ ast, source }, { binding = "recorder", asks = "isSiteManager" } = {}) {
     let bound = "not bound";
     walk(ast, (n) => {
-        if (n.type === "VariableDeclarator" && n.id?.name === "recorder" && n.init) bound = source.slice(n.init.start, n.init.end);
+        if (n.type === "VariableDeclarator" && n.id?.name === binding && n.init) bound = source.slice(n.init.start, n.init.end).replace(/\s+/g, " ");
     });
-    return `${bound}, asked ${callsTo(ast, "isSiteManager").length} time(s)`;
+    return `${bound}, asked ${callsTo(ast, asks).length} time(s), isSiteManager ${callsTo(ast, "isSiteManager").length}`;
 }
 
 /** Whether a module imports `name` from a specifier ending in `from`. */
@@ -421,10 +429,45 @@ export function run({ check, assert, log }) {
     // ── 3: the screens ───────────────────────────────────────────────────────
     log("");
     log("every control a site manager alone uses is drawn under the one answer:");
-    for (const file of [LIST, CATEGORY, ITEM]) {
+    // SINCE #597 THE ANSWER HOLDS THE ITEM'S JOB, so no page asks the mark itself: a list asks
+    // `listRecording` of its scope, an item's page `planTransition` of the item, and both ask
+    // `recordsOn`, which asks `isSiteManager` first.
+    for (const file of [LIST, CATEGORY]) {
         const page = parseFile(file);
-        check(`  ${file} asks it once, into recorder`, recorderOf(page), "isSiteManager(user), asked 1 time(s)");
-        assert(`    reading it from lib/siteManager.js`, importsFrom(page.ast, "isSiteManager", "/lib/siteManager"));
+        check(
+            `  ${file} asks it once, into recording`,
+            recorderOf(page, { binding: "recording", asks: "listRecording" }),
+            "listRecording(user, scope), asked 1 time(s), isSiteManager 0"
+        );
+        assert(`    reading it from lib/assetListView.js`, importsFrom(page.ast, "listRecording", "/lib/assetListView"));
+    }
+    {
+        const page = parseFile(ITEM);
+        check(
+            `  ${ITEM} asks it once, into transition`,
+            recorderOf(page, { binding: "transition", asks: "planTransition" }),
+            "planTransition({ user, jobs, status: asset.status, assetJobId: asset.job?.[0] }), asked 1 time(s), isSiteManager 0"
+        );
+        assert(`    reading it from lib/assetTransition.js`, importsFrom(page.ast, "planTransition", "/lib/assetTransition"));
+    }
+    // AND EACH ANSWER ASKS THE MARK THROUGH `recordsOn`, which asks it first.
+    {
+        const job = parseFile("lib/assetJob.js");
+        const recordsOn = resolveFunction(job.ast, "recordsOn");
+        check(
+            "  recordsOn asks the mark, then the reader's own jobs",
+            recordsOn ? job.source.slice(recordsOn.body.start, recordsOn.body.end).replace(/\s+/g, " ") : "none",
+            '{ if (!isSiteManager(user) || typeof jobId !== "string" || jobId === "") return false; return (user?.assignedJobs || []).includes(jobId); }'
+        );
+        const list = parseFile("lib/assetListView.js");
+        const listRecording = resolveFunction(list.ast, "listRecording");
+        const transition = parseFile("lib/assetTransition.js");
+        const plan = resolveFunction(transition.ast, "planTransition");
+        check(
+            "  and both answers ask it",
+            `${listRecording ? callsTo(listRecording, "recordsOn").length : 0} ${plan ? callsTo(plan, "recordsOn").length : 0}`,
+            "1 1"
+        );
     }
     const drawn = GATED.map((gated) => {
         const occurrences = conditionsOf(parseFile(gated.file).ast, gated);
@@ -444,7 +487,7 @@ export function run({ check, assert, log }) {
             handed = value ? nameOf(value) : "not handed";
         }
     });
-    check("  and a category's list is handed the same answer as `selects`", handed, "recorder");
+    check("  and a category's list is handed the list's answer as `selects`", handed, "recording.selects");
     const list = parseFile(ASSET_LIST);
     let readsSelects = false;
     walk(list.ast, (n) => {
@@ -473,9 +516,9 @@ export function run({ check, assert, log }) {
         "OPEN,OPEN,under,under,OPEN"
     );
     check(
-        "  and a page binding recorder to anything else is read as that",
-        recorderOf(parseSource("const recorder = canRegisterAssets(user, jobs);\n", "<planted-recorder>")),
-        "canRegisterAssets(user, jobs), asked 0 time(s)"
+        "  and a page binding its answer to anything else is read as that",
+        recorderOf(parseSource("const recording = canRegisterAssets(user, jobs);\n", "<planted-recorder>"), { binding: "recording", asks: "listRecording" }),
+        "canRegisterAssets(user, jobs), asked 0 time(s), isSiteManager 0"
     );
 
     // ── 4: the labels' dialog opens on nothing when the read is refused ──────

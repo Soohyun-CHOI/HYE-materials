@@ -100,9 +100,10 @@ const COLUMNS_WITH_JOB_WITHOUT_BOX =
 // EVERY WORD IS IN `ASSET_LIST_COPY` OR `ASSET_LABEL_PAGE_COPY` AND NONE IS IN JSX, this
 // axis's rule since #338, held by `offline/asset-list-view.mjs`.
 //
-// A READER WHO PRINTS NO LABELS SELECTS NOTHING (#506). `selects` is the page's answer to
-// whether this reader is a site manager, and without it the list draws no box on a row or
-// in the column head, and no selection bar — so there is no run to print and no `Escape`
+// A READER WHO PRINTS NO LABELS HERE SELECTS NOTHING (#506, #597). `selects` is the page's
+// answer to whether this reader is a site manager on the job the list stands on
+// (`listRecording`) — never on another job's list or on all jobs — and without it the list
+// draws no box on a row or in the column head, and no selection bar — so there is no run to print and no `Escape`
 // to clear one — and it reads no selection off the address either, so a copied link's
 // `id` neither marks a row nor rides the pager's steps.
 //
@@ -113,8 +114,8 @@ const COLUMNS_WITH_JOB_WITHOUT_BOX =
 // from the address by `assetListScope` — a job the list does not offer is where it starts — and
 // a press and a step keep it, so the address goes on naming the list the rows
 // came from. **It may be all jobs (#548)**, and then `showsJob` draws each row's
-// job in a column of its own, as 1d draws it on `All jobs`; a selection may then hold items on
-// several jobs, and one print takes them together.
+// job in a column of its own, as 1d draws it on `All jobs` — with no box since #597, where a
+// selection there held items on several jobs and one print took them together.
 export default function AssetList({ categoryRecordId, itemName, selects, showsJob = false, rows, page, job = null, sort = null, top, header, children }) {
     const params = useSearchParams();
     const selection = selects ? readAssetIds(params.getAll("id")) : [];

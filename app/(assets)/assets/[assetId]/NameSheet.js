@@ -8,7 +8,7 @@ import { ASSET_TRANSITION_COPY as COPY, matchedPart, nameListHead } from "@/lib/
 /**
  * 1j's name sheet (#458) — who an asset goes to, typed or picked, in Tools 0a's Sheet that
  * holds a field: the title `Checked out to` with `Done` at its end, the one field under
- * it, and the people this job has recently handed assets to.
+ * it, and the people the item's job has recently handed assets to.
  *
  * A PART, DRAWN AS 1j DRAWS IT AND OPENED BY WHATEVER ASKS FOR A NAME. The check-out's
  * dialog opens it from its name field below the phone's edge, where a desk types into the
@@ -33,8 +33,9 @@ import { ASSET_TRANSITION_COPY as COPY, matchedPart, nameListHead } from "@/lib/
  * sheet keeps its height while a name is typed: 0a's 194, room for the head and three rows. The
  * head is `nameListHead`'s — `Recently at this job` before anything is typed, `Matching names`
  * while what is typed matches, `No past names match` over no rows when it matches none — and
- * the space is empty, no head and no rows, before a job is chosen and on a job nothing has gone
- * out on, the list being about a job (#376). Typing narrows the rows `names` hands in
+ * the space is empty, no head and no rows, on a job nothing has gone out on, the list being
+ * about the item's job (#376, #597). It was empty before a job was chosen as well, until #597
+ * left a check-out no job to choose. Typing narrows the rows `names` hands in
  * (`offeredNames`), every one still matching, the list a desk is offered under its field; rows
  * past the space scroll inside it under the head, and the room fewer rows leave stays empty. The
  * row naming the person already typed is checked, on the fold the whole app compares people's
@@ -53,10 +54,10 @@ import { ASSET_TRANSITION_COPY as COPY, matchedPart, nameListHead } from "@/lib/
  * IT CLOSES ON A PRESS ON WHAT LIES BEHIND IT AND ON ITS HANDLE, both of which 1j draws, and
  * on a drag down — the frame's, for every sheet that draws a handle (#580).
  */
-export default function NameSheet({ open, onClose, value, onChange, names, jobChosen, hasRecent }) {
+export default function NameSheet({ open, onClose, value, onChange, names, hasRecent }) {
     const typed = textMatchKey(value);
-    const head = nameListHead({ jobChosen, hasRecent, typed: value, offered: names });
-    // Rows stand only under a head: none before a job is chosen or on a job with no recent names.
+    const head = nameListHead({ hasRecent, typed: value, offered: names });
+    // Rows stand only under a head: none on a job with no recent names.
     const rows = head ? names : [];
 
     return (

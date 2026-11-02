@@ -56,7 +56,7 @@ export const title = "A phone's sheet closes by its handle: a tap on it, and a d
 const FRAME = "app/components/DialogFrame.js";
 const DRAG = "app/components/sheetDrag.js";
 const SHEETS = {
-    job: "app/(assets)/assets/[assetId]/JobSheet.js",
+    jobChange: "app/(assets)/assets/[assetId]/JobChange.js",
     name: "app/(assets)/assets/[assetId]/NameSheet.js",
     note: "app/(assets)/assets/[assetId]/AssetNote.js",
     retirement: "app/(assets)/assets/[assetId]/RetirementConfirm.js",
@@ -633,7 +633,7 @@ export async function run({ check, assert, log }) {
             });
             return `${name}:${frames.join()}`;
         });
-        check("  the job, name and note sheets draw a handle, and the retirement's Confirm none", kinds.join(" "), "job:handle name:handle note:handle retirement:none");
+        check("  the job change's, name and note sheets draw a handle, and the retirement's Confirm none", kinds.join(" "), "jobChange:handle name:handle note:handle retirement:none");
     }
 
     // ── anti-vacuity ─────────────────────────────────────────────────────────
