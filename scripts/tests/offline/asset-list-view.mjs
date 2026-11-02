@@ -421,7 +421,7 @@ function allJobs548({ check, log }) {
     check(
         "the list hands the band the Job chip's values and its jobs only on all of them, and draws the chip only then",
         [
-            /const reading = readCategoryList\(rows, params, \{ allJobs, jobs, q: typed \}\);/.test(bandFile) &&
+            /const reading = readCategoryList\(rows, params, \{ allJobs, jobs, q: typed, job, elsewhere \}\);/.test(bandFile) &&
                 /jobs: allJobs \? \(params\?\.getAll\?\.\("job"\) \?\? \[\]\) : \[\] \},\s*\{ jobs: allJobs \? \(jobs \?\? \[\]\) : \[\] \}/.test(parseFile("lib/assetListView.js").source),
             /\{allJobs && \(\s*<FilterChip\s*label=\{COPY\.jobLabel\}\s*options=\{reading\.jobOptions\.map\(/.test(bandFile),
             /values=\{reading\.held\.jobs\}\s*onChange=\{\(values\) => choose\("jobs", values\)\}\s*clearLabel=\{COPY\.clearJobs\}/.test(bandFile),
@@ -3087,7 +3087,7 @@ export function run({ check, assert, log }) {
     check(
         "the list reads the band off the address, narrows once and counts out of the job's rows",
         [
-            /const asked = readAssetListFilters\(params\);\s*const \[typed, setTyped\] = useState\(asked\.q\);\s*const reading = readCategoryList\(rows, params, \{ allJobs, jobs, q: typed \}\);/.test(bandSource),
+            /const asked = readAssetListFilters\(params\);\s*const \[typed, setTyped\] = useState\(asked\.q\);\s*const reading = readCategoryList\(rows, params, \{ allJobs, jobs, q: typed, job, elsewhere \}\);/.test(bandSource),
             /const count = reading\.narrowed \? FILTER_BAR_COPY\.count\(reading\.rows\.length, rows\.length\) : rows\.length;/.test(bandSource),
             /setTyped\(text\);\s*write\(\{ \.\.\.reading\.held, q: text \}\);/.test(bandSource),
             /const choose = \(facet, values\) => write\(\{ \.\.\.reading\.held, \[facet\]: values \}\);/.test(bandSource),

@@ -16,6 +16,13 @@ import { readFoundHolderAction } from "./actions";
  * a dot between each — and a 16 chevron in the Accent at its end, 16 from them at least. The
  * whole line is the way to the item's own page, and Enter in the search is too.
  *
+ * AN ITEM THE TABLE DOES NOT SHOW SAYS ITS JOB (#599), by its code after the name and behind the
+ * same dot, in Ink 2 with tabular figures — 1d's job column's look, the drawings' one job code in an
+ * item's row; the files draw no line for this state, and Soo's ruling is the line of 1a3's
+ * `Item ID` with the job in it. `jobCode` comes only with an item the base named for an id the
+ * table shows none for — at another job, or kept out by the band (`lib/assetListView.js:
+ * readCategoryList`); an item in the table stands on a job the band already names.
+ *
  * IT IS A WAY THERE AND NARROWS NOTHING. The row the item stands under is the list's, under it as
  * the band left it, and the export holds that row and every asset under it; this line is in no
  * sheet (`lib/assetListExport.js`).
@@ -33,7 +40,7 @@ import { readFoundHolderAction } from "./actions";
  * — asks once, where the first build of this line asked twice and counted six operations.
  */
 export default function FoundItem({ found }) {
-    const { assetId, status, itemName } = found;
+    const { assetId, status, itemName, jobCode = null } = found;
     const [holders, setHolders] = useState({});
     const asked = useRef(new Set());
     useEffect(() => {
@@ -55,6 +62,12 @@ export default function FoundItem({ found }) {
                 <span className="shrink-0 font-id text-body-sm tracking-id">{assetId}</span>
                 <Dot />
                 <span className="min-w-0 truncate">{itemName}</span>
+                {jobCode && (
+                    <>
+                        <Dot />
+                        <span className="shrink-0 text-foreground-muted tabular-nums">{jobCode}</span>
+                    </>
+                )}
                 <Dot />
                 <span className="flex shrink-0 items-center gap-gap text-foreground-muted">
                     <StatusMark status={status} />

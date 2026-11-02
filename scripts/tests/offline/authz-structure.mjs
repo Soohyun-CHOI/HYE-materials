@@ -308,6 +308,18 @@ const EXEMPTIONS = [
             "asset is on — the asset's holder while it is out — so it asks no job. No wrapper fits, as none fits the " +
             "page: withSiteManagerAction would refuse every reader who is not one and withAdminAction the site.",
     },
+    {
+        file: "app/(assets)/asset-categories/actions.js",
+        name: "readFoundElsewhereAction",
+        mustCall: "requireUser",
+        reason:
+            "#599 — the item an id the Tools & Equipment list's search names stands for when the list's table shows " +
+            "no item with it, for the line the list draws over its rows: the list's own gate, every signed-in " +
+            "reader with no role (#337), and a READ that writes nothing. It answers what an asset's own page says to " +
+            "every signed-in reader — the item's name, status and job — and every reader may stand a list on any job " +
+            "since #593, so it asks no job. No wrapper fits, as none fits the page: withSiteManagerAction would " +
+            "refuse every reader who is not one and withAdminAction the site.",
+    },
     { file: "app/prs/new/actions.js", name: "saveDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "deleteDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "createPRAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },

@@ -180,11 +180,11 @@ export function run({ check, log }) {
         "23-USA-09 0 | 25-USA-13 1"
     );
     const offChip = filterAssetCategoryRows(ALL, { q: "261019-432", jobs: ["recJ1"] }, { jobs: CHOICE });
-    check("  the Job chip's jobs are where it is looked for: one taken off the item finds nothing", `${ids(offChip)} ${foundSaid(offChip)} ${emptiedSays(offChip)}`, "- - No item has the ID | 261019-432 | Clear all");
+    check("  the Job chip's jobs are where it is looked for: one taken off the item finds nothing", `${ids(offChip)} ${foundSaid(offChip)} ${emptiedSays(offChip)}`, "- - No item in these filters has the ID | 261019-432 | Clear all");
     const onChip = filterAssetCategoryRows(ALL, { q: "261019-432", jobs: ["recJ1", "recJ2"] }, { jobs: CHOICE });
     check("  and the item's own job taken finds it, the row counting the jobs taken", `${ids(onChip)} ${counted(onChip)} ${foundSaid(onChip)}`, "kWelder kWelder:1/1/0/1 HYE-AST-261019-432 TIG Welder Retired");
     const offType = filterAssetCategoryRows(JOB_ONE, { q: "261019-430", level1: ["Tool"] });
-    check("a type taken that leaves the item's row off empties the list, as drawn", `${ids(offType)} ${foundSaid(offType)} ${emptiedSays(offType, "23-USA-09")}`, "- - No item on 23-USA-09 has the ID | 261019-430 | Clear all");
+    check("a type taken that leaves the item's row off empties the list, as drawn", `${ids(offType)} ${foundSaid(offType)} ${emptiedSays(offType, "23-USA-09")}`, "- - No item in these filters has the ID | 261019-430 | Clear all");
     const repairIn = filterAssetCategoryRows(ALL, { q: "hye-ast-261018-1000" }, { jobs: CHOICE });
     check("  and a day's thousandth is found as any id is", foundSaid(repairIn), "HYE-AST-261018-1000 Drill, DeWalt In repair");
 

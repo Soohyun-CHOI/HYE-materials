@@ -329,23 +329,37 @@ on the base is named for them.
 ## What the list's search for an item's id says that the files of 2026-10-22 do not (#541)
 
 The files draw 1a's `No ID match` with `No item has the ID` and the id typed
-after it. The app's list finds an item on the job it stands on and nowhere else, so on one
-job the sentence names that job, by Soo's ruling; on all of a reader's jobs it
-is the drawing's. The next sending decides it.
+after it. The app says the drawing's sentence only where no job holds the id.
+The app's rows on one job are that job's, so there the sentence names that job,
+by Soo's ruling, while the item stands at another job or before every job has
+been asked (#599); and where an item carries the id but the band leaves it off —
+a `Job` chip on `All jobs` taking its job off, or a type or a category leaving
+its row off — the sentence says the filters hold none (#599, Soo's ruling that
+the drawing's sentence is false there). The next sending decides both.
 
 | String | Where | The files |
 |---|---|---|
-| `No item on 23-USA-09 has the ID` | where the rows stood, on a list standing on one job, before the id typed | draw `No item has the ID` |
+| `No item on 23-USA-09 has the ID` | where the rows stood, on a list standing on one job, before the id typed — under the line to an item at another job, or until every job has answered | draw `No item has the ID`, and no state for an item at another job |
+| `No item in these filters has the ID` | where the rows stood, before the id typed, when an item carries the id and the band leaves it off — under the line to that item | draw `No item has the ID`, and no state for an id the band hides |
+
+**`these filters` is the band's word for what narrows the list**: the same
+two words close `No items match these filters`, which the files draw for a band
+that empties the list with no search. The line over the rows names the item and
+its job, so the sentence need not say which chip left it off.
 
 **The job is named because the drawing's sentence would be false there**: an
-item on another of the reader's jobs is not found on this one, and `No item has
-the ID` would deny it. Nothing finds it on the other job for them — `All jobs`
-does, for a reader on several. The job is said by its code, as the head's chip
-says it.
+item on another job is not in this job's rows, and `No item has the ID` would
+deny it. Since #599 the list asks every job for it and draws 1a3's `Item ID`
+line over the rows with the item's job in it, behind the same dot — Soo's
+ruling, since the files draw no such state; until #599 nothing found it for a
+reader on the one job, and `All jobs` did. The job is said by its code, as the
+head's chip says it.
 
-The keys are `ASSET_LIST_COPY.noIdMatch` and `.noIdMatchOn` in
-`lib/assetListView.js`, held by value in `offline/asset-id-search.mjs`. The
-base's word for an item's id is `Assets."Asset ID"`.
+The keys are `ASSET_LIST_COPY.noIdMatch`, `.noIdMatchOn` and
+`.noIdMatchFiltered` in `lib/assetListView.js`, held by value in
+`offline/asset-id-search.mjs` and, which one stands once every job has
+answered, `offline/asset-id-elsewhere.mjs`.
+The base's word for an item's id is `Assets."Asset ID"`.
 
 ---
 

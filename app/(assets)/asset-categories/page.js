@@ -212,8 +212,8 @@ async function renderCategoriesPage({ searchParams }) {
         );
     }
 
-    // The job the list stands on is named where a search for an id finds no item (#541), and on
-    // all of them none is.
+    // The job the list stands on is named where a search for an id finds no item on it (#541), until
+    // every job is asked and none holds it (#599), and on all of them none is.
     return (
         <AssetCategoryList
             rows={rows}

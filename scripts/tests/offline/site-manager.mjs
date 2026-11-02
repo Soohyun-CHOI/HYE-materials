@@ -85,11 +85,13 @@ const OFFICE_ACTIONS = ["app/(assets)/assets/[assetId]/officeActions.js::changeA
  * gate is the page's `requireUser()` and whose rows are the reader's own scope.
  * `offline/authz-structure.mjs` carries it as an exemption and `offline/asset-export.mjs` holds
  * the scope it asks. **And who holds the item the list's search found by its id (#541)**, the
- * same gate's read, answering what an asset's own page says to every reader.
+ * same gate's read, answering what an asset's own page says to every reader — **and the item an id
+ * names at another job (#599)**, the same gate's read again.
  */
 const READ_ACTIONS = [
     "app/(assets)/asset-categories/actions.js::exportAssetListAction",
     "app/(assets)/asset-categories/actions.js::readFoundHolderAction",
+    "app/(assets)/asset-categories/actions.js::readFoundElsewhereAction",
 ];
 
 /**
@@ -350,7 +352,7 @@ export function run({ check, assert, log }) {
     });
     const actions = entries.filter((e) => e.kind !== "page" && (e.file.startsWith("app/(assets)/") || e.file.startsWith("app/l/")));
     check(
-        "the axis's server actions are the five this gate is for, the catalog's four, an asset's office two (#583, #582) and the list's two reads, found by walking",
+        "the axis's server actions are the five this gate is for, the catalog's four, an asset's office two (#583, #582) and the list's three reads (#599), found by walking",
         actions.map((e) => `${e.file}::${e.name}`).sort().join(" | "),
         [...ASSET_ACTIONS, ...CATALOG_ACTIONS, ...OFFICE_ACTIONS, ...READ_ACTIONS].sort().join(" | ")
     );
