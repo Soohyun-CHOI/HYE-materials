@@ -6,9 +6,10 @@
 // the space is drawn whatever the state, its class is a literal no state reaches, and Tailwind
 // resolves that class to the design's 194 — the head's line and its 4 and three 56 rows with
 // the Inner rule between them. What it holds — which head, which rows — is `nameListHead`,
-// held by value over the five states the issue names: before anything is typed, while what
-// is typed matches, when it matches nothing, on a job with no recent names, and before a job
-// is chosen. The sentence that stood in the space on a job with none is held gone. And a move
+// held by value over the states the issue names: before anything is typed, while what is
+// typed matches, when it matches nothing, and on a job with no recent names — and a fifth,
+// before a job is chosen, until #597 left a check-out on the item's own job. The sentence that
+// stood in the space on a job with none is held gone. And a move
 // on the space is judged as #580 judges one anywhere in a sheet: the rows scroll once they
 // overflow, and everything else in the space drags (`sheetHold.js:scrollsUnder`).
 //
@@ -94,30 +95,32 @@ export async function run({ check, log }) {
     const offered = (typed) => offeredNames(RECENT, typed);
     check(
         "  before anything is typed, the recent names under their head",
-        `${head({ jobChosen: true, hasRecent: true, typed: "", offered: offered("") })} | ${offered("").join(", ")}`,
+        `${head({ hasRecent: true, typed: "", offered: offered("") })} | ${offered("").join(", ")}`,
         "Recently at this job | Mike R, Ana Diaz, Minjae Seo"
     );
-    check("    and a field of spaces is nothing typed", head({ jobChosen: true, hasRecent: true, typed: "   ", offered: offered("   ") }), "Recently at this job");
+    check("    and a field of spaces is nothing typed", head({ hasRecent: true, typed: "   ", offered: offered("   ") }), "Recently at this job");
     check(
         "  while what is typed matches, every name it matches under `Matching names`, recent first",
-        `${head({ jobChosen: true, hasRecent: true, typed: "mi", offered: offered("mi") })} | ${offered("mi").join(", ")}`,
+        `${head({ hasRecent: true, typed: "mi", offered: offered("mi") })} | ${offered("mi").join(", ")}`,
         "Matching names | Mike R, Minjae Seo, Mira Kang"
     );
     check("    past the three shown before typing", offered("a").length, 4);
     check(
         "  when it matches nothing, `No past names match` over no rows",
-        `${head({ jobChosen: true, hasRecent: true, typed: "zz", offered: offered("zz") })} | ${offered("zz").length}`,
+        `${head({ hasRecent: true, typed: "zz", offered: offered("zz") })} | ${offered("zz").length}`,
         "No past names match | 0"
     );
     check(
         "  on a job with no recent names, nothing, whatever is typed",
-        `${head({ jobChosen: true, hasRecent: false, typed: "", offered: [] })} | ${head({ jobChosen: true, hasRecent: false, typed: "zz", offered: [] })}`,
+        `${head({ hasRecent: false, typed: "", offered: [] })} | ${head({ hasRecent: false, typed: "zz", offered: [] })}`,
         "nothing | nothing"
     );
+    // NO JOB IS CHOSEN SINCE #597 — a check-out is on the item's own job — so the judgment takes
+    // none, and a caller still saying none is chosen meets the heads a job's names stand under.
     check(
-        "  before a job is chosen, nothing, whatever is typed",
+        "  no job to be chosen (#597): a state saying none is, read as the item's job",
         `${head({ jobChosen: false, hasRecent: true, typed: "", offered: offered("") })} | ${head({ jobChosen: false, hasRecent: true, typed: "mi", offered: offered("mi") })}`,
-        "nothing | nothing"
+        "Recently at this job | Matching names"
     );
     check(
         "  the three heads are the design's words",
@@ -148,7 +151,7 @@ export async function run({ check, log }) {
     check(
         "  the head and the rows are the judgment's, rows only under a head",
         [
-            /const head = nameListHead\(\{ jobChosen, hasRecent, typed: value, offered: names \}\);/.test(sheet.source),
+            /const head = nameListHead\(\{ hasRecent, typed: value, offered: names \}\);/.test(sheet.source),
             /const rows = head \? names : \[\];/.test(sheet.source),
             /\{head && \(\s*<p className="shrink-0 [^"]*">\s*\{head\}\s*<\/p>\s*\)\}/.test(sheet.source),
         ].join(" "),

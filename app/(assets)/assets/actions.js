@@ -1,8 +1,9 @@
 "use server";
 
 import { headers } from "next/headers";
-import { withSiteManagerAction } from "@/lib/authz";
+import { requireUser, withSiteManagerAction } from "@/lib/authz";
 import { getAssetsByAssetIds } from "@/lib/airtable/assets";
+import { recordsOn } from "@/lib/assetJob";
 import { QR_SIDE_MODULES, buildAssetLabel } from "@/lib/assetLabelQR";
 import { MAX_LABELS_PER_REQUEST } from "@/lib/assetLabelPage";
 import { namedCode, readAssetIds } from "@/lib/assetRoutes";
@@ -10,7 +11,8 @@ import { withOpsLabel } from "@/lib/airtableOps";
 
 /**
  * The run a category's page opens the labels' dialog on (#457): the labels for the assets
- * its list has selected, built here, and the ones no asset carries.
+ * its list has selected, built here, the ones no asset carries, and since #597 the ones on
+ * items off the reader's jobs.
  *
  * A LABEL IS ITS ID'S AND NOTHING ELSE'S, AND IT STILL CANNOT BE DRAWN FROM THE ID IN
  * THE BROWSER. What a label carries is the printed code and a symbol of the address
@@ -24,20 +26,26 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * needs none of this: it has read its record and built its symbol already, and hands
  * the dialog that label.
  *
- * WHAT IT COSTS IS THE SESSION AND ONE `Assets` QUERY PER 50, so two operations
- * for a run of fifty and three for a hundred, where `/tool-items/labels` was three for
+ * WHAT IT COSTS IS THE SESSION TWICE AND ONE `Assets` QUERY PER 50 (#597), so three operations
+ * for a run of fifty and four for a hundred — two and three until #597, when the body began
+ * reading the reader again for their jobs — where `/tool-items/labels` was three for
  * either — it read the `Asset Categories` the run's assets belonged to, for a picker naming
  * each by its tool, and the dialog names one category, the page's own, which that page has
  * in hand. The symbols cost nothing: they are built from the origin and the id.
  *
- * ONLY A SITE MANAGER PRINTS LABELS (#506), AND THE WRAPPER IS THE WHOLE GATE. Until then
- * every signed-in reader could print any label (#337) and the session was the gate; now
- * `withSiteManagerAction` refuses anybody else before this body runs — the category's page
+ * ONLY A SITE MANAGER PRINTS LABELS (#506), AND SINCE #597 ONLY ONE ON THE ITEM'S JOB. Until
+ * #506 every signed-in reader could print any label (#337) and the session was the gate; then
+ * `withSiteManagerAction` refused anybody else before this body runs — the category's page
  * rendered again without its boxes and bar, and `null`, which the dialog opens on nothing
- * for. No asset is one reader's rather than another's, so there is still no record to
- * compare, and the session is the wrapper's read: this body reads nobody, so the run
- * still costs what it did — the session counted under `authz gate`, where every
- * wrapper's gate is counted (#224), and the `Assets` reads under this action.
+ * for — and the wrapper was the whole gate, no asset being one reader's rather than
+ * another's. **Since #597 an item is its job's site managers' to record**, its label among it,
+ * so this body compares each item it reads against the reader (`lib/assetJob.js:recordsOn`):
+ * a list draws boxes on its own job's rows alone, and this is the re-authorization a directly
+ * callable action owes that page. An item that fails it is named in `elsewhere` and drawn no
+ * label, as a code no asset carries is named in `missing`, rather than refusing the run: the
+ * reader's own items still print, and the codes that did not are said beside them. The reader
+ * is the session read again, since the wrapper drops the person it read (`lib/authz.js`) —
+ * counted under this action, the gate's under `authz gate` (#224).
  *
  * A RUN LONGER THAN ONE PRINT THROWS, AND NOTHING OPENS ONE. A category's page refuses a
  * selection over `MAX_LABELS_PER_REQUEST` before it calls this (`describeSelection`),
@@ -67,20 +75,21 @@ async function readAssetLabelsHandler(assetIds) {
         const proto = headerList.get("x-forwarded-proto") ?? "http";
         const origin = `${proto}://${host}`;
 
-        const found = new Map(
-            (named.length > 0 ? await getAssetsByAssetIds(named) : []).map((asset) => [
-                asset.assetId,
-                asset,
-            ])
-        );
+        const [user, assets] = await Promise.all([requireUser(), named.length > 0 ? getAssetsByAssetIds(named) : []]);
+        const found = new Map(assets.map((asset) => [asset.assetId, asset]));
 
         // In the order named, which for a category's page is its list's order (#443).
         const labels = [];
         const missing = [];
+        const elsewhere = [];
         for (const assetId of named) {
             const asset = found.get(assetId);
             if (!asset) {
                 missing.push(namedCode(assetId));
+                continue;
+            }
+            if (!recordsOn(user, asset.job?.[0])) {
+                elsewhere.push(namedCode(assetId));
                 continue;
             }
             labels.push(await buildAssetLabel({ origin, assetId: asset.assetId }));
@@ -88,6 +97,6 @@ async function readAssetLabelsHandler(assetIds) {
 
         // `sideModules` sizes the label (`labelBudget`) and arrives as data, since the
         // dialog cannot import the module that knows it.
-        return { sideModules: QR_SIDE_MODULES, labels, missing };
+        return { sideModules: QR_SIDE_MODULES, labels, missing, elsewhere };
     });
 }

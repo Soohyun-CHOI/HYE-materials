@@ -20,10 +20,9 @@ import { ASSET_LABEL_PAGE_COPY as LABEL_COPY, labelBudget, symbolBox } from "@/l
 import { ASSET_LIST_COPY, assetListScope, listJobFromAsset } from "@/lib/assetListView";
 import { ASSET_CATEGORIES_PATH, labelCodeFor, assetPath, assetCategoriesPath, assetCategoryPath } from "@/lib/assetRoutes";
 import { ASSET_EVENT } from "@/lib/assetStatus";
-import { ASSET_TRANSITION_COPY as TRANSITION_COPY, planTransition } from "@/lib/assetTransition";
+import { planTransition } from "@/lib/assetTransition";
 import { planOfficeActs } from "@/lib/assetOfficeActs";
 import { withOpsLabel } from "@/lib/airtableOps";
-import { isSiteManager } from "@/lib/siteManager";
 import { actorName } from "@/lib/userName";
 import LabelsDialog, { LabelPreview } from "../LabelsDialog";
 import StatusMark from "../../StatusMark";
@@ -118,11 +117,11 @@ const ID_ON_PHONE = "font-id text-mobile-body-xs tracking-id tabular-nums text-f
  *
  * AND ONE MORE WHEN THE OFFER IS A CHECK-OUT (#376), which is the first read this
  * page has added since #340 and is why the figure above is now two figures. The
- * names a check-out offers are other assets' history on the reader's own jobs,
- * so nothing already in hand can answer it; `getRecentCheckOuts` is one operation
- * and stays one whatever a job's history grows to. Every other path — a check-in,
- * an item in repair, a retired asset, a reader with no job, a reader who is not a site
- * manager (#506) — asks nothing and pays nothing.
+ * names a check-out offers are other assets' history on this item's job — the
+ * reader's own jobs until #597 — so nothing already in hand can answer it;
+ * `getRecentCheckOuts` is one operation and stays one whatever a job's history grows
+ * to. Every other path — a check-in, an item in repair, a retired asset, a reader who
+ * does not record on this item (#506, #597) — asks nothing and pays nothing.
  *
  * IT OFFERS WHAT THAT STATUS ALLOWS (#362, #363, #531), AND FOR NO OPERATIONS AT ALL.
  * The session and the whole job list are already read for the history's names,
@@ -136,13 +135,15 @@ const ID_ON_PHONE = "font-id text-mobile-body-xs tracking-id tabular-nums text-f
  * Server Action is reachable without this page and because the status may have
  * moved since this render. One rule, two callers, no second implementation.
  *
- * AND IT OFFERS NOTHING TO A READER WHO IS NOT A SITE MANAGER (#506), who reads the same
- * page without its controls: `planTransition` asks `isSiteManager` first and gives them no
- * event, no retirement and no sentence, so the header's right holds nothing at a desk and
- * a phone draws no foot bar; and `Print label` is drawn under the same question, while
- * the label itself, its size and its symbol stay, since what a label looks like is a fact
- * about the asset. The actions behind the controls ask it too, through
- * `withSiteManagerAction`. **But the office may change the job of an item nothing has happened
+ * AND IT OFFERS NOTHING TO A READER WHO DOES NOT RECORD ON THIS ITEM (#506, #597), who reads
+ * the same page without its controls: a reader who is not a site manager, and since #597 a
+ * site manager the item's job is not one of — on another job or on none — as 1f's `Another
+ * job` and 1j-d draw it. `planTransition` asks `lib/assetJob.js:recordsOn` first and gives
+ * them no event, no retirement, no note and no sentence, so the header's right holds nothing
+ * at a desk and a phone draws no foot bar; and `Print label` is drawn under the same answer,
+ * `records`, while the label itself, its size and its symbol stay, since what a label looks
+ * like is a fact about the asset. The job under the title says whose item it is. The actions
+ * behind the controls ask it again on a fresh read, after `withSiteManagerAction`. **But the office may change the job of an item nothing has happened
  * to (#583)** — an Admin, whether or not a site manager, while the history holds its `Created`
  * entry alone — so for the office such an item's `More actions` holds `Change job`, at a desk and
  * on a phone, and `withAdminAction` is the gate behind it; and since #582 `Delete this item` too,
@@ -152,12 +153,13 @@ const ID_ON_PHONE = "font-id text-mobile-body-xs tracking-id tabular-nums text-f
  * a header holding its category's name, the line under it, its status and the actions, the
  * history beside the record rail and its label (1f, 1g). A phone draws 1j: the top bar with
  * `More actions` and, once the heading has scrolled under it, the name; the title block; the
- * history; and the transition in a foot bar. **The line under the name is the id and the caption
- * since #519** — the id, the type and the category at a desk, and the class too until #552, the
- * id first as it has been since #411; on a phone the id opens the title block over the name and the caption stands
- * alone under it, where the top bar held the id until #538 — off the category row already read,
- * so it costs nothing (`CategoryCaption`). The job left that line with #519, as 1f draws it: every history
- * entry names its job, and wherever there are jobs to choose between the breadcrumb does. What is
+ * history; and the transition in a foot bar. **The line under the name is the id, the item's
+ * job and the caption** — the id, the job, the type and the category at a desk, the id first as
+ * it has been since #411; on a phone the id opens the title block over the name, the caption
+ * stands under it and the job under that behind a pin (1j) — off the category row and the job
+ * list already read, so it costs nothing (`CategoryCaption`). **The job left that line with #519
+ * and came back with #597**, when it left every history entry instead: an item's job is the one
+ * it sits on, and the files of 2026-11-02 name it once, under the title. What is
  * one fact is one element — the heading, the status, an entry — set at each width's size;
  * what only one width draws is drawn there alone. Every word is a constant and every value a
  * name `app/designValues.css` declares, and the column the page sits in is the layout's
@@ -250,7 +252,7 @@ async function renderAssetPage({ params }) {
     // a control without having asked the question that refuses it. The action
     // asks the same function again, because a Server Action is reachable without
     // this page.
-    const transition = planTransition({ user, jobs, status: asset.status });
+    const transition = planTransition({ user, jobs, status: asset.status, assetJobId: asset.job?.[0] });
     // WHAT THE OFFICE MAY DO HERE (#583, #582), and for no operations either: the reader, the
     // history and the job list are all in hand. `planOfficeActs` offers `Change job` and `Delete
     // this item` while the history holds its `Created` entry alone, with the jobs a list's choice
@@ -262,28 +264,22 @@ async function renderAssetPage({ params }) {
     // The jobs this reader's lists hold, the same judgment the lists read by (#509) — every job,
     // for every reader, since #593: with more than one, the breadcrumb names the asset's job as a
     // level they may change (#519), and the list's level and the category's carry it when it is
-    // one of them (#581). Nothing a reader records here asks it: `planTransition` above reads
-    // their own assignments.
+    // one of them (#581). Nothing a reader records here asks it: `planTransition` above asks
+    // whether the item's job is one of theirs (#597).
     const scope = assetListScope(user, jobs, null);
     const choosesJob = scope.jobs.length > 1;
     const listJob = listJobFromAsset(scope, asset);
-    // Whether this reader prints labels (#506) — the question `planTransition` asked above,
-    // asked of the one control outside the transition.
-    const recorder = isSiteManager(user);
 
     // #376 — THE ONE READ THIS PAGE ADDED, AND ONLY WHERE IT IS USED. A check-out
-    // asks who the asset is going to and offers the names the reader's own jobs have
-    // recently handed assets to; a check-in returns one to stock and asks nobody, a
-    // retired asset offers neither control, a reader with no job is refused before
-    // either, and one who is not a site manager is offered neither (#506). So the
-    // query runs only when the offered event is the one that
-    // carries a name, which leaves this page at its recorded figure on every other
-    // path. One operation when it does run — see `getRecentCheckOuts` for why it is
-    // one and stays one.
+    // asks who the asset is going to and offers the names this item's job has recently
+    // handed assets to (#597); a check-in returns one to stock and asks nobody, a
+    // retired asset offers neither control, and a reader who does not record on this
+    // item is offered neither (#506, #597). So the query runs only when the offered
+    // event is the one that carries a name, which leaves this page at its recorded
+    // figure on every other path. One operation when it does run — see
+    // `getRecentCheckOuts` for why it is one and stays one.
     const recentRows =
-        transition.event === ASSET_EVENT.CHECKED_OUT
-            ? await getRecentCheckOuts({ jobCodes: transition.jobs.map((job) => job.jobCode) })
-            : [];
+        transition.event === ASSET_EVENT.CHECKED_OUT ? await getRecentCheckOuts({ jobCodes: [transition.jobCode] }) : [];
     // The reader hands back link arrays; the pure rule takes a job CODE, because
     // the choice narrows by the code its job carries. Mapped from the job list
     // already in hand, so this costs nothing.
@@ -381,9 +377,20 @@ async function renderAssetPage({ params }) {
                                 <CategoryCaption
                                     category={category}
                                     lead={<span className={ID_IN_TEXT}>{asset.assetId}</span>}
+                                    job={jobCode}
                                     className="text-body text-foreground-subtle max-sm:hidden"
                                 />
                                 <CategoryCaption category={category} className="text-mobile-body-xs text-foreground-subtle sm:hidden" />
+                                {/* THE ITEM'S JOB, ONCE (1j, #597): behind a pin in Ink 3, the code in
+                                    Ink 2 with tabular figures, 4 under the caption as the block's lines
+                                    stand — the one place a phone names it, which every history entry did
+                                    until the files of 2026-11-02. */}
+                                {jobCode && (
+                                    <p className="flex items-center gap-gap text-mobile-body-xs text-foreground-muted sm:hidden">
+                                        <Icon name="map-pin" className="size-mobile-title-icon shrink-0 text-foreground-subtle" />
+                                        <span className="min-w-0 tabular-nums">{jobCode}</span>
+                                    </p>
+                                )}
                             </div>
                             {/* THE STATUS, AND THE VALUE ONLY ONE STATE HAS 14 AFTER IT (0n):
                                 who holds an asset that is out, when a retired one was retired
@@ -413,41 +420,29 @@ async function renderAssetPage({ params }) {
                                 read by everybody, written by whoever the plan says may — and
                                 after a refused press's sentence, which 1k sets right under the
                                 status it is about. It arrived with the asset's own read. */}
-                            <AssetNote assetId={asset.assetId} note={asset.note} writable={transition.mayWriteNote} />
+                            <AssetNote note={asset.note} writable={transition.mayWriteNote} />
                         </div>
                         {/* WHAT MAY BE RECORDED, AT A DESK (#362, #363, #463, #531): the press
                             and `More actions`, which holds sending for repair and the
-                            retirement. A REFUSAL STANDS WHERE BOTH CONTROLS WOULD BE, never
-                            beside them — a reader on no job reads why — except a status that
-                            allows nothing, where 1f draws nothing at all; a phone's foot bar
-                            says that one. The two controls must not read as the same weight:
-                            one is pressed dozens of times a day and is the filled button, the
-                            other holds that asset's last act and is a menu behind an icon.
-                            Each is asked for separately, because the answers come from three
-                            maps (`lib/assetStatus.js`). A READER WHO IS NOT A SITE MANAGER IS
-                            OFFERED NONE AND TOLD NOTHING (#506), so the place holds nothing, as
-                            it does for a retired asset. THE OFFICE'S `Change job` AND `Delete this
-                            item` ARE IN THE SAME MENU (#583, #582), whoever else the reader is, so
-                            `More actions` stands for them alone too — and beside a site manager's
-                            sentence about having no job, which is about recording and not about
-                            this. */}
-                        {transition.refusal
-                            ? transition.refusal !== TRANSITION_COPY.noTransition && (
-                                  <div className="flex shrink-0 items-start gap-gap max-sm:hidden">
-                                      <p className="max-w-empty-state text-body-sm text-pretty text-foreground-subtle">{transition.refusal}</p>
-                                      {officeActs && (
-                                          <div className="-mt-record-header-actions-bleed flex">
-                                              <MoreActions />
-                                          </div>
-                                      )}
-                                  </div>
-                              )
-                            : (transition.event || transition.maySendForRepair || transition.mayRetire || officeActs) && (
-                                  <div className="-mt-record-header-actions-bleed flex shrink-0 items-center gap-gap max-sm:hidden">
-                                      {transition.event && <TransitionDialog currentJobCode={jobCode} recentCheckOuts={recentCheckOuts} />}
-                                      {(transition.maySendForRepair || transition.mayRetire || officeActs) && <MoreActions />}
-                                  </div>
-                              )}
+                            retirement. A status that allows nothing draws nothing here, as 1f
+                            draws a retired item; a phone's foot bar says that one. The two
+                            controls must not read as the same weight: one is pressed dozens of
+                            times a day and is the filled button, the other holds that asset's
+                            last act and is a menu behind an icon. Each is asked for separately,
+                            because the answers come from three maps (`lib/assetStatus.js`). A
+                            READER WHO DOES NOT RECORD ON THIS ITEM IS OFFERED NONE AND TOLD
+                            NOTHING (#506, #597) — a site manager on another job or on none
+                            included, whom a sentence here told to ask for an assignment until
+                            #597 — so the place holds nothing, as it does for a retired asset.
+                            THE OFFICE'S `Change job` AND `Delete this item` ARE IN THE SAME MENU
+                            (#583, #582), whoever else the reader is, so `More actions` stands for
+                            them alone too. */}
+                        {!transition.refusal && (transition.event || transition.maySendForRepair || transition.mayRetire || officeActs) && (
+                            <div className="-mt-record-header-actions-bleed flex shrink-0 items-center gap-gap max-sm:hidden">
+                                {transition.event && <TransitionDialog recentCheckOuts={recentCheckOuts} />}
+                                {(transition.maySendForRepair || transition.mayRetire || officeActs) && <MoreActions />}
+                            </div>
+                        )}
                     </header>
                     <div className="grid grid-cols-[minmax(0,1fr)_var(--width-record-rail)] max-sm:block">
                         <section className="pt-record-header-stack pr-record-rail-inline max-sm:px-mobile-gutter max-sm:pt-[calc(var(--spacing-mobile-stack)-var(--spacing-mobile-title-stack))] max-sm:pb-scroll-inset-bottom">
@@ -455,7 +450,7 @@ async function renderAssetPage({ params }) {
                             {history.length === 0 ? (
                                 <p className="text-body text-foreground-subtle max-sm:text-mobile-body">{COPY.noHistory}</p>
                             ) : (
-                                <History rows={history} nameById={nameById} jobCodeById={jobCodeById} />
+                                <History rows={history} nameById={nameById} />
                             )}
                         </section>
                         {/* THE RECORD RAIL AND ITS ONE BLOCK, THE LABEL (0n, 0p). The label is
@@ -463,8 +458,9 @@ async function renderAssetPage({ params }) {
                             the print size in text under it; the control opens that dialog on
                             this one label, handed over as this render built it, so opening it
                             reads nothing. It stands for every status, `Retired` included, and
-                            for a site manager alone (#506): anybody else reads the label, its
-                            size and its symbol, and has nothing here to print it with. A
+                            for a site manager on the item's job alone (#506, #597): anybody else
+                            reads the label, its size and its symbol, and has nothing here to
+                            print it with. A
                             phone draws no label: one is printed at a desk. THE RAIL HOLDS UNDER
                             THE BREADCRUMB BAR WHILE IT FITS (0i), 24 under it as it stands under
                             the header's Band, and its Rule runs the whole column. */}
@@ -491,7 +487,7 @@ async function renderAssetPage({ params }) {
                                     ) : (
                                         <p className="text-body-sm text-pretty text-foreground-muted">{COPY.symbolTooLargeNote}</p>
                                     )}
-                                    {recorder && (
+                                    {transition.records && (
                                         <div>
                                             <LabelsDialog
                                                 title={LABEL_COPY.openFromAsset}
@@ -517,12 +513,14 @@ async function renderAssetPage({ params }) {
  * dot on a rule beside each entry, the rule stopping at the last.
  *
  * AN ENTRY IS ONE ELEMENT SET TWO WAYS. At a desk the event heads it with who a check-out
- * went to after `to`, and one line under it says when, on which job and `by` whom (1f). On a
- * phone the event stands alone, each value under it on its own line — the person and the job
- * behind their marks — and the moment and who recorded it last (1j). The values are
- * `logRowFacts`', so all four are on every entry and a check-out carries the fifth.
+ * went to after `to`, and one line under it says when and `by` whom (1f). On a phone the event
+ * stands alone, who a check-out went to under it behind its mark, and the moment and who
+ * recorded it last (1j). The values are `logRowFacts`', so all three are on every entry and a
+ * check-out carries the fourth. **No entry names its job since #597** — after the moment at a
+ * desk and behind a pin on a phone until then: the files of 2026-11-02 name the item's job
+ * once, under its title.
  */
-function History({ rows, nameById, jobCodeById }) {
+function History({ rows, nameById }) {
     return (
         <ol className="flex flex-col">
             {rows.map((row, index) => {
@@ -531,7 +529,6 @@ function History({ rows, nameById, jobCodeById }) {
                         event: row.event,
                         eventAt: row.eventAt,
                         recordedByName: nameById[row.recordedBy?.[0]],
-                        jobCode: jobCodeById[row.job?.[0]],
                         checkedOutTo: row.checkedOutTo,
                     }).map((fact) => [fact.key, fact.value])
                 );
@@ -564,17 +561,9 @@ function History({ rows, nameById, jobCodeById }) {
                                     <span className="min-w-0 text-pretty">{facts.checkedOutTo}</span>
                                 </p>
                             )}
-                            <p className="flex items-center gap-gap text-mobile-body-xs text-foreground-muted sm:hidden">
-                                <Icon name="map-pin" className="size-mobile-log-icon shrink-0 text-foreground-subtle" />
-                                <span className="min-w-0 text-pretty">{facts.job}</span>
-                            </p>
                             <p className="text-body-sm text-foreground-subtle max-sm:text-mobile-body-xs">
                                 <span className="text-foreground-muted max-sm:text-foreground-subtle">
                                     <Instant at={facts.eventAt} />
-                                </span>
-                                <span className="max-sm:hidden">
-                                    <Dot />
-                                    <span className="text-foreground-muted">{facts.job}</span>
                                 </span>
                                 <Dot />
                                 {COPY.historyBy}{" "}

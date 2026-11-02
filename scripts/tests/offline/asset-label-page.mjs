@@ -1175,7 +1175,8 @@ export function run({ check, assert, log }) {
     // source — no figure moves when the steps are drawn for a run that prints nothing, or
     // when the commitment stays live with nothing to print. So each part is read with the
     // test that guards it: the steps only while something prints, the codes not found
-    // only when there are some, the host's sentence only when a symbol is too large, the
+    // only when there are some, and since #597 the codes on items off the reader's jobs
+    // likewise, the host's sentence only when a symbol is too large, the
     // pane's sentence in place of the pages when none prints, and the commitment disabled
     // then, saying the title's words.
     const frameFn = (ast) => resolveFunction(ast, "LabelsFrame");
@@ -1200,7 +1201,7 @@ export function run({ check, assert, log }) {
     check(
         "each part stands under its own test",
         guards(component),
-        "missing.length > 0 -> notFound | printing > 0 -> hintHeading+hintSteps | printing > 0 ? pages+page : noLabels | tooLarge > 0 -> symbolTooLarge"
+        "elsewhere.length > 0 -> notYours | missing.length > 0 -> notFound | printing > 0 -> hintHeading+hintSteps | printing > 0 ? pages+page : noLabels | tooLarge > 0 -> symbolTooLarge"
     );
     const commitment = (parsed) => {
         let found = "none";

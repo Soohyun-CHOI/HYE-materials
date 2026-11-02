@@ -182,6 +182,26 @@ export default function LabelsDialog({ title, itemName, run: handed, assetIds, d
 }
 
 /**
+ * Codes the run named and draws no label for, under how many and why (1e): the codes no asset
+ * carries, and since #597 those on items off the reader's jobs — one shape for both, so the two
+ * reasons read alike. The frame draws it only where there are some.
+ */
+function NamedCodes({ heading, codes }) {
+    return (
+        <div className="flex flex-col gap-gap">
+            <p className="text-body-sm font-medium">{heading}</p>
+            <ul className="flex flex-col gap-dialog-column-list-stack">
+                {codes.map((code) => (
+                    <li key={code} className="whitespace-nowrap font-id text-body-sm tracking-id text-foreground-muted">
+                        {code}
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+
+/**
  * 1e: the pages in the pane, and beside them how many print, what did not, what to do in
  * the browser's print dialog, and the commitment.
  *
@@ -193,10 +213,12 @@ export default function LabelsDialog({ title, itemName, run: handed, assetIds, d
  * reason before it since the pane and the codes are the reason (0f). A host long enough
  * that the symbols do not fit the label is 1e's third state too, with one sentence about
  * the host where the codes stand — the design draws nothing for it, and nothing the app
- * draws can be printed from such a host.
+ * draws can be printed from such a host. **Codes on items off the reader's jobs (#597)** are
+ * the second state's again, under their own count beside the codes not found, as the read
+ * refuses their labels: the design draws nothing for them either.
  */
 function LabelsFrame({ open, onClose, title, itemName, run }) {
-    const { budget, pages, printing, named, missing, tooLarge } = describeLabelRun(run);
+    const { budget, pages, printing, named, missing, elsewhere, tooLarge } = describeLabelRun(run);
 
     // The page is the label as it reads, sized through two custom properties so the
     // stylesheet can turn it at print (#526). The pane's columns are the page as the
@@ -249,18 +271,8 @@ function LabelsFrame({ open, onClose, title, itemName, run }) {
                         <Dot />
                         <span className="text-foreground-muted">{COPY.size}</span>
                     </DialogMessage>
-                    {missing.length > 0 && (
-                        <div className="flex flex-col gap-gap">
-                            <p className="text-body-sm font-medium">{COPY.notFound(missing.length)}</p>
-                            <ul className="flex flex-col gap-dialog-column-list-stack">
-                                {missing.map((code) => (
-                                    <li key={code} className="whitespace-nowrap font-id text-body-sm tracking-id text-foreground-muted">
-                                        {code}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
+                    {missing.length > 0 && <NamedCodes heading={COPY.notFound(missing.length)} codes={missing} />}
+                    {elsewhere.length > 0 && <NamedCodes heading={COPY.notYours(elsewhere.length)} codes={elsewhere} />}
                     {tooLarge > 0 && <p className="text-body-sm text-pretty text-foreground-muted">{COPY.symbolTooLarge(tooLarge)}</p>}
                     {printing > 0 && (
                         <div className="flex flex-col gap-gap">

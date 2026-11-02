@@ -18,19 +18,26 @@ import Dot from "@/app/components/Dot";
  * THE VALUES IN INK AGAINST THE LINE'S INK 3, AND IN INK 2 ON A PHONE (1j), whose caption
  * draws them a step lighter under its 22 title; the dots are the dates' and the history's
  * (`Dot`), 9 either side. `lead` is what stands first — the asset's id at a desk, which the
- * page hands over in its own face.
+ * page hands over in its own face — and `job` after it, the item's job by its code, a value
+ * as the type and the category are (1f, #597). A phone names the job on a line of its own
+ * under this one, so the page hands it to the desk's caption alone.
  *
  * A PART THE CATEGORY LACKS IS LEFT OUT, AND WITH NOTHING THERE IS NO CAPTION. Every category a
  * registration may pick has its type and its category, so a part left out is a row filed under
  * no group since its items were added; no word stands in for it, and the catalog's check
  * (`scripts/import/classify_asset_categories_514.mjs`) is where such a row is reported.
  */
-export default function CategoryCaption({ category, lead = null, className = "" }) {
+export default function CategoryCaption({ category, lead = null, job = null, className = "" }) {
     // A value in Ink against the line's Ink 3, and in Ink 2 below the phone's edge (1j). It was
     // `Controls.js`'s `NoteEmphasis` from #507, read by this caption alone, until the phone's
     // ink made it the caption's own: a control module draws no phone size outside a sheet.
     const value = (text) => <span className="text-foreground-default tabular-nums max-sm:text-foreground-muted">{text}</span>;
-    const parts = [lead, category?.level1 ? value(category.level1) : null, category?.level2 ? value(category.level2) : null].filter(Boolean);
+    const parts = [
+        lead,
+        job ? value(job) : null,
+        category?.level1 ? value(category.level1) : null,
+        category?.level2 ? value(category.level2) : null,
+    ].filter(Boolean);
     if (parts.length === 0) return null;
     return (
         <p className={className}>

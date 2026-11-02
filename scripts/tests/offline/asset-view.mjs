@@ -3,9 +3,9 @@
 // WHAT THIS FILE IS FOR. `logRowFacts` states which of an `Asset Log` row's facts
 // reach the screen, and every one of them is an invariant of the base rather
 // than a choice: `Event` is a closed select, `Event At` is stamped by the
-// writer, `Job` is on every row and never blank — the invariant that makes the
-// previous row's job the previous job, and the reason no `Former Job` is stored
-// — and `Recorded By` is written on every path that appends. A change that
+// writer, and `Recorded By` is written on every path that appends. `Job` was a
+// fourth until #597, when the design named the item's job once under its title and
+// on no entry; the row still carries it, and section 2 holds that none is drawn. A change that
 // dropped one would read as a styling decision and would in fact be undoing one
 // of those; nothing else in this tier would notice, because the tier cannot
 // render a page.
@@ -13,8 +13,8 @@
 // IT WAS FIVE FACTS UNTIL #363. `Notes` was the optional one, and that field is
 // deleted from the base along with the rule it was carried for — the reason a
 // `Retired` event was to require, which that issue weighed and dropped. Section
-// 2 asserts the opposite claim now: four is the whole list and a value handed
-// in beside them does not reach the screen.
+// 2 asserts the opposite claim now: three is the whole list and a value handed
+// in beside them — the row's job among them since #597 — does not reach the screen.
 //
 // AND #463 GAVE THE PAGE THE DESIGN'S LOOK, WHICH MOVED FOUR THINGS INTO THE MODULE AND
 // THIS FILE WITH THEM: the order the history stands in (the newest entry first), who holds
@@ -96,7 +96,7 @@ const row = (event, eventAt, extra = {}) => ({ id: `${event}-${eventAt}`, event,
 export function run({ check, assert, log }) {
     // ── 1: the order, the canonical one the page places from ────────────────
     log("a log row's facts, in the order they are handed over:");
-    check("a row carries four, event first", keysOf(FULL_ROW).join(","), "event,eventAt,job,recordedBy");
+    check("a row carries three, event first, and no job since #597", keysOf(FULL_ROW).join(","), "event,eventAt,recordedBy");
     // NO LABELS SINCE #463: the design draws an entry with none, so a pair carrying one would
     // be a word nothing renders.
     check("  and no pair carries a label", logRowFacts(FULL_ROW).filter((f) => "label" in f).length, 0);
@@ -106,7 +106,7 @@ export function run({ check, assert, log }) {
     check(
         "and the values are the ones handed in",
         logRowFacts(FULL_ROW).filter((f) => f.key !== "eventAt").map((f) => f.value).join(" / "),
-        "Created / 26-DEMO-01 / scoped-fixture"
+        "Created / scoped-fixture"
     );
 
     // ── 2: nothing drops, and no fifth arrives ─────────────────────────────
@@ -115,12 +115,14 @@ export function run({ check, assert, log }) {
     // empty; `Tool Log."Notes"` is deleted from the base, so the pair, the
     // drops-when-blank rule and the assertions holding it went together. What
     // replaces them is the opposite claim: a row this function is handed extra
-    // keys still renders four, so a value quietly reintroduced would not reach
-    // the screen without somebody editing this module.
+    // keys still renders three, so a value quietly reintroduced would not reach
+    // the screen without somebody editing this module. The job is one such since #597:
+    // the row hands it over and no entry draws it (the files of 2026-11-02, 1f and 1j).
     log("");
-    log("four is the whole list, and nothing a caller adds joins it:");
-    check("an extra key is not rendered", keysOf({ ...FULL_ROW, notes: "why it went" }).join(","), "event,eventAt,job,recordedBy");
-    check("  nor several", keysOf({ ...FULL_ROW, notes: "x", reason: "y" }).length, 4);
+    log("three is the whole list, and nothing a caller adds joins it:");
+    check("an extra key is not rendered", keysOf({ ...FULL_ROW, notes: "why it went" }).join(","), "event,eventAt,recordedBy");
+    check("  nor several", keysOf({ ...FULL_ROW, notes: "x", reason: "y" }).length, 3);
+    check("  nor the row's job, handed in by its code (#597)", logRowFacts(FULL_ROW).filter((f) => f.key === "job" || f.value === FULL_ROW.jobCode).length, 0);
     assert("and the copy constant carries no notes label", !("notesLabel" in ASSET_COPY));
 
     // ── 2b: the fifth, which belongs to one event (#376) ───────────────────
@@ -136,7 +138,7 @@ export function run({ check, assert, log }) {
     log("");
     log("and a fifth on a check-out, on no other event:");
     const withName = (event) => keysOf({ ...FULL_ROW, event, checkedOutTo: "Dana K" });
-    check("a check-out carries it last", withName(ASSET_EVENT.CHECKED_OUT).join(","), "event,eventAt,job,recordedBy,checkedOutTo");
+    check("a check-out carries it last", withName(ASSET_EVENT.CHECKED_OUT).join(","), "event,eventAt,recordedBy,checkedOutTo");
     check(
         "  holding the name",
         logRowFacts({ ...FULL_ROW, event: ASSET_EVENT.CHECKED_OUT, checkedOutTo: "Dana K" }).at(-1).value,
@@ -144,7 +146,7 @@ export function run({ check, assert, log }) {
     );
     const others = Object.values(ASSET_EVENT).filter((e) => e !== ASSET_EVENT.CHECKED_OUT);
     check("  and the other events do not, even handed one", others.join(" | "), "Created | Checked in | Sent for repair | Returned from repair | Retired | Deleted");
-    for (const event of others) check(`  ${event} carries four`, withName(event).join(","), "event,eventAt,job,recordedBy");
+    for (const event of others) check(`  ${event} carries three`, withName(event).join(","), "event,eventAt,recordedBy");
     // THE EVENT DECIDES, NOT THE VALUE. A check-out with no name renders the pair
     // empty rather than dropping it — the same treatment the four above get, and
     // the reason is theirs: a missing one is a defect upstream and hiding it would
@@ -152,7 +154,7 @@ export function run({ check, assert, log }) {
     check(
         "a check-out with no name still carries the pair",
         keysOf({ ...FULL_ROW, event: ASSET_EVENT.CHECKED_OUT }).join(","),
-        "event,eventAt,job,recordedBy,checkedOutTo"
+        "event,eventAt,recordedBy,checkedOutTo"
     );
     // ANTI-VACUITY FOR THE LOOP ABOVE: the vocabulary really is what it is read
     // from, so a check that iterated an empty list would fail here rather than
@@ -225,21 +227,20 @@ export function run({ check, assert, log }) {
         'settled: "settled", open: "ring", away: "dashed", ended: "ring"'
     );
 
-    // ── 3: all four are on every row ───────────────────────────────────────
+    // ── 3: all three are on every row ──────────────────────────────────────
     log("");
-    log("all four are on every row, whatever they hold:");
-    // Each of the four is an invariant of the base rather than a value this
+    log("all three are on every row, whatever they hold:");
+    // Each of the three is an invariant of the base rather than a value this
     // module may judge — a blank one is a defect upstream, and hiding it would
-    // hide the defect. `Job` is the sharpest: the absence of blanks is what makes
-    // the previous row's job readable as the previous job.
-    for (const key of ["event", "eventAt", "job", "recordedBy"]) {
-        const field = key === "job" ? "jobCode" : key === "recordedBy" ? "recordedByName" : key;
+    // hide the defect. `Job` was the sharpest until #597 took it off every entry.
+    for (const key of ["event", "eventAt", "recordedBy"]) {
+        const field = key === "recordedBy" ? "recordedByName" : key;
         assert(`  a blank ${key} still renders its pair`, keysOf({ ...FULL_ROW, [field]: "" }).includes(key));
         const missing = { ...FULL_ROW };
         delete missing[field];
         assert(`  and a missing ${key} does too`, keysOf(missing).includes(key));
     }
-    check("an empty row still carries the four", keysOf({}).join(","), "event,eventAt,job,recordedBy");
+    check("an empty row still carries the three", keysOf({}).join(","), "event,eventAt,recordedBy");
 
     // ── 4: the copy ────────────────────────────────────────────────────────
     log("");
@@ -365,9 +366,9 @@ export function run({ check, assert, log }) {
         "false 1 1"
     );
     check(
-        "  and the page draws that dot twice in its history, and no mark of its own — the line under the title takes its dots from `CategoryCaption` since #519",
+        "  and the page draws that dot once in its history — before who recorded it, the job's before it gone with #597 — and no mark of its own, the line under the title taking its dots from `CategoryCaption` since #519",
         `${imports.includes("@/app/components/Dot")} ${page.source.split("<Dot />").length - 1} ${page.source.split("·").length - 1} ${parseFile("app/(assets)/CategoryCaption.js").source.includes("<Dot />")}`,
-        "true 2 0 true"
+        "true 1 0 true"
     );
     // ANTI-VACUITY: the padded dot this replaced is read as one.
     check(
@@ -622,7 +623,7 @@ export function run({ check, assert, log }) {
     assert("the facts really carry the row's own values", logRowFacts(FULL_ROW)[0].value !== logRowFacts({ ...FULL_ROW, event: ASSET_EVENT.RETIRED })[0].value);
     // The key list has to be a real reading of the returned facts rather than a
     // constant, so a reordering must be visible to it.
-    assert("the key reader follows the returned order", keysOf(FULL_ROW)[0] === "event" && keysOf(FULL_ROW)[2] === "job");
+    assert("the key reader follows the returned order", keysOf(FULL_ROW)[0] === "event" && keysOf(FULL_ROW)[2] === "recordedBy");
     // The copy scanner is seen finding a planted bare noun, since zero is also what
     // a broken matcher reports.
     assert("the noun matcher finds `tool item`", TOOL_ITEM_NOUN.test("Tool item not found"));

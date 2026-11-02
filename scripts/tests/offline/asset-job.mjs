@@ -143,7 +143,7 @@ export function run({ check, assert, log }) {
     // word for a picker left at its placeholder, which the registration dialog says
     // under the choice before anything is sent.
     log("");
-    log("the picker's words, and both screens reading them:");
+    log("the picker's words, and the screens that ask a job reading them:");
     check("the unchosen option", ASSET_JOB_COPY.unchosen, "Choose a job");
     check("the refusal for none chosen", ASSET_JOB_COPY.noneChosen, "Choose a job.");
     check("the not-your-job refusal", ASSET_JOB_COPY.notYours, "Choose a job you are assigned to.");
@@ -153,32 +153,30 @@ export function run({ check, assert, log }) {
     // the same words again, because two equal string literals are one primitive.
     // What is being held is that the copies cannot drift apart, and that is a
     // fact about the expression rather than about the string.
-    for (const [what, file] of [
-        ["registration dialog", "lib/assetRegistration.js"],
-        ["asset page", "lib/assetTransition.js"],
-    ]) {
-        const parsed = parseFile(file);
-        check(`the ${what} reads the unchosen option`, propertySource(parsed, "jobUnchosen"), "ASSET_JOB_COPY.unchosen");
-        check(`  and the refusal`, propertySource(parsed, "jobNotYours"), "ASSET_JOB_COPY.notYours");
-    }
-    // The none-chosen refusal has one reader so far, the registration dialog; the
-    // check-out answers a missing job with `notYours` (`readSubmission`).
+    const registration = parseFile("lib/assetRegistration.js");
+    check("the registration dialog reads the unchosen option", propertySource(registration, "jobUnchosen"), "ASSET_JOB_COPY.unchosen");
+    check("  and the refusal", propertySource(registration, "jobNotYours"), "ASSET_JOB_COPY.notYours");
+    check("  and the none-chosen refusal", propertySource(registration, "jobNoneChosen"), "ASSET_JOB_COPY.noneChosen");
+    // The office's job change (#583) asks a job too, and reads the two it says.
+    const office = parseFile("lib/assetOfficeActs.js");
+    check("the office's job change reads the unchosen option", propertySource(office, "jobUnchosen"), "ASSET_JOB_COPY.unchosen");
+    check("  and the none-chosen refusal", propertySource(office, "jobNoneChosen"), "ASSET_JOB_COPY.noneChosen");
+    // THE ASSET PAGE ASKS NO JOB SINCE #597: a check-out and a check-in record on the item's own
+    // job, so its copy holds none of the picker's words, where it read two of them until then.
     check(
-        "the registration dialog reads the none-chosen refusal",
-        propertySource(parseFile("lib/assetRegistration.js"), "jobNoneChosen"),
-        "ASSET_JOB_COPY.noneChosen"
+        "the asset page's transition holds none of the picker's words (#597)",
+        ["jobLabel", "jobUnchosen", "jobNotYours", "jobNoneChosen"].filter((key) => key in ASSET_TRANSITION_COPY).join(" | "),
+        ""
     );
     // The values agreeing is then a consequence rather than the claim, and it is
     // still worth one line: an import of the wrong key would read correctly above
     // and hand back the wrong word.
     check("so the words agree, registration", ASSET_REGISTRATION_COPY.jobUnchosen, ASSET_JOB_COPY.unchosen);
-    check("  and the asset page", ASSET_TRANSITION_COPY.jobNotYours, ASSET_JOB_COPY.notYours);
-    // `noJob` is deliberately NOT shared: each sentence names its own act.
-    assert(
-        "but the two no-job sentences are their screens' own",
-        ASSET_REGISTRATION_COPY.noJob !== ASSET_TRANSITION_COPY.noJob
-    );
-    assert("  and neither is empty", Boolean(ASSET_REGISTRATION_COPY.noJob && ASSET_TRANSITION_COPY.noJob));
+    check("  and the refusal", ASSET_REGISTRATION_COPY.jobNotYours, ASSET_JOB_COPY.notYours);
+    // `noJob` is the registration's own, naming its act. The asset page said one of its own about
+    // recording until #597, when a site manager on no job came to read that page as anybody does.
+    assert("the registration's no-job sentence is its own, and not empty", Boolean(ASSET_REGISTRATION_COPY.noJob));
+    check("  and the asset page says none (#597)", "noJob" in ASSET_TRANSITION_COPY, false);
 
     // ── anti-vacuity ───────────────────────────────────────────────────────
     log("");

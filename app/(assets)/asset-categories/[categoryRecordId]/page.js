@@ -11,12 +11,12 @@ import {
     lastChangeOf,
     pageOfAssets,
     assetListScope,
+    listRecording,
 } from "@/lib/assetListView";
 import { itemCountOf, registrationCatalog } from "@/lib/assetCategory";
 import { ASSET_REGISTRATION_COPY, canRegisterAssets, readRegistrationAccount } from "@/lib/assetRegistration";
 import { ASSET_CATEGORIES_PATH, LIST_SORTS, assetCategoriesPath, readSort } from "@/lib/assetRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
-import { isSiteManager } from "@/lib/siteManager";
 import Breadcrumb from "@/app/components/Breadcrumb";
 import { ButtonLink } from "@/app/components/Controls";
 import ListFrame from "@/app/components/ListFrame";
@@ -142,8 +142,12 @@ export const metadata = { title: "Item" };
  * run is made here, and an `id` on the address is left unread — and neither part of a
  * registration's account, which is told to whoever added. An empty category tells them who
  * fills it, `Items show here once a site manager adds them.`, where a site manager is told it
- * fills when they add, over the opener (1d, #519). Every question is `isSiteManager`, asked
- * once here, the one the actions behind those controls ask through `withSiteManagerAction`.
+ * fills when they add, over the opener (1d, #519). **So does a site manager on another job's
+ * list since #597** (1d `Another job`, `No items · another job`), and **on all jobs one meets
+ * the opener and no box** (1d `All jobs`): every question is `listRecording`, asked once here —
+ * `adds` for the opener, the account and the empty list's words, `selects` for the boxes and
+ * the bar — and the actions behind those controls ask the same of the base, the label read
+ * of each item it is handed.
  * The heading stood alone for everybody from #507, when the sentence that spoke to whoever was
  * adding went with the failed registration it described, until the design drew the two.
  *
@@ -218,9 +222,11 @@ async function renderCategoryPage({ params, searchParams }) {
     const assets = page.assets;
 
     const account = readRegistrationAccount({ asked: sp.asked, unwritten: sp.unwritten, unlogged: sp.unlogged });
-    // Whether this reader adds assets and prints their labels here at all (#506): every
-    // control below that does either is drawn under it, and nothing else on the page is.
-    const recorder = isSiteManager(user);
+    // Whether this reader adds assets here and prints their labels here (#506, #597): a site
+    // manager on the job the list stands on does both, one on all jobs adds alone, and on
+    // another job's list neither. Every control below that does either is drawn under it, and
+    // nothing else on the page is.
+    const recording = listRecording(user, scope);
     // What both openers on this page hand the registration dialog (#456): whether this
     // site manager may register, which is the one predicate every opener asks, the
     // jobs its choice offers, and the job this list stands on, which that choice starts on
@@ -251,7 +257,7 @@ async function renderCategoryPage({ params, searchParams }) {
                                       jobs={scope.jobs.map(({ id, jobCode }) => ({ id, jobCode }))}
                                       job={job}
                                       categoryRecordId={category.id}
-                                      selects={recorder}
+                                      selects={recording.selects}
                                       sort={sort}
                                   />
                               ),
@@ -280,10 +286,10 @@ async function renderCategoryPage({ params, searchParams }) {
             underBreadcrumb
             stacked
         >
-            {recorder && <RegistrationDialog {...registration} />}
+            {recording.adds && <RegistrationDialog {...registration} />}
             {page.total > 0 && (
                 <div className="-mr-sort-inset-right -mb-[calc(var(--spacing-list-header-inset-bottom)-var(--spacing-gap-lg))]">
-                    <CategorySort categoryRecordId={category.id} job={job} sort={sort} selects={recorder} />
+                    <CategorySort categoryRecordId={category.id} job={job} sort={sort} selects={recording.selects} />
                 </div>
             )}
         </ListHeader>
@@ -305,9 +311,9 @@ async function renderCategoryPage({ params, searchParams }) {
                     {/* Who fills it (1d, #519): the site manager, with the opener under it (#506),
                         or a site manager, for anybody else. */}
                     <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">
-                        {recorder ? COPY.untilYouAdd : COPY.untilASiteManagerAdds}
+                        {recording.adds ? COPY.untilYouAdd : COPY.untilASiteManagerAdds}
                     </p>
-                    {recorder && (
+                    {recording.adds && (
                         <div className="mt-gap-lg">
                             <RegistrationDialog {...registration} variant="bordered" />
                         </div>
@@ -322,7 +328,8 @@ async function renderCategoryPage({ params, searchParams }) {
     // it was not. What a label run is for is the list's to read off the address, and
     // the print control that opens the labels on it stands in the selection bar with the
     // count; the category's name is the line under that dialog's title (#457). The boxes and the
-    // bar are a site manager's (#506), so `selects` is the page's one answer to that.
+    // bar are a site manager's on the job the list stands on (#506, #597) — none on another job's
+    // list or on all jobs — so `selects` is `listRecording`'s one answer to that.
     //
     // Each row says when its asset last changed, its own `Last Event At` (#540), and who holds one
     // that is out, off its latest log row (1d, #520) — those rows read here in one batch, one per
@@ -336,7 +343,7 @@ async function renderCategoryPage({ params, searchParams }) {
         <AssetList
             categoryRecordId={category.id}
             itemName={category.itemName}
-            selects={recorder}
+            selects={recording.selects}
             showsJob={scope.allJobs}
             rows={assets.map((asset) => ({
                 id: asset.id,
@@ -362,8 +369,8 @@ async function renderCategoryPage({ params, searchParams }) {
                 its answer hands over to the fork the one closes before the other opens. Both
                 are told to whoever added, which is a site manager (#506); an address carrying
                 them reaches anybody else only as a copied link, and tells them nothing. */}
-            {recorder && account.unlogged.length > 0 && <RegistrationUnlogged itemName={category.itemName} account={account} />}
-            {recorder && account.unwritten > 0 && (
+            {recording.adds && account.unlogged.length > 0 && <RegistrationUnlogged itemName={category.itemName} account={account} />}
+            {recording.adds && account.unwritten > 0 && (
                 <RegistrationShortfall
                     category={opened}
                     catalog={catalog}

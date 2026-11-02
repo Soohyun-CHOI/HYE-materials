@@ -313,10 +313,14 @@ export function run({ check, assert, log }) {
         assert("  SheetRows was found", rowsSource !== "");
         assert("  a sheet's row is shaded under focus-visible", /\bfocus-visible:bg-hover-subtle\b/.test(rowsSource));
         assert("  and under no bare focus", !/(^|[\s"`])focus:/.test(rowsSource));
-        const jobSheet = parseFile("app/(assets)/assets/[assetId]/JobSheet.js").source;
+        // The office's job change on a phone (#583) is the sheet of rows holding no field since #597
+        // took away the transition's job sheet, which this read until then.
+        const jobChange = parseFile("app/(assets)/assets/[assetId]/JobChange.js");
+        const rowsSheet = functionNamed(jobChange.ast, "JobChangeRows");
+        const jobSheet = rowsSheet ? jobChange.source.slice(rowsSheet.start, rowsSheet.end) : "";
         const nameSheet = parseFile("app/(assets)/assets/[assetId]/NameSheet.js").source;
-        assert("  the job sheet is a sheet of rows", /<DialogFrame[^>]*\bsheet\b/.test(jobSheet) && /<SheetRows\b/.test(jobSheet));
-        assert("  holding no field, so it opens on its title", !/<input\b|<TextInput\b|<Combobox\b/.test(jobSheet));
+        assert("  the job change's sheet is a sheet of rows", /<DialogFrame\s[^>]*\bsheet\b/.test(jobSheet) && /<SheetRows\b/.test(jobSheet));
+        assert("  holding no field, so it opens on its title", jobSheet !== "" && !/<input\b|<TextInput\b|<Combobox\b/.test(jobSheet));
         assert("  the name sheet holds a field, which takes the caret instead", /<SheetInput\b/.test(nameSheet) && /<SheetRows\b/.test(nameSheet));
 
         log("");
@@ -1609,7 +1613,6 @@ export function run({ check, assert, log }) {
         onNewFrame.join(", "),
         [
             "app/(assets)/assets/LabelsDialog.js",
-            "app/(assets)/assets/[assetId]/JobSheet.js",
             "app/(assets)/assets/[assetId]/NameSheet.js",
             "app/(assets)/assets/[assetId]/RetirementConfirm.js",
             "app/(assets)/assets/[assetId]/TransitionDialog.js",
@@ -1953,7 +1956,8 @@ export function run({ check, assert, log }) {
             'NoteDialog: submits · busy {pending ? (removing ? "action" : true) : false} · named · 0 disabled by sending',
             "RegistrationForm: submits · busy {pending} · named · 0 disabled by sending",
             "RemoveDialog: submits · busy {pending} · named · 0 disabled by sending",
-            "RetirementConfirm: submits · busy {pending} · named · 0 disabled by sending",
+            // The retirement's question, handed the provider's wait since #597, as the deletion's is.
+            "RetirementConfirm: submits · busy {busy} · named · 0 disabled by sending",
             "TransitionForm: submits · busy {pending} · named · 0 disabled by sending",
         ].join(" | ")
     );

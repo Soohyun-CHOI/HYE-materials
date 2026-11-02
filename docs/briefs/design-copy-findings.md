@@ -471,3 +471,32 @@ The keys are `ASSET_OFFICE_COPY.deleteWorking`, `.deleteRecordedSince`,
 value in `offline/asset-office-acts.mjs`, and `deletedLanding` beside them is
 the landing. The base calls the history's entry an `Asset Log` row whose
 `Event` is `Deleted`, and the item's status the same word.
+
+## What a refused press and a label run say that the files of 2026-11-02 do not (#597)
+
+The files draw an item that sits on another job (1f `Another job`, 1j-d) and the
+lists on another job and on all jobs, and none of the moments a press is refused
+because the item is no longer the reader's to record. They draw no label run
+naming a code on another job either. What a screen says in their place follows
+the refusals the design already draws (1k), and the next sending decides each.
+
+| String | Where | The files |
+|---|---|---|
+| `Only 26-USA-07 can record this item. Your check-out wasn't saved.` | under the status, after a press on an item no longer on the reader's job — the office moved it, or took them off it | draw no refused press for a job |
+| `This item is on 26-USA-07 now. Your check-out wasn't saved.` | under the status, after a press on an item moved since the page was drawn to another of the reader's jobs | the same |
+| `1 item not on your jobs` | the labels' dialog, over the codes of items off the reader's jobs, beside the codes not found | draw no such run |
+
+**Each refusal names the job the item is on now**, which the job under its
+title says too once the page is drawn again, in the voice the files give a job
+that records (#598's `26-USA-01 can no longer record it.`), and **ends on what
+the press saved**, 1k's ending: `Your check-out wasn't saved.` or `Your check-in
+wasn't saved.`, and `Nothing was saved.` for a sending, a return, a retirement
+or a note, which have no noun that reads as one. **The label run's codes stand
+in the codes not found's shape**, under how many: the read refuses their
+labels, and a short run printed in silence leaves somebody counting stickers.
+
+The keys are `ASSET_TRANSITION_COPY.notYours` and `.movedTo` in
+`lib/assetTransition.js` and `ASSET_LABEL_PAGE_COPY.notYours` in
+`lib/assetLabelPage.js`, held by value in `offline/asset-own-job.mjs` and
+`offline/asset-transition.mjs`. The base calls the job an item is on
+`Assets."Job"`, and a code a label prints the end of `Asset ID`.

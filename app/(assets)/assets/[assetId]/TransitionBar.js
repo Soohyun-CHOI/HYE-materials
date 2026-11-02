@@ -2,84 +2,72 @@
 
 import { useState } from "react";
 import BottomBar from "@/app/components/BottomBar";
-import { Button, Field, FormBusy, SheetChip, SheetField, useRefusalFocus } from "@/app/components/Controls";
+import { Button, Field, FormBusy, SheetField, useRefusalFocus } from "@/app/components/Controls";
 import Icon from "@/app/components/Icon";
-import { chosenJobId, onlyJob } from "@/lib/assetJob";
 import { ASSET_EVENT } from "@/lib/assetStatus";
-import { ASSET_TRANSITION_COPY as COPY, fieldRefusals, offeredNames, pressTakesJob, readSubmission, recentNamesFor } from "@/lib/assetTransition";
-import JobSheet from "./JobSheet";
+import { ASSET_TRANSITION_COPY as COPY, fieldRefusals, offeredNames, readSubmission, recentNamesFor } from "@/lib/assetTransition";
 import NameSheet from "./NameSheet";
 import { useAssetTransition } from "./AssetTransition";
 
 /**
  * The one transition this asset's status allows, as a phone asks it (#463): 1j's foot
- * bar, Tools 0a's, which the sign-in steps drew first (#473) — the job as a pill, for a
- * check-out who it goes to, and the press, rows 12 apart at the screen's foot and riding on
- * the keyboard.
+ * bar, Tools 0a's, which the sign-in steps drew first (#473) — for a check-out who it goes
+ * to, and the press, rows 12 apart at the screen's foot and riding on the keyboard.
  *
- * THE FIELDS STAY ON THE PAGE AND OPEN 1j's SHEETS, which #458 built as parts for exactly
- * this: the pill opens the job sheet for a person on several jobs and states the one job of a
- * person on one; the name field opens the name sheet, the people this job has recently handed
- * assets to under the field a phone types in. With one job and a check-in there is nothing to
- * ask, so the bar is the pill and the press, and the press records.
+ * THE NAME FIELD STAYS ON THE PAGE AND OPENS 1j's NAME SHEET, which #458 built as a part for
+ * exactly this: the people the item's job has recently handed assets to under the field a
+ * phone types in. A check-in and a return from repair have nothing to ask, so the bar is the
+ * press, and the press records.
+ *
+ * NO JOB SINCE #597 (1j-a, the files of 2026-11-02). The bar led with the job as a pill until
+ * then — stated for a person on one job, a sheet to choose from for one on several — because a
+ * scan recorded on the reader's job and could move the item to it. Every event records on the
+ * item's own job now, and only a site manager on that job is drawn a bar at all, so there is
+ * no job to ask: the form posts the one the page was drawn on, for the action to compare.
  *
  * THE PRESS ACTS WHATEVER IS MISSING, AND SAYS WHAT IS (1k). A desk's dialog does the same
- * since #522 (0l), where it held its commitment back until the job and the name were given; a
- * press with either missing is answered under the field it is about — both at once, as the
- * name step answers both its names (#473), by `fieldRefusals`, the reading `readSubmission`
- * makes in its own order — and focus goes to the first field refused (`useRefusalFocus`,
- * 1k-b). Nothing is sent until that refuses nothing, and the action asks
- * again. A refusal stands until the field holds what it asked for, and a refusal of the
- * press itself is said in the title block (`TransitionRefusal.js`), not here.
+ * since #522 (0l); a press with no name is answered under the field, by `fieldRefusals`, the
+ * reading `readSubmission` makes, and focus goes to the field (`useRefusalFocus`, 1k-b).
+ * Nothing is sent until that refuses nothing, and the action asks again. A refusal stands
+ * until the field holds what it asked for, and a refusal of the press itself is said in the
+ * title block (`TransitionRefusal.js`), not here.
  *
  * WHILE THE PRESS IS ON ITS WAY THE BAR IS BUSY (#469's rule, here #463's): the press keeps
- * its fill and shows the phone's spinner alone, Tools 0a's Busy, and the pill and the field
- * lock — they keep their look and open nothing. Nothing is disabled, so focus stays on the
- * press.
+ * its fill and shows the phone's spinner alone, Tools 0a's Busy, and the field locks — it
+ * keeps its look and opens nothing. Nothing is disabled, so focus stays on the press.
  *
- * THE JOB STARTS WHERE A DIALOG'S STARTS AND STARTS THERE AGAIN — the one job there is, or
- * none of several, and a chosen job the page's plan no longer holds goes back to that start
- * (`chosenJobId`, #469). The bar draws no move notice under its pill: the design draws the
- * pill alone (1j), and a desk's dialog is where the two `Job` values meet.
- *
- * AN ITEM IN REPAIR IS THE PRESS ALONE (#531, 1j-e): `Return from repair`, with no pill,
- * since its row takes the asset's own job and nothing is chosen. While the menu's
+ * AN ITEM IN REPAIR IS THE PRESS ALONE (#531, 1j-e): `Return from repair`. While the menu's
  * `Send for repair` is on its way the bar locks, every control in it, rather than drawing
  * a wait it is not doing.
  *
- * WITH NOTHING TO RECORD THE BAR SAYS WHY, in the press's place: a retired asset (1j-c), or a
- * reader on no job. **Below the phone's edge and nowhere else**, which the bar's own class
- * decides, so the sticky bar is not held inside a wrapper of its own. **A reader who is not a
- * site manager has no bar at all (#506)**: their plan offers nothing and says nothing, so
- * there is neither a press nor a reason to stand in its place. **A press the re-render takes
- * away leaves focus on the document**, seen for a reader whose mark went while the page
- * stood (#506); a press on an asset another tab retired gives way to the sentence the same way,
- * and was not tried.
+ * WITH NOTHING TO RECORD THE BAR SAYS WHY, in the press's place: a retired asset (1j-c).
+ * **Below the phone's edge and nowhere else**, which the bar's own class decides, so the
+ * sticky bar is not held inside a wrapper of its own. **A reader who does not record on this
+ * item has no bar at all (#506, #597)** — one who is not a site manager, or a site manager on
+ * another job or on none, as 1j-d draws it: their plan offers nothing and says nothing, so there
+ * is neither a press nor a reason to stand in its place. **A press the re-render takes away
+ * leaves focus on the document**, seen for a reader whose mark went while the page stood
+ * (#506); a press on an asset another tab retired gives way to the sentence the same way, and
+ * was not tried.
  *
- * IT TAKES WHAT A DESK'S DIALOG WAS GIVEN WHEN THE WINDOW CROSSES INTO IT (#495): the job and
- * the name `carried` from the dialog the frame closed, each handing-over taken once. Its own
- * sheets are inside it, so the frame closes one left open as the window widens past the edge
- * and the bar hides — what it held is the bar's already.
+ * IT TAKES WHAT A DESK'S DIALOG WAS GIVEN WHEN THE WINDOW CROSSES INTO IT (#495): the name
+ * `carried` from the dialog the frame closed, each handing-over taken once. Its own sheet is
+ * inside it, so the frame closes one left open as the window widens past the edge and the bar
+ * hides — what it held is the bar's already.
  */
 export default function TransitionBar({ recentCheckOuts }) {
-    const { plan, assetId, pending, repairPending, send, carried } = useAssetTransition();
-    const [jobId, setJobId] = useState(() => onlyJob(plan.jobs)?.id ?? "");
+    const { plan, assetId, drawnJobId, pending, repairPending, send, carried } = useAssetTransition();
     const [name, setName] = useState("");
     const [taken, setTaken] = useState(null);
     if (carried !== taken) {
         setTaken(carried);
-        if (carried) {
-            setJobId(carried.jobId);
-            setName(carried.name);
-        }
+        if (carried) setName(carried.name);
     }
-    const [sheet, setSheet] = useState(null);
+    const [naming, setNaming] = useState(false);
     // Which event a press asked for. A refusal that flips the status offers the other event
-    // and the fields that go with it, which nobody has pressed for yet.
+    // and the field that goes with it, which nobody has pressed for yet.
     const [pressedFor, setPressedFor] = useState(null);
     const focusRefused = useRefusalFocus();
-    const kept = chosenJobId(plan.jobs, jobId);
-    if (kept !== jobId) setJobId(kept);
 
     if (plan.refusal) {
         return (
@@ -91,21 +79,18 @@ export default function TransitionBar({ recentCheckOuts }) {
     if (!plan.event) return null;
 
     const asksName = plan.event === ASSET_EVENT.CHECKED_OUT;
-    const asksJob = pressTakesJob(plan);
-    const several = asksJob && onlyJob(plan.jobs) === null;
-    const chosen = plan.jobs.find((job) => job.id === kept) ?? null;
-    const options = plan.jobs.map((job) => ({ value: job.id, label: job.jobCode }));
-    const recent = recentNamesFor(recentCheckOuts, { jobCode: chosen?.jobCode });
+    // The names the item's own job has handed assets to (#376, #597).
+    const recent = recentNamesFor(recentCheckOuts, { jobCode: plan.jobCode });
     const offered = offeredNames(recent, name);
     const pressed = pressedFor === plan.event;
-    const refusals = fieldRefusals(plan, { jobId: kept, checkedOutTo: name });
+    const refusals = fieldRefusals(plan, { checkedOutTo: name });
 
     const submit = (event) => {
         event.preventDefault();
         const formData = new FormData(event.currentTarget);
         const answer = readSubmission(plan, {
             event: String(formData.get("event") ?? ""),
-            jobId: String(formData.get("jobId") ?? ""),
+            drawnJobId: String(formData.get("drawnJobId") ?? ""),
             checkedOutTo: String(formData.get("checkedOutTo") ?? ""),
         });
         if (answer.refusal) {
@@ -120,23 +105,13 @@ export default function TransitionBar({ recentCheckOuts }) {
         <BottomBar stack={null} bleed={false} phoneOnly>
             <form onSubmit={submit} className="flex flex-col gap-mobile-bottom-bar-stack">
                 <input type="hidden" name="assetId" value={assetId} />
+                <input type="hidden" name="drawnJobId" value={drawnJobId ?? ""} />
                 <input type="hidden" name="event" value={plan.event} />
-                {asksJob && <input type="hidden" name="jobId" value={kept} />}
                 {asksName && <input type="hidden" name="checkedOutTo" value={name} />}
                 <FormBusy busy={repairPending ? "action" : pending}>
-                    {asksJob && (
-                        <Field label={COPY.jobLabel} labelAs="span" labelHidden size="xl" refusal={pressed ? refusals.jobRefusal : null}>
-                            <SheetChip
-                                value={chosen?.jobCode}
-                                placeholder={COPY.jobUnchosen}
-                                icon={<Icon name="map-pin" className="size-full" />}
-                                onOpen={several ? () => setSheet("job") : undefined}
-                            />
-                        </Field>
-                    )}
                     {asksName && (
                         <Field label={COPY.checkedOutToLabel} labelAs="span" labelHidden size="xl" refusal={pressed ? refusals.nameRefusal : null}>
-                            <SheetField value={name} placeholder={COPY.checkedOutToLabel} icon={<Icon name="user" className="size-full" />} onOpen={() => setSheet("name")} />
+                            <SheetField value={name} placeholder={COPY.checkedOutToLabel} icon={<Icon name="user" className="size-full" />} onOpen={() => setNaming(true)} />
                         </Field>
                     )}
                     <Button type="submit" size="xl" busyLabel={COPY.working[plan.event]}>
@@ -144,24 +119,13 @@ export default function TransitionBar({ recentCheckOuts }) {
                     </Button>
                 </FormBusy>
             </form>
-            {several && (
-                <JobSheet
-                    open={sheet === "job"}
-                    onClose={() => setSheet(null)}
-                    title={COPY.jobLabel}
-                    options={options}
-                    value={kept}
-                    onChoose={setJobId}
-                />
-            )}
             {asksName && (
                 <NameSheet
-                    open={sheet === "name"}
-                    onClose={() => setSheet(null)}
+                    open={naming}
+                    onClose={() => setNaming(false)}
                     value={name}
                     onChange={setName}
                     names={offered}
-                    jobChosen={Boolean(chosen)}
                     hasRecent={recent.length > 0}
                 />
             )}

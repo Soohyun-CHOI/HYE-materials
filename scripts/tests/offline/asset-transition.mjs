@@ -53,25 +53,24 @@
 
 import { ASSET_EVENT, ASSET_STATUS, ASSET_STATUS_VALUES, EVENT_OFFERED_BY_STATUS, MAY_SEND_FOR_REPAIR_FROM_STATUS } from "../../../lib/assetStatus.js";
 import { ASSET_COPY } from "../../../lib/assetView.js";
-import { ASSET_JOB_COPY, chosenJobId } from "../../../lib/assetJob.js";
 import {
     RECENT_NAMES_SHOWN,
     ASSET_TRANSITION_COPY,
     asksBeforeRecording,
     fieldRefusals,
-    jobMoveNotice,
     matchedPart,
     namesAreRecent,
     narrowNames,
     offeredNames,
     planTransition,
-    pressTakesJob,
     readRetirement,
     readSubmission,
     recentNamesFor,
+    recordingRefusal,
 } from "../../../lib/assetTransition.js";
 import { callsBefore, callsTo, insideTry, parseFile, parseSource, resolveFunction, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
+import { existsSync } from "node:fs";
 
 export const title = "What a person may record against an asset (#362, #363, #458, #463, #531)";
 
@@ -82,7 +81,6 @@ const BAR = "app/(assets)/assets/[assetId]/TransitionBar.js";
 const REFUSAL = "app/(assets)/assets/[assetId]/TransitionRefusal.js";
 const OPENER = "app/(assets)/assets/[assetId]/MoreActions.js";
 const CONFIRM = "app/(assets)/assets/[assetId]/RetirementConfirm.js";
-const JOB_SHEET = "app/(assets)/assets/[assetId]/JobSheet.js";
 const NAME_SHEET = "app/(assets)/assets/[assetId]/NameSheet.js";
 const PAGE = "app/(assets)/assets/[assetId]/page.js";
 
@@ -129,7 +127,8 @@ function copyStrings() {
         ASSET_TRANSITION_COPY.moved({ attempted: ASSET_EVENT.CHECKED_IN }),
     ])
         out.push(...parts);
-    out.push(ASSET_TRANSITION_COPY.movesJob({ from: JOB_B.jobCode, to: JOB_A.jobCode }));
+    out.push(ASSET_TRANSITION_COPY.notYours({ jobCode: JOB_B.jobCode, attempted: ASSET_EVENT.CHECKED_OUT }));
+    out.push(ASSET_TRANSITION_COPY.movedTo({ jobCode: JOB_B.jobCode, attempted: ASSET_EVENT.RETIRED }));
     out.push(ASSET_TRANSITION_COPY.retireHeading({ itemName: "DEMO Rotary Hammer", assetId: "HYE-AST-261001-022" }));
     out.push(
         ASSET_TRANSITION_COPY.statusNotUpdated({
@@ -254,21 +253,24 @@ export function run({ check, assert, log }) {
     {
         log("sending an item for repair and taking it back (#531):");
         const site = actor(JOB_A, JOB_B);
-        const planOf = (user, status) => planTransition({ user, jobs: ALL_JOBS, status });
-        const shape = (plan) => `${plan.event}/${plan.maySendForRepair}/${plan.mayRetire}/${plan.jobs.length}/${plan.refusal}`;
+        // The item on JOB_A unless said otherwise: its job decides who records on it since #597.
+        const planOf = (user, status, assetJobId = JOB_A.id) => planTransition({ user, jobs: ALL_JOBS, status, assetJobId });
+        const shape = (plan) => `${plan.event}/${plan.maySendForRepair}/${plan.mayRetire}/${plan.records}/${plan.refusal}`;
         check(
-            "a site manager on two jobs is offered, status by status",
+            "a site manager on the item's job is offered, status by status",
             ASSET_STATUS_VALUES.map((status) => `${status}: ${shape(planOf(site, status))}`).join(", "),
-            "In stock: Checked out/true/true/2/null, Out: Checked in/false/true/2/null, In repair: Returned from repair/false/true/2/null, " +
-                `Retired: null/false/false/0/${ASSET_TRANSITION_COPY.noTransition}, Deleted: null/false/false/0/${ASSET_TRANSITION_COPY.noTransition}`
+            "In stock: Checked out/true/true/true/null, Out: Checked in/false/true/true/null, In repair: Returned from repair/false/true/true/null, " +
+                `Retired: null/false/false/true/${ASSET_TRANSITION_COPY.noTransition}, Deleted: null/false/false/true/${ASSET_TRANSITION_COPY.noTransition}`
         );
         check(
             "  a reader who is not a site manager is offered no sending, on any status",
             ASSET_STATUS_VALUES.map((status) => planOf(nonSiteManager(JOB_A, JOB_B), status).maySendForRepair).join(","),
             "false,false,false,false,false"
         );
-        check("  and a site manager on no job is refused an item in repair, as a retirement is", shape(planOf(actor(), ASSET_STATUS.IN_REPAIR)), `null/false/false/0/${ASSET_TRANSITION_COPY.noJob}`);
-        check("  and refused the sending from stock", shape(planOf(actor(), ASSET_STATUS.IN_STOCK)), `null/false/false/0/${ASSET_TRANSITION_COPY.noJob}`);
+        // A site manager on no job is told nothing since #597, where a sentence told them to ask for
+        // an assignment: the item's job, under its title, says whose it is.
+        check("  and a site manager on no job is offered nothing on an item in repair, and told nothing (#597)", shape(planOf(actor(), ASSET_STATUS.IN_REPAIR)), "null/false/false/false/null");
+        check("  nor the sending from stock", shape(planOf(actor(), ASSET_STATUS.IN_STOCK)), "null/false/false/false/null");
 
         const fromStock = planOf(site, ASSET_STATUS.IN_STOCK);
         const away = planOf(site, ASSET_STATUS.IN_REPAIR);
@@ -279,56 +281,51 @@ export function run({ check, assert, log }) {
         };
         log("");
         log("what a repair's submission may be, and which job its row takes:");
-        check(
-            "a sending from stock takes the asset's job, whatever the reader's",
-            read(fromStock, { event: ASSET_EVENT.SENT_FOR_REPAIR, currentJobRecordId: "recJobZ" }),
-            "Sent for repair/recJobZ/null/false/null"
-        );
+        check("a sending from stock takes the item's job", read(fromStock, { event: ASSET_EVENT.SENT_FOR_REPAIR, drawnJobId: JOB_A.id }), "Sent for repair/recJobA/null/false/null");
         check(
             "  a submitted job and name beside it are dropped",
-            read(fromStock, { event: ASSET_EVENT.SENT_FOR_REPAIR, jobId: JOB_A.id, checkedOutTo: "Dana K", currentJobRecordId: "recJobZ" }),
-            "Sent for repair/recJobZ/null/false/null"
+            read(fromStock, { event: ASSET_EVENT.SENT_FOR_REPAIR, drawnJobId: JOB_A.id, jobId: JOB_B.id, checkedOutTo: "Dana K" }),
+            "Sent for repair/recJobA/null/false/null"
         );
-        check("  and with no job on the asset it hands back none, for the writer to refuse", read(fromStock, { event: ASSET_EVENT.SENT_FOR_REPAIR }), "Sent for repair/null/null/false/null");
         check(
-            "the return takes the asset's job too, for a reader on two jobs who chose none",
-            read(away, { event: ASSET_EVENT.RETURNED_FROM_REPAIR, jobId: "", currentJobRecordId: "recJobZ" }),
-            "Returned from repair/recJobZ/null/false/null"
+            "the return takes the item's job too, for a reader on two jobs who chose none",
+            read(away, { event: ASSET_EVENT.RETURNED_FROM_REPAIR, drawnJobId: JOB_A.id, jobId: "" }),
+            "Returned from repair/recJobA/null/false/null"
         );
         const nothingSaved = ASSET_TRANSITION_COPY.someoneFirst({ attempted: ASSET_EVENT.SENT_FOR_REPAIR });
-        check("an item that is out may not be sent: a stale page", read(outPlan, { event: ASSET_EVENT.SENT_FOR_REPAIR, currentJobRecordId: "recJobZ" }), `null/null/null/true/${nothingSaved}`);
-        check("  nor one already in repair", read(away, { event: ASSET_EVENT.SENT_FOR_REPAIR, currentJobRecordId: "recJobZ" }), `null/null/null/true/${nothingSaved}`);
+        check("an item that is out may not be sent: a stale page", read(outPlan, { event: ASSET_EVENT.SENT_FOR_REPAIR, drawnJobId: JOB_A.id }), `null/null/null/true/${nothingSaved}`);
+        check("  nor one already in repair", read(away, { event: ASSET_EVENT.SENT_FOR_REPAIR, drawnJobId: JOB_A.id }), `null/null/null/true/${nothingSaved}`);
         check(
             "  nor may one in repair be checked out",
-            read(away, { ...CHECKING_OUT, jobId: JOB_A.id, currentJobRecordId: "recJobZ" }),
+            read(away, { ...CHECKING_OUT, drawnJobId: JOB_A.id }),
             `null/null/null/true/${ASSET_TRANSITION_COPY.someoneFirst({ attempted: ASSET_EVENT.CHECKED_OUT })}`
         );
         check(
             "  nor one in stock returned",
-            read(fromStock, { event: ASSET_EVENT.RETURNED_FROM_REPAIR, currentJobRecordId: "recJobZ" }),
+            read(fromStock, { event: ASSET_EVENT.RETURNED_FROM_REPAIR, drawnJobId: JOB_A.id }),
             `null/null/null/true/${ASSET_TRANSITION_COPY.someoneFirst({ attempted: ASSET_EVENT.RETURNED_FROM_REPAIR })}`
         );
+        // A CHECK-OUT TAKES THE ITEM'S JOB TOO SINCE #597, where it took the reader's chosen one.
         check(
-            "  while a check-out from stock still takes the reader's chosen job",
-            read(fromStock, { ...CHECKING_OUT, jobId: JOB_B.id, currentJobRecordId: "recJobZ" }),
-            "Checked out/recJobB/Dana K/false/null"
+            "  and a check-out from stock takes the item's job too, a submitted job dropped (#597)",
+            read(fromStock, { ...CHECKING_OUT, drawnJobId: JOB_A.id, jobId: JOB_B.id }),
+            "Checked out/recJobA/Dana K/false/null"
         );
-        check("a refused plan refuses a sending too", read(planOf(actor(), ASSET_STATUS.IN_STOCK), { event: ASSET_EVENT.SENT_FOR_REPAIR, currentJobRecordId: "recJobZ" }), `null/null/null/false/${ASSET_TRANSITION_COPY.noJob}`);
+        check(
+            "a reader who does not record on the item is refused a sending, the item's job named (#597)",
+            read(planOf(actor(), ASSET_STATUS.IN_STOCK), { event: ASSET_EVENT.SENT_FOR_REPAIR, drawnJobId: JOB_A.id }),
+            `null/null/null/false/${ASSET_TRANSITION_COPY.notYours({ jobCode: JOB_A.jobCode, attempted: ASSET_EVENT.SENT_FOR_REPAIR })}`
+        );
 
         log("");
         log("what the press asks before it records:");
         check(
-            "the return records on the press however many jobs the reader holds, and the scans as before",
+            "the return and, since #597, a check-in record on the press however many jobs the reader holds; a check-out asks a name",
             `${asksBeforeRecording(away)} ${asksBeforeRecording(planOf(actor(JOB_A), ASSET_STATUS.IN_REPAIR))} ${asksBeforeRecording(fromStock)} ${asksBeforeRecording(outPlan)} ${asksBeforeRecording(planOf(actor(JOB_A), ASSET_STATUS.OUT))}`,
-            "false false true true false"
+            "false false true false false"
         );
-        check(
-            "  the press takes the reader's job for a scan alone",
-            ASSET_STATUS_VALUES.map((status) => pressTakesJob(planOf(site, status))).join(","),
-            "true,true,false,false,false"
-        );
-        const awayFields = fieldRefusals(away, { jobId: "", checkedOutTo: "" });
-        check("  and the return's fields refuse nothing", `${awayFields.jobRefusal}|${awayFields.nameRefusal}`, "null|null");
+        const awayFields = fieldRefusals(away, { checkedOutTo: "" });
+        check("  and the return's field refuses nothing, and names no job field", `${awayFields.nameRefusal}|${"jobRefusal" in awayFields}`, "null|false");
 
         log("");
         log("the words, by value:");
@@ -375,7 +372,15 @@ export function run({ check, assert, log }) {
         log("the action, off its source:");
         const action = parseFile(ACTION);
         const recordFn = resolveFunction(action.ast, "recordAssetEventAction");
-        check("the submission is read with the asset's own job beside it", argumentSource({ ast: recordFn, source: action.source }, "readSubmission", "currentJobRecordId"), "asset.job?.[0]");
+        // THE ITEM'S OWN JOB, READ FRESH, IS THE ONLY JOB THE ROW TAKES (#597): the plan is built on
+        // it, and the form's word for the job is the page's, compared and never written.
+        check("the plan is built on the item's own job as read", argumentSource({ ast: recordFn, source: action.source }, "planTransition", "assetJobId"), "asset.job?.[0]");
+        check(
+            "  the submission read with the job the page was drawn on, compared",
+            argumentSource({ ast: recordFn, source: action.source }, "readSubmission", "drawnJobId"),
+            'String(formData.get("drawnJobId") ?? "")'
+        );
+        check("  and no submitted job to write", argumentSource({ ast: recordFn, source: action.source }, "readSubmission", "jobId"), null);
         check("  and the row takes the job the submission hands back", argumentSource({ ast: recordFn, source: action.source }, "writeEvent", "jobRecordId"), "jobRecordId");
 
         log("");
@@ -387,8 +392,8 @@ export function run({ check, assert, log }) {
         );
         assert("  and splits the wait: the press's, and the menu's sending", /pending: pending && !repairing,\s*repairPending: pending && repairing,/.test(provider) && /const repairing = sending === ASSET_EVENT\.SENT_FOR_REPAIR;/.test(provider));
         assert(
-            "  the menu's sending posts the asset and the event alone",
-            /sendForRepair: \(\) => \{\s*const formData = new FormData\(\);\s*formData\.set\("assetId", assetId\);\s*formData\.set\("event", ASSET_EVENT\.SENT_FOR_REPAIR\);\s*send\(formData\);\s*\},/.test(provider)
+            "  the menu's sending posts the asset, the job the page was drawn on and the event (#597)",
+            /sendForRepair: \(\) => \{\s*const formData = new FormData\(\);\s*formData\.set\("assetId", assetId\);\s*formData\.set\("drawnJobId", assetJobRecordId \?\? ""\);\s*formData\.set\("event", ASSET_EVENT\.SENT_FOR_REPAIR\);\s*send\(formData\);\s*\},/.test(provider)
         );
         const opener = parseFile(OPENER).source;
         assert("More actions offers it only where the plan does", /const maySendForRepair = Boolean\(transition\?\.plan\.maySendForRepair\);/.test(opener) && /\.\.\.\(maySendForRepair\s*\?/.test(opener));
@@ -410,97 +415,104 @@ export function run({ check, assert, log }) {
                 /<ButtonLabel size=\{phone \? "xl" : "lg"\} busyLabel=\{ASSET_TRANSITION_COPY\.working\[ASSET_EVENT\.SENT_FOR_REPAIR\]\}>/.test(opener)
         );
         const dialogSource = parseFile(DIALOG).source;
-        assert("the desk's press posts a job only for a scan", /\{pressTakesJob\(plan\) && <input type="hidden" name="jobId" value=\{one\.id\} \/>\}/.test(dialogSource));
+        assert(
+            "the desk's press posts no job but the one the page was drawn on (#597)",
+            /\{!asks && \(\s*<>\s*<input type="hidden" name="assetId" value=\{assetId\} \/>\s*<input type="hidden" name="drawnJobId" value=\{drawnJobId \?\? ""\} \/>\s*<input type="hidden" name="event" value=\{plan\.event\} \/>\s*<\/>\s*\)\}/.test(dialogSource) &&
+                !/name="jobId"/.test(dialogSource)
+        );
         assert("  says which event it sends", /if \(!asks\) \{\s*sends\(plan\.event\);\s*return;\s*\}/.test(dialogSource));
         assert("  and locks while the menu's sending is on its way", /<FormBusy busy=\{repairPending \? "action" : false\}>/.test(dialogSource));
         const barSource = parseFile(BAR).source;
-        assert("the foot bar draws the pill and posts a job only for a scan", /const asksJob = pressTakesJob\(plan\);/.test(barSource) && /\{asksJob && <input type="hidden" name="jobId" value=\{kept\} \/>\}/.test(barSource) && /\{asksJob && \(\s*<Field label=\{COPY\.jobLabel\}/.test(barSource));
+        assert(
+            "the foot bar draws no job pill and posts no job but the one the page was drawn on (#597)",
+            !/name="jobId"|SheetChip|JobSheet|jobLabel|pressTakesJob/.test(barSource) && /<input type="hidden" name="drawnJobId" value=\{drawnJobId \?\? ""\} \/>/.test(barSource)
+        );
         const pageSource = parseFile(PAGE).source;
         assert(
-            "the desk's header draws More actions for a sending, a retirement or the office's acts (#583, #582)",
+            "the desk's header draws More actions for a sending, a retirement or the office's acts (#583, #582), and nothing for a status that allows nothing",
             /\{\(transition\.maySendForRepair \|\| transition\.mayRetire \|\| officeActs\) && <MoreActions \/>\}/.test(pageSource) &&
-                /\(transition\.event \|\| transition\.maySendForRepair \|\| transition\.mayRetire \|\| officeActs\) && \(/.test(pageSource)
+                /\{!transition\.refusal && \(transition\.event \|\| transition\.maySendForRepair \|\| transition\.mayRetire \|\| officeActs\) && \(/.test(pageSource)
         );
         log("");
     }
 
-    // ── 0: whether this reader records at all (#506) ──────────────────────
-    // A READER WHO IS NOT A SITE MANAGER IS OFFERED NOTHING AND TOLD NOTHING, on every status
-    // and whatever their jobs: no event, no retirement, no job and no refusal, which is what
-    // draws neither a control nor a sentence for them at a desk or on a phone. Asked before
-    // the status, so a retired asset's sentence is not theirs either — and first here as it
-    // is in `planTransition`, so a plan offering a site manager nothing fails these lines
-    // rather than throwing in the ones below, which read a site manager's refusal.
-    log("whether this reader records at all:");
-    const offeredTo = (user) =>
+    // ── 0: whether this reader records on this item at all (#506, #597) ────
+    // A READER WHO DOES NOT RECORD ON THE ITEM IS OFFERED NOTHING AND TOLD NOTHING, on every
+    // status: no event, no retirement and no refusal, which is what draws neither a control nor
+    // a sentence for them at a desk or on a phone. That was a reader who is not a site manager
+    // (#506); since #597 it is a site manager the item's job is not one of too — on another job or
+    // on none — who reads the item as anybody does, its job under its title saying whose it is.
+    // Asked before the status, so a retired item's sentence is not theirs either — and first here
+    // as it is in `planTransition`, so a plan offering a site manager nothing fails these lines
+    // rather than throwing in the ones below.
+    log("whether this reader records on this item at all:");
+    const offeredTo = (user, assetJobId = JOB_A.id) =>
         ASSET_STATUS_VALUES.map((status) => {
-            const plan = planTransition({ user, jobs: ALL_JOBS, status });
-            return `${status}: ${plan.event}/${plan.mayRetire}/${plan.jobs.length}/${plan.refusal}`;
+            const plan = planTransition({ user, jobs: ALL_JOBS, status, assetJobId });
+            return `${status}: ${plan.event}/${plan.mayRetire}/${plan.records}/${plan.refusal}`;
         }).join(", ");
-    const nothing = ASSET_STATUS_VALUES.map((status) => `${status}: null/false/0/null`).join(", ");
+    const nothing = ASSET_STATUS_VALUES.map((status) => `${status}: null/false/false/null`).join(", ");
     check("a reader who is not a site manager is offered nothing and told nothing, on every status (#506)", offeredTo(nonSiteManager(JOB_A, JOB_B)), nothing);
     check("  nor one on no job, who is not told to ask for one", offeredTo(nonSiteManager()), nothing);
     // The office's flag opens the office's screens and nothing here: an Admin, and the
     // President, who are not site managers record nothing (#506) — `soo@` is all three.
     check("  nor the office or the President, who are not site managers", offeredTo({ ...nonSiteManager(JOB_A), isAdmin: true, role: "President" }), nothing);
-    // ANTI-VACUITY: the same reader marked a site manager is offered what the status allows,
-    // so "nothing" above is the role's answer rather than every reader's.
-    check(
-        "  while the same reader marked a site manager is offered each status's own",
-        offeredTo({ ...nonSiteManager(JOB_A, JOB_B), isSiteManager: true }),
-        `${ASSET_STATUS.IN_STOCK}: ${ASSET_EVENT.CHECKED_OUT}/true/2/null, ${ASSET_STATUS.OUT}: ${ASSET_EVENT.CHECKED_IN}/true/2/null, ${ASSET_STATUS.IN_REPAIR}: ${ASSET_EVENT.RETURNED_FROM_REPAIR}/true/2/null, ${ASSET_STATUS.RETIRED}: null/false/0/${ASSET_TRANSITION_COPY.noTransition}, ${ASSET_STATUS.DELETED}: null/false/0/${ASSET_TRANSITION_COPY.noTransition}`
-    );
+    check("  nor a site manager on another job, since #597", offeredTo(actor(JOB_B)), nothing);
+    check("  nor one on no job, who was told to ask for one until #597", offeredTo(actor()), nothing);
+    check("  nor the office marked a site manager, on a job not the item's", offeredTo({ ...actor(JOB_B), isAdmin: true }), nothing);
+    check("  nor anybody on an item with no job", offeredTo(actor(JOB_A, JOB_B), null), nothing);
+    // ANTI-VACUITY: the same reader marked a site manager on the item's job is offered what the
+    // status allows, so "nothing" above is the role's and the job's answer rather than every
+    // reader's — and the site manager on another job, the item moved to theirs, is offered it too.
+    const each = `${ASSET_STATUS.IN_STOCK}: ${ASSET_EVENT.CHECKED_OUT}/true/true/null, ${ASSET_STATUS.OUT}: ${ASSET_EVENT.CHECKED_IN}/true/true/null, ${ASSET_STATUS.IN_REPAIR}: ${ASSET_EVENT.RETURNED_FROM_REPAIR}/true/true/null, ${ASSET_STATUS.RETIRED}: null/false/true/${ASSET_TRANSITION_COPY.noTransition}, ${ASSET_STATUS.DELETED}: null/false/true/${ASSET_TRANSITION_COPY.noTransition}`;
+    check("  while the same reader marked a site manager is offered each status's own", offeredTo({ ...nonSiteManager(JOB_A, JOB_B), isSiteManager: true }), each);
+    check("  and the site manager on another job, the item on theirs", offeredTo(actor(JOB_B), JOB_B.id), each);
 
-    // ── 1: what a status and a person are offered ──────────────────────────
+    // ── 1: what a status offers a site manager on the item's job ───────────
     log("");
-    log("the one transition a status allows, for a person with a job:");
-    const inStock = planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: ASSET_STATUS.IN_STOCK });
+    log("the one transition a status allows, for a site manager on the item's job:");
+    const inStock = planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: ASSET_STATUS.IN_STOCK, assetJobId: JOB_A.id });
     check("a stocked asset offers a check-out", inStock.event, ASSET_EVENT.CHECKED_OUT);
     check("  with no refusal", inStock.refusal, null);
-    check("  and only the actor's own job", inStock.jobs.map((j) => j.jobCode).join(","), "26-DEMO-01");
+    check("  and names the item's job, by its record and its code", `${inStock.records} ${inStock.jobId} ${inStock.jobCode}`, "true recJobA 26-DEMO-01");
 
-    const out = planTransition({ user: actor(JOB_A, JOB_B), jobs: ALL_JOBS, status: ASSET_STATUS.OUT });
+    const out = planTransition({ user: actor(JOB_A, JOB_B), jobs: ALL_JOBS, status: ASSET_STATUS.OUT, assetJobId: JOB_B.id });
     check("one that is out offers a check-in", out.event, ASSET_EVENT.CHECKED_IN);
-    check("  and both of the actor's jobs", out.jobs.map((j) => j.jobCode).join(","), "26-DEMO-01,26-DEMO-02");
-    // The job list is the whole table and the plan narrows it. A plan handing back
-    // every job would be a picker offering sites the actor is not on, which no
-    // assertion above would notice.
-    check("  never a job that is not theirs", out.jobs.length, 2);
-    const oneJob = planTransition({ user: actor(JOB_B), jobs: ALL_JOBS, status: ASSET_STATUS.OUT });
-    check("  and one assignment yields one", oneJob.jobs.map((j) => j.jobCode).join(","), "26-DEMO-02");
+    // THE ITEM'S JOB AND NEVER THE READER'S (#597): a reader on two jobs is not offered a choice
+    // of them, and the plan names the one the item sits on, which is not their first.
+    check("  on the item's job, not the reader's first", `${out.jobId} ${out.jobCode}`, "recJobB 26-DEMO-02");
+    check("  and carries no jobs to choose from, as it did until #597", "jobs" in out, false);
 
-    // ── 2: the two refusals, and which of them wins ────────────────────────
+    // ── 2: the refusals, and which of them wins ────────────────────────────
     log("");
-    log("and the two refusals:");
-    const retired = planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: ASSET_STATUS.RETIRED });
+    log("and what refuses:");
+    const retired = planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: ASSET_STATUS.RETIRED, assetJobId: JOB_A.id });
     check("a retired asset offers nothing", retired.event, null);
     check("  and says so, in the design's sentence (#463)", retired.refusal, ASSET_TRANSITION_COPY.noTransition);
-    check("  with no jobs to choose from", retired.jobs.length, 0);
 
-    const noJob = planTransition({ user: actor(), jobs: ALL_JOBS, status: ASSET_STATUS.IN_STOCK });
-    check("somebody on no job is refused", noJob.event, null);
-    check("  in the screen's own words", noJob.refusal, ASSET_TRANSITION_COPY.noJob);
-    assert("  which say what to do rather than what went wrong", noJob.refusal.includes("Ask for"));
+    const noJob = planTransition({ user: actor(), jobs: ALL_JOBS, status: ASSET_STATUS.IN_STOCK, assetJobId: JOB_A.id });
+    check("somebody on no job is offered nothing", noJob.event, null);
+    check("  and told nothing since #597, where they were told to ask for a job", noJob.refusal, null);
+    check("  the plan saying they do not record here", noJob.records, false);
     // A person with no jobs and a user object with none at all are the same state,
     // and the second is what a caller that forgot to select the field produces.
     check(
         "  and a user with no field at all reads the same",
-        planTransition({ user: { isSiteManager: true }, jobs: ALL_JOBS, status: ASSET_STATUS.IN_STOCK }).refusal,
-        ASSET_TRANSITION_COPY.noJob
+        JSON.stringify(planTransition({ user: { isSiteManager: true }, jobs: ALL_JOBS, status: ASSET_STATUS.IN_STOCK, assetJobId: JOB_A.id })),
+        JSON.stringify(noJob)
     );
+    check("  as does the transition's sentence that told them, gone with #597", "noJob" in ASSET_TRANSITION_COPY, false);
 
-    // THE ORDER IS THE ASSERTION HERE. Telling somebody with no assignment to go
-    // and get one, in front of an asset that would refuse them anyway, is a
-    // true sentence pointing at the wrong problem.
-    const both = planTransition({ user: actor(), jobs: ALL_JOBS, status: ASSET_STATUS.RETIRED });
-    check("a retired asset answers before the reader is asked about", both.refusal, ASSET_TRANSITION_COPY.noTransition);
-    assert("  rather than the no-job sentence", both.refusal !== ASSET_TRANSITION_COPY.noJob);
+    // THE ORDER IS THE ASSERTION HERE. A retired item on another job tells its reader nothing —
+    // they read it as anybody does — where on their own job the terminal sentence is theirs.
+    const elsewhereRetired = planTransition({ user: actor(JOB_B), jobs: ALL_JOBS, status: ASSET_STATUS.RETIRED, assetJobId: JOB_A.id });
+    check("a retired item on another job says nothing to a site manager not on it", elsewhereRetired.refusal, null);
 
     // A status the vocabulary does not hold throws rather than silently offering
     // nothing, which is lib/assetStatus.js's guarantee reaching this caller.
     let threw = null;
     try {
-        planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: "Lost" });
+        planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: "Lost", assetJobId: JOB_A.id });
     } catch (err) {
         threw = err.message;
     }
@@ -509,12 +521,12 @@ export function run({ check, assert, log }) {
     // ── 3: the submission is compared, never taken ─────────────────────────
     log("");
     log("what a submission has to match:");
-    const good = readSubmission(inStock, { ...CHECKING_OUT, jobId: JOB_A.id });
-    check("the offered event and the actor's own job pass", good.refusal, null);
+    const good = readSubmission(inStock, { ...CHECKING_OUT, drawnJobId: JOB_A.id });
+    check("the offered event on the job the page was drawn on passes", good.refusal, null);
     check("  and what comes back is the PLAN's event", good.event, ASSET_EVENT.CHECKED_OUT);
-    check("  with the job resolved from the plan's list", good.jobRecordId, "recJobA");
+    check("  with the item's own job", good.jobRecordId, "recJobA");
 
-    const stale = readSubmission(inStock, { ...CHECKING_OUT, event: ASSET_EVENT.CHECKED_IN, jobId: JOB_A.id });
+    const stale = readSubmission(inStock, { ...CHECKING_OUT, event: ASSET_EVENT.CHECKED_IN, drawnJobId: JOB_A.id });
     check("a submission naming the other event is refused", stale.event, null);
     // THE SENTENCE CARRIES WHAT A FRESHLY RENDERED PAGE CANNOT SAY (#378), and the
     // three assertions are the three halves of that. A refused press and a
@@ -538,25 +550,57 @@ export function run({ check, assert, log }) {
     // record the opposite of what the button said.
     check("  never falling through to the derived event", stale.jobRecordId, null);
 
-    check("an event the vocabulary does not hold is refused", readSubmission(inStock, { ...CHECKING_OUT, event: "Job Changed", jobId: JOB_A.id }).event, null);
+    check("an event the vocabulary does not hold is refused", readSubmission(inStock, { ...CHECKING_OUT, event: "Job Changed", drawnJobId: JOB_A.id }).event, null);
     check(
         "  saying someone else recorded it first, as no press names it (#531)",
-        readSubmission(inStock, { ...CHECKING_OUT, event: "Job Changed", jobId: JOB_A.id }).refusal,
+        readSubmission(inStock, { ...CHECKING_OUT, event: "Job Changed", drawnJobId: JOB_A.id }).refusal,
         "Someone else recorded this first. Nothing was saved."
     );
-    check("an empty event is refused", readSubmission(inStock, { ...CHECKING_OUT, event: "", jobId: JOB_A.id }).event, null);
+    check("an empty event is refused", readSubmission(inStock, { ...CHECKING_OUT, event: "", drawnJobId: JOB_A.id }).event, null);
 
-    const otherJob = readSubmission(inStock, { ...CHECKING_OUT, jobId: JOB_B.id });
-    check("a job the actor is not on is refused", otherJob.refusal, ASSET_JOB_COPY.notYours);
-    // A JOB NOT CHOSEN IS NOT A JOB REFUSED (#463): the foot bar's press can arrive with none,
-    // and its answer is the design's word for a field left at its placeholder (1b).
-    check("  while no job at all is one not chosen yet", readSubmission(inStock, { ...CHECKING_OUT, jobId: "" }).refusal, ASSET_JOB_COPY.noneChosen);
-    check("  and neither is the stale refusal", readSubmission(inStock, { ...CHECKING_OUT, jobId: JOB_B.id }).stale, false);
+    // ── 3a: whose item it is now, compared before anything else (#597) ─────
+    // THE JOB IS NEVER THE FORM'S: the row takes the item's own as the action read it, and the
+    // form's only job is the one the page was drawn on, compared and never written.
+    log("");
+    log("whose item it is now, before anything about the press (#597):");
+    check("a job the form names is dropped, the item's taken", readSubmission(inStock, { ...CHECKING_OUT, drawnJobId: JOB_A.id, jobId: JOB_B.id }).jobRecordId, "recJobA");
+    const movedOn = planTransition({ user: actor(JOB_A, JOB_B), jobs: ALL_JOBS, status: ASSET_STATUS.IN_STOCK, assetJobId: JOB_B.id });
+    const moved = readSubmission(movedOn, { ...CHECKING_OUT, drawnJobId: JOB_A.id });
+    check(
+        "a page drawn on the job the item has left is refused, saying where it is now and that nothing was saved",
+        `${moved.event} ${moved.jobRecordId} ${moved.stale} | ${moved.refusal}`,
+        "null null false | This item is on 26-DEMO-02 now. Your check-out wasn't saved."
+    );
+    check("  though the reader is on the job it moved to", movedOn.records, true);
+    check("  and a form carrying no drawn job reads as drawn on none", readSubmission(movedOn, { ...CHECKING_OUT }).refusal, ASSET_TRANSITION_COPY.movedTo({ jobCode: "26-DEMO-02", attempted: ASSET_EVENT.CHECKED_OUT }));
+    const takenOff = planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: ASSET_STATUS.IN_STOCK, assetJobId: JOB_B.id });
+    check(
+        "a reader the item's job is not one of is refused, naming whose it is",
+        readSubmission(takenOff, { ...CHECKING_OUT, drawnJobId: JOB_A.id }).refusal,
+        "Only 26-DEMO-02 can record this item. Your check-out wasn't saved."
+    );
+    check("  drawn on its job or not", readSubmission(takenOff, { ...CHECKING_OUT, drawnJobId: JOB_B.id }).refusal, "Only 26-DEMO-02 can record this item. Your check-out wasn't saved.");
+    check(
+        "  before a status that allows nothing",
+        readSubmission(planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: ASSET_STATUS.RETIRED, assetJobId: JOB_B.id }), { ...CHECKING_OUT, drawnJobId: JOB_A.id }).refusal,
+        "Only 26-DEMO-02 can record this item. Your check-out wasn't saved."
+    );
+    check(
+        "  and a move before a stale page",
+        readSubmission(movedOn, { ...CHECKING_OUT, event: ASSET_EVENT.CHECKED_IN, drawnJobId: JOB_A.id }).refusal,
+        "This item is on 26-DEMO-02 now. Your check-in wasn't saved."
+    );
+    check(
+        "the reading is recordingRefusal's, null on the plan the page drew",
+        `${recordingRefusal(inStock, { drawnJobId: JOB_A.id, attempted: ASSET_EVENT.CHECKED_OUT })} | ${recordingRefusal(movedOn, { drawnJobId: JOB_A.id, attempted: ASSET_EVENT.RETIRED })}`,
+        "null | This item is on 26-DEMO-02 now. Nothing was saved."
+    );
+    check("  and the sentence for an item on no job says only what was not saved", ASSET_TRANSITION_COPY.notYours({ jobCode: null, attempted: ASSET_EVENT.CHECKED_OUT }), "Your check-out wasn't saved.");
 
     // ── 3b: a check-out cannot be recorded without a name (#376) ───────────
     log("");
     log("who the asset went to, which only a check-out carries:");
-    const noName = readSubmission(inStock, { ...CHECKING_OUT, checkedOutTo: "", jobId: JOB_A.id });
+    const noName = readSubmission(inStock, { ...CHECKING_OUT, checkedOutTo: "", drawnJobId: JOB_A.id });
     check("a check-out with no name is refused", noName.refusal, ASSET_TRANSITION_COPY.nameRequired);
     check("  and writes nothing", `${noName.event}|${noName.checkedOutTo}`, "null|null");
     // WHITESPACE IS NOT A NAME. The value is normalized before it is judged, so the
@@ -565,7 +609,7 @@ export function run({ check, assert, log }) {
     // every screen renders as an empty pair.
     check(
         "  as is a name of nothing but whitespace",
-        readSubmission(inStock, { ...CHECKING_OUT, checkedOutTo: "   ", jobId: JOB_A.id }).refusal,
+        readSubmission(inStock, { ...CHECKING_OUT, checkedOutTo: "   ", drawnJobId: JOB_A.id }).refusal,
         ASSET_TRANSITION_COPY.nameRequired
     );
     // THE STORED VALUE IS NORMALIZED AND ITS CASE IS KEPT, which is #18's split
@@ -575,12 +619,12 @@ export function run({ check, assert, log }) {
     // a person's.
     check(
         "  a name is trimmed and its inner runs collapsed",
-        readSubmission(inStock, { ...CHECKING_OUT, checkedOutTo: "  Mike   R  ", jobId: JOB_A.id }).checkedOutTo,
+        readSubmission(inStock, { ...CHECKING_OUT, checkedOutTo: "  Mike   R  ", drawnJobId: JOB_A.id }).checkedOutTo,
         "Mike R"
     );
     check(
         "  and its case is left alone",
-        readSubmission(inStock, { ...CHECKING_OUT, checkedOutTo: "mIKE r", jobId: JOB_A.id }).checkedOutTo,
+        readSubmission(inStock, { ...CHECKING_OUT, checkedOutTo: "mIKE r", drawnJobId: JOB_A.id }).checkedOutTo,
         "mIKE r"
     );
 
@@ -589,17 +633,17 @@ export function run({ check, assert, log }) {
     // one that cannot be turned into a way of writing a recipient onto a row that
     // must not have one. A refusal would have been the other option and is worse:
     // it would answer a forged field with a sentence about it.
-    const checkingIn = planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: ASSET_STATUS.OUT });
+    const checkingIn = planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: ASSET_STATUS.OUT, assetJobId: JOB_A.id });
     const forgedName = readSubmission(checkingIn, {
         event: ASSET_EVENT.CHECKED_IN,
-        jobId: JOB_A.id,
+        drawnJobId: JOB_A.id,
         checkedOutTo: "Dana K",
     });
     check("a check-in passes with a name attached", forgedName.refusal, null);
     check("  and the name does not survive it", forgedName.checkedOutTo, null);
     check(
         "  while a check-in with none is unaffected",
-        readSubmission(checkingIn, { event: ASSET_EVENT.CHECKED_IN, jobId: JOB_A.id }).refusal,
+        readSubmission(checkingIn, { event: ASSET_EVENT.CHECKED_IN, drawnJobId: JOB_A.id }).refusal,
         null
     );
 
@@ -609,36 +653,27 @@ export function run({ check, assert, log }) {
     // and presses again into the same refusal.
     check(
         "a stale page is answered before a missing name",
-        readSubmission(inStock, { event: ASSET_EVENT.CHECKED_IN, jobId: JOB_A.id, checkedOutTo: "" }).refusal,
+        readSubmission(inStock, { event: ASSET_EVENT.CHECKED_IN, drawnJobId: JOB_A.id, checkedOutTo: "" }).refusal,
         ASSET_TRANSITION_COPY.someoneFirst({ attempted: ASSET_EVENT.CHECKED_IN })
     );
     check(
-        "  and so is a job that is not the actor's",
-        readSubmission(inStock, { ...CHECKING_OUT, checkedOutTo: "", jobId: JOB_B.id }).refusal,
-        ASSET_JOB_COPY.notYours
+        "  and so is an item no longer the reader's (#597)",
+        readSubmission(takenOff, { ...CHECKING_OUT, checkedOutTo: "", drawnJobId: JOB_B.id }).refusal,
+        "Only 26-DEMO-02 can record this item. Your check-out wasn't saved."
     );
 
-    // ── 3b': both fields at once, for the foot bar (#463) ─────────────────
-    // A PHONE'S PRESS IS ANSWERED UNDER THE FIELD IT IS ABOUT, both when both are missing (1k),
-    // and the reader is the one `readSubmission` reads — so the two cannot disagree.
+    // ── 3b': the one field a press can leave empty (#463, #597) ───────────
+    // A PHONE'S PRESS IS ANSWERED UNDER THE FIELD IT IS ABOUT (1k), and the reader is the one
+    // `readSubmission` reads — so the two cannot disagree. There were two fields until #597, the
+    // job's and the name's; the job is the item's own now.
     log("");
-    log("what is wrong with each field, both at once:");
-    const onTwo = planTransition({ user: actor(JOB_A, JOB_B), jobs: ALL_JOBS, status: ASSET_STATUS.IN_STOCK });
-    const bothMissing = fieldRefusals(onTwo, { jobId: "", checkedOutTo: "  " });
-    check(
-        "nothing chosen and no name are both answered",
-        `${bothMissing.jobRefusal} | ${bothMissing.nameRefusal}`,
-        `${ASSET_JOB_COPY.noneChosen} | ${ASSET_TRANSITION_COPY.nameRequired}`
-    );
-    check("  a job that is not the reader's says so", fieldRefusals(onTwo, { jobId: "recJobZ", checkedOutTo: "Dana K" }).jobRefusal, ASSET_JOB_COPY.notYours);
-    const bothGiven = fieldRefusals(onTwo, { jobId: JOB_B.id, checkedOutTo: "  Dana   K " });
-    check(
-        "  and both given refuse nothing, the job resolved and the name normalized",
-        `${bothGiven.jobRefusal} | ${bothGiven.nameRefusal} | ${bothGiven.job?.jobCode} | ${bothGiven.name}`,
-        "null | null | 26-DEMO-02 | Dana K"
-    );
-    check("  a check-in asks no name", fieldRefusals(out, { jobId: JOB_A.id, checkedOutTo: "" }).nameRefusal, null);
-    check("  and readSubmission reads the same two", callsTo(resolveFunction(parseFile("lib/assetTransition.js").ast, "readSubmission"), "fieldRefusals").length, 1);
+    log("what is wrong with the name:");
+    const missing = fieldRefusals(inStock, { checkedOutTo: "  " });
+    check("no name is answered, and no job field is", `${missing.nameRefusal} | ${Object.keys(missing).join(",")}`, `${ASSET_TRANSITION_COPY.nameRequired} | name,nameRefusal`);
+    const given = fieldRefusals(inStock, { jobId: JOB_B.id, checkedOutTo: "  Dana   K " });
+    check("  and a name given refuses nothing, normalized, whatever job the form names", `${given.nameRefusal} | ${given.name}`, "null | Dana K");
+    check("  a check-in asks no name", fieldRefusals(out, { checkedOutTo: "" }).nameRefusal, null);
+    check("  and readSubmission reads the same", callsTo(resolveFunction(parseFile("lib/assetTransition.js").ast, "readSubmission"), "fieldRefusals").length, 1);
 
     // ── 3c: the names a job offers, folded and narrowed (#376) ─────────────
     log("");
@@ -661,10 +696,10 @@ export function run({ check, assert, log }) {
     assert("  one entry per person however it was typed", names.length === 3);
     check("  and the spelling is the most recent", names[1], "mike r");
     check("  with its inner run collapsed", names.filter((n) => n.includes("  ")).length, 0);
-    // ONLY THIS JOB, AND ONLY `Checked out` ROWS. The other job's name is in the
-    // same list the page loaded, because a picker can move between them; a row of
-    // another event with a name is a defect upstream and is ignored rather than
-    // shown.
+    // ONLY THIS JOB, AND ONLY `Checked out` ROWS. The page reads the item's job's rows alone
+    // since #597, where it read every job the reader was on while a picker could move between
+    // them; the rule stays here, so a row of another job is never one of this job's names. A row
+    // of another event with a name is a defect upstream and is ignored rather than shown.
     assert("  nobody from the other job", !names.includes("Sam B"));
     assert("  and nothing off a row that is not a check-out", !names.includes("Ghost G"));
     check(
@@ -672,7 +707,13 @@ export function run({ check, assert, log }) {
         recentNamesFor(ROWS, { jobCode: JOB_B.jobCode }).join(" | "),
         "Sam B"
     );
-    check("no job chosen yet offers nobody", recentNamesFor(ROWS, { jobCode: undefined }).length, 0);
+    // A row with no job of its own beside them, so an item whose job did not resolve matching it
+    // is something the answer would show.
+    check(
+        "an item whose job did not resolve offers nobody",
+        recentNamesFor([...ROWS, checkOut("Nobody N", undefined, "2026-09-18T10:00:00.000Z")], { jobCode: undefined }).length,
+        0
+    );
     check("and a job nothing has gone out on is empty", recentNamesFor(ROWS, { jobCode: "26-DEMO-09" }).length, 0);
 
     log("");
@@ -717,7 +758,7 @@ export function run({ check, assert, log }) {
 
     // A refused plan is not re-litigated by a well-formed submission — which is
     // what a forged POST against a retired asset looks like.
-    const forged = readSubmission(retired, { ...CHECKING_OUT, jobId: JOB_A.id });
+    const forged = readSubmission(retired, { ...CHECKING_OUT, drawnJobId: JOB_A.id });
     check("a refused plan refuses whatever is submitted", forged.event, null);
     check("  in the plan's own words", forged.refusal, retired.refusal);
 
@@ -743,30 +784,26 @@ export function run({ check, assert, log }) {
         );
     });
     const success = returns.filter((r) => r.refusal === "null");
-    // TWO SINCE #531: a repair's, with the asset's job, and a scan's, with the chosen one.
-    check("it has two returns that are not a refusal, a repair's and a scan's", success.length, 2);
-    check("  and both hand back the PLAN's offer", success.map((r) => r.event).join(" "), "offered offered");
+    // ONE SINCE #597, where #531 made two — a repair's with the asset's job and a scan's with the
+    // chosen one: every event a press or the menu sends records on the item's own job now.
+    check("it has one return that is not a refusal, every event's (#597)", success.length, 1);
+    check("  and it hands back the PLAN's offer", success.map((r) => r.event).join(" "), "offered");
     assert(
         "  which is the plan's press or its repair, matched to the submission and never taken from it (#531)",
         /const offered = \[plan\.event, plan\.maySendForRepair \? ASSET_EVENT\.SENT_FOR_REPAIR : null\]\.find\(\s*\(candidate\) => candidate !== null && candidate === event\s*\);/.test(module_.source)
     );
-    check(
-        "  the repair's carrying the asset's job, the scan's the one chosen",
-        success.map((r) => r.jobRecordId).join(" | "),
-        "currentJobRecordId ?? null | fields.job.id"
-    );
+    check("  carrying the item's own job, the plan's (#597)", success.map((r) => r.jobRecordId).join(" | "), "plan.jobId");
+    check("  and the job it compares is the drawn one, read by recordingRefusal first", callsTo(readFn, "recordingRefusal").length, 1);
     assert(`  never the submitted one (${returns.length} returns read)`, returns.length >= 3);
 
-    // ── 4: the sentence for a transition that moves the asset ──────────
+    // ── 4: no sentence for a transition that moves the asset (#597) ──────
+    // THE ONE PLACE TWO `Job` VALUES MET ON THIS SCREEN WENT WITH #597: the dialog's chosen job
+    // and the item's, said apart under the field when a check-out or a check-in would move it. No
+    // event a press offers moves an item now, so the sentence and its function are gone.
     log("");
-    log("the one place two `Job` values meet on this screen:");
-    const moved = jobMoveNotice({ from: "26-DEMO-02", to: "26-DEMO-01" });
-    assert("a different job says so", Boolean(moved));
-    assert("  naming where it was", moved.includes("26-DEMO-02"));
-    assert("  and where it is going", moved.includes("26-DEMO-01"));
-    check("the same job says nothing", jobMoveNotice({ from: "26-DEMO-01", to: "26-DEMO-01" }), null);
-    check("an unchosen picker says nothing", jobMoveNotice({ from: "26-DEMO-01", to: undefined }), null);
-    check("and an asset whose job did not resolve says nothing", jobMoveNotice({ from: undefined, to: "26-DEMO-01" }), null);
+    log("no event the page offers moves the item, and nothing says one would (#597):");
+    check("the move notice is gone", `${/export function jobMoveNotice\b/.test(module_.source)} ${"movesJob" in ASSET_TRANSITION_COPY}`, "false false");
+    check("  and no pressing helper asks whose job a press takes", /export function pressTakesJob\b/.test(module_.source), false);
 
     // ── 5: the words ───────────────────────────────────────────────────────
     log("");
@@ -803,10 +840,17 @@ export function run({ check, assert, log }) {
     );
     check("  nor an event read with its moment", JSON.stringify(ASSET_TRANSITION_COPY.moved({ by: "Jisoo Park", at: "2026-10-05T13:50:00.000Z", attempted: ASSET_EVENT.CHECKED_OUT })), JSON.stringify(["Someone else scanned this first. Your check-out wasn't saved."]));
     check("  that last the one sentence the action answers with", ASSET_TRANSITION_COPY.someoneFirst({ attempted: ASSET_EVENT.CHECKED_IN }), "Someone else scanned this first. Your check-in wasn't saved.");
+    // WHOSE ITEM IT IS NOW (#597), the app's words since the files draw neither: each names the
+    // job the item is on and ends on what the press saved, 1k's ending.
     check(
-        "  and the one for a move",
-        ASSET_TRANSITION_COPY.movesJob({ from: "26-DEMO-02", to: "26-DEMO-01" }),
-        "This item was last scanned on 26-DEMO-02. Recording this on 26-DEMO-01 moves it there."
+        "  an item no longer the reader's",
+        ASSET_TRANSITION_COPY.notYours({ jobCode: "26-DEMO-02", attempted: ASSET_EVENT.CHECKED_IN }),
+        "Only 26-DEMO-02 can record this item. Your check-in wasn't saved."
+    );
+    check(
+        "  and one moved since the page was drawn",
+        ASSET_TRANSITION_COPY.movedTo({ jobCode: "26-DEMO-02", attempted: ASSET_EVENT.SENT_FOR_REPAIR }),
+        "This item is on 26-DEMO-02 now. Nothing was saved."
     );
     // `kind` is the notes' explanatory word for what separates `Asset Categories` from
     // `Assets` and names no row (#338); `transition` is this issue's, for the
@@ -874,19 +918,16 @@ export function run({ check, assert, log }) {
         "checked this out | checked this in | sent this for repair | returned this from repair"
     );
 
-    // IMPORTED RATHER THAN RE-SPELLED. Three words are the same control and the
-    // same rule on two screens, so a second copy is a second word for one fact the
-    // first time somebody rewords one. Asserted as equality with the source rather
-    // than by value, because what is being held is that they cannot drift apart.
-    check("the `Job` label is the asset page's own", ASSET_TRANSITION_COPY.jobLabel, ASSET_COPY.jobLabel);
-    // The two picker words moved to lib/assetJob.js in #363 with the rule they
-    // belong to; `offline/asset-job.mjs` holds both screens reading them, so what
-    // stays here is only that this screen does.
-    check("the unchosen option is the shared one", ASSET_TRANSITION_COPY.jobUnchosen, ASSET_JOB_COPY.unchosen);
-    check("and so is the not-your-job refusal", ASSET_TRANSITION_COPY.jobNotYours, ASSET_JOB_COPY.notYours);
-    // `noJob` is deliberately NOT shared: the sentence names the act, and
-    // registering an asset and recording an event against one are two acts.
-    assert("but the no-job sentence is this screen's own", ASSET_TRANSITION_COPY.noJob.includes("record this on"));
+    // IMPORTED RATHER THAN RE-SPELLED. `Checked out to` is the history entry's word and this
+    // control's, so a second copy is a second word for one fact the first time somebody rewords
+    // one. The `Job` label and the picker's two were imported beside it until #597 took the job
+    // out of the transition, and the no-job sentence was this screen's own until then.
+    check("the name's label is the asset page's own", ASSET_TRANSITION_COPY.checkedOutToLabel, ASSET_COPY.checkedOutToLabel);
+    check(
+        "  and none of the job's words remain (#597)",
+        ["jobLabel", "jobUnchosen", "jobNotYours", "jobNoneChosen", "noJob"].filter((key) => key in ASSET_TRANSITION_COPY).join(" | "),
+        ""
+    );
 
     // The failure sentence has to carry all three facts a person can act on.
     const half = ASSET_TRANSITION_COPY.statusNotUpdated({
@@ -1048,22 +1089,28 @@ export function run({ check, assert, log }) {
         assert("  with a return between them, so a failure never reaches it", returnsBetween > 0);
     }
 
-    // NOTHING BUT THE ASSET'S ID CROSSES THE WIRE FOR A RETIREMENT. One
-    // direction means nothing a stale page could have named wrongly; and the job
-    // is the asset's own, so a form field for either would be a value the
-    // action then had to decide whether to trust.
+    // NOTHING BUT THE ASSET'S ID AND THE JOB THE PAGE WAS DRAWN ON CROSS THE WIRE FOR A
+    // RETIREMENT. One direction means nothing a stale page could have named wrongly; and the
+    // job is the asset's own, so the drawn one is compared and never written (#597).
     const retireFn = resolveFunction(action.ast, "retireAssetAction");
     const retireSource = action.source.slice(retireFn.start, retireFn.end);
     const read = [...retireSource.matchAll(/formData\.get\("([^"]+)"\)/g)].map((m) => m[1]);
-    check(`the retirement reads only the asset id off the form (${read.join()})`, read.join(), "assetId");
+    check(`the retirement reads only the asset id and the drawn job off the form (${read.join()})`, read.join(), "assetId,drawnJobId");
     // AND ITS JOB IS THE ASSET'S, READ OFF THE CALL SITE. This is the
-    // argument-and-not-the-name assertion for #363's reversal: `plan.jobs[0].id`
-    // and a form value are both "an argument to readRetirement", and only the
-    // argument's own source tells them from the cached link.
+    // argument-and-not-the-name assertion for #363's reversal: a form value and the
+    // cached link are both "an argument", and only the argument's own source tells them apart.
+    check("the retirement's plan is built on the asset's own job", argumentSource({ ast: retireFn, source: action.source }, "planTransition", "assetJobId"), "asset.job?.[0]");
     check(
-        "the retirement's job is the asset's own",
-        argumentSource({ ast: retireFn, source: action.source }, "readRetirement", "currentJobRecordId"),
-        "asset.job?.[0]"
+        "  and the drawn job only compared",
+        argumentSource({ ast: retireFn, source: action.source }, "readRetirement", "drawnJobId"),
+        'String(formData.get("drawnJobId") ?? "")'
+    );
+    // A RETIREMENT SOMEBODY GOT IN FRONT OF SAYS NOTHING (#378), as it did while its question
+    // held its answer and went with it: the provider holds it since #597, and the page drawn
+    // again says the status is the end.
+    assert(
+        "  a terminal refusal answered with the page alone, before any other refusal is said",
+        /if \(refusal === ASSET_TRANSITION_COPY\.noTransition\) return refuse\(null\);\s*if \(refusal\) return refuse\(refusal\);/.test(retireSource)
     );
 
     // ── 6d: a refusal refreshes as it refuses (#378) ───────────────────────
@@ -1242,15 +1289,16 @@ export function run({ check, assert, log }) {
     );
     // BOTH CONTROLS STAND IN THE BRANCH WHERE THERE IS NO REFUSAL, and neither is
     // rendered unconditionally — a page that drew either one for a retired asset
-    // or for somebody with no job would be promising what the action
-    // refuses. #363 put a second control in the same branch, so the assertion
-    // names both rather than the one that happened to be there.
+    // would be promising what the action refuses. #363 put a second control in the
+    // same branch, so the assertion names both rather than the one that happened to be
+    // there. It is a conjunction since #597, when the refusal's own branch went with the
+    // sentence it drew for a site manager on no job.
     let guarded = false;
     walk(page.ast, (n) => {
-        if (n.type !== "ConditionalExpression") return;
-        const test = page.source.slice(n.test.start, n.test.end);
-        const alternate = page.source.slice(n.alternate.start, n.alternate.end);
-        if (/refusal/.test(test) && /TransitionDialog/.test(alternate) && /MoreActions/.test(alternate)) guarded = true;
+        if (n.type !== "LogicalExpression" || n.operator !== "&&") return;
+        const left = page.source.slice(n.left.start, n.left.end);
+        const right = page.source.slice(n.right.start, n.right.end);
+        if (/^!transition\.refusal && /.test(left) && /TransitionDialog/.test(right) && /MoreActions/.test(right)) guarded = true;
     });
     assert("both controls stand in the branch where there is no refusal", guarded);
     // AND EACH IS THEN ASKED FOR SEPARATELY, because the two answers come from two
@@ -1265,19 +1313,14 @@ export function run({ check, assert, log }) {
         `${(page.source.match(/\{\(transition\.maySendForRepair \|\| transition\.mayRetire \|\| officeActs\) && <MoreActions \/>\}/g) ?? []).length} ${(page.source.match(/<MoreActions phone account=\{account\} \/>/g) ?? []).length}`,
         "1 2"
     );
-    // A RETIRED ASSET SHOWS NOTHING IN THE ACTIONS' PLACE AT A DESK (1f); any other refusal is
-    // said there, and a phone's foot bar says the terminal one.
+    // A RETIRED ASSET SHOWS NOTHING IN THE ACTIONS' PLACE AT A DESK (1f), and a phone's foot bar
+    // says the terminal sentence. NO OTHER PLAN SAYS ONE SINCE #597: the sentence a site manager on
+    // no job met there went, since they read the item as anybody does (1f `Another job`, 1j-d).
     assert(
-        "  a desk says the refusal where the controls would be, but for a status that allows nothing",
-        /transition\.refusal !== TRANSITION_COPY\.noTransition && \(\s*<div[^>]*>\s*<p[^>]*>\{transition\.refusal\}<\/p>/.test(page.source)
+        "  a desk says no plan's sentence in the actions' place (#597)",
+        !/\{transition\.refusal\}/.test(page.source) && importedFrom(page, "TRANSITION_COPY") === null
     );
-    // AND THE OFFICE'S More actions AFTER IT, alone and only for the office's acts (#583, #582): the
-    // sentence is about recording, and the office may move or delete an item whatever its own jobs.
-    assert(
-        "  with More actions after it only where the office may change the job or delete the item (#583, #582)",
-        /<\/p>\s*\{officeActs && \(\s*<div[^>]*>\s*<MoreActions \/>\s*<\/div>\s*\)\}\s*<\/div>/.test(page.source) &&
-            /const officeActs = office\.mayChangeJob \|\| office\.mayDelete;/.test(page.source)
-    );
+    assert("  the office's acts standing in the one branch, with no sentence beside them (#583, #582)", /const officeActs = office\.mayChangeJob \|\| office\.mayDelete;/.test(page.source));
     // THE TRANSITION IS HANDED THE PLAN THE PAGE REACHED (#458), which its dialog asks
     // `readSubmission` of before it sends — the event the page offered and the jobs it
     // narrowed, never a decision of the dialog's own — and the asset's job so the
@@ -1285,23 +1328,25 @@ export function run({ check, assert, log }) {
     // its question asks with.
     // THE PROVIDER IS HANDED THE PLAN (#463), which both drawings and the question read.
     check("the transition is handed the plan the page reached", attributeSources(page.ast, page.source, "AssetTransition", "plan").join(), "{transition}");
-    assert("  and the asset's current job", /currentJobCode=\{/.test(page.source));
+    // AND THE ITEM'S JOB AS THE PAGE WAS DRAWN, which every form posts for the action to compare
+    // (#597) — where the dialog was handed the job's code to say a move, which #597 took away.
+    check("  and the item's job, as the page was drawn", attributeSources(page.ast, page.source, "AssetTransition", "assetJobRecordId").join(), "{asset.job?.[0] ?? null}");
+    check("  and no current job for a move notice", /currentJobCode=\{/.test(page.source), false);
     check("the retirement is handed its category's name", attributeSources(page.ast, page.source, "AssetTransition", "itemName").join(), "{category?.itemName}");
 
     // ── 7b: what a transition asks before it records (#458) ────────────────
-    // A CHECK-OUT RECORDS A NAME, SO IT ALWAYS ASKS; a check-in asks only a person on
-    // several jobs, and for a person on one it is the press it always was. The design
-    // draws exactly that split (1f, 1g, 1i), and it is #338's job rule and #376's name
-    // rule rather than a new one — so it is held by value, and the component is held
-    // to asking it.
+    // A CHECK-OUT RECORDS A NAME, SO IT ALWAYS ASKS; a check-in records on the press — for a
+    // person on any number of jobs since #597, where one on several was asked which (1i, gone
+    // from the files of 2026-11-02). It is #376's name rule, held by value, and the component is
+    // held to asking it.
     log("");
     log("a transition asks first only what the page cannot know:");
-    const outOnOne = planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: ASSET_STATUS.OUT });
-    const inStockOnTwo = planTransition({ user: actor(JOB_A, JOB_B), jobs: ALL_JOBS, status: ASSET_STATUS.IN_STOCK });
+    const outOnOne = planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: ASSET_STATUS.OUT, assetJobId: JOB_A.id });
+    const inStockOnTwo = planTransition({ user: actor(JOB_A, JOB_B), jobs: ALL_JOBS, status: ASSET_STATUS.IN_STOCK, assetJobId: JOB_A.id });
     check("a check-out asks, on one job", asksBeforeRecording(inStock), true);
     check("  and on several", asksBeforeRecording(inStockOnTwo), true);
     check("a check-in on one job records on the press", asksBeforeRecording(outOnOne), false);
-    check("  and on several asks which", asksBeforeRecording(out), true);
+    check("  and on several too, since #597", asksBeforeRecording(out), false);
 
     const dialog = parseFile(DIALOG);
     const dialogFn = functionNamed(dialog.ast, "TransitionDialog");
@@ -1310,8 +1355,10 @@ export function run({ check, assert, log }) {
     const dialogSource = dialog.source.slice(dialogFn.start, dialogFn.end);
     const formSource = dialog.source.slice(formFn.start, formFn.end);
     check("it asks that of the plan it was handed", callArguments(dialogFn, dialog.source, "asksBeforeRecording").join(" | "), "plan");
-    check("  and the press posts the one job there is", initSource(dialogFn, dialog.source, "one"), "onlyJob(plan.jobs)");
-    check("  through its own hidden field", attributeSources(dialogFn, dialog.source, "input", "value").join(" | "), "{assetId} | {plan.event} | {one.id}");
+    // THE PRESS POSTS NO JOB TO WRITE SINCE #597, where it posted the one job a person on one
+    // held: the item's job as the page was drawn, which the action compares and never writes.
+    check("  and the press posts the asset, the job the page was drawn on and the event", attributeSources(dialogFn, dialog.source, "input", "value").join(" | "), '{assetId} | {drawnJobId ?? ""} | {plan.event}');
+    check("  and no job of its own choosing", initSource(dialogFn, dialog.source, "one"), null);
     check("the press is bound to the action only when it records on the press", attributeSources(dialogFn, dialog.source, "form", "action").join(), "{asks ? undefined : formAction}");
     // ONE BUTTON FOR THE PRESS AND THE OPENER, so a refusal that turns one into the other
     // — it re-renders the page in place (#378) — leaves focus on the control the reader
@@ -1333,8 +1380,9 @@ export function run({ check, assert, log }) {
     const submitSource = initSource(formFn, dialog.source, "submit") ?? "";
     assert("its submit prevents the default", /event\.preventDefault\(\)/.test(submitSource));
     assert(
-        "  reads what it would send with readSubmission",
-        /readSubmission\(plan, \{[\s\S]*formData\.get\("event"\)[\s\S]*formData\.get\("jobId"\)[\s\S]*formData\.get\("checkedOutTo"\)[\s\S]*\}\)/.test(submitSource)
+        "  reads what it would send with readSubmission, the drawn job among it and no job to write (#597)",
+        /readSubmission\(plan, \{[\s\S]*formData\.get\("event"\)[\s\S]*formData\.get\("drawnJobId"\)[\s\S]*formData\.get\("checkedOutTo"\)[\s\S]*\}\)/.test(submitSource) &&
+            !/formData\.get\("jobId"\)/.test(submitSource)
     );
     const refusesAt = submitSource.indexOf("if (answer.refusal) {");
     assert("  and sends only after that refuses nothing", refusesAt > -1 && refusesAt < submitSource.indexOf("onSend(formData)"));
@@ -1357,11 +1405,11 @@ export function run({ check, assert, log }) {
         attributeSources(formFn, dialog.source, "Button", "busyLabel").join(" | "),
         "{COPY.working[plan.event]}"
     );
-    check("its field refusals are fieldRefusals of its own choice and name, as the foot bar's are (#522)", initSource(formFn, dialog.source, "refusals"), "fieldRefusals(plan, { jobId: kept, checkedOutTo: name })");
+    check("its field refusal is fieldRefusals of its name, as the foot bar's is (#522, #597)", initSource(formFn, dialog.source, "refusals"), "fieldRefusals(plan, { checkedOutTo: name })");
     check(
-        "  each said under its field once a press asked for this event (#522)",
+        "  said under its field once a press asked for this event (#522)",
         attributeSources(formFn, dialog.source, "Field", "refusal").join(" | "),
-        "{pressed ? refusals.jobRefusal : null} | {pressed ? refusals.nameRefusal : null}"
+        "{pressed ? refusals.nameRefusal : null}"
     );
     check("  where pressed is a press for the event offered now (#522)", initSource(formFn, dialog.source, "pressed"), "pressedFor === plan.event");
     let trims = 0;
@@ -1369,31 +1417,15 @@ export function run({ check, assert, log }) {
         if (n.type === "CallExpression" && n.callee?.type === "MemberExpression" && n.callee.object?.name === "name" && n.callee.property?.name === "trim") trims++;
     });
     check("no rule of the dialog's own, and no required attribute either", `${trims} ${attributeCount(dialog.ast, "required")}`, "0 0");
-    check("the name is asked only of a check-out", initSource(formFn, dialog.source, "asksName"), "plan.event === ASSET_EVENT.CHECKED_OUT");
+    // THE DIALOG IS A CHECK-OUT'S ALONE SINCE #597 — a check-in asks nothing — so its one field,
+    // the name, stands in it whatever else, and nothing about a job does: no choice, no sheet to
+    // choose from, no start for one, no move notice under it.
     assert(
-        "  and both of its controls stand under that",
-        /\{asksName && \(\s*<Field label=\{COPY\.checkedOutToLabel\}[^>]*>/.test(formSource) && /\{asksName && \(\s*<NameSheet/.test(formSource)
+        "the name's two controls stand in the dialog",
+        /<Field label=\{COPY\.checkedOutToLabel\}[^>]*>/.test(formSource) && /<NameSheet\b/.test(formSource)
     );
-    check("the move notice is asked of jobMoveNotice", callArguments(formFn, dialog.source, "jobMoveNotice").join(), "{ from: currentJobCode, to: chosen?.jobCode }");
-    check("  and said under the job", attributeSources(formFn, dialog.source, "Field", "note").join(), "{jobMoveNotice({ from: currentJobCode, to: chosen?.jobCode })}");
-    // WITH ONE JOB IT IS ALREADY CHOSEN AND WITH SEVERAL NOTHING IS (0l), from the one
-    // spelling of "one assignment". The asset's own job is not chosen for a person
-    // on several: they are asked because the app does not know which site they are at.
-    assert("the job starts on the one there is, or on none, from onlyJob", /useState\(\(\) => onlyJob\(plan\.jobs\)\?\.id \?\? ""\)/.test(formSource));
-    // A CHOSEN JOB THE PLAN NO LONGER HOLDS STARTS THERE AGAIN (#469): a refusal re-renders
-    // the page in place (#378), and the jobs it plans with can be fewer than the dialog opened
-    // with. Seen in a browser before this: below the phone's edge with one job left, a stated
-    // field saying `Choose a job` that nothing could open, over a commitment that could not act.
-    // THE RULE IS `chosenJobId` SINCE #463, which the foot bar asks of its own choice too.
-    check("  and a chosen job the plan no longer holds takes the same start again", initSource(formFn, dialog.source, "kept"), "chosenJobId(plan.jobs, jobId)");
-    assert(
-        "    whenever the plan stops holding it, before the choice is read",
-        /if \(kept !== jobId\) setJobId\(kept\);/.test(formSource) && formSource.indexOf("setJobId(kept)") < formSource.indexOf("const chosen =")
-    );
-    check("    a choice still held is kept", chosenJobId(ALL_JOBS, JOB_B.id), JOB_B.id);
-    check("    one taken away goes back to the one job there is", chosenJobId([JOB_A], JOB_B.id), JOB_A.id);
-    check("    or to none of several", chosenJobId(ALL_JOBS, "recGone"), "");
-    check("    and nothing chosen of one job is that job", chosenJobId([JOB_A], ""), JOB_A.id);
+    check("  and nothing of a job (#597)", /\bChoice\b|JobSheet|chosenJobId|onlyJob|jobMoveNotice|jobLabel|plan\.jobs/.test(dialog.source), false);
+    check("  the recent names are the item's job's", callArguments(formFn, dialog.source, "recentNamesFor").join(), "recentCheckOuts, { jobCode: plan.jobCode }");
 
     // ── 7d: open while it is what the page offers, and where a refusal stands ─
     log("");
@@ -1428,7 +1460,8 @@ export function run({ check, assert, log }) {
     // the one sent last, unless a dialog of its own says it.
     assert(
         "a refusal stands under the status only while the dialog is closed",
-        /statusSentence:\s*lastSent === "job"\s*\?\s*jobSaidInDialog\s*\?\s*null\s*:\s*jobSentence\s*:\s*lastSent === "delete"\s*\?\s*deleteSaidInDialog\s*\?\s*null\s*:\s*deleteSentence\s*:\s*open\s*\?\s*null\s*:\s*transitionSentence,/.test(provider.source) &&
+        /event: open \? null : transitionSentence,/.test(provider.source) &&
+            /statusSentence: said\[lastSent \?\? "event"\],/.test(provider.source) &&
             /const transitionSentence = useRefusalSentence\(answer\);/.test(provider.source) &&
             /const \{ statusSentence: sentence \} = useAssetTransition\(\);\s*if \(!sentence\) return null;/.test(refusalFile.source)
     );
@@ -1446,42 +1479,43 @@ export function run({ check, assert, log }) {
     );
     check("  and nothing behind it closes it, since it holds what was typed", attributeSources(formFn, dialog.source, "DialogFrame", "closesOnBackdrop").length, 0);
     check("each opening starts from what the plan hands it", attributeSources(dialogFn, dialog.source, "TransitionForm", "key").join(), "{opening}");
+    // A PAGE DRAWN AGAIN ON ANOTHER JOB ENDS EVERY OPENING A READER RECORDS FROM (#597), so a press
+    // refused because the item moved is said under the status whichever control sent it.
+    assert(
+        "a page drawn on another job ends the dialog's opening, the retirement's and the note's (#597)",
+        /if \(drawnOn !== assetJobRecordId\) \{\s*setDrawnOn\(assetJobRecordId\);\s*setOpenedFor\(null\);\s*if \(retiring\) endRetiring\(\);\s*if \(noteOpenOn !== null\) endNote\(\);\s*\}/.test(providerSource)
+    );
 
     // ── 7e: each width asks in its own drawing (#458) ──────────────────────
-    // AT A DESK the job is 0a's choice and the name the registration's combobox (1b),
-    // its suggestions this job's recent names under the name sheet's own head; BELOW
-    // THE PHONE'S EDGE each is a field that opens one of 1j's sheets. One state behind
-    // both, so what a sheet chose is what the dialog sends.
+    // AT A DESK the name is the registration's combobox (1b), its suggestions the item's job's
+    // recent names under the name sheet's own head; BELOW THE PHONE'S EDGE it is a field that
+    // opens 1j's name sheet. One state behind both, so what the sheet chose is what the dialog
+    // sends. The job was 0a's choice at a desk and a field opening 1j's job sheet below the edge
+    // until #597.
     log("");
     log("each width asks in its own drawing, from one state:");
-    assert("at a desk the job is 0a's choice, drawn only from the phone's edge up", /<div className="max-sm:hidden">\s*<Choice\s+name="jobId"/.test(formSource));
-    assert("  and the name the registration's combobox", /<div className="max-sm:hidden">\s*<Combobox\s+name="checkedOutTo"/.test(formSource));
+    assert("at a desk the name is the registration's combobox, drawn only from the phone's edge up", /<div className="max-sm:hidden">\s*<Combobox\s+name="checkedOutTo"/.test(formSource));
     check(
         "  headed with the name sheet's own words while nothing is typed (#495)",
         attributeSources(formFn, dialog.source, "Combobox", "heading").join(),
         "{namesAreRecent(name) ? COPY.recentHeading : undefined}"
     );
-    check(
-        "below it each opens one of 1j's sheets",
-        attributeSources(formFn, dialog.source, "SheetField", "onOpen").join(" | "),
-        '{several ? () => setSheet("job") : undefined} | {() => setSheet("name")}'
-    );
-    check("  the job sheet only for a person on several jobs", /\{several && \(\s*<JobSheet/.test(formSource), true);
-    check("  each sheet open only while the dialog is", attributeSources(formFn, dialog.source, "JobSheet", "open").concat(attributeSources(formFn, dialog.source, "NameSheet", "open")).join(" | "), '{open && sheet === "job"} | {open && sheet === "name"}');
+    check("below it the field opens 1j's name sheet", attributeSources(formFn, dialog.source, "SheetField", "onOpen").join(" | "), "{() => setNaming(true)}");
+    check("  open only while the dialog is", attributeSources(formFn, dialog.source, "NameSheet", "open").join(" | "), "{open && naming}");
     check(
         "the names offered are one list on both widths, each with what is typed marked (#495)",
         `${attributeSources(formFn, dialog.source, "Combobox", "suggestions").join()} | ${attributeSources(formFn, dialog.source, "NameSheet", "names").join()}`,
         "{offered.map((person) => ({ label: person, match: matchedPart(person, name) }))} | {offered}"
     );
     check("  narrowed and cut by offeredNames", initSource(formFn, dialog.source, "offered"), "offeredNames(recent, name)");
-    check("  out of the chosen job's recent names", initSource(formFn, dialog.source, "recent"), "recentNamesFor(recentCheckOuts, { jobCode: chosen?.jobCode })");
+    check("  out of the item's job's recent names (#597)", initSource(formFn, dialog.source, "recent"), "recentNamesFor(recentCheckOuts, { jobCode: plan.jobCode })");
     check("one value behind the field and its sheet", `${attributeSources(formFn, dialog.source, "Combobox", "onChange").join()} ${attributeSources(formFn, dialog.source, "NameSheet", "onChange").join()}`, "{setName} {setName}");
 
     // ── 7f: the phone's foot bar, which asks the same reader (#463) ───────
-    // 1j's FOOT BAR KEEPS ITS PRESS AND ANSWERS UNDER THE FIELDS (1k): what a submission may be
-    // is `readSubmission` before anything is sent, the field refusals are `fieldRefusals`, and
-    // they show once a press asked for that event. The bar is busy while it sends and never
-    // disabled, takes the dialog's job rule, and draws no move notice.
+    // 1j's FOOT BAR KEEPS ITS PRESS AND ANSWERS UNDER ITS FIELD (1k): what a submission may be
+    // is `readSubmission` before anything is sent, the field refusal is `fieldRefusals`, and it
+    // shows once a press asked for that event. The bar is busy while it sends and never
+    // disabled, and since #597 asks no job: its pill and the job sheet went (1j-a).
     log("");
     log("the phone's foot bar asks the same reader and answers under its fields:");
     const bar = parseFile(BAR);
@@ -1490,8 +1524,9 @@ export function run({ check, assert, log }) {
     const barSource = barFn ? bar.source.slice(barFn.start, barFn.end) : "";
     const barSubmit = initSource(barFn ?? {}, bar.source, "submit") ?? "";
     assert(
-        "its submit reads what it would send with readSubmission",
-        /readSubmission\(plan, \{[\s\S]*formData\.get\("event"\)[\s\S]*formData\.get\("jobId"\)[\s\S]*formData\.get\("checkedOutTo"\)[\s\S]*\}\)/.test(barSubmit)
+        "its submit reads what it would send with readSubmission, the drawn job among it and no job to write (#597)",
+        /readSubmission\(plan, \{[\s\S]*formData\.get\("event"\)[\s\S]*formData\.get\("drawnJobId"\)[\s\S]*formData\.get\("checkedOutTo"\)[\s\S]*\}\)/.test(barSubmit) &&
+            !/formData\.get\("jobId"\)/.test(barSubmit)
     );
     const barRefusesAt = barSubmit.indexOf("if (answer.refusal) {");
     assert("  and sends only after that refuses nothing", barRefusesAt > -1 && barRefusesAt < barSubmit.indexOf("send(formData)"));
@@ -1500,36 +1535,35 @@ export function run({ check, assert, log }) {
         /if \(answer\.refusal\) \{\s*setPressedFor\(plan\.event\);\s*focusRefused\(event\.currentTarget\);\s*return;\s*\}/.test(barSubmit)
     );
     check("  the bar's focus is the controls' one rule for it (#522)", initSource(barFn ?? {}, bar.source, "focusRefused"), "useRefusalFocus()");
-    check("its field refusals are fieldRefusals of its own choice and name", initSource(barFn ?? {}, bar.source, "refusals"), "fieldRefusals(plan, { jobId: kept, checkedOutTo: name })");
+    check("its field refusal is fieldRefusals of its name (#597)", initSource(barFn ?? {}, bar.source, "refusals"), "fieldRefusals(plan, { checkedOutTo: name })");
     check(
-        "  each said under its field once a press asked for this event",
+        "  said under its field once a press asked for this event",
         attributeSources(barFn ?? {}, bar.source, "Field", "refusal").join(" | "),
-        "{pressed ? refusals.jobRefusal : null} | {pressed ? refusals.nameRefusal : null}"
+        "{pressed ? refusals.nameRefusal : null}"
     );
     check("  where pressed is a press for the event offered now", initSource(barFn ?? {}, bar.source, "pressed"), "pressedFor === plan.event");
     check("its press submits, is never disabled, and says its event's working word", `${attributeSources(barFn ?? {}, bar.source, "Button", "type").join()} ${attributeSources(barFn ?? {}, bar.source, "Button", "disabled").length} ${attributeSources(barFn ?? {}, bar.source, "Button", "busyLabel").join()}`, '"submit" 0 {COPY.working[plan.event]}');
     check("  at the phone's size", attributeSources(barFn ?? {}, bar.source, "Button", "size").join(), '"xl"');
     check("  while what it holds is busy with it, or locked while the menu's sending is on its way (#531)", attributeSources(barFn ?? {}, bar.source, "FormBusy", "busy").join(), '{repairPending ? "action" : pending}');
-    check("its job takes the dialog's rule", initSource(barFn ?? {}, bar.source, "kept"), "chosenJobId(plan.jobs, jobId)");
-    assert("  restarted whenever the plan stops holding it, before the choice is read", /if \(kept !== jobId\) setJobId\(kept\);/.test(barSource) && barSource.indexOf("setJobId(kept)") < barSource.indexOf("const chosen ="));
-    check("it draws no move notice, which is the desk's dialog's", callsTo(barFn ?? {}, "jobMoveNotice").length, 0);
-    check("its pill opens the job sheet only for a person on several jobs", attributeSources(barFn ?? {}, bar.source, "SheetChip", "onOpen").join(), '{several ? () => setSheet("job") : undefined}');
-    check("  and its name field the name sheet", attributeSources(barFn ?? {}, bar.source, "SheetField", "onOpen").join(), '{() => setSheet("name")}');
+    check("it holds no job: no pill, no job sheet, no choice to keep (#597)", /SheetChip|JobSheet|chosenJobId|onlyJob|jobMoveNotice|plan\.jobs/.test(bar.source), false);
+    check("  the names the item's job's", callArguments(barFn ?? {}, bar.source, "recentNamesFor").join(), "recentCheckOuts, { jobCode: plan.jobCode }");
+    check("its name field opens the name sheet", attributeSources(barFn ?? {}, bar.source, "SheetField", "onOpen").join(), "{() => setNaming(true)}");
     assert("  the name asked only of a check-out", /\{asksName && \(\s*<Field label=\{COPY\.checkedOutToLabel\}/.test(barSource) && /\{asksName && \(\s*<NameSheet/.test(barSource));
     check("with nothing to record it says the plan's refusal in the press's place", /\{plan\.refusal\}<\/p>/.test(barSource), true);
     check("  drawn below the phone's edge alone", attributeSources(barFn ?? {}, bar.source, "BottomBar", "phoneOnly").join(" | "), "true | true");
     // WHAT A DESK'S DIALOG WAS GIVEN COMES TO THE BAR WHEN THE WINDOW CROSSES INTO IT (#495):
-    // the frame closes a dialog its page stops drawing, the dialog hands its job and name to
-    // the provider first, and the bar takes each handing-over once, as its own.
+    // the frame closes a dialog its page stops drawing, the dialog hands its name to the
+    // provider first, and the bar takes each handing-over once, as its own. Its job went with it
+    // until #597.
     check(
-        "a desk's dialog the frame closes undrawn carries its job and name (#495)",
+        "a desk's dialog the frame closes undrawn carries its name (#495, #597)",
         `${attributeSources(formFn, dialog.source, "DialogFrame", "onHidden").join()} | ${attributeSources(dialogFn, dialog.source, "TransitionForm", "onCarry").join()}`,
-        "{() => onCarry({ jobId: kept, name })} | {carry}"
+        "{() => onCarry({ name })} | {carry}"
     );
-    check("  which the provider keeps, a new object each time", /carry: \(\{ jobId, name \}\) => setCarried\(\{ jobId, name \}\),/.test(provider.source), true);
+    check("  which the provider keeps, a new object each time", /carry: \(\{ name \}\) => setCarried\(\{ name \}\),/.test(provider.source), true);
     assert(
-        "  and the bar takes each handing-over once, as its own job and name",
-        /if \(carried !== taken\) \{\s*setTaken\(carried\);\s*if \(carried\) \{\s*setJobId\(carried\.jobId\);\s*setName\(carried\.name\);/.test(barSource)
+        "  and the bar takes each handing-over once, as its own name",
+        /if \(carried !== taken\) \{\s*setTaken\(carried\);\s*if \(carried\) setName\(carried\.name\);\s*\}/.test(barSource)
     );
 
     // ── 8: retiring — the second answer the plan carries (#363) ────────────
@@ -1549,6 +1583,7 @@ export function run({ check, assert, log }) {
     );
     check("a retired one may not be retired again", retired.mayRetire, false);
     check("  and somebody on no job may not retire at all", noJob.mayRetire, false);
+    check("  nor a site manager on another job (#597)", planTransition({ user: actor(JOB_B), jobs: ALL_JOBS, status: ASSET_STATUS.IN_STOCK, assetJobId: JOB_A.id }).mayRetire, false);
 
     log("");
     log("and where a retirement's job comes from, which is not the actor:");
@@ -1556,24 +1591,22 @@ export function run({ check, assert, log }) {
     // site the asset had never been on — measured on this base before the branch
     // merged, where `HYE-TL-260909-004`, `HYE-AST-260909-004` since #513, was checked in on one job and retired on
     // another. `Recorded By` is what answers who did it.
-    const goodRetire = readRetirement(inStock, { currentJobRecordId: JOB_B.id });
+    const goodRetire = readRetirement(out, { drawnJobId: JOB_B.id });
     check("it passes", goodRetire.refusal, null);
     check("  and hands back the asset's own job", goodRetire.jobRecordId, JOB_B.id);
-    // THE ACTOR'S ASSIGNMENTS DO NOT REACH IT, which is the assertion with teeth:
-    // the plan above was built for somebody on JOB_A only, and the answer is
-    // JOB_B because that is where the asset was.
-    assert("  even when the actor is not assigned to it", !inStock.jobs.some((j) => j.id === JOB_B.id));
-    check(
-        "  so an asset on the actor's own job reads that instead",
-        readRetirement(inStock, { currentJobRecordId: JOB_A.id }).jobRecordId,
-        JOB_A.id
-    );
+    // THE ACTOR'S ASSIGNMENTS DO NOT CHOOSE IT, which is the assertion with teeth: the plan was
+    // built for somebody on JOB_A and JOB_B with the item on JOB_B, and the answer is JOB_B
+    // because that is where the asset is, not the first of theirs.
+    check("  never the actor's first", readRetirement(inStock, { drawnJobId: JOB_A.id }).jobRecordId, JOB_A.id);
 
     // A refused plan refuses whatever it is handed, which is also how a stale page
     // is answered: somebody who retired this first makes the fresh plan terminal.
-    check("a retired asset refuses", readRetirement(retired, { currentJobRecordId: JOB_A.id }).jobRecordId, null);
-    check("  in the plan's own words", readRetirement(retired, { currentJobRecordId: JOB_A.id }).refusal, retired.refusal);
-    check("and somebody on no job is refused too", readRetirement(noJob, { currentJobRecordId: JOB_A.id }).refusal, ASSET_TRANSITION_COPY.noJob);
+    check("a retired asset refuses", readRetirement(retired, { drawnJobId: JOB_A.id }).jobRecordId, null);
+    check("  in the plan's own words", readRetirement(retired, { drawnJobId: JOB_A.id }).refusal, retired.refusal);
+    // WHOSE ITEM IT IS NOW, before the status (#597): a site manager not on its job is told
+    // whose it is, and a page drawn on the job it has left that it is elsewhere now.
+    check("and a reader the item's job is not one of is refused, whose it is named", readRetirement(noJob, { drawnJobId: JOB_A.id }).refusal, "Only 26-DEMO-01 can record this item. Nothing was saved.");
+    check("  and a page drawn on the job it left", readRetirement(movedOn, { drawnJobId: JOB_A.id }).refusal, "This item is on 26-DEMO-02 now. Nothing was saved.");
     // NEITHER AN EVENT NOR A JOB IS TAKEN OR COMPARED, which is where this parts
     // from `readSubmission` twice over. The returned shape says so: no event,
     // and a record id rather than a job the caller could have named.
@@ -1671,7 +1704,8 @@ export function run({ check, assert, log }) {
         `${attributeSources(confirm.ast, confirm.source, "DialogFrame", "sheet").join()} ${attributeSources(confirm.ast, confirm.source, "DialogFrame", "closesOnBackdrop").join()}`,
         "true true"
     );
-    check("  and nothing closes it while it sends", attributeSources(confirm.ast, confirm.source, "DialogFrame", "busy").join(), "{pending}");
+    // THE PROVIDER'S WAIT SINCE #597, which holds the retirement's answer as it holds the deletion's.
+    check("  and nothing closes it while it sends", attributeSources(confirm.ast, confirm.source, "DialogFrame", "busy").join(), "{busy}");
     check(
         "its commitment is filled red and submits, beside a way out",
         attributeSources(confirm.ast, confirm.source, "Button", "variant").join(" | "),
@@ -1680,7 +1714,22 @@ export function run({ check, assert, log }) {
     check("  the commitment the submit", attributeSources(confirm.ast, confirm.source, "Button", "type").join(), '"submit"');
     check("  giving way to its working word while it sends", attributeSources(confirm.ast, confirm.source, "Button", "busyLabel").join(), "{COPY.retireWorking}");
     check("  and neither button disabled for the sending (#469)", attributeSources(confirm.ast, confirm.source, "Button", "disabled").join(" | "), "");
-    check("  which sends through a transition", callsTo(confirm.ast, "startTransition").length, 1);
+    // IT SENDS THROUGH THE PROVIDER SINCE #597, which holds the answer the question went with
+    // until then, so a retirement refused because the item is no longer the reader's is said under
+    // the status after the question has gone.
+    check("  which sends through the provider's one answer", `${callsTo(confirm.ast, "send").length} ${callsTo(confirm.ast, "useActionState").length}`, "1 0");
+    assert(
+        "  the provider holding it, said in the question while the opening that sent it stands",
+        /const \[retireAnswer, retireFormAction, retirePending\] = useActionState\(retireAssetAction, null\);/.test(provider.source) &&
+            /const retireSaidInDialog = retireSentFor === retireOpening;/.test(provider.source) &&
+            /refusal=\{retireSaidInDialog \? retireSentence : null\}/.test(provider.source) &&
+            /retire: retireSaidInDialog \? null : retireSentence,/.test(provider.source)
+    );
+    assert(
+        "  and an opening the plan ends counts as a new one, so its answer moves under the status",
+        /if \(retiring && !plan\.mayRetire\) endRetiring\(\);/.test(provider.source) &&
+            /const endRetiring = \(\) => \{\s*setRetiring\(false\);\s*setRetireOpening\(\(count\) => count \+ 1\);\s*\};/.test(provider.source)
+    );
     check("neither file draws on the old frame", [confirm, opener].filter((f) => /modalStyles/.test(f.source)).length, 0);
     check("the question is the provider's, opened from either More actions", `${attributeSources(provider.ast, provider.source, "RetirementConfirm", "open").join()} ${attributeSources(provider.ast, provider.source, "RetirementConfirm", "onClose").join()}`, "{retiring} {() => setRetiring(false)}");
     // THE WAY OUT IS ONE WORD ON ALL THREE DIALOGS — the check-out's and the check-in's,
@@ -1693,16 +1742,14 @@ export function run({ check, assert, log }) {
     );
     // IT TAKES NO INPUT AT ALL, which is two decisions rather than one. No reason
     // — the rule requiring one was retired with its field. And no job — the row
-    // inherits the asset's own, so the page asks that question once instead
-    // of twice, which is the defect that found the rule.
+    // inherits the asset's own, as every event's does since #597.
     assert("it asks for no reason field", !/textarea/i.test(confirm.source));
     assert("  and offers no job control", !/<Choice|<select|<SheetField|<JobSheet/.test(confirm.source));
-    assert("  nor a hidden job", !/name="jobId"/.test(confirm.source));
+    assert("  nor a hidden job to write", !/name="jobId"/.test(confirm.source));
     assert("  nor a label for one", !/COPY\.jobLabel|COPY\.jobUnchosen/.test(confirm.source));
-    assert("  and shows no job-move line, which is the transition's", callsTo(confirm.ast, "jobMoveNotice").length === 0);
-    // The only thing it posts is which asset, so the action has nothing to
-    // trust but the id it looks up.
-    check("it posts only the asset id", [...confirm.source.matchAll(/name="([^"]+)"/g)].map((m) => m[1]).join(), "assetId");
+    // It posts which asset, and the asset's job as the page was drawn (#597), which the action
+    // compares and never writes — so it has nothing to trust but the id it looks up.
+    check("it posts the asset id and the job the page was drawn on", [...confirm.source.matchAll(/name="([^"]+)"/g)].map((m) => m[1]).join(), "assetId,drawnJobId");
     // A MENU ITEM BEHIND `More actions` (#463), the design's place for an act a scan is not
     // for: 0f's Destructive, saying the opener's words, and handing focus to its button before
     // the question opens, so every way out of the question comes back to the button.
@@ -1726,26 +1773,19 @@ export function run({ check, assert, log }) {
             /label: NAVIGATION_COPY\.account\.signOut,\s*detail: account\.email,\s*separated: true,\s*type: "submit",\s*form: formId,/.test(opener.source) &&
             /\{phone && account && <form id=\{formId\} action="\/api\/auth\/logout" method="POST" hidden \/>\}/.test(opener.source)
     );
-    // AND THE TRANSITION'S DIALOG STILL ASKS FOR A JOB, because a scan is the actor
-    // handling the asset. One question on the screen rather than none is the point.
-    assert("the transition's dialog keeps its job choice", /<Choice\s+name="jobId"/.test(dialog.source));
+    // AND THE TRANSITION'S DIALOG ASKS FOR NO JOB SINCE #597, where it kept its job choice because
+    // a scan was the actor handling the asset: an item records on the job it sits on now.
+    assert("the transition's dialog keeps no job choice (#597)", !/<Choice\b|name="jobId"/.test(dialog.source));
 
-    // ── 10b: 1j's job sheet and name sheet, the parts a foot bar opens (#458) ─
-    // DRAWN AS 1j DRAWS THEM AND OPENED BY WHATEVER HOLDS A JOB OR ASKS FOR A NAME —
-    // the check-out's dialog today, #463's foot bar later. So what is held is what each
-    // asks of its opener and does with an answer, and that each closes on a press behind
-    // it as 1j draws.
+    // ── 10b: 1j's name sheet, the part a foot bar opens (#458) ─────────────
+    // DRAWN AS 1j DRAWS IT AND OPENED BY WHATEVER ASKS FOR A NAME — the check-out's dialog and
+    // #463's foot bar. So what is held is what it asks of its opener and does with an answer,
+    // and that it closes on a press behind it as 1j draws. 1j's job sheet stood beside it until
+    // #597 took the job out of the transition, and its file with it.
     log("");
-    log("1j's job sheet and name sheet are parts any opener can open:");
-    const jobSheet = parseFile(JOB_SHEET);
+    log("1j's name sheet is a part any opener can open:");
     const nameSheet = parseFile(NAME_SHEET);
-    check(
-        "the job sheet is a sheet that closes on a press behind it",
-        `${attributeSources(jobSheet.ast, jobSheet.source, "DialogFrame", "sheet").join()} ${attributeSources(jobSheet.ast, jobSheet.source, "DialogFrame", "closesOnBackdrop").join()}`,
-        "true true"
-    );
-    assert("  a row chooses and puts the sheet away", /onChoose\(option\.value\);\s*onClose\(\);/.test(jobSheet.source));
-    assert("  and the row already chosen is the one checked", /chosen: option\.value === value/.test(jobSheet.source));
+    check("the job sheet is gone (#597)", existsSync(new URL("../../../app/(assets)/assets/[assetId]/JobSheet.js", import.meta.url)), false);
     // Its handle closes it as every sheet's does, which is the frame's since #580 and
     // `offline/sheet-drag.mjs`'s to hold.
     check(
@@ -1773,18 +1813,14 @@ export function run({ check, assert, log }) {
     // says what the rows are — `offline/name-sheet-list.mjs` holds the five states by value and
     // the space's one height. Until #589 the head and its rows went when a typed name matched
     // none, and a job with none said so in a sentence of its own.
-    assert("  the rows absent until a job with recent names is chosen, under the list's head", /const rows = head \? names : \[\];/.test(nameSheet.source) && /\{rows\.length > 0 && \(\s*<SheetRows\s+rows=\{rows\.map\(/.test(nameSheet.source));
-    assert("  the head the list's judgment, `nameListHead`, over the rows (#589)", /const head = nameListHead\(\{ jobChosen, hasRecent, typed: value, offered: names \}\);/.test(nameSheet.source) && /\{head && \(\s*<p[^>]*>\s*\{head\}/.test(nameSheet.source));
+    assert("  the rows absent on a job with no recent names, under the list's head", /const rows = head \? names : \[\];/.test(nameSheet.source) && /\{rows\.length > 0 && \(\s*<SheetRows\s+rows=\{rows\.map\(/.test(nameSheet.source));
+    assert("  the head the list's judgment, `nameListHead`, over the rows (#589)", /const head = nameListHead\(\{ hasRecent, typed: value, offered: names \}\);/.test(nameSheet.source) && /\{head && \(\s*<p[^>]*>\s*\{head\}/.test(nameSheet.source));
     assert("  and no sentence of the list's own besides its head (#589)", !/<p[^>]*>\s*\{COPY\.\w+\}\s*<\/p>/.test(nameSheet.source));
     assert("  and each row marking what is typed (#495)", /match: matchedPart\(name, value\),/.test(nameSheet.source));
     assert("  and a name picked is the opener's and puts the sheet away", /onChange\(name\);\s*onClose\(\);/.test(nameSheet.source));
-    check("neither sheet draws on the old frame", [jobSheet, nameSheet].filter((f) => /modalStyles/.test(f.source)).length, 0);
-    // AND THE FOOT BAR OPENS THEM AS THEY ARE (#463), which is what #458 built them for.
-    check(
-        "the foot bar opens both, as they are",
-        `${attributeSources(barFn ?? {}, bar.source, "JobSheet", "open").join()} | ${attributeSources(barFn ?? {}, bar.source, "NameSheet", "open").join()}`,
-        '{sheet === "job"} | {sheet === "name"}'
-    );
+    check("it draws on no old frame", /modalStyles/.test(nameSheet.source), false);
+    // AND THE FOOT BAR OPENS IT AS IT IS (#463), which is what #458 built it for.
+    check("the foot bar opens it, as it is", attributeSources(barFn ?? {}, bar.source, "NameSheet", "open").join(), "{naming}");
 
     // ── anti-vacuity ───────────────────────────────────────────────────────
     log("");
@@ -1836,8 +1872,8 @@ export function run({ check, assert, log }) {
     // the section-1 equalities are not one constant compared with itself.
     assert(
         "planTransition really reads the status it is given",
-        planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: ASSET_STATUS.IN_STOCK }).event !==
-            planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: ASSET_STATUS.OUT }).event
+        planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: ASSET_STATUS.IN_STOCK, assetJobId: JOB_A.id }).event !==
+            planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: ASSET_STATUS.OUT, assetJobId: JOB_A.id }).event
     );
 }
 

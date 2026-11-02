@@ -676,8 +676,8 @@ function sortWiring540({ band, catalog, kindPage, kindSort, kindJob, jobChoice, 
         // stacked head while the list has rows, pulled out by its own room and 14 over the column head.
         /const sort = readSort\(sp\.sort, LIST_SORTS\.items\);/.test(kindPage) &&
             /pageOfAssets\(await getAssetsByRecordIds\(idsInScope\(category\.assets, scope\.shown\)\), sp\.page, sort\)/.test(kindPage),
-        /underBreadcrumb\s*stacked\s*>\s*\{recorder && <RegistrationDialog \{\.\.\.registration\} \/>\}\s*\{page\.total > 0 && \(\s*<div className="-mr-sort-inset-right -mb-\[calc\(var\(--spacing-list-header-inset-bottom\)-var\(--spacing-gap-lg\)\)\]">\s*<CategorySort categoryRecordId=\{category\.id\} job=\{job\} sort=\{sort\} selects=\{recorder\} \/>/.test(kindPage),
-        /selects=\{recorder\}\s*sort=\{sort\}\s*\/>/.test(kindPage) && /job=\{job\}\s*sort=\{sort\}\s*top=\{top\}/.test(kindPage),
+        /underBreadcrumb\s*stacked\s*>\s*\{recording\.adds && <RegistrationDialog \{\.\.\.registration\} \/>\}\s*\{page\.total > 0 && \(\s*<div className="-mr-sort-inset-right -mb-\[calc\(var\(--spacing-list-header-inset-bottom\)-var\(--spacing-gap-lg\)\)\]">\s*<CategorySort categoryRecordId=\{category\.id\} job=\{job\} sort=\{sort\} selects=\{recording\.selects\} \/>/.test(kindPage),
+        /selects=\{recording\.selects\}\s*sort=\{sort\}\s*\/>/.test(kindPage) && /job=\{job\}\s*sort=\{sort\}\s*top=\{top\}/.test(kindPage),
         // A change of order is a navigation to the first page, keeping the job and, for a site
         // manager alone, the run.
         /const selection = selects \? readAssetIds\(params\.getAll\("id"\)\) : \[\];/.test(kindSort) &&
@@ -1762,11 +1762,13 @@ export function run({ check, assert, log }) {
         "canRegister: canRegister, catalog: catalog, category: opened, jobs: assignedJobs, listJobId: listJobId, opener: ASSET_REGISTRATION_COPY.heading"
     );
     check("  asking the one predicate every opener asks", openers[0]?.asks, "canRegisterAssets");
-    check("  and under the reader being a site manager alone — not the list's, not a job (#506)", openers[0]?.under, "recorder");
+    // Under the list's answer since #597 (`listRecording`): a site manager on the job the list
+    // stands on, or on all jobs — never on another job's list, where it stood until then.
+    check("  and under the list being one the reader adds on — their own job's, or all jobs (#506, #597)", openers[0]?.under, "recording.adds");
     check(
         "  the empty list's the same opener, bordered, under the empty branch and the same reader",
         `${openers[1]?.handed} | ${openers[1]?.asks} | ${openers[1]?.under}`,
-        "canRegister: canRegister, catalog: catalog, category: opened, jobs: assignedJobs, listJobId: listJobId, opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | canRegisterAssets | page.total === 0, recorder"
+        "canRegister: canRegister, catalog: catalog, category: opened, jobs: assignedJobs, listJobId: listJobId, opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | canRegisterAssets | page.total === 0, recording.adds"
     );
     // WHAT THE CATEGORY AND THE CATALOG ARE (#507), off their declarations, since `category: opened`
     // above reads alike whatever `opened` is: the row the page read, by the id the action
@@ -1810,11 +1812,15 @@ export function run({ check, assert, log }) {
     // A SITE MANAGER ON NO JOB MEETS NO OPENER IN THE HEAD (1a2, #522), and since #593 that is
     // asked of their own jobs (`canRegister`) and not of the jobs the list may stand on, which are
     // every job for every reader.
-    check("  and under the reader being a site manager on a job of their own (#506, #522, #593)", listOpeners[0]?.under, "recorder && registration.canRegister");
+    check(
+        "  and under the list being one the reader adds on, and a job of their own to add to (#506, #522, #593, #597)",
+        listOpeners[0]?.under,
+        "recording.adds && registration.canRegister"
+    );
     check(
         "  the empty list's the same opener, bordered, under the empty branch and the same reader",
         `${listOpeners[1]?.handed} | ${listOpeners[1]?.asks} | ${listOpeners[1]?.under}`,
-        "canRegister: canRegisterAssets(user, allJobs), catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), listJobId: scope.job?.id ?? null, opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | canRegisterAssets | rows.length === 0, recorder && registration.canRegister"
+        "canRegister: canRegisterAssets(user, allJobs), catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), listJobId: scope.job?.id ?? null, opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | canRegisterAssets | rows.length === 0, recording.adds && registration.canRegister"
     );
     // The count a suggested tool carried, its link array's length (#456), was held here until
     // #507: a suggestion is a name of the catalog now, beside its category, and how many of a
@@ -2637,14 +2643,14 @@ export function run({ check, assert, log }) {
             !/onNoJob|noJobHeading|untilAssigned/.test(listSource),
             /count=\{0\}/.test(listSource),
             /<h2 className="text-heading font-semibold">\{COPY\.noItemsHeading\}<\/h2>/.test(listSource),
-            /\{recorder \? COPY\.noItems : COPY\.untilASiteManagerAdds\}/.test(listSource),
-            /\{recorder && registration\.canRegister && \(/.test(listSource),
+            /\{recording\.adds \? COPY\.noItems : COPY\.untilASiteManagerAdds\}/.test(listSource),
+            /\{recording\.adds && registration\.canRegister && \(/.test(listSource),
         ].join(" "),
         "true true true true true"
     );
     check(
-        "  a category's page: who fills it, by who reads it",
-        /\{recorder \? COPY\.untilYouAdd : COPY\.untilASiteManagerAdds\}/.test(categorySource),
+        "  a category's page: who fills it, by who reads it — another job's site manager reading it as anybody does (#597)",
+        /\{recording\.adds \? COPY\.untilYouAdd : COPY\.untilASiteManagerAdds\}/.test(categorySource),
         true
     );
     // ONE SCROLL (0i Chain, #519). The lane holds the whole list: on 1a the head held at the top
@@ -2799,22 +2805,22 @@ export function run({ check, assert, log }) {
         }),
         "false false false false false false"
     );
-    // A DIALOG'S JOB SAYS THE JOB'S NAME AFTER ITS CODE (1b, 1i): the registration from both
-    // pages that open it, and the check-out and check-in at a desk — the phone's sheet and foot
-    // bar keep the code alone, as 1j draws them.
+    // A DIALOG'S JOB SAYS THE JOB'S NAME AFTER ITS CODE (1b): the registration from both pages
+    // that open it. The check-out and check-in at a desk did too, and the phone's sheet and foot
+    // bar the code alone, until #597 left both on the item's own job and asking none.
     const registrationSource = parseFile("app/(assets)/asset-categories/RegistrationDialog.js").source;
     const transitionSource = parseFile("app/(assets)/assets/[assetId]/TransitionDialog.js").source;
     const barSourceForJobs = parseFile("app/(assets)/assets/[assetId]/TransitionBar.js").source;
     const jobNames = ({ registration, transition, bar, list, category }) =>
         [
             /options=\{jobs\.map\(\(job\) => \(\{ value: job\.id, label: job\.jobCode, note: job\.jobName \}\)\)\}/.test(registration),
-            /const options = plan\.jobs\.map\(\(job\) => \(\{ value: job\.id, label: job\.jobCode, note: job\.jobName \}\)\);/.test(transition),
-            /const options = plan\.jobs\.map\(\(job\) => \(\{ value: job\.id, label: job\.jobCode \}\)\);/.test(bar),
+            !/plan\.jobs|jobId|JobSheet|jobLabel/.test(transition),
+            !/plan\.jobs|jobId|JobSheet|jobLabel/.test(bar),
             /jobs: assignedJobsFor\(user, allJobs\)\.map\(\(\{ id, jobCode, jobName \}\) => \(\{ id, jobCode, jobName \}\)\),/.test(list),
             /const assignedJobs = assignedJobsFor\(user, jobs\)\.map\(\(\{ id, jobCode, jobName \}\) => \(\{ id, jobCode, jobName \}\)\);/.test(category),
         ].join(" ");
     check(
-        "  a dialog's job says the job's name after its code, the phone's foot bar the code alone, and both pages hand the registration the names",
+        "  a dialog's job says the job's name after its code, the transition's two ask no job (#597), and both pages hand the registration the names",
         jobNames({ registration: registrationSource, transition: transitionSource, bar: barSourceForJobs, list: listSource, category: categorySource }),
         "true true true true true"
     );
@@ -2823,24 +2829,26 @@ export function run({ check, assert, log }) {
         jobNames({
             registration: "options={jobs.map((job) => ({ value: job.id, label: job.jobCode }))}",
             transition: "const options = plan.jobs.map((job) => ({ value: job.id, label: job.jobCode }));",
-            bar: "const options = plan.jobs.map((job) => ({ value: job.id, label: job.jobCode, note: job.jobName }));",
+            bar: '<input type="hidden" name="jobId" value={kept} />',
             list: "jobs: assignedJobsFor(user, allJobs).map(({ id, jobCode }) => ({ id, jobCode })),",
             category: "const assignedJobs = assignedJobsFor(user, jobs).map(({ id, jobCode }) => ({ id, jobCode }));",
         }),
         "false false false false false"
     );
-    // THE CAPTION: the type and the category (1d, 1f, 1j), the asset's id first at a desk, the
-    // path the caption said from #507 nowhere in it, and since #552 no class after the two.
+    // THE CAPTION: the type and the category (1d, 1f, 1j), the asset's id first at a desk and the
+    // item's job after it (#597), the path the caption said from #507 nowhere in it, and since
+    // #552 no class after the two. The phone names the job on a line of its own, once (1j).
     const captionSource = parseFile("app/(assets)/CategoryCaption.js").source;
     check(
         "  the caption says the type and the category, after what leads it, and no path and no class",
         [
-            /const parts = \[\s*lead,\s*category\?\.level1 \? value\(category\.level1\) : null,\s*category\?\.level2 \? value\(category\.level2\) : null\s*\]\.filter\(Boolean\)/.test(captionSource) &&
+            /const parts = \[\s*lead,\s*job \? value\(job\) : null,\s*category\?\.level1 \? value\(category\.level1\) : null,\s*category\?\.level2 \? value\(category\.level2\) : null,?\s*\]\.filter\(Boolean\)/.test(captionSource) &&
                 !/assetClass|classOf/.test(captionSource),
             !/pathOf/.test(captionSource),
             /text-foreground-default tabular-nums max-sm:text-foreground-muted/.test(captionSource),
-            /<CategoryCaption\s+category=\{category\}\s+lead=\{<span className=\{ID_IN_TEXT\}>\{asset\.assetId\}<\/span>\}/.test(assetSource),
-            !/jobCode && \(/.test(assetSource),
+            /<CategoryCaption\s+category=\{category\}\s+lead=\{<span className=\{ID_IN_TEXT\}>\{asset\.assetId\}<\/span>\}\s+job=\{jobCode\}/.test(assetSource),
+            (assetSource.match(/\{jobCode && \(/g) ?? []).length === 1 &&
+                /\{jobCode && \(\s*<p className="[^"]*\bsm:hidden\b[^"]*">\s*<Icon name="map-pin" className="size-mobile-title-icon [^"]*" \/>\s*<span className="min-w-0 tabular-nums">\{jobCode\}<\/span>/.test(assetSource),
         ].join(" "),
         "true true true true true"
     );

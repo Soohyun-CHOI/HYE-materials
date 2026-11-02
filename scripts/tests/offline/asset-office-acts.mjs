@@ -258,7 +258,9 @@ function deletion582({ check, assert, log }) {
     const page = parseFile(PAGE).source;
     assert(
         "the page draws More actions at a desk for the office's deletion as for its change of job",
-        /const officeActs = office\.mayChangeJob \|\| office\.mayDelete;/.test(page) && (page.match(/\bofficeActs\b/g) ?? []).length === 4 && !/office\.mayChangeJob &&/.test(page)
+        // Three readings since #597, which took away the branch drawing it beside a site manager's
+        // sentence about having no job — a sentence the page no longer says.
+        /const officeActs = office\.mayChangeJob \|\| office\.mayDelete;/.test(page) && (page.match(/\bofficeActs\b/g) ?? []).length === 3 && !/office\.mayChangeJob &&/.test(page)
     );
     log("");
 }
@@ -540,9 +542,14 @@ export function run({ check, assert, log }) {
     assert("  it binds the action, so the answer outlives the dialog", /const \[jobAnswer, jobFormAction, jobPending\] = useActionState\(changeAssetJobAction, null\);/.test(provider));
     assert("  a change the plan no longer offers is no longer open", /if \(changingOn !== null && !office\?\.mayChangeJob\) setChangingOn\(null\);/.test(provider));
     assert("  said in the dialog only by the opening that sent it, while open", /const jobSaidInDialog = changingOn !== null && jobSentFor === jobOpening;/.test(provider) && /refusal: jobSaidInDialog \? jobSentence : null,/.test(provider));
+    // One map of what each action's answer says under the status since #597, which put the
+    // retirement's and the note's beside these, and the last sent is the one said.
     assert(
         "  and under the status otherwise, when it was sent last",
-        /statusSentence:\s*lastSent === "job"\s*\?\s*jobSaidInDialog\s*\?\s*null\s*:\s*jobSentence\s*:\s*lastSent === "delete"\s*\?\s*deleteSaidInDialog\s*\?\s*null\s*:\s*deleteSentence\s*:\s*open\s*\?\s*null\s*:\s*transitionSentence,/.test(provider)
+        /job: jobSaidInDialog \? null : jobSentence,/.test(provider) &&
+            /delete: deleteSaidInDialog \? null : deleteSentence,/.test(provider) &&
+            /event: open \? null : transitionSentence,/.test(provider) &&
+            /statusSentence: said\[lastSent \?\? "event"\],/.test(provider)
     );
     assert(
         "  a send recording which opening sent it and that it was last",

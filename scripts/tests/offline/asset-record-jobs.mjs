@@ -10,6 +10,14 @@
 // the view's answer was right by accident; now they part, and such a path would widen with the
 // view and fail nothing. This file is what pairs them.
 //
+// AND #597 NARROWED THE RECORDING HALF TO THE ITEM'S OWN JOB. A check-out and a check-in no
+// longer choose among the reader's jobs: every event records on the job the item sits on, and
+// a site manager records on an item only when that job is one of theirs (`lib/assetJob.js:
+// recordsOn`). So what is held below is which items each reader records on, by the item's job,
+// and a list's `Add items` and label boxes stand on the reader's own job's list — or, for the
+// opener alone, on all jobs (`lib/assetListView.js:listRecording`), where the scope's job is
+// asked of the reader's assignments and never taken from the view.
+//
 // SO IT HOLDS TWO THINGS:
 //
 //   1. BY VALUE, over three jobs and six readers — a site manager on two, on one and on none, the
@@ -28,10 +36,10 @@
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
-import { assetListScope } from "../../../lib/assetListView.js";
+import { assetListScope, listRecording } from "../../../lib/assetListView.js";
 import { assignedJobsFor, chosenJobId } from "../../../lib/assetJob.js";
 import { ASSET_REGISTRATION_COPY, canRegisterAssets, readRegistration } from "../../../lib/assetRegistration.js";
-import { ASSET_TRANSITION_COPY, planTransition } from "../../../lib/assetTransition.js";
+import { planTransition } from "../../../lib/assetTransition.js";
 import { planOfficeActs } from "../../../lib/assetOfficeActs.js";
 import { ASSET_EVENT, ASSET_STATUS } from "../../../lib/assetStatus.js";
 import { listJsFiles, parentMap, parseFile, parseSource, repoPath, resolveFunction, toPosix, walk } from "./_ast.mjs";
@@ -62,7 +70,7 @@ const SCOPE_READERS = {
 const RECORDING_ELEMENTS = ["RegistrationDialog", "RegistrationShortfall", "RegistrationUnlogged", "LabelsDialog", "AssetTransition"];
 
 /** The bindings the pages feed those elements from. */
-const RECORDING_BINDINGS = ["registration", "opener", "canRegister", "assignedJobs", "listJobId", "transition", "recentRows", "recorder"];
+const RECORDING_BINDINGS = ["registration", "opener", "canRegister", "assignedJobs", "listJobId", "transition", "recentRows", "recorder", "recording"];
 
 /** Every file under app/ and lib/ importing `name`, as a repo-relative path. */
 function importersOf(name) {
@@ -157,29 +165,42 @@ export function run({ check, log }) {
         "site manager on two: 23-USA-09 | site manager on one: 25-USA-13 | site manager on none: all | " +
             "office on none: all | office, a site manager on one: 26-USA-12 | reader who records nothing: 23-USA-09"
     );
+    // THE ITEMS EACH RECORDS ON ARE THOSE ON THEIR OWN JOBS (#597), by the item's job: an item on
+    // each of the three, and the jobs whose items a reader is offered anything on.
     check(
-        "the jobs a check-out or a check-in may be recorded on are their own, and nobody else's",
-        each((user) => codes(planTransition({ user, jobs: JOBS, status: ASSET_STATUS.IN_STOCK }).jobs)),
+        "the items a check-out or a check-in may be recorded on are those on their own jobs, and nobody else's",
+        each((user) => codes([A, B, C].filter((job) => planTransition({ user, jobs: JOBS, status: ASSET_STATUS.IN_STOCK, assetJobId: job.id }).records))),
         "site manager on two: 23-USA-09,25-USA-13 | site manager on one: 25-USA-13 | site manager on none: none | " +
             "office on none: none | office, a site manager on one: 26-USA-12 | reader who records nothing: none"
     );
     check(
-        "  so what a check-out offers, and to whom it says why not",
+        "  so what an item on 25-USA-13 offers, and nobody is told why not (#597)",
         each((user) => {
-            const plan = planTransition({ user, jobs: JOBS, status: ASSET_STATUS.IN_STOCK });
-            return plan.event ?? (plan.refusal === ASSET_TRANSITION_COPY.noJob ? "no job" : "nothing");
+            const plan = planTransition({ user, jobs: JOBS, status: ASSET_STATUS.IN_STOCK, assetJobId: B.id });
+            return plan.event ?? (plan.refusal ? "told" : "nothing");
         }),
-        `site manager on two: ${ASSET_EVENT.CHECKED_OUT} | site manager on one: ${ASSET_EVENT.CHECKED_OUT} | site manager on none: no job | ` +
-            `office on none: nothing | office, a site manager on one: ${ASSET_EVENT.CHECKED_OUT} | reader who records nothing: nothing`
+        `site manager on two: ${ASSET_EVENT.CHECKED_OUT} | site manager on one: ${ASSET_EVENT.CHECKED_OUT} | site manager on none: nothing | ` +
+            `office on none: nothing | office, a site manager on one: nothing | reader who records nothing: nothing`
     );
     check(
-        "  and whether a repair, a retirement or a note may be written at all",
+        "  and whether a repair, a retirement or a note may be written on it at all",
         each((user) => {
-            const plan = planTransition({ user, jobs: JOBS, status: ASSET_STATUS.IN_STOCK });
+            const plan = planTransition({ user, jobs: JOBS, status: ASSET_STATUS.IN_STOCK, assetJobId: B.id });
             return [plan.maySendForRepair, plan.mayRetire, plan.mayWriteNote].map(Number).join("");
         }),
         "site manager on two: 111 | site manager on one: 111 | site manager on none: 000 | " +
-            "office on none: 000 | office, a site manager on one: 111 | reader who records nothing: 000"
+            "office on none: 000 | office, a site manager on one: 000 | reader who records nothing: 000"
+    );
+    check(
+        "  and what a list offers to record: on 25-USA-13's, on 26-USA-12's and on all jobs (#597)",
+        each((user) =>
+            [B.id, C.id, "all"]
+                .map((job) => listRecording(user, assetListScope(user, JOBS, job)))
+                .map((r) => `${Number(r.adds)}${Number(r.selects)}`)
+                .join(" ")
+        ),
+        "site manager on two: 11 00 10 | site manager on one: 11 00 10 | site manager on none: 00 00 10 | " +
+            "office on none: 00 00 00 | office, a site manager on one: 00 11 10 | reader who records nothing: 00 00 00"
     );
     check(
         "the jobs a registration offers, and whether it is offered, are their own",
@@ -245,6 +266,13 @@ export function run({ check, log }) {
         [LIST, CATEGORY, ITEM].map((file) => `${file}: ${scopeFeeds(parseFile(file)).join(", ") || "none"}`).join(" | "),
         `${LIST}: registration: scope.job | ${CATEGORY}: listJobId: scope.job | ${ITEM}: none`
     );
+    // AND WHOLE, AS THE LIST'S ANSWER (#597): `listRecording` asks the reader's own jobs whether
+    // the job the list stands on is one of them, so the scope reaches a control only through that.
+    check(
+        "  and whole on the two lists, as what the list offers to record (#597)",
+        `${bound(list, "recording")} | ${bound(category, "recording")} | ${bound(item, "recording")}`,
+        "listRecording(user, scope) | listRecording(user, scope) | not bound"
+    );
     check(
         "  no recording control on the three pages is drawn under anything the scope answered",
         [list, category, item].flatMap((page) => recordingConditions(page.ast)).filter((under) => /scope|onNoJob/.test(under)).join(" | "),
@@ -253,13 +281,13 @@ export function run({ check, log }) {
     check(
         "  and the list's opener asks the reader's own jobs, as a category's page does",
         `${recordingConditions(list.ast).join(" | ")} || ${bound(category, "canRegister")} | ${bound(category, "assignedJobs")}`,
-        "RegistrationDialog[recorder && registration.canRegister] | RegistrationDialog[rows.length === 0 && recorder && registration.canRegister] || " +
+        "RegistrationDialog[recording.adds && registration.canRegister] | RegistrationDialog[rows.length === 0 && recording.adds && registration.canRegister] || " +
             "canRegisterAssets(user, jobs) | assignedJobsFor(user, jobs).map(({ id, jobCode, jobName }) => ({ id, jobCode, jobName }))"
     );
     check(
-        "an asset's page plans from the whole job list and offers the names its plan's jobs gave",
+        "an asset's page plans from the item's own job and offers the names that job gave (#597)",
         `${bound(item, "transition")} | ${bound(item, "recentRows")}`,
-        "planTransition({ user, jobs, status: asset.status }) | transition.event === ASSET_EVENT.CHECKED_OUT ? await getRecentCheckOuts({ jobCodes: transition.jobs.map((job) => job.jobCode) }) : []"
+        "planTransition({ user, jobs, status: asset.status, assetJobId: asset.job?.[0] }) | transition.event === ASSET_EVENT.CHECKED_OUT ? await getRecentCheckOuts({ jobCodes: [transition.jobCode] }) : []"
     );
     // ANTI-VACUITY: a page drawing its opener under the scope's job count, handing the dialog the
     // scope's jobs and offering names off them is seen doing each.

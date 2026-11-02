@@ -637,8 +637,10 @@ const VALUES = [
     // The title block 4 under the top bar since the files of 2026-10-16 (#538), where it was 16.
     ["--spacing-mobile-top-bar-stack", "0.25rem", null],
     ["--spacing-mobile-title-stack", "1.375rem", null],
-    // The title block's lines on a phone, 4 apart (0a, #538): the id over the name, the caption under it.
+    // The title block's lines on a phone, 4 apart (0a, #538): the id over the name, the caption under it,
+    // and the item's job under that behind its pin, 14 (1j, #597).
     ["--spacing-mobile-title-block-stack", "0.25rem", null],
+    ["--size-mobile-title-icon", "0.875rem", null],
     // The clear × of the one field in a sheet, from the field's edge (1j-b2, #533).
     ["--spacing-mobile-sheet-input-clear-inset-right", "0.125rem", null],
     // The phone's note line a writer presses, past its text either side and above and below (0a Note, 1j; #533).

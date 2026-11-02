@@ -11,8 +11,11 @@ import { useAssetTransition } from "./AssetTransition";
  * WHERE THE STATUS IS, BECAUSE THAT IS WHAT THE REFUSAL IS ABOUT. The action re-renders the
  * page as it refuses (#378), so the status above this is already the one somebody else's scan
  * left, and the sentence says who scanned and when (`moved`). Every other refusal of the
- * press stands here too — the status left unwritten, a job taken away — except while a desk's
- * dialog is open, which says it above its actions instead. **And the office's job change says
+ * press stands here too — the status left unwritten, the item no longer the reader's to record or
+ * moved to another job since the page was drawn (#597) — except while a desk's dialog is open,
+ * which says it above its actions instead; a page drawn on another job closes it, so that one is
+ * always said here, whichever control sent it, the retirement's question and the note's
+ * included. **And the office's job change says
  * its refusals here once its dialog or sheet is closed (#583)** — one refused because something
  * was recorded since lands on a page holding neither — so what this says is the answer of
  * whichever was sent last, which the provider decides (`statusSentence`).

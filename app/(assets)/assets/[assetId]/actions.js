@@ -16,6 +16,7 @@ import {
     planTransition,
     readRetirement,
     readSubmission,
+    recordingRefusal,
 } from "@/lib/assetTransition";
 import { readNoteSubmission } from "@/lib/assetNote";
 import { assetPath } from "@/lib/assetRoutes";
@@ -35,20 +36,23 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * question; a repair asks nothing, so its answer stands where a scan's does, under the
  * status (1k).
  *
- * A REPAIR'S ROW TAKES THE ASSET'S JOB, which `readSubmission` hands back from the job the
- * asset holds: an item goes to its maker and comes back to the job it left, as a
- * retirement moves nothing (`lib/assetStatus.js:JOB_SOURCE_OF_EVENT`).
+ * EVERY ROW TAKES THE ASSET'S JOB, which `readSubmission` hands back from the job the asset
+ * holds as just read: a repair's since #531 — an item goes to its maker and comes back to the
+ * job it left, as a retirement moves nothing — and a check-out's and a check-in's since #597,
+ * which took the job the actor chose from their own until then and could move the item to it
+ * (`lib/assetStatus.js:JOB_SOURCE_OF_EVENT`). No submitted job is read.
  *
  * ONLY A SITE MANAGER RECORDS, AND THE WRAPPER DECIDES THAT BEFORE THIS BODY RUNS
  * (#506). `withSiteManagerAction` refuses anybody else — the page they pressed on,
- * rendered again without the controls, and nothing said. What this body still decides
- * is the job, #338's axis exactly, as it did while this action was an exemption: the
- * submitted job has to be one the actor's own `Users."Assigned Jobs"` names, with no
- * office clause — scanning an asset is site work, so a site manager on no job is refused
- * whatever else they are — and deliberately not `canAccessJobDeliveries`, which admits
- * the office to every job. Nothing here is scoped per asset: a site manager may
- * record against any of them, as anyone signed in may read them (#337), which is why
- * the only per-record comparison is about the job.
+ * rendered again without the controls, and nothing said. **What this body decides is the
+ * asset (#597)**: only a site manager on the job the item sits on records on it
+ * (`lib/assetJob.js:recordsOn`, through `planTransition` on a fresh read), with no office
+ * clause — recording is site work — and deliberately not `canAccessJobDeliveries`, which
+ * admits the office to every job. It is a per-record comparison now, where a site manager
+ * recorded against any asset until #597, and a refused one is SAID rather than drawn: the
+ * item moved to a job the reader is not on (#583), or the reader was taken off its job, or it
+ * moved to another of theirs since the page was drawn, which the form's `drawnJobId` shows and
+ * which is never written (`recordingRefusal`). Anyone signed in still reads every asset (#337).
  *
  * REFUSES BY RETURNING `{ error }` BECAUSE THE CALL SITE BINDS (#185).
  * `AssetTransition.js` reads this through `useActionState` for both of the page's
@@ -118,30 +122,29 @@ async function recordAssetEventHandler(prevState, formData) {
         // a refusal of its own: the page drawn again is the code no asset carries.
         if (!asset) return refuse(ASSET_COPY.notFoundHeading);
 
-        // THE PLAN IS BUILT FROM THE STORED STATUS, NOT THE SUBMITTED ONE, so the
-        // offer this compares against is a fact about the base. The job list is
-        // the whole table, which is the shape `/deliveries` and #338 both use, and
-        // `assignedJobsFor` narrows it to the actor's own inside `planTransition`.
+        // THE PLAN IS BUILT FROM THE STORED STATUS AND THE STORED JOB, NOT THE SUBMITTED
+        // ONES, so the offer this compares against is a fact about the base. The job list
+        // is the whole table, which is the shape `/deliveries` and #338 both use; the plan
+        // reads the item's job's code off it, for a refusal to name (#597).
         const plan = planTransition({
             user,
             jobs: await getAllJobs(),
             status: asset.status,
+            assetJobId: asset.job?.[0],
         });
         const { event, jobRecordId, checkedOutTo, refusal, stale } = readSubmission(plan, {
             event: String(formData.get("event") ?? ""),
-            jobId: String(formData.get("jobId") ?? ""),
+            drawnJobId: String(formData.get("drawnJobId") ?? ""),
             checkedOutTo: String(formData.get("checkedOutTo") ?? ""),
-            currentJobRecordId: asset.job?.[0],
         });
         // The page was looking at a status somebody else has moved since: say who, and
         // when, and what the press was (#463).
         if (stale) return refuseStale({ asset, refusal, attempted: String(formData.get("event") ?? "") });
         if (refusal) return refuse(refusal);
 
-        // The actor's own job for a scan, which is the actor handling the asset, and the
-        // asset's for a repair (#531). The name is the reader's answer rather than the
-        // form's (#376) — normalized, and null on every event but a check-out whatever the
-        // form sent.
+        // The asset's own job, for every event (#531, #597). The name is the reader's answer
+        // rather than the form's (#376) — normalized, and null on every event but a check-out
+        // whatever the form sent.
         const failed = await writeEvent({
             asset,
             event,
@@ -177,19 +180,22 @@ async function recordAssetEventHandler(prevState, formData) {
  * by hand, since the Metadata API has no field DELETE.
  *
  * THE SAME WRAPPER AND THE SAME AXIS as the action above (#506): only a site manager
- * gets past `withSiteManagerAction`, and the body asks the rest of it. Nothing on this
- * axis is scoped per asset (#337).
+ * gets past `withSiteManagerAction`, and the body asks the rest of it — since #597 that the
+ * item sits on one of the reader's jobs, the per-record comparison the action above makes.
  *
- * NOTHING CROSSES THE WIRE BUT THE ASSET'S ID. There is one direction, so
- * the event is `ASSET_EVENT.RETIRED` from the vocabulary; and the job is the asset's
- * own, because retiring does not move an asset and the person designating
+ * NOTHING CROSSES THE WIRE BUT THE ASSET'S ID AND THE JOB THE PAGE WAS DRAWN ON. There is
+ * one direction, so the event is `ASSET_EVENT.RETIRED` from the vocabulary; and the job is
+ * the asset's own, because retiring does not move an asset and the person designating
  * need not be near it. `readRetirement` carries both arguments, including the
- * row on this base that proved the second one.
+ * row on this base that proved the second one. The drawn job is compared and never
+ * written (`recordingRefusal`, #597).
  *
- * WHICH LEAVES THE BODY'S QUESTION AS `planTransition`'s: the actor must hold at
- * least one assigned job. There is no submitted job left to compare, and that is a
- * smaller surface rather than a weaker one — the forgery it used to refuse existed
- * only because the value was submitted.
+ * WHICH LEAVES THE BODY'S QUESTION AS `planTransition`'s: whether the actor records on this
+ * item. **A retirement somebody else got in front of says nothing (#378)**: the page drawn
+ * again draws a status that allows nothing, and the question goes with its opener, so the
+ * plan's terminal sentence is not returned — it would stand under the status the page already
+ * shows is the end. One refused because the item is no longer the reader's to record is
+ * returned, and said there (#597).
  *
  * EIGHT OPERATIONS, the same eight the action above spends, for the same
  * reasons and in the same order.
@@ -205,18 +211,20 @@ async function retireAssetHandler(prevState, formData) {
 
         // The same planner on a fresh read, which is also how a stale page is
         // answered here: somebody who retired this first makes `mayRetire` false
-        // and the refusal is the terminal sentence.
+        // and the refusal is the terminal sentence, which the page says itself.
         const plan = planTransition({
             user,
             jobs: await getAllJobs(),
             status: asset.status,
+            assetJobId: asset.job?.[0],
         });
-        // THE JOB IS THE ASSET'S OWN AND THE FORM SENDS NONE. Retiring does
+        // THE JOB IS THE ASSET'S OWN AND THE FORM SENDS NONE TO WRITE. Retiring does
         // not move an asset, so the row records where it was; `readRetirement`
         // carries the argument and the row on this base that proved it.
         const { jobRecordId, refusal } = readRetirement(plan, {
-            currentJobRecordId: asset.job?.[0],
+            drawnJobId: String(formData.get("drawnJobId") ?? ""),
         });
+        if (refusal === ASSET_TRANSITION_COPY.noTransition) return refuse(null);
         if (refusal) return refuse(refusal);
 
         const failed = await writeEvent({
@@ -240,9 +248,11 @@ async function retireAssetHandler(prevState, formData) {
  * its category's list says it last changed are left as they were (`lib/assetNote.js`).
  *
  * THE SAME WRAPPER, AND THE SAME ANSWER TO WHO (#506). Only a site manager gets past
- * `withSiteManagerAction`, and the body asks `planTransition` the rest — that the reader is on
- * a job and that the status allows a note (`mayWriteNote`) — which is the answer the page drew
- * its control on. What the reader's job is does not matter: a note records none.
+ * `withSiteManagerAction`, and the body asks `planTransition` the rest — that the item sits on
+ * one of the reader's jobs (#597) and that the status allows a note (`mayWriteNote`) — which is
+ * the answer the page drew its control on. A note records no job, and is still refused, and
+ * said, when the item is no longer the reader's to write or moved since the page was drawn:
+ * `recordingRefusal`, asked first, as the other two ask it.
  *
  * WHAT THE PAGE WAS DRAWN WITH IS COMPARED, NEVER WRITTEN (#378). The form carries the note it
  * opened on as `previous`, and `readNoteSubmission` refuses a press whose note somebody else has
@@ -260,9 +270,11 @@ async function retireAssetHandler(prevState, formData) {
  * list `planTransition` reads assignments against, and the write. A refusal is the first four
  * and the page drawn again; a note left as it was writes nothing and lands as a success does.
  *
- * REFUSES BY RETURNING `{ error }` BECAUSE ITS CALL SITE BINDS (#185): `AssetNote.js` reads it
- * through `useActionState`, and says it above the dialog's actions or under the sheet's field.
- * A success redirects to the page it came from and says nothing (#321).
+ * REFUSES BY RETURNING `{ error }` BECAUSE ITS CALL SITE BINDS (#185): the page's provider
+ * (`AssetTransition.js`) reads it through `useActionState` since #597, where `AssetNote.js` did,
+ * and it is said above the dialog's actions or under the sheet's field while the opening that
+ * sent it stands, and under the status once the page has ended it. A success redirects to the
+ * page it came from and says nothing (#321).
  */
 export const updateAssetNoteAction = withSiteManagerAction(updateAssetNoteHandler);
 
@@ -275,7 +287,9 @@ async function updateAssetNoteHandler(prevState, formData) {
             const asset = await getAssetByAssetId(asked);
             if (!asset) return { refusal: ASSET_COPY.notFoundHeading };
 
-            const plan = planTransition({ user, jobs: await getAllJobs(), status: asset.status });
+            const plan = planTransition({ user, jobs: await getAllJobs(), status: asset.status, assetJobId: asset.job?.[0] });
+            const recording = recordingRefusal(plan, { drawnJobId: String(formData.get("drawnJobId") ?? ""), attempted: null });
+            if (recording) return { refusal: recording };
             const answer = readNoteSubmission(plan, {
                 typed: String(formData.get("note") ?? ""),
                 previous: String(formData.get("previous") ?? ""),
@@ -340,9 +354,11 @@ async function updateAssetNoteHandler(prevState, formData) {
  * only `error` says less than it did.
  *
  * AND A REFUSAL THE PAGE SAYS ON ITS OWN IS `null`, the page and nothing beside it (#533): a
- * note pressed on an item somebody retired or sent for repair since, or by a reader no longer
- * on a job, whose fresh page draws no control to write with — #378's terminal case, which the
- * wrapper's own refusal answers the same way (#506).
+ * note pressed on an item somebody retired or sent for repair since, or a retirement somebody
+ * got in front of, whose fresh page draws no control to write with — #378's terminal case,
+ * which the wrapper's own refusal answers the same way (#506). A press by a reader the item is
+ * no longer the reader's to record is not one of them since #597: the page drawn again shows
+ * the item's job and no control, and nothing on it says the press was theirs and was lost.
  */
 function refuse(error, moved = null) {
     refresh();
@@ -419,12 +435,11 @@ async function refuseStale({ asset, refusal, attempted }) {
  * on — because that is what the sentence has to tell them, not the one the event
  * was meant to leave behind.
  *
- * IT TAKES A JOB RECORD ID RATHER THAN A JOB, BECAUSE THE EVENTS FIND ONE
- * DIFFERENTLY. A scan resolves a job object out of the actor's own assignments;
- * a retirement and a repair read the asset's cached link and never see a job
- * object at all. Narrowing the parameter to the thing every caller actually has
- * keeps this function ignorant of which kind of event it is writing, which is what
- * lets it be one implementation.
+ * IT TAKES A JOB RECORD ID RATHER THAN A JOB, the asset's cached link as read, which
+ * every event here records on since #597 — a scan resolved a job object out of the
+ * actor's own assignments until then. Writing it back to the cache writes the value
+ * the cache holds, and keeps this function ignorant of which kind of event it is
+ * writing, which is what lets it be one implementation.
  */
 async function writeEvent({ asset, event, jobRecordId, checkedOutTo, user, from }) {
     await createAssetLogEntry({

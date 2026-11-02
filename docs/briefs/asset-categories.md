@@ -2,8 +2,9 @@
 
 Route: `/asset-categories`
 Who reaches it: anyone signed in, with no Role and no Job gate (#337).
-Adding items from it is a site manager's (#506); everyone else reads the same
-list without that control. The list stands on one job (#509, #520) — any job,
+Adding items from it is a site manager's (#506), from their own job's list or
+from all jobs (#597); everyone else reads the same list without that control —
+a site manager on another job's list among them. The list stands on one job (#509, #520) — any job,
 for every reader (#593) — starting on the first of the reader's own by its code,
 or on all of them at once, when a reader chooses it (#548) and from the start
 for a reader assigned to none (#593).
@@ -71,9 +72,11 @@ from #455 — `add` because most registrations add to a kind the company already
 has, and since #507 every one adds to a row of the catalog. Every other list screen in the
 app opens its create form the same way, as a screen of its own. It is above
 the list rather than inside it, because the reader with no items at all is the
-one who needs it most. It is a site manager's, on whatever job the list stands
-on, theirs or another's or all of them, since what they add goes on a job of
-their own: for one assigned to no job it is drawn none, as 1a2 drew that state
+one who needs it most. It is a site manager's on their own job's list and on
+all jobs, since what they add goes on a job of their own (#597; 1a), and on
+another job's list it is drawn for nobody (1a `Another job`) — it stood on every
+job's list from #593 to #597: for one assigned to no job it is drawn none, as 1a2
+drew that state
 (#522, #593; #509 drew it disabled, and an office reader assigned to no job met
 it disabled, with `Ask the office to assign you to a job` before it, until
 #593), and **a reader who is not a site manager is drawn none (#506)** — being
@@ -210,9 +213,10 @@ of 2026-10-15 still name three — and under them a second, bordered `Add items`
 (1a, #463, #519). The control in the head is still there, and both are the way to
 make one; so is the job's choice, to move to another job, alone in the band where
 the list with rows puts it (#566). No search, chip or pager stands over or under
-an empty list. **For a reader who is not a site manager,
-`No items yet` and who fills it, `Items show here once a site manager adds
-them.` (1a2, #519)**, and no opener: both are a site manager's.
+an empty list. **For a reader who is not a site manager, and since #597 for a
+site manager on another job's list, `No items yet` and who fills it, `Items show
+here once a site manager adds them.` (1a2, #519)**, and no opener: both are the
+list's job's site managers'.
 
 **A reader on no job had a state of their own until #593** — the head the
 heading alone, and in place of the rows a heading saying they had no job and a

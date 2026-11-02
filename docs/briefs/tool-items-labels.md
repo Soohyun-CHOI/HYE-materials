@@ -2,10 +2,12 @@
 
 Opens from: `/asset-categories/[categoryRecordId]` and `/assets/[assetId]`, as a dialog
 over the page that opens it — it was the page `/tool-items/labels` until #457.
-Who reaches it: a site manager on either page (#506) — nobody else is drawn a
-control that opens it, and the read behind a category's page refuses anybody else.
-No asset is one reader's rather than another's, so a site manager may print
-any label; everyone else still reads an asset's label on its own screen.
+Who reaches it: a site manager on either page (#506), and since #597 only for
+items on a job of their own — an asset's page on such an item, and a category's
+list on such a job, which alone draws the boxes — nobody else is drawn a control
+that opens it, and the read behind a category's page refuses anybody else and
+names the items off the reader's jobs rather than printing them. Everyone else
+still reads an asset's label on its own screen.
 Which width comes first: **desktop**. This dialog is used at whatever machine the
 printer is attached to, which `docs/notes/tools.md` settled for the whole label
 step, and it does not support a phone's width (`_shared.md`).
@@ -155,6 +157,13 @@ heading and `None of those tools exists.` until #457.
 into the run** — a label that cannot be printed is a different state from one
 that can, and printing a short run in silence would leave somebody counting
 stickers to find out.
+
+**When some are on items off the reader's jobs (#597):** those codes are listed
+the same way, under `1 item not on your jobs` or `2 items not on your jobs`, beside
+the codes not found, and no label is drawn for them. Only a selection made before
+the office moved an item, or before the reader left its job, or an address
+somebody copied, carries one: a category's list draws boxes on its own job's rows
+alone. The files draw no such run; the words are the app's.
 
 **When the host is too long for the symbols (#453):** the shape of a run with
 nothing on record, with one sentence about the host where the codes not found
