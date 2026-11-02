@@ -537,7 +537,7 @@ export async function run({ check, log, assert }) {
     check("  where a planted module narrowing for itself is seen", narrowsItself("const rows = filterAssetCategoryRows(all, filters);\n"), true);
     check(
         "the list reads its band through the same function",
-        /const reading = readCategoryList\(rows, params, \{ allJobs, jobs, q: typed \}\);/.test(parseFile(LIST).source) && !narrowsItself(parseFile(LIST).source),
+        /const reading = readCategoryList\(rows, params, \{ allJobs, jobs, q: typed, job, elsewhere \}\);/.test(parseFile(LIST).source) && !narrowsItself(parseFile(LIST).source),
         true
     );
     const clientSource = parseFile(CLIENT).source;

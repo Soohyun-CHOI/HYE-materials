@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, FilterChip, SearchField } from "@/app/components/Controls";
 import ListFrame from "@/app/components/ListFrame";
 import { ListHeader, Pager, TABLE_HEAD, TABLE_ROW, TABLE_ROW_LINK } from "@/app/components/ListTable";
@@ -22,6 +22,7 @@ import JobChoice from "../JobChoice";
 import SortChoice from "../SortChoice";
 import FoundItem from "./FoundItem";
 import ListExport from "./ListExport";
+import { readFoundElsewhereAction } from "./actions";
 
 // 1a's columns since #519: the name, then a count for each status at 56 (96 until #566),
 // right-aligned — four since #531, `In repair` between `Out` and `Retired`, the order
@@ -93,15 +94,37 @@ const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(4,var(--width-table-count))_var
  * A SEARCH FOR AN ITEM'S ID FINDS IT IN THE ROWS IN HAND (1a, #541): its row stays, and the way to
  * the item stands under the band (`FoundItem`), which Enter in the search takes too. An id no
  * item here carries says so, naming the job the list stands on — `jobCode`, null on all of them —
- * since the list finds an item there and nowhere else. The address carries the id as it carries a
+ * since the rows are that job's. The address carries the id as it carries a
  * name, so a reload and a copied link find it again on the server's first render.
+ *
+ * AN ID NO ITEM ON THE ONE JOB CARRIES IS ASKED OF EVERY JOB, ONCE (1a, #599): `reading.asks`,
+ * which `readCategoryList` names and which a name, an id found here and a list on all jobs never
+ * are. The answer is kept under its id, as `FoundItem` keeps a holder, so an id is asked once
+ * however often it is typed or an effect runs, and an answer landing after the search moved on is
+ * drawn beside no other id. An item at another job comes back as `found`, the way to it with its
+ * job, over the one job's emptied rows and their sentence; an id no job holds says the drawing's
+ * sentence. **The server's first render has no answer yet**, so a reload with such an id draws
+ * the sentence naming the job, and the line, or the drawing's words, once the answer lands.
  */
 export default function AssetCategoryList({ rows, job, jobCode = null, allJobs = false, jobs, catalog, opener }) {
     const router = useRouter();
     const params = useSearchParams();
+    const [elsewhere, setElsewhere] = useState({});
+    const askedElsewhere = useRef(new Set());
     const asked = readAssetListFilters(params);
     const [typed, setTyped] = useState(asked.q);
-    const reading = readCategoryList(rows, params, { allJobs, jobs, q: typed });
+    const reading = readCategoryList(rows, params, { allJobs, jobs, q: typed, job, elsewhere });
+    useEffect(() => {
+        const assetId = reading.asks;
+        if (!assetId || askedElsewhere.current.has(assetId)) return;
+        askedElsewhere.current.add(assetId);
+        readFoundElsewhereAction(assetId).then(
+            (answer) => {
+                if (answer && Object.hasOwn(answer, "found")) setElsewhere((was) => ({ ...was, [assetId]: answer.found }));
+            },
+            () => {}
+        );
+    }, [reading.asks]);
     const page = pageOfAssetCategories(reading.rows, params.get("page"));
     const open = () => {
         if (reading.found) router.push(assetPath(reading.found.assetId));

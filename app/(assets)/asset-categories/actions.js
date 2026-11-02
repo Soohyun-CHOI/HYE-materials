@@ -4,7 +4,7 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser, withSiteManagerAction } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
-import { getAllAssetCategories } from "@/lib/airtable/assetCategories";
+import { getAllAssetCategories, getAssetCategoriesByRecordIds } from "@/lib/airtable/assetCategories";
 import { createAssets, getAssetByAssetId, getAssetsByRecordIds } from "@/lib/airtable/assets";
 import { createFirstAssetLogEntries, getAssetLogEntriesByRecordIds } from "@/lib/airtable/assetLog";
 import { readCatalog } from "@/lib/assetCategory";
@@ -288,6 +288,45 @@ export async function readFoundHolderAction(assetId) {
         } catch (error) {
             console.error("readFoundHolderAction: no holder was read", error);
             return { holder: null };
+        }
+    });
+}
+
+/**
+ * The item a search names by its id when no item on the list's one job carries it (1a, #599):
+ * `{ found }`, the item as the way to it says it — its id, its kind's name, its status and its
+ * Job record id — or a null `found` where no item the app shows carries the id, a deleted one
+ * among them (#582); `{ unread: true }` when the read failed, which answers neither.
+ *
+ * ASKED ONLY ONCE AN ID IS SEARCHED, SO A LIST NOBODY SEARCHED READS NOTHING MORE. The list holds
+ * the printed ids of the assets its one job counts, off the status memory's reads (#541, #560), and
+ * none of another job's: the memory hands back only what it is asked, and has met another job's
+ * assets only if a view on this server stood there, so it cannot say an id is on no job. Asking it
+ * every job on every view would read every asset whole on a server's first view and every ten
+ * minutes after. So the list asks this once per id it did not find: the session, the asset by its
+ * id and its kind for the name — three operations, two where nothing carries it. The job is named
+ * by the list, whose choice holds every job (#593), and who holds an item out is
+ * `readFoundHolderAction`'s, as on the list's own job.
+ *
+ * WHOEVER READS THE LIST, AND ANY ASSET. `requireUser()`, the page's gate (#337), and no job asked:
+ * every reader may stand a list on any job since #593, and an asset's own page says all of this to
+ * every signed-in reader. No wrapper fits, as none fits the holder's: `offline/authz-structure.mjs`
+ * carries it as an exemption. A failed read is logged and leaves the list's sentence naming its
+ * job, which is true whatever the base holds.
+ */
+export async function readFoundElsewhereAction(assetId) {
+    return withOpsLabel("readFoundElsewhereAction", async () => {
+        await requireUser();
+        const asked = searchedAssetId(assetId);
+        if (!asked) return { found: null };
+        try {
+            const asset = await getAssetByAssetId(asked);
+            if (!asset) return { found: null };
+            const [kind] = await getAssetCategoriesByRecordIds(asset.category.slice(0, 1));
+            return { found: { assetId: asset.assetId, itemName: kind?.itemName ?? "", status: asset.status, job: asset.job[0] ?? null } };
+        } catch (error) {
+            console.error("readFoundElsewhereAction: nothing was read", error);
+            return { unread: true };
         }
     });
 }
