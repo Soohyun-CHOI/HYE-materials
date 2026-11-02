@@ -252,11 +252,16 @@ job (Soo's words, `design-copy-findings.md`). The files draw no state for this:
 it is 1a3's `Item ID` line with the job in it, by Soo's ruling. Until the answer
 comes the sentence stands alone, so a reload draws the line a moment after the
 list. Found on no job, the list says 1a3's `No ID match`: `No item has the ID`
-and the id typed — which on all jobs, every job, it says at once. Either way
-`Clear search`, or `Clear all` when a chip narrows too; a chip that leaves the
-item's row off on its own job says the sentence naming the job, and an item at
-another job stands over the rows whatever the chips hold. A name is searched on
-the chosen job alone, and a deleted item is found on none.
+and the id typed — which on all jobs, every job, it says at once for an id no
+row carries. **An item the band leaves off is looked up the same way (#599)**:
+on `All jobs` a `Job` chip taking the item's job off, or on either a type or a
+category leaving its row off, draws the same line over the rows with the item's
+job, and the rows, still as the band holds them, say
+`No item in these filters has the ID` and the id typed — `No item has the ID`
+is said only where no job holds the id. Either way `Clear search`, or
+`Clear all` when a chip narrows too, and an item at another job stands over the
+rows whatever the chips hold. A name is searched on the chosen job alone, and a
+deleted item is found on none.
 
 **When a press of `Export` makes no file (#553, #566):** 0k's failure toast,
 centered at the foot of the content area — `Couldn't export.` led by the alert

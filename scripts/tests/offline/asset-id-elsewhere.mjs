@@ -10,10 +10,15 @@
 //   another job, asked of every job and, once answered, the way to it with its job named over rows
 //   that stay the job's and say it holds no such id; an id no job holds, said in the drawing's words
 //   once answered; a deleted item, which no row carries and the base answers as none; and a name,
-//   searched on the chosen job alone and asked of nothing. Beside them: all jobs ask nothing, a chip
-//   hiding an id the job holds asks nothing, an answer on the list's own job or on a job the choice
-//   does not hold draws no line, an answer is drawn beside its own id alone, and a list nobody
-//   searched asks nothing.
+//   searched on the chosen job alone and asked of nothing. Then the band's case: an id an item
+//   carries though the band leaves it off — on all jobs a `Job` chip taking its job off, a type
+//   leaving its row off on all jobs or one — asked of every job, drawn as the line with its job and
+//   said as the filters holding none; the chip taking the item's job finding it in its row; an id no
+//   row carries saying the drawing's sentence whatever the chip holds; and an id a row carried that
+//   the base answers none for. Beside them: all jobs ask nothing for an id no row carries, an answer
+//   on a job the choice does not hold, or on the list's own job for an id its rows do not carry,
+//   draws no line, an answer is drawn beside its own id alone, and a list nobody searched asks
+//   nothing.
 //
 //   WHAT NO VALUE CAN SHOW IS READ OFF THE SOURCE: that the list asks the one id `readCategoryList`
 //   names, once per id, keeps an answer only when it says something, under the id asked; that the
@@ -184,6 +189,42 @@ export function run({ check, log }) {
     check("a name is searched on the chosen job alone: a kind another job holds is not found, and nothing is asked", `${said(named)} | ${sentence(named, "23-USA-09")}`, "- | - | - | No items match | saw | Clear search");
     check("  and a name the job holds is found in its rows, with no line", said(read(JOB_ONE, "q=welder")), "kWelder | - | -");
 
+    // ── the band's case ─────────────────────────────────────────────────────
+    log("");
+    log("an id an item carries though the band leaves it off:");
+    // On all jobs with the `Job` chip on the first job alone; the item stands on the second.
+    const offChip = read(ALL, "q=261019-432&job=all&job=recJ1", { allJobs: true });
+    check("on all jobs an id on a job the Job chip takes off is asked of every job, and nothing is drawn before the answer", said(offChip), "- | - | HYE-AST-261019-432");
+    check("  and the sentence says the filters hold no item with it, the control clearing all", sentence(offChip, null), "No item in these filters has the ID | 261019-432 | Clear all");
+    const offChipThere = read(ALL, "q=261019-432&job=all&job=recJ1", { allJobs: true, elsewhere: { "HYE-AST-261019-432": AT_JOB_TWO } });
+    check(
+        "  the answer is the way to the item with its job named, over rows the chip still narrows, and empty",
+        `${said(offChipThere)} | ${sentence(offChipThere, null)} | ${offChipThere.held.jobs.join(",")}`,
+        "- | HYE-AST-261019-432 · TIG Welder · 25-USA-13 · Retired | HYE-AST-261019-432 | No item in these filters has the ID | 261019-432 | Clear all | recJ1"
+    );
+    const onChip = read(ALL, "q=261019-432&job=all&job=recJ2", { allJobs: true });
+    check("  the chip taking the item's job finds it in its row, and asks nothing", said(onChip), "kWelder | HYE-AST-261019-432 · TIG Welder · - · Retired | -");
+    const chipNowhere = read(ALL, "q=261019-999&job=all&job=recJ1", { allJobs: true });
+    check("  an id no row carries says the drawing's sentence whatever the chip holds, and asks nothing", `${said(chipNowhere)} | ${sentence(chipNowhere, null)}`, "- | - | - | No item has the ID | 261019-999 | Clear all");
+    const typeOff = read(ALL, "q=261019-432&type=Tool", { allJobs: true, elsewhere: { "HYE-AST-261019-432": AT_JOB_TWO } });
+    check(
+        "on all jobs a type leaving the item's row off is the same: the line, and the filters holding none",
+        `${said(typeOff)} | ${sentence(typeOff, null)}`,
+        "- | HYE-AST-261019-432 · TIG Welder · 25-USA-13 · Retired | HYE-AST-261019-432 | No item in these filters has the ID | 261019-432 | Clear all"
+    );
+    const hidden = read(JOB_ONE, "q=261019-430&type=Tool");
+    check(
+        "on one job an item of its own a type leaves off is asked too, and the sentence says the filters hold none",
+        `${said(hidden)} | ${sentence(hidden, "23-USA-09")}`,
+        "- | - | HYE-AST-261019-430 | No item in these filters has the ID | 261019-430 | Clear all"
+    );
+    const hiddenThere = read(JOB_ONE, "q=261019-430&type=Tool", {
+        elsewhere: { "HYE-AST-261019-430": { assetId: "HYE-AST-261019-430", itemName: "TIG Welder", status: ASSET_STATUS.OUT, job: "recJ1" } },
+    });
+    check("  and its answer on the list's own job is the way to it, the job named", said(hiddenThere), "- | HYE-AST-261019-430 · TIG Welder · 23-USA-09 · Out | HYE-AST-261019-430");
+    const goneSince = read(ALL, "q=261019-432&job=all&job=recJ1", { allJobs: true, elsewhere: { "HYE-AST-261019-432": null } });
+    check("an id a row carried that the base answers none for says the drawing's sentence", `${said(goneSince)} | ${sentence(goneSince, null)}`, "- | - | HYE-AST-261019-432 | No item has the ID | 261019-432 | Clear all");
+
     // ── around them ─────────────────────────────────────────────────────────
     log("");
     log("where nothing is asked, and answers that draw no line:");
@@ -192,20 +233,14 @@ export function run({ check, log }) {
     check("  and says the drawing's sentence", sentence(allNowhere, null), "No item has the ID | 261019-999 | Clear search");
     const allThere = read(ALL, "q=261019-432", { allJobs: true, elsewhere: { "HYE-AST-261019-432": AT_JOB_TWO } });
     check("  an id on any job is found in its row, the line naming no job, whatever answer is held", said(allThere), "kWelder | HYE-AST-261019-432 · TIG Welder · - · Retired | -");
-    const hidden = read(JOB_ONE, "q=261019-430&type=Tool");
-    check(
-        "an id the job holds under a row a chip leaves off is asked of nothing, and the sentence names the job",
-        `${said(hidden)} | ${sentence(hidden, "23-USA-09")}`,
-        "- | - | - | No item on 23-USA-09 has the ID | 261019-430 | Clear all"
-    );
     const typedThere = read(JOB_ONE, "q=261019-432&type=Tool", { elsewhere: { "HYE-AST-261019-432": AT_JOB_TWO } });
     check(
-        "  and an item at another job stands over the rows whatever the chips hold, the control clearing all",
+        "on one job an item at another job stands over the rows whatever the chips hold, the job's sentence and the control clearing all",
         `${said(typedThere)} | ${sentence(typedThere, "23-USA-09")}`,
         "- | HYE-AST-261019-432 · TIG Welder · 25-USA-13 · Retired | HYE-AST-261019-432 | No item on 23-USA-09 has the ID | 261019-432 | Clear all"
     );
     const ownJob = read(JOB_ONE, "q=261019-432", { elsewhere: { "HYE-AST-261019-432": { ...AT_JOB_TWO, job: "recJ1" } } });
-    check("an answer putting the item on the list's own job draws no line", said(ownJob), "- | - | HYE-AST-261019-432");
+    check("an answer putting an item its rows do not carry on the list's own job draws no line", said(ownJob), "- | - | HYE-AST-261019-432");
     const goneJob = read(JOB_ONE, "q=261019-432", { elsewhere: { "HYE-AST-261019-432": { ...AT_JOB_TWO, job: "recGone" } } });
     check("  nor one on a job the choice does not hold", said(goneJob), "- | - | HYE-AST-261019-432");
     check("  and neither says the item is on no job", `${ownJob.nowhere} ${goneJob.nowhere} ${sentence(goneJob, "23-USA-09")}`, "false false No item on 23-USA-09 has the ID | 261019-432 | Clear search");

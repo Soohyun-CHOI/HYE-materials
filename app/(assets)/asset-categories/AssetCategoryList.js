@@ -97,14 +97,15 @@ const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(4,var(--width-table-count))_var
  * since the rows are that job's. The address carries the id as it carries a
  * name, so a reload and a copied link find it again on the server's first render.
  *
- * AN ID NO ITEM ON THE ONE JOB CARRIES IS ASKED OF EVERY JOB, ONCE (1a, #599): `reading.asks`,
- * which `readCategoryList` names and which a name, an id found here and a list on all jobs never
- * are. The answer is kept under its id, as `FoundItem` keeps a holder, so an id is asked once
- * however often it is typed or an effect runs, and an answer landing after the search moved on is
- * drawn beside no other id. An item at another job comes back as `found`, the way to it with its
- * job, over the one job's emptied rows and their sentence; an id no job holds says the drawing's
- * sentence. **The server's first render has no answer yet**, so a reload with such an id draws
- * the sentence naming the job, and the line, or the drawing's words, once the answer lands.
+ * AN ID THE TABLE SHOWS NO ITEM FOR IS ASKED OF EVERY JOB, ONCE (1a, #599): `reading.asks`, which
+ * `readCategoryList` names — an id no row on the one job carries, or one an item carries that the
+ * band leaves off, the `Job` chip on all jobs among it — and which a name, an id the table shows
+ * and an id no row on all jobs carries never are. The answer is kept under its id, as `FoundItem`
+ * keeps a holder, so an id is asked once however often it is typed or an effect runs, and an answer
+ * landing after the search moved on is drawn beside no other id. The item comes back as `found`,
+ * the way to it with its job, over the emptied rows and their sentence; an id no job holds says the
+ * drawing's sentence. **The server's first render has no answer yet**, so a reload with such an id
+ * draws the sentence alone, and the line, or the drawing's words, once the answer lands.
  */
 export default function AssetCategoryList({ rows, job, jobCode = null, allJobs = false, jobs, catalog, opener }) {
     const router = useRouter();

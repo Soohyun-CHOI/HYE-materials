@@ -313,8 +313,8 @@ const EXEMPTIONS = [
         name: "readFoundElsewhereAction",
         mustCall: "requireUser",
         reason:
-            "#599 — the item an id the Tools & Equipment list's search names stands for when no item on the list's " +
-            "one job carries it, for the line the list draws over its rows: the list's own gate, every signed-in " +
+            "#599 — the item an id the Tools & Equipment list's search names stands for when the list's table shows " +
+            "no item with it, for the line the list draws over its rows: the list's own gate, every signed-in " +
             "reader with no role (#337), and a READ that writes nothing. It answers what an asset's own page says to " +
             "every signed-in reader — the item's name, status and job — and every reader may stand a list on any job " +
             "since #593, so it asks no job. No wrapper fits, as none fits the page: withSiteManagerAction would " +
