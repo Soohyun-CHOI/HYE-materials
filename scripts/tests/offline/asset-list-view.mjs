@@ -84,6 +84,7 @@ import {
     toggleAsset,
     assetListScope,
     assetCategoriesInScope,
+    countColumns,
     listJobFromAsset,
     pagerPosition,
 } from "../../../lib/assetListView.js";
@@ -837,7 +838,7 @@ export function run({ check, assert, log }) {
     // baseline the 9 mark lifted the status word half a pixel above 1d's.
     check(
         "the status cell stands centered in its row, as 1d draws it (#522)",
-        /<span role="cell" className="flex min-w-0 items-baseline gap-gap self-center">\s*<StatusMark status=\{row\.status\} \/>/.test(parseFile(ASSET_LIST).source),
+        /<span role="cell" className="flex min-w-0 items-baseline gap-gap self-center">\s*<StatusMark status=\{row\.status\} onLoan=\{onLoan\} \/>/.test(parseFile(ASSET_LIST).source),
         true
     );
 
@@ -956,9 +957,9 @@ export function run({ check, assert, log }) {
         return heads.join(", ");
     };
     check(
-        "the list heads its columns the name, each status and the total (#569)",
+        "the list heads its columns the name, each count's column — each status, and on one job On loan (#598) — and the total (#569)",
         columnHeads(parseFile(CATEGORY_LIST)),
-        "COPY.nameLabel, status, COPY.totalLabel"
+        "COPY.nameLabel, column.onLoan ? COPY.onLoanLabel : column.status, COPY.totalLabel"
     );
     // ONE TRACK PER STATUS, AND THE COUNT IN THE REPEAT IS A LITERAL (#531): a class a
     // stylesheet is built from cannot be computed, so the repeat says 4 and is held to the
@@ -969,6 +970,20 @@ export function run({ check, assert, log }) {
     check("  one 56 track per status, four", countTracks, 4);
     check("  as many as a screen draws, Deleted none (#582)", countTracks, SHOWN_STATUS_VALUES.length);
     check("  and the total's after them, one track at the counts' 56", tracks?.[2], "_var(--width-table-count)");
+    // ONE JOB'S LIST DRAWS ONE MORE, ON LOAN'S (#598): its own literal, as many as countColumns
+    // hands one job, and the list takes it off the same allJobs it hands countColumns.
+    const loanGridSource = parseFile(CATEGORY_LIST).source;
+    const loanTracks = loanGridSource.match(/const COLUMNS_WITH_LOAN = "grid-cols-\[minmax\(0,1fr\)_repeat\((\d+),var\(--width-table-count\)\)((?:_var\(--[\w-]+\))*)\]";/);
+    check(
+        "  on one job one more for On loan, as many as countColumns hands it, the total's after them (#598)",
+        `${Number(loanTracks?.[1])}/${countColumns({ allJobs: false }).length} ${countTracks}/${countColumns({ allJobs: true }).length} ${loanTracks?.[2]}`,
+        "5/5 4/4 _var(--width-table-count)"
+    );
+    check(
+        "  the grid chosen off the allJobs its counts are",
+        /const counted = countColumns\(\{ allJobs \}\);\s*const columns = allJobs \? COLUMNS : COLUMNS_WITH_LOAN;/.test(loanGridSource),
+        true
+    );
     check(
         "  and a list with the type left out is seen (anti-vacuity)",
         columnHeads(parseSource('<div><span role="columnheader">{COPY.nameLabel}</span><span role="columnheader">{ASSET_CATEGORY_COPY.levelLabel.level2}</span></div>', "<planted-heads>")),
@@ -1370,10 +1385,14 @@ export function run({ check, assert, log }) {
                 }
             }
         });
+        // A `.filter(...)` before the `.map` is the same rows narrowed — since #598 the rows on loan
+        // left out of the page's box — so the origin is what the filter was asked of.
+        const unfiltered = (node) =>
+            node?.type === "CallExpression" && node.callee?.property?.name === "filter" ? unfiltered(node.callee.object) : node;
         const origin = (node) => {
             const init = node?.type === "Identifier" ? bindings.get(node.name) : node;
             return init?.type === "CallExpression" && init.callee?.property?.name === "map"
-                ? nameOf(init.callee.object)
+                ? nameOf(unfiltered(init.callee.object))
                 : nameOf(node ?? {});
         };
         walk(ast, (n) => {
@@ -2842,13 +2861,13 @@ export function run({ check, assert, log }) {
     check(
         "  the caption says the type and the category, after what leads it, and no path and no class",
         [
-            /const parts = \[\s*lead,\s*job \? value\(job\) : null,\s*category\?\.level1 \? value\(category\.level1\) : null,\s*category\?\.level2 \? value\(category\.level2\) : null,?\s*\]\.filter\(Boolean\)/.test(captionSource) &&
+            /const parts = \[\s*lead,\s*job \? value\(job\) : null,\s*ownerJob \? <LoanedFrom ownerJob=\{value\(ownerJob\)\} \/> : null,\s*category\?\.level1 \? value\(category\.level1\) : null,\s*category\?\.level2 \? value\(category\.level2\) : null,?\s*\]\.filter\(Boolean\)/.test(captionSource) &&
                 !/assetClass|classOf/.test(captionSource),
             !/pathOf/.test(captionSource),
             /text-foreground-default tabular-nums max-sm:text-foreground-muted/.test(captionSource),
             /<CategoryCaption\s+category=\{category\}\s+lead=\{<span className=\{ID_IN_TEXT\}>\{asset\.assetId\}<\/span>\}\s+job=\{jobCode\}/.test(assetSource),
             (assetSource.match(/\{jobCode && \(/g) ?? []).length === 1 &&
-                /\{jobCode && \(\s*<p className="[^"]*\bsm:hidden\b[^"]*">\s*<Icon name="map-pin" className="size-mobile-title-icon [^"]*" \/>\s*<span className="min-w-0 tabular-nums">\{jobCode\}<\/span>/.test(assetSource),
+                /\{jobCode && \(\s*<p className="[^"]*\bsm:hidden\b[^"]*">\s*<Icon name="map-pin" className="size-mobile-title-icon [^"]*" \/>\s*\{\/\*[^*]*\*\/\}\s*<span className="min-w-0">\s*<span className="tabular-nums">\{jobCode\}<\/span>/.test(assetSource),
         ].join(" "),
         "true true true true true"
     );
@@ -3003,7 +3022,7 @@ export function run({ check, assert, log }) {
     check(
         "  an `Out` names who holds it behind 0e's dot, and the day is the reader's, in Ink 2",
         [
-            /\{row\.holder && \(\s*<>\s*<Dot \/>\s*<span className="min-w-0 truncate text-foreground-muted">\{row\.holder\}<\/span>/.test(assetListSource),
+            /\{!onLoan && row\.holder && \(\s*<>\s*<Dot \/>\s*<span className="min-w-0 truncate text-foreground-muted">\{row\.holder\}<\/span>/.test(assetListSource),
             /<span role="cell" className="text-foreground-muted">\s*<Instant at=\{row\.updatedAt\} format=\{DAY_FORMAT\} \/>/.test(assetListSource),
         ].join(" "),
         "true true"

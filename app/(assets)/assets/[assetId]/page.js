@@ -7,7 +7,7 @@ import { getAssetCategoriesByRecordIds } from "@/lib/airtable/assetCategories";
 import { getRecentCheckOuts, getAssetLogByAsset } from "@/lib/airtable/assetLog";
 import { getUsersByRecordIds } from "@/lib/airtable/users";
 import { DAY_FORMAT } from "@/lib/format";
-import { ASSET_COPY as COPY, currentHolder, logRowFacts, newestFirst, retiredAt, sentForRepairAt } from "@/lib/assetView";
+import { ASSET_COPY as COPY, currentHolder, loanRoute, logRowFacts, newestFirst, retiredAt, sentForRepairAt } from "@/lib/assetView";
 import Breadcrumb from "@/app/components/Breadcrumb";
 import { ButtonLink } from "@/app/components/Controls";
 import Icon from "@/app/components/Icon";
@@ -26,7 +26,7 @@ import { withOpsLabel } from "@/lib/airtableOps";
 import { actorName } from "@/lib/userName";
 import LabelsDialog, { LabelPreview } from "../LabelsDialog";
 import StatusMark from "../../StatusMark";
-import CategoryCaption from "../../CategoryCaption";
+import CategoryCaption, { LoanedFrom } from "../../CategoryCaption";
 import JobChoice from "../../JobChoice";
 import MoreActions from "./MoreActions";
 import AssetNote from "./AssetNote";
@@ -252,7 +252,16 @@ async function renderAssetPage({ params }) {
     // a control without having asked the question that refuses it. The action
     // asks the same function again, because a Server Action is reachable without
     // this page.
-    const transition = planTransition({ user, jobs, status: asset.status, assetJobId: asset.job?.[0] });
+    // A loan's facts come from the same read (#598): the item's owner job off the asset, and its
+    // latest entry off the history, which says whether a lending or a return was left half done.
+    const transition = planTransition({
+        user,
+        jobs,
+        status: asset.status,
+        assetJobId: asset.job?.[0],
+        ownerJobId: asset.ownerJob?.[0],
+        latest: history[0] ?? null,
+    });
     // WHAT THE OFFICE MAY DO HERE (#583, #582), and for no operations either: the reader, the
     // history and the job list are all in hand. `planOfficeActs` offers `Change job` and `Delete
     // this item` while the history holds its `Created` entry alone, with the jobs a list's choice
@@ -261,6 +270,8 @@ async function renderAssetPage({ params }) {
     // Whether the office has a line in `More actions` at all — the deletion stands wherever the
     // change does, and alone where a deletion was left half done.
     const officeActs = office.mayChangeJob || office.mayDelete;
+    // What `More actions` holds at a desk: the sending, a loan's line (#598), the retirement and the office's.
+    const menuActs = transition.maySendForRepair || transition.mayLend || transition.mayReturn || transition.mayRetire || officeActs;
     // The jobs this reader's lists hold, the same judgment the lists read by (#509) — every job,
     // for every reader, since #593: with more than one, the breadcrumb names the asset's job as a
     // level they may change (#519), and the list's level and the category's carry it when it is
@@ -316,6 +327,7 @@ async function renderAssetPage({ params }) {
             plan={transition}
             office={office}
             assetJobRecordId={asset.job?.[0] ?? null}
+            assetOwnerJobRecordId={asset.ownerJob?.[0] ?? null}
             assetId={asset.assetId}
             itemName={category?.itemName}
         >
@@ -378,6 +390,7 @@ async function renderAssetPage({ params }) {
                                     category={category}
                                     lead={<span className={ID_IN_TEXT}>{asset.assetId}</span>}
                                     job={jobCode}
+                                    ownerJob={transition.onLoan ? transition.ownerJobCode : null}
                                     className="text-body text-foreground-subtle max-sm:hidden"
                                 />
                                 <CategoryCaption category={category} className="text-mobile-body-xs text-foreground-subtle sm:hidden" />
@@ -388,7 +401,16 @@ async function renderAssetPage({ params }) {
                                 {jobCode && (
                                     <p className="flex items-center gap-gap text-mobile-body-xs text-foreground-muted sm:hidden">
                                         <Icon name="map-pin" className="size-mobile-title-icon shrink-0 text-foreground-subtle" />
-                                        <span className="min-w-0 tabular-nums">{jobCode}</span>
+                                        {/* On loan, the job that owns it after a dot (1j-g, #598). */}
+                                        <span className="min-w-0">
+                                            <span className="tabular-nums">{jobCode}</span>
+                                            {transition.onLoan && transition.ownerJobCode && (
+                                                <>
+                                                    <Dot />
+                                                    <LoanedFrom ownerJob={<span className="tabular-nums">{transition.ownerJobCode}</span>} />
+                                                </>
+                                            )}
+                                        </span>
                                     </p>
                                 )}
                             </div>
@@ -437,10 +459,10 @@ async function renderAssetPage({ params }) {
                             THE OFFICE'S `Change job` AND `Delete this item` ARE IN THE SAME MENU
                             (#583, #582), whoever else the reader is, so `More actions` stands for
                             them alone too. */}
-                        {!transition.refusal && (transition.event || transition.maySendForRepair || transition.mayRetire || officeActs) && (
+                        {!transition.refusal && (transition.event || menuActs) && (
                             <div className="-mt-record-header-actions-bleed flex shrink-0 items-center gap-gap max-sm:hidden">
                                 {transition.event && <TransitionDialog recentCheckOuts={recentCheckOuts} />}
-                                {(transition.maySendForRepair || transition.mayRetire || officeActs) && <MoreActions />}
+                                {menuActs && <MoreActions />}
                             </div>
                         )}
                     </header>
@@ -450,7 +472,7 @@ async function renderAssetPage({ params }) {
                             {history.length === 0 ? (
                                 <p className="text-body text-foreground-subtle max-sm:text-mobile-body">{COPY.noHistory}</p>
                             ) : (
-                                <History rows={history} nameById={nameById} />
+                                <History rows={history} nameById={nameById} jobCodeById={jobCodeById} />
                             )}
                         </section>
                         {/* THE RECORD RAIL AND ITS ONE BLOCK, THE LABEL (0n, 0p). The label is
@@ -508,6 +530,12 @@ async function renderAssetPage({ params }) {
     );
 }
 
+/** A loan's route by job code (#598), or null: `loanRoute`'s ids named off the job list in hand. */
+function routeCodes(route, jobCodeById) {
+    if (!route) return null;
+    return { from: route.from ? (jobCodeById[route.from] ?? null) : null, to: route.to ? (jobCodeById[route.to] ?? "") : "" };
+}
+
 /**
  * The history, newest first (#463) — 0a's Log on a phone and the record page's at a desk: a
  * dot on a rule beside each entry, the rule stopping at the last.
@@ -518,9 +546,12 @@ async function renderAssetPage({ params }) {
  * recorded it last (1j). The values are `logRowFacts`', so all three are on every entry and a
  * check-out carries the fourth. **No entry names its job since #597** — after the moment at a
  * desk and behind a pin on a phone until then: the files of 2026-11-02 name the item's job
- * once, under its title.
+ * once, under its title. **A loan's entry draws where the item went (#598)**, from the job the entry
+ * before it stands on (`loanRoute`): at a desk after the event on its line, `Lent 26-USA-07 →
+ * 26-USA-06` with the arrow in Ink 3, and on a phone on a line of its own under the event, the job
+ * pin in Ink 3, then the two codes in Ink 2 with 0a's arrow-right between them, 6 either side (1j).
  */
-function History({ rows, nameById }) {
+function History({ rows, nameById, jobCodeById }) {
     return (
         <ol className="flex flex-col">
             {rows.map((row, index) => {
@@ -530,10 +561,12 @@ function History({ rows, nameById }) {
                         eventAt: row.eventAt,
                         recordedByName: nameById[row.recordedBy?.[0]],
                         checkedOutTo: row.checkedOutTo,
+                        route: routeCodes(loanRoute(rows, index), jobCodeById),
                     }).map((fact) => [fact.key, fact.value])
                 );
                 const last = index === rows.length - 1;
                 const handedTo = "checkedOutTo" in facts;
+                const route = facts.route ?? null;
                 return (
                     <li
                         key={row.id}
@@ -554,7 +587,37 @@ function History({ rows, nameById }) {
                                         <span className="text-foreground-subtle">{COPY.historyTo}</span> {facts.checkedOutTo}
                                     </span>
                                 )}
+                                {route && (
+                                    <span className="tabular-nums max-sm:hidden">
+                                        {" "}
+                                        {route.from && (
+                                            <>
+                                                {route.from}{" "}
+                                                <span aria-hidden="true" className="text-foreground-subtle">
+                                                    {COPY.historyRouteArrow}
+                                                </span>
+                                                <span className="sr-only">{COPY.historyTo}</span>{" "}
+                                            </>
+                                        )}
+                                        {route.to}
+                                    </span>
+                                )}
                             </p>
+                            {route && (
+                                <p className="flex items-center gap-gap text-mobile-body-xs text-foreground-muted tabular-nums sm:hidden">
+                                    <Icon name="map-pin" className="size-mobile-log-icon shrink-0 text-foreground-subtle" />
+                                    <span className="inline-flex min-w-0 items-center gap-mobile-log-route-gap">
+                                        {route.from && (
+                                            <>
+                                                <span>{route.from}</span>
+                                                <Icon name="arrow-right" className="size-mobile-log-icon shrink-0 text-foreground-subtle" />
+                                                <span className="sr-only">{COPY.historyTo}</span>
+                                            </>
+                                        )}
+                                        <span>{route.to}</span>
+                                    </span>
+                                </p>
+                            )}
                             {handedTo && (
                                 <p className="flex items-center gap-gap text-mobile-body-xs sm:hidden">
                                     <Icon name="user" className="size-mobile-log-icon shrink-0 text-foreground-subtle" />

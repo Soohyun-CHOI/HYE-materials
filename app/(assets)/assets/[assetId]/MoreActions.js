@@ -13,6 +13,7 @@ import { ASSET_TRANSITION_COPY } from "@/lib/assetTransition";
 import { ASSET_OFFICE_COPY } from "@/lib/assetOfficeActs";
 import { useAssetTransition } from "./AssetTransition";
 import { JobChangeDialog, JobChangeSheet } from "./JobChange";
+import { LendDialog, LendSheet } from "./LendDialog";
 
 /** Three dots, 16 at a desk and 24 in a phone's top bar (1f, 1j). */
 function Dots({ phone }) {
@@ -69,6 +70,14 @@ function Dots({ phone }) {
  * none. Choosing it hands focus to this button and opens this width's own `Change job` — the
  * desk's dialog or the phone's sheet, drawn here (`JobChange.js`).
  *
+ * AND A LOAN'S LINE AFTER `Send for repair` (#598; 1f, 1j-f, 1j-g), each in Ink: `Lend to another job`
+ * for a site manager on the job that owns an item in stock there, and `Return to owner` for one on the
+ * job it was lent to, never both. Each moves the item and ends nothing, so it stands with the sending;
+ * **at a desk the rule parts it from the retirement, and on a phone no rule does**, as the files draw
+ * the two widths. Choosing the lending hands focus to this button and opens this width's dialog or
+ * sheet (`LendDialog.js`), drawn here as the job change's is; choosing the return opens its question,
+ * one for both widths (`ReturnConfirm`), which the page's provider draws.
+ *
  * AND THE OFFICE'S `Delete this item` LAST (#582; 1f, 1j), under the same condition, after the
  * retirement and in its tone — 0f's Destructive — the second act that ends the item. The rule stands
  * over the first of the two, whichever the reader is offered. Choosing it hands focus to this
@@ -82,6 +91,11 @@ export default function MoreActions({ phone = false, account = null }) {
     const mayRetire = Boolean(transition?.plan.mayRetire);
     const mayChangeJob = Boolean(transition?.office?.mayChangeJob);
     const mayDelete = Boolean(transition?.office?.mayDelete);
+    const mayLend = Boolean(transition?.plan.mayLend);
+    const mayReturn = Boolean(transition?.plan.mayReturn);
+    // Where a rule parts the acts that end nothing from those that end the item: under the office's
+    // line at both widths, and under a loan's at a desk alone (#598).
+    const ruled = mayChangeJob || (!phone && (mayLend || mayReturn));
     const busy = Boolean(transition?.repairPending);
     const [open, setOpen] = useState(false);
     const [focusOn, setFocusOn] = useState("first");
@@ -121,6 +135,32 @@ export default function MoreActions({ phone = false, account = null }) {
                   },
               ]
             : []),
+        ...(mayLend
+            ? [
+                  {
+                      key: "lend",
+                      label: ASSET_TRANSITION_COPY.control[ASSET_EVENT.LENT],
+                      onSelect: () => {
+                          buttonRef.current?.focus();
+                          setOpen(false);
+                          transition.lend.start(phone ? "phone" : "desk");
+                      },
+                  },
+              ]
+            : []),
+        ...(mayReturn
+            ? [
+                  {
+                      key: "return",
+                      label: ASSET_TRANSITION_COPY.control[ASSET_EVENT.RETURNED_TO_OWNER],
+                      onSelect: () => {
+                          buttonRef.current?.focus();
+                          setOpen(false);
+                          transition.openReturn();
+                      },
+                  },
+              ]
+            : []),
         ...(mayChangeJob
             ? [
                   {
@@ -142,7 +182,7 @@ export default function MoreActions({ phone = false, account = null }) {
                       key: "retire",
                       label: ASSET_TRANSITION_COPY.retireOpener,
                       tone: "danger",
-                      separated: mayChangeJob,
+                      separated: ruled,
                       onSelect: () => {
                           buttonRef.current?.focus();
                           setOpen(false);
@@ -158,7 +198,7 @@ export default function MoreActions({ phone = false, account = null }) {
                       label: ASSET_OFFICE_COPY.deleteOpener,
                       tone: "danger",
                       // The rule over it where it is the first that ends the item (#582).
-                      separated: mayChangeJob && !mayRetire,
+                      separated: ruled && !mayRetire,
                       onSelect: () => {
                           buttonRef.current?.focus();
                           setOpen(false);
@@ -232,6 +272,7 @@ export default function MoreActions({ phone = false, account = null }) {
             />
             {phone && account && <form id={formId} action="/api/auth/logout" method="POST" hidden />}
             {mayChangeJob && (phone ? <JobChangeSheet /> : <JobChangeDialog />)}
+            {mayLend && (phone ? <LendSheet /> : <LendDialog />)}
             {!phone && tip.element}
         </div>
     );

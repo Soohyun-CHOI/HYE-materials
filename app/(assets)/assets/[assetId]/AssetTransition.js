@@ -4,10 +4,11 @@ import { Fragment, createContext, startTransition, useActionState, useContext, u
 import Instant from "@/app/components/Instant";
 import { ASSET_EVENT } from "@/lib/assetStatus";
 import { ASSET_TRANSITION_COPY as COPY } from "@/lib/assetTransition";
-import { recordAssetEventAction, retireAssetAction, updateAssetNoteAction } from "./actions";
+import { lendAssetAction, recordAssetEventAction, retireAssetAction, returnAssetToOwnerAction, updateAssetNoteAction } from "./actions";
 import { changeAssetJobAction, deleteAssetAction } from "./officeActions";
 import DeleteConfirm from "./DeleteConfirm";
 import RetirementConfirm from "./RetirementConfirm";
+import ReturnConfirm from "./ReturnConfirm";
 
 /**
  * What the asset page's controls share (#463): the one transition's answer, whether its
@@ -68,6 +69,12 @@ import RetirementConfirm from "./RetirementConfirm";
  * opening that sent one is the current one — a note somebody else changed, too much typed — as
  * they did; one the page ends, the note no longer the reader's to write, is said under the status.
  *
+ * AND A LOAN'S TWO (#598), FOR THE SAME REASON. The lending's dialog and sheet (`LendDialog.js`) say a
+ * lending left half done while the opening that sent it stands, as the job change says its own, and
+ * the return's question (`ReturnConfirm`, one for both widths) says a return left half done above its
+ * actions; a refusal the page ends either for — the item moved since, or somebody got in front, which
+ * names who and when (`useRefusalSentence`) — is said under the status.
+ *
  * EVERY FORM CARRIES THE ITEM'S JOB AS THE PAGE WAS DRAWN (#597), `drawnJobId`, which each action
  * compares and never writes (`lib/assetTransition.js:recordingRefusal`). **A page drawn again on
  * another job ends every opening a reader recorded from** — the transition's dialog, the
@@ -100,7 +107,20 @@ export function useRefusalSentence(answer) {
     return answer.error ?? null;
 }
 
-export default function AssetTransition({ plan, office, assetJobRecordId, assetId, itemName, children }) {
+export default function AssetTransition({ plan, office, assetJobRecordId, assetOwnerJobRecordId = null, assetId, itemName, children }) {
+    const [lendAnswer, lendFormAction, lendPending] = useActionState(lendAssetAction, null);
+    const [returnAnswer, returnFormAction, returnPending] = useActionState(returnAssetToOwnerAction, null);
+    // Which width's lending is open (#598), how many openings there have been, and which of them sent
+    // the latest answer — the job change's arrangement.
+    const [lendingOn, setLendingOn] = useState(null);
+    const [lendOpening, setLendOpening] = useState(0);
+    const [lendSentFor, setLendSentFor] = useState(null);
+    // The return's question (#598), its openings and which of them sent the latest answer.
+    const [returning, setReturning] = useState(false);
+    const [returnOpening, setReturnOpening] = useState(0);
+    const [returnSentFor, setReturnSentFor] = useState(null);
+    const lendSentence = useRefusalSentence(lendAnswer);
+    const returnSentence = useRefusalSentence(returnAnswer);
     const [answer, formAction, pending] = useActionState(recordAssetEventAction, null);
     const [retireAnswer, retireFormAction, retirePending] = useActionState(retireAssetAction, null);
     const [noteAnswer, noteFormAction, notePending] = useActionState(updateAssetNoteAction, null);
@@ -159,17 +179,32 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetI
         setNoteOpenOn(null);
         setNoteOpening((count) => count + 1);
     };
+    // A loan's openings end the same way (#598), and count as new ones.
+    const endLending = () => {
+        setLendingOn(null);
+        setLendOpening((count) => count + 1);
+    };
+    const endReturning = () => {
+        setReturning(false);
+        setReturnOpening((count) => count + 1);
+    };
     if (retiring && !plan.mayRetire) endRetiring();
     if (noteOpenOn !== null && !plan.mayWriteNote) endNote();
+    if (lendingOn !== null && !plan.mayLend) endLending();
+    if (returning && !plan.mayReturn) endReturning();
     const [drawnOn, setDrawnOn] = useState(assetJobRecordId);
     if (drawnOn !== assetJobRecordId) {
         setDrawnOn(assetJobRecordId);
         setOpenedFor(null);
         if (retiring) endRetiring();
         if (noteOpenOn !== null) endNote();
+        if (lendingOn !== null) endLending();
+        if (returning) endReturning();
     }
     const retireSaidInDialog = retireSentFor === retireOpening;
     const noteSaidInDialog = noteSentFor === noteOpening;
+    const lendSaidInDialog = lendingOn !== null && lendSentFor === lendOpening;
+    const returnSaidInDialog = returning && returnSentFor === returnOpening;
 
     const send = (formData) => {
         setSending(String(formData.get("event") ?? ""));
@@ -190,6 +225,8 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetI
         note: noteSaidInDialog ? null : noteSentence,
         job: jobSaidInDialog ? null : jobSentence,
         delete: deleteSaidInDialog ? null : deleteSentence,
+        lend: lendSaidInDialog ? null : lendSentence,
+        return: returnSaidInDialog ? null : returnSentence,
     };
 
     const shared = {
@@ -236,6 +273,8 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetI
         office,
         jobChange: {
             assetJobRecordId,
+            // The job the item belongs to (#598), which a change moves with the one it stands on.
+            assetOwnerJobRecordId,
             openOn: changingOn,
             opening: jobOpening,
             start: (on) => {
@@ -250,6 +289,28 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetI
                 startTransition(() => jobFormAction(formData));
             },
             refusal: jobSaidInDialog ? jobSentence : null,
+        },
+        // A lending (#598): `More actions` opens this width's dialog or sheet (`LendDialog.js`).
+        lend: {
+            openOn: lendingOn,
+            opening: lendOpening,
+            start: (on) => {
+                setLendOpening((count) => count + 1);
+                setLendingOn(on);
+            },
+            close: () => setLendingOn(null),
+            pending: lendPending,
+            send: (formData) => {
+                setLendSentFor(lendOpening);
+                setLastSent("lend");
+                startTransition(() => lendFormAction(formData));
+            },
+            refusal: lendSaidInDialog ? lendSentence : null,
+        },
+        // `More actions` opens the return's question at either width (#598).
+        openReturn: () => {
+            setReturnOpening((count) => count + 1);
+            setReturning(true);
         },
         // `More actions` opens the deletion's question at either width (#582).
         openDeletion: () => {
@@ -299,6 +360,24 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetI
                         setRetireSentFor(retireOpening);
                         setLastSent("retire");
                         startTransition(() => retireFormAction(formData));
+                    }}
+                />
+            )}
+            {plan.mayReturn && (
+                <ReturnConfirm
+                    open={returning}
+                    onClose={() => setReturning(false)}
+                    assetId={assetId}
+                    drawnJobId={assetJobRecordId}
+                    itemName={itemName}
+                    ownerJobCode={plan.ownerJobCode ?? ""}
+                    jobCode={plan.jobCode ?? ""}
+                    busy={returnPending}
+                    refusal={returnSaidInDialog ? returnSentence : null}
+                    send={(formData) => {
+                        setReturnSentFor(returnOpening);
+                        setLastSent("return");
+                        startTransition(() => returnFormAction(formData));
                     }}
                 />
             )}

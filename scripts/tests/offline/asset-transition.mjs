@@ -51,7 +51,7 @@
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
-import { ASSET_EVENT, ASSET_STATUS, ASSET_STATUS_VALUES, EVENT_OFFERED_BY_STATUS, MAY_SEND_FOR_REPAIR_FROM_STATUS } from "../../../lib/assetStatus.js";
+import { ASSET_EVENT, ASSET_STATUS, ASSET_STATUS_VALUES, EVENT_OFFERED_BY_STATUS, LOAN_MOVES_FROM_STATUS, MAY_SEND_FOR_REPAIR_FROM_STATUS } from "../../../lib/assetStatus.js";
 import { ASSET_COPY } from "../../../lib/assetView.js";
 import {
     RECENT_NAMES_SHOWN,
@@ -429,9 +429,10 @@ export function run({ check, assert, log }) {
         );
         const pageSource = parseFile(PAGE).source;
         assert(
-            "the desk's header draws More actions for a sending, a retirement or the office's acts (#583, #582), and nothing for a status that allows nothing",
-            /\{\(transition\.maySendForRepair \|\| transition\.mayRetire \|\| officeActs\) && <MoreActions \/>\}/.test(pageSource) &&
-                /\{!transition\.refusal && \(transition\.event \|\| transition\.maySendForRepair \|\| transition\.mayRetire \|\| officeActs\) && \(/.test(pageSource)
+            "the desk's header draws More actions for a sending, a loan's line, a retirement or the office's acts (#583, #582, #598), and nothing for a status that allows nothing",
+            /const menuActs = transition\.maySendForRepair \|\| transition\.mayLend \|\| transition\.mayReturn \|\| transition\.mayRetire \|\| officeActs;/.test(pageSource) &&
+                /\{menuActs && <MoreActions \/>\}/.test(pageSource) &&
+                /\{!transition\.refusal && \(transition\.event \|\| menuActs\) && \(/.test(pageSource)
         );
         log("");
     }
@@ -792,7 +793,9 @@ export function run({ check, assert, log }) {
         "  which is the plan's press or its repair, matched to the submission and never taken from it (#531)",
         /const offered = \[plan\.event, plan\.maySendForRepair \? ASSET_EVENT\.SENT_FOR_REPAIR : null\]\.find\(\s*\(candidate\) => candidate !== null && candidate === event\s*\);/.test(module_.source)
     );
-    check("  carrying the item's own job, the plan's (#597)", success.map((r) => r.jobRecordId).join(" | "), "plan.jobId");
+    // The job the event's source names since #598 (`rowJob`): the item's own for every event this
+    // reads, `JOB_SOURCE_OF_EVENT`'s answer, which `offline/asset-loan.mjs` holds by value.
+    check("  carrying the job its event's source names, the plan's (#597, #598)", success.map((r) => r.jobRecordId).join(" | "), "rowJob(plan, offered)");
     check("  and the job it compares is the drawn one, read by recordingRefusal first", callsTo(readFn, "recordingRefusal").length, 1);
     assert(`  never the submitted one (${returns.length} returns read)`, returns.length >= 3);
 
@@ -861,14 +864,16 @@ export function run({ check, assert, log }) {
     // THE CONTROL IS BUILT FROM THE VOCABULARY, so an event a status can offer
     // cannot arrive without a word for it. That is `summarizeAssetCategories`' argument for
     // drawing every count, and it is the assertion a new event fails. What is offered is the
-    // press's event of each status and, since #531, `Sent for repair` from the menu.
+    // press's event of each status and, since #531, `Sent for repair` from the menu, and since
+    // #598 a loan's two from it.
     const offerable = [
         ...new Set([
             ...Object.values(EVENT_OFFERED_BY_STATUS).filter(Boolean),
             ...(Object.values(MAY_SEND_FOR_REPAIR_FROM_STATUS).some(Boolean) ? [ASSET_EVENT.SENT_FOR_REPAIR] : []),
+            ...(Object.values(LOAN_MOVES_FROM_STATUS).some(Boolean) ? [ASSET_EVENT.LENT, ASSET_EVENT.RETURNED_TO_OWNER] : []),
         ]),
     ];
-    check("the events a person may be offered", offerable.join(" | "), "Checked out | Checked in | Returned from repair | Sent for repair");
+    check("the events a person may be offered", offerable.join(" | "), "Checked out | Checked in | Returned from repair | Sent for repair | Lent | Returned to owner");
     const wordless = offerable.filter((e) => !ASSET_TRANSITION_COPY.control[e]);
     check(`every offerable event has a control word${wordless.length ? ` (${wordless})` : ""}`, wordless.length, 0);
     const spare = Object.keys(ASSET_TRANSITION_COPY.control).filter((e) => !offerable.includes(e));
@@ -907,15 +912,15 @@ export function run({ check, assert, log }) {
         ""
     );
     check(
-        "  the scans `scanned` and the repair's `recorded`",
+        "  the scans `scanned` and the repair's and the loan's `recorded` (#598)",
         Object.entries(ASSET_TRANSITION_COPY.firstVerb).map(([e, verb]) => `${e}: ${verb}`).join(" | "),
-        "Checked out: scanned | Checked in: scanned | Sent for repair: recorded | Returned from repair: recorded"
+        "Checked out: scanned | Checked in: scanned | Sent for repair: recorded | Returned from repair: recorded | Lent: recorded | Returned to owner: recorded"
     );
     check("  the noun hyphenated, as the design writes it since 2026-10-05", Object.values(ASSET_TRANSITION_COPY.eventNoun).join(" | "), "check-out | check-in");
     check(
         "  and the act a verb with none",
         Object.values(ASSET_TRANSITION_COPY.movedAct).join(" | "),
-        "checked this out | checked this in | sent this for repair | returned this from repair"
+        "checked this out | checked this in | sent this for repair | returned this from repair | lent this to another job | returned this to its owner"
     );
 
     // IMPORTED RATHER THAN RE-SPELLED. `Checked out to` is the history entry's word and this
@@ -1310,7 +1315,7 @@ export function run({ check, assert, log }) {
     // code no asset carries, since its menu ends on the account (#495).
     check(
         "  and More actions holds the retirement at a desk on its own answer, and stands in every phone top bar (#495)",
-        `${(page.source.match(/\{\(transition\.maySendForRepair \|\| transition\.mayRetire \|\| officeActs\) && <MoreActions \/>\}/g) ?? []).length} ${(page.source.match(/<MoreActions phone account=\{account\} \/>/g) ?? []).length}`,
+        `${(page.source.match(/\{menuActs && <MoreActions \/>\}/g) ?? []).length} ${(page.source.match(/<MoreActions phone account=\{account\} \/>/g) ?? []).length}`,
         "1 2"
     );
     // A RETIRED ASSET SHOWS NOTHING IN THE ACTIONS' PLACE AT A DESK (1f), and a phone's foot bar
@@ -1482,8 +1487,8 @@ export function run({ check, assert, log }) {
     // A PAGE DRAWN AGAIN ON ANOTHER JOB ENDS EVERY OPENING A READER RECORDS FROM (#597), so a press
     // refused because the item moved is said under the status whichever control sent it.
     assert(
-        "a page drawn on another job ends the dialog's opening, the retirement's and the note's (#597)",
-        /if \(drawnOn !== assetJobRecordId\) \{\s*setDrawnOn\(assetJobRecordId\);\s*setOpenedFor\(null\);\s*if \(retiring\) endRetiring\(\);\s*if \(noteOpenOn !== null\) endNote\(\);\s*\}/.test(providerSource)
+        "a page drawn on another job ends the dialog's opening, the retirement's, the note's and a loan's two (#597, #598)",
+        /if \(drawnOn !== assetJobRecordId\) \{\s*setDrawnOn\(assetJobRecordId\);\s*setOpenedFor\(null\);\s*if \(retiring\) endRetiring\(\);\s*if \(noteOpenOn !== null\) endNote\(\);\s*if \(lendingOn !== null\) endLending\(\);\s*if \(returning\) endReturning\(\);\s*\}/.test(providerSource)
     );
 
     // ── 7e: each width asks in its own drawing (#458) ──────────────────────

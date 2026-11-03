@@ -61,7 +61,8 @@ function actionFacts(handler) {
         label: /withOpsLabel\("updateAssetNoteAction",/.test(handler),
         lockKey: /withKeyLock\(`asset-note:\$\{normalizeItemText\(asked\)\.toLowerCase\(\)\}`,/.test(handler),
         readsInLock: /const asset = await getAssetByAssetId\(asked\);/.test(locked),
-        plansInLock: /planTransition\(\{ user, jobs: await getAllJobs\(\), status: asset\.status, assetJobId: asset\.job\?\.\[0\] \}\)/.test(locked),
+        // The item's owner job beside its job since #598, as every plan on the page is asked.
+        plansInLock: /planTransition\(\{ user, jobs: await getAllJobs\(\), status: asset\.status, assetJobId: asset\.job\?\.\[0\], ownerJobId: asset\.ownerJob\?\.\[0\] \}\)/.test(locked),
         // Whose item it is now, asked of the plan before the note's own rule (#597), and said.
         asksRecording:
             /const recording = recordingRefusal\(plan, \{ drawnJobId: String\(formData\.get\("drawnJobId"\) \?\? ""\), attempted: null \}\);\s*if \(recording\) return \{ refusal: recording \};\s*const answer = readNoteSubmission\(/.test(
@@ -214,7 +215,8 @@ export function run({ check, assert, log }) {
     // The status memory's two reads (#560) name `Status` alone and hand back no asset, only its
     // status (`recordToStatus`) — `offline/asset-status-memory.mjs` holds that — so they are
     // left out of what this asks of every reader that answers a whole asset. So is the third
-    // writer's payload, an asset's job alone (#583, `updateAssetJob`), as the other two's are.
+    // writer's payload, an asset's job and its owner job (#583, #598, `updateAssetJob`), as the
+    // other two's are.
     check(
         "no reader of a whole asset names its fields, so the note comes with every asset read",
         /\bfields\s*:/.test(
@@ -223,13 +225,14 @@ export function run({ check, assert, log }) {
                 .replace(/\/\/.*$/gm, "")
                 .replace(/fields: \{ Note:[^}]*\}/, "")
                 .replace(/fields: \{\s*Status:[^}]*\}/, "")
-                .replace(/fields: \{ Job: \[jobRecordId\] \}/, "")
+                .replace(/fields: \{ Job: \[jobRecordId\], "Owner Job": \[jobRecordId\] \}/, "")
                 .replace(/\(assetId\) => \(\{[^]*?\}\)/, "")
                 .replace(/createAssetStatusMemory\(\{[^]*?\n\}\);/, "")
         ),
         false
     );
-    check("  and a registration writes none", /"Asset ID": assetId,\s*Category: \[categoryRecordId\],\s*Status: ASSET_STATUS\.IN_STOCK,\s*Job: \[jobRecordId\],\s*\}\)/.test(assets.source), true);
+    // Its job twice since #598: where the item stands, and the job it belongs to.
+    check("  and a registration writes none", /"Asset ID": assetId,\s*Category: \[categoryRecordId\],\s*Status: ASSET_STATUS\.IN_STOCK,\s*Job: \[jobRecordId\],\s*(?:\/\/[^\n]*\s*)?"Owner Job": \[jobRecordId\],\s*\}\)/.test(assets.source), true);
 
     // ── the screens ─────────────────────────────────────────────────────────
     log("");

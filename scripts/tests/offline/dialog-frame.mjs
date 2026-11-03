@@ -1627,6 +1627,10 @@ export function run({ check, assert, log }) {
             "app/(assets)/assets/[assetId]/JobChange.js",
             // The office's deletion's question, one for both widths as the retirement's is (#582).
             "app/(assets)/assets/[assetId]/DeleteConfirm.js",
+            // A lending: the desk's dialog and the phone's sheet; and the return's question, one for
+            // both widths as the retirement's is (#598).
+            "app/(assets)/assets/[assetId]/LendDialog.js",
+            "app/(assets)/assets/[assetId]/ReturnConfirm.js",
         ]
             .sort()
             .join(", ")
@@ -1953,11 +1957,16 @@ export function run({ check, assert, log }) {
             "EntryDialog: submits · busy {busy} · named · 0 disabled by sending",
             // The office's job change at a desk (#583).
             "JobChangeForm: submits · busy {pending} · named · 0 disabled by sending",
+            // A lending at a desk and on a phone, whose sheet submits by its foot's `Lend` (#598).
+            "LendForm: submits · busy {lend.pending} · named · 0 disabled by sending",
+            "LendRows: submits · busy {lend.pending} · named · 0 disabled by sending",
             'NoteDialog: submits · busy {pending ? (removing ? "action" : true) : false} · named · 0 disabled by sending',
             "RegistrationForm: submits · busy {pending} · named · 0 disabled by sending",
             "RemoveDialog: submits · busy {pending} · named · 0 disabled by sending",
             // The retirement's question, handed the provider's wait since #597, as the deletion's is.
             "RetirementConfirm: submits · busy {busy} · named · 0 disabled by sending",
+            // The return's question, handed the provider's wait as the retirement's is (#598).
+            "ReturnConfirm: submits · busy {busy} · named · 0 disabled by sending",
             "TransitionForm: submits · busy {pending} · named · 0 disabled by sending",
         ].join(" | ")
     );
@@ -1982,7 +1991,7 @@ export function run({ check, assert, log }) {
         onNewFrame.filter((rel) => submitFacts(parseFile(rel)).length > 0).length,
         onNewFrame.length
     );
-    check("    a dialog each, and the catalog's file, the note's and the job change's their two", dialogs.length, onNewFrame.length + 3);
+    check("    a dialog each, and the catalog's file, the note's, the job change's and the lending's their two", dialogs.length, onNewFrame.length + 4);
 
     // AND EVERY FORM THAT SUBMITS OUTSIDE A FRAME IS HELD TO THE SAME (#463): the asset
     // page's foot bar, which wraps what it holds in `FormBusy` itself, and the desk's press,

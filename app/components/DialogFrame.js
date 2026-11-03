@@ -511,7 +511,7 @@ export function DialogFrame({
         <div
             className={`flex shrink-0 items-start justify-between gap-dialog-header-inline ${withPreview ? "px-dialog-inset pt-dialog-inset sm:col-start-2 sm:row-start-1" : ""} in-data-fixed:px-dialog-inset in-data-fixed:pt-dialog-inset max-sm:in-data-[sheet=drawer]:px-mobile-gutter max-sm:in-data-[sheet=drawer]:py-mobile-drawer-title-inset-y max-sm:in-data-[sheet=confirm]:px-mobile-gutter max-sm:in-data-[sheet=confirm]:pt-mobile-confirm-inset-top`}
         >
-            <div className="flex min-w-0 flex-col gap-dialog-title-stack max-sm:in-data-[sheet=confirm]:gap-mobile-confirm-title-stack">
+            <div className="flex min-w-0 flex-col gap-dialog-title-stack max-sm:in-data-[sheet=confirm]:gap-mobile-confirm-title-stack max-sm:in-data-[sheet=drawer]:gap-mobile-drawer-subtitle-stack">
                 <h2 ref={titleRef} id={titleId} className="text-heading font-semibold tabular-nums outline-none max-sm:in-data-[sheet]:text-mobile-heading">
                     {title}
                 </h2>
@@ -520,7 +520,13 @@ export function DialogFrame({
                         {recordId}
                     </p>
                 ) : (
-                    subtitle && <p className="text-body-sm text-foreground-muted">{subtitle}</p>
+                    // A sheet's is at the phone's 15 in Ink 3, 4 under its title (1j-f, #598): the
+                    // lending's sheet is the first to carry one.
+                    subtitle && (
+                        <p className="text-body-sm text-foreground-muted max-sm:in-data-[sheet]:text-mobile-body-sm max-sm:in-data-[sheet]:text-pretty max-sm:in-data-[sheet]:text-foreground-subtle">
+                            {subtitle}
+                        </p>
+                    )
                 )}
             </div>
             {done ? (

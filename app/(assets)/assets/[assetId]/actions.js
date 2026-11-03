@@ -14,7 +14,9 @@ import { ASSET_EVENT, statusAfterEvent } from "@/lib/assetStatus";
 import {
     ASSET_TRANSITION_COPY,
     planTransition,
+    readLend,
     readRetirement,
+    readReturn,
     readSubmission,
     recordingRefusal,
 } from "@/lib/assetTransition";
@@ -131,6 +133,7 @@ async function recordAssetEventHandler(prevState, formData) {
             jobs: await getAllJobs(),
             status: asset.status,
             assetJobId: asset.job?.[0],
+            ownerJobId: asset.ownerJob?.[0],
         });
         const { event, jobRecordId, checkedOutTo, refusal, stale } = readSubmission(plan, {
             event: String(formData.get("event") ?? ""),
@@ -185,8 +188,9 @@ async function recordAssetEventHandler(prevState, formData) {
  *
  * NOTHING CROSSES THE WIRE BUT THE ASSET'S ID AND THE JOB THE PAGE WAS DRAWN ON. There is
  * one direction, so the event is `ASSET_EVENT.RETIRED` from the vocabulary; and the job is
- * the asset's own, because retiring does not move an asset and the person designating
- * need not be near it. `readRetirement` carries both arguments, including the
+ * the asset's owner job (#598) — its own unless it is on loan, when the retirement takes it back
+ * to the job that owns it as it ends — because retiring takes nothing anywhere else and the person
+ * designating need not be near it. `readRetirement` carries both arguments, including the
  * row on this base that proved the second one. The drawn job is compared and never
  * written (`recordingRefusal`, #597).
  *
@@ -217,10 +221,11 @@ async function retireAssetHandler(prevState, formData) {
             jobs: await getAllJobs(),
             status: asset.status,
             assetJobId: asset.job?.[0],
+            ownerJobId: asset.ownerJob?.[0],
         });
-        // THE JOB IS THE ASSET'S OWN AND THE FORM SENDS NONE TO WRITE. Retiring does
-        // not move an asset, so the row records where it was; `readRetirement`
-        // carries the argument and the row on this base that proved it.
+        // THE JOB IS THE ASSET'S OWNER JOB AND THE FORM SENDS NONE TO WRITE (#598). Retiring
+        // moves an asset only off a loan, back to the job that owns it; `readRetirement`
+        // carries the argument and the row on this base that proved the rest.
         const { jobRecordId, refusal } = readRetirement(plan, {
             drawnJobId: String(formData.get("drawnJobId") ?? ""),
         });
@@ -238,6 +243,132 @@ async function retireAssetHandler(prevState, formData) {
 
         redirect(assetPath(asset.assetId));
     });
+}
+
+/**
+ * Lend one asset to another job (#598) — a `Lent` entry on the job chosen, and the asset's `Job`
+ * moved to it, in stock there; its `Owner Job` stays. Or return one to its owner job — a
+ * `Returned to owner` entry on that job and the asset's `Job` put back to it. A site manager on
+ * the job the item stands on does either: the owner's lends, the borrower's returns.
+ *
+ * THE SAME WRAPPER AND THE SAME PLAN ON A FRESH READ, AND THE ITEM'S LATEST ENTRY WITH IT. Only a
+ * site manager gets past `withSiteManagerAction`; `planTransition` asks the rest of the read it is
+ * handed — that the reader records on the job the item stands on, that it is in stock, that it
+ * stands on its owner job to be lent and on another to be returned, and which jobs a lending may
+ * choose — and `readLend` / `readReturn` the press, in `readSubmission`'s order. The latest
+ * entry is read, one operation, because it is what says a loan is half done (`pendingLoan`).
+ *
+ * THE ENTRY FIRST, THEN THE ITEM, AND A HALF-DONE LOAN IS FINISHED BY PRESSING AGAIN — #582's
+ * deletion's shape, written out here rather than through `writeEvent`, which would write a second
+ * entry: a press whose entry stands writes the item alone. A failed entry write writes nothing and
+ * throws; a failed item write after it is named on the page and logged with the record id, never
+ * written back (`lendHalfDone`, `returnHalfDone`).
+ *
+ * NO LOCK, `writeEvent`'s reason. **Unobserved, and recorded here rather than guarded**: a site
+ * manager recording another event on an item whose loan was left half done — a check-out on the
+ * owner job under a `Lent` entry whose item did not move — leaves a history whose latest entry is
+ * no loan's, so the half-done loan reads as none and is finished in Airtable.
+ *
+ * NINE OPERATIONS: the session twice, the asset, the job list, its latest entry, THREE for the
+ * entry (`generateChildId`'s parent find, the sibling read and the create) and one for the item.
+ * A half-done one's finish is the first five and the item; a refusal is at most the first five and
+ * the page drawn again, and one somebody got in front of two more, `refuseStale`'s.
+ *
+ * ON SUCCESS IT REDIRECTS TO THE PAGE IT CAME FROM AND SAYS NOTHING (#321): the job under the title,
+ * `On loan from` beside it or gone, and the entry at the history's head say it.
+ */
+export const lendAssetAction = withSiteManagerAction(lendAssetHandler);
+
+async function lendAssetHandler(prevState, formData) {
+    return withOpsLabel("lendAssetAction", async () => {
+        const user = await requireUser();
+        const asset = await getAssetByAssetId(String(formData.get("assetId") ?? ""));
+        if (!asset) return refuse(ASSET_COPY.notFoundHeading);
+        const plan = await planLoan({ user, asset });
+        const answer = readLend(plan, {
+            drawnJobId: String(formData.get("drawnJobId") ?? ""),
+            jobId: String(formData.get("jobId") ?? ""),
+        });
+        if (answer.stale) return refuseStale({ asset, refusal: answer.refusal, attempted: ASSET_EVENT.LENT });
+        if (answer.refusal) return refuse(answer.refusal);
+        const to = plan.lendJobs.find((job) => job.id === answer.jobRecordId)?.jobCode ?? "";
+        const failed = await writeLoan({
+            asset,
+            event: ASSET_EVENT.LENT,
+            answer,
+            user,
+            halfDone: ASSET_TRANSITION_COPY.lendHalfDone({ from: plan.jobCode ?? "", to }),
+        });
+        if (failed) return failed;
+        redirect(assetPath(asset.assetId));
+    });
+}
+
+/** Return one asset to its owner job (#598) — see `lendAssetAction`. */
+export const returnAssetToOwnerAction = withSiteManagerAction(returnAssetToOwnerHandler);
+
+async function returnAssetToOwnerHandler(prevState, formData) {
+    return withOpsLabel("returnAssetToOwnerAction", async () => {
+        const user = await requireUser();
+        const asset = await getAssetByAssetId(String(formData.get("assetId") ?? ""));
+        if (!asset) return refuse(ASSET_COPY.notFoundHeading);
+        const plan = await planLoan({ user, asset });
+        const answer = readReturn(plan, { drawnJobId: String(formData.get("drawnJobId") ?? "") });
+        if (answer.stale) return refuseStale({ asset, refusal: answer.refusal, attempted: ASSET_EVENT.RETURNED_TO_OWNER });
+        if (answer.refusal) return refuse(answer.refusal);
+        const failed = await writeLoan({
+            asset,
+            event: ASSET_EVENT.RETURNED_TO_OWNER,
+            answer,
+            user,
+            halfDone: ASSET_TRANSITION_COPY.returnHalfDone({ from: plan.jobCode ?? "" }),
+        });
+        if (failed) return failed;
+        redirect(assetPath(asset.assetId));
+    });
+}
+
+/** The plan a loan's press is judged by: the job list and the item's latest entry, read together. */
+async function planLoan({ user, asset }) {
+    const latestId = asset.assetLog?.at(-1);
+    const [jobs, rows] = await Promise.all([getAllJobs(), latestId ? getAssetLogByAsset(asset.id, { rowIds: [latestId] }) : []]);
+    return planTransition({
+        user,
+        jobs,
+        status: asset.status,
+        assetJobId: asset.job?.[0],
+        ownerJobId: asset.ownerJob?.[0],
+        latest: rows[0] ?? null,
+    });
+}
+
+/**
+ * A loan's two writes: the entry where the answer says it is due, then the item's `Job` and its
+ * status, `statusAfterEvent`'s — `In stock`, as it stood. Not exported, `writeEvent`'s reason.
+ */
+async function writeLoan({ asset, event, answer, user, halfDone }) {
+    if (answer.writesEntry) {
+        await createAssetLogEntry({
+            assetRecordId: asset.id,
+            assetId: asset.assetId,
+            event,
+            jobRecordId: answer.jobRecordId,
+            recordedByUserId: user.id,
+        });
+    }
+    try {
+        await updateAssetCache({ assetRecordId: asset.id, status: statusAfterEvent(event), jobRecordId: answer.jobRecordId });
+    } catch (error) {
+        console.error("Asset job not moved after its loan entry was written (#598)", {
+            assetRecordId: asset.id,
+            assetId: asset.assetId,
+            event,
+            jobRecordId: answer.jobRecordId,
+            error,
+        });
+        return refuse(halfDone);
+    }
+    return null;
 }
 
 /**
@@ -287,7 +418,7 @@ async function updateAssetNoteHandler(prevState, formData) {
             const asset = await getAssetByAssetId(asked);
             if (!asset) return { refusal: ASSET_COPY.notFoundHeading };
 
-            const plan = planTransition({ user, jobs: await getAllJobs(), status: asset.status, assetJobId: asset.job?.[0] });
+            const plan = planTransition({ user, jobs: await getAllJobs(), status: asset.status, assetJobId: asset.job?.[0], ownerJobId: asset.ownerJob?.[0] });
             const recording = recordingRefusal(plan, { drawnJobId: String(formData.get("drawnJobId") ?? ""), attempted: null });
             if (recording) return { refusal: recording };
             const answer = readNoteSubmission(plan, {

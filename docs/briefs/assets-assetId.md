@@ -599,6 +599,29 @@ stuck on — so the screen cannot say "no label yet" and must not imply it. Ever
 asset's label is always available; whether it is on the drill is what the
 person holding it can see.
 
+**A loan, while there is one (#598).** An item belongs to the job it was
+registered on and may stand on another, lent: then the line under its title
+says `On loan from` and the job that owns it after the job it stands on — at a
+desk in the caption, `HYE-AST-260909-004 · 26-USA-06 · On loan from 26-USA-07 ·
+Tool · Power tools`, and on a phone on the job's own line behind its pin (1f,
+1j-g). The borrowing job's site managers record on it as on their own; the
+owning job's read it as anybody does. `More actions` holds one loan's line
+after `Send for repair`, in Ink, from stock alone: `Lend to another job` for
+a site manager on the job that owns an item standing there, and `Return to
+owner` for one on the job it was lent to — never both, and nothing lent on. At
+a desk a rule then parts them from `Retire this item`; on a phone no rule
+does. The lending opens 0l's dialog at a desk — `Job` and its choice, `Choose
+a job` until one is chosen, `26-USA-07 keeps owning it until it's returned.`
+under it, `Cancel` and `Lend` — and on a phone a sheet of every other job's
+rows with `Lend` at its foot; a press with none chosen says `Choose a job.`
+The return asks first at both widths: `Return {name} to 26-USA-07?` over the
+id, `It goes back to 26-USA-07's list, and 26-USA-06 can no longer record
+it.`, `Cancel` and `Return item` in Accent. **A retirement on loan takes the
+item back to its owner as it ends**, so its page then names the owner job. A
+loan's two history entries, `Lent` and `Returned to owner`, are the only ones
+that name a job: their route, from the job before to the job after, on the
+event's line at a desk and on a line of its own under it on a phone.
+
 ## What must agree elsewhere
 
 **The facts on a history entry are invariants of the base, not choices.**

@@ -294,6 +294,14 @@ three zeros on the office's list until then, left standing by a registration
 that had stopped between its two writes — which no registration can do since
 it stopped creating the kind.
 
+**On one job's list, `On loan` (1a, #598)**: a count between `In repair` and
+`Retired` of the job's own items standing on another job, lent — outside
+`Total`, since the job they stand on counts them in their status and its
+total, as its own. A kind whose every item is on loan stands with that count
+alone. On all jobs there is no such column: every item is counted once, where
+it stands. The export's first sheet holds the same column on one job's file,
+and its second names each item's `Owner job` after its `Job`.
+
 ## What must agree elsewhere
 
 **The heading and the link that leads here are the same word.** The root

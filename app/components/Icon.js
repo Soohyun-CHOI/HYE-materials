@@ -73,6 +73,11 @@
 
 // Each shape by its Lucide name, as lucide-react 1.52.0 holds it, its elements in Lucide's order.
 const SHAPES = {
+    // Between a loan's two jobs under its history entry on a phone (1j, #598).
+    "arrow-right": [
+        ["path", { d: "M5 12h14" }],
+        ["path", { d: "m12 5 7 7-7 7" }],
+    ],
     "arrow-up-down": [
         ["path", { d: "m21 16-4 4-4-4" }],
         ["path", { d: "M17 20V4" }],

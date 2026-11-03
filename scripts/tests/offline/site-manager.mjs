@@ -67,6 +67,9 @@ const ASSET_ACTIONS = [
     "app/(assets)/assets/[assetId]/actions.js::retireAssetAction",
     // An item's note (#533): not an event, and written by whoever records one.
     "app/(assets)/assets/[assetId]/actions.js::updateAssetNoteAction",
+    // A loan's two (#598): a site manager on the job the item stands on lends it, or returns it.
+    "app/(assets)/assets/[assetId]/actions.js::lendAssetAction",
+    "app/(assets)/assets/[assetId]/actions.js::returnAssetToOwnerAction",
     "app/(assets)/assets/actions.js::readAssetLabelsAction",
     "app/(assets)/asset-categories/actions.js::registerAssetsAction",
 ];
@@ -360,7 +363,7 @@ export function run({ check, assert, log }) {
     });
     const actions = entries.filter((e) => e.kind !== "page" && (e.file.startsWith("app/(assets)/") || e.file.startsWith("app/l/")));
     check(
-        "the axis's server actions are the five this gate is for, the catalog's four, an asset's office two (#583, #582) and the list's three reads (#599), found by walking",
+        "the axis's server actions are the seven this gate is for (a loan's two since #598), the catalog's four, an asset's office two (#583, #582) and the list's three reads (#599), found by walking",
         actions.map((e) => `${e.file}::${e.name}`).sort().join(" | "),
         [...ASSET_ACTIONS, ...CATALOG_ACTIONS, ...OFFICE_ACTIONS, ...READ_ACTIONS].sort().join(" | ")
     );
@@ -446,7 +449,7 @@ export function run({ check, assert, log }) {
         check(
             `  ${ITEM} asks it once, into transition`,
             recorderOf(page, { binding: "transition", asks: "planTransition" }),
-            "planTransition({ user, jobs, status: asset.status, assetJobId: asset.job?.[0] }), asked 1 time(s), isSiteManager 0"
+            "planTransition({ user, jobs, status: asset.status, assetJobId: asset.job?.[0], ownerJobId: asset.ownerJob?.[0], latest: history[0] ?? null, }), asked 1 time(s), isSiteManager 0"
         );
         assert(`    reading it from lib/assetTransition.js`, importsFrom(page.ast, "planTransition", "/lib/assetTransition"));
     }

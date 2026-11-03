@@ -46,6 +46,7 @@ import {
     EVENT_OFFERED_BY_STATUS,
     JOB_SOURCE,
     JOB_SOURCE_OF_EVENT,
+    LOAN_MOVES_FROM_STATUS,
     MAY_RETIRE_FROM_STATUS,
     MAY_SEND_FOR_REPAIR_FROM_STATUS,
     MAY_WRITE_NOTE_IN_STATUS,
@@ -60,6 +61,7 @@ import {
     eventOfferedBy,
     isShownAsset,
     jobSourceOf,
+    loanMovesFrom,
     mayRetireFrom,
     maySendForRepairFrom,
     mayWriteNoteIn,
@@ -68,7 +70,7 @@ import {
 } from "../../../lib/assetStatus.js";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Tool status and event vocabularies, and the maps between them (#334, #362, #363, #531, #569, #582)";
+export const title = "Tool status and event vocabularies, and the maps between them (#334, #362, #363, #531, #569, #582, #598)";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PY_PATH = resolve(HERE, "../../import/ran/create_tools_334.py");
@@ -89,6 +91,45 @@ function pythonChoiceList(source, name) {
         block[1].matchAll(/\{\s*"name":\s*"([^"]*)",\s*"color":\s*"([^"]*)"\s*\}/g),
         (m) => [m[1], m[2]]
     );
+}
+
+/**
+ * A loan's two events and the ninth map (#598): `Lent` and `Returned to owner` last in the event
+ * list, each leaving the item in stock, each with a job source of its own — the job chosen, and the
+ * owner job — a retirement taking the owner job too, and which statuses a loan's moves are made
+ * from, total and throwing. Called first in `run()`, so an older assertion that throws cannot keep it
+ * from printing.
+ */
+function loan598({ check, log, assert }) {
+    log("a loan's two events and the ninth map, by value (#598):");
+    check("the events end on a loan's two, after Deleted", ASSET_EVENT_VALUES.slice(-3).join(" | "), "Deleted | Lent | Returned to owner");
+    check("  Lent leaves the item in stock", STATUS_AFTER_EVENT["Lent"], "In stock");
+    check("  and Returned to owner", STATUS_AFTER_EVENT["Returned to owner"], "In stock");
+    check("the four job sources", Object.values(JOB_SOURCE).join(" | "), "actor | asset | chosen | owner");
+    check("  Lent takes the job chosen", JOB_SOURCE_OF_EVENT["Lent"], "chosen");
+    check("  Returned to owner takes the owner job", JOB_SOURCE_OF_EVENT["Returned to owner"], "owner");
+    check("  and Retired takes the owner job, Soo's rule", JOB_SOURCE_OF_EVENT["Retired"], "owner");
+    check("  and the events taking the owner job are those two alone", ASSET_EVENT_VALUES.filter((e) => jobSourceOf(e) === "owner").join(" | "), "Retired | Returned to owner");
+    check("  and the job chosen a lending's alone", ASSET_EVENT_VALUES.filter((e) => jobSourceOf(e) === "chosen").join(" | "), "Lent");
+    check("a loan moves from In stock", LOAN_MOVES_FROM_STATUS["In stock"], true);
+    check("  not Out", LOAN_MOVES_FROM_STATUS["Out"], false);
+    check("  not In repair", LOAN_MOVES_FROM_STATUS["In repair"], false);
+    check("  not Retired", LOAN_MOVES_FROM_STATUS["Retired"], false);
+    check("  not Deleted", LOAN_MOVES_FROM_STATUS["Deleted"], false);
+    check("  five loan entries, one per status", Object.keys(LOAN_MOVES_FROM_STATUS).sort().join(" | "), "Deleted | In repair | In stock | Out | Retired");
+    check("  each a boolean", Object.values(LOAN_MOVES_FROM_STATUS).filter((v) => typeof v !== "boolean").length, 0);
+    check("loanMovesFrom applies it, over five", ASSET_STATUS_VALUES.map((s) => loanMovesFrom(s)).join(","), "true,false,false,false,false");
+    let threw = null;
+    try {
+        loanMovesFrom("Lost");
+    } catch (err) {
+        threw = err.message;
+    }
+    assert("  a status outside the vocabulary throws rather than reading a loan false", Boolean(threw));
+    assert("  and the throw names the module and the map", (threw || "").includes("lib/assetStatus.js") && (threw || "").includes("LOAN_MOVES_FROM_STATUS"));
+    assert("  and it is its own object, so a new status answers it apart from the repair's", LOAN_MOVES_FROM_STATUS !== MAY_SEND_FOR_REPAIR_FROM_STATUS);
+    check("  a lending offers the press nothing new: its status offers a check-out", eventOfferedBy(statusAfterEvent(ASSET_EVENT.LENT)), "Checked out");
+    log("");
 }
 
 /**
@@ -193,6 +234,7 @@ function shown582({ check, log, assert }) {
 
 export function run({ check, log, assert }) {
     shown582({ check, log, assert });
+    loan598({ check, log, assert });
     total569({ check, log, assert });
 
     // ── the two vocabularies, by value ──────────────────────────────────────
@@ -208,15 +250,15 @@ export function run({ check, log, assert }) {
     assert("no duplicates", new Set(ASSET_STATUS_VALUES).size === ASSET_STATUS_VALUES.length);
 
     log("");
-    log("the seven events, in order:");
+    log("the nine events, in order:");
     // `Created` WAS `Registered` UNTIL #455, and the two scans were `Checked Out` and
     // `Checked In` until #463, each renamed in the Airtable UI with the rows
     // following it — see lib/assetStatus.js's header.
     // The two repair events (#531) stand before `Retired`, where the base holds them, and
-    // `Deleted` (#582) after it.
-    check("ASSET_EVENT_VALUES, Deleted last", ASSET_EVENT_VALUES.join(" | "),
-        "Created | Checked out | Checked in | Sent for repair | Returned from repair | Retired | Deleted");
-    check("seven and no more", ASSET_EVENT_VALUES.length, 7);
+    // `Deleted` (#582) after it, and a loan's two (#598) after that, made last on the base.
+    check("ASSET_EVENT_VALUES, a loan's two last", ASSET_EVENT_VALUES.join(" | "),
+        "Created | Checked out | Checked in | Sent for repair | Returned from repair | Retired | Deleted | Lent | Returned to owner");
+    check("nine and no more", ASSET_EVENT_VALUES.length, 9);
     assert("no duplicates", new Set(ASSET_EVENT_VALUES).size === ASSET_EVENT_VALUES.length);
 
     // ── sentence case, the design's (#463) ──────────────────────────────────
@@ -389,7 +431,7 @@ export function run({ check, log, assert }) {
     );
     check("entries offering an event that does not exist", badOffer.length, 0);
 
-    // THE TWO MAPS ARE NOT INVERSES, WHICH IS WHY BOTH EXIST. Three events land on
+    // THE TWO MAPS ARE NOT INVERSES, WHICH IS WHY BOTH EXIST. Five events land on
     // `In stock`, so inverting `STATUS_AFTER_EVENT` is not a function; and
     // `Created` is offered by no status, because creating an asset makes the row
     // rather than moving one. A later pass tempted to derive one map from the other
@@ -399,7 +441,7 @@ export function run({ check, log, assert }) {
     const intoInStock = Object.entries(STATUS_AFTER_EVENT)
         .filter(([, s]) => s === ASSET_STATUS.IN_STOCK)
         .map(([e]) => e);
-    check("events landing on In stock", intoInStock.join(" | "), "Created | Checked in | Returned from repair");
+    check("events landing on In stock", intoInStock.join(" | "), "Created | Checked in | Returned from repair | Lent | Returned to owner");
     const offered = new Set(Object.values(EVENT_OFFERED_BY_STATUS).filter(Boolean));
     check(
         "  two of them offered, each by a status of its own",
@@ -617,27 +659,29 @@ export function run({ check, log, assert }) {
         "Out"
     );
 
-    // ── the fifth map: where each event's row takes its job from (#531, #597) ─────
+    // ── the fifth map: where each event's row takes its job from (#531, #597, #598) ─────
     // By value: the event that puts the asset on a job takes the job from the person
-    // recording; every other leaves it on the job it sits on and takes it from the asset —
-    // the two scans since #597, which took the actor's until then (docs/notes/tools.md).
+    // recording; the scans, the repair and the deletion leave it on the job it sits on and take
+    // it from the asset — the two scans since #597, which took the actor's until then
+    // (docs/notes/tools.md); and since #598 a lending takes the job chosen, and a return and a
+    // retirement the owner job.
     log("");
-    log("where each event's row takes its job from, by value (#531, #597):");
-    check("the two sources", Object.values(JOB_SOURCE).join(" | "), "actor | asset");
+    log("where each event's row takes its job from, by value (#531, #597, #598):");
+    check("the four sources", Object.values(JOB_SOURCE).join(" | "), "actor | asset | chosen | owner");
     check("Created", JOB_SOURCE_OF_EVENT["Created"], "actor");
     check("Checked out, the item's own since #597", JOB_SOURCE_OF_EVENT["Checked out"], "asset");
     check("Checked in, the item's own since #597", JOB_SOURCE_OF_EVENT["Checked in"], "asset");
-    check("Retired", JOB_SOURCE_OF_EVENT["Retired"], "asset");
+    check("Retired, the owner job since #598", JOB_SOURCE_OF_EVENT["Retired"], "owner");
     check("Sent for repair", JOB_SOURCE_OF_EVENT["Sent for repair"], "asset");
     check("Returned from repair", JOB_SOURCE_OF_EVENT["Returned from repair"], "asset");
     check("Deleted (#582)", JOB_SOURCE_OF_EVENT["Deleted"], "asset");
-    check("seven entries, one per event", Object.keys(JOB_SOURCE_OF_EVENT).length, 7);
+    check("nine entries, one per event", Object.keys(JOB_SOURCE_OF_EVENT).length, 9);
     check(
         "events with no entry",
         ASSET_EVENT_VALUES.filter((e) => !Object.prototype.hasOwnProperty.call(JOB_SOURCE_OF_EVENT, e)).length,
         0
     );
-    check("jobSourceOf applies it, over seven", ASSET_EVENT_VALUES.map((e) => jobSourceOf(e)).join(","), "actor,asset,asset,asset,asset,asset,asset");
+    check("jobSourceOf applies it, over nine", ASSET_EVENT_VALUES.map((e) => jobSourceOf(e)).join(","), "actor,asset,asset,asset,asset,owner,asset,chosen,owner");
     check("  the registration the one event taking the actor's (#597)", ASSET_EVENT_VALUES.filter((e) => jobSourceOf(e) === "actor").join(" | "), "Created");
     let jobThrew = null;
     try {
@@ -674,7 +718,7 @@ export function run({ check, log, assert }) {
     assert("the parser found TOOL_STATUS_CHOICES in the Python source", Array.isArray(pyStatus));
     assert("the parser found TOOL_EVENT_CHOICES in the Python source", Array.isArray(pyEvent));
     check("  status choices parsed, Deleted among them", (pyStatus || []).length, 5);
-    check("  event choices parsed, Deleted among them", (pyEvent || []).length, 7);
+    check("  event choices parsed, a loan's two among them", (pyEvent || []).length, 9);
     assert(
         "  and the parser is seen to say NO on a name that is not there",
         pythonChoiceList(py, "TOOL_NOT_A_CONSTANT") === null
@@ -706,7 +750,10 @@ export function run({ check, log, assert }) {
     // base on 2026-10-15, and held here as the base holds them. **#582's two came back
     // red**, by hand on the test base and read off it on 2026-10-30: the deletion is the
     // one value the vocabulary now holds that undoes a registration, so red has a meaning
-    // again, and it is the deletion's alone.
+    // again, and it is the deletion's alone. **#598's two came back blue**, `Created`'s: made on
+    // the test base by one row written with `typecast`, which gives every option it makes the
+    // default, read off it on 2026-11-02, and kept in that color by Soo's ruling — the live
+    // base's are made by hand to match — so the walk is broken there on purpose and held as is.
     const paletteRule = [
         ["In stock", "blueLight2"], ["Out", "cyanLight2"], ["In repair", "yellowLight2"], ["Retired", "grayLight2"], ["Deleted", "redLight2"],
     ];
@@ -718,6 +765,7 @@ export function run({ check, log, assert }) {
         ["Created", "blueLight2"], ["Checked out", "cyanLight2"],
         ["Checked in", "tealLight2"], ["Sent for repair", "yellowLight2"],
         ["Returned from repair", "orangeLight2"], ["Retired", "grayLight2"], ["Deleted", "redLight2"],
+        ["Lent", "blueLight2"], ["Returned to owner", "blueLight2"],
     ];
     check("event colors do the same", JSON.stringify(pyEvent), JSON.stringify(eventRule));
     check("  gray marks the terminal value and nothing else",

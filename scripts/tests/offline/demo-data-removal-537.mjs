@@ -147,7 +147,7 @@ export function run({ check, assert, log }) {
     check(
         "  the site's records' own links, from their module",
         JSON.stringify({ Assets: OWNED_LINKS.Assets, "Asset Log": OWNED_LINKS["Asset Log"] }),
-        JSON.stringify({ Assets: ["Category", "Job"], "Asset Log": ["Asset", "Job", "Recorded By"] })
+        JSON.stringify({ Assets: ["Category", "Job", "Owner Job"], "Asset Log": ["Asset", "Job", "Recorded By"] })
     );
     const before = (a, b) => REMOVE_ORDER.indexOf(a) !== -1 && REMOVE_ORDER.indexOf(a) < REMOVE_ORDER.indexOf(b);
     for (const [child, parent] of [

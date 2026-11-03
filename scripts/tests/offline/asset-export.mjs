@@ -58,10 +58,12 @@ const ASSETS = "lib/airtable/assets.js";
 
 // ── the fixture ─────────────────────────────────────────────────────────────
 
+// Each job owns what stands on it (#598), as the fill leaves every asset standing before a loan:
+// `offline/asset-loan.mjs` presses a file with one lent.
 const JOBS = [
-    { id: "recJ2", jobCode: "25-USA-13", assets: ["a3", "a4", "a7"] },
-    { id: "recJ1", jobCode: "23-USA-09", assets: ["a1", "a2", "a5"] },
-    { id: "recJ3", jobCode: "26-USA-12", assets: ["a6"] },
+    { id: "recJ2", jobCode: "25-USA-13", assets: ["a3", "a4", "a7"], ownedAssets: ["a3", "a4", "a7"] },
+    { id: "recJ1", jobCode: "23-USA-09", assets: ["a1", "a2", "a5"], ownedAssets: ["a1", "a2", "a5"] },
+    { id: "recJ3", jobCode: "26-USA-12", assets: ["a6"], ownedAssets: ["a6"] },
 ];
 const kind = (id, itemName, level1, level2, level3, size, maker, partNumber, assets) => ({ id, itemName, level1, level2, level3, size, maker, partNumber, assets });
 const CATEGORIES = [
@@ -73,7 +75,7 @@ const CATEGORIES = [
     kind("recK5", "Grinder", "Tool", "Power Tool", "Grinder", "", "", "", []),
 ];
 // Each asset's \`Last Event At\` (#540) is its latest log row's \`Event At\` below, as Airtable rolls it up.
-const asset = (id, assetId, status, job, category, note, assetLog, lastEventAt) => ({ id, assetId, status, job: [job], category: [category], note, assetLog, lastEventAt });
+const asset = (id, assetId, status, job, category, note, assetLog, lastEventAt) => ({ id, assetId, status, job: [job], ownerJob: [job], category: [category], note, assetLog, lastEventAt });
 const ASSETS_HELD = [
     asset("a1", "HYE-AST-261001-001", ASSET_STATUS.IN_STOCK, "recJ1", "recK1", "", ["l1"], "2026-10-01T15:00:00.000Z"),
     asset("a2", "HYE-AST-261001-002", ASSET_STATUS.OUT, "recJ1", "recK1", "Kept in bay 2", ["l2a", "l2b"], "2026-10-22T03:30:00.000Z"),
@@ -139,18 +141,34 @@ const rowsSaid = (sheet) => sheet.rows.map((row) => row.map(said).join(" ; ")).j
  * Whether the two sheets agree (#553): each first-sheet row, in order, is the next as many
  * second-sheet rows as its counts add up to, of its own type and category, status for status,
  * and its total those of them not retired (#569), spelled here by the status's word. The columns
- * are the statuses a screen draws (#582), the vocabulary but `Deleted`.
+ * are the statuses a screen draws (#582), the vocabulary but `Deleted` — found by their heads where
+ * the sheets carry them, at the places they stood before #598 where a planted pair carries none —
+ * and since #598 a list on one job's `On loan`, the items under the row whose `Owner job` is `job`
+ * and whose `Job` is another, counted in no status and outside the total.
  */
-function agreement([list, items]) {
+function agreement([list, items], { job = null } = {}) {
+    const heads = (list.columns ?? []).map((column) => column.header);
+    const at_ = (word, fallback) => (heads.length > 0 ? heads.indexOf(word) : fallback);
+    const statusAt = SHOWN_STATUS_VALUES.map((status, index) => at_(status, 3 + index));
+    const loanAt = heads.indexOf("On loan");
+    const totalAt = at_("Total", 3 + SHOWN_STATUS_VALUES.length);
+    const itemHeads = (items.columns ?? []).map((column) => column.header);
+    const statusOf = itemHeads.length > 0 ? itemHeads.indexOf("Status") : 7;
+    const jobOf = itemHeads.indexOf("Job");
+    const ownerOf = itemHeads.indexOf("Owner job");
+    const lent = (item) => job !== null && ownerOf >= 0 && item[ownerOf] === job && item[jobOf] !== job;
     let at = 0;
     for (const row of list.rows) {
-        const counts = row.slice(3, 3 + SHOWN_STATUS_VALUES.length);
-        const total = row[3 + SHOWN_STATUS_VALUES.length];
-        const block = items.rows.slice(at, at + counts.reduce((sum, n) => sum + n, 0));
+        const counts = statusAt.map((index) => row[index]);
+        const onLoan = loanAt >= 0 ? row[loanAt] : 0;
+        const total = row[totalAt];
+        const block = items.rows.slice(at, at + counts.reduce((sum, n) => sum + n, 0) + onLoan);
         at += block.length;
-        const perStatus = SHOWN_STATUS_VALUES.map((status) => block.filter((item) => item[7] === status).length);
+        const perStatus = SHOWN_STATUS_VALUES.map((status) => block.filter((item) => !lent(item) && item[statusOf] === status).length);
         if (perStatus.join("/") !== counts.join("/")) return `${row[0]} counts ${counts.join("/")} but lists ${perStatus.join("/")}`;
-        const held = block.filter((item) => item[7] !== "Retired").length;
+        const loaned = block.filter(lent).length;
+        if (loaned !== onLoan) return `${row[0]} counts ${onLoan} on loan but lists ${loaned}`;
+        const held = block.filter((item) => !lent(item) && item[statusOf] !== "Retired").length;
         if (total !== held) return `${row[0]} totals ${total} but holds ${held}`;
         if (block.some((item) => item[1] !== row[1] || item[2] !== row[2])) return `${row[0]} lists an item of another type or category`;
     }
@@ -229,11 +247,11 @@ async function byId541({ check, log }) {
     check(
         "the first sheet holds the item's row on the job the list stands on, its counts whole",
         rowsSaid(byId.made.sheets[0]),
-        "Band Saw, DeWalt (DCS375) ; Tool ; Power Tool ; 1 ; 1 ; 0 ; 0 ; 2"
+        "Band Saw, DeWalt (DCS375) ; Tool ; Power Tool ; 1 ; 1 ; 0 ; 0 ; 0 ; 2"
     );
     check("  the second every asset under that row, not the item alone", byId.made.sheets[1].rows.map((row) => row[0]).join(" "), "HYE-AST-261001-002 HYE-AST-261001-001");
     check("  the one out read for its holder, and every asset on the job for the counts", `${byId.asked.assets.map((ids) => ids.join(",")).join(" / ")} | ${byId.asked.logRows.map((ids) => ids.join(",")).join(" / ")}`, "a1,a2,a5 | l2b");
-    check("  and the two sheets agree", agreement(byId.made.sheets), "agree");
+    check("  and the two sheets agree", agreement(byId.made.sheets, { job: "23-USA-09" }), "agree");
     check("its label's code presses the same file", rowsSaid((await press(OFFICE, "q=261001-002")).made.sheets[1]), rowsSaid(byId.made.sheets[1]));
     const onAll = await press(OFFICE, "job=all&q=261001-003");
     check(
@@ -267,16 +285,16 @@ export async function run({ check, log, assert }) {
     check(
         "  the first sheet is the list on that job: each kind, its type, its category, its four counts and its total",
         rowsSaid(first.made.sheets[0]),
-        "Band Saw, DeWalt (DCS375) ; Tool ; Power Tool ; 1 ; 1 ; 0 ; 0 ; 2 | TIG Welder, Lincoln Electric (TIG 205) ; Equipment ; Welding Equipment ; 1 ; 0 ; 0 ; 0 ; 1"
+        "Band Saw, DeWalt (DCS375) ; Tool ; Power Tool ; 1 ; 1 ; 0 ; 0 ; 0 ; 2 | TIG Welder, Lincoln Electric (TIG 205) ; Equipment ; Welding Equipment ; 1 ; 0 ; 0 ; 0 ; 0 ; 1"
     );
     check(
         "  the second its assets, newest change first under each kind, with the holder of one out and each one's day",
         rowsSaid(first.made.sheets[1]),
-        "HYE-AST-261001-002 ; Tool ; Power Tool ; Band Saw ; - ; DeWalt ; DCS375 ; Out ; 23-USA-09 ; Dana K ; Kept in bay 2 ; 10/22/2026 | " +
-            "HYE-AST-261001-001 ; Tool ; Power Tool ; Band Saw ; - ; DeWalt ; DCS375 ; In stock ; 23-USA-09 ; - ; - ; 10/1/2026 | " +
-            'HYE-AST-261002-002 ; Equipment ; Welding Equipment ; TIG Welder ; - ; Lincoln Electric ; TIG 205 ; In stock ; 23-USA-09 ; - ; =HYPERLINK("http://x","y") ; 10/2/2026'
+        "HYE-AST-261001-002 ; Tool ; Power Tool ; Band Saw ; - ; DeWalt ; DCS375 ; Out ; 23-USA-09 ; 23-USA-09 ; Dana K ; Kept in bay 2 ; 10/22/2026 | " +
+            "HYE-AST-261001-001 ; Tool ; Power Tool ; Band Saw ; - ; DeWalt ; DCS375 ; In stock ; 23-USA-09 ; 23-USA-09 ; - ; - ; 10/1/2026 | " +
+            'HYE-AST-261002-002 ; Equipment ; Welding Equipment ; TIG Welder ; - ; Lincoln Electric ; TIG 205 ; In stock ; 23-USA-09 ; 23-USA-09 ; - ; =HYPERLINK("http://x","y") ; 10/2/2026'
     );
-    check("  and the two sheets agree", agreement(first.made.sheets), "agree");
+    check("  and the two sheets agree", agreement(first.made.sheets, { job: "23-USA-09" }), "agree");
 
     const all = await press(OFFICE, "job=all");
     check("on all of the office's jobs the file is named for all of them", all.made.fileName, "Equipment & Tools - All jobs - 2026-10-22.xlsx");
@@ -287,7 +305,7 @@ export async function run({ check, log, assert }) {
     );
     check(
         "  the second lists them in the first's order, each kind newest change first, each with its own job",
-        all.made.sheets[1].rows.map((row) => `${row[0]} ${row[8]} ${said(row[9])}`).join(" | "),
+        all.made.sheets[1].rows.map((row) => `${row[0]} ${row[8]} ${said(row[10])}`).join(" | "),
         "HYE-AST-261001-002 23-USA-09 Dana K | HYE-AST-261001-003 25-USA-13 - | HYE-AST-261001-001 23-USA-09 - | HYE-AST-261004-001 25-USA-13 - | HYE-AST-261003-001 26-USA-12 - | HYE-AST-261002-001 25-USA-13 - | HYE-AST-261002-002 23-USA-09 -"
     );
     check("  every asset on them read, once, and the rows of the two out", `${all.asked.assets.map((ids) => ids.join(",")).join(" / ")} | ${all.asked.logRows.map((ids) => ids.join(",")).join(" / ")}`, "a1,a2,a3,a4,a5,a6,a7 | l2b,l7");
@@ -360,18 +378,20 @@ export async function run({ check, log, assert }) {
     check("a band that empties the list gives both sheets with their heads alone", `${emptied.made.sheets[0].rows.length} ${emptied.made.sheets[1].rows.length}`, "0 0");
 
     const west = await press(OFFICE, "", { timeZone: "America/Los_Angeles", now: new Date("2026-10-22T05:00:00.000Z") });
-    check("a day is the reader's: the evening of the 21st in Los Angeles, the file named for it", `${said(west.made.sheets[1].rows[0][11])} ${west.made.fileName}`, "10/21/2026 Equipment & Tools - 23-USA-09 - 2026-10-21.xlsx");
+    check("a day is the reader's: the evening of the 21st in Los Angeles, the file named for it", `${said(west.made.sheets[1].rows[0][12])} ${west.made.fileName}`, "10/21/2026 Equipment & Tools - 23-USA-09 - 2026-10-21.xlsx");
     check("  and a zone the runtime does not know is read as UTC", `${knownTimeZone("Mars/Olympus")} ${knownTimeZone("")} ${knownTimeZone("Asia/Seoul")}`, "UTC UTC Asia/Seoul");
 
     // ── 2: the heads and the words ──────────────────────────────────────────
     log("");
     log("the sheets say the screens' words:");
     check("the sheets are the list's heading and its items", first.made.sheets.map((sheet) => sheet.name).join(" | "), "Equipment & Tools | Items");
-    check("  the first's heads are 1a's, the total last (#569)", first.made.sheets[0].columns.map((c) => c.header).join(" | "), "Name | Type | Category | In stock | Out | In repair | Retired | Total");
+    // On one job's list `On loan` stands before `Retired` (#598), as 1a draws it; on all jobs there is none.
+    check("  the first's heads are 1a's, the total last (#569)", first.made.sheets[0].columns.map((c) => c.header).join(" | "), "Name | Type | Category | In stock | Out | In repair | On loan | Retired | Total");
+    check("  and on all jobs no On loan (#598)", all.made.sheets[0].columns.map((c) => c.header).join(" | "), "Name | Type | Category | In stock | Out | In repair | Retired | Total");
     check(
         "  the second's 1d's and the catalog's",
         first.made.sheets[1].columns.map((c) => `${c.header}:${c.kind}`).join(" | "),
-        "Item ID:text | Type:text | Category:text | Name:text | Size:text | Maker:text | Part #:text | Status:text | Job:text | Checked out to:text | Note:text | Updated:day"
+        "Item ID:text | Type:text | Category:text | Name:text | Size:text | Maker:text | Part #:text | Status:text | Job:text | Owner job:text | Checked out to:text | Note:text | Updated:day"
     );
     check(
         "the button's words",
@@ -405,18 +425,18 @@ export async function run({ check, log, assert }) {
     check(
         "  the header's bold, every head in it",
         `${/fontId="1"/.test(styles[1] ?? "") && /<font><b\/>/.test(parts["xl/styles.xml"])} ${items.filter((cell) => cell.row === 1).map((cell) => cell.s).join("")}`,
-        "true 111111111111"
+        "true 1111111111111"
     );
-    const textCells = items.filter((cell) => cell.col !== "L");
+    const textCells = items.filter((cell) => cell.col !== "M");
     check("every text cell on the items sheet is an inline string", textCells.filter((cell) => cell.t !== "inlineStr").length, 0);
     check(
         "  the notes that would start a formula are written as words, quotePrefix'd, and nothing else is",
         items.filter((cell) => cell.s === "2").map((cell) => cell.value).join(" | "),
         '@SUM(A1) | =HYPERLINK("http://x","y")'
     );
-    check("  the holder as the history says it", items.filter((cell) => cell.col === "J" && cell.row > 1).map((cell) => cell.value).join(" | "), "Dana K");
-    check("  each day a serial under the day's style", items.filter((cell) => cell.col === "L" && cell.row > 1).map((cell) => `${cell.value}:${cell.s}:${cell.t}`).join(" "), "46317:3:null 46300:3:null 46296:3:null 46299:3:null 46298:3:null 46305:3:null 46297:3:null");
-    check("  a blank written as no cell: an item with no size, holder or note has none of those cells", items.filter((cell) => cell.row === 4).map((cell) => cell.col).join(" "), "A B C D F G H I L");
+    check("  the holder as the history says it", items.filter((cell) => cell.col === "K" && cell.row > 1).map((cell) => cell.value).join(" | "), "Dana K");
+    check("  each day a serial under the day's style", items.filter((cell) => cell.col === "M" && cell.row > 1).map((cell) => `${cell.value}:${cell.s}:${cell.t}`).join(" "), "46317:3:null 46300:3:null 46296:3:null 46299:3:null 46298:3:null 46305:3:null 46297:3:null");
+    check("  a blank written as no cell: an item with no size, holder or note has none of those cells", items.filter((cell) => cell.row === 4).map((cell) => cell.col).join(" "), "A B C D F G H I J M");
     const counts = cellsOf(parts["xl/worksheets/sheet1.xml"]).filter((cell) => cell.row > 1 && ["D", "E", "F", "G"].includes(cell.col));
     check("the counts are figures, a zero included", counts.map((cell) => `${cell.value}${cell.t ?? ""}`).join(" "), "1 1 0 1 0 1 0 0 1 0 0 0 1 0 1 0");
     // The total is the eighth column, a figure as the counts are, the list's every row's (#569).
@@ -426,11 +446,11 @@ export async function run({ check, log, assert }) {
         "  written off the list's own reading: the row's total after its counts, under the list's word",
         [
             /\{ header: ASSET_LIST_COPY\.totalLabel, kind: "number", width: 10 \},\s*\],/.test(parseFile(EXPORT).source),
-            /\.\.\.row\.counts\.map\(\(entry\) => entry\.count\), row\.total\]\)/.test(parseFile(EXPORT).source),
+            /\.\.\.counted\.map\(\(column\) => \(column\.onLoan \? row\.onLoan : \(row\.counts\.find\(\(entry\) => entry\.status === column\.status\)\?\.count \?\? 0\)\)\),\s*row\.total,\s*\]\)/.test(parseFile(EXPORT).source),
         ].join(" "),
         "true true"
     );
-    check("the head held at the top, filtered", [/<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"\/>/.test(parts["xl/worksheets/sheet2.xml"]), /<autoFilter ref="A1:L8"\/>/.test(parts["xl/worksheets/sheet2.xml"])].join(" "), "true true");
+    check("the head held at the top, filtered", [/<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"\/>/.test(parts["xl/worksheets/sheet2.xml"]), /<autoFilter ref="A1:M8"\/>/.test(parts["xl/worksheets/sheet2.xml"])].join(" "), "true true");
 
     log("");
     log("the cell's rule, by value:");

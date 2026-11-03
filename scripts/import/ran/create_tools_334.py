@@ -179,6 +179,10 @@ DATETIME_OPTIONS = {
 # #582 ADDED `Deleted` TO BOTH THE SAME WAY, by hand, last in each list and red, as
 # the base holds it -- the status of an item the office deleted, which no screen
 # shows, and the event recording who deleted it and when.
+#
+# #598 ADDED A LOAN'S TWO EVENTS, `Lent` and `Returned to owner`, last in the event list:
+# on the test base by one row written with typecast and deleted at once, which gave both
+# typecast's default blue, and by hand on the live base in that color, as Soo ruled.
 TOOL_STATUS_CHOICES = [
     {"name": "In stock", "color": "blueLight2"},
     {"name": "Out", "color": "cyanLight2"},
@@ -195,6 +199,8 @@ TOOL_EVENT_CHOICES = [
     {"name": "Returned from repair", "color": "orangeLight2"},
     {"name": "Retired", "color": "grayLight2"},
     {"name": "Deleted", "color": "redLight2"},
+    {"name": "Lent", "color": "blueLight2"},
+    {"name": "Returned to owner", "color": "blueLight2"},
 ]
 
 # ----------------------------------------------------------------------------
