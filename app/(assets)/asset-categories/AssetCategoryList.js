@@ -10,6 +10,7 @@ import { FILTER_BAR_COPY } from "@/lib/listFilters";
 import {
     ASSET_LIST_COPY as COPY,
     ASSET_LIST_FACETS,
+    countColumns,
     emptiedListWords,
     pageOfAssetCategories,
     pagerPosition,
@@ -17,7 +18,6 @@ import {
     readCategoryList,
 } from "@/lib/assetListView";
 import { LIST_SORTS, assetCategoriesPath, assetCategoryPath, assetPath } from "@/lib/assetRoutes";
-import { SHOWN_STATUS_VALUES } from "@/lib/assetStatus";
 import JobChoice from "../JobChoice";
 import SortChoice from "../SortChoice";
 import FoundItem from "./FoundItem";
@@ -35,6 +35,9 @@ import { readFoundElsewhereAction } from "./actions";
 // columns of their own between the name and the counts; the band's chips filter by the type and
 // the category since #520, the class too until #552, and the category page's caption says them.
 const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(4,var(--width-table-count))_var(--width-table-count)]";
+// And on one job's list since #598, `On loan` before `Retired` at the same 56 (`countColumns`): a
+// fifth count, the name's track giving up 76 more.
+const COLUMNS_WITH_LOAN = "grid-cols-[minmax(0,1fr)_repeat(5,var(--width-table-count))_var(--width-table-count)]";
 
 /**
  * The category list on the job it stands on (1a, #520): its head with how many items the job
@@ -115,6 +118,9 @@ export default function AssetCategoryList({ rows, job, jobCode = null, allJobs =
     const asked = readAssetListFilters(params);
     const [typed, setTyped] = useState(asked.q);
     const reading = readCategoryList(rows, params, { allJobs, jobs, q: typed, job, elsewhere });
+    // The counts' columns and the grid holding them: one job's list counts its items on loan too (#598).
+    const counted = countColumns({ allJobs });
+    const columns = allJobs ? COLUMNS : COLUMNS_WITH_LOAN;
     useEffect(() => {
         const assetId = reading.asks;
         if (!assetId || askedElsewhere.current.has(assetId)) return;
@@ -200,11 +206,11 @@ export default function AssetCategoryList({ rows, job, jobCode = null, allJobs =
             }
         >
             <div role="table" aria-label={COPY.heading}>
-                <div role="row" className={`${TABLE_HEAD} ${COLUMNS}`}>
+                <div role="row" className={`${TABLE_HEAD} ${columns}`}>
                     <span role="columnheader">{COPY.nameLabel}</span>
-                    {SHOWN_STATUS_VALUES.map((status) => (
-                        <span key={status} role="columnheader" className="text-right">
-                            {status}
+                    {counted.map((column) => (
+                        <span key={column.key} role="columnheader" className="text-right">
+                            {column.onLoan ? COPY.onLoanLabel : column.status}
                         </span>
                     ))}
                     <span role="columnheader" className="text-right">
@@ -212,7 +218,7 @@ export default function AssetCategoryList({ rows, job, jobCode = null, allJobs =
                     </span>
                 </div>
                 {page.rows.map((row) => (
-                    <div key={row.id} role="row" className={`${TABLE_ROW} ${COLUMNS}`}>
+                    <div key={row.id} role="row" className={`${TABLE_ROW} ${columns}`}>
                         {/* The name gives its room up last: the category beside it shrinks a
                             thousand times as fast, 20 after it at Ink 3 (1a). */}
                         <span role="cell" className="flex min-w-0 items-baseline gap-x-table-column-inline whitespace-nowrap">
@@ -227,11 +233,14 @@ export default function AssetCategoryList({ rows, job, jobCode = null, allJobs =
                             would read as "not known" where a `0` reads as "none", and a zero
                             takes Ink 3. The column head is the label, so a count is never
                             carried by color alone. */}
-                        {row.counts.map((entry) => (
-                            <span key={entry.status} role="cell" className={`text-right tabular-nums ${entry.count === 0 ? "text-foreground-subtle" : ""}`}>
-                                {entry.count}
-                            </span>
-                        ))}
+                        {counted.map((column) => {
+                            const count = column.onLoan ? row.onLoan : (row.counts.find((entry) => entry.status === column.status)?.count ?? 0);
+                            return (
+                                <span key={column.key} role="cell" className={`text-right tabular-nums ${count === 0 ? "text-foreground-subtle" : ""}`}>
+                                    {count}
+                                </span>
+                            );
+                        })}
                         {/* The kind's total, what the company still holds of it (#569): set
                             at 500 so it reads apart from the counts it adds up, a zero in
                             Ink 3 as theirs is (1a). */}

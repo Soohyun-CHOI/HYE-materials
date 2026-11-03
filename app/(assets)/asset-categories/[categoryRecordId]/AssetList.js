@@ -120,7 +120,8 @@ export default function AssetList({ categoryRecordId, itemName, selects, showsJo
     const params = useSearchParams();
     const selection = selects ? readAssetIds(params.getAll("id")) : [];
     const columns = showsJob ? (selects ? COLUMNS_WITH_JOB : COLUMNS_WITH_JOB_WITHOUT_BOX) : selects ? COLUMNS : COLUMNS_WITHOUT_BOX;
-    const pageIds = rows.map((row) => row.assetId);
+    // A row on loan to another job carries no box (#598), so the page's box selects the rest.
+    const pageIds = rows.filter((row) => row.loanedTo === null || row.loanedTo === undefined).map((row) => row.assetId);
     const pageState = pageSelection(selection, pageIds);
     const summary = describeSelection(selection, pageIds);
     const selecting = summary.count > 0;
@@ -202,16 +203,21 @@ export default function AssetList({ categoryRecordId, itemName, selects, showsJo
                 {/* In the order the page cut them in, newest change first or by printed id
                     (`pageOfAssets`, #540). Nothing here sorts. */}
                 {rows.map((row) => {
-                    const selected = selection.includes(row.assetId);
+                    const onLoan = row.loanedTo !== null && row.loanedTo !== undefined;
+                    const selected = !onLoan && selection.includes(row.assetId);
                     return (
                         <div key={row.id} role="row" {...tooltip.cutProps()} className={`${TABLE_ROW} ${columns} ${selected ? TABLE_ROW_SELECTED : ""}`}>
+                            {/* No box on a row on loan to another job (#598): its label is that
+                                job's to print, so its cell holds the column's room and nothing. */}
                             {selects && (
                                 <span role="cell" className="flex self-center">
-                                    <Checkbox
-                                        label={COPY.selectAsset(row.assetId)}
-                                        checked={selected}
-                                        onChange={() => replaceSelection(toggleAsset(selection, row.assetId))}
-                                    />
+                                    {!onLoan && (
+                                        <Checkbox
+                                            label={COPY.selectAsset(row.assetId)}
+                                            checked={selected}
+                                            onChange={() => replaceSelection(toggleAsset(selection, row.assetId))}
+                                        />
+                                    )}
                                 </span>
                             )}
                             <span role="cell" className="min-w-0 truncate font-id text-body-sm tracking-id">
@@ -232,10 +238,18 @@ export default function AssetList({ categoryRecordId, itemName, selects, showsJo
                                 row as 1d draws it: on the row's baseline its mark lifted the
                                 word half a pixel (#522). */}
                             <span role="cell" className="flex min-w-0 items-baseline gap-gap self-center">
-                                <StatusMark status={row.status} />
+                                <StatusMark status={row.status} onLoan={onLoan} />
+                                {/* On loan from the job the page stands on (1d, #598): the word and
+                                    the job it stands on, in the place a holder takes after `Out`. */}
                                 <span className="flex min-w-0 items-baseline whitespace-nowrap">
-                                    <span className="shrink-0">{row.status}</span>
-                                    {row.holder && (
+                                    <span className="shrink-0">{onLoan ? COPY.onLoanLabel : row.status}</span>
+                                    {onLoan && row.loanedTo && (
+                                        <>
+                                            <Dot />
+                                            <span className="min-w-0 truncate text-foreground-muted tabular-nums">{row.loanedTo}</span>
+                                        </>
+                                    )}
+                                    {!onLoan && row.holder && (
                                         <>
                                             <Dot />
                                             <span className="min-w-0 truncate text-foreground-muted">{row.holder}</span>

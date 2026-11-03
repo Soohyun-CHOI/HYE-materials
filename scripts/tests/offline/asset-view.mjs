@@ -145,7 +145,7 @@ export function run({ check, assert, log }) {
         "Dana K"
     );
     const others = Object.values(ASSET_EVENT).filter((e) => e !== ASSET_EVENT.CHECKED_OUT);
-    check("  and the other events do not, even handed one", others.join(" | "), "Created | Checked in | Sent for repair | Returned from repair | Retired | Deleted");
+    check("  and the other events do not, even handed one", others.join(" | "), "Created | Checked in | Sent for repair | Returned from repair | Retired | Deleted | Lent | Returned to owner");
     for (const event of others) check(`  ${event} carries three`, withName(event).join(","), "event,eventAt,recordedBy");
     // THE EVENT DECIDES, NOT THE VALUE. A check-out with no name renders the pair
     // empty rather than dropping it — the same treatment the four above get, and
@@ -161,7 +161,7 @@ export function run({ check, assert, log }) {
     // reporting five silent passes.
     assert(
         "the vocabulary this is asked over is the real one",
-        Object.values(ASSET_EVENT).length === 7 && Object.values(ASSET_EVENT).includes(ASSET_EVENT.CHECKED_OUT)
+        Object.values(ASSET_EVENT).length === 9 && Object.values(ASSET_EVENT).includes(ASSET_EVENT.CHECKED_OUT)
     );
 
     // ── 2c: the order the history stands in, and the values only one state has (#463) ─
@@ -208,8 +208,9 @@ export function run({ check, assert, log }) {
     check("  the statuses it is total over every one but Deleted", ASSET_STATUS_VALUES.filter((s) => !(s in STATUS_MARK)).join(","), "Deleted");
     const markFile = parseFile(STATUS_MARK_FILE);
     // THE COMPONENT DRAWS EACH SHAPE AT EACH WIDTH AND ASKS THE MAP, so a status the map
-    // names draws, and a fourth shape in the map draws nothing until the file draws it.
-    assert("  drawn from the map, at the desk's 9 and the phone's 10", /const shape = STATUS_MARK\[status\];/.test(markFile.source) && /box: 9,/.test(markFile.source) && /box: 10,/.test(markFile.source));
+    // names draws, and a fourth shape in the map draws nothing until the file draws it. An item on
+    // loan from a kind's page's job takes the loan's shape whatever its status (1d, #598).
+    assert("  drawn from the map, at the desk's 9 and the phone's 10", /const shape = onLoan \? ON_LOAN_MARK : STATUS_MARK\[status\];/.test(markFile.source) && /box: 9,/.test(markFile.source) && /box: 10,/.test(markFile.source));
     check("  its ring 1.5 on both, dashed or not, and the slash", (markFile.source.match(/className="stroke-status-ring"/g) ?? []).length, 6);
     // 0g's AWAY, AT EACH WIDTH'S OWN FIGURES (#531): the Invoices file's 9 ring dashed 2.36
     // and 1.57 at a desk, Tools 1j-e's 10 ring 2.67 and 1.78 on a phone, each turned 75° back.
@@ -224,7 +225,14 @@ export function run({ check, assert, log }) {
     check(
         "  each shape takes its own drawing",
         markFile.source.match(/const FACE = \{([^}]*)\}/)?.[1].replace(/\s+/g, " ").trim(),
-        'settled: "settled", open: "ring", away: "dashed", ended: "ring"'
+        'settled: "settled", open: "ring", away: "dashed", ended: "ring", [ON_LOAN_MARK]: "ring"'
+    );
+    // THE LOAN'S MARK IS THE RING WITH ITS RIGHT HALF FILLED (1d, #598), at each width's ring.
+    assert(
+        "  the loan's half, at the desk's ring and the phone's",
+        /half: <path d="M4\.5 0\.75 A3\.75 3\.75 0 0 1 4\.5 8\.25 Z" fill="currentColor" \/>/.test(markFile.source) &&
+            /half: <path d="M5 0\.75 A4\.25 4\.25 0 0 1 5 9\.25 Z" fill="currentColor" \/>/.test(markFile.source) &&
+            /\{shape === ON_LOAN_MARK && drawn\.half\}/.test(markFile.source)
     );
 
     // ── 3: all three are on every row ──────────────────────────────────────
@@ -366,9 +374,9 @@ export function run({ check, assert, log }) {
         "false 1 1"
     );
     check(
-        "  and the page draws that dot once in its history — before who recorded it, the job's before it gone with #597 — and no mark of its own, the line under the title taking its dots from `CategoryCaption` since #519",
+        "  and the page draws that dot once in its history — before who recorded it, the job's before it gone with #597 — and once on a phone's job line before `On loan from` (#598), and no mark of its own, the line under the title taking its dots from `CategoryCaption` since #519",
         `${imports.includes("@/app/components/Dot")} ${page.source.split("<Dot />").length - 1} ${page.source.split("·").length - 1} ${parseFile("app/(assets)/CategoryCaption.js").source.includes("<Dot />")}`,
-        "true 1 0 true"
+        "true 2 0 true"
     );
     // ANTI-VACUITY: the padded dot this replaced is read as one.
     check(

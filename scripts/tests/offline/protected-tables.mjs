@@ -61,6 +61,9 @@ import { tableEntriesFromSource } from "./table-field-names.mjs";
 import {
     LEDGERED_IMPORT,
     LEDGERED_ROW_FIELDS,
+    OWNER_JOB_FIELD,
+    OWNER_JOB_FILL,
+    OWNER_JOB_SCHEMA,
     PROTECTED_LINK_TARGETS,
     PROTECTED_TABLES,
     refusesBeyondDescriptions,
@@ -121,6 +124,15 @@ const CLASSIFIED = {
     // `Asset Categories."Asset Statuses"` (#582): a rollup of `Assets."Status"`, made on the test base,
     // and on the live base the hand step's, its description alone sent there.
     "scripts/import/add_asset_statuses_582.mjs": { describes: true },
+    // `Assets."Owner Job"` and its far side on `Jobs` (#598): made on both bases by this script, which the
+    // guard lets make that one field on the live base and nothing else beyond descriptions.
+    "scripts/import/add_owner_job_598.mjs": { describes: true },
+    // `Asset Log."Event"`'s two loan options (#598), made by a row written with typecast and deleted at
+    // once on the test base, and refused on the live base, where they are a hand step.
+    "scripts/import/add_loan_events_598.mjs": { writes: ["rowRequest"] },
+    // `Owner Job` filled from `Job` for the assets standing before #598, on both bases: fenced at the
+    // SDK's funnel, which lets this script update that one field and nothing else.
+    "scripts/import/fill_owner_job_598.mjs": { fills: true },
     "scripts/import/ran/import_site_assets_544.mjs": {
         writes: [
             "createAssetCategoryGroup",
@@ -360,7 +372,7 @@ export function fenceFindings(ast) {
     const calls = [];
     walk(ast, (node) => {
         const name = calleeName(node);
-        if (name === "fenceRequests" || name === "load" || name === "revert") calls.push({ name, start: node.start });
+        if (name === "fenceRequests" || name === "load" || name === "fill" || name === "revert") calls.push({ name, start: node.start });
     });
     const install = calls.find((call) => call.name === "fenceRequests");
     if (!install) findings.push("the script never installs the fence");
@@ -513,7 +525,8 @@ export function run({ check, assert, log }) {
     // ── the one script that adds rows there, by value (#544) ────────────────
     log("");
     log("refusesBeyondLedger, by value:");
-    const ASSET = (over = {}) => ({ "Asset ID": "HYE-AST-261019-001", Category: ["recCat"], Status: "In stock", Job: ["recJob"], ...over });
+    // Its owner job its job since #598, as `createAssets` writes a registration.
+    const ASSET = (over = {}) => ({ "Asset ID": "HYE-AST-261019-001", Category: ["recCat"], Status: "In stock", Job: ["recJob"], "Owner Job": ["recJob"], ...over });
     const LOG_ROW = (over = {}) => ({ "Asset Log ID": "HYE-AST-261019-001-001", Asset: ["recMine"], Event: "Created", Job: ["recJob"], "Recorded By": ["recSoo"], "Event At": "2026-10-19T00:00:00.000Z", ...over });
     const made = new Map([["recMine", "HYE-AST-261019-001"]]);
     const fence = (over = {}) => ({ creates: true, created: made, deletes: new Set(), ...over });
@@ -528,7 +541,9 @@ export function run({ check, assert, log }) {
     check("  ten in one request go", judge({ body: { records: Array.from({ length: 10 }, () => ({ fields: ASSET() })) } }).refused, false);
     check("  eleven do not", judge({ body: { records: Array.from({ length: 11 }, () => ({ fields: ASSET() })) } }).refused, true);
     check("  another script's asset does not", judge({ ...create(ASSET()), script: "replace_asset_catalog_528" }).refused, true);
-    check("  and says which script may", judge({ ...create(ASSET()), script: "x" }).lines[0], "REFUSED, before sending: x would write Assets, and only import_site_assets_544 adds rows there on the live base.");
+    check("  and says which scripts may", judge({ ...create(ASSET()), script: "x" }).lines[0], "REFUSED, before sending: x would write Assets, and only import_site_assets_544 and fill_owner_job_598 write rows there on the live base.");
+    check("  an asset whose owner job is not its job does not (#598)", judge(create(ASSET({ "Owner Job": ["recJob2"] }))).refused, true);
+    check("  nor one with no owner job (#598)", judge(create(ASSET({ "Owner Job": [] }))).refused, true);
     check("  an asset with a field more does not", judge(create(ASSET({ Notes: "x" }))).refused, true);
     const momentless = LOG_ROW();
     delete momentless["Event At"];
@@ -565,6 +580,70 @@ export function run({ check, assert, log }) {
     check("  a refusal says two lines", judge({ method: "patch", path: "/Assets/" }).lines.length, 2);
     assert("  the second says nothing was sent", /Nothing was sent\.$/.test(judge({ method: "patch", path: "/Assets/" }).lines[1] ?? ""));
     check("  and the old question still refuses the import on the two", ask({ script: LEDGERED_IMPORT, writes: ["Assets", "Asset Log"] }).refused, true);
+
+    // ── the one script that fills a field of rows there, by value (#598) ────
+    log("");
+    log("refusesBeyondLedger for the owner job's fill, by value (#598):");
+    check("  the module names the fill", OWNER_JOB_FILL, "fill_owner_job_598");
+    const fills = new Map([["recA1", "recJob1"], ["recA2", "recJob2"]]);
+    const filling = { fills, clears: new Set() };
+    const fill = (records, over = {}) => judge({ script: OWNER_JOB_FILL, method: "patch", path: "/Assets/", body: { records }, allowed: filling, ...over });
+    const owner = (id, value) => ({ id, fields: { "Owner Job": value } });
+    check("  a read of Assets goes", judge({ script: OWNER_JOB_FILL, method: "get", path: "/Assets", allowed: filling }).refused, false);
+    check("  and a long one", judge({ script: OWNER_JOB_FILL, method: "post", path: "/Assets/listRecords", body: {}, allowed: filling }).refused, false);
+    check("  the owner job of a row read with none, the job it was read on, goes", fill([owner("recA1", ["recJob1"])]).refused, false);
+    check("  two in one request go", fill([owner("recA1", ["recJob1"]), owner("recA2", ["recJob2"])]).refused, false);
+    check("  another job does not", fill([owner("recA1", ["recJob2"])]).refused, true);
+    check("  and names the row", fill([owner("recA1", ["recJob2"])]).lines[0], 'REFUSED, before sending: fill_owner_job_598 would write ["recJob2"] to recA1, not the job the run read it on on the live base.');
+    check("  two jobs do not", fill([owner("recA1", ["recJob1", "recJob2"])]).refused, true);
+    check("  a row the run did not read with none does not", fill([owner("recOther", ["recJob1"])]).refused, true);
+    check("  a field more does not", fill([{ id: "recA1", fields: { "Owner Job": ["recJob1"], Job: ["recJob1"] } }]).refused, true);
+    check("  another field alone does not, the job itself among them", fill([{ id: "recA1", fields: { Job: ["recJob1"] } }]).refused, true);
+    check("  a key beside the records does not, typecast among them", judge({ script: OWNER_JOB_FILL, method: "patch", path: "/Assets/", body: { records: [owner("recA1", ["recJob1"])], typecast: true }, allowed: filling }).refused, true);
+    check("  eleven in one request do not", fill(Array.from({ length: 11 }, () => owner("recA1", ["recJob1"]))).refused, true);
+    check("  none in one request does not", fill([]).refused, true);
+    check("  a clearing during a fill does not", fill([owner("recA1", [])]).refused, true);
+    check("  a create does not", judge({ script: OWNER_JOB_FILL, ...create(ASSET()), allowed: filling }).refused, true);
+    check("  a delete does not", judge({ script: OWNER_JOB_FILL, method: "delete", path: "/Assets", queryParams: { records: ["recA1"] }, allowed: filling }).refused, true);
+    check("  an update of one row by its address does not", judge({ script: OWNER_JOB_FILL, method: "patch", path: "/Assets/recA1", body: { fields: { "Owner Job": ["recJob1"] } }, allowed: filling }).refused, true);
+    check("  a replace of the rows does not", judge({ script: OWNER_JOB_FILL, method: "put", path: "/Assets/", body: { records: [owner("recA1", ["recJob1"])] }, allowed: filling }).refused, true);
+    check("  Asset Log is no table of its, not even a read", judge({ script: OWNER_JOB_FILL, method: "get", path: "/Asset%20Log", allowed: filling }).refused, true);
+    check("  a write before the plan fills the fence does not", fill([owner("recA1", ["recJob1"])], { allowed: { fills: new Map(), clears: new Set() } }).refused, true);
+    const clearing = { fills: new Map(), clears: new Set(["recA1"]) };
+    check("  a revert's clearing of a row its ledger filled goes", fill([owner("recA1", [])], { allowed: clearing }).refused, false);
+    check("  a revert's write of a job does not", fill([owner("recA1", ["recJob1"])], { allowed: clearing }).refused, true);
+    check("  a revert reaching one more does not", fill([owner("recA1", []), owner("recA2", [])], { allowed: clearing }).refused, true);
+    check("  the import may not fill, nor the fill create", `${judge({ method: "patch", path: "/Assets/", body: { records: [owner("recA1", ["recJob1"])] }, allowed: { ...fence(), fills } }).refused} ${judge({ script: OWNER_JOB_FILL, ...create(ASSET()), allowed: { ...filling, ...fence() } }).refused}`, "true true");
+    check("  the test base is not the fill's question", fill([owner("recOther", ["recJobX"])], { baseId: OTHER_BASE_ID }).refused, false);
+
+    // ── the one script that makes a field there, by value (#598) ────────────
+    log("");
+    log("refusesBeyondDescriptions for the owner job's field, by value (#598):");
+    const META = `https://api.airtable.com/v0/meta/bases/${LIVE_BASE_ID}`;
+    const CREATE_URL = `${META}/tables/${OWNER_JOB_FIELD.table}/fields`;
+    const JOBS_FIELD_URL = `${META}/tables/${OWNER_JOB_FIELD.linkedTable}/fields/fldAbc`;
+    const link = (over = {}) => ({ name: "Owner Job", type: "multipleRecordLinks", description: "x", options: { linkedTableId: OWNER_JOB_FIELD.linkedTable }, ...over });
+    const field = (input, script = OWNER_JOB_SCHEMA) => refusesBeyondDescriptions({ script, log: () => {}, ...input });
+    check("  the module names the script, the field and its far side", `${OWNER_JOB_SCHEMA} ${OWNER_JOB_FIELD.name} ${OWNER_JOB_FIELD.inverse}`, "add_owner_job_598 Owner Job Assets (as Owner)");
+    check("  and the two tables are Assets and Jobs by their ids", `${OWNER_JOB_FIELD.table} ${OWNER_JOB_FIELD.linkedTable}`, `${PROTECTED_TABLE_IDS[0]} tblGwgHuhTX6rwF1M`);
+    check("  the link's create goes, on the live base", field({ method: "POST", url: CREATE_URL, body: link() }), false);
+    check("  another script's does not", field({ method: "POST", url: CREATE_URL, body: link() }, "probe"), true);
+    check("  another field name does not", field({ method: "POST", url: CREATE_URL, body: link({ name: "Owner" }) }), true);
+    check("  another type does not", field({ method: "POST", url: CREATE_URL, body: link({ type: "singleLineText" }) }), true);
+    check("  a link to another table does not", field({ method: "POST", url: CREATE_URL, body: link({ options: { linkedTableId: "tblOther" } }) }), true);
+    check("  an option more does not", field({ method: "POST", url: CREATE_URL, body: link({ options: { linkedTableId: OWNER_JOB_FIELD.linkedTable, prefersSingleRecordLink: true } }) }), true);
+    check("  a key more does not", field({ method: "POST", url: CREATE_URL, body: { ...link(), id: "x" } }), true);
+    check("  no description does not", field({ method: "POST", url: CREATE_URL, body: Object.fromEntries(Object.entries(link()).filter(([key]) => key !== "description")) }), true);
+    check("  a create on Asset Log does not", field({ method: "POST", url: `${META}/tables/${PROTECTED_TABLE_IDS[1]}/fields`, body: link() }), true);
+    check("  the far side's rename goes", field({ method: "PATCH", url: JOBS_FIELD_URL, body: { name: "Assets (as Owner)" } }), false);
+    check("  with its description", field({ method: "PATCH", url: JOBS_FIELD_URL, body: { name: "Assets (as Owner)", description: "x" } }), false);
+    check("  another far side name does not", field({ method: "PATCH", url: JOBS_FIELD_URL, body: { name: "Assets 2" } }), true);
+    check("  options beside it do not", field({ method: "PATCH", url: JOBS_FIELD_URL, body: { name: "Assets (as Owner)", options: {} } }), true);
+    check("  a rename on Assets does not", field({ method: "PATCH", url: `${META}/tables/${OWNER_JOB_FIELD.table}/fields/fldAbc`, body: { name: "Assets (as Owner)" } }), true);
+    check("  another script's rename does not", field({ method: "PATCH", url: JOBS_FIELD_URL, body: { name: "Assets (as Owner)" } }, "probe"), true);
+    check("  a description alone still goes", field({ method: "PATCH", url: JOBS_FIELD_URL, body: { description: "x" } }), false);
+    check("  a row write still does not", field({ method: "PATCH", url: `https://api.airtable.com/v0/${LIVE_BASE_ID}/${OWNER_JOB_FIELD.table}`, body: { records: [] } }), true);
+    check("  nor a DELETE of the field", field({ method: "DELETE", url: `${CREATE_URL}/fldAbc` }), true);
 
     log("");
     log("the rows the import may create are the registration's writers' own:");
@@ -620,6 +699,16 @@ export function run({ check, assert, log }) {
             check(`  ${path} only lists them: it imports the client alone and calls nothing`, listerFindings(ast, path).join("; "), "");
             continue;
         }
+        if (entry.fills) {
+            // Fenced at the funnel alone (#598): every request it sends is judged as it leaves, so it
+            // asks no question of its own before a write — `refusesProtectedWrite` would stop it on
+            // the live base, where Soo allowed it — and names no writer of the app's.
+            check(`  ${path} is the one script the fill's exception names`, path.replace(/^.*\//, "").replace(/\.mjs$/, ""), OWNER_JOB_FILL);
+            assert(`    and imports ${LEDGER_GUARD} from ${GUARD_MODULE}`, importsGuard(ast, path, LEDGER_GUARD));
+            check("    and fences the funnel, judging each request before it is sent", fenceFindings(ast).join("; "), "");
+            check("    and imports no writer of the two tables", PROTECTED_MODULES.filter((module) => new RegExp(module.replace(/\.js$/, "").replace(/\//g, "\\/")).test(source)).join(", "), "");
+            continue;
+        }
         assert(`  ${path} imports ${GUARD} from ${GUARD_MODULE}`, importsGuard(ast, path));
         check(`    and asks before ${entry.writes.join(", ")}`, unguardedWrites(ast, entry.writes).join("; "), "");
         check("    and every question names its base", guardCallsWithoutBase(ast).join("; "), "");
@@ -635,12 +724,12 @@ export function run({ check, assert, log }) {
         if (path.endsWith(".py")) return false;
         let names = false;
         walk(parseSource(readFileSync(join(REPO_ROOT, path), "utf8"), path).ast, (node) => {
-            if (node.type === "Identifier" && (node.name === LEDGER_GUARD || node.name === "LEDGERED_IMPORT")) names = true;
+            if (node.type === "Identifier" && (node.name === LEDGER_GUARD || node.name === "LEDGERED_IMPORT" || node.name === "OWNER_JOB_FILL")) names = true;
             if (node.type === "Literal" && node.value === LEDGERED_IMPORT && !path.endsWith(`${LEDGERED_IMPORT}.mjs`) && !path.endsWith(`${LEDGERED_IMPORT}_plan.mjs`)) names = true;
         });
         return names;
     });
-    check("  the scripts naming refusesBeyondLedger or the import", namers.join(" | "), Object.keys(CLASSIFIED).filter((path) => CLASSIFIED[path].ledgered).join(" | "));
+    check("  the scripts naming refusesBeyondLedger, the import or the fill", namers.join(" | "), Object.keys(CLASSIFIED).filter((path) => CLASSIFIED[path].ledgered || CLASSIFIED[path].fills).sort().join(" | "));
     // The wipe and the reset that runs it (#575) each ask with the ORDER a wipe empties.
     for (const script of ["wipe_base", "reset_demo"]) {
         const ast = parseSource(readFileSync(join(REPO_ROOT, `scripts/demo/${script}.mjs`), "utf8"), script).ast;

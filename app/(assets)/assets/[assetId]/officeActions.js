@@ -27,7 +27,8 @@ import { withOpsLabel } from "@/lib/airtableOps";
 
 /**
  * Change the job of an asset whose history holds its `Created` entry alone (#583) — the entry's
- * `Job`, then the asset's, and the asset's number, label and status as they were.
+ * `Job`, then the asset's `Job` and `Owner Job` together (#598), and the asset's number, label and status as
+ * they were.
  *
  * THE OFFICE'S, AND THE ASSET'S NOTHING-YET ASKED AGAIN ON A FRESH READ. The wrapper refuses a
  * reader who is not the office; `planOfficeActs` asks the rest of what this asset's history holds
@@ -76,6 +77,7 @@ async function changeAssetJobHandler(prevState, formData) {
         const answer = readJobChange(plan, {
             jobId: String(formData.get("jobId") ?? ""),
             assetJobRecordId: asset.job?.[0] ?? null,
+            assetOwnerJobRecordId: asset.ownerJob?.[0] ?? null,
         });
         if (answer.refusal) return refuse(answer.refusal);
 

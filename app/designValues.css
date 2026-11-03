@@ -486,7 +486,8 @@
     --size-mobile-log-dot: 0.375rem; /* Log, 6: the dot */
     --spacing-mobile-log-gap: 0.75rem; /* Log, 12: beside the dot */
     --spacing-mobile-log-stack: 1.25rem; /* Log, 20: between entries */
-    --size-mobile-log-icon: 0.875rem; /* Log, 14: before the person a check-out went to — and the job, until the title block named it (#597) */
+    --size-mobile-log-icon: 0.875rem; /* Log, 14: before the person a check-out went to, and before and between a loan's two jobs (#598) — and the job, until the title block named it (#597) */
+    --spacing-mobile-log-route-gap: 0.375rem; /* Log, 6: either side of the arrow between a loan's two jobs (#598) */
     --width-mobile-log-track: 0.75rem; /* 1j, 12: the column the dots and rule stand in — from the drawings, not the spec */
     --spacing-mobile-log-dot-inset-top: 0.5625rem; /* 1j, 9: the dot from its entry's top — from the drawings, not the spec */
     --spacing-mobile-log-rule-inset-top: 1.375rem; /* 1j, 22: where the rule under a dot starts — from the drawings, not the spec */
@@ -510,6 +511,7 @@
     --color-mobile-drawer-overlay: color-mix(in oklab, var(--color-elevation) 24%, transparent); /* Sheet: what lies behind it */
     --size-mobile-drawer-row-icon: 1.0625rem; /* Sheet, 17: the check at the end of the row already chosen — from the drawings, not the spec */
     --spacing-mobile-drawer-heading-stack: 0.25rem; /* Sheet, 4: from a list's heading to its first row — from the drawings, not the spec */
+    --spacing-mobile-drawer-subtitle-stack: 0.25rem; /* Sheet, 4: the line under its title, 1j-f's lending's whose it stays (#598) — from the drawings, not the spec */
     --spacing-mobile-drawer-header-action-inset-x: 0.75rem; /* Sheet, 12: either side of the Done at its title's end, pulled back out — from the drawings, not the spec */
     --spacing-mobile-drawer-body-stack: 1.25rem; /* Sheet that confirms, 20: the actions under the sentence — every sheet's actions under what it holds */
     --spacing-mobile-drawer-action-stack: 0.75rem; /* Sheet that confirms, 12: between the stacked actions — every sheet's */

@@ -9,6 +9,7 @@ import {
     holderRowIds,
     idsInScope,
     lastChangeOf,
+    loanedTo,
     pageOfAssets,
     assetListScope,
     listRecording,
@@ -335,7 +336,7 @@ async function renderCategoryPage({ params, searchParams }) {
     // that is out, off its latest log row (1d, #520) — those rows read here in one batch, one per
     // item out, and none at all for a page with nothing out — where it said the job the asset was
     // last scanned on from #463.
-    const latest = new Map((await getAssetLogEntriesByRecordIds(holderRowIds(assets))).map((entry) => [entry.id, entry]));
+    const latest = new Map((await getAssetLogEntriesByRecordIds(holderRowIds(assets, scope.lent))).map((entry) => [entry.id, entry]));
     // On all jobs each row says the job its asset is on (1d, #548), by the code
     // the job list already read carries, so it costs nothing; on one job the breadcrumb says it.
     const codeOf = new Map(scope.jobs.map((each) => [each.id, each.jobCode]));
@@ -352,6 +353,9 @@ async function renderCategoryPage({ params, searchParams }) {
                 // Its note (#533), a field of the asset's own row, so it came with this read.
                 note: asset.note,
                 ...(scope.allJobs ? { jobCode: codeOf.get(asset.job?.[0]) ?? "" } : {}),
+                // On loan from the job the page stands on (#598): the job it stands on, said in its
+                // status's place, and no box for it.
+                loanedTo: loanedTo(scope, asset),
                 ...lastChangeOf(asset, latest),
             }))}
             page={page}

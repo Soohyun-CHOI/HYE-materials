@@ -665,6 +665,8 @@ const VALUES = [
     ["--spacing-mobile-log-gap", "0.75rem", null],
     ["--spacing-mobile-log-stack", "1.25rem", null],
     ["--size-mobile-log-icon", "0.875rem", null],
+    // Either side of the arrow between a loan's two jobs (#598).
+    ["--spacing-mobile-log-route-gap", "0.375rem", null],
     // 1j's history, 1k's notice and its screen for a code no asset carries (#463), from the
     // drawings, not the spec.
     ["--width-mobile-log-track", "0.75rem", null],
@@ -690,6 +692,8 @@ const VALUES = [
     // From the drawings, not the spec (#458).
     ["--size-mobile-drawer-row-icon", "1.0625rem", null],
     ["--spacing-mobile-drawer-heading-stack", "0.25rem", null],
+    // The lending's sheet's line under its title (#598).
+    ["--spacing-mobile-drawer-subtitle-stack", "0.25rem", null],
     ["--spacing-mobile-drawer-header-action-inset-x", "0.75rem", null],
     // The sheet that confirms gives every sheet's actions their arrangement (#458).
     ["--spacing-mobile-drawer-body-stack", "1.25rem", null],

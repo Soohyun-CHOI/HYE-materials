@@ -258,9 +258,13 @@ function deletion582({ check, assert, log }) {
     const page = parseFile(PAGE).source;
     assert(
         "the page draws More actions at a desk for the office's deletion as for its change of job",
-        // Three readings since #597, which took away the branch drawing it beside a site manager's
-        // sentence about having no job — a sentence the page no longer says.
-        /const officeActs = office\.mayChangeJob \|\| office\.mayDelete;/.test(page) && (page.match(/\bofficeActs\b/g) ?? []).length === 3 && !/office\.mayChangeJob &&/.test(page)
+        // Two readings since #598, which gathers what the menu holds at a desk into `menuActs` —
+        // three from #597, which took away the branch drawing it beside a site manager's sentence
+        // about having no job — a sentence the page no longer says.
+        /const officeActs = office\.mayChangeJob \|\| office\.mayDelete;/.test(page) &&
+            /const menuActs = transition\.maySendForRepair \|\| transition\.mayLend \|\| transition\.mayReturn \|\| transition\.mayRetire \|\| officeActs;/.test(page) &&
+            (page.match(/\bofficeActs\b/g) ?? []).length === 2 &&
+            !/office\.mayChangeJob &&/.test(page)
     );
     log("");
 }
@@ -320,7 +324,8 @@ export function run({ check, assert, log }) {
     log("");
     log("what a Save writes, in the order it is asked (readJobChange, startingJob):");
     const planOn = (entryJob) => planOfficeActs({ user: user({ admin: true }), log: [created(entryJob)], jobs: JOBS });
-    const save = (plan, jobId, assetJob) => JSON.stringify(readJobChange(plan, { jobId, assetJobRecordId: assetJob }));
+    // The asset's owner job is its job unless a case says otherwise, as #598's fill leaves every asset.
+    const save = (plan, jobId, assetJob, ownerJob = assetJob) => JSON.stringify(readJobChange(plan, { jobId, assetJobRecordId: assetJob, assetOwnerJobRecordId: ownerJob }));
     const writes = (jobId, entry, asset) => `{"jobRecordId":"${jobId}","writesEntry":${entry},"writesAsset":${asset},"unchanged":${!entry && !asset},"refusal":null}`;
     check("another job moves both halves", save(planOn(JOB_A), JOB_B.id, JOB_A.id), writes(JOB_B.id, true, true));
     check("the job both halves hold writes nothing", save(planOn(JOB_A), JOB_A.id, JOB_A.id), writes(JOB_A.id, false, false));
@@ -328,6 +333,11 @@ export function run({ check, assert, log }) {
     check("  and is no change while the asset holds the old job", JSON.parse(save(planOn(JOB_B), JOB_B.id, JOB_A.id)).unchanged, false);
     check("  and moved back to the asset's own, writes the entry alone", save(planOn(JOB_B), JOB_A.id, JOB_A.id), writes(JOB_A.id, true, false));
     check("an asset holding no job takes one", save(planOn(JOB_A), JOB_A.id, undefined), writes(JOB_A.id, false, true));
+    // THE ASSET'S HALF IS ITS JOB AND ITS OWNER JOB TOGETHER (#598): a change puts a registration
+    // right, so the job it belongs to moves with the one it stands on.
+    check("  an asset with no owner job takes one by a Save of the job it is on (#598)", save(planOn(JOB_A), JOB_A.id, JOB_A.id, null), writes(JOB_A.id, false, true));
+    check("  and one whose owner job is another writes its half (#598)", save(planOn(JOB_A), JOB_A.id, JOB_A.id, JOB_B.id), writes(JOB_A.id, false, true));
+    check("  and nothing has changed only when the entry, the job and the owner job all hold it (#598)", JSON.parse(save(planOn(JOB_B), JOB_B.id, JOB_B.id, JOB_B.id)).unchanged, true);
     const refused = (refusal) => `{"jobRecordId":null,"writesEntry":false,"writesAsset":false,"unchanged":false,"refusal":${JSON.stringify(refusal)}}`;
     check("a job the list does not offer is refused", save(planOn(JOB_A), "recNotAJob", JOB_A.id), refused(ASSET_OFFICE_COPY.jobNoneChosen));
     check("  and so is none", save(planOn(JOB_A), "", JOB_A.id), refused(ASSET_OFFICE_COPY.jobNoneChosen));
@@ -387,9 +397,9 @@ export function run({ check, assert, log }) {
     const jobWriter = resolveFunction(assetsFile.ast, "updateAssetJob");
     const jobUpdate = firstCall(jobWriter ?? {}, "update");
     check(
-        "the asset's writer refuses no asset and no job, and writes its Job alone",
+        "the asset's writer refuses no asset and no job, and writes its Job and its Owner Job together, nothing else (#598)",
         `${/if \(!assetRecordId\) throw/.test(functionSource(assetsFile, "updateAssetJob"))} ${/if \(!jobRecordId\) throw/.test(functionSource(assetsFile, "updateAssetJob"))} ${jobUpdate ? assetsFile.source.slice(jobUpdate.start, jobUpdate.end) : "none"}`,
-        "true true base(TABLES.ASSETS).update([{ id: assetRecordId, fields: { Job: [jobRecordId] } }])"
+        'true true base(TABLES.ASSETS).update([{ id: assetRecordId, fields: { Job: [jobRecordId], "Owner Job": [jobRecordId] } }])'
     );
 
     // ── the action ──────────────────────────────────────────────────────────
@@ -416,8 +426,8 @@ export function run({ check, assert, log }) {
     );
     assert("  the plan asked of what it read", /const plan = planOfficeActs\(\{ user, log, jobs \}\);/.test(handlerSource));
     assert(
-        "  the rule asked of the job sent and the asset's own",
-        /readJobChange\(plan, \{\s*jobId: String\(formData\.get\("jobId"\) \?\? ""\),\s*assetJobRecordId: asset\.job\?\.\[0\] \?\? null,\s*\}\)/.test(handlerSource)
+        "  the rule asked of the job sent and the asset's own, and its owner job (#598)",
+        /readJobChange\(plan, \{\s*jobId: String\(formData\.get\("jobId"\) \?\? ""\),\s*assetJobRecordId: asset\.job\?\.\[0\] \?\? null,\s*assetOwnerJobRecordId: asset\.ownerJob\?\.\[0\] \?\? null,\s*\}\)/.test(handlerSource)
     );
     const refusesAt = at("if (answer.refusal) return refuse(answer.refusal);");
     const entryAt = at("await updateCreatedEntryJob({ asset, entry: log[0], jobRecordId: answer.jobRecordId });");
@@ -478,12 +488,13 @@ export function run({ check, assert, log }) {
             menu.indexOf("const ends = [") < menu.indexOf('key: "retire"')
     );
     assert(
-        "  the rule over the first that ends it, only where the office's line stands above it",
+        "  the rule over the first that ends it, only where the office's line stands above it — or at a desk a loan's (#598)",
         // The first of the acts that end the item takes it since #582: the retirement, or the
         // deletion where nothing is retired.
-        /key: "retire",\s*label: ASSET_TRANSITION_COPY\.retireOpener,\s*tone: "danger",\s*separated: mayChangeJob,/.test(menu) &&
-            /key: "delete",\s*label: ASSET_OFFICE_COPY\.deleteOpener,\s*tone: "danger",\s*(\/\/[^\n]*\n\s*)?separated: mayChangeJob && !mayRetire,/.test(menu) &&
-            menu.indexOf("const ends = [") < menu.indexOf("separated: mayChangeJob") &&
+        /const ruled = mayChangeJob \|\| \(!phone && \(mayLend \|\| mayReturn\)\);/.test(menu) &&
+            /key: "retire",\s*label: ASSET_TRANSITION_COPY\.retireOpener,\s*tone: "danger",\s*separated: ruled,/.test(menu) &&
+            /key: "delete",\s*label: ASSET_OFFICE_COPY\.deleteOpener,\s*tone: "danger",\s*(\/\/[^\n]*\n\s*)?separated: ruled && !mayRetire,/.test(menu) &&
+            menu.indexOf("const ends = [") < menu.indexOf("separated: ruled") &&
             (menu.match(/separated: /g) ?? []).length === 3
     );
     assert("  the menu's items the acts, the ends and the account, in that order", /items=\{\[\s*\.\.\.acts,\s*\.\.\.ends,\s*\.\.\.\(phone && account/.test(menu));
@@ -504,7 +515,14 @@ export function run({ check, assert, log }) {
     ]) {
         const body = functionSource(dialogs, name);
         assert(`  ${width} opens on the entry's job`, /useState\(\(\) => startingJob\(plan, assetJobRecordId\)\)/.test(body));
-        assert(`  ${width} asks readJobChange of the job chosen and the asset's own`, /const answer = readJobChange\(plan, \{ jobId, assetJobRecordId \}\);/.test(body));
+        assert(`  ${width} asks readJobChange of the job chosen and the asset's own, and its owner job (#598)`, /const answer = readJobChange\(plan, \{ jobId, assetJobRecordId, assetOwnerJobRecordId \}\);/.test(body));
+        assert(
+            `  ${width} handed that owner job, which the page reads off the asset (#598)`,
+            new RegExp(`function ${name}\\(\\{[^}]*\\bassetOwnerJobRecordId\\b[^}]*\\}\\)`).test(body) &&
+                dialogs.source.split("assetOwnerJobRecordId={jobChange.assetOwnerJobRecordId}").length === 3 &&
+                /\r?\n\s+assetOwnerJobRecordId,\r?\n/.test(parseFile("app/(assets)/assets/[assetId]/AssetTransition.js").source) &&
+                /assetOwnerJobRecordId=\{asset\.ownerJob\?\.\[0\] \?\? null\}/.test(parseFile("app/(assets)/assets/[assetId]/page.js").source)
+        );
         assert(
             `  ${width} sends nothing on a refusal, and closes on no change`,
             /if \(answer\.refusal\) \{\s*setPressed\(true\);[\s\S]*?return;\s*\}\s*if \(answer\.unchanged\) \{\s*onClose\(\);\s*return;\s*\}/.test(body) &&

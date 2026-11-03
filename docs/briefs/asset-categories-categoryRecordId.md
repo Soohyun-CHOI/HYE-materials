@@ -348,6 +348,13 @@ is gated by role or job, so unlike the request, order and invoice screens
 this refusal answers one state — no such category — rather than standing in
 for two.
 
+**On the owning job's page, its items on loan elsewhere (1d, #598)**: each a
+row like any other but for its status, `On loan` and the job it stands on
+behind 0e's dot, with the ring half filled, and **no label box** — its label
+is the job it stands on's to print. The job that borrowed it lists it as its
+own, in its own status. On all jobs nothing is on loan from the page's job,
+so every row says its own status.
+
 ## What must agree elsewhere
 
 **A page holds fifty assets (#538), and the design settled how the position

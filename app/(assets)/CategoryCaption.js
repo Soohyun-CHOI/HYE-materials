@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import Dot from "@/app/components/Dot";
+import { ASSET_COPY } from "@/lib/assetView";
 
 /**
  * What a category is, in the caption under its name — its type and its category,
@@ -20,14 +21,16 @@ import Dot from "@/app/components/Dot";
  * (`Dot`), 9 either side. `lead` is what stands first — the asset's id at a desk, which the
  * page hands over in its own face — and `job` after it, the item's job by its code, a value
  * as the type and the category are (1f, #597). A phone names the job on a line of its own
- * under this one, so the page hands it to the desk's caption alone.
+ * under this one, so the page hands it to the desk's caption alone. **`ownerJob` follows it for an
+ * item on loan (1f, #598)**: `On loan from` in the line's Ink 3 and the owner job's code as a value,
+ * kept on one line; the phone's own line says the same (`LoanedFrom`).
  *
  * A PART THE CATEGORY LACKS IS LEFT OUT, AND WITH NOTHING THERE IS NO CAPTION. Every category a
  * registration may pick has its type and its category, so a part left out is a row filed under
  * no group since its items were added; no word stands in for it, and the catalog's check
  * (`scripts/import/classify_asset_categories_514.mjs`) is where such a row is reported.
  */
-export default function CategoryCaption({ category, lead = null, job = null, className = "" }) {
+export default function CategoryCaption({ category, lead = null, job = null, ownerJob = null, className = "" }) {
     // A value in Ink against the line's Ink 3, and in Ink 2 below the phone's edge (1j). It was
     // `Controls.js`'s `NoteEmphasis` from #507, read by this caption alone, until the phone's
     // ink made it the caption's own: a control module draws no phone size outside a sheet.
@@ -35,6 +38,7 @@ export default function CategoryCaption({ category, lead = null, job = null, cla
     const parts = [
         lead,
         job ? value(job) : null,
+        ownerJob ? <LoanedFrom ownerJob={value(ownerJob)} /> : null,
         category?.level1 ? value(category.level1) : null,
         category?.level2 ? value(category.level2) : null,
     ].filter(Boolean);
@@ -48,5 +52,18 @@ export default function CategoryCaption({ category, lead = null, job = null, cla
                 </Fragment>
             ))}
         </p>
+    );
+}
+
+/**
+ * `On loan from` and the job that owns the item, on one line (1f, 1j-g; #598): the words in the
+ * line's Ink 3, the code as the caller sets it — a value in the desk's caption, the pin line's own
+ * ink on a phone.
+ */
+export function LoanedFrom({ ownerJob }) {
+    return (
+        <span className="whitespace-nowrap">
+            <span className="text-foreground-subtle">{ASSET_COPY.onLoanFrom}</span> {ownerJob}
+        </span>
     );
 }

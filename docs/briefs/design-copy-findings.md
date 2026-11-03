@@ -500,3 +500,45 @@ The keys are `ASSET_TRANSITION_COPY.notYours` and `.movedTo` in
 `lib/assetLabelPage.js`, held by value in `offline/asset-own-job.mjs` and
 `offline/asset-transition.mjs`. The base calls the job an item is on
 `Assets."Job"`, and a code a label prints the end of `Asset ID`.
+
+## What a loan says that the files of 2026-11-02 do not (#598)
+
+The files draw a lending's menu line, its dialog and sheet, the return's
+question at both widths, `On loan from` under a borrowed item's title, `On
+loan` on 1a and 1d, and the history's route under a loan's two entries. They
+draw no wait on either commitment, no loan left half done, and no export.
+What a screen says in their place follows the words the design already draws,
+and the next sending decides each.
+
+| String | Where | The files |
+|---|---|---|
+| `Returned to owner` | the history entry a return leaves, at both widths | write `Returned` |
+| `Lending…` / `Returning…` | to assistive tech while `Lend` or `Return item` is on its way | draw no wait |
+| `The Lent entry is recorded, but the item is still on 25-USA-13, and the lists will say so. Lend it to 26-USA-12 again to finish.` | over the lending's actions, or under the status once closed | draw no half-done loan |
+| `The Returned to owner entry is recorded, but the item is still on 26-USA-12, and the lists will say so. Return it again to finish.` | over the return's actions, or under the status | the same |
+| `Jisoo Park already lent this to another job on …` | under the status, after a press somebody's lending got in front of | draw no refused loan |
+| `… already returned this to its owner on …` | the same, after a return | the same |
+| `On loan` | the export's first sheet, between `In repair` and `Retired`, on one job's file | draw no export |
+| `Owner job` | the export's second sheet, after `Job` | the same |
+| a kind's page row on loan with no label box | 1d on the owner job | draw a box on every row |
+
+**The event is the base's, and the history prints it as stored**, so a bare
+`Returned` would have stood beside `Returned from repair` in the base and on
+the page naming either; Soo approved the longer word. **The half-done
+sentences are the office's job change's shape** (#583): what the history
+already says, what the lists still say, and the press that finishes it. **The
+refusals are 1k's** with a loan's acts, and end on `Nothing was saved.`, the
+sentence a press with no noun ends on. **The export's columns are the list's
+words** — the first sheet's heads are 1a's, `On loan` among them on one job —
+and the second sheet's is the field the base calls `Owner Job`, in the sheet's
+case. **A row on loan carries no box** because its label is the job it stands
+on's to print (`lib/assetJob.js:recordsOn`): a box that selected it would lead to
+`1 item not on your jobs`.
+
+The keys are `ASSET_TRANSITION_COPY.lendHalfDone`, `.returnHalfDone`,
+`.working` and `.movedAct` in `lib/assetTransition.js`, `ASSET_EVENT` in
+`lib/assetStatus.js`, and `ASSET_EXPORT_COPY.ownerJob` and
+`ASSET_LIST_COPY.onLoanLabel` in `lib/assetListExport.js` and
+`lib/assetListView.js`, held by value in `offline/asset-loan.mjs`. The base
+calls the job an item belongs to `Assets."Owner Job"`, the job it stands on
+`Assets."Job"`, and the two events `Lent` and `Returned to owner`.

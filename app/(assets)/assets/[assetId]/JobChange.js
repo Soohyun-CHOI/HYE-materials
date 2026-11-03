@@ -42,6 +42,7 @@ export function JobChangeDialog() {
             assetId={assetId}
             plan={office}
             assetJobRecordId={jobChange.assetJobRecordId}
+            assetOwnerJobRecordId={jobChange.assetOwnerJobRecordId}
             pending={jobChange.pending}
             refusal={jobChange.refusal}
             onSend={jobChange.send}
@@ -60,6 +61,7 @@ export function JobChangeSheet() {
             assetId={assetId}
             plan={office}
             assetJobRecordId={jobChange.assetJobRecordId}
+            assetOwnerJobRecordId={jobChange.assetOwnerJobRecordId}
             pending={jobChange.pending}
             refusal={jobChange.refusal}
             onSend={jobChange.send}
@@ -68,11 +70,11 @@ export function JobChangeSheet() {
 }
 
 /** The desk's dialog (1f): `Job` and its choice, `Cancel` and `Save`. */
-function JobChangeForm({ open, onClose, assetId, plan, assetJobRecordId, pending, refusal, onSend }) {
+function JobChangeForm({ open, onClose, assetId, plan, assetJobRecordId, assetOwnerJobRecordId, pending, refusal, onSend }) {
     const [jobId, setJobId] = useState(() => startingJob(plan, assetJobRecordId));
     const [pressed, setPressed] = useState(false);
     const focusRefused = useRefusalFocus();
-    const answer = readJobChange(plan, { jobId, assetJobRecordId });
+    const answer = readJobChange(plan, { jobId, assetJobRecordId, assetOwnerJobRecordId });
     const options = plan.jobs.map((job) => ({ value: job.id, label: job.jobCode }));
 
     const submit = (event) => {
@@ -114,10 +116,10 @@ function JobChangeForm({ open, onClose, assetId, plan, assetJobRecordId, pending
  * the head's end. A press behind it, on its handle or a drag down puts it away and saves nothing,
  * as the note's sheet does, and none of them while it saves (the frame's `busy`).
  */
-function JobChangeRows({ open, onClose, assetId, plan, assetJobRecordId, pending, refusal, onSend }) {
+function JobChangeRows({ open, onClose, assetId, plan, assetJobRecordId, assetOwnerJobRecordId, pending, refusal, onSend }) {
     const [jobId, setJobId] = useState(() => startingJob(plan, assetJobRecordId));
     const [pressed, setPressed] = useState(false);
-    const answer = readJobChange(plan, { jobId, assetJobRecordId });
+    const answer = readJobChange(plan, { jobId, assetJobRecordId, assetOwnerJobRecordId });
     const said = refusal ?? (pressed ? answer.refusal : null);
 
     const save = () => {

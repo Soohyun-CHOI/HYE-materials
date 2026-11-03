@@ -285,9 +285,9 @@ export function run({ check, log }) {
             "canRegisterAssets(user, jobs) | assignedJobsFor(user, jobs).map(({ id, jobCode, jobName }) => ({ id, jobCode, jobName }))"
     );
     check(
-        "an asset's page plans from the item's own job and offers the names that job gave (#597)",
-        `${bound(item, "transition")} | ${bound(item, "recentRows")}`,
-        "planTransition({ user, jobs, status: asset.status, assetJobId: asset.job?.[0] }) | transition.event === ASSET_EVENT.CHECKED_OUT ? await getRecentCheckOuts({ jobCodes: [transition.jobCode] }) : []"
+        "an asset's page plans from the item's own job, its owner job and its latest entry (#598), and offers the names that job gave (#597)",
+        `${bound(item, "transition").replace(/\s+/g, " ")} | ${bound(item, "recentRows")}`,
+        "planTransition({ user, jobs, status: asset.status, assetJobId: asset.job?.[0], ownerJobId: asset.ownerJob?.[0], latest: history[0] ?? null, }) | transition.event === ASSET_EVENT.CHECKED_OUT ? await getRecentCheckOuts({ jobCodes: [transition.jobCode] }) : []"
     );
     // ANTI-VACUITY: a page drawing its opener under the scope's job count, handing the dialog the
     // scope's jobs and offering names off them is seen doing each.

@@ -1,9 +1,10 @@
-import { STATUS_MARK } from "@/lib/assetView";
+import { ON_LOAN_MARK, STATUS_MARK } from "@/lib/assetView";
 
 /*
  * The mark an asset's status is drawn with (0g, #463): a solid dot for `In stock`, a ring
  * for `Out`, the ring dashed for `In repair` (#531), the ring struck through for `Retired`
- * — `lib/assetView.js:STATUS_MARK` says which status takes which. 9 at a desk and 10 below
+ * — `lib/assetView.js:STATUS_MARK` says which status takes which — and the ring with its right
+ * half filled for an item on loan from the job a kind's page stands on (1d, #598). 9 at a desk and 10 below
  * the phone's edge, the ring 1.5, all in Ink 3 whatever the status, and it hides from
  * assistive tech, since the word beside it says the status.
  *
@@ -38,6 +39,7 @@ const DRAWN = {
             />
         ),
         slash: <path d="M1.85 7.15 7.15 1.85" stroke="currentColor" className="stroke-status-ring" />,
+        half: <path d="M4.5 0.75 A3.75 3.75 0 0 1 4.5 8.25 Z" fill="currentColor" />,
     },
     phone: {
         box: 10,
@@ -57,11 +59,12 @@ const DRAWN = {
             />
         ),
         slash: <path d="M2 8 8 2" stroke="currentColor" className="stroke-status-ring" />,
+        half: <path d="M5 0.75 A4.25 4.25 0 0 1 5 9.25 Z" fill="currentColor" />,
     },
 };
 
-/** Which drawing each shape takes: the dot, the ring, the dashed ring, or the ring and its slash. */
-const FACE = { settled: "settled", open: "ring", away: "dashed", ended: "ring" };
+/** Which drawing each shape takes: the dot, the ring, the dashed ring, the ring and its slash, or the ring and its half. */
+const FACE = { settled: "settled", open: "ring", away: "dashed", ended: "ring", [ON_LOAN_MARK]: "ring" };
 
 function Drawn({ width, shape }) {
     const drawn = DRAWN[width];
@@ -69,12 +72,14 @@ function Drawn({ width, shape }) {
         <svg viewBox={`0 0 ${drawn.box} ${drawn.box}`} aria-hidden="true" className={`${drawn.className} shrink-0 self-center text-foreground-subtle`}>
             {drawn[FACE[shape]]}
             {shape === "ended" && drawn.slash}
+            {shape === ON_LOAN_MARK && drawn.half}
         </svg>
     );
 }
 
-export default function StatusMark({ status }) {
-    const shape = STATUS_MARK[status];
+/** `onLoan` draws the loan's mark whatever `status` is (1d, #598). */
+export default function StatusMark({ status, onLoan = false }) {
+    const shape = onLoan ? ON_LOAN_MARK : STATUS_MARK[status];
     if (!shape) return null;
     return (
         <>

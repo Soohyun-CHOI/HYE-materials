@@ -52,9 +52,14 @@ const NOT_MARKS = {
  * Lucide as it stood from 0.416.0 to 0.532.0. `search-x` is 1k-c's mark, which Design settled.
  * `book-open` is 1a's `Catalog` (#566), which the files of 2026-10-23 draw in an earlier
  * release's shape, as they draw the note's `message-square` (#533); this is 1.52.0's. `arrow-up-down`
- * leads the sort on 1a, 1d and 1l (#540), drawn as 1.52.0 holds it.
+ * leads the sort on 1a, 1d and 1l (#540), drawn as 1.52.0 holds it. `arrow-right` stands between a
+ * loan's two jobs under its history entry on a phone (1j, #598), as the files of 2026-11-02 draw it.
  */
 const DESIGN_SHAPES = {
+    "arrow-right": [
+        ["path", { d: "M5 12h14" }],
+        ["path", { d: "m12 5 7 7-7 7" }],
+    ],
     "arrow-up-down": [
         ["path", { d: "m21 16-4 4-4-4" }],
         ["path", { d: "M17 20V4" }],
@@ -169,7 +174,7 @@ const MARKS_BY_FILE = {
     // The foot bar's job pill went with #597; a check-out's name keeps its mark.
     "app/(assets)/assets/[assetId]/TransitionBar.js": ["user"],
     // The pin before the item's job in the title block since #597, where it led every history entry.
-    "app/(assets)/assets/[assetId]/page.js": ["map-pin", "search-x", "user"],
+    "app/(assets)/assets/[assetId]/page.js": ["arrow-right", "map-pin", "search-x", "user"],
     "app/components/Breadcrumb.js": ["chevron-left"],
     "app/components/Controls.js": ["arrow-up-down", "check", "chevron-down", "circle-alert", "info", "map-pin", "minus", "plus", "search", "x"],
     "app/components/DialogFrame.js": ["check", "search", "x"],
