@@ -750,10 +750,10 @@ export function run({ check, log, assert }) {
     // base on 2026-10-15, and held here as the base holds them. **#582's two came back
     // red**, by hand on the test base and read off it on 2026-10-30: the deletion is the
     // one value the vocabulary now holds that undoes a registration, so red has a meaning
-    // again, and it is the deletion's alone. **#598's two came back blue**, `Created`'s: made on
-    // the test base by one row written with `typecast`, which gives every option it makes the
-    // default, read off it on 2026-11-02, and kept in that color by Soo's ruling — the live
-    // base's are made by hand to match — so the walk is broken there on purpose and held as is.
+    // again, and it is the deletion's alone. **#598's two are pink and purple**, the walk's next
+    // two after red: made by hand on the live base, where the UI gave them those, and read off
+    // it on 2026-11-03. On the test base one row written with `typecast` had made both
+    // `Created`'s blue, and Soo set them to the live base's colors by hand.
     const paletteRule = [
         ["In stock", "blueLight2"], ["Out", "cyanLight2"], ["In repair", "yellowLight2"], ["Retired", "grayLight2"], ["Deleted", "redLight2"],
     ];
@@ -765,7 +765,7 @@ export function run({ check, log, assert }) {
         ["Created", "blueLight2"], ["Checked out", "cyanLight2"],
         ["Checked in", "tealLight2"], ["Sent for repair", "yellowLight2"],
         ["Returned from repair", "orangeLight2"], ["Retired", "grayLight2"], ["Deleted", "redLight2"],
-        ["Lent", "blueLight2"], ["Returned to owner", "blueLight2"],
+        ["Lent", "pinkLight2"], ["Returned to owner", "purpleLight2"],
     ];
     check("event colors do the same", JSON.stringify(pyEvent), JSON.stringify(eventRule));
     check("  gray marks the terminal value and nothing else",

@@ -182,7 +182,9 @@ DATETIME_OPTIONS = {
 #
 # #598 ADDED A LOAN'S TWO EVENTS, `Lent` and `Returned to owner`, last in the event list:
 # on the test base by one row written with typecast and deleted at once, which gave both
-# typecast's default blue, and by hand on the live base in that color, as Soo ruled.
+# typecast's default blue, and by hand on the live base, where the UI gave them pink and
+# purple, the palette's next two after red. Soo set the test base's to those by hand, so
+# both bases hold them in the live base's colors.
 TOOL_STATUS_CHOICES = [
     {"name": "In stock", "color": "blueLight2"},
     {"name": "Out", "color": "cyanLight2"},
@@ -199,8 +201,8 @@ TOOL_EVENT_CHOICES = [
     {"name": "Returned from repair", "color": "orangeLight2"},
     {"name": "Retired", "color": "grayLight2"},
     {"name": "Deleted", "color": "redLight2"},
-    {"name": "Lent", "color": "blueLight2"},
-    {"name": "Returned to owner", "color": "blueLight2"},
+    {"name": "Lent", "color": "pinkLight2"},
+    {"name": "Returned to owner", "color": "purpleLight2"},
 ]
 
 # ----------------------------------------------------------------------------

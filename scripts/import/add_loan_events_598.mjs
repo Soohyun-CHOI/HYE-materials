@@ -11,9 +11,9 @@
 //
 // NEVER ON THE LIVE BASE. `Asset Log` is the site's there (#531), and the first row request asks
 // `scripts/protectedTables.mjs:refusesProtectedWrite`, which refuses it: the run prints the hand
-// step — the two options, in this order, in the colors the test base gave them — and stops. What
-// Airtable picked on the test base is in `COLORS` below, read back after the run there, so the two
-// bases hold the same options for `verify-base-parity-534.mjs`.
+// step — the two options, in this order, in `COLORS` — and stops. `typecast` gave both `Created`'s
+// blue on the test base; the live base's hand step gave them pink and purple, and Soo set the test
+// base's to those by hand, so `COLORS` is what both bases hold for `verify-base-parity-534.mjs`.
 //
 // Usage (from the repo root):
 //   node --env-file=.env.local scripts/import/add_loan_events_598.mjs            (dry run)
@@ -39,8 +39,8 @@ const EVENT_FIELD_ID = "fldI7mM1DFKw6W41B";
 /** The two options this issue adds, in the order the list must end on. */
 const ADDED = [ASSET_EVENT.LENT, ASSET_EVENT.RETURNED_TO_OWNER];
 
-/** The colors Airtable gave the two on the test base, which the live base's hand step uses. */
-const COLORS = { [ASSET_EVENT.LENT]: "blueLight2", [ASSET_EVENT.RETURNED_TO_OWNER]: "blueLight2" };
+/** The colors both bases hold the two in, the ones the live base's hand step gave them. */
+const COLORS = { [ASSET_EVENT.LENT]: "pinkLight2", [ASSET_EVENT.RETURNED_TO_OWNER]: "purpleLight2" };
 
 /** What Soo does on the live base, word for word. */
 const HAND_STEP =
@@ -155,7 +155,7 @@ async function main() {
     if (fault) return finish(1, fault);
     for (const name of ADDED) {
         const color = after.find((c) => c.name === name)?.color;
-        if (color !== COLORS[name]) log(`  NOTE: ${name} came back ${color}, where COLORS says ${COLORS[name]} — set COLORS to what the base gave`);
+        if (color !== COLORS[name]) log(`  NOTE: ${name} came back ${color} — set it to ${COLORS[name]} by hand, the live base's color`);
     }
     return finish(0, "the base offers both options");
 }
