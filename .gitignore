@@ -71,6 +71,9 @@ scratch/
 scripts/import/data/
 scripts/import/output/
 scripts/demo/output/
+# a run's files holding the live base's own values, kept off this public
+# repository (#602): its preview and its ledger, a copy kept by hand
+scripts/import/private/
 
 # python
 /.venv/
