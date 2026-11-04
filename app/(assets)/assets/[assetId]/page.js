@@ -29,7 +29,7 @@ import StatusMark from "../../StatusMark";
 import CategoryCaption, { LoanedFrom } from "../../CategoryCaption";
 import JobChoice from "../../JobChoice";
 import MoreActions from "./MoreActions";
-import AssetNote from "./AssetNote";
+import { DetailsBlock, PhoneDetails } from "./ItemDetails";
 import AssetTransition from "./AssetTransition";
 import TransitionBar from "./TransitionBar";
 import TransitionDialog from "./TransitionDialog";
@@ -317,7 +317,7 @@ async function renderAssetPage({ params }) {
     // labels' dialog draws no page for, and the rail has to say that rather than draw
     // a label and its size.
     const budget = labelBudget({ sideModules: QR_SIDE_MODULES });
-    const { boxMm: symbolMm, fits: symbolFits } = symbolBox({ sideModules: label.sideModules, budget });
+    const { fits: symbolFits } = symbolBox({ sideModules: label.sideModules, budget });
 
     const category = categories[0];
     const name = category?.itemName || asset.assetId;
@@ -393,24 +393,15 @@ async function renderAssetPage({ params }) {
                                     ownerJob={transition.onLoan ? transition.ownerJobCode : null}
                                     className="text-body text-foreground-subtle max-sm:hidden"
                                 />
-                                <CategoryCaption category={category} className="text-mobile-body-xs text-foreground-subtle sm:hidden" />
-                                {/* THE ITEM'S JOB, ONCE (1j, #597): behind a pin in Ink 3, the code in
-                                    Ink 2 with tabular figures, 4 under the caption as the block's lines
-                                    stand — the one place a phone names it, which every history entry did
-                                    until the files of 2026-11-02. */}
-                                {jobCode && (
-                                    <p className="flex items-center gap-gap text-mobile-body-xs text-foreground-muted sm:hidden">
-                                        <Icon name="map-pin" className="size-mobile-title-icon shrink-0 text-foreground-subtle" />
-                                        {/* On loan, the job that owns it after a dot (1j-g, #598). */}
-                                        <span className="min-w-0">
-                                            <span className="tabular-nums">{jobCode}</span>
-                                            {transition.onLoan && transition.ownerJobCode && (
-                                                <>
-                                                    <Dot />
-                                                    <LoanedFrom ownerJob={<span className="tabular-nums">{transition.ownerJobCode}</span>} />
-                                                </>
-                                            )}
-                                        </span>
+                                {/* ON A PHONE, ONE LINE UNDER THE NAME (1j, 0a Title block, the files of
+                                    2026-11-04): the item's job, then its type and its category, at 14 in
+                                    Ink 2 — the one place a phone names the job (#597), behind a pin on a
+                                    line of its own from #597 until these files. On loan, a line under it
+                                    in Ink 3 names the job that owns it, the code in Ink 2 (1j-g, #598). */}
+                                <CategoryCaption category={category} job={jobCode} className="text-mobile-body-xs text-foreground-muted sm:hidden" />
+                                {transition.onLoan && transition.ownerJobCode && (
+                                    <p className="text-mobile-body-xs text-foreground-muted sm:hidden">
+                                        <LoanedFrom ownerJob={<span className="tabular-nums">{transition.ownerJobCode}</span>} />
                                     </p>
                                 )}
                             </div>
@@ -438,11 +429,13 @@ async function renderAssetPage({ params }) {
                                 )}
                             </div>
                             <TransitionRefusal />
-                            {/* THE NOTE, 12 UNDER THE STATUS AT BOTH WIDTHS (0a Note, 1f, 1j; #533):
-                                read by everybody, written by whoever the plan says may — and
-                                after a refused press's sentence, which 1k sets right under the
-                                status it is about. It arrived with the asset's own read. */}
-                            <AssetNote note={asset.note} writable={transition.mayWriteNote} />
+                            {/* ON A PHONE, THE SERIAL NUMBER 12 UNDER THE STATUS AND THE NOTE 12 UNDER IT
+                                (0a Value line, 0a Note, 1j; #533, #601): read by everybody, written by
+                                whoever the plan says may — and after a refused press's sentence, which
+                                1k sets right under the status it is about. A desk reads both in the
+                                rail's `Details` since the files of 2026-11-04, where the note stood
+                                here from #533. Both arrived with the asset's own read. */}
+                            <PhoneDetails serialNumber={asset.serialNumber} note={asset.note} mayWriteSerial={transition.mayWriteSerial} mayWriteNote={transition.mayWriteNote} />
                         </div>
                         {/* WHAT MAY BE RECORDED, AT A DESK (#362, #363, #463, #531): the press
                             and `More actions`, which holds sending for repair and the
@@ -488,6 +481,10 @@ async function renderAssetPage({ params }) {
                             the header's Band, and its Rule runs the whole column. */}
                         <aside className="border-l border-divider pl-record-rail-inset-left max-sm:hidden">
                             <div className="sticky top-(--height-breadcrumb) pt-record-header-stack">
+                                {/* THE ITEM'S DETAILS FIRST (1f, 1g; #601): its serial number and its
+                                    note, each edited where it stands by whoever may write it, 40 over
+                                    the label. Nothing here when there is nothing to read or write. */}
+                                <DetailsBlock serialNumber={asset.serialNumber} note={asset.note} mayWriteSerial={transition.mayWriteSerial} mayWriteNote={transition.mayWriteNote} />
                                 <h2 className="pb-heading-sm-stack text-heading-sm text-foreground-subtle">{COPY.labelHeading}</h2>
                                 <div className="flex flex-col gap-label-block-stack">
                                     {symbolFits ? (
@@ -495,16 +492,9 @@ async function renderAssetPage({ params }) {
                                             <div className="flex items-center justify-center rounded-card bg-background-muted px-label-preview-inset-x py-label-preview-inset-y">
                                                 <LabelPreview label={label} budget={budget} name={COPY.symbolAlt} />
                                             </div>
-                                            <dl className="flex flex-col gap-label-fact-stack text-body-sm">
-                                                <div className="grid grid-cols-[var(--width-label-fact-term)_minmax(0,1fr)] items-baseline gap-x-label-fact-inline">
-                                                    <dt className="text-foreground-subtle">{COPY.sizeLabel}</dt>
-                                                    <dd className="tabular-nums">{LABEL_COPY.size}</dd>
-                                                </div>
-                                                <div className="grid grid-cols-[var(--width-label-fact-term)_minmax(0,1fr)] items-baseline gap-x-label-fact-inline">
-                                                    <dt className="text-foreground-subtle">{COPY.symbolLabel}</dt>
-                                                    <dd className="tabular-nums">{COPY.symbolSize(symbolMm)}</dd>
-                                                </div>
-                                            </dl>
+                                            <p className="-mt-[calc(var(--spacing-label-block-stack)-var(--spacing-label-caption-stack))] text-body-sm text-foreground-subtle tabular-nums">
+                                                {COPY.printsAt(LABEL_COPY.size)}
+                                            </p>
                                         </>
                                     ) : (
                                         <p className="text-body-sm text-pretty text-foreground-muted">{COPY.symbolTooLargeNote}</p>

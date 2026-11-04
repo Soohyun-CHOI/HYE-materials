@@ -725,7 +725,8 @@ export function run({ check, assert, log }) {
         [
             /<div role="search"/.test(searchSource),
             /aria-label=\{label\}\s*placeholder=\{label\}/.test(searchSource),
-            /onChange\(""\);\s*inputRef\.current\?\.focus\(\);/.test(searchSource),
+            // The field's own clear since #605, which keeps the caret in the field as it empties it.
+            /<FieldClear look="search" label=\{clearLabel\} onChange=\{onChange\} focus=\{\(\) => inputRef\.current\?\.focus\(\)\} \/>/.test(searchSource),
         ].join(" "),
         "true true true"
     );
@@ -778,7 +779,9 @@ export function run({ check, assert, log }) {
                 if (cur.type === "Property" && (cur.key?.name ?? cur.key?.value) === "xl") return true;
                 if (cur.type === "ConditionalExpression" && child === cur.consequent && SIGN_IN_GATE.test(source.slice(cur.test.start, cur.test.end))) return true;
                 if (cur.type === "LogicalExpression" && cur.operator === "&&" && child === cur.right && SIGN_IN_GATE.test(source.slice(cur.left.start, cur.left.end))) return true;
-                if (cur.type === "FunctionDeclaration" && cur.id?.name === "ClearButton") return true;
+                // A phone field's clear × (#605), the one look of `FIELD_CLEAR_LOOK` drawn below the
+                // phone's edge alone, at a sign-in page's size as `TextInput` gates it.
+                if (cur.type === "Property" && (cur.key?.name ?? cur.key?.value) === "phone" && parents.get(parents.get(cur))?.id?.name === "FIELD_CLEAR_LOOK") return true;
             }
             return false;
         };
@@ -791,7 +794,7 @@ export function run({ check, assert, log }) {
         return {
             danger: /danger: "bg-danger text-white not-disabled:not-aria-disabled:hover:bg-danger-hover"/.test(variants),
             busyQuiet: !/(?<!not-aria-disabled:)(?:hover|active):/.test(variants + sheetVariants),
-            clearGate: /const clearable = size === "xl" &&/.test(source) && /\{clearable && \(\s*<ClearButton/.test(source),
+            clearGate: /const clearable = size === "xl" &&/.test(source) && /\{clearable && <FieldClear look="phone" /.test(source),
             sheetButton: [
                 /max-sm:in-data-\[sheet\]:h-mobile-dialog-button/.test(sheetButton),
                 /max-sm:in-data-\[sheet\]:w-full/.test(sheetButton),
@@ -1344,7 +1347,7 @@ export function run({ check, assert, log }) {
             calls(searchFn ?? {}).has("searchResultsKey"),
             /const active = moved >= 0 && moved < count \? moved : -1;/.test(searchPart),
             /const type = \(next\) => \{\s*setMoved\(-1\);\s*onChange\(next\);/.test(searchPart),
-            /role="option"\s*aria-selected=\{index === active \? "true" : "false"\}\s*onMouseDown=\{\(event\) => event\.preventDefault\(\)\}/.test(searchPart),
+            /role="option"\s*aria-selected=\{index === active \? "true" : "false"\}\s*onMouseDown=\{keepFocus\}/.test(searchPart),
             /<div data-dialog-body="" /.test(searchPart),
         ].join(" "),
         "true true true true true true"
@@ -1621,8 +1624,9 @@ export function run({ check, assert, log }) {
             "app/(assets)/asset-categories/[categoryRecordId]/RegistrationUnlogged.js",
             // The catalog's entry and its removal's question (#527).
             "app/(assets)/asset-catalog/CatalogDialogs.js",
-            // An item's note: the desk's dialog and the phone's sheet (#533).
-            "app/(assets)/assets/[assetId]/AssetNote.js",
+            // An item's two details: the phone's sheet for each, one part (#533, #601). A desk edits
+            // each where it stands since the files of 2026-11-04, so no dialog.
+            "app/(assets)/assets/[assetId]/ItemDetails.js",
             // The office's job change: the desk's dialog and the phone's sheet (#583).
             "app/(assets)/assets/[assetId]/JobChange.js",
             // The office's deletion's question, one for both widths as the retirement's is (#582).
@@ -1952,15 +1956,15 @@ export function run({ check, assert, log }) {
         [
             // The office's deletion's question, handed the provider's wait (#582).
             "DeleteConfirm: submits · busy {busy} · named · 0 disabled by sending",
-            // The catalog's entry hands its frame what it waits on, its submit or `"action"` (#527),
-            // and so does an item's note, `"action"` while `Remove note` is on its way (#533).
+            // The catalog's entry hands its frame what it waits on, its submit or `"action"` (#527).
+            // An item's note did too, `"action"` while `Remove note` was on its way, from #533 until
+            // the files of 2026-11-04 took the desk's dialog away (#601).
             "EntryDialog: submits · busy {busy} · named · 0 disabled by sending",
             // The office's job change at a desk (#583).
             "JobChangeForm: submits · busy {pending} · named · 0 disabled by sending",
             // A lending at a desk and on a phone, whose sheet submits by its foot's `Lend` (#598).
             "LendForm: submits · busy {lend.pending} · named · 0 disabled by sending",
             "LendRows: submits · busy {lend.pending} · named · 0 disabled by sending",
-            'NoteDialog: submits · busy {pending ? (removing ? "action" : true) : false} · named · 0 disabled by sending',
             "RegistrationForm: submits · busy {pending} · named · 0 disabled by sending",
             "RemoveDialog: submits · busy {pending} · named · 0 disabled by sending",
             // The retirement's question, handed the provider's wait since #597, as the deletion's is.
@@ -1971,13 +1975,14 @@ export function run({ check, assert, log }) {
         ].join(" | ")
     );
     // A SHEET THAT SENDS BY ITS `Done` HANDS ITS FRAME THE STATE TOO (#533), which its `Done`
-    // reads: the note's sheet, and the office's job change on a phone, whose `Done` is `Save` (#583).
+    // reads: an item's details' sheet — the note's from #533 and the serial number's since #601, one
+    // part — and the office's job change on a phone, whose `Done` is `Save` (#583).
     check(
         "  and every sheet that sends by its Done hands it its state, its Done naming a word",
         dialogs.filter((d) => d.includes(": sends by its Done")).join(" | "),
         [
+            "DetailSheet: sends by its Done · busy {control.pending} · no submit · 0 disabled by sending",
             "JobChangeRows: sends by its Done · busy {pending} · no submit · 0 disabled by sending",
-            "NoteSheet: sends by its Done · busy {pending} · no submit · 0 disabled by sending",
         ].join(" | ")
     );
     check(
@@ -1991,7 +1996,7 @@ export function run({ check, assert, log }) {
         onNewFrame.filter((rel) => submitFacts(parseFile(rel)).length > 0).length,
         onNewFrame.length
     );
-    check("    a dialog each, and the catalog's file, the note's, the job change's and the lending's their two", dialogs.length, onNewFrame.length + 4);
+    check("    a dialog each, and the catalog's file, the job change's and the lending's their two", dialogs.length, onNewFrame.length + 3);
 
     // AND EVERY FORM THAT SUBMITS OUTSIDE A FRAME IS HELD TO THE SAME (#463): the asset
     // page's foot bar, which wraps what it holds in `FormBusy` itself, and the desk's press,
@@ -2034,8 +2039,10 @@ export function run({ check, assert, log }) {
             "LabelsDialog: button {pending} · named · 0 disabled by sending",
             // 1a's `Export`, working while the file is made (#553).
             "ListExport: button {busy} · named · 0 disabled by sending",
-            // An item's note's `Remove note`, working by its own `busy` while the dialog locks (#533).
-            "NoteDialog: button {removing} · named, named · 0 disabled by sending",
+            // An item's detail edited where it stands at a desk (1f, #601): its `Save` working while the
+            // row's `Cancel` and field lock. The note's dialog drew `Remove note` working by its own
+            // `busy` from #533 until the files of 2026-11-04.
+            "RowEditor: form {control.pending} · named · 0 disabled by sending",
             // Both lock while the menu's `Send for repair` is on its way, the wait being the
             // menu's, and work for their own press otherwise (#531).
             'TransitionBar: form {repairPending ? "action" : pending} · named · 0 disabled by sending',

@@ -280,7 +280,7 @@ sending decides each.
 
 | String | Where | The files |
 |---|---|---|
-| `Saving…`, `Adding…`, `Removing…` | the dialog's commitment, `Remove note` and the sheet's `Done`, busy, heard and not seen | draw no wait for any |
+| `Saving…`, `Adding…`, `Removing…` | the dialog's commitment and `Remove note` until #601, the desk row's `Save` since, and the sheet's `Done`, busy, heard and not seen | draw no wait for any |
 | `Nothing was saved. Someone else changed this note first.` | the dialog over its actions, or the sheet under its field, when the note changed since the page was drawn | draw no refused note |
 | `Edit note` | the name of a desk's `Edit` | name the phone's line so, and the desk's button by its word |
 
@@ -542,3 +542,43 @@ The keys are `ASSET_TRANSITION_COPY.lendHalfDone`, `.returnHalfDone`,
 `lib/assetListView.js`, held by value in `offline/asset-loan.mjs`. The base
 calls the job an item belongs to `Assets."Owner Job"`, the job it stands on
 `Assets."Job"`, and the two events `Lent` and `Returned to owner`.
+
+---
+
+## What an item's serial number says that the files of 2026-11-04 do not (#601)
+
+The files draw the serial number in 1a3's line and 1a's search, 1d's column,
+1f's `Details` row edited where it stands and its refusal naming the item that
+holds the number, 1j's line, 1j-b3's sheet and its refusal. They draw no limit
+on what is typed, no stale press, no wait, no number found at another job or
+off the band, no number on more than one kind, and no export. What a screen
+says in their place follows the words the design already draws, and the next
+sending decides each.
+
+| String | Where | The files |
+|---|---|---|
+| `Max 50 characters.` | under the serial number's field, past 50 typed | draw no limit |
+| `Nothing was saved. Someone else changed this serial number first.` | under the field, when the number changed since the page was drawn | draw no stale press |
+| `Saving…`, `Adding…`, `Removing…` | the row's `Save` and the sheet's `Done`, busy, heard and not seen | draw no wait |
+| `No item on 23-USA-09 has the serial number` | 1a's emptied rows, under a line found at another job | draw no number at another job |
+| `No item in these filters has the serial number` | 1a's rows the band empties, under a line it leaves off | the same |
+| one line per item, 8 apart | 1a3, a number standing on items of more than one kind | draw one line |
+| `Serial number` | the export's second sheet, after `Item ID` | draw no export |
+| no `Edit` or `Add` in `Details` | 1g at a desk, in repair | draw both, where 1j-e reads alone |
+
+**The limit and its sentence are the note's**, a value one line holds, so a
+number past it is refused in the note's words rather than cut. **The stale
+press and the working words are the note's too**, with the detail's own noun.
+**The two list sentences are #599's with `serial number` for `ID`**, said only
+once the base has named an item, since before then what was typed may be a
+name and the rows' own sentence is true. **A number may stand on items of more
+than one kind**, being one item's within its kind, so a line stands for each.
+**In repair nothing is written** (`lib/assetStatus.js:MAY_WRITE_NOTE_IN_STATUS`,
+#533): 1g's `Edit` and `Add` would offer a write the app refuses, and 1j-e
+already reads both alone, so the desk reads as 1j-e does. Taking 1g's would
+change who may write, which is the issue's to decide and not the files'.
+
+The keys are `ASSET_SERIAL_COPY.tooLong`, `.changedFirst` and `.working` in
+`lib/assetSerial.js`, and `ASSET_LIST_COPY.noSerialMatchOn` and
+`.noSerialMatchFiltered` in `lib/assetListView.js`, held by value in
+`offline/asset-serial.mjs`. The base's field is `Assets."Serial Number"`.

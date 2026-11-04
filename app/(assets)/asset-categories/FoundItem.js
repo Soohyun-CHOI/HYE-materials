@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import Dot from "@/app/components/Dot";
 import Icon from "@/app/components/Icon";
+import { ASSET_LIST_COPY } from "@/lib/assetListView";
 import { assetPath } from "@/lib/assetRoutes";
 import { ASSET_STATUS } from "@/lib/assetStatus";
 import StatusMark from "../StatusMark";
@@ -23,6 +24,10 @@ import { readFoundHolderAction } from "./actions";
  * table shows none for — at another job, or kept out by the band (`lib/assetListView.js:
  * readCategoryList`); an item in the table stands on a job the band already names.
  *
+ * A SERIAL NUMBER SEARCHED SAYS ITSELF AFTER THE ID (1a3, #601): `Serial number` in Ink 3 and the
+ * number in the id's face, 8 apart — `serialNumber` comes only with an item found by its number, in
+ * the table or by the base — and a number two kinds hold draws a line for each.
+ *
  * IT IS A WAY THERE AND NARROWS NOTHING. The row the item stands under is the list's, under it as
  * the band left it, and the export holds that row and every asset under it; this line is in no
  * sheet (`lib/assetListExport.js`).
@@ -40,7 +45,7 @@ import { readFoundHolderAction } from "./actions";
  * — asks once, where the first build of this line asked twice and counted six operations.
  */
 export default function FoundItem({ found }) {
-    const { assetId, status, itemName, jobCode = null } = found;
+    const { assetId, status, itemName, jobCode = null, serialNumber = null } = found;
     const [holders, setHolders] = useState({});
     const asked = useRef(new Set());
     useEffect(() => {
@@ -60,6 +65,15 @@ export default function FoundItem({ found }) {
         >
             <span className="flex min-w-0 flex-1 items-center overflow-hidden whitespace-nowrap">
                 <span className="shrink-0 font-id text-body-sm tracking-id">{assetId}</span>
+                {/* Found by its serial number (1a3, #601): the value's name in Ink 3, then the number in
+                    the id's face, after the id and before the name. */}
+                {serialNumber && (
+                    <>
+                        <Dot />
+                        <span className="shrink-0 text-foreground-subtle">{ASSET_LIST_COPY.serialLabel}</span>
+                        <span className="ml-gap shrink-0 font-id text-body-sm tracking-id">{serialNumber}</span>
+                    </>
+                )}
                 <Dot />
                 <span className="min-w-0 truncate">{itemName}</span>
                 {jobCode && (

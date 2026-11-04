@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useId, useLayoutEffect, useRef, useState } from "react";
-import { clickFromKeys, menuButtonKey, menuIndex, menuKey, typeaheadIndex } from "@/lib/controls";
+import { clickFromKeys, keepFocus, menuButtonKey, menuIndex, menuKey, typeaheadIndex } from "@/lib/controls";
 import Icon from "./Icon";
 import { SCROLL_LANE } from "./scrollLane";
 
@@ -183,7 +183,7 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
                         data-index={index}
                         role="option"
                         aria-selected={option.selected ? "true" : "false"}
-                        onMouseDown={(event) => event.preventDefault()}
+                        onMouseDown={keepFocus}
                         onClick={() => onPick(index)}
                         className={`flex ${rows === "sm" ? "h-control" : "h-control-lg"} shrink-0 cursor-pointer items-center justify-between ${
                             checkSlot ? "gap-sort-check-gap" : "gap-gap"

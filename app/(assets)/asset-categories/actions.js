@@ -5,11 +5,12 @@ import { redirect } from "next/navigation";
 import { requireUser, withSiteManagerAction } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllAssetCategories, getAssetCategoriesByRecordIds } from "@/lib/airtable/assetCategories";
-import { createAssets, getAssetByAssetId, getAssetsByRecordIds } from "@/lib/airtable/assets";
+import { createAssets, getAssetByAssetId, getAssetsByRecordIds, getAssetsBySerialNumber } from "@/lib/airtable/assets";
 import { createFirstAssetLogEntries, getAssetLogEntriesByRecordIds } from "@/lib/airtable/assetLog";
 import { readCatalog } from "@/lib/assetCategory";
 import { assignedJobsFor } from "@/lib/assetJob";
 import { holderRowIds, lastChangeOf } from "@/lib/assetListView";
+import { keptSerial } from "@/lib/assetSerial";
 import { ASSET_REGISTRATION_COPY, readRegistration } from "@/lib/assetRegistration";
 import { assetCategoryPath, searchedAssetId } from "@/lib/assetRoutes";
 import { ASSET_STATUS } from "@/lib/assetStatus";
@@ -293,11 +294,18 @@ export async function readFoundHolderAction(assetId) {
 }
 
 /**
- * The item a search names by its id when the list's table shows no item with it (1a, #599) — none
- * on its one job, or one the band leaves off, a `Job` chip on all jobs among it: `{ found }`, the
- * item as the way to it says it — its id, its kind's name, its status and its Job record id — or a
- * null `found` where no item the app shows carries the id, a deleted one among them (#582);
- * `{ unread: true }` when the read failed, which answers neither.
+ * The items a search names by an id or a serial number when the list's table shows none (1a, #599,
+ * #601) — none on its one job, or one the band leaves off, a `Job` chip on all jobs among it:
+ * `{ found }`, a list of the items as the way to each says it — its id, its kind's name, its status
+ * and its Job record id, and its serial number when that is what was asked — empty where no item the
+ * app shows carries it, a deleted one among them (#582); `{ unread: true }` when the read failed,
+ * which answers neither.
+ *
+ * AN ID IS ONE ITEM, A SERIAL NUMBER ONE ITEM OF EACH KIND (#601). A text that is an id
+ * (`searchedAssetId`) is read as #599 read it, by its printed id; any other is read as a serial number,
+ * whole, by `getAssetsBySerialNumber` — one query on the number, of every kind — and each item holding
+ * it is listed, in printed-id order. The kinds' names are one read whichever was asked, so a search
+ * costs what #599's did: three operations, two where nothing carries it.
  *
  * ONE WAY TO THE ITEM, WHATEVER KEPT IT OUT OF THE TABLE. An id is one item at whichever job holds
  * it, so this reads that item and the list draws it unless the table already shows it, rather than
@@ -319,16 +327,27 @@ export async function readFoundHolderAction(assetId) {
  * carries it as an exemption. A failed read is logged and leaves the list's sentence as it stood,
  * true whatever the base holds.
  */
-export async function readFoundElsewhereAction(assetId) {
+export async function readFoundElsewhereAction(searched) {
     return withOpsLabel("readFoundElsewhereAction", async () => {
         await requireUser();
-        const asked = searchedAssetId(assetId);
-        if (!asked) return { found: null };
+        const asked = searchedAssetId(searched);
+        const serialNumber = asked ? "" : keptSerial(searched);
+        if (!asked && serialNumber === "") return { found: [] };
         try {
-            const asset = await getAssetByAssetId(asked);
-            if (!asset) return { found: null };
-            const [kind] = await getAssetCategoriesByRecordIds(asset.category.slice(0, 1));
-            return { found: { assetId: asset.assetId, itemName: kind?.itemName ?? "", status: asset.status, job: asset.job[0] ?? null } };
+            const assets = asked ? [await getAssetByAssetId(asked)].filter(Boolean) : await getAssetsBySerialNumber(serialNumber);
+            if (assets.length === 0) return { found: [] };
+            const kindIds = [...new Set(assets.map((asset) => asset.category[0]).filter(Boolean))];
+            const nameOf = new Map((await getAssetCategoriesByRecordIds(kindIds)).map((kind) => [kind.id, kind.itemName]));
+            const found = [...assets]
+                .sort((a, b) => String(a.assetId).localeCompare(String(b.assetId)))
+                .map((asset) => ({
+                    assetId: asset.assetId,
+                    itemName: nameOf.get(asset.category[0]) ?? "",
+                    status: asset.status,
+                    job: asset.job[0] ?? null,
+                    ...(asked ? {} : { serialNumber: asset.serialNumber }),
+                }));
+            return { found };
         } catch (error) {
             console.error("readFoundElsewhereAction: nothing was read", error);
             return { unread: true };

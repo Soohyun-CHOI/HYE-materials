@@ -159,8 +159,9 @@ company still holds of the kind, a retired one not counted, so a kind with a
 retired item reads more here than in that column, by as many as are retired.
 
 **evidence.** One entry per asset, **newest first** (1d), each carrying
-four facts: its printed `Asset ID`, which is the way into that asset's
-own screen; its status, one of `In stock`, `Out`, `In repair` (#531) or `Retired`, and after an
+five facts: its printed `Asset ID`, which is the way into that asset's
+own screen; its serial number (#601), in the id's face and nothing where it has
+none; its status, one of `In stock`, `Out`, `In repair` (#531) or `Retired`, and after an
 `Out` who it was checked out to, `Out · Hyunwoo Kang`; its note (#533), the one
 line a site manager keeps on it, in Ink 2 and nothing where it has none; and the day it last
 changed, `09/22/2026` — the day of its latest scan, retirement or registration,
@@ -172,8 +173,9 @@ id (#548; below).
 under the pointer (#533)**, as the catalog shows a cut value (1l): it is at most
 50 characters, and a row is one line. **A note changes no day**: it is no event,
 so writing one moves nothing in the `Updated` column, which says when the item
-itself last moved. The status's column is 240 again beside it, as 1d draws it, where
-it took the room left from #520 until #533.
+itself last moved, and nor does a serial number. The status's column is 240 again beside it, as 1d draws it, where
+it took the room left from #520 until #533. **The serial number's column is 128 after the id's,
+which narrows to 144 for it, the note's giving up the rest (1d, #601).**
 
 **The day is written with its year, which 0h does not ask for in a table
 column** — it says `MM/DD` there — and 1d draws it in full; the year stays
@@ -181,7 +183,7 @@ because an item can sit on a shelf from one year to the next, and `09/22`
 would not say which. **The job each asset is on stood in the day's place from
 #463 until 1d drew the day**: where an asset was last scanned is on its own
 screen, and the breadcrumb says the one the list is narrowed to. **On `All jobs` it is a column again (1d, #548)**, after the
-printed id, the job's code in a lighter ink, since the breadcrumb no longer says
+printed id and, since #601, its serial number, the job's code in a lighter ink, since the breadcrumb no longer says
 it for every row; the note gives up the room. A selection there may hold items on
 several jobs, and one print takes them together.
 
@@ -334,7 +336,7 @@ on it, and none of the controls a site manager uses here — no `Add items` in
 the head or under an empty list, no box on an entry or for the page, no
 selection bar and so nothing to print, and neither dialog a registration's
 landing tells, which speak to whoever added. The column of boxes goes with
-the boxes, so the table is `Item ID`, `Status`, `Note` and `Updated`, the note taking
+the boxes, so the table is `Item ID`, `Serial number`, `Status`, `Note` and `Updated`, the note taking
 the room, as 1d draws it without the box (#533; the status took it from #520, and
 `Job` stood in the day's place until then). A selection carried on the address is not
 read for them, so it marks no entry and rides no step. Nothing replaces any of
@@ -440,14 +442,15 @@ here would mean reading every asset under the category, which is the cost
 the paging exists to avoid — this page reads only the entries it draws,
 whatever the category's size.
 
-**The column over each code is `Item ID`, beside `Status`, `Note` and `Updated`
-(#519, #520, #533).** `Note` is the field's name on the base, `Assets."Note"`, and
-the asset's own screen labels the note's field with it. It was `Tool ID` from #463, `Item` from #455, the design's word then,
+**The column over each code is `Item ID`, beside `Serial number`, `Status`, `Note` and `Updated`
+(#519, #520, #533, #601).** `Note` is the field's name on the base, `Assets."Note"`, and
+the asset's own screen labels the note's field with it; `Serial number` is `Assets."Serial Number"`,
+which the asset's own screen's field and sheet say, its desk row `Serial` for short as 1f draws it. It was `Tool ID` from #463, `Item` from #455, the design's word then,
 and `Tool item` before it. `Status` names one field and is the word the asset's
 own screen already uses for it. **`Updated` names no field on `Assets`**: it is
 the latest `Asset Log` row's `Event At`, read for each entry on the page in one
 batch (#520), and `docs/notes/naming.md` carries the row. It took the place of
-`Job`, which stands after `Item ID` again on `All jobs` (#548) — the asset's own
+`Job`, which stands after `Item ID` and `Serial number` again on `All jobs` (#548, #601) — the asset's own
 screen's word for `Assets."Job"`, where the asset is now.
 
 **Every id here links to `/assets/[assetId]`, and this is where a

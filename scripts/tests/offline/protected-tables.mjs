@@ -65,6 +65,8 @@ import {
     OWNER_JOB_FILL,
     OWNER_JOB_SCHEMA,
     PROTECTED_LINK_TARGETS,
+    SERIAL_NUMBER_FIELD,
+    SERIAL_NUMBER_SCHEMA,
     PROTECTED_TABLES,
     refusesBeyondDescriptions,
     refusesBeyondLedger,
@@ -93,7 +95,15 @@ const META_ROOT = "https://api.airtable.com/v0/meta";
 const PROTECTED_TABLE_IDS = ["tblXtmDonSyOyOvV3", "tblrox7y4akPKdbpF"];
 
 /** The app's actions that write the two tables, which a script driving the live app would name. */
-const PROTECTED_ACTIONS = ["recordAssetEventAction", "retireAssetAction", "registerAssetsAction", "updateAssetNoteAction", "changeAssetJobAction", "deleteAssetAction"];
+const PROTECTED_ACTIONS = ["recordAssetEventAction", "retireAssetAction", "registerAssetsAction", "updateAssetNoteAction", "updateAssetSerialAction", "changeAssetJobAction", "deleteAssetAction"];
+
+/**
+ * The guard's exports that carry one of the two tables' ids (#598, #601): a script importing one reaches
+ * the table it names, by id, with no literal of its own to find.
+ */
+const TABLE_CARRIERS = Object.entries({ OWNER_JOB_FIELD, SERIAL_NUMBER_FIELD })
+    .filter(([, field]) => PROTECTED_TABLE_IDS.includes(field.table))
+    .map(([name]) => name);
 
 /** The two modules that read and write the two tables. */
 const PROTECTED_MODULES = ["lib/airtable/assets.js", "lib/airtable/assetLog.js"];
@@ -127,6 +137,9 @@ const CLASSIFIED = {
     // `Assets."Owner Job"` and its far side on `Jobs` (#598): made on both bases by this script, which the
     // guard lets make that one field on the live base and nothing else beyond descriptions.
     "scripts/import/add_owner_job_598.mjs": { describes: true },
+    // `Assets."Serial Number"` (#601): made on both bases by this script, which the guard lets make that one
+    // field on the live base and nothing else beyond descriptions.
+    "scripts/import/add_serial_number_601.mjs": { describes: true },
     // `Asset Log."Event"`'s two loan options (#598), made by a row written with typecast and deleted at
     // once on the test base, and refused on the live base, where they are a hand step.
     "scripts/import/add_loan_events_598.mjs": { writes: ["rowRequest"] },
@@ -184,6 +197,7 @@ export function reachesJs(ast, fromPath) {
             const target = toPosix(join(fromPath, "..", node.source.value)).replace(/^\.\//, "");
             if (PROTECTED_MODULES.some((module) => target === module || target === module.replace(/\.js$/, ""))) reaches = true;
             if (LIST_FILES.includes(target)) reaches = true;
+            if (target === GUARD_MODULE && node.specifiers.some((specifier) => TABLE_CARRIERS.includes(specifier.imported?.name))) reaches = true;
         }
     });
     return reaches;
@@ -645,6 +659,27 @@ export function run({ check, assert, log }) {
     check("  a row write still does not", field({ method: "PATCH", url: `https://api.airtable.com/v0/${LIVE_BASE_ID}/${OWNER_JOB_FIELD.table}`, body: { records: [] } }), true);
     check("  nor a DELETE of the field", field({ method: "DELETE", url: `${CREATE_URL}/fldAbc` }), true);
 
+    // ── and the second, the serial number's single line of text (#601) ──────
+    log("");
+    log("refusesBeyondDescriptions for the serial number's field, by value (#601):");
+    const SERIAL_CREATE_URL = `${META}/tables/${SERIAL_NUMBER_FIELD.table}/fields`;
+    const text = (over = {}) => ({ name: "Serial Number", type: "singleLineText", description: "x", ...over });
+    const serial = (input, script = SERIAL_NUMBER_SCHEMA) => refusesBeyondDescriptions({ script, log: () => {}, ...input });
+    check("  the module names the script and the field, on Assets by its id", `${SERIAL_NUMBER_SCHEMA} ${SERIAL_NUMBER_FIELD.name} ${SERIAL_NUMBER_FIELD.type} ${SERIAL_NUMBER_FIELD.table === PROTECTED_TABLE_IDS[0]}`, "add_serial_number_601 Serial Number singleLineText true");
+    check("  the field's create goes, on the live base", serial({ method: "POST", url: SERIAL_CREATE_URL, body: text() }), false);
+    check("  another script's does not", serial({ method: "POST", url: SERIAL_CREATE_URL, body: text() }, "probe"), true);
+    check("  nor the owner job's script making it", serial({ method: "POST", url: SERIAL_CREATE_URL, body: text() }, OWNER_JOB_SCHEMA), true);
+    check("  nor this script making the owner job's link", serial({ method: "POST", url: SERIAL_CREATE_URL, body: link() }), true);
+    check("  another field name does not", serial({ method: "POST", url: SERIAL_CREATE_URL, body: text({ name: "Serial" }) }), true);
+    check("  another type does not", serial({ method: "POST", url: SERIAL_CREATE_URL, body: text({ type: "multilineText" }) }), true);
+    check("  options beside it do not", serial({ method: "POST", url: SERIAL_CREATE_URL, body: text({ options: {} }) }), true);
+    check("  no description does not", serial({ method: "POST", url: SERIAL_CREATE_URL, body: { name: "Serial Number", type: "singleLineText" } }), true);
+    check("  a create on Asset Log does not", serial({ method: "POST", url: `${META}/tables/${PROTECTED_TABLE_IDS[1]}/fields`, body: text() }), true);
+    check("  a rename does not", serial({ method: "PATCH", url: `${SERIAL_CREATE_URL}/fldAbc`, body: { name: "Serial" } }), true);
+    check("  a description alone still goes", serial({ method: "PATCH", url: `${SERIAL_CREATE_URL}/fldAbc`, body: { description: "x" } }), false);
+    check("  a row write still does not", serial({ method: "PATCH", url: `https://api.airtable.com/v0/${LIVE_BASE_ID}/${SERIAL_NUMBER_FIELD.table}`, body: { records: [] } }), true);
+    check("  and on the test base nothing is its question", serial({ method: "POST", url: SERIAL_CREATE_URL.replace(LIVE_BASE_ID, "appTestBase0000001"), body: text({ type: "multilineText" }) }), false);
+
     log("");
     log("the rows the import may create are the registration's writers' own:");
     const written = (path, fn, marker) => {
@@ -755,6 +790,10 @@ export function run({ check, assert, log }) {
     assert("  an import of another file beside it does not", !reachesJs(planted(`import { pick } from "./_demo_ids.mjs";`), "scripts/demo/x.mjs"));
     assert("  an action of the app that writes them reaches", reachesJs(planted(`await post("retireAssetAction", []);`), "scripts/tests/x.mjs"));
     assert("  the note's action reaches too (#533)", reachesJs(planted(`await post("updateAssetNoteAction", []);`), "scripts/tests/x.mjs"));
+    assert("  and the serial number's (#601)", reachesJs(planted(`await post("updateAssetSerialAction", []);`), "scripts/tests/x.mjs"));
+    assert("  an import of the guard's field carrying a table's id reaches (#601)", reachesJs(planted(`import { SERIAL_NUMBER_FIELD } from "../protectedTables.mjs";`), "scripts/import/x.mjs"));
+    assert("  an import of the guard's question alone does not", !reachesJs(planted(`import { refusesBeyondDescriptions } from "../protectedTables.mjs";`), "scripts/import/x.mjs"));
+    check("  the carriers are the two fields the guard lets a script make", TABLE_CARRIERS.join(" "), "OWNER_JOB_FIELD SERIAL_NUMBER_FIELD");
     assert("  a sentence mentioning assets does not", !reachesJs(planted(`const d = "Assets holds the physical tools.";`), "scripts/import/x.mjs"));
     assert("  another table does not", !reachesJs(planted(`base(TABLES.VENDORS).create({});`), "scripts/demo/x.mjs"));
     assert("  Python naming a table reaches", reachesPy(`X = ("Assets",)`));

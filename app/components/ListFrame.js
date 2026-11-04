@@ -26,14 +26,15 @@ const UNDER_HEAD =
 // 1a's head with its band of controls under it (#520): the band's 32 controls and the 14 under them.
 const UNDER_HEAD_AND_BAND =
     "[--table-head-top:calc(var(--spacing-list-header-inset-top)+var(--height-control-lg)+var(--spacing-list-header-inset-bottom)+var(--height-control)+var(--spacing-control-band-inset-y))] scroll-pt-[calc(var(--table-head-top)+var(--height-table-header))]";
-// And the way to an item a search found by its id under the band (1a, #541): its 40 and the 14 under it.
+// And the way to an item a search found by its id under the band (1a, #541): its 40 and the 14 under it
+// — or to each item one serial number names, 8 apart (#601), `--found-count` of them.
 const UNDER_HEAD_BAND_AND_FOUND =
-    "[--table-head-top:calc(var(--spacing-list-header-inset-top)+var(--height-control-lg)+var(--spacing-list-header-inset-bottom)+var(--height-control)+var(--spacing-control-band-inset-y)+var(--height-found-item)+var(--spacing-control-band-inset-y))] scroll-pt-[calc(var(--table-head-top)+var(--height-table-header))]";
+    "[--table-head-top:calc(var(--spacing-list-header-inset-top)+var(--height-control-lg)+var(--spacing-list-header-inset-bottom)+var(--height-control)+var(--spacing-control-band-inset-y)+var(--found-count,1)*var(--height-found-item)+(var(--found-count,1)-1)*var(--spacing-gap)+var(--spacing-control-band-inset-y))] scroll-pt-[calc(var(--table-head-top)+var(--height-table-header))]";
 const UNDER_BAR = "[--table-head-top:var(--height-breadcrumb)] scroll-pt-[calc(var(--table-head-top)+var(--height-table-header))]";
 // A list's band (#520): its controls in a row 8 apart, 14 over the column head.
 const BAND = `${LIST_MEASURE} flex items-center gap-gap pb-control-band-inset-y`;
 // What the band found, under its controls and 14 over the column head as they are (1a, #541).
-const BAND_FOUND = `${LIST_MEASURE} pb-control-band-inset-y`;
+const BAND_FOUND = `${LIST_MEASURE} flex flex-col gap-gap pb-control-band-inset-y`;
 const KEEP_CLEAR_OF_PAGER = "scroll-pb-[calc(var(--spacing-pager-inset-top)+var(--height-control)+var(--spacing-pager-inset-bottom))]";
 const KEEP_CLEAR_OF_BAR =
     "scroll-pb-[calc(var(--spacing-pager-inset-top)+var(--height-control)+var(--spacing-pager-inset-bottom)+var(--spacing-selection-bar-offset)+var(--height-control-lg)+2*var(--spacing-selection-bar-inset)+2px)]";
@@ -106,9 +107,10 @@ function rowsRunBeneath(lane) {
  * The catalog drew its band under a bar from #527 until #538 laid it on Fill (`ListFrameFill`).
  * **`found` stands under the band's controls while the band's search names an item by its id**
  * (1a, #541): the way to that item, held with them, 14 under them and 14 over the column head,
- * which holds that much lower while it stands.
+ * which holds that much lower while it stands. `foundCount` is how many lines it holds, one for an id
+ * and one for each item a serial number names (#601), 8 apart, which the column head holds under.
  */
-export default function ListFrame({ top, header, band, found, footer, overlay, overlayShown = false, children }) {
+export default function ListFrame({ top, header, band, found, foundCount = 1, footer, overlay, overlayShown = false, children }) {
     const laneRef = useRef(null);
     const topRef = useRef(null);
     const headerRef = useRef(null);
@@ -140,6 +142,7 @@ export default function ListFrame({ top, header, band, found, footer, overlay, o
             <div
                 ref={laneRef}
                 data-title-gone={titleGone ? "" : undefined}
+                style={band && found && foundCount !== 1 ? { "--found-count": foundCount } : undefined}
                 className={`group/list-frame min-h-0 flex-1 overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable] ${SCROLL_LANE} ${
                     top ? UNDER_BAR : band ? (found ? UNDER_HEAD_BAND_AND_FOUND : UNDER_HEAD_AND_BAND) : UNDER_HEAD
                 } ${footer ? (overlayShown ? KEEP_CLEAR_OF_BAR : KEEP_CLEAR_OF_PAGER) : ""}`}

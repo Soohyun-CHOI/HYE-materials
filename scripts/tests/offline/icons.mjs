@@ -66,6 +66,14 @@ const DESIGN_SHAPES = {
         ["path", { d: "m3 8 4-4 4 4" }],
         ["path", { d: "M7 4v16" }],
     ],
+    // An item's serial number leads its line on a phone (0a Value line, 1j; #601), Lucide's five bars.
+    barcode: [
+        ["path", { d: "M3 5v14" }],
+        ["path", { d: "M8 5v14" }],
+        ["path", { d: "M12 5v14" }],
+        ["path", { d: "M17 5v14" }],
+        ["path", { d: "M21 5v14" }],
+    ],
     "book-open": [
         ["path", { d: "M12 5v16" }],
         ["path", { d: "M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z" }],
@@ -169,11 +177,13 @@ const MARKS_BY_FILE = {
     "app/(assets)/asset-categories/FoundItem.js": ["chevron-right"],
     // The office's way to the catalog is led by a book (1a, #566).
     "app/(assets)/asset-categories/page.js": ["book-open"],
-    "app/(assets)/assets/[assetId]/AssetNote.js": ["message-square", "plus"],
+    // An item's two details (#533, #601): the desk's `Add` and the phone's two marks.
+    "app/(assets)/assets/[assetId]/ItemDetails.js": ["barcode", "message-square", "plus"],
     "app/(assets)/assets/[assetId]/MoreActions.js": ["ellipsis"],
     // The foot bar's job pill went with #597; a check-out's name keeps its mark.
     "app/(assets)/assets/[assetId]/TransitionBar.js": ["user"],
-    // The pin before the item's job in the title block since #597, where it led every history entry.
+    // The pin before a loan's route under its history entry on a phone (#598); it stood before the item's
+    // job in the title block from #597 until the files of 2026-11-04 put the job on the caption's line.
     "app/(assets)/assets/[assetId]/page.js": ["arrow-right", "map-pin", "search-x", "user"],
     "app/components/Breadcrumb.js": ["chevron-left"],
     "app/components/Controls.js": ["arrow-up-down", "check", "chevron-down", "circle-alert", "info", "map-pin", "minus", "plus", "search", "x"],

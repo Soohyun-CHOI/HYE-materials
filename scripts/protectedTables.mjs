@@ -78,6 +78,12 @@
 // table is reached. Ending the exception is deleting `OWNER_JOB_SCHEMA` and its branch, in a commit of
 // its own.
 //
+// AND ONE MORE (#601). `add_serial_number_601.mjs` makes `Assets."Serial Number"`, a single line of
+// text, on both bases by one script, and Soo allowed it on the live base. `refusesBeyondDescriptions`
+// lets it, and it alone, send the one create of that field on `Assets`, its name, its type and its
+// description and nothing else — no options, no other table, no rename, no row. Ending the exception is
+// deleting `SERIAL_NUMBER_SCHEMA` and its branch, in a commit of its own.
+//
 // IMPORTS THREE MODULES, `lib/airtableBase.js`, `lib/idSequence.js` and `lib/assetStatus.js`, none
 // of which imports anything — so a script run with no loader — `scripts/import/`'s and
 // `scripts/demo/`'s REST scripts — can import it, and so can the offline tier. The names are the
@@ -275,7 +281,7 @@ const SCHEMA_READ = /^https:\/\/api\.airtable\.com\/v0\/meta\/bases\/app[A-Za-z0
 /** One table, or one field of it, on the Metadata API: what a description is written to. */
 const DESCRIBED = /^https:\/\/api\.airtable\.com\/v0\/meta\/bases\/app[A-Za-z0-9]+\/tables\/tbl[A-Za-z0-9]+(?:\/fields\/fld[A-Za-z0-9]+)?$/;
 
-/** The one script `refusesBeyondDescriptions` lets send beyond a description on the live base (#598). */
+/** The first script `refusesBeyondDescriptions` lets send beyond a description on the live base (#598). */
 export const OWNER_JOB_SCHEMA = "add_owner_job_598";
 
 /**
@@ -319,6 +325,39 @@ function beyondOwnerJobField({ method, url, body }) {
     return undefined;
 }
 
+/** The second script `refusesBeyondDescriptions` lets send beyond a description on the live base (#601). */
+export const SERIAL_NUMBER_SCHEMA = "add_serial_number_601";
+
+/** The field it may make: `Assets."Serial Number"`, a single line of text, the table by id (#534). */
+export const SERIAL_NUMBER_FIELD = Object.freeze({
+    table: OWNER_JOB_FIELD.table,
+    name: "Serial Number",
+    type: "singleLineText",
+});
+
+/** A field created on the serial number's table. */
+const SERIAL_NUMBER_CREATE = new RegExp(`^https://api\\.airtable\\.com/v0/meta/bases/app[A-Za-z0-9]+/tables/${SERIAL_NUMBER_FIELD.table}/fields$`);
+
+/**
+ * What a request of `SERIAL_NUMBER_SCHEMA`'s would do beyond its field, or null when nothing (#601):
+ * the create of `SERIAL_NUMBER_FIELD` on its table — its name, its type and a description, and no
+ * options. Anything else is `beyondDescriptions`' to answer.
+ */
+function beyondSerialNumberField({ method, url, body }) {
+    if (method !== "POST" || !SERIAL_NUMBER_CREATE.test(url ?? "")) return undefined;
+    if (!keyedExactly(body, ["name", "type", "description"])) return "create a field other than the serial number";
+    if (body.name !== SERIAL_NUMBER_FIELD.name || body.type !== SERIAL_NUMBER_FIELD.type || typeof body.description !== "string") {
+        return "create a field other than the serial number";
+    }
+    return null;
+}
+
+/** The scripts that may make a field on the live base, each with what it may send beyond a description. */
+const FIELD_ADDITIONS = Object.freeze({
+    [OWNER_JOB_SCHEMA]: beyondOwnerJobField,
+    [SERIAL_NUMBER_SCHEMA]: beyondSerialNumberField,
+});
+
 /** What a request would do beyond a schema read or a description alone, or null when nothing. */
 function beyondDescriptions({ method, url, body }) {
     if (typeof url !== "string") return "send a request with no address";
@@ -336,14 +375,16 @@ function beyondDescriptions({ method, url, body }) {
  * Whether a request to Airtable must not be sent, saying so (#531): false, saying nothing, for any
  * request to a base other than the live one (#534), and on the live base for a GET of its schema
  * or a PATCH of one table or one field whose body is `{ description }` alone — and, for
- * `OWNER_JOB_SCHEMA` alone, its one field and its far side's name (#598); true for anything
- * else — a name, a type, options, any row, an address whose base cannot be read — after printing
- * the refusal through `log`. The caller stops on true, before the request leaves.
+ * `OWNER_JOB_SCHEMA` alone, its one field and its far side's name (#598), and for
+ * `SERIAL_NUMBER_SCHEMA` alone its one field (#601); true for anything else — a name, a type,
+ * options, any row, an address whose base cannot be read — after printing the refusal through
+ * `log`. The caller stops on true, before the request leaves.
  */
 export function refusesBeyondDescriptions({ script, method, url, body, log = console.log }) {
     const addressed = typeof url === "string" ? url.match(BASE_IN_ADDRESS)?.[1] : undefined;
     if (addressed !== undefined && addressed !== LIVE_BASE_ID) return false;
-    const field = script === OWNER_JOB_SCHEMA && addressed !== undefined ? beyondOwnerJobField({ method, url, body }) : undefined;
+    const addition = Object.hasOwn(FIELD_ADDITIONS, script ?? "") ? FIELD_ADDITIONS[script] : null;
+    const field = addition && addressed !== undefined ? addition({ method, url, body }) : undefined;
     const beyond = field !== undefined ? field : beyondDescriptions({ method, url, body });
     if (beyond === null) return false;
     log(`REFUSED, before sending: ${script} would ${beyond}.`);

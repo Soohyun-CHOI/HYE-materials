@@ -134,9 +134,10 @@ has bought yet for it. An asset off the job still opens from its label or a link
 the list is what a reader is shown, not what they may see.
 
 **action.** Under the head, a band of controls held at the top with it (1a,
-0i): the job's chip (above), then a search, `Search items or item IDs`, over each row's name, its category
+0i): the job's chip (above), then a search, `Search items, IDs or serials`, over each row's name, its category
 and its type — every word typed must be in one of them — or, when what is typed
-is an item's id, for that item (#541; `Search items` until then), and two chips, `Type` and
+is an item's id, for that item (#541; `Search items` until then, `Search items or
+item IDs` until #601), or, whole, an item's serial number (#601), and two chips, `Type` and
 `Category`, each listing the values the job's rows hold with how many rows
 each would leave, several taken at once. A third, `Class`, went with the class
 in #552, and an address still naming one reads as naming nothing. A chip holding one value says it,
@@ -266,6 +267,22 @@ is said only where no job holds the id. Either way `Clear search`, or
 `Clear all` when a chip narrows too, and an item at another job stands over the
 rows whatever the chips hold. A name is searched on the chosen job alone, and a
 deleted item is found on none.
+
+**When the search names an item's serial number (#601):** the number whole, in
+any case and with spaces round it, the hyphens and every other character as
+typed; a piece of one finds nothing by it and is searched for in the names as
+any word is. Found on the job the list stands on, or on all jobs and among those
+the chips take, each kind holding it is a row and each item holding it a line
+over the rows, 8 apart in the rows' order — the line of an id with `Serial number`
+in Ink 3 and the number in the id's face after the id, behind the same dot. One
+number may stand on items of more than one kind, since it is one item's within
+its kind. Anywhere else it is asked of every job once the typing rests half a
+second, or at once on Enter, which opens the item where only one holds it: found,
+the lines stand over the rows with each item's job, and the rows, emptied, say
+`No item on 23-USA-09 has the serial number`, or `No item in these filters has
+the serial number` where the band leaves the item off, and the number typed.
+Before the answer, and where no item holds it, the list says what any word
+finding nothing says, since what was typed may be a name.
 
 **When a press of `Export` makes no file (#553, #566):** 0k's failure toast,
 centered at the foot of the content area — `Couldn't export.` led by the alert

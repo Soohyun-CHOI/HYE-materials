@@ -4,7 +4,7 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser, withSiteManagerAction } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
-import { getAssetByAssetId, updateAssetCache, updateAssetNote } from "@/lib/airtable/assets";
+import { getAssetByAssetId, getAssetsBySerialNumber, updateAssetCache, updateAssetNote, updateAssetSerialNumber } from "@/lib/airtable/assets";
 import { withKeyLock } from "@/lib/airtable/client";
 import { createAssetLogEntry, getAssetLogByAsset } from "@/lib/airtable/assetLog";
 import { getUsersByRecordIds } from "@/lib/airtable/users";
@@ -21,6 +21,7 @@ import {
     recordingRefusal,
 } from "@/lib/assetTransition";
 import { readNoteSubmission } from "@/lib/assetNote";
+import { ASSET_SERIAL_COPY, readSerialSubmission, serialHolder, serialKey } from "@/lib/assetSerial";
 import { assetPath } from "@/lib/assetRoutes";
 import { normalizeItemText } from "@/lib/itemNaming";
 import { withOpsLabel } from "@/lib/airtableOps";
@@ -387,7 +388,7 @@ async function writeLoan({ asset, event, answer, user, halfDone }) {
  *
  * WHAT THE PAGE WAS DRAWN WITH IS COMPARED, NEVER WRITTEN (#378). The form carries the note it
  * opened on as `previous`, and `readNoteSubmission` refuses a press whose note somebody else has
- * changed since — said, and the page drawn again under the dialog that stays open — and answers
+ * changed since — said, and the page drawn again under the field that stays open — and answers
  * a reader who may no longer write with the page drawn again and nothing said, #378's terminal
  * case: the control is gone from it and the reason is on it.
  *
@@ -402,9 +403,9 @@ async function writeLoan({ asset, event, answer, user, halfDone }) {
  * and the page drawn again; a note left as it was writes nothing and lands as a success does.
  *
  * REFUSES BY RETURNING `{ error }` BECAUSE ITS CALL SITE BINDS (#185): the page's provider
- * (`AssetTransition.js`) reads it through `useActionState` since #597, where `AssetNote.js` did,
- * and it is said above the dialog's actions or under the sheet's field while the opening that
- * sent it stands, and under the status once the page has ended it. A success redirects to the
+ * (`AssetTransition.js`) reads it through `useActionState` since #597, where the note's own part did,
+ * and it is said in the desk's row or under the sheet's field (`ItemDetails.js`) while the opening
+ * that sent it stands, and under the status once the page has ended it. A success redirects to the
  * page it came from and says nothing (#321).
  */
 export const updateAssetNoteAction = withSiteManagerAction(updateAssetNoteHandler);
@@ -433,6 +434,76 @@ async function updateAssetNoteHandler(prevState, formData) {
 
         if (outcome.ended) return refuse(null);
         if (outcome.refusal) return refuse(outcome.refusal);
+        redirect(assetPath(outcome.landed));
+    });
+}
+
+/**
+ * Write an asset's serial number, or clear it (#601) — `Assets."Serial Number"` in place, and nothing
+ * else: the note's action (above) with one question more.
+ *
+ * THE NOTE'S WRAPPER, PLAN AND ORDER. Only a site manager gets past `withSiteManagerAction`; the body
+ * asks `planTransition` the rest on a fresh read of the item — its own job's site manager, in stock or
+ * out (`mayWriteSerial`, the note's answer) — then `recordingRefusal` against the job the page was
+ * drawn on, then `readSerialSubmission`: the number the page was drawn with against the one stored,
+ * the limit, a number kept to the one there. A refusal of any of them is the note's and is said as
+ * the note's is.
+ *
+ * THEN WHETHER ANOTHER ITEM OF THE KIND HOLDS THE NUMBER, READ AGAIN AS IT SAVES. One query on the
+ * number (`getAssetsBySerialNumber`), its items compared by `serialHolder`: the same kind, not this
+ * item, not deleted, a retired one counting. A number taken is refused naming the item that holds it
+ * (`takenBy`, which the field draws in the id's face), whatever the page showed, so a number another
+ * site manager saved a moment ago is refused as one saved last year. A cleared number asks nothing.
+ *
+ * ONE LOCK, KEYED BY THE NUMBER BEING WRITTEN — its key, `serialKey` — so two presses in one process
+ * writing one number on two items of a kind cannot both pass the question, the duplicate gate's shape
+ * on this axis since #338 (`docs/notes/tools.md`). A cleared number is keyed by the printed id, as
+ * the note is. It nests nothing. **Unobserved, and here rather than guarded:** two invocations on two
+ * servers can still both read no holder and both write, which is `withKeyLock`'s standing limit; the
+ * search then finds both items, and the next save of either names the other. Nothing here is half
+ * done: one field of one row is one write.
+ *
+ * SIX OPERATIONS: the session twice, the asset, the job list, the number's read and the write. A
+ * number taken is the first five and the page drawn again; a cleared or unchanged one reads no number.
+ *
+ * REFUSES BY RETURNING `{ error }` BECAUSE ITS CALL SITE BINDS (#185) — the provider, through
+ * `useActionState` — and `{ error, takenBy }` for a number taken, the item's printed id beside the
+ * sentence. A success redirects to the page it came from and says nothing (#321).
+ */
+export const updateAssetSerialAction = withSiteManagerAction(updateAssetSerialHandler);
+
+async function updateAssetSerialHandler(prevState, formData) {
+    return withOpsLabel("updateAssetSerialAction", async () => {
+        const user = await requireUser();
+        const asked = String(formData.get("assetId") ?? "");
+        const typed = String(formData.get("serialNumber") ?? "");
+        const lockKey = serialKey(typed) === "" ? `asset-serial-of:${normalizeItemText(asked).toLowerCase()}` : `asset-serial:${serialKey(typed)}`;
+
+        const outcome = await withKeyLock(lockKey, async () => {
+            const asset = await getAssetByAssetId(asked);
+            if (!asset) return { refusal: ASSET_COPY.notFoundHeading };
+
+            const plan = planTransition({ user, jobs: await getAllJobs(), status: asset.status, assetJobId: asset.job?.[0], ownerJobId: asset.ownerJob?.[0] });
+            const recording = recordingRefusal(plan, { drawnJobId: String(formData.get("drawnJobId") ?? ""), attempted: null });
+            if (recording) return { refusal: recording };
+            const answer = readSerialSubmission(plan, { typed, previous: String(formData.get("previous") ?? ""), stored: asset.serialNumber });
+            if (answer.ended || answer.refusal) return answer;
+            if (answer.unchanged) return { landed: asset.assetId };
+            if (answer.serialNumber !== "") {
+                const holder = serialHolder({
+                    serialNumber: answer.serialNumber,
+                    assetRecordId: asset.id,
+                    categoryRecordId: asset.category?.[0],
+                    items: await getAssetsBySerialNumber(answer.serialNumber),
+                });
+                if (holder) return { refusal: ASSET_SERIAL_COPY.takenBy(holder), takenBy: holder };
+            }
+            await updateAssetSerialNumber({ assetRecordId: asset.id, serialNumber: answer.serialNumber });
+            return { landed: asset.assetId };
+        });
+
+        if (outcome.ended) return refuse(null);
+        if (outcome.refusal) return refuse(outcome.refusal, null, outcome.takenBy ?? null);
         redirect(assetPath(outcome.landed));
     });
 }
@@ -479,6 +550,9 @@ async function updateAssetNoteHandler(prevState, formData) {
  * NOT EXPORTED, for `writeEvent`'s reason — an export of a `"use server"` module
  * is an entry point callable from a browser.
  *
+ * `takenBy` RIDES BESIDE THE SENTENCE FOR A SERIAL NUMBER ANOTHER ITEM HOLDS (#601): that item's printed
+ * id, which the field draws in the id's face.
+ *
  * `moved` RIDES BESIDE THE SENTENCE FOR A STALE PRESS (#463): who recorded the latest
  * entry, what it was, and when, which the page turns into 1k's sentence in the reader's
  * own zone. `error` is still the whole sentence without them, so nothing that reads
@@ -491,10 +565,10 @@ async function updateAssetNoteHandler(prevState, formData) {
  * no longer the reader's to record is not one of them since #597: the page drawn again shows
  * the item's job and no control, and nothing on it says the press was theirs and was lost.
  */
-function refuse(error, moved = null) {
+function refuse(error, moved = null, takenBy = null) {
     refresh();
     if (error === null) return null;
-    return moved ? { error, moved } : { error };
+    return { error, ...(moved ? { moved } : {}), ...(takenBy ? { takenBy } : {}) };
 }
 
 /**

@@ -350,8 +350,10 @@ async function renderCategoryPage({ params, searchParams }) {
                 id: asset.id,
                 assetId: asset.assetId,
                 status: asset.status,
-                // Its note (#533), a field of the asset's own row, so it came with this read.
+                // Its note (#533) and its serial number (#601), fields of the asset's own row, so they
+                // came with this read.
                 note: asset.note,
+                serialNumber: asset.serialNumber,
                 ...(scope.allJobs ? { jobCode: codeOf.get(asset.job?.[0]) ?? "" } : {}),
                 // On loan from the job the page stands on (#598): the job it stands on, said in its
                 // status's place, and no box for it.

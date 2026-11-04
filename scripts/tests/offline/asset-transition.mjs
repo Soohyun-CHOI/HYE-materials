@@ -1487,8 +1487,8 @@ export function run({ check, assert, log }) {
     // A PAGE DRAWN AGAIN ON ANOTHER JOB ENDS EVERY OPENING A READER RECORDS FROM (#597), so a press
     // refused because the item moved is said under the status whichever control sent it.
     assert(
-        "a page drawn on another job ends the dialog's opening, the retirement's, the note's and a loan's two (#597, #598)",
-        /if \(drawnOn !== assetJobRecordId\) \{\s*setDrawnOn\(assetJobRecordId\);\s*setOpenedFor\(null\);\s*if \(retiring\) endRetiring\(\);\s*if \(noteOpenOn !== null\) endNote\(\);\s*if \(lendingOn !== null\) endLending\(\);\s*if \(returning\) endReturning\(\);\s*\}/.test(providerSource)
+        "a page drawn on another job ends the dialog's opening, the retirement's, the note's, the serial number's and a loan's two (#597, #598, #601)",
+        /if \(drawnOn !== assetJobRecordId\) \{\s*setDrawnOn\(assetJobRecordId\);\s*setOpenedFor\(null\);\s*if \(retiring\) endRetiring\(\);\s*if \(note\.openOn !== null\) note\.end\(\);\s*if \(serial\.openOn !== null\) serial\.end\(\);\s*if \(lendingOn !== null\) endLending\(\);\s*if \(returning\) endReturning\(\);\s*\}/.test(providerSource)
     );
 
     // ── 7e: each width asks in its own drawing (#458) ──────────────────────
@@ -1811,7 +1811,11 @@ export function run({ check, assert, log }) {
     );
     assert("  the field filled, with an Accent caret", /bg-mobile-input-background/.test(sheetInput) && /caret-primary/.test(sheetInput));
     assert("  the keyboard's done key ends it", /if \(event\.key !== "Enter"\) return;\s*event\.preventDefault\(\);\s*if \(!locked\) onDone\(\);/.test(sheetInput));
-    assert("  with a clear mark once it holds a value, named for a screen reader", /\{clearable && \(\s*<button[\s\S]*?aria-label=\{clearLabel\}/.test(sheetInput) && /const clearable = Boolean\(value\) && !locked;/.test(sheetInput));
+    assert(
+        "  with a clear mark once it holds a value, named for a screen reader — the field's own clear (#605)",
+        /\{clearable && <FieldClear look="sheet" label=\{clearLabel\} onChange=\{onChange\} focus=\{\(\) => ref\.current\?\.focus\(\)\} \/>\}/.test(sheetInput) &&
+            /const clearable = Boolean\(value\) && !locked;/.test(sheetInput)
+    );
     assert("  every keystroke handed back to the opener", /onChange=\{\(event\) => onChange\(event\.target\.value\)\}/.test(sheetInput));
     // THE ROWS STAND ONLY UNDER A HEAD, AND THE HEAD IS THE LIST'S JUDGMENT (#589). Before a
     // job is chosen and on a job with no recent names the list's space is empty, and the head

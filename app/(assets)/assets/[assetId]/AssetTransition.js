@@ -4,7 +4,7 @@ import { Fragment, createContext, startTransition, useActionState, useContext, u
 import Instant from "@/app/components/Instant";
 import { ASSET_EVENT } from "@/lib/assetStatus";
 import { ASSET_TRANSITION_COPY as COPY } from "@/lib/assetTransition";
-import { lendAssetAction, recordAssetEventAction, retireAssetAction, returnAssetToOwnerAction, updateAssetNoteAction } from "./actions";
+import { lendAssetAction, recordAssetEventAction, retireAssetAction, returnAssetToOwnerAction, updateAssetNoteAction, updateAssetSerialAction } from "./actions";
 import { changeAssetJobAction, deleteAssetAction } from "./officeActions";
 import DeleteConfirm from "./DeleteConfirm";
 import RetirementConfirm from "./RetirementConfirm";
@@ -65,9 +65,11 @@ import ReturnConfirm from "./ReturnConfirm";
  * recorded since, a reader no longer the office — is said under the status of the page drawn
  * again. One question for both widths, as the retirement's is; a landing leaves the page.
  *
- * AND THE NOTE'S (#533), SINCE #597. Its dialog and its sheet say their own answers while the
- * opening that sent one is the current one — a note somebody else changed, too much typed — as
- * they did; one the page ends, the note no longer the reader's to write, is said under the status.
+ * AND THE NOTE'S (#533), SINCE #597, AND THE SERIAL NUMBER'S (#601) THE SAME WAY — a slot each from
+ * `useDetail`, below. A detail's editor at a desk and its sheet on a phone say their own answers while
+ * the opening that sent one is the current one — a value somebody else changed, too much typed, a
+ * serial number another item of the kind holds — and one the page ends, the detail no longer the
+ * reader's to write, is said under the status.
  *
  * AND A LOAN'S TWO (#598), FOR THE SAME REASON. The lending's dialog and sheet (`LendDialog.js`) say a
  * lending left half done while the opening that sent it stands, as the job change says its own, and
@@ -85,6 +87,61 @@ import ReturnConfirm from "./ReturnConfirm";
  * that sent it is ended, and its answer is no longer its dialog's to say.
  */
 const TransitionContext = createContext(null);
+
+/**
+ * One of the item's details as the page holds it (#533, #601): which width's opening is open — `"desk"` or
+ * `"phone"` — and how many there have been, which of them sent the latest answer, what sent it and the
+ * value it sent, and the answer. The note's slot from #597, made one function when the serial number
+ * took a second, so the two cannot hold an answer two ways. `field` is the form's name for the value,
+ * `onSent` what the provider marks as sent last.
+ *
+ * AN ANSWER IS THE OPENING'S THAT SENT IT (`saidInOpening`), so a sentence about a press a reader
+ * walked away from does not greet the next opening; `end` counts an opening the page ends as a new
+ * one, so its answer leaves it for the status. `takenBy` is the printed id of the item a serial number
+ * was refused for (#601), and `sentValue` what was sent, which the field compares its draft against.
+ */
+function useDetail(action, { field, assetId, drawnJobId, onSent }) {
+    const [answer, formAction, pending] = useActionState(action, null);
+    const [openOn, setOpenOn] = useState(null);
+    const [opening, setOpening] = useState(0);
+    const [sentFor, setSentFor] = useState(null);
+    const [sentBy, setSentBy] = useState(null);
+    const [sentValue, setSentValue] = useState(null);
+    const sentence = answer?.error ? <>{answer.error}</> : null;
+    const saidInOpening = sentFor === opening;
+    return {
+        openOn,
+        opening,
+        pending,
+        sentBy,
+        sentValue,
+        sentence,
+        saidInOpening,
+        refusal: saidInOpening ? sentence : null,
+        takenBy: saidInOpening ? (answer?.takenBy ?? null) : null,
+        start: (on) => {
+            setOpening((count) => count + 1);
+            setOpenOn(on);
+        },
+        close: () => setOpenOn(null),
+        end: () => {
+            setOpenOn(null);
+            setOpening((count) => count + 1);
+        },
+        send: ({ typed, previous, by }) => {
+            const formData = new FormData();
+            formData.set("assetId", assetId);
+            formData.set("drawnJobId", drawnJobId ?? "");
+            formData.set(field, typed);
+            formData.set("previous", previous);
+            setSentFor(opening);
+            setSentBy(by);
+            setSentValue(typed);
+            onSent();
+            startTransition(() => formAction(formData));
+        },
+    };
+}
 
 /** The page's transition, as the provider holds it. */
 export function useAssetTransition() {
@@ -123,7 +180,6 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetO
     const returnSentence = useRefusalSentence(returnAnswer);
     const [answer, formAction, pending] = useActionState(recordAssetEventAction, null);
     const [retireAnswer, retireFormAction, retirePending] = useActionState(retireAssetAction, null);
-    const [noteAnswer, noteFormAction, notePending] = useActionState(updateAssetNoteAction, null);
     const [jobAnswer, jobFormAction, jobPending] = useActionState(changeAssetJobAction, null);
     const [deleteAnswer, deleteFormAction, deletePending] = useActionState(deleteAssetAction, null);
     // Whether the deletion's question is open (#582), how many openings there have been, and which
@@ -150,19 +206,15 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetO
     const transitionSentence = useRefusalSentence(answer);
     const jobSentence = jobAnswer?.error ? <>{jobAnswer.error}</> : null;
     const retireSentence = retireAnswer?.error ? <>{retireAnswer.error}</> : null;
-    const noteSentence = noteAnswer?.error ? <>{noteAnswer.error}</> : null;
     const [openedFor, setOpenedFor] = useState(null);
     const [opening, setOpening] = useState(0);
     // The retirement's question (#363), its openings and which of them sent the latest answer.
     const [retiring, setRetiring] = useState(false);
     const [retireOpening, setRetireOpening] = useState(0);
     const [retireSentFor, setRetireSentFor] = useState(null);
-    // The note's opening (#533): which width's, how many there have been, which sent the latest
-    // answer, and what sent it — the commitment, or the desk's `Remove note`.
-    const [noteOpenOn, setNoteOpenOn] = useState(null);
-    const [noteOpening, setNoteOpening] = useState(0);
-    const [noteSentFor, setNoteSentFor] = useState(null);
-    const [noteSentBy, setNoteSentBy] = useState(null);
+    // The item's two details (#533, #601): the note and the serial number, a slot each.
+    const note = useDetail(updateAssetNoteAction, { field: "note", assetId, drawnJobId: assetJobRecordId, onSent: () => setLastSent("note") });
+    const serial = useDetail(updateAssetSerialAction, { field: "serialNumber", assetId, drawnJobId: assetJobRecordId, onSent: () => setLastSent("serial") });
     const [carried, setCarried] = useState(null);
     // Which event the latest submission sent (#531), so the wait is drawn on what sent it.
     const [sending, setSending] = useState(null);
@@ -175,10 +227,6 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetO
         setRetiring(false);
         setRetireOpening((count) => count + 1);
     };
-    const endNote = () => {
-        setNoteOpenOn(null);
-        setNoteOpening((count) => count + 1);
-    };
     // A loan's openings end the same way (#598), and count as new ones.
     const endLending = () => {
         setLendingOn(null);
@@ -189,7 +237,8 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetO
         setReturnOpening((count) => count + 1);
     };
     if (retiring && !plan.mayRetire) endRetiring();
-    if (noteOpenOn !== null && !plan.mayWriteNote) endNote();
+    if (note.openOn !== null && !plan.mayWriteNote) note.end();
+    if (serial.openOn !== null && !plan.mayWriteSerial) serial.end();
     if (lendingOn !== null && !plan.mayLend) endLending();
     if (returning && !plan.mayReturn) endReturning();
     const [drawnOn, setDrawnOn] = useState(assetJobRecordId);
@@ -197,12 +246,12 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetO
         setDrawnOn(assetJobRecordId);
         setOpenedFor(null);
         if (retiring) endRetiring();
-        if (noteOpenOn !== null) endNote();
+        if (note.openOn !== null) note.end();
+        if (serial.openOn !== null) serial.end();
         if (lendingOn !== null) endLending();
         if (returning) endReturning();
     }
     const retireSaidInDialog = retireSentFor === retireOpening;
-    const noteSaidInDialog = noteSentFor === noteOpening;
     const lendSaidInDialog = lendingOn !== null && lendSentFor === lendOpening;
     const returnSaidInDialog = returning && returnSentFor === returnOpening;
 
@@ -222,7 +271,8 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetO
     const said = {
         event: open ? null : transitionSentence,
         retire: retireSaidInDialog ? null : retireSentence,
-        note: noteSaidInDialog ? null : noteSentence,
+        note: note.saidInOpening ? null : note.sentence,
+        serial: serial.saidInOpening ? null : serial.sentence,
         job: jobSaidInDialog ? null : jobSentence,
         delete: deleteSaidInDialog ? null : deleteSentence,
         lend: lendSaidInDialog ? null : lendSentence,
@@ -317,31 +367,10 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetO
             setDeleteOpening((count) => count + 1);
             setDeleting(true);
         },
-        // The note's opening and its answer (#533, #597): `AssetNote` draws the line, the dialog
-        // and the sheet, and sends through here.
-        note: {
-            openOn: noteOpenOn,
-            opening: noteOpening,
-            start: (on) => {
-                setNoteOpening((count) => count + 1);
-                setNoteOpenOn(on);
-            },
-            close: () => setNoteOpenOn(null),
-            pending: notePending,
-            sentBy: noteSentBy,
-            send: ({ typed, previous, by }) => {
-                const formData = new FormData();
-                formData.set("assetId", assetId);
-                formData.set("drawnJobId", assetJobRecordId ?? "");
-                formData.set("note", typed);
-                formData.set("previous", previous);
-                setNoteSentFor(noteOpening);
-                setNoteSentBy(by);
-                setLastSent("note");
-                startTransition(() => noteFormAction(formData));
-            },
-            refusal: noteSaidInDialog ? noteSentence : null,
-        },
+        // The two details' openings and answers (#533, #597, #601): `ItemDetails.js` draws the desk's rows and
+        // the phone's lines and sheets, and sends through here.
+        note,
+        serial,
     };
 
     return (
