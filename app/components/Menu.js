@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useId, useLayoutEffect, useRef, useState } from "react";
-import { clickFromKeys, keepFocus, menuButtonKey, menuIndex, menuKey, typeaheadIndex } from "@/lib/controls";
+import { clickFromKeys, keepFocus, menuButtonKey, menuIndex, menuKey, openerPress, typeaheadIndex } from "@/lib/controls";
 import Icon from "./Icon";
 import { SCROLL_LANE } from "./scrollLane";
 
@@ -381,7 +381,8 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
     };
 
     // Focus going anywhere but into the menu or back to its opener closes it — which is
-    // what Tab does, and a press outside. The opener's own press toggles it shut.
+    // what Tab does, and a press outside. The opener's own press closes it, in Safari after
+    // this has (`useOpenerPress`, #607).
     const onBlur = (event) => {
         const next = event.relatedTarget;
         if (next && (listRef.current?.contains(next) || anchorRef.current?.contains(next))) return;
@@ -444,6 +445,32 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
 }
 
 /**
+ * A press on the button that opened a menu (#607): `onPointerDown` for the button, noting whether
+ * the menu was `open` as the press began, and `closes(event)` for its click, whether that click
+ * closes the menu — `lib/controls.js:openerPress`, which has why. Every menu button takes it, and
+ * the rail's toggle for its Panel. What the click hands it is the click's own event, so a key's
+ * click reads no note a press left (`clickFromKeys`), and each click spends the note.
+ *
+ * FOCUS STAYS WHERE THE PRESS PUT IT: on the button in Chrome, nowhere in Safari, as a press on any
+ * other button leaves it. The close moves none, since the keys never reach it — an open menu holds
+ * them, and Escape is its close that hands focus back — and a script's focus after a tap is one
+ * Safari draws (#578).
+ */
+export function useOpenerPress(open) {
+    const openAtPress = useRef(false);
+    return {
+        onPointerDown: () => {
+            openAtPress.current = open;
+        },
+        closes: (event) => {
+            const verdict = openerPress({ open, openAtPress: openAtPress.current, byKeys: clickFromKeys(event) });
+            openAtPress.current = false;
+            return verdict === "close";
+        },
+    };
+}
+
+/**
  * A button that opens a menu set flush at its end (1l, #527) — WAI-ARIA's menu button, as the
  * asset page's `More actions` and the rail's account are: it says it opens a menu and whether it
  * is open, Enter, Space and Down open it on its first item and Up on its last, and Escape hands
@@ -460,6 +487,7 @@ export function MenuButton({ label, locked = false, items }) {
     const [focusOn, setFocusOn] = useState("first");
     const [keyed, setKeyed] = useState(false);
     const buttonRef = useRef(null);
+    const press = useOpenerPress(open);
     const id = useId();
     const buttonId = `${id}-button`;
     const menuId = `${id}-menu`;
@@ -486,7 +514,8 @@ export function MenuButton({ label, locked = false, items }) {
                 aria-controls={open ? menuId : undefined}
                 aria-label={label}
                 aria-disabled={locked || undefined}
-                onClick={(event) => (open ? close("toggle") : openOn("first", clickFromKeys(event)))}
+                onPointerDown={press.onPointerDown}
+                onClick={(event) => (press.closes(event) ? close("toggle") : openOn("first", clickFromKeys(event)))}
                 onKeyDown={(event) => {
                     const where = menuButtonKey(event);
                     if (!where || open) return;

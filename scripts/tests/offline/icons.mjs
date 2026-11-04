@@ -11,7 +11,8 @@
 //      `app/designValues.css` declares — and a mark hidden from assistive tech that takes a
 //      shape, a crop and classes and nothing that could name it.
 //   3. THE SHAPES, BY VALUE: each is typed below as Lucide 1.52.0 has it, the release the
-//      design draws its marks from. A table read back from the module would pass for any
+//      design draws its marks from, but `ellipsis`, whose dots the design fills (#607). A
+//      table read back from the module would pass for any
 //      shape it held, so a shape changes in both files in one commit — `design-values.mjs`'
 //      rule for the design's figures — and so does the release.
 //   4. THE CALLS: each names a shape the module has, every shape is drawn somewhere, and each
@@ -54,6 +55,9 @@ const NOT_MARKS = {
  * release's shape, as they draw the note's `message-square` (#533); this is 1.52.0's. `arrow-up-down`
  * leads the sort on 1a, 1d and 1l (#540), drawn as 1.52.0 holds it. `arrow-right` stands between a
  * loan's two jobs under its history entry on a phone (1j, #598), as the files of 2026-11-02 draw it.
+ * `ellipsis` is `More actions`' at 16, 24 and 14, and the files of 2026-11-04's afternoon fill its
+ * dots to the edge Lucide's ring reaches — 1 and half the line — so its circles take `currentColor`
+ * inside the one line (#607).
  */
 const DESIGN_SHAPES = {
     "arrow-right": [
@@ -97,9 +101,9 @@ const DESIGN_SHAPES = {
         ["path", { d: "M8 16h.01" }],
     ],
     ellipsis: [
-        ["circle", { cx: "12", cy: "12", r: "1" }],
-        ["circle", { cx: "19", cy: "12", r: "1" }],
-        ["circle", { cx: "5", cy: "12", r: "1" }],
+        ["circle", { cx: "12", cy: "12", r: "1", fill: "currentColor" }],
+        ["circle", { cx: "19", cy: "12", r: "1", fill: "currentColor" }],
+        ["circle", { cx: "5", cy: "12", r: "1", fill: "currentColor" }],
     ],
     "file-text": [
         ["path", { d: "M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" }],

@@ -3,7 +3,7 @@
 import { useId, useRef, useState } from "react";
 import { ButtonLabel } from "@/app/components/Controls";
 import Icon from "@/app/components/Icon";
-import { ActionMenu } from "@/app/components/Menu";
+import { ActionMenu, useOpenerPress } from "@/app/components/Menu";
 import { useTooltip } from "@/app/components/Tooltip";
 import { clickFromKeys, menuButtonKey } from "@/lib/controls";
 import { NAVIGATION_COPY } from "@/lib/navigation";
@@ -15,7 +15,7 @@ import { useAssetTransition } from "./AssetTransition";
 import { JobChangeDialog, JobChangeSheet } from "./JobChange";
 import { LendDialog, LendSheet } from "./LendDialog";
 
-/** Three dots, 16 at a desk and 24 in a phone's top bar (1f, 1j). */
+/** Three filled dots, 16 at a desk and 24 in a phone's top bar (1f, 1j; `Icon.js`, #607). */
 function Dots({ phone }) {
     return phone ? <Icon name="ellipsis" className="size-mobile-top-bar-icon" /> : <Icon name="ellipsis" className="size-icon" />;
 }
@@ -47,8 +47,10 @@ function Dots({ phone }) {
  * rail's icons have (0k: 6 above, not while its menu shows). The design names the phone's
  * button `More`; a name nobody sees follows this app's rule, and both open one menu.
  *
- * AT A DESK, 32 SQUARE WITH A 16 MARK, ITS INK ON THE CONTENT'S EDGE; ON A PHONE, 48 ROUND
- * IN INK 2 WITH A 24 MARK, ON THE FIELD WASH IN INK WHILE ITS MENU IS OPEN (1j).
+ * AT A DESK, 32 SQUARE WITH A 16 MARK, ITS INK ON THE CONTENT'S EDGE, ON HOVER WHILE ITS MENU
+ * IS OPEN (1f, #607); ON A PHONE, 48 ROUND IN INK 2 WITH A 24 MARK, ON THE FIELD WASH IN INK
+ * WHILE ITS MENU IS OPEN (1j). A press on it while the menu is open closes the menu, in Safari too
+ * (`useOpenerPress`, #607).
  *
  * ON A PHONE ITS MENU ENDS ON THE ACCOUNT, AND EVERY SCREEN WITH A TOP BAR CARRIES IT (Tools
  * 0a Menu, #495). A phone has no rail, so this is where the reader is named and signs out:
@@ -101,6 +103,7 @@ export default function MoreActions({ phone = false, account = null }) {
     const [focusOn, setFocusOn] = useState("first");
     const [keyed, setKeyed] = useState(false);
     const buttonRef = useRef(null);
+    const press = useOpenerPress(open);
     const id = useId();
     const tip = useTooltip({ enabled: !phone, placement: "above" });
     const word = ASSET_COPY.moreActions;
@@ -222,9 +225,10 @@ export default function MoreActions({ phone = false, account = null }) {
                 aria-busy={busy || undefined}
                 aria-disabled={busy || undefined}
                 data-busy={busy || undefined}
+                onPointerDown={press.onPointerDown}
                 onClick={(event) => {
                     if (busy) return;
-                    if (open) close("toggle");
+                    if (press.closes(event)) close("toggle");
                     else openOn("first", clickFromKeys(event));
                 }}
                 onKeyDown={(event) => {
@@ -237,7 +241,7 @@ export default function MoreActions({ phone = false, account = null }) {
                 className={
                     phone
                         ? "group/button relative flex aspect-square h-mobile-touch-target shrink-0 items-center justify-center rounded-full text-foreground-muted aria-expanded:bg-background-muted aria-expanded:text-foreground-default"
-                        : "group/button relative flex aspect-square h-control shrink-0 items-center justify-center rounded-control text-foreground-default not-aria-disabled:hover:bg-hover"
+                        : "group/button relative flex aspect-square h-control shrink-0 items-center justify-center rounded-control text-foreground-default not-aria-disabled:hover:bg-hover aria-expanded:bg-hover"
                 }
             >
                 <ButtonLabel size={phone ? "xl" : "lg"} busyLabel={ASSET_TRANSITION_COPY.working[ASSET_EVENT.SENT_FOR_REPAIR]}>

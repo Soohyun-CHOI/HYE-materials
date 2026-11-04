@@ -2,7 +2,7 @@
 
 import { useId, useRef, useState } from "react";
 import Icon from "./Icon";
-import { ActionMenu } from "./Menu";
+import { ActionMenu, useOpenerPress } from "./Menu";
 import { clickFromKeys, menuButtonKey } from "@/lib/controls";
 import { NAVIGATION_COPY as COPY } from "@/lib/navigation";
 
@@ -50,6 +50,7 @@ export default function RailAccount({ account: words, expanded = false, tip }) {
     const [focusOn, setFocusOn] = useState("first");
     const [keyed, setKeyed] = useState(false);
     const buttonRef = useRef(null);
+    const press = useOpenerPress(open);
     const id = useId();
     if (!words) return null;
 
@@ -78,7 +79,8 @@ export default function RailAccount({ account: words, expanded = false, tip }) {
                 aria-expanded={open}
                 aria-controls={open ? menuId : undefined}
                 aria-label={words.label}
-                onClick={(event) => (open ? close("toggle") : openOn("first", clickFromKeys(event)))}
+                onPointerDown={press.onPointerDown}
+                onClick={(event) => (press.closes(event) ? close("toggle") : openOn("first", clickFromKeys(event)))}
                 onKeyDown={(event) => {
                     const where = menuButtonKey(event);
                     if (!where || open) return;
