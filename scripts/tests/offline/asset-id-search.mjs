@@ -71,7 +71,8 @@ const onJob = (job) => summarizeAssetCategories(KINDS, ASSETS.filter((each) => e
 const ALL = summarizeAssetCategories(KINDS, ASSETS);
 
 const ids = (reading) => reading.rows.map((row) => row.id).join(",") || "-";
-const foundSaid = (reading) => (reading.found ? `${reading.found.assetId} ${reading.found.itemName} ${reading.found.status}` : "-");
+// What was found, a list since #601 — an id finds one item at most, and it is the list's one entry.
+const foundSaid = (reading) => (reading.found.length > 0 ? reading.found.map((item) => `${item.assetId} ${item.itemName} ${item.status}`).join(" + ") : "-");
 const counted = (reading) => reading.rows.map((row) => `${row.id}:${row.counts.map((c) => c.count).join("/")}`).join(" ");
 const emptiedSays = (reading, jobCode = null) => {
     const words = emptiedListWords(reading, { jobCode });
@@ -191,7 +192,7 @@ export function run({ check, log }) {
     check(
         "the words: the search's, the drawing's sentence and the one naming a job",
         [ASSET_LIST_COPY.searchLabel, ASSET_LIST_COPY.noIdMatch, ASSET_LIST_COPY.noIdMatchOn("23-USA-09")].join(" | "),
-        "Search items or item IDs | No item has the ID | No item on 23-USA-09 has the ID"
+        "Search items, IDs or serials | No item has the ID | No item on 23-USA-09 has the ID"
     );
 
     // ── the source ──────────────────────────────────────────────────────────
@@ -201,9 +202,10 @@ export function run({ check, log }) {
     check(
         "the list hands the search's Enter the way to what it found, and draws the way only while something is found",
         [
-            /const open = \(\) => \{\s*if \(reading\.found\) router\.push\(assetPath\(reading\.found\.assetId\)\);\s*\};/.test(list),
+            // Enter opens the one item found; with none it asks at once what the typing has not rested on (#601).
+            /const open = \(\) => \{\s*if \(reading\.found\.length === 1\) router\.push\(assetPath\(reading\.found\[0\]\.assetId\)\);\s*else if \(reading\.found\.length === 0 && reading\.asksBy === "serial"\) askElsewhere\(reading\.asks\);\s*\};/.test(list),
             /onEnter=\{open\}/.test(list),
-            /found=\{reading\.found && <FoundItem found=\{reading\.found\} \/>\}/.test(list),
+            /found=\{reading\.found\.length > 0 && reading\.found\.map\(\(item\) => <FoundItem key=\{item\.assetId\} found=\{item\} \/>\)\}\s*foundCount=\{reading\.found\.length\}/.test(list),
             /const emptied = reading\.rows\.length === 0 \? emptiedListWords\(reading, \{ jobCode \}\) : null;/.test(list),
         ].join(" "),
         "true true true true"
@@ -232,10 +234,10 @@ export function run({ check, log }) {
 
     const frame = parseFile(FRAME).source;
     check(
-        "the frame holds the column head the way's 40 and the band's 14 lower while it stands",
+        "the frame holds the column head the way's 40 and the band's 14 lower while it stands — each line's 40 and 8 between, where a serial number names more than one (#601)",
         [
-            /const BAND_FOUND = `\$\{LIST_MEASURE\} pb-control-band-inset-y`;/.test(frame),
-            /const UNDER_HEAD_BAND_AND_FOUND =\s*"\[--table-head-top:calc\(var\(--spacing-list-header-inset-top\)\+var\(--height-control-lg\)\+var\(--spacing-list-header-inset-bottom\)\+var\(--height-control\)\+var\(--spacing-control-band-inset-y\)\+var\(--height-found-item\)\+var\(--spacing-control-band-inset-y\)\)\] scroll-pt-\[calc\(var\(--table-head-top\)\+var\(--height-table-header\)\)\]";/.test(
+            /const BAND_FOUND = `\$\{LIST_MEASURE\} flex flex-col gap-gap pb-control-band-inset-y`;/.test(frame),
+            /const UNDER_HEAD_BAND_AND_FOUND =\s*"\[--table-head-top:calc\(var\(--spacing-list-header-inset-top\)\+var\(--height-control-lg\)\+var\(--spacing-list-header-inset-bottom\)\+var\(--height-control\)\+var\(--spacing-control-band-inset-y\)\+var\(--found-count,1\)\*var\(--height-found-item\)\+\(var\(--found-count,1\)-1\)\*var\(--spacing-gap\)\+var\(--spacing-control-band-inset-y\)\)\] scroll-pt-\[calc\(var\(--table-head-top\)\+var\(--height-table-header\)\)\]";/.test(
                 frame
             ),
         ].join(" "),

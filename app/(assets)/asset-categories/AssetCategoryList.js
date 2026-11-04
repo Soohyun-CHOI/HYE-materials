@@ -10,6 +10,7 @@ import { FILTER_BAR_COPY } from "@/lib/listFilters";
 import {
     ASSET_LIST_COPY as COPY,
     ASSET_LIST_FACETS,
+    SERIAL_ASK_REST_MS,
     countColumns,
     emptiedListWords,
     pageOfAssetCategories,
@@ -121,20 +122,32 @@ export default function AssetCategoryList({ rows, job, jobCode = null, allJobs =
     // The counts' columns and the grid holding them: one job's list counts its items on loan too (#598).
     const counted = countColumns({ allJobs });
     const columns = allJobs ? COLUMNS : COLUMNS_WITH_LOAN;
-    useEffect(() => {
-        const assetId = reading.asks;
-        if (!assetId || askedElsewhere.current.has(assetId)) return;
-        askedElsewhere.current.add(assetId);
-        readFoundElsewhereAction(assetId).then(
+    // Each text is asked once, however often it is typed or an effect runs.
+    const askElsewhere = (text) => {
+        if (!text || askedElsewhere.current.has(text)) return;
+        askedElsewhere.current.add(text);
+        readFoundElsewhereAction(text).then(
             (answer) => {
-                if (answer && Object.hasOwn(answer, "found")) setElsewhere((was) => ({ ...was, [assetId]: answer.found }));
+                if (answer && Object.hasOwn(answer, "found")) setElsewhere((was) => ({ ...was, [text]: answer.found }));
             },
             () => {}
         );
-    }, [reading.asks]);
+    };
+    useEffect(() => {
+        const text = reading.asks;
+        if (!text || askedElsewhere.current.has(text)) return undefined;
+        if (reading.asksBy !== "serial") {
+            askElsewhere(text);
+            return undefined;
+        }
+        const resting = window.setTimeout(() => askElsewhere(text), SERIAL_ASK_REST_MS);
+        return () => window.clearTimeout(resting);
+    }, [reading.asks, reading.asksBy]);
     const page = pageOfAssetCategories(reading.rows, params.get("page"));
+    // Enter opens the one item found, and asks at once what the typing has not yet rested on.
     const open = () => {
-        if (reading.found) router.push(assetPath(reading.found.assetId));
+        if (reading.found.length === 1) router.push(assetPath(reading.found[0].assetId));
+        else if (reading.found.length === 0 && reading.asksBy === "serial") askElsewhere(reading.asks);
     };
 
     const write = (filters, toPage = 1) => window.history.replaceState(null, "", assetCategoriesPath(toPage, job, filters));
@@ -193,7 +206,8 @@ export default function AssetCategoryList({ rows, job, jobCode = null, allJobs =
                     </div>
                 </>
             }
-            found={reading.found && <FoundItem found={reading.found} />}
+            found={reading.found.length > 0 && reading.found.map((item) => <FoundItem key={item.assetId} found={item} />)}
+            foundCount={reading.found.length}
             footer={
                 !emptied && (
                     <Pager

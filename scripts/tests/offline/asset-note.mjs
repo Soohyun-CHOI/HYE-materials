@@ -12,7 +12,7 @@
 // clears with null and refuses a note the rule would not keep; that no reader of `Assets` names
 // its `fields`, which is what brings the note with every asset read at no cost; that the item's
 // page and a category's hand the note on and nothing builds a label from it; and that the
-// dialog and the sheet ask the rule before they send. Source order is not execution order
+// desk's row and the phone's sheet ask the rule before they send (`ItemDetails.js`, #601). Source order is not execution order
 // (`_ast.mjs`), and a browser is where the screens are seen.
 //
 // WHAT IT CANNOT SEE: whether `Assets."Note"` exists on a base, or is a single line of text —
@@ -30,7 +30,8 @@ export const title = "An item's note: what it keeps, who writes it, and where it
 
 const ACTIONS = "app/(assets)/assets/[assetId]/actions.js";
 const ASSETS = "lib/airtable/assets.js";
-const NOTE_COMPONENT = "app/(assets)/assets/[assetId]/AssetNote.js";
+// The note's screens since #601: the desk's Details row and the phone's line and sheet, the serial number's too.
+const NOTE_COMPONENT = "app/(assets)/assets/[assetId]/ItemDetails.js";
 const PROVIDER = "app/(assets)/assets/[assetId]/AssetTransition.js";
 const ITEM_PAGE = "app/(assets)/assets/[assetId]/page.js";
 const CATEGORY_PAGE = "app/(assets)/asset-categories/[categoryRecordId]/page.js";
@@ -153,8 +154,8 @@ export function run({ check, assert, log }) {
     log("every word the screens say about a note, by value:");
     check(
         "the openings and the line",
-        [ASSET_NOTE_COPY.label, ASSET_NOTE_COPY.addNote, ASSET_NOTE_COPY.editNote, ASSET_NOTE_COPY.edit, ASSET_NOTE_COPY.addANote].join(" | "),
-        "Note | Add note | Edit note | Edit | Add a note"
+        [ASSET_NOTE_COPY.label, ASSET_NOTE_COPY.addNote, ASSET_NOTE_COPY.editNote, ASSET_NOTE_COPY.edit, ASSET_NOTE_COPY.addANote, ASSET_NOTE_COPY.add].join(" | "),
+        "Note | Add note | Edit note | Edit | Add a note | Add"
     );
     check(
         "the field, its line and its count",
@@ -163,8 +164,8 @@ export function run({ check, assert, log }) {
     );
     check(
         "the actions and their working words",
-        [ASSET_NOTE_COPY.save, ASSET_NOTE_COPY.remove, ASSET_NOTE_COPY.done, ASSET_NOTE_COPY.working.save, ASSET_NOTE_COPY.working.add, ASSET_NOTE_COPY.working.remove].join(" | "),
-        "Save | Remove note | Done | Saving… | Adding… | Removing…"
+        [ASSET_NOTE_COPY.save, ASSET_NOTE_COPY.done, ASSET_NOTE_COPY.working.save, ASSET_NOTE_COPY.working.add, ASSET_NOTE_COPY.working.remove].join(" | "),
+        "Save | Done | Saving… | Adding… | Removing…"
     );
     check("  Cancel and the clear mark the transition's own", `${ASSET_NOTE_COPY.cancel === ASSET_TRANSITION_COPY.cancel} ${ASSET_NOTE_COPY.clear === ASSET_TRANSITION_COPY.clearName}`, "true true");
     check("a note changed first", ASSET_NOTE_COPY.changedFirst, "Nothing was saved. Someone else changed this note first.");
@@ -189,7 +190,7 @@ export function run({ check, assert, log }) {
     check("  and no Asset Log row, nor the caches an event moves", facts.noEvent, true);
     check(
         "  the one helper answers a refusal the page says on its own with the page and nothing beside it",
-        /function refuse\(error, moved = null\) \{\s*refresh\(\);\s*if \(error === null\) return null;\s*return moved \? \{ error, moved \} : \{ error \};/.test(actions.source),
+        /function refuse\(error, moved = null, takenBy = null\) \{\s*refresh\(\);\s*if \(error === null\) return null;\s*return \{ error, \.\.\.\(moved \? \{ moved \} : \{\}\), \.\.\.\(takenBy \? \{ takenBy \} : \{\}\) \};/.test(actions.source),
         true
     );
 
@@ -224,6 +225,8 @@ export function run({ check, assert, log }) {
                 .replace(/\/\*[^]*?\*\//g, "")
                 .replace(/\/\/.*$/gm, "")
                 .replace(/fields: \{ Note:[^}]*\}/, "")
+                // The serial number's writer (#601), a write and no read.
+                .replace(/fields: \{ \[SERIAL_NUMBER_FIELD\]:[^}]*\}/, "")
                 .replace(/fields: \{\s*Status:[^}]*\}/, "")
                 .replace(/fields: \{ Job: \[jobRecordId\], "Owner Job": \[jobRecordId\] \}/, "")
                 .replace(/\(assetId\) => \(\{[^]*?\}\)/, "")
@@ -239,9 +242,12 @@ export function run({ check, assert, log }) {
     log("the screens hand the note on, and ask the rule before they send:");
     const itemPage = parseFile(ITEM_PAGE).source;
     check(
-        "the item's page draws it under the status for every reader, writable as the plan says",
-        /<AssetNote note=\{asset\.note\} writable=\{transition\.mayWriteNote\} \/>/.test(itemPage),
-        true
+        "the item's page draws it in Details at a desk and under the status on a phone, for every reader, writable as the plan says",
+        [
+            /<DetailsBlock serialNumber=\{asset\.serialNumber\} note=\{asset\.note\} mayWriteSerial=\{transition\.mayWriteSerial\} mayWriteNote=\{transition\.mayWriteNote\} \/>/.test(itemPage),
+            /<PhoneDetails serialNumber=\{asset\.serialNumber\} note=\{asset\.note\} mayWriteSerial=\{transition\.mayWriteSerial\} mayWriteNote=\{transition\.mayWriteNote\} \/>/.test(itemPage),
+        ].join(" "),
+        "true true"
     );
     check("a category's rows carry it off the read they came from", /note: asset\.note,/.test(parseFile(CATEGORY_PAGE).source), true);
     check(
@@ -249,56 +255,73 @@ export function run({ check, assert, log }) {
         [/buildAssetLabel\(\{\s*origin: `\$\{proto\}:\/\/\$\{headerList\.get\("host"\) \?\? ""\}`,\s*assetId: asset\.assetId,\s*\}\)/.test(itemPage), !/\.note\b/.test(parseFile("lib/assetLabelQR.js").source)].join(" "),
         "true true"
     );
+    // ONE PART DRAWS BOTH DETAILS SINCE #601 (`ItemDetails.js`), the note's rows and sheets the serial
+    // number's: the desk edits a row where it stands (1f, the files of 2026-11-04) and a phone opens a
+    // sheet. The page's provider sends each and holds its answer (`useDetail`) since #597.
     const component = parseFile(NOTE_COMPONENT);
-    const noteLine = functionSource(component, "AssetNote");
-    // THE PAGE'S PROVIDER SENDS IT AND HOLDS THE ANSWER SINCE #597, so a note refused because the
-    // item is no longer the reader's to write is said under the status once its dialog has gone.
     const provider = parseFile(PROVIDER).source;
+    const slot = functionSource(parseFile(PROVIDER), "useDetail");
     check(
         "the press sends the item, the job the page was drawn on, what was typed, and the note the page was drawn with",
         [
-            /formData\.set\("assetId", assetId\);\s*formData\.set\("drawnJobId", assetJobRecordId \?\? ""\);\s*formData\.set\("note", typed\);\s*formData\.set\("previous", previous\);/.test(provider),
-            /startTransition\(\(\) => noteFormAction\(formData\)\);/.test(provider),
-            /useActionState\(updateAssetNoteAction, null\)/.test(provider),
-            /const send = \(typed, by\) => control\.send\(\{ typed, previous: note, by \}\);/.test(noteLine),
+            /formData\.set\("assetId", assetId\);\s*formData\.set\("drawnJobId", drawnJobId \?\? ""\);\s*formData\.set\(field, typed\);\s*formData\.set\("previous", previous\);/.test(slot),
+            /startTransition\(\(\) => formAction\(formData\)\);/.test(slot),
+            /const \[answer, formAction, pending\] = useActionState\(action, null\);/.test(slot),
+            /const note = useDetail\(updateAssetNoteAction, \{ field: "note", assetId, drawnJobId: assetJobRecordId, onSent: \(\) => setLastSent\("note"\) \}\);/.test(provider),
+            /control\.send\(\{ typed: draft, previous: value, by: "submit" \}\);/.test(functionSource(component, "RowEditor")),
+            /control\.send\(\{ typed: draft, previous: value, by: "submit" \}\);/.test(functionSource(component, "DetailSheet")),
         ].join(" "),
-        "true true true true"
+        "true true true true true true"
     );
-    check("  a reader who may not write meets nothing where there is no note", /if \(!note && !writable\) return null;/.test(noteLine), true);
+    check(
+        "  a reader who may not write meets nothing where there is no note",
+        [
+            /\]\.filter\(\(row\) => row\.value \|\| row\.writable\);\s*if \(rows\.length === 0\) return null;/.test(functionSource(component, "DetailsBlock")),
+            /\{\(note \|\| mayWriteNote\) && <PhoneDetail kind="note"/.test(functionSource(component, "PhoneDetails")),
+        ].join(" "),
+        "true true"
+    );
     check(
         "  the answer said only to the opening that sent it, and under the status once the page ended it",
         [
-            /const noteSaidInDialog = noteSentFor === noteOpening;/.test(provider),
-            /refusal: noteSaidInDialog \? noteSentence : null,/.test(provider),
-            /note: noteSaidInDialog \? null : noteSentence,/.test(provider),
-            /if \(noteOpenOn !== null && !plan\.mayWriteNote\) endNote\(\);/.test(provider),
+            /const saidInOpening = sentFor === opening;/.test(slot),
+            /refusal: saidInOpening \? sentence : null,/.test(slot),
+            /note: note\.saidInOpening \? null : note\.sentence,/.test(provider),
+            /if \(note\.openOn !== null && !plan\.mayWriteNote\) note\.end\(\);/.test(provider),
         ].join(" "),
         "true true true true"
     );
     check(
         "  each width's opener is drawn for a writer alone, and opens its own",
         [
-            /\{writable && \(\s*<button\s+type="button"\s+aria-label=\{COPY\.editNote\}\s+onClick=\{\(\) => open\("desk"\)\}/.test(noteLine),
-            /\{writable && <NoteDialog key=\{opening\} open=\{openOn === "desk"\} \{\.\.\.shared\} \/>\}/.test(noteLine),
-            /\{writable && <NoteSheet key=\{opening\} open=\{openOn === "phone"\} \{\.\.\.shared\} \/>\}/.test(noteLine),
-            /if \(!writable\) return <p className="flex items-start gap-gap text-mobile-body-sm">\{line\}<\/p>;/.test(functionSource(component, "PhoneNote")),
+            /\{writable && \(\s*<button\s+ref=\{openerRef\}\s+type="button"\s+aria-label=\{detail\.editName\}\s+onClick=\{\(\) => control\.start\("desk"\)\}/.test(functionSource(component, "DetailsRow")),
+            /const open = writable && control\.openOn === "desk";/.test(functionSource(component, "DetailsRow")),
+            /\{writable && <DetailSheet key=\{control\.opening\} kind=\{kind\} value=\{value\} open=\{control\.openOn === "phone"\} control=\{control\} \/>\}/.test(functionSource(component, "PhoneDetail")),
+            /\) : \(\s*<p className="flex items-start gap-gap text-mobile-body-sm">\{content\}<\/p>\s*\)\}/.test(functionSource(component, "PhoneDetail")),
         ].join(" "),
         "true true true true"
     );
-    for (const name of ["NoteDialog", "NoteSheet"]) {
+    check("  the note's detail asks the note's rule", /read: \(input\) => readNoteSubmission\(\{ mayWriteNote: true \}, input\),/.test(component.source), true);
+    for (const name of ["RowEditor", "DetailSheet"]) {
         const body = functionSource(component, name);
         check(
-            `  the ${name === "NoteDialog" ? "desk's dialog" : "phone's sheet"} asks the rule of what is typed against the note it opened on, and sends only what it takes`,
+            `  the ${name === "RowEditor" ? "desk's row" : "phone's sheet"} asks the rule of what is typed against the value it opened on, and sends only what it takes`,
             [
-                /const answer = readNoteSubmission\(\{ mayWriteNote: true \}, \{ typed: draft, previous: note, stored: note \}\);/.test(body),
+                /const answer = detail\.read\(\{ typed: draft, previous: value, stored: value \}\);/.test(body),
                 /if \(answer\.refusal\) \{\s*setPressed\(true\);/.test(body),
-                /if \(answer\.unchanged\) \{\s*onClose\(\);\s*return;\s*\}\s*onSend\(draft, "submit"\);/.test(body),
-                /refusal=\{pressed \? answer\.refusal : null\} count=\{COPY\.count\(draft\.length\)\}/.test(body),
+                /if \(answer\.unchanged\) \{\s*(onClose|control\.close)\(\);\s*return;\s*\}\s*control\.send\(\{ typed: draft, previous: value, by: "submit" \}\);/.test(body),
+                /refusal=\{\(pressed \? answer\.refusal : null\) \?\? server\.taken\}\s*count=\{detail\.count\?\.\(draft\.length\)\}/.test(body),
             ].join(" "),
             "true true true true"
         );
     }
-    check("  the desk's Remove note sends the note cleared, as an action of its own", /onClick=\{\(\) => onSend\("", "action"\)\}/.test(functionSource(component, "NoteDialog")), true);
+    // A CLEARED FIELD SAVED REMOVES IT, AND NO CONTROL OF ITS OWN DOES (1f, since the files of 2026-11-04):
+    // the desk's dialog drew `Remove note` from #533, and its `-ing` word is the cleared save's now.
+    check(
+        "  no Remove note: a cleared field is a removal, said as one",
+        [!Object.hasOwn(ASSET_NOTE_COPY, "remove"), !/Remove note|COPY\.remove\b/.test(component.source.replace(/\/\*[^]*?\*\//g, "").replace(/\/\/.*$/gm, "")), /if \(detail\.valueOf\(answer\) === ""\) return "remove";/.test(component.source)].join(" "),
+        "true true true"
+    );
 
     // THE COUNT AT THE LINE'S END IS THE FIELD'S (0a Note): in Red with the field while it refuses,
     // describing the field with the line, and outside the line's live region so it is not read

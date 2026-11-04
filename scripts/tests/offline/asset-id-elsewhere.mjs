@@ -86,15 +86,18 @@ const ALL = rowsOn(ALL_JOBS);
 // What `readFoundElsewhereAction` answers for the item on the second job.
 const AT_JOB_TWO = { assetId: "HYE-AST-261019-432", itemName: "TIG Welder", status: ASSET_STATUS.RETIRED, job: "recJ2" };
 
-// The list's reading as `AssetCategoryList` asks it: on the first job, or on all of them.
+// The list's reading as `AssetCategoryList` asks it: on the first job, or on all of them. The base answers
+// a list since #601 — a serial number may name an item of each of two kinds — so an id's one item and
+// its none are written here as the item and null, and handed over as a list of one and an empty one.
+const answered = (elsewhere) => Object.fromEntries(Object.entries(elsewhere).map(([text, item]) => [text, item === null ? [] : [item]]));
 const read = (rows, search, { allJobs = false, elsewhere = {} } = {}) =>
-    readCategoryList(rows, new URLSearchParams(search), { allJobs, jobs: JOBS, job: allJobs ? ALL_JOBS : "recJ1", elsewhere });
+    readCategoryList(rows, new URLSearchParams(search), { allJobs, jobs: JOBS, job: allJobs ? ALL_JOBS : "recJ1", elsewhere: answered(elsewhere) });
 
 // The rows, the line — id, name, job, status — and the id asked of every job.
 const said = (reading) =>
     [
         reading.rows.map((row) => row.id).join(",") || "-",
-        reading.found ? [reading.found.assetId, reading.found.itemName, reading.found.jobCode ?? "-", reading.found.status].join(" · ") : "-",
+        reading.found.length > 0 ? reading.found.map((item) => [item.assetId, item.itemName, item.jobCode ?? "-", item.status].join(" · ")).join(" + ") : "-",
         reading.asks ?? "-",
     ].join(" | ");
 const sentence = (reading, jobCode) => {
@@ -115,9 +118,10 @@ function listAskOf(source) {
     return [
         /const \[elsewhere, setElsewhere\] = useState\(\{\}\);\s*const askedElsewhere = useRef\(new Set\(\)\);/.test(source),
         /const reading = readCategoryList\(rows, params, \{ allJobs, jobs, q: typed, job, elsewhere \}\);/.test(source),
-        /const assetId = reading\.asks;\s*if \(!assetId \|\| askedElsewhere\.current\.has\(assetId\)\) return;\s*askedElsewhere\.current\.add\(assetId\);\s*readFoundElsewhereAction\(assetId\)\.then\(/.test(source),
-        /if \(answer && Object\.hasOwn\(answer, "found"\)\) setElsewhere\(\(was\) => \(\{ \.\.\.was, \[assetId\]: answer\.found \}\)\);/.test(source),
-        /\}, \[reading\.asks\]\);/.test(source),
+        /const askElsewhere = \(text\) => \{\s*if \(!text \|\| askedElsewhere\.current\.has\(text\)\) return;\s*askedElsewhere\.current\.add\(text\);\s*readFoundElsewhereAction\(text\)\.then\(/.test(source),
+        /if \(answer && Object\.hasOwn\(answer, "found"\)\) setElsewhere\(\(was\) => \(\{ \.\.\.was, \[text\]: answer\.found \}\)\);/.test(source),
+        // An id is asked at once, and what may be a serial number once the typing rests (#601).
+        /if \(reading\.asksBy !== "serial"\) \{\s*askElsewhere\(text\);\s*return undefined;\s*\}\s*const resting = window\.setTimeout\(\(\) => askElsewhere\(text\), SERIAL_ASK_REST_MS\);\s*return \(\) => window\.clearTimeout\(resting\);\s*\}, \[reading\.asks, reading\.asksBy\]\);/.test(source),
     ].join(" ");
 }
 
@@ -126,7 +130,7 @@ function lineJobOf(source) {
     const name = source.search(/<span className="min-w-0 truncate">\{itemName\}<\/span>/);
     const job = source.search(/\{jobCode && \(\s*<>\s*<Dot \/>\s*<span className="shrink-0 text-foreground-muted tabular-nums">\{jobCode\}<\/span>\s*<\/>\s*\)\}/);
     const status = source.search(/<StatusMark status=\{status\} \/>/);
-    return [/const \{ assetId, status, itemName, jobCode = null \} = found;/.test(source), name >= 0 && job > name && status > job].join(" ");
+    return [/const \{ assetId, status, itemName, jobCode = null, serialNumber = null \} = found;/.test(source), name >= 0 && job > name && status > job].join(" ");
 }
 
 /** What the action does, in order, off its source. */
@@ -135,12 +139,15 @@ function elsewhereReadOf(source) {
     const at = (pattern) => body.search(pattern);
     const steps = [
         at(/await requireUser\(\);/),
-        at(/const asked = searchedAssetId\(assetId\);/),
-        at(/if \(!asked\) return \{ found: null \};/),
-        at(/const asset = await getAssetByAssetId\(asked\);/),
-        at(/if \(!asset\) return \{ found: null \};/),
-        at(/const \[kind\] = await getAssetCategoriesByRecordIds\(asset\.category\.slice\(0, 1\)\);/),
-        at(/return \{ found: \{ assetId: asset\.assetId, itemName: kind\?\.itemName \?\? "", status: asset\.status, job: asset\.job\[0\] \?\? null \} \};/),
+        at(/const asked = searchedAssetId\(searched\);/),
+        at(/const serialNumber = asked \? "" : keptSerial\(searched\);/),
+        at(/if \(!asked && serialNumber === ""\) return \{ found: \[\] \};/),
+        // An id by its printed id, anything else as a serial number, whole (#601).
+        at(/const assets = asked \? \[await getAssetByAssetId\(asked\)\]\.filter\(Boolean\) : await getAssetsBySerialNumber\(serialNumber\);/),
+        at(/if \(assets\.length === 0\) return \{ found: \[\] \};/),
+        at(/const nameOf = new Map\(\(await getAssetCategoriesByRecordIds\(kindIds\)\)\.map\(\(kind\) => \[kind\.id, kind\.itemName\]\)\);/),
+        at(/job: asset\.job\[0\] \?\? null,\s*\.\.\.\(asked \? \{\} : \{ serialNumber: asset\.serialNumber \}\),/),
+        at(/return \{ found \};/),
     ];
     const ordered = steps.every((each, index, all) => each >= 0 && (index === 0 || each > all[index - 1]));
     const label = /return withOpsLabel\("readFoundElsewhereAction", async \(\) => \{/.test(body);
@@ -186,8 +193,15 @@ export function run({ check, log }) {
     log("");
     log("a name:");
     const named = read(JOB_ONE, "q=saw");
-    check("a name is searched on the chosen job alone: a kind another job holds is not found, and nothing is asked", `${said(named)} | ${sentence(named, "23-USA-09")}`, "- | - | - | No items match | saw | Clear search");
-    check("  and a name the job holds is found in its rows, with no line", said(read(JOB_ONE, "q=welder")), "kWelder | - | -");
+    // A name no row on the job answers is asked of every job as what may be a serial number (#601),
+    // once the typing rests — the base finds an item by its number and never by its kind's name, so a
+    // kind another job holds is still not found, and the table's sentence is the name's.
+    check(
+        "a name is searched on the chosen job alone: a kind another job holds is not found, and the text is asked as a serial number (#601)",
+        `${said(named)} ${named.asksBy} | ${sentence(named, "23-USA-09")}`,
+        "- | - | saw serial | No items match | saw | Clear search"
+    );
+    check("  and a name the job holds is found in its rows, with no line, and nothing is asked", `${said(read(JOB_ONE, "q=welder"))} ${read(JOB_ONE, "q=welder").asksBy}`, "kWelder | - | - null");
 
     // ── the band's case ─────────────────────────────────────────────────────
     log("");
@@ -247,7 +261,7 @@ export function run({ check, log }) {
     const otherIds = read(JOB_ONE, "q=261019-432", { elsewhere: { "HYE-AST-261019-999": null, "HYE-AST-261019-431": AT_JOB_TWO } });
     check("an answer is drawn beside its own id alone", `${said(otherIds)} ${otherIds.nowhere}`, "- | - | HYE-AST-261019-432 false");
     const unsearched = read(JOB_ONE, "");
-    check("a list nobody searched asks nothing", `${unsearched.asks} ${unsearched.nowhere} ${unsearched.found}`, "null false null");
+    check("a list nobody searched asks nothing", `${unsearched.asks} ${unsearched.asksBy} ${unsearched.nowhere} ${unsearched.found.length}`, "null null false 0");
 
     // ── the source ──────────────────────────────────────────────────────────
     log("");
@@ -273,7 +287,7 @@ export function run({ check, log }) {
         "false false"
     );
     check(
-        "the action is labeled, gates before it reads, reads by the id the search named and then its kind, answers a failed read as neither, and reads no other way",
+        "the action is labeled, gates before it reads, reads by the id the search named — or by the serial number it may be (#601) — and then its kinds, answers a failed read as neither, and reads no other way",
         elsewhereReadOf(parseFile(ACTIONS).source),
         "true true true true"
     );

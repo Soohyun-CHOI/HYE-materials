@@ -102,20 +102,29 @@ tool that is out — the name its latest entry checked it out to — the day one
 repair was sent (#531), and the day a retired one was retired, each at both
 widths; the retired day was a desk's alone until #538.
 
-**evidence.** The item's note, 12 under its status at both widths (#533; 0a Note,
-1f, 1j): the one line a site manager keeps on it — what sets it apart from the
-others of its kind, a cracked case, the crate it is kept in — behind a
-speech-bubble mark, in Ink 2, wrapping on a phone if it must. It is read by
-everybody wherever an item has one, on every status, a retired one's and one in
-repair included. **It is not an event**: writing it adds no history entry and
-moves neither the status nor the job, so nothing on the screen says who wrote it
-or when, and the category's list counts no change for it. **It is not on the
-label**, which prints the code alone.
+**evidence.** The item's two details (#533, #601): its **serial number**, the
+maker's number printed on the item, and its **note**, the one line a site
+manager keeps on it — what sets it apart from the others of its kind, a cracked
+case, the crate it is kept in. At a desk they are the record rail's first block,
+`Details`, a row each — `Serial` and `Note` in Ink 3, the value after them, the
+serial number in the id's face (1f); on a phone, a line each 12 under the status,
+the serial number's behind a barcode mark in the id's face and the note's behind
+a speech-bubble mark, in Ink 2, wrapping if it must (1j; 0a Value line, 0a Note).
+Each is read by everybody wherever an item has one, on every status, a retired
+one's and one in repair included; with neither, a reader who may write neither
+meets no `Details` and no line. **Neither is an event**: writing one adds no
+history entry and moves neither the status nor the job, so nothing on the screen
+says who wrote it or when, and the category's list counts no change for it.
+**Neither is on the label**, which prints the code alone. **A serial number is
+one item's within its kind**: no other item of the same kind, retired ones
+included and deleted ones not, may hold it, telling two apart by neither case
+nor the spaces around it (#601).
 
 **evidence.** The category it is one of, which is the heading, and the job it is
 on, **named once, under the title (#597)**: after the id on the desk's line, and on
-a phone a line of its own under the caption, the code in Ink 2 behind a pin in Ink
-3, 4 under it (1j) — and wherever there are jobs to choose between, the breadcrumb
+a phone first on the caption's line, before the type and the category (1j, the
+files of 2026-11-04, where it stood on a line of its own behind a pin from #597)
+— and wherever there are jobs to choose between, the breadcrumb
 at a desk too, between the list and the category (below). The desk stated it under
 the heading until #519, which the design dropped, and every history entry stated
 it, with the phone's foot bar as the job the next event would be recorded on,
@@ -295,8 +304,8 @@ page drawn again: `Only 26-USA-07 can record this item. Your check-out wasn't
 saved.` when the item is no longer the reader's to record, and `This item is on
 26-USA-07 now. Your check-out wasn't saved.` when it moved to another of their
 jobs — the press is refused rather than recorded somewhere they did not see. The
-retirement's and the note's are refused the same way, ending on `Nothing was
-saved.`, and the dialog, the question or the note's sheet that sent it goes.
+retirement's and the two details' are refused the same way, ending on `Nothing was
+saved.`, and the dialog, the question, or the row or the sheet that sent it goes.
 
 **The transition has no heading.** The two blocks below it name things —
 `History`, `Label` — and a heading over the act would have to name it in the
@@ -315,8 +324,9 @@ not shrink these below the phone's Target.
 **evidence.** At a desk, the label this asset's sticker carries, in the
 record rail beside the history: the label's own page as the labels' dialog
 draws it, at twice its size on the Field ground, with **the print size in
-text** under it — `Size`, `11 × 12 mm`, and `Symbol` with the symbol's own
-figure — and, for a site manager, a control that prints it (#506). **A phone
+text** under it — `Prints at 11 × 12 mm on 12 mm tape`, one line in Ink 3 (1f,
+the files of 2026-11-04, where `Size` and `Symbol` stood as two figures from
+#463) — and, for a site manager, a control that prints it (#506). **A phone
 draws no label**: a label is printed at a desk, and the phone's screen is for
 the scan. **The label, its size and its symbol are for every reader**: what a
 asset's sticker carries is a fact about it, and only printing one is a site
@@ -400,7 +410,7 @@ dialog stands open for it (#458). Those that reach it: someone else has
 already recorded something, so the press was not saved; the item is no longer
 the reader's to record, or moved to another of their jobs, since the page was
 drawn (#597, above) — said there whatever control sent the press, the
-retirement's question and the note's included; the asset carries no such id; and
+retirement's question and the two details' included; the asset carries no such id; and
 the event was recorded but the asset's own status was not updated. A line
 saying a check-in would move the item to another job stood under the dialog's
 job until #597, when no press moved an item any more. The last is the only
@@ -440,30 +450,40 @@ dialog disappears with its menu; what the reader is left looking at is the
 status saying it is the end.
 
 **For a site manager on the item's job (#597), while the item is in stock or out, a way to
-write its note (#533).** At a desk `Edit` stands after the note, an Inline
-control, and `Add note` in Accent with its plus mark stands in its place where
-there is none (1f); on a phone the whole line is the press, at least 48 tall and
-reaching 12 past the text either side, and reads `Add a note` in Ink 3 where there
-is none (1j-a). A desk opens a dialog — `Edit note`, or `Add note` over none; the
-field `Note`, its example `e.g. At the Riverside yard`, and under it
-`Up to 50 characters.` with the count at the line's end, `28/50`; `Remove note`
-at the actions' left while there is a note; `Cancel`; and `Save`, or `Add note`
-over none. A phone opens a sheet over the keyboard (1j-b2) with the same title,
-the same field and line, and `Done` at its head's end, which saves — and on a
-field left empty removes the note; a press behind the sheet, on its handle or a
-drag down puts it away and saves nothing, and none of them while it saves
-(#580). **More than 50 is refused, and nothing is cut**: the field turns
-Red and its line says `Max 50 characters.` with the count in Red, the field
-keeping what was typed. What is kept is trimmed, each run of spaces one, its case
-as typed; a note that comes out as the one already there writes nothing. **A
-reader who may not write meets the note, and nothing where there is none** — not
-a site manager on the item's job, or an item in repair or retired, whose note
-stands as it was (1f, 1j-c, 1j-d, 1j-e). **A note somebody else changed while this one was
-being written** is refused with `Nothing was saved. Someone else changed this
-note first.`, the page drawn again with theirs and what was typed still in the
-field, so a second press writes over it knowingly; a press on an item somebody
-has since sent for repair or retired is answered by the page drawn again, with
-no way to write and nothing said.
+write its serial number and its note (#533, #601).** At a desk `Edit` stands at
+a row's end, an Inline control named `Edit serial number` or `Edit note`, and
+`Add` in Accent with its plus mark stands in the value's place where there is
+none, named `Add serial number` or `Add note` (1f). Either turns the row into a
+field where it stands — the value in it, the caret at its end — with `Cancel`
+and `Save` under it; `Escape` is `Cancel`, and focus goes back to what opened it.
+The note's field says `Up to 50 characters.` under it with the count at the
+line's end, `28/50`. On a phone the whole line is the press, at least 48 tall and
+reaching 12 past the text either side, and reads `Add serial number` or `Add a
+note` in Ink 3 where there is none (1j-a); it opens a sheet over the keyboard
+(1j-b2) titled as the opener is named, the field, and `Done` at its head's end,
+which saves. **A field emptied and saved removes the value**, at both widths, so
+nothing else removes one: the desk's dialog and its `Remove note` went with the
+files of 2026-11-04. **A field's × empties that field alone** (#605): the sheet
+stays open, the caret stays in the field and its placeholder shows again, and
+`Done` or `Save` then takes the empty field as it takes any value. A press
+behind the sheet, on its handle or a drag down puts it away and saves nothing,
+and none of them while it saves (#580). **More than 50 is refused, and nothing
+is cut**: the field turns Red and its line says `Max 50 characters.`, with the
+note's count in Red, the field keeping what was typed. What is kept is trimmed,
+each run of spaces one, its case as typed; a value that comes out as the one
+already there writes nothing. **A serial number another item of the kind holds
+is refused by naming it** — `HYE-AST-261019-104 already has this serial
+number.` under the field in Red, the id in the id's face — read again from the
+base as the press saves, and the sentence goes once the field no longer holds
+the number refused. **A reader who may not write meets the values, and nothing
+where there is none** — not a site manager on the item's job, or an item in
+repair or retired, whose values stand as they were (1f, 1j-c, 1j-d, 1j-e). **A
+value somebody else changed while this one was being written** is refused with
+`Nothing was saved. Someone else changed this note first.`, or `this serial
+number`, the page drawn again with theirs and what was typed still in the field,
+so a second press writes over it knowingly; a press on an item somebody has
+since sent for repair or retired is answered by the page drawn again, with no
+way to write and nothing said.
 
 **For the office, while the item's history holds its `Created` entry alone, a
 way to change its job (#583; 1f, 1j-f).** `Change job` stands in `More actions`
@@ -513,7 +533,7 @@ stays on that page, alone of the office's two, and finishes it.
 
 **A site manager on another job, or on none, reads the item as anybody does
 (#597; 1f `Another job`, 1j-d)**: no control and no sentence — no foot bar on a
-phone, nothing in the header's right at a desk, no way to write the note and no
+phone, nothing in the header's right at a desk, no way to write a detail and no
 `Print label`. The job under the title says whose item it is. Until #597 one on
 another job was offered every control, and one on no job met a sentence where the
 controls would be, telling them to ask for an assignment. One who is also the
@@ -603,8 +623,8 @@ person holding it can see.
 registered on and may stand on another, lent: then the line under its title
 says `On loan from` and the job that owns it after the job it stands on — at a
 desk in the caption, `HYE-AST-260909-004 · 26-USA-06 · On loan from 26-USA-07 ·
-Tool · Power tools`, and on a phone on the job's own line behind its pin (1f,
-1j-g). The borrowing job's site managers record on it as on their own; the
+Tool · Power tools`, and on a phone on a line of its own under the caption's,
+`On loan from 26-USA-07` in Ink 3 with the code in Ink 2 (1f, 1j-g). The borrowing job's site managers record on it as on their own; the
 owning job's read it as anybody does. `More actions` holds one loan's line
 after `Send for repair`, in Ink, from stock alone: `Lend to another job` for
 a site manager on the job that owns an item standing there, and `Return to
@@ -685,7 +705,8 @@ page at the dialog's preview scale, 19.14 mm for a symbol that prints at 9.57.
 Both read one module size, the floor a print proved (#467), and multiply it by
 the side count that symbol actually came out at, so a longer address makes a
 bigger symbol on both rather than a denser one on either — and the `Symbol`
-figure follows it. A design that pins the drawing to a box in pixels breaks the
+figure followed it, until the files of 2026-11-04 left the rail saying the size
+alone. A design that pins the drawing to a box in pixels breaks the
 equality with the printed label, and nothing on screen would show it.
 
 **This screen prints nothing itself.** Its print control opens the labels'

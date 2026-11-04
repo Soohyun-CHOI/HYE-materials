@@ -49,6 +49,7 @@ const WRITERS = {
     updateAssetCache: "the row an event just wrote, its caller's own",
     updateAssetJob: "the row the office's job change just wrote",
     updateAssetNote: "the row a note was just written on",
+    updateAssetSerialNumber: "the row a serial number was just written on (#601)",
 };
 
 /** Each exported function of a module, by name, with what its body reads and whether it asks the judgment. */
@@ -91,7 +92,7 @@ export function run({ check, assert, log }) {
     check(
         "the readers, found by what they call",
         readers.map((f) => f.name).sort().join(", "),
-        "getAssetByAssetId, getAssetStatuses, getAssetsByAssetIds, getAssetsByCategory, getAssetsByRecordIds"
+        "getAssetByAssetId, getAssetStatuses, getAssetsByAssetIds, getAssetsByCategory, getAssetsByRecordIds, getAssetsBySerialNumber"
     );
     check("  each asking the judgment", readers.filter((f) => !f.asks).map((f) => f.name).join(", "), "");
     check(
@@ -107,7 +108,7 @@ export function run({ check, assert, log }) {
     assert(
         "  the batched readers filter what they map",
         ["findByRecordIds(TABLES.ASSETS, recordIds, { perQuery: 100, pace })).map(recordToAsset).filter(isShownAsset)", "return records.map(recordToAsset).filter(isShownAsset);"].every((text) => assets.source.includes(text)) &&
-            (assets.source.match(/\.map\(recordToAsset\)\.filter\(isShownAsset\)/g) ?? []).length === 3
+            (assets.source.match(/\.map\(recordToAsset\)\.filter\(isShownAsset\)/g) ?? []).length === 4
     );
     assert(
         "  and the status memory's answer leaves one out, the memory keeping its status",

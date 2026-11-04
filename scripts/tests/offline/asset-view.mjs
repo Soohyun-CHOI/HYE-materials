@@ -75,7 +75,7 @@ const copyStrings = () => {
         if (typeof value === "string") out.push(value);
         else if (typeof value === "object" && value) out.push(...Object.values(value));
     }
-    out.push(ASSET_COPY.symbolSize(9.57));
+    out.push(ASSET_COPY.printsAt("11 × 12 mm"));
     return out.filter((s) => typeof s === "string");
 };
 
@@ -264,7 +264,9 @@ export function run({ check, assert, log }) {
     check("a code no asset carries, at a desk", `${ASSET_COPY.notFoundHeading} | ${ASSET_COPY.notFoundCode.before}HYE-AST-260909-099${ASSET_COPY.notFoundCode.after}`, "Item not found | No item has the code HYE-AST-260909-099. Check it against the label.");
     check("  and after a scan", ASSET_COPY.notFoundScanned, "No item has this code. Check it against the label and scan again.");
     check("  with the way back", ASSET_COPY.backToTools, "Back to Equipment & Tools");
-    check("the label's print size, in text", `${ASSET_COPY.sizeLabel} | ${ASSET_COPY.symbolLabel} ${ASSET_COPY.symbolSize(9.57)}`, "Size | Symbol 9.57 mm");
+    // One line since the files of 2026-11-04 (1f, #601), where two rows said `Size` and `Symbol`.
+    check("the label's print size, in text", ASSET_COPY.printsAt("11 × 12 mm"), "Prints at 11 × 12 mm on 12 mm tape");
+    check("the rail's first block, the item's details (#601)", ASSET_COPY.detailsHeading, "Details");
     check("an entry's two words", `${ASSET_COPY.historyTo} | ${ASSET_COPY.historyBy}`, "to | by");
     check("the retirement's button, at both widths", ASSET_COPY.moreActions, "More actions");
     check("  and the label's name for assistive tech", ASSET_COPY.symbolAlt, "QR label for this item");
@@ -374,9 +376,9 @@ export function run({ check, assert, log }) {
         "false 1 1"
     );
     check(
-        "  and the page draws that dot once in its history — before who recorded it, the job's before it gone with #597 — and once on a phone's job line before `On loan from` (#598), and no mark of its own, the line under the title taking its dots from `CategoryCaption` since #519",
+        "  and the page draws that dot once in its history — before who recorded it, the job's before it gone with #597 — and no mark of its own, the line under the title taking its dots from `CategoryCaption` since #519, a phone's too since the files of 2026-11-04 put `On loan from` on a line of its own (#601)",
         `${imports.includes("@/app/components/Dot")} ${page.source.split("<Dot />").length - 1} ${page.source.split("·").length - 1} ${parseFile("app/(assets)/CategoryCaption.js").source.includes("<Dot />")}`,
-        "true 2 0 true"
+        "true 1 0 true"
     );
     // ANTI-VACUITY: the padded dot this replaced is read as one.
     check(
@@ -477,8 +479,9 @@ export function run({ check, assert, log }) {
     // THE RAIL DRAWS THE LABEL AS THE DIALOG DRAWS ITS PAGE, AND ONLY WHEN IT FITS (#463,
     // #453). The drawing is `LabelPreview` — the dialog's own page at its preview scale —
     // handed the label and the budget this render built, so the two drawings are one; the
-    // figure beside `Symbol` is `symbolBox`'s answer, and a millimeter typed in its place
-    // would stop following the stock and the version the day either moves (#412). A host
+    // line under it says the label's size as the stock builds it (`ASSET_LABEL_PAGE_COPY.size`),
+    // where until the files of 2026-11-04 a figure beside `Symbol` was `symbolBox`'s answer — a
+    // millimeter typed in either place would stop following the stock the day it moves (#412). A host
     // past seventeen characters builds a symbol the labels refuse, so the drawing and its
     // size are the ones asked about `fits`, and the sentence about the host stands in their
     // place. This tier renders none of it, so all of it is read off the page.
@@ -490,7 +493,7 @@ export function run({ check, assert, log }) {
                 found.binding = n.id.properties.map((p) => `${p.key.name}: ${p.value.name}`).join(", ");
             if (n.type === "JSXOpeningElement" && n.name?.name === "LabelPreview")
                 found.preview = n.attributes.map((a) => `${a.name?.name}=${text(a.value)}`).join(" ");
-            if (n.type === "CallExpression" && n.callee?.type === "MemberExpression" && n.callee.property?.name === "symbolSize")
+            if (n.type === "CallExpression" && n.callee?.type === "MemberExpression" && n.callee.property?.name === "printsAt")
                 found.symbol = n.arguments.map(text).join(", ");
             if (n.type === "ConditionalExpression" && /^symbolFits$/.test(text(n.test)))
                 found.verdict = `${/LabelPreview/.test(text(n.consequent))} ${/symbolTooLargeNote/.test(text(n.alternate))}`;
@@ -498,7 +501,7 @@ export function run({ check, assert, log }) {
         return found;
     };
     const rail = railReading(page);
-    check("the box and the verdict both come from symbolBox", rail.binding, "boxMm: symbolMm, fits: symbolFits");
+    check("the verdict comes from symbolBox", rail.binding, "fits: symbolFits");
     check("  the rail draws the label as the dialog does, from this render's label and budget", rail.preview, "label={label} budget={budget} name={COPY.symbolAlt}");
     // THE RAIL HOLDS UNDER THE BREADCRUMB BAR WHILE IT FITS (0i, #463): its block is sticky 24
     // under the bar inside an aside whose Rule runs the whole column, so the hold is read off
@@ -518,17 +521,17 @@ export function run({ check, assert, log }) {
         railHold(page),
         "border-l border-divider pl-record-rail-inset-left max-sm:hidden > sticky top-(--height-breadcrumb) pt-record-header-stack"
     );
-    check("  says the symbol's size from the box", rail.symbol, "symbolMm");
+    check("  says the label's size from the stock's own words (#601)", rail.symbol, "LABEL_COPY.size");
     check("  and draws both only when it fits, the host's sentence otherwise", rail.verdict, "true true");
     // ANTI-VACUITY: a page typing the size and drawing whatever the verdict is read so.
     const plantedRail = railReading(
         parseSource(
             "const { boxMm: symbolMm } = symbolBox({ sideModules: label.sideModules, budget });\n" +
-                'const a = <aside><LabelPreview label={other} />{COPY.symbolSize("9.57")}</aside>;\n',
+                'const a = <aside><LabelPreview label={other} />{COPY.printsAt("11 × 12 mm")}</aside>;\n',
             "<planted-rail>"
         )
     );
-    check("  a rail ignoring them is read that way", `${plantedRail.binding} | ${plantedRail.preview} | ${plantedRail.symbol} | ${plantedRail.verdict}`, 'boxMm: symbolMm | label={other} | "9.57" | none');
+    check("  a rail ignoring them is read that way", `${plantedRail.binding} | ${plantedRail.preview} | ${plantedRail.symbol} | ${plantedRail.verdict}`, 'boxMm: symbolMm | label={other} | "11 × 12 mm" | none');
 
     // PRINTS NOTHING ITSELF, which is what keeps "the same physical object as the
     // original" true by construction rather than by comparison: the reprint is the

@@ -61,12 +61,14 @@ const ITEM = "app/(assets)/assets/[assetId]/page.js";
 const ASSET_LIST = "app/(assets)/asset-categories/[categoryRecordId]/AssetList.js";
 const LABELS = "app/(assets)/assets/LabelsDialog.js";
 
-/** The assets axis's server actions, each `file::export`. A sixth fails until it is here. */
+/** The assets axis's server actions, each `file::export`. One more fails until it is here. */
 const ASSET_ACTIONS = [
     "app/(assets)/assets/[assetId]/actions.js::recordAssetEventAction",
     "app/(assets)/assets/[assetId]/actions.js::retireAssetAction",
     // An item's note (#533): not an event, and written by whoever records one.
     "app/(assets)/assets/[assetId]/actions.js::updateAssetNoteAction",
+    // An item's serial number (#601): the note's answer to who, and the note's wrapper.
+    "app/(assets)/assets/[assetId]/actions.js::updateAssetSerialAction",
     // A loan's two (#598): a site manager on the job the item stands on lends it, or returns it.
     "app/(assets)/assets/[assetId]/actions.js::lendAssetAction",
     "app/(assets)/assets/[assetId]/actions.js::returnAssetToOwnerAction",
@@ -363,7 +365,7 @@ export function run({ check, assert, log }) {
     });
     const actions = entries.filter((e) => e.kind !== "page" && (e.file.startsWith("app/(assets)/") || e.file.startsWith("app/l/")));
     check(
-        "the axis's server actions are the seven this gate is for (a loan's two since #598), the catalog's four, an asset's office two (#583, #582) and the list's three reads (#599), found by walking",
+        "the axis's server actions are the eight this gate is for (a loan's two since #598, the serial number's since #601), the catalog's four, an asset's office two (#583, #582) and the list's three reads (#599), found by walking",
         actions.map((e) => `${e.file}::${e.name}`).sort().join(" | "),
         [...ASSET_ACTIONS, ...CATALOG_ACTIONS, ...OFFICE_ACTIONS, ...READ_ACTIONS].sort().join(" | ")
     );

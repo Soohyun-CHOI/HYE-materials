@@ -58,7 +58,8 @@ const DRAG = "app/components/sheetDrag.js";
 const SHEETS = {
     jobChange: "app/(assets)/assets/[assetId]/JobChange.js",
     name: "app/(assets)/assets/[assetId]/NameSheet.js",
-    note: "app/(assets)/assets/[assetId]/AssetNote.js",
+    // The note's sheet and the serial number's are one part since #601.
+    details: "app/(assets)/assets/[assetId]/ItemDetails.js",
     retirement: "app/(assets)/assets/[assetId]/RetirementConfirm.js",
 };
 
@@ -633,7 +634,7 @@ export async function run({ check, assert, log }) {
             });
             return `${name}:${frames.join()}`;
         });
-        check("  the job change's, name and note sheets draw a handle, and the retirement's Confirm none", kinds.join(" "), "jobChange:handle name:handle note:handle retirement:none");
+        check("  the job change's, name and details' sheets draw a handle, and the retirement's Confirm none", kinds.join(" "), "jobChange:handle name:handle details:handle retirement:none");
     }
 
     // ── anti-vacuity ─────────────────────────────────────────────────────────

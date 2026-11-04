@@ -7,6 +7,7 @@ import {
     buttonBusyState,
     comboboxList,
     editableComboboxKey,
+    fieldClearPress,
     menuIndex,
     movedIndex,
     multiSelectKey,
@@ -479,7 +480,8 @@ export function ButtonLink({ variant = "filled", size = "lg", href, mark, childr
  * and goes as somebody types, so the dialog does not jump under their hand.
  *
  * `labelHidden` IS A FIELD ALONE ON ITS PAGE, NAMED BY THE SENTENCE ABOVE IT (0o): it shows
- * no label and keeps it for assistive tech, and its refusal is centered under it at a desk.
+ * no label and keeps it for assistive tech, and its refusal is centered under it at a desk —
+ * unless `centered={false}`, a field named by the row it stands in (1f's `Details`, #601).
  * `size="xl"` is a sign-in page's field, which below the phone's edge takes the phone's
  * label at 15 and its refusal behind the alert mark, 4 in (Tools 0a Field label, Field error).
  *
@@ -492,7 +494,20 @@ export function ButtonLink({ variant = "filled", size = "lg", href, mark, childr
  * it refuses. It describes the field as the line does, and is not read out as it changes, which
  * a count would be on every keystroke.
  */
-export function Field({ label, labelNote, labelAs = "label", labelHidden = false, size = "lg", help, note, refusal, reserveMessage = false, count, children }) {
+export function Field({
+    label,
+    labelNote,
+    labelAs = "label",
+    labelHidden = false,
+    centered = labelHidden,
+    size = "lg",
+    help,
+    note,
+    refusal,
+    reserveMessage = false,
+    count,
+    children,
+}) {
     const base = useId();
     const control = `${base}control`;
     const labelId = `${base}label`;
@@ -509,7 +524,7 @@ export function Field({ label, labelNote, labelAs = "label", labelHidden = false
             aria-live="polite"
             className={
                 count === undefined
-                    ? `mt-input-message-stack ${FIELD_MESSAGE} ${labelHidden ? "text-center max-sm:text-left" : ""} ${
+                    ? `mt-input-message-stack ${FIELD_MESSAGE} ${centered ? "text-center max-sm:text-left" : ""} ${
                           xl ? "max-sm:px-mobile-input-message-inset-x max-sm:text-mobile-body-sm" : ""
                       }`
                     : "min-w-0 flex-1"
@@ -579,6 +594,8 @@ export function Field({ label, labelNote, labelAs = "label", labelHidden = false
  * (`docs/notes/design-system.md`). `offline/phone-screens-still.mjs` holds every field.
  */
 const TEXT_INPUT_SIZE = {
+    // 0a's Control, 32: a field edited where its value stood, in a row of the record rail (1f, #601).
+    md: "h-control px-input-inset-x text-body pointer-coarse:text-mobile-body",
     lg: "h-control-lg px-input-inset-x text-body pointer-coarse:text-mobile-body",
     xl: "h-control-xl px-input-inset-x text-body max-sm:h-mobile-input max-sm:gap-mobile-input-gap max-sm:rounded-mobile-control max-sm:px-mobile-input-inset-x max-sm:text-mobile-body pointer-coarse:text-mobile-body",
 };
@@ -651,35 +668,49 @@ export function TextInput({ size = "lg", suffix, value, onChange, readOnly = fal
                     {suffix}
                 </span>
             )}
-            {clearable && (
-                <ClearButton
-                    onClear={() => {
-                        onChange("");
-                        ref.current?.focus();
-                    }}
-                />
-            )}
+            {clearable && <FieldClear look="phone" onChange={onChange} focus={() => ref.current?.focus()} />}
         </div>
     );
 }
 
 /**
- * A phone field's clear × (Tools 0a Field): drawn below the phone's edge only, and a text button's
- * press. The job step's search is the second field to carry it (#554), a field whose desk look is
- * a search's rather than a form field's, so it takes the × rather than the whole `TextInput`.
+ * Each field's clear × as the drawings give it, by the field it ends (#605): a phone field's below
+ * the phone's edge alone, its target the least a touch target takes pulled into the field's room
+ * (Tools 0a Field) — `TextInput`'s at `xl` and the job step's search (#554), whose desk look is a
+ * search's; the one field in a sheet's, ending 2 inside its edge (1j-b2); a list's search's, 24 at
+ * its right end (1a); and the search a dialog is built around's, 30 (1b).
  */
-export function ClearButton({ onClear }) {
+const FIELD_CLEAR_LOOK = {
+    phone: {
+        button: "-mr-[calc(var(--spacing-mobile-input-inset-x)-var(--spacing-mobile-input-clear-inset-right))] ml-auto hidden size-mobile-touch-target shrink-0 items-center justify-center text-foreground-subtle active:opacity-mobile-pressed max-sm:inline-flex",
+        mark: <Icon name="x" className="size-mobile-input-clear-icon" />,
+    },
+    sheet: {
+        button: "-mr-[calc(var(--spacing-mobile-input-inset-x)-var(--spacing-mobile-sheet-input-clear-inset-right))] flex size-mobile-touch-target shrink-0 items-center justify-center text-foreground-subtle active:opacity-mobile-pressed",
+        mark: <Icon name="x" className="size-mobile-input-clear-icon" />,
+    },
+    search: {
+        button: "absolute top-px right-px flex h-[calc(var(--height-control)-2px)] w-clear-button items-center justify-center rounded-r-[calc(var(--radius-control)-1px)] text-foreground-subtle hover:bg-hover hover:text-foreground-default",
+        mark: <Icon name="x" className="size-clear-icon" />,
+    },
+    dialogSearch: {
+        button: "flex aspect-square h-control-sm shrink-0 items-center justify-center rounded-control text-foreground-subtle hover:bg-hover hover:text-foreground-default",
+        mark: <Icon name="x" className="size-icon-sm" />,
+    },
+};
+
+/**
+ * A field's clear × (#605) — every one the app draws, in the look of the field it ends
+ * (`FIELD_CLEAR_LOOK`). It empties that field and nothing else, keeps the field's focus, and leaves
+ * the sheet or dialog around it open: `lib/controls.js:fieldClearPress` is the press, and its header
+ * has why a press that let focus go put a phone's sheet away. `label` names it, `CONTROLS_COPY.clear`
+ * where the caller names nothing; `focus` puts the caret back in the field it clears.
+ */
+export function FieldClear({ look, label = COPY.clear, onChange, focus }) {
+    const { button, mark } = FIELD_CLEAR_LOOK[look];
     return (
-        <button
-            type="button"
-            aria-label={COPY.clear}
-            onClick={(event) => {
-                event.stopPropagation();
-                onClear();
-            }}
-            className="-mr-[calc(var(--spacing-mobile-input-inset-x)-var(--spacing-mobile-input-clear-inset-right))] ml-auto hidden size-mobile-touch-target shrink-0 items-center justify-center text-foreground-subtle active:opacity-mobile-pressed max-sm:inline-flex"
-        >
-            <Icon name="x" className="size-mobile-input-clear-icon" />
+        <button type="button" aria-label={label} {...fieldClearPress({ onChange, focus })} className={button}>
+            {mark}
         </button>
     );
 }
@@ -698,7 +729,7 @@ export function ClearButton({ onClear }) {
  * name sheet's stands alone, and `label` names it. Inside a busy form it is read-only and offers
  * no clear (#469).
  */
-export function SheetInput({ value, onChange, onDone, placeholder, label, clearLabel, inputRef }) {
+export function SheetInput({ value, onChange, onDone, placeholder, label, clearLabel, inputRef, ...input }) {
     const field = useField();
     const locked = Boolean(useContext(FormBusyContext));
     const ownRef = useRef(null);
@@ -729,21 +760,10 @@ export function SheetInput({ value, onChange, onDone, placeholder, label, clearL
                 aria-invalid={field.refused || undefined}
                 autoComplete="off"
                 enterKeyHint="done"
+                {...input}
                 className="h-full min-w-0 flex-1 bg-transparent text-mobile-body text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle"
             />
-            {clearable && (
-                <button
-                    type="button"
-                    aria-label={clearLabel}
-                    onClick={() => {
-                        onChange("");
-                        ref.current?.focus();
-                    }}
-                    className="-mr-[calc(var(--spacing-mobile-input-inset-x)-var(--spacing-mobile-sheet-input-clear-inset-right))] flex size-mobile-touch-target shrink-0 items-center justify-center text-foreground-subtle active:opacity-mobile-pressed"
-                >
-                    <Icon name="x" className="size-mobile-input-clear-icon" />
-                </button>
-            )}
+            {clearable && <FieldClear look="sheet" label={clearLabel} onChange={onChange} focus={() => ref.current?.focus()} />}
         </div>
     );
 }
@@ -1444,19 +1464,7 @@ export function SearchField({ label, value, onChange, clearLabel, onEnter }) {
                 }}
                 className="h-control w-full rounded-control border border-transparent bg-background-muted pr-search-inset-right pl-search-inset-left text-body-sm text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle focus:border-border-focus focus:bg-white pointer-coarse:text-mobile-body"
             />
-            {value !== "" && (
-                <button
-                    type="button"
-                    aria-label={clearLabel}
-                    onClick={() => {
-                        onChange("");
-                        inputRef.current?.focus();
-                    }}
-                    className="absolute top-px right-px flex h-[calc(var(--height-control)-2px)] w-clear-button items-center justify-center rounded-r-[calc(var(--radius-control)-1px)] text-foreground-subtle hover:bg-hover hover:text-foreground-default"
-                >
-                    <Icon name="x" className="size-clear-icon" />
-                </button>
-            )}
+            {value !== "" && <FieldClear look="search" label={clearLabel} onChange={onChange} focus={() => inputRef.current?.focus()} />}
         </div>
     );
 }

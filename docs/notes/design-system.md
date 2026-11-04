@@ -375,8 +375,17 @@ On a phone the check-out's name sheet changed height as a name was typed: its li
 
 ## The item's job in the title block (#597)
 
-The files of 2026-11-02 move an item's job from every history entry to the title block: on a phone a line of its own 4 under the caption, a 14 pin in Ink 3 and 8 after it the job's code at 14 in Ink 2 with tabular figures, and at a desk the code after the id on the line under the title, a value as the type and the category are. **The pin takes a name of its own, `--size-mobile-title-icon`**, though the log's `--size-mobile-log-icon` holds the same 14: a name is for its container (#459's rule), and the log's mark stands before who a check-out went to alone now. The 4 is the title block's `--spacing-mobile-title-block-stack`, whose third reader the job is, and the 8 is 0b's Gap.
+The files of 2026-11-02 move an item's job from every history entry to the title block: on a phone a line of its own 4 under the caption, a 14 pin in Ink 3 and 8 after it the job's code at 14 in Ink 2 with tabular figures, and at a desk the code after the id on the line under the title, a value as the type and the category are. **The pin took a name of its own, `--size-mobile-title-icon`, until the files of 2026-11-04 put the job first on the caption's line with no pin (#601)**, though the log's `--size-mobile-log-icon` holds the same 14: a name is for its container (#459's rule), and the log's mark stands before who a check-out went to alone now. The 4 is the title block's `--spacing-mobile-title-block-stack`, whose third reader the job was and a loan's line is (#598), and the 8 is 0b's Gap.
 
+## A press on a sheet over the keyboard (#605)
+
+A field's × on a phone put the sheet holding it away: the name sheet's with the name still in the field, the note sheet's with nothing saved. #605 asked that a × empty its field and nothing else, everywhere the app draws one. **The cause was not the ×, and it reached two other presses.** A sheet stands on the keyboard its field raised (#568), and `useKeyboardCover` measures the keyboard again on every `focusout`. A press moved focus off the field as the button went down — to the button in Chrome, to nothing in Safari, which gives a tapped button none — so the cover read 0 and the sheet dropped by the keyboard's height before the button came up. The browser finds what is under the finger again as it comes up, and that was now above the sheet: `mouseup` landed on the `<dialog>`, and `click` went to the nearest element holding both, the `<dialog>`, which the frame's `onBackdropPress` reads as a press behind the sheet.
+
+**REPRODUCED ON MAIN, ALL THREE, WITH THE KEYBOARD STOOD IN.** At 373 × 810 under touch, `visualViewport.height` held 336 under the window's and `resize` dispatched with the field focused, #568's stand-in for a keyboard: the name field's × put the name sheet away with the name kept, a recent name's row put it away with no name chosen, and the note sheet's `Done` put it away with nothing saved. Each logged the same eight events, `pointerdown` and `mousedown` on the control, `focusout` of the field, `focusin` of the control, `mouseup` and `click` on the dialog. A desk's phone mode never showed it, since nothing there covers the page, and it began with #568, before which a sheet stood still.
+
+**THE FIX IS ONE PRESS, `lib/controls.js:keepFocus`**: a `mousedown` whose default is prevented moves no focus (UI Events), which is the shape `Menu`'s options and `DialogSearch`'s results took for their own reason in #522. The field keeps the caret, the keyboard stays, the sheet does not move and the press lands where it began; a keyboard's activation sends no `mousedown`, so nothing changes for it. It is on a sheet's `Done`, each row of `SheetRows`, the dialog search's results and a menu's options, and on every field's ×: `Controls.js:FieldClear` is the one × a field draws — `SheetInput`'s, `TextInput`'s at `xl` (the sign-in email and code, the name step), the job step's search, `SearchField` (1a, 1l) and `DialogSearch` — and `fieldClearPress` its press, which empties the field once, puts focus in it and goes no further up the page. A chip's ×, a toast's, the selection bar's and a dialog's close empty no field and stay as they were. `offline/field-clear.mjs` finds every × by its mark and holds each of the two lists, and no press a sheet offers may let focus go.
+
+**WHAT ONLY A PHONE SHOWS** is what Safari does under a finger with a real keyboard, which the stand-in cannot: whether a tapped `Done`, a row and a × keep the keyboard up and land where they began. They were handed to Soo to see, and nothing here says they were seen.
 ## From the design's words to the names
 
 Every declaration, by the design's row and the figure the design draws, and after them the values read under Tailwind's own names. A length's rem is the design's px over 16, and the px is given beside it.
@@ -430,7 +439,8 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0b Selection bar, an action's reason from its info mark | `--spacing-selection-bar-reason-gap` | 0.375rem (6) |
 | 1a and 1d's drawings, between two columns — not the spec | `--spacing-table-column-inline` | 1.25rem (20) |
 | 1a's drawing, a column of counts — not the spec; 96 until #566 | `--width-table-count` | 3.5rem (56) |
-| 1d's drawing, a column of printed ids — not the spec | `--width-table-id` | 15rem (240) |
+| 1d's drawing, a column of printed ids — not the spec; 240 until #601 put the serial number beside it | `--width-table-id` | 9rem (144) |
+| 1d's drawing, a column of serial numbers (#601) — not the spec | `--width-table-serial` | 8rem (128) |
 | 1d's drawing, a column of days — not the spec; the status's 160 until #520 gave the status the room left | `--width-table-date` | 7.5rem (120) |
 | 1d's drawing, a column of statuses beside the note's — not the spec; named again by #533, the note taking the room left | `--width-table-status` | 15rem (240) |
 | 1l's drawing by 0b Row's rule, the least the catalog's name column takes, at a weight of 2 | `--min-width-catalog-name` | 20rem (320) |
@@ -618,17 +628,21 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0n Rail blocks, from a block's name | `--spacing-heading-sm-stack` | 0.75rem (12) |
 | 1f's drawing, the header's title block to its actions — not the spec | `--spacing-record-header-inline` | 3.5rem (56) |
 | 1f's drawing, the header's actions above its title's top — not the spec | `--spacing-record-header-actions-bleed` | 0.1875rem (3) |
-| 1f's drawing, `Add note`'s face past its plus mark at the line's start — not the spec | `--spacing-note-add-bleed-left` | 0.3125rem (5) |
-| 1f's drawing, `Add note`'s plus mark to its word — not the spec | `--spacing-note-add-gap` | 0.375rem (6) |
+| 1f's drawing, a `Details` row's `Add` past its plus mark at its start, `Add note`'s until #601 — not the spec | `--spacing-note-add-bleed-left` | 0.3125rem (5) |
+| 1f's drawing, a `Details` row's `Add`'s plus mark to its word, `Add note`'s until #601 — not the spec | `--spacing-note-add-gap` | 0.375rem (6) |
+| 1f's drawing, a `Details` row's label to its value (#601) — not the spec | `--spacing-details-label-inline` | 1rem (16) |
+| 1f's drawing, between two `Details` rows (#601) — not the spec | `--spacing-details-row-stack` | 0.75rem (12) |
+| 1f's drawing, the least room from a `Details` value to its `Edit` (#601) — not the spec | `--spacing-details-edit-inline` | 0.875rem (14) |
+| 1f's drawing, a `Details` row's `Add` left of the value column (#601) — not the spec | `--spacing-details-add-bleed-left` | 0.5rem (8) |
+| 1f's drawing, a `Details` row's field, or the line under it, to its `Cancel` and `Save` (#601) — not the spec | `--spacing-details-actions-stack` | 0.75rem (12) |
+| 1f's drawing, the `Details` block's last row to the `Label` block's name (#601) — not the spec | `--spacing-details-block-stack` | 2.5rem (40) |
 | 0n Record rail, on 1080 | `--width-record-rail` | 21rem (336) |
 | 0n Record rail, the main column's text to its Rule | `--spacing-record-rail-inline` | 2rem (32) |
 | 0n Record rail, its Rule to its own text | `--spacing-record-rail-inset-left` | 1.75rem (28) |
 | 1f's drawing, between the label, its size and its control — not the spec | `--spacing-label-block-stack` | 1rem (16) |
 | 1f's drawing, the label's Field ground, either side — not the spec | `--spacing-label-preview-inset-x` | 1rem (16) |
 | 1f's drawing, the label's Field ground, above and below — not the spec | `--spacing-label-preview-inset-y` | 1.75rem (28) |
-| 1f's drawing, the column `Size` and `Symbol` stand in — not the spec | `--width-label-fact-term` | 4rem (64) |
-| 1f's drawing, that column to the figure — not the spec | `--spacing-label-fact-inline` | 0.75rem (12) |
-| 1f's drawing, between the two — not the spec | `--spacing-label-fact-stack` | 0.25rem (4) |
+| 1f's drawing, the label to the line saying what it prints at (#601; `Size` and `Symbol` in a column of their own from #463, three names that went with them) — not the spec | `--spacing-label-caption-stack` | 0.5rem (8) |
 | 1f's drawing, the history's dots and rule — not the spec | `--width-log-track` | 1.25rem (20) |
 | 1f's drawing, an entry's dot — not the spec | `--size-log-dot` | 0.375rem (6) |
 | 1f's drawing, the dot from its entry's top — not the spec | `--spacing-log-dot-inset-top` | 0.4375rem (7) |
@@ -710,10 +724,11 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | Tools 0a Radius, a sheet's top corners | `--radius-mobile-drawer` | 1.75rem (28) |
 | Tools 0a Title block, under the top bar | `--spacing-mobile-top-bar-stack` | 0.25rem (4) |
 | Tools 0a Title block, below | `--spacing-mobile-title-stack` | 1.375rem (22) |
-| Tools 0a Top bar, the record's id over its name, 1j's caption under it, and the item's job under that (#597) | `--spacing-mobile-title-block-stack` | 0.25rem (4) |
-| Tools 0a Title block, the pin before the item's job (1j, #597) | `--size-mobile-title-icon` | 0.875rem (14) |
-| Tools 0a Note, the line a writer presses, past its text either side | `--spacing-mobile-note-bleed-x` | 0.75rem (12) |
+| Tools 0a Top bar, the record's id over its name, 1j's caption under it, and a loan's line under that (#598; the item's job's line from #597 until #601) | `--spacing-mobile-title-block-stack` | 0.25rem (4) |
+| Tools 0a Note, the line a writer presses, past its text either side, and the serial number's (#601) | `--spacing-mobile-note-bleed-x` | 0.75rem (12) |
 | 1j's drawing, that line above and below its text, one line the 48 a target takes — not the spec | `--spacing-mobile-note-bleed-y` | 0.875rem (14) |
+| Tools 0a Value line, the serial number's line above its text and the note's below it, where both are targets (#601) | `--spacing-mobile-detail-bleed-outer` | 1.375rem (22) |
+| Tools 0a Value line, each toward the other, so neither covers it and each keeps 48 (#601) | `--spacing-mobile-detail-bleed-inner` | 0.375rem (6) |
 | Tools 0a Section | `--spacing-mobile-stack` | 2rem (32) |
 | Tools 0a Step page, the wordmark from the top | `--spacing-mobile-sign-in-inset-top` | 4.5rem (72) |
 | Tools 0a Step page, the wordmark to the title | `--spacing-mobile-sign-in-brand-stack` | 2rem (32) |

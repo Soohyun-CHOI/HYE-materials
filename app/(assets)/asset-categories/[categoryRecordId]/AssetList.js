@@ -23,20 +23,23 @@ import { DAY_FORMAT } from "@/lib/format";
 import StatusMark from "../../StatusMark";
 import LabelsDialog from "../../assets/LabelsDialog";
 
-// 1d's columns since #533: the box, the printed id at 240, the status at 240 — and after an
-// `Out` who holds it — the note taking the room left, and the day each item last changed at
-// 120. The status took the room left from #520, when 1d drew the day in the job's place, and
-// stood at 160 with the job after it from #463.
-const COLUMNS = "grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";
+// 1d's columns since #601: the box, the printed id at 144 and the serial number at 128 after it, the
+// status at 240 — and after an `Out` who holds it — the note taking the room left, and the day each
+// item last changed at 120. The id stood at 240 from #533 until the files of 2026-11-04 gave the
+// serial number a column of its own. The status took the room left from #520, when 1d drew the
+// day in the job's place, and stood at 160 with the job after it from #463.
+const COLUMNS =
+    "grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-serial)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";
 // The same four for a reader who selects nothing (#506), with no box to hold room for, as 1d
 // draws the list for a reader with no role.
-const COLUMNS_WITHOUT_BOX = "grid-cols-[var(--width-table-id)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";
-// On all jobs (1d, #548), the job each item is on at 96 after its id, the note
-// giving up the room — 244 of the 1080, as 1d draws it. Each a literal, for the stylesheet.
+const COLUMNS_WITHOUT_BOX =
+    "grid-cols-[var(--width-table-id)_var(--width-table-serial)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";
+// On all jobs (1d, #548), the job each item is on at 96 after its serial number, the note
+// giving up the room, as 1d draws it. Each a literal, for the stylesheet.
 const COLUMNS_WITH_JOB =
-    "grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-job)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";
+    "grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-serial)_var(--width-table-job)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";
 const COLUMNS_WITH_JOB_WITHOUT_BOX =
-    "grid-cols-[var(--width-table-id)_var(--width-table-job)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";
+    "grid-cols-[var(--width-table-id)_var(--width-table-serial)_var(--width-table-job)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";
 
 // One page of a category's assets, drawn as 1d's table (#463): a box on each and one for the
 // page in the column head, and the selection bar that opens the labels' dialog on what they
@@ -195,6 +198,7 @@ export default function AssetList({ categoryRecordId, itemName, selects, showsJo
                         </span>
                     )}
                     <span role="columnheader">{COPY.assetIdLabel}</span>
+                    <span role="columnheader">{COPY.serialLabel}</span>
                     {showsJob && <span role="columnheader">{COPY.jobLabel}</span>}
                     <span role="columnheader">{COPY.statusLabel}</span>
                     <span role="columnheader">{COPY.noteLabel}</span>
@@ -224,6 +228,14 @@ export default function AssetList({ categoryRecordId, itemName, selects, showsJo
                                 <Link href={assetPath(row.assetId)} className={TABLE_ROW_LINK}>
                                     {row.assetId}
                                 </Link>
+                            </span>
+                            {/* Its serial number in the id's face at 13 and Ink 2, cut at its column's
+                                end and shown whole above it under the pointer as the note is (1d,
+                                #601). Nothing for an item with none. */}
+                            <span role="cell" className="min-w-0 font-id text-body-sm tracking-id text-foreground-muted">
+                                <span data-cut="" className="block truncate">
+                                    {row.serialNumber}
+                                </span>
                             </span>
                             {/* The job it is on, by its code in Ink 2, its figures tabular (1d,
                                 #548) — only while the list is on all jobs. */}

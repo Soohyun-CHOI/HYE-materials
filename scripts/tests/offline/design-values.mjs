@@ -279,7 +279,8 @@ const VALUES = [
     ["--spacing-table-column-inline", "1.25rem", null],
     // 1a's counts at 56 since the files of 2026-10-23 (#566), 96 until then.
     ["--width-table-count", "3.5rem", null],
-    ["--width-table-id", "15rem", null],
+    ["--width-table-id", "9rem", null],
+    ["--width-table-serial", "8rem", null],
     // The job's column, on all of a reader's jobs (1d, #548).
     ["--width-table-job", "6rem", null],
     // The status's column, held again beside the note's (1d, #533).
@@ -519,15 +520,19 @@ const VALUES = [
     // Add note's face past its plus mark, and the mark to its word (1f, #533).
     ["--spacing-note-add-bleed-left", "0.3125rem", null],
     ["--spacing-note-add-gap", "0.375rem", null],
+    ["--spacing-details-label-inline", "1rem", null],
+    ["--spacing-details-row-stack", "0.75rem", null],
+    ["--spacing-details-edit-inline", "0.875rem", null],
+    ["--spacing-details-add-bleed-left", "0.5rem", null],
+    ["--spacing-details-actions-stack", "0.75rem", null],
+    ["--spacing-details-block-stack", "2.5rem", null],
     ["--width-record-rail", "21rem", null],
     ["--spacing-record-rail-inline", "2rem", null],
     ["--spacing-record-rail-inset-left", "1.75rem", null],
     ["--spacing-label-block-stack", "1rem", null],
     ["--spacing-label-preview-inset-x", "1rem", null],
     ["--spacing-label-preview-inset-y", "1.75rem", null],
-    ["--width-label-fact-term", "4rem", null],
-    ["--spacing-label-fact-inline", "0.75rem", null],
-    ["--spacing-label-fact-stack", "0.25rem", null],
+    ["--spacing-label-caption-stack", "0.5rem", null],
     ["--width-log-track", "1.25rem", null],
     ["--size-log-dot", "0.375rem", null],
     ["--spacing-log-dot-inset-top", "0.4375rem", null],
@@ -640,12 +645,13 @@ const VALUES = [
     // The title block's lines on a phone, 4 apart (0a, #538): the id over the name, the caption under it,
     // and the item's job under that behind its pin, 14 (1j, #597).
     ["--spacing-mobile-title-block-stack", "0.25rem", null],
-    ["--size-mobile-title-icon", "0.875rem", null],
     // The clear × of the one field in a sheet, from the field's edge (1j-b2, #533).
     ["--spacing-mobile-sheet-input-clear-inset-right", "0.125rem", null],
     // The phone's note line a writer presses, past its text either side and above and below (0a Note, 1j; #533).
     ["--spacing-mobile-note-bleed-x", "0.75rem", null],
     ["--spacing-mobile-note-bleed-y", "0.875rem", null],
+    ["--spacing-mobile-detail-bleed-outer", "1.375rem", null],
+    ["--spacing-mobile-detail-bleed-inner", "0.375rem", null],
     ["--spacing-mobile-stack", "2rem", null],
     // A phone's sign-in page (#473); the caret's height is the drawings'.
     ["--spacing-mobile-sign-in-inset-top", "4.5rem", null],

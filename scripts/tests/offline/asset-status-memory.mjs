@@ -20,8 +20,9 @@
 //   WHAT NO VALUE CAN SHOW IS READ OFF THE SOURCE: that the list counts what `countedAssets`
 //   builds from what `getAssetStatuses` answered; that `lib/airtable/assets.js` makes the
 //   memory once, when it loads — one made per call would meet every asset on every view and
-//   every figure here would still pass; that its two reads name `Status` and `Asset ID` alone, a
-//   hundred ids to a query, and the question is `changedSince` on the same two; and that the
+//   every figure here would still pass; that its two reads name `Status`, `Asset ID`, `Serial Number`
+//   and `Last Event At` alone, a hundred ids to a query, and the question is `changedSince` on the
+//   first three and on `Last Event At` past the moment; and that the
 //   memory imports nothing. Each is held beside a planted file doing it wrong.
 //
 // WHAT IT CANNOT SEE. Whether the base answers the question at once — the freshness the whole
@@ -420,19 +421,20 @@ export async function run({ check, log }) {
         "async (moment) => ( await base(TABLES.ASSETS) .select({ filterByFormula: changedSince(MODIFIED_FIELDS, moment, { momentsAfter: [LAST_EVENT_AT_FIELD] }), fields: KEPT_FIELDS }) .all() ).map(recordToStatus)"
     );
     check(
-        "  the fields being Status and Asset ID (#541), and Last Event At (#540)",
+        "  the fields being Status, Asset ID (#541) and Serial Number (#601), and Last Event At (#540)",
         [
             /const STATUS_FIELD = "Status";/.test(assets.source),
             /const ASSET_ID_FIELD = "Asset ID";/.test(assets.source),
-            /const MODIFIED_FIELDS = \[STATUS_FIELD, ASSET_ID_FIELD\];/.test(assets.source),
+            /const SERIAL_NUMBER_FIELD = "Serial Number";/.test(assets.source),
+            /const MODIFIED_FIELDS = \[STATUS_FIELD, ASSET_ID_FIELD, SERIAL_NUMBER_FIELD\];/.test(assets.source),
             /const LAST_EVENT_AT_FIELD = "Last Event At";/.test(assets.source),
             /const KEPT_FIELDS = \[\.\.\.MODIFIED_FIELDS, LAST_EVENT_AT_FIELD\];/.test(assets.source),
         ].join(" "),
-        "true true true true true"
+        "true true true true true true"
     );
     check(
-        "  and each answer the record's id, its Status, its Asset ID and its Last Event At",
-        /function recordToStatus\(record\) \{\s*return \{\s*id: record\.id,\s*status: record\.get\(STATUS_FIELD\),\s*assetId: record\.get\(ASSET_ID_FIELD\),\s*lastEventAt: record\.get\(LAST_EVENT_AT_FIELD\) \?\? null,\s*\};\s*\}/.test(assets.source),
+        "  and each answer the record's id, its Status, its Asset ID, its Last Event At and its Serial Number",
+        /function recordToStatus\(record\) \{\s*return \{\s*id: record\.id,\s*status: record\.get\(STATUS_FIELD\),\s*assetId: record\.get\(ASSET_ID_FIELD\),\s*lastEventAt: record\.get\(LAST_EVENT_AT_FIELD\) \?\? null,\s*serialNumber: record\.get\(SERIAL_NUMBER_FIELD\) \?\? "",\s*\};\s*\}/.test(assets.source),
         true
     );
 

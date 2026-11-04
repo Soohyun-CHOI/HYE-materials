@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useEffect, useId, useRef, useState } from "react";
-import { Button, ClearButton } from "@/app/components/Controls";
+import { Button, FieldClear } from "@/app/components/Controls";
 import BottomBar from "@/app/components/BottomBar";
 import Icon from "@/app/components/Icon";
 import { SCROLL_LANE } from "@/app/components/scrollLane";
@@ -198,14 +198,7 @@ function SearchBand({ value, onChange, readOnly, inputRef }) {
                     enterKeyHint="done"
                     className="w-full min-w-0 bg-transparent text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle max-sm:h-full max-sm:flex-1 max-sm:text-mobile-body pointer-coarse:text-mobile-body sm:h-control-xl sm:rounded-control sm:border sm:border-transparent sm:bg-background-muted sm:pr-input-inset-x sm:pl-[calc(var(--spacing-input-inset-x)+var(--size-icon-sm)+var(--spacing-gap))] sm:text-body sm:focus:border-border-focus sm:focus:bg-white"
                 />
-                {value !== "" && !readOnly && (
-                    <ClearButton
-                        onClear={() => {
-                            onChange("");
-                            inputRef.current?.focus();
-                        }}
-                    />
-                )}
+                {value !== "" && !readOnly && <FieldClear look="phone" onChange={onChange} focus={() => inputRef.current?.focus()} />}
             </div>
         </div>
     );

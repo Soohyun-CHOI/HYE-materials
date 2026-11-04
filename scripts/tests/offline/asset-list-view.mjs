@@ -441,12 +441,12 @@ function allJobs548({ check, log }) {
     );
     const listFile = parseFile(ASSET_LIST).source;
     check(
-        "its list puts the job at 96 after the id on all of them, with the box and without, headed `Job`",
+        "its list puts the job at 96 after the serial number on all of them, with the box and without, headed `Job` (#601)",
         [
-            listFile.includes('"grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-job)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]"'),
-            listFile.includes('"grid-cols-[var(--width-table-id)_var(--width-table-job)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]"'),
+            listFile.includes('"grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-serial)_var(--width-table-job)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]"'),
+            listFile.includes('"grid-cols-[var(--width-table-id)_var(--width-table-serial)_var(--width-table-job)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]"'),
             /const columns = showsJob \? \(selects \? COLUMNS_WITH_JOB : COLUMNS_WITH_JOB_WITHOUT_BOX\) : selects \? COLUMNS : COLUMNS_WITHOUT_BOX;/.test(listFile),
-            /\{COPY\.assetIdLabel\}<\/span>\s*\{showsJob && <span role="columnheader">\{COPY\.jobLabel\}<\/span>\}\s*<span role="columnheader">\{COPY\.statusLabel\}/.test(listFile),
+            /\{COPY\.assetIdLabel\}<\/span>\s*<span role="columnheader">\{COPY\.serialLabel\}<\/span>\s*\{showsJob && <span role="columnheader">\{COPY\.jobLabel\}<\/span>\}\s*<span role="columnheader">\{COPY\.statusLabel\}/.test(listFile),
             /\{showsJob && \(\s*<span role="cell" className="min-w-0 truncate text-foreground-muted tabular-nums">\s*\{row\.jobCode\}/.test(listFile),
         ].join(" "),
         "true true true true true"
@@ -629,7 +629,7 @@ function total569({ check, log }) {
         "kSaw:1/1/1/2=3"
     );
     const byId = read(onAll, "job=all&q=HYE-AST-261001-004", true);
-    check("on an item's id the kind's row keeps its total whole, the item a retired one (1a3)", `${said(byId)} ${byId.found?.assetId} ${byId.found?.status}`, "kSaw:1/1/1/2=3 HYE-AST-261001-004 Retired");
+    check("on an item's id the kind's row keeps its total whole, the item a retired one (1a3)", `${said(byId)} ${byId.found[0]?.assetId} ${byId.found[0]?.status}`, "kSaw:1/1/1/2=3 HYE-AST-261001-004 Retired");
     check("  and on one job, its label's code alone", said(read(onJob1, "q=261001-002")), "kSaw:1/1/0/1=2");
     // A SECOND PATH TO EVERY FIGURE ABOVE: the counts less `Retired`'s, spelled here by the
     // status's own word rather than through the map the module reads.
@@ -2866,8 +2866,10 @@ export function run({ check, assert, log }) {
             !/pathOf/.test(captionSource),
             /text-foreground-default tabular-nums max-sm:text-foreground-muted/.test(captionSource),
             /<CategoryCaption\s+category=\{category\}\s+lead=\{<span className=\{ID_IN_TEXT\}>\{asset\.assetId\}<\/span>\}\s+job=\{jobCode\}/.test(assetSource),
-            (assetSource.match(/\{jobCode && \(/g) ?? []).length === 1 &&
-                /\{jobCode && \(\s*<p className="[^"]*\bsm:hidden\b[^"]*">\s*<Icon name="map-pin" className="size-mobile-title-icon [^"]*" \/>\s*\{\/\*[^*]*\*\/\}\s*<span className="min-w-0">\s*<span className="tabular-nums">\{jobCode\}<\/span>/.test(assetSource),
+            // On a phone the job leads the caption's one line since the files of 2026-11-04 (#601), where a
+            // line of its own behind a pin said it from #597.
+            /<CategoryCaption category=\{category\} job=\{jobCode\} className="text-mobile-body-xs text-foreground-muted sm:hidden" \/>/.test(assetSource) &&
+                !/size-mobile-title-icon/.test(assetSource),
         ].join(" "),
         "true true true true true"
     );
@@ -2994,13 +2996,11 @@ export function run({ check, assert, log }) {
     // without.
     const assetListSource = parseFile(ASSET_LIST).source;
     check(
-        "the list's columns are the id, the status, the note and the day, with the box and without",
+        "the list's columns are the id, the serial number (#601), the status, the note and the day, with the box and without",
         [
-            assetListSource.includes(
-                'const COLUMNS = "grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";'
-            ),
-            assetListSource.includes('const COLUMNS_WITHOUT_BOX = "grid-cols-[var(--width-table-id)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";'),
-            /\{COPY\.assetIdLabel\}<\/span>\s*\{showsJob && [^\n]*\}\s*<span role="columnheader">\{COPY\.statusLabel\}<\/span>\s*<span role="columnheader">\{COPY\.noteLabel\}<\/span>\s*<span role="columnheader">\{COPY\.updatedLabel\}<\/span>/.test(
+            /const COLUMNS =\s*"grid-cols-\[var\(--size-icon\)_var\(--width-table-id\)_var\(--width-table-serial\)_var\(--width-table-status\)_minmax\(0,1fr\)_var\(--width-table-date\)\]";/.test(assetListSource),
+            /const COLUMNS_WITHOUT_BOX =\s*"grid-cols-\[var\(--width-table-id\)_var\(--width-table-serial\)_var\(--width-table-status\)_minmax\(0,1fr\)_var\(--width-table-date\)\]";/.test(assetListSource),
+            /\{COPY\.assetIdLabel\}<\/span>\s*<span role="columnheader">\{COPY\.serialLabel\}<\/span>\s*\{showsJob && [^\n]*\}\s*<span role="columnheader">\{COPY\.statusLabel\}<\/span>\s*<span role="columnheader">\{COPY\.noteLabel\}<\/span>\s*<span role="columnheader">\{COPY\.updatedLabel\}<\/span>/.test(
                 assetListSource
             ),
             // The job is a column on all of a reader's jobs alone (#548), held in #548's block.
@@ -3098,7 +3098,7 @@ export function run({ check, assert, log }) {
             ASSET_LIST_COPY.noneMatchFilters,
             ASSET_LIST_COPY.clearAll,
         ].join(" | "),
-        "Search items or item IDs | Clear search | Type: Clear type filter, Category: Clear category filter | No items match | No items match these filters | Clear all"
+        "Search items, IDs or serials | Clear search | Type: Clear type filter, Category: Clear category filter | No items match | No items match these filters | Clear all"
     );
     check(
         "  a chip's word and its clear for each facet and for no other, the class's gone with its chip (#552)",

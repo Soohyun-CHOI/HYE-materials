@@ -22,7 +22,9 @@ import { loadDesignSystem } from "./design-values.mjs";
 
 export const title = "Add note under the pointer and the rail's current section, as the design draws them (#584)";
 
-const NOTE = "app/(assets)/assets/[assetId]/AssetNote.js";
+// The desk's openers of a note since #601: `Add` and `Edit` in the `Details` block, one part for the
+// serial number and the note.
+const NOTE = "app/(assets)/assets/[assetId]/ItemDetails.js";
 const RAIL = "app/components/Rail.js";
 
 /**
@@ -123,13 +125,13 @@ const attributeSource = (parsed, element, name) => {
     return value ? parsed.source.slice(value.start, value.end) : null;
 };
 const saysAddNote = (element) =>
-    element.children.some((child) => child.type === "JSXExpressionContainer" && child.expression?.property?.name === "addNote");
+    element.children.some((child) => child.type === "JSXExpressionContainer" && ["addNote", "add"].includes(child.expression?.property?.name));
 
-/** `Add note` and `Edit`, the desk's two openers of a note, off a parsed `AssetNote.js`. */
+/** `Add` and `Edit`, the desk's two openers of a note, off a parsed `ItemDetails.js` (#601). */
 export function noteOpeners(parsed) {
     return {
         add: classesOf(parsed, (n) => named(n, "button") && saysAddNote(n)),
-        edit: classesOf(parsed, (n) => named(n, "button") && attributeSource(parsed, n, "aria-label") === "{COPY.editNote}"),
+        edit: classesOf(parsed, (n) => named(n, "button") && ["{COPY.editNote}", "{detail.editName}"].includes(attributeSource(parsed, n, "aria-label"))),
     };
 }
 

@@ -251,7 +251,7 @@ export function run({ check, assert, log }) {
         `${readCategoryList(owner.rows, new URLSearchParams("q=HYE-AST-261001-003"), { allJobs: false, jobs: JOBS, job: OWNER.id }).asks}`,
         "HYE-AST-261001-003"
     );
-    check("  and on the borrower's it is found in its row", readCategoryList(borrower.rows, new URLSearchParams("q=HYE-AST-261001-003"), { allJobs: false, jobs: JOBS, job: BORROWER.id }).found?.status, "In stock");
+    check("  and on the borrower's it is found in its row", readCategoryList(borrower.rows, new URLSearchParams("q=HYE-AST-261001-003"), { allJobs: false, jobs: JOBS, job: BORROWER.id }).found[0]?.status, "In stock");
     check(
         "the columns: On loan before Retired on one job, none on all",
         `${countColumns({ allJobs: false }).map((c) => (c.onLoan ? "On loan" : c.status)).join(",")} | ${countColumns({ allJobs: true }).map((c) => (c.onLoan ? "On loan" : c.status)).join(",")}`,
@@ -354,11 +354,12 @@ async function exportAndRest({ check, assert, log, jobs, kinds, kept }) {
             callsTo(writeLoan.node ?? {}, "updateAssetCache").length === 1
     );
     check("  writeLoan is no entry point", /export (async )?function writeLoan|export const writeLoan/.test(actions.source), false);
-    // The three older actions plan with the owner job too, which a retirement on loan writes.
+    // The three older actions plan with the owner job too, which a retirement on loan writes, and so
+    // does the serial number's (#601), the note's twin.
     check(
         "every plan an action makes names the item's owner job",
         `${(actions.source.match(/ownerJobId: asset\.ownerJob\?\.\[0\]/g) ?? []).length} ${callsTo(actions.ast, "planTransition").length}`,
-        "4 4"
+        "5 5"
     );
     assert("the retirement writes the job readRetirement answers, the owner job on loan", /const \{ jobRecordId, refusal \} = readRetirement\(plan,/.test(actions.source) && /event: ASSET_EVENT\.RETIRED,\s*jobRecordId,/.test(actions.source));
 

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState } from "react";
-import { searchResultsKey } from "@/lib/controls";
+import { keepFocus, searchResultsKey } from "@/lib/controls";
 import { DIALOG_FRAME_COPY as COPY, focusLost } from "@/lib/dialogFrame";
-import { ButtonLabel, FormBusy, Refusal, useFormBusy } from "./Controls";
+import { ButtonLabel, FieldClear, FormBusy, Refusal, useFormBusy } from "./Controls";
 import Icon from "./Icon";
 import { SCROLL_LANE } from "./scrollLane";
 import { liesBehind, watchDrag } from "./sheetDrag";
@@ -119,14 +119,21 @@ import useKeyboardCover from "./useKeyboardCover";
  * a drag ask the close the close asks, so a busy sheet stays. One condition draws the handle and
  * takes the drag (`handled`), and the Confirm, which draws no handle, is not dragged.
  *
- * 1j's THREE SHEETS ARE PARTS ON THIS FRAME, built to be opened as they are. The job sheet
- * and the name sheet beside the asset page, and the retirement's Confirm, close on a
- * press on what lies behind them while drawn as sheets (`closesOnBackdrop`), the job and
- * name sheets on their handle too, and the name sheet ends in `done`, a text
- * button at its head's end in place of the close, since it holds a field (0a Sheet). The job
- * and name sheets open from #463's foot bar — 1j's — and the Confirm from the phone's
- * `More actions`, with nothing about them changed; the fields in the page's dialog that
- * open them stand below the phone's edge, where that dialog is not drawn.
+ * 1j's SHEETS ARE PARTS ON THIS FRAME, built to be opened as they are. Among them the name
+ * sheet, which #463's foot bar opens, an item's two details' (#533, #601), each opened by its
+ * line, and the retirement's Confirm, from the phone's `More actions`, close on a press on what
+ * lies behind them while drawn as sheets (`closesOnBackdrop`), and the name sheet and a
+ * detail's end in `done`, a text button at its head's end in place of the close, since each
+ * holds a field (0a Sheet). The job sheet stood beside the name sheet until #597.
+ *
+ * A PRESS ON WHAT A SHEET OFFERS LEAVES ITS FIELD THE CARET (#605): `Done`, a row of `SheetRows`
+ * and the field's clear × (`FieldClear`) each stop their `mousedown` (`lib/controls.js:keepFocus`).
+ * Until #605 a press let focus off the field as it went down, the keyboard's cover read 0, and the
+ * sheet stood on it no longer: it dropped by the keyboard's height under the finger, the press came
+ * up above it, and its click went to the `<dialog>` — a press behind it, which put the sheet away.
+ * The × put the name sheet away with the name kept, a row with no name chosen, and the note's
+ * `Done` with nothing saved; reproduced on main with the keyboard stood in, and not seen on a phone
+ * at the time, where Soo had met the first. `keepFocus` has the eight events.
  *
  * A DIALOG TAKEN OFF THE PAGE WHILE OPEN HANDS FOCUS BACK AS ITS CLOSING WOULD (#458). The
  * browser restores focus when it is asked to close a dialog and not when the dialog is
@@ -533,6 +540,7 @@ export function DialogFrame({
                 <div className="-mr-mobile-drawer-header-action-inset-x flex h-[var(--text-mobile-heading--line-height)] shrink-0 items-center">
                     <button
                         type="button"
+                        onMouseDown={keepFocus}
                         onClick={busy ? undefined : done.onPress}
                         aria-busy={busy && done.busyLabel ? true : undefined}
                         aria-disabled={busy ? true : undefined}
@@ -778,19 +786,7 @@ export function DialogSearch({ label, value, onChange, clearLabel, filters, resu
                     onKeyDown={onKeyDown}
                     className="min-w-0 flex-1 self-stretch bg-transparent text-body text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle pointer-coarse:text-mobile-body"
                 />
-                {value !== "" && (
-                    <button
-                        type="button"
-                        aria-label={clearLabel}
-                        onClick={() => {
-                            type("");
-                            inputRef.current?.focus();
-                        }}
-                        className="flex aspect-square h-control-sm shrink-0 items-center justify-center rounded-control text-foreground-subtle hover:bg-hover hover:text-foreground-default"
-                    >
-                        <Icon name="x" className="size-icon-sm" />
-                    </button>
-                )}
+                {value !== "" && <FieldClear look="dialogSearch" label={clearLabel} onChange={type} focus={() => inputRef.current?.focus()} />}
                 <div className="flex shrink-0 items-center gap-dialog-filter-inline">{filters}</div>
                 <div aria-hidden="true" className="absolute inset-x-[calc(var(--spacing-dialog-inset)-var(--spacing-dialog-result-bleed))] bottom-0 h-px bg-divider" />
             </div>
@@ -806,7 +802,7 @@ export function DialogSearch({ label, value, onChange, clearLabel, filters, resu
                             data-index={index}
                             role="option"
                             aria-selected={index === active ? "true" : "false"}
-                            onMouseDown={(event) => event.preventDefault()}
+                            onMouseDown={keepFocus}
                             onClick={() => onPick(result)}
                             className={`flex h-control-lg shrink-0 cursor-pointer items-center gap-dialog-result-inline rounded-control px-dialog-result-bleed hover:bg-hover ${
                                 index === active ? "bg-hover" : ""
@@ -896,6 +892,7 @@ export function SheetRows({ rows }) {
                         type="button"
                         aria-current={row.chosen ? "true" : undefined}
                         aria-disabled={locked || undefined}
+                        onMouseDown={keepFocus}
                         onClick={locked ? undefined : row.onPress}
                         className="flex min-h-mobile-drawer-row items-center justify-between gap-gap px-mobile-drawer-row-inset-x py-mobile-drawer-row-inset-y text-left text-mobile-body text-foreground-default tabular-nums outline-none focus-visible:bg-hover-subtle not-aria-disabled:active:bg-hover-subtle"
                     >

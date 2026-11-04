@@ -75,14 +75,15 @@ const CATEGORIES = [
     kind("recK5", "Grinder", "Tool", "Power Tool", "Grinder", "", "", "", []),
 ];
 // Each asset's \`Last Event At\` (#540) is its latest log row's \`Event At\` below, as Airtable rolls it up.
-const asset = (id, assetId, status, job, category, note, assetLog, lastEventAt) => ({ id, assetId, status, job: [job], ownerJob: [job], category: [category], note, assetLog, lastEventAt });
+// Its serial number (#601) last, the empty string for none, as the reader hands back an asset with none.
+const asset = (id, assetId, status, job, category, note, assetLog, lastEventAt, serialNumber = "") => ({ id, assetId, status, job: [job], ownerJob: [job], category: [category], note, assetLog, lastEventAt, serialNumber });
 const ASSETS_HELD = [
     asset("a1", "HYE-AST-261001-001", ASSET_STATUS.IN_STOCK, "recJ1", "recK1", "", ["l1"], "2026-10-01T15:00:00.000Z"),
-    asset("a2", "HYE-AST-261001-002", ASSET_STATUS.OUT, "recJ1", "recK1", "Kept in bay 2", ["l2a", "l2b"], "2026-10-22T03:30:00.000Z"),
+    asset("a2", "HYE-AST-261001-002", ASSET_STATUS.OUT, "recJ1", "recK1", "Kept in bay 2", ["l2a", "l2b"], "2026-10-22T03:30:00.000Z", "B53AD2304217"),
     asset("a3", "HYE-AST-261001-003", ASSET_STATUS.RETIRED, "recJ2", "recK1", "", ["l3"], "2026-10-05T12:00:00.000Z"),
     asset("a4", "HYE-AST-261002-001", ASSET_STATUS.IN_REPAIR, "recJ2", "recK2", "", ["l4"], "2026-10-10T12:00:00.000Z"),
     asset("a5", "HYE-AST-261002-002", ASSET_STATUS.IN_STOCK, "recJ1", "recK2", '=HYPERLINK("http://x","y")', ["l5"], "2026-10-02T12:00:00.000Z"),
-    asset("a6", "HYE-AST-261003-001", ASSET_STATUS.IN_STOCK, "recJ3", "recK3", "@SUM(A1)", ["l6"], "2026-10-03T12:00:00.000Z"),
+    asset("a6", "HYE-AST-261003-001", ASSET_STATUS.IN_STOCK, "recJ3", "recK3", "@SUM(A1)", ["l6"], "2026-10-03T12:00:00.000Z", "-0042"),
     // Out, but its latest entry is a check-in — the cache and the log disagree — so nobody is named.
     asset("a7", "HYE-AST-261004-001", ASSET_STATUS.OUT, "recJ2", "recK4", "", ["l7"], "2026-10-04T12:00:00.000Z"),
 ];
@@ -170,7 +171,7 @@ function agreement([list, items], { job = null } = {}) {
         if (loaned !== onLoan) return `${row[0]} counts ${onLoan} on loan but lists ${loaned}`;
         const held = block.filter((item) => !lent(item) && item[statusOf] !== "Retired").length;
         if (total !== held) return `${row[0]} totals ${total} but holds ${held}`;
-        if (block.some((item) => item[1] !== row[1] || item[2] !== row[2])) return `${row[0]} lists an item of another type or category`;
+        if (block.some((item) => item[2] !== row[1] || item[3] !== row[2])) return `${row[0]} lists an item of another type or category`;
     }
     return at === items.rows.length ? "agree" : `${items.rows.length - at} items under no row`;
 }
@@ -253,10 +254,13 @@ async function byId541({ check, log }) {
     check("  the one out read for its holder, and every asset on the job for the counts", `${byId.asked.assets.map((ids) => ids.join(",")).join(" / ")} | ${byId.asked.logRows.map((ids) => ids.join(",")).join(" / ")}`, "a1,a2,a5 | l2b");
     check("  and the two sheets agree", agreement(byId.made.sheets, { job: "23-USA-09" }), "agree");
     check("its label's code presses the same file", rowsSaid((await press(OFFICE, "q=261001-002")).made.sheets[1]), rowsSaid(byId.made.sheets[1]));
+    // AND ITS SERIAL NUMBER, WHOLE, IN ANY CASE (#601): the same row and every asset under it, as the
+    // list shows it — the file asks the list's reading of the assets it read whole, their numbers in it.
+    check("its serial number presses the same file, in any case", rowsSaid((await press(OFFICE, "q=%20b53ad2304217%20")).made.sheets[1]), rowsSaid(byId.made.sheets[1]));
     const onAll = await press(OFFICE, "job=all&q=261001-003");
     check(
         "on all of the office's jobs the item's row counts every job, and lists every asset under it",
-        `${rowsSaid(onAll.made.sheets[0])} | ${onAll.made.sheets[1].rows.map((row) => `${row[0]} ${row[8]}`).join(" ")}`,
+        `${rowsSaid(onAll.made.sheets[0])} | ${onAll.made.sheets[1].rows.map((row) => `${row[0]} ${row[9]}`).join(" ")}`,
         "Band Saw, DeWalt (DCS375) ; Tool ; Power Tool ; 1 ; 1 ; 0 ; 1 ; 2 | HYE-AST-261001-002 23-USA-09 HYE-AST-261001-003 25-USA-13 HYE-AST-261001-001 23-USA-09"
     );
     const offJob = await press(OFFICE, "q=261001-003");
@@ -290,9 +294,9 @@ export async function run({ check, log, assert }) {
     check(
         "  the second its assets, newest change first under each kind, with the holder of one out and each one's day",
         rowsSaid(first.made.sheets[1]),
-        "HYE-AST-261001-002 ; Tool ; Power Tool ; Band Saw ; - ; DeWalt ; DCS375 ; Out ; 23-USA-09 ; 23-USA-09 ; Dana K ; Kept in bay 2 ; 10/22/2026 | " +
-            "HYE-AST-261001-001 ; Tool ; Power Tool ; Band Saw ; - ; DeWalt ; DCS375 ; In stock ; 23-USA-09 ; 23-USA-09 ; - ; - ; 10/1/2026 | " +
-            'HYE-AST-261002-002 ; Equipment ; Welding Equipment ; TIG Welder ; - ; Lincoln Electric ; TIG 205 ; In stock ; 23-USA-09 ; 23-USA-09 ; - ; =HYPERLINK("http://x","y") ; 10/2/2026'
+        "HYE-AST-261001-002 ; B53AD2304217 ; Tool ; Power Tool ; Band Saw ; - ; DeWalt ; DCS375 ; Out ; 23-USA-09 ; 23-USA-09 ; Dana K ; Kept in bay 2 ; 10/22/2026 | " +
+            "HYE-AST-261001-001 ; - ; Tool ; Power Tool ; Band Saw ; - ; DeWalt ; DCS375 ; In stock ; 23-USA-09 ; 23-USA-09 ; - ; - ; 10/1/2026 | " +
+            'HYE-AST-261002-002 ; - ; Equipment ; Welding Equipment ; TIG Welder ; - ; Lincoln Electric ; TIG 205 ; In stock ; 23-USA-09 ; 23-USA-09 ; - ; =HYPERLINK("http://x","y") ; 10/2/2026'
     );
     check("  and the two sheets agree", agreement(first.made.sheets, { job: "23-USA-09" }), "agree");
 
@@ -305,7 +309,7 @@ export async function run({ check, log, assert }) {
     );
     check(
         "  the second lists them in the first's order, each kind newest change first, each with its own job",
-        all.made.sheets[1].rows.map((row) => `${row[0]} ${row[8]} ${said(row[10])}`).join(" | "),
+        all.made.sheets[1].rows.map((row) => `${row[0]} ${row[9]} ${said(row[11])}`).join(" | "),
         "HYE-AST-261001-002 23-USA-09 Dana K | HYE-AST-261001-003 25-USA-13 - | HYE-AST-261001-001 23-USA-09 - | HYE-AST-261004-001 25-USA-13 - | HYE-AST-261003-001 26-USA-12 - | HYE-AST-261002-001 25-USA-13 - | HYE-AST-261002-002 23-USA-09 -"
     );
     check("  every asset on them read, once, and the rows of the two out", `${all.asked.assets.map((ids) => ids.join(",")).join(" / ")} | ${all.asked.logRows.map((ids) => ids.join(",")).join(" / ")}`, "a1,a2,a3,a4,a5,a6,a7 | l2b,l7");
@@ -378,7 +382,7 @@ export async function run({ check, log, assert }) {
     check("a band that empties the list gives both sheets with their heads alone", `${emptied.made.sheets[0].rows.length} ${emptied.made.sheets[1].rows.length}`, "0 0");
 
     const west = await press(OFFICE, "", { timeZone: "America/Los_Angeles", now: new Date("2026-10-22T05:00:00.000Z") });
-    check("a day is the reader's: the evening of the 21st in Los Angeles, the file named for it", `${said(west.made.sheets[1].rows[0][12])} ${west.made.fileName}`, "10/21/2026 Equipment & Tools - 23-USA-09 - 2026-10-21.xlsx");
+    check("a day is the reader's: the evening of the 21st in Los Angeles, the file named for it", `${said(west.made.sheets[1].rows[0][13])} ${west.made.fileName}`, "10/21/2026 Equipment & Tools - 23-USA-09 - 2026-10-21.xlsx");
     check("  and a zone the runtime does not know is read as UTC", `${knownTimeZone("Mars/Olympus")} ${knownTimeZone("")} ${knownTimeZone("Asia/Seoul")}`, "UTC UTC Asia/Seoul");
 
     // ── 2: the heads and the words ──────────────────────────────────────────
@@ -391,7 +395,7 @@ export async function run({ check, log, assert }) {
     check(
         "  the second's 1d's and the catalog's",
         first.made.sheets[1].columns.map((c) => `${c.header}:${c.kind}`).join(" | "),
-        "Item ID:text | Type:text | Category:text | Name:text | Size:text | Maker:text | Part #:text | Status:text | Job:text | Owner job:text | Checked out to:text | Note:text | Updated:day"
+        "Item ID:text | Serial number:text | Type:text | Category:text | Name:text | Size:text | Maker:text | Part #:text | Status:text | Job:text | Owner job:text | Checked out to:text | Note:text | Updated:day"
     );
     check(
         "the button's words",
@@ -425,18 +429,19 @@ export async function run({ check, log, assert }) {
     check(
         "  the header's bold, every head in it",
         `${/fontId="1"/.test(styles[1] ?? "") && /<font><b\/>/.test(parts["xl/styles.xml"])} ${items.filter((cell) => cell.row === 1).map((cell) => cell.s).join("")}`,
-        "true 1111111111111"
+        "true 11111111111111"
     );
-    const textCells = items.filter((cell) => cell.col !== "M");
+    const textCells = items.filter((cell) => cell.col !== "N");
     check("every text cell on the items sheet is an inline string", textCells.filter((cell) => cell.t !== "inlineStr").length, 0);
     check(
-        "  the notes that would start a formula are written as words, quotePrefix'd, and nothing else is",
+        "  the notes and the serial numbers that would start a formula are written as words, quotePrefix'd, and nothing else is (#601)",
         items.filter((cell) => cell.s === "2").map((cell) => cell.value).join(" | "),
-        '@SUM(A1) | =HYPERLINK("http://x","y")'
+        '-0042 | @SUM(A1) | =HYPERLINK("http://x","y")'
     );
-    check("  the holder as the history says it", items.filter((cell) => cell.col === "K" && cell.row > 1).map((cell) => cell.value).join(" | "), "Dana K");
-    check("  each day a serial under the day's style", items.filter((cell) => cell.col === "M" && cell.row > 1).map((cell) => `${cell.value}:${cell.s}:${cell.t}`).join(" "), "46317:3:null 46300:3:null 46296:3:null 46299:3:null 46298:3:null 46305:3:null 46297:3:null");
-    check("  a blank written as no cell: an item with no size, holder or note has none of those cells", items.filter((cell) => cell.row === 4).map((cell) => cell.col).join(" "), "A B C D F G H I J M");
+    check("  each serial number in the column after the id, an item with none no cell (#601)", items.filter((cell) => cell.col === "B").map((cell) => cell.value).join(" | "), "Serial number | B53AD2304217 | -0042");
+    check("  the holder as the history says it", items.filter((cell) => cell.col === "L" && cell.row > 1).map((cell) => cell.value).join(" | "), "Dana K");
+    check("  each day a serial under the day's style", items.filter((cell) => cell.col === "N" && cell.row > 1).map((cell) => `${cell.value}:${cell.s}:${cell.t}`).join(" "), "46317:3:null 46300:3:null 46296:3:null 46299:3:null 46298:3:null 46305:3:null 46297:3:null");
+    check("  a blank written as no cell: an item with no serial number, size, holder or note has none of those cells", items.filter((cell) => cell.row === 4).map((cell) => cell.col).join(" "), "A C D E G H I J K N");
     const counts = cellsOf(parts["xl/worksheets/sheet1.xml"]).filter((cell) => cell.row > 1 && ["D", "E", "F", "G"].includes(cell.col));
     check("the counts are figures, a zero included", counts.map((cell) => `${cell.value}${cell.t ?? ""}`).join(" "), "1 1 0 1 0 1 0 0 1 0 0 0 1 0 1 0");
     // The total is the eighth column, a figure as the counts are, the list's every row's (#569).
@@ -450,7 +455,7 @@ export async function run({ check, log, assert }) {
         ].join(" "),
         "true true"
     );
-    check("the head held at the top, filtered", [/<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"\/>/.test(parts["xl/worksheets/sheet2.xml"]), /<autoFilter ref="A1:M8"\/>/.test(parts["xl/worksheets/sheet2.xml"])].join(" "), "true true");
+    check("the head held at the top, filtered", [/<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"\/>/.test(parts["xl/worksheets/sheet2.xml"]), /<autoFilter ref="A1:N8"\/>/.test(parts["xl/worksheets/sheet2.xml"])].join(" "), "true true");
 
     log("");
     log("the cell's rule, by value:");
