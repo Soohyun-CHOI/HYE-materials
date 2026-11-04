@@ -18,12 +18,16 @@
 // `prefersSingleRecordLink` on create and on update (`docs/notes/airtable-access.md`), so it is not sent.
 //
 // `Asset Log."Event"`'s description waits for its two loan options, which
-// `scripts/import/add_loan_events_598.mjs` makes on the test base and Soo makes by hand on the live
+// `scripts/import/ran/add_loan_events_598.mjs` makes on the test base and Soo makes by hand on the live
 // base: with them missing, the run says so and stops before writing that one.
 //
+// ITS RUNS ARE DONE, AND ONE DESCRIPTION IS NO LONGER ITS OWN. `add_serial_number_601.mjs` rewrote
+// `Assets`' table description after it (#601), so on either base a dry run now says it would write that
+// description, and an `--apply` would put the text before #601 back. Its live run is done (#572's `ran/`).
+//
 // Usage (from the repo root):
-//   node --env-file=.env.local scripts/import/add_owner_job_598.mjs            (dry run)
-//   node --env-file=.env.local scripts/import/add_owner_job_598.mjs --apply
+//   node --env-file=.env.local scripts/import/ran/add_owner_job_598.mjs            (dry run)
+//   node --env-file=.env.local scripts/import/ran/add_owner_job_598.mjs --apply
 //   AIRTABLE_BASE=live ... --apply   (the live base, once Soo has approved it)
 //
 // No loader flag: this file imports only built-ins, the guard's module and `lib/airtableBase.js`.
@@ -34,8 +38,8 @@
 // description as specified, 1 something failed or a field is not the one specified, 2 a dry run or a
 // hand step outstanding.
 
-import { OWNER_JOB_FIELD, refusesBeyondDescriptions } from "../protectedTables.mjs";
-import { resolveAirtableBase } from "../../lib/airtableBase.js";
+import { OWNER_JOB_FIELD, refusesBeyondDescriptions } from "../../protectedTables.mjs";
+import { resolveAirtableBase } from "../../../lib/airtableBase.js";
 
 /** The base this run reaches (#534), resolved at the top of main(). */
 let airtable = null;
@@ -292,7 +296,7 @@ async function main() {
     if (pending) return finish(2, "dry run");
     if (waiting) {
         log("");
-        log(`  HAND STEP, on this base: add ${LOAN_EVENTS.map((name) => `"${name}"`).join(" and ")} to Asset Log."Event" — scripts/import/add_loan_events_598.mjs prints how.`);
+        log(`  HAND STEP, on this base: add ${LOAN_EVENTS.map((name) => `"${name}"`).join(" and ")} to Asset Log."Event" — scripts/import/ran/add_loan_events_598.mjs prints how.`);
         log("  Then run this again with --apply.");
         return finish(2, "Event's options are the hand step's");
     }

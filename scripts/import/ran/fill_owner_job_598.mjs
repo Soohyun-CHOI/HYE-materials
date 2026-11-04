@@ -31,9 +31,9 @@
 // filled. Until the plan fills the fence, every write is refused; nothing reaches `Asset Log`.
 //
 // Usage (from the repo root):
-//   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/import/fill_owner_job_598.mjs            (dry run)
-//   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/import/fill_owner_job_598.mjs --apply
-//   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/import/fill_owner_job_598.mjs --revert <ledger.jsonl> [--apply]
+//   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/import/ran/fill_owner_job_598.mjs            (dry run)
+//   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/import/ran/fill_owner_job_598.mjs --apply
+//   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/import/ran/fill_owner_job_598.mjs --revert <ledger.jsonl> [--apply]
 //   AIRTABLE_BASE=live ...   (the live base, once Soo has approved what the dry run printed)
 //
 // Airtable PAT scopes: data.records:read, data.records:write.
@@ -46,14 +46,14 @@ import { appendFileSync, readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { TABLES, base } from "../../lib/airtable/client.js";
-import { getAllJobs } from "../../lib/airtable/jobs.js";
-import { describeAirtableBase, resolveAirtableBase } from "../../lib/airtableBase.js";
-import { snapshot } from "../../lib/airtableOps.js";
-import { OWNER_JOB_FIELD, refusesBeyondLedger } from "../protectedTables.mjs";
-import { SCRIPT, fillLine, fillsByJob, inBatches, planFill, planRevert } from "./fill_owner_job_598_plan.mjs";
+import { TABLES, base } from "../../../lib/airtable/client.js";
+import { getAllJobs } from "../../../lib/airtable/jobs.js";
+import { describeAirtableBase, resolveAirtableBase } from "../../../lib/airtableBase.js";
+import { snapshot } from "../../../lib/airtableOps.js";
+import { OWNER_JOB_FIELD, refusesBeyondLedger } from "../../protectedTables.mjs";
+import { SCRIPT, fillLine, fillsByJob, inBatches, planFill, planRevert } from "../fill_owner_job_598_plan.mjs";
 
-const LEDGERS = join(dirname(fileURLToPath(import.meta.url)), "ledgers");
+const LEDGERS = join(dirname(fileURLToPath(import.meta.url)), "..", "ledgers");
 
 /** The gap held between the starts of two requests: four a second, under Airtable's five. */
 const REQUEST_GAP_MS = 250;
@@ -165,7 +165,7 @@ async function fill({ apply, baseName, codeOf }) {
 
     if (fills.length === 0) return finish(0, "nothing to fill");
     if (!apply) return finish(2, `dry run — ${fills.length} row(s) to fill`);
-    if (!read.fieldMade) return finish(2, `${OWNER_JOB_FIELD.name} is not on this base yet: run scripts/import/add_owner_job_598.mjs first`);
+    if (!read.fieldMade) return finish(2, `${OWNER_JOB_FIELD.name} is not on this base yet: run scripts/import/ran/add_owner_job_598.mjs first`);
 
     for (const each of fills) ledgerFence.fills.set(each.id, each.jobId);
     const ledger = openLedger(baseName, { type: "run", script: SCRIPT, base: baseName, rows: fills.length });
