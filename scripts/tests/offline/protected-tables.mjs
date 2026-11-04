@@ -135,19 +135,19 @@ const CLASSIFIED = {
     "scripts/import/ran/add_last_event_at_540.mjs": { describes: true },
     // `Asset Categories."Asset Statuses"` (#582): a rollup of `Assets."Status"`, made on the test base,
     // and on the live base the hand step's, its description alone sent there.
-    "scripts/import/add_asset_statuses_582.mjs": { describes: true },
+    "scripts/import/ran/add_asset_statuses_582.mjs": { describes: true },
     // `Assets."Owner Job"` and its far side on `Jobs` (#598): made on both bases by this script, which the
     // guard lets make that one field on the live base and nothing else beyond descriptions.
-    "scripts/import/add_owner_job_598.mjs": { describes: true },
+    "scripts/import/ran/add_owner_job_598.mjs": { describes: true },
     // `Assets."Serial Number"` (#601): made on both bases by this script, which the guard lets make that one
     // field on the live base and nothing else beyond descriptions.
-    "scripts/import/add_serial_number_601.mjs": { describes: true },
+    "scripts/import/ran/add_serial_number_601.mjs": { describes: true },
     // `Asset Log."Event"`'s two loan options (#598), made by a row written with typecast and deleted at
     // once on the test base, and refused on the live base, where they are a hand step.
-    "scripts/import/add_loan_events_598.mjs": { writes: ["rowRequest"] },
+    "scripts/import/ran/add_loan_events_598.mjs": { writes: ["rowRequest"] },
     // `Owner Job` filled from `Job` for the assets standing before #598, on both bases: fenced at the
     // SDK's funnel, which lets this script update that one field and nothing else.
-    "scripts/import/fill_owner_job_598.mjs": { fills: true },
+    "scripts/import/ran/fill_owner_job_598.mjs": { fills: true },
     // A serial number moved out of each asset's note into `Serial Number` (#602), on both bases: fenced at
     // the SDK's funnel, which lets this script update that field and the note and nothing else.
     "scripts/import/ran/serial_from_notes_602.mjs": { moves: true },

@@ -14,7 +14,7 @@
 // order is not execution order (`_ast.mjs`), and a browser is where the screens are seen.
 //
 // WHAT IT CANNOT SEE: whether `Assets."Serial Number"` exists on a base, which is
-// `scripts/import/add_serial_number_601.mjs`'s read, and what Airtable's `LOWER` and `TRIM` answer,
+// `scripts/import/ran/add_serial_number_601.mjs`'s read, and what Airtable's `LOWER` and `TRIM` answer,
 // which only a query against a base shows (`docs/notes/verification.md`: formulas are outside CI).
 //
 // EXIT CODES, per `docs/notes/verification.md`: 0 all clear, 1 something failed.

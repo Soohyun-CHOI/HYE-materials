@@ -16,8 +16,8 @@
 // base's to those by hand, so `COLORS` is what both bases hold for `verify-base-parity-534.mjs`.
 //
 // Usage (from the repo root):
-//   node --env-file=.env.local scripts/import/add_loan_events_598.mjs            (dry run)
-//   node --env-file=.env.local scripts/import/add_loan_events_598.mjs --apply
+//   node --env-file=.env.local scripts/import/ran/add_loan_events_598.mjs            (dry run)
+//   node --env-file=.env.local scripts/import/ran/add_loan_events_598.mjs --apply
 //
 // No loader flag: this file imports only built-ins, the guard's module and two pure lib modules.
 //
@@ -26,9 +26,9 @@
 // Exit codes, per docs/notes/verification.md: 0 the base offers both options last, in order, 1
 // something failed, 2 a dry run or the live base's hand step outstanding.
 
-import { refusesProtectedWrite } from "../protectedTables.mjs";
-import { resolveAirtableBase } from "../../lib/airtableBase.js";
-import { ASSET_EVENT, ASSET_EVENT_VALUES } from "../../lib/assetStatus.js";
+import { refusesProtectedWrite } from "../../protectedTables.mjs";
+import { resolveAirtableBase } from "../../../lib/airtableBase.js";
+import { ASSET_EVENT, ASSET_EVENT_VALUES } from "../../../lib/assetStatus.js";
 
 const SCRIPT = "add_loan_events_598";
 

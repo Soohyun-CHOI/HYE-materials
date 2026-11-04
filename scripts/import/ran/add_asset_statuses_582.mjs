@@ -23,8 +23,8 @@
 // `ARRAYJOIN(values, ",")` is the hand step's to set and a record's value is where it shows.
 //
 // Usage (from the repo root):
-//   node --env-file=.env.local scripts/import/add_asset_statuses_582.mjs            (dry run)
-//   node --env-file=.env.local scripts/import/add_asset_statuses_582.mjs --apply
+//   node --env-file=.env.local scripts/import/ran/add_asset_statuses_582.mjs            (dry run)
+//   node --env-file=.env.local scripts/import/ran/add_asset_statuses_582.mjs --apply
 //   AIRTABLE_BASE=live ... --apply   (after the hand step: checks the field and writes its description)
 //
 // No loader flag: this file imports only built-ins, the guard's module and `lib/airtableBase.js`.
@@ -34,8 +34,8 @@
 // Exit codes, per docs/notes/verification.md: 0 the base holds the field as specified and described,
 // 1 something failed or the field is not the one specified, 2 a dry run or a hand step outstanding.
 
-import { refusesBeyondDescriptions } from "../protectedTables.mjs";
-import { resolveAirtableBase } from "../../lib/airtableBase.js";
+import { refusesBeyondDescriptions } from "../../protectedTables.mjs";
+import { resolveAirtableBase } from "../../../lib/airtableBase.js";
 
 /** The base this run reaches (#534), resolved at the top of main(). */
 let airtable = null;

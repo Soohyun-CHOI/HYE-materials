@@ -19,8 +19,8 @@
 // `UNKNOWN_FIELD_NAME`, `docs/notes/airtable-access.md`), so the list would fail on a base without it.
 //
 // Usage (from the repo root):
-//   node --env-file=.env.local scripts/import/add_serial_number_601.mjs            (dry run)
-//   node --env-file=.env.local scripts/import/add_serial_number_601.mjs --apply
+//   node --env-file=.env.local scripts/import/ran/add_serial_number_601.mjs            (dry run)
+//   node --env-file=.env.local scripts/import/ran/add_serial_number_601.mjs --apply
 //   AIRTABLE_BASE=live ... --apply   (the live base, once Soo has approved it)
 //
 // No loader flag: this file imports only built-ins, the guard's module and `lib/airtableBase.js`.
@@ -30,8 +30,8 @@
 // Exit codes, per docs/notes/verification.md: 0 the base holds the field and every description as
 // specified, 1 something failed or a field is not the one specified, 2 a dry run.
 
-import { SERIAL_NUMBER_FIELD, SERIAL_NUMBER_SCHEMA, refusesBeyondDescriptions } from "../protectedTables.mjs";
-import { resolveAirtableBase } from "../../lib/airtableBase.js";
+import { SERIAL_NUMBER_FIELD, SERIAL_NUMBER_SCHEMA, refusesBeyondDescriptions } from "../../protectedTables.mjs";
+import { resolveAirtableBase } from "../../../lib/airtableBase.js";
 
 /** The base this run reaches (#534), resolved at the top of main(). */
 let airtable = null;
