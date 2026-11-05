@@ -132,7 +132,7 @@ export function run({ check, assert, log }) {
     check("  FieldClear spreads the one press, and draws its look's mark", [/\{\.\.\.fieldClearPress\(\{ onChange, focus \}\)\}/.test(controls.source.slice(looks?.start ?? 0, looks?.end ?? 0)), /\{mark\}/.test(controls.source.slice(looks?.start ?? 0, looks?.end ?? 0))].join(" "), "true true");
     check(
         "  and each of its six looks draws the x at the field's size",
-        (controls.source.match(/mark: <Icon name="x" className="(size-mobile-input-clear-icon|size-clear-icon|size-icon-sm)" \/>,/g) ?? []).length,
+        (controls.source.match(/mark: <Icon name="x" kind="words" className="(size-mobile-input-clear-icon|size-clear-icon|size-icon-sm)" \/>,/g) ?? []).length,
         6
     );
     const drawn = Object.fromEntries(files.map(({ path, ast }) => [path, fieldClearsIn(ast)]).filter(([, found]) => found.length > 0));

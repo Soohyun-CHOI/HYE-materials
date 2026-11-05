@@ -17,7 +17,7 @@ import { LendDialog, LendSheet } from "./LendDialog";
 
 /** Three filled dots, 16 at a desk and 24 in a phone's top bar (1f, 1j; `Icon.js`, #607). */
 function Dots({ phone }) {
-    return phone ? <Icon name="ellipsis" className="size-mobile-top-bar-icon" /> : <Icon name="ellipsis" className="size-icon" />;
+    return phone ? <Icon name="ellipsis" kind="words" className="size-mobile-top-bar-icon" /> : <Icon name="ellipsis" kind="words" className="size-icon" />;
 }
 
 /**

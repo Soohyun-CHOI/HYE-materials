@@ -236,7 +236,7 @@ export default function Rail({ account, children }) {
                             {...tip.targetProps(toggleWord)}
                             className="flex h-control aspect-square shrink-0 items-center justify-center rounded-control text-foreground-default hover:bg-hover"
                         >
-                            <Icon name="panel-left" className="size-icon" />
+                            <Icon name="panel-left" kind="words" className="size-icon" />
                         </button>
                         {/* The wordmark stays drawn until the rail has closed over it, and is
                             not drawn at all while it is collapsed (0h, 0m). Its first word is
@@ -260,7 +260,10 @@ export default function Rail({ account, children }) {
                                         icon and keeps the word as the link's name; the current section
                                         sits on the Face, its icon in Accent and, expanded, its word in
                                         Ink at every row's 500, as the files of 2026-10-27 set it (0c,
-                                        #584). */}
+                                        #584). Every other row rests at Ink 2, collapsed as expanded,
+                                        its icon a rail item's and so its word's ink, which the files
+                                        of 2026-11-05 draw where earlier ones set a collapsed row's icon
+                                        in Ink 3 (0a Icon box, #614). */}
                                     <Link
                                         href={section.href}
                                         aria-label={word}
@@ -271,9 +274,9 @@ export default function Rail({ account, children }) {
                                             closePanel();
                                         }}
                                         {...tip.targetProps(word)}
-                                        className="group/row flex h-control items-center gap-nav-gap overflow-hidden rounded-control pr-control-inset-x pl-[calc((var(--height-control)-var(--size-icon))/2)] text-body font-medium text-foreground-subtle group-data-expanded:text-foreground-muted data-current:bg-selected data-current:text-primary group-data-expanded:data-current:text-foreground-default not-data-current:hover:bg-hover not-data-current:hover:text-foreground-default"
+                                        className="group/row flex h-control items-center gap-nav-gap overflow-hidden rounded-control pr-control-inset-x pl-[calc((var(--height-control)-var(--size-icon))/2)] text-body font-medium text-foreground-muted data-current:bg-selected data-current:text-foreground-default not-data-current:hover:bg-hover not-data-current:hover:text-foreground-default"
                                     >
-                                        <Icon name={SECTION_ICONS[section.key]} className="size-icon shrink-0 group-data-current/row:text-primary" />
+                                        <Icon name={SECTION_ICONS[section.key]} kind={current ? "current" : "words"} className="size-icon shrink-0" />
                                         <span className="whitespace-nowrap">{word}</span>
                                     </Link>
                                 </li>

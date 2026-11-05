@@ -317,11 +317,31 @@ export function run({ check, assert, log }) {
                 /const answer = detail\.read\(\{ typed: draft, previous: value, stored: value \}\);/.test(body),
                 /if \(answer\.refusal\) \{\s*setPressed\(true\);/.test(body),
                 /if \(answer\.unchanged\) \{\s*(onClose|control\.close)\(\);\s*return;\s*\}\s*control\.send\(\{ typed: draft, previous: value, by: "submit" \}\);/.test(body),
-                /refusal=\{\(pressed \? answer\.refusal : null\) \?\? server\.taken\}\s*count=\{detail\.count\?\.\(draft\.length\)\}/.test(body),
+                /refusal=\{\(pressed \? answer\.refusal : null\) \?\? server\.taken\}\s*notice=\{server\.said\}\s*count=\{detail\.count\?\.\(draft\.length\)\}/.test(body),
             ].join(" "),
             "true true true true"
         );
+        // WHAT THE SERVER SAID STANDS IN THE LINE'S PLACE, THE COUNT KEPT (1f, 1j-b2, 1j-b3; #614): a
+        // value somebody else changed first is the field's `notice`, where the help was, and no line of
+        // its own under the field, as the files of 2026-11-05 draw it.
+        check(
+            `  the ${name === "RowEditor" ? "desk's row" : "phone's sheet"} says the server's answer as the field's notice, and draws no line of its own under it (#614)`,
+            [/notice=\{server\.said\}/.test(body), /<Refusal>\{server\.said\}<\/Refusal>/.test(body)].join(" "),
+            "true false"
+        );
     }
+    // THE FIELD'S NOTICE (#614): after a refusal of the value and before a note and the help, at Ink 2
+    // behind the 16 info mark, 6 from it, and at the phone's 15 in a sheet, the count staying at the end.
+    const fieldSource = functionSource(parseFile("app/components/Controls.js"), "Field");
+    check(
+        "  the field draws a notice in the line's place at Ink 2 behind the info mark, after a refusal and before a note and the help (#614)",
+        [
+            /const said = refusal \|\| notice \|\| note \|\| help;/.test(fieldSource),
+            /\) : notice \? \(\s*<p role="alert" className="flex items-start gap-refusal-gap text-foreground-muted">\s*<span className=\{`flex h-\[var\(--text-body-sm--line-height\)\] shrink-0 items-center \$\{xl \? "max-sm:h-\[var\(--text-mobile-body-sm--line-height\)\]" : ""\}`\}>\s*<InfoMark size="size-icon" \/>/.test(fieldSource),
+            /\{message\}\s*<span id=\{countId\} className=\{`ml-auto shrink-0 tabular-nums/.test(fieldSource),
+        ].join(" "),
+        "true true true"
+    );
     // A CLEARED FIELD SAVED REMOVES IT, AND NO CONTROL OF ITS OWN DOES (1f, since the files of 2026-11-04):
     // the desk's dialog drew `Remove note` from #533, and its `-ing` word is the cleared save's now.
     check(

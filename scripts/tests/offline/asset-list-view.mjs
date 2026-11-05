@@ -2179,9 +2179,9 @@ export function run({ check, assert, log }) {
     check(
         "the bar draws an action's reason 14 before the actions, led by the info mark in Ink 3, 6 from it (#495)",
         [
-            /gap-selection-bar-reason-gap whitespace-nowrap pr-gap-lg/.test(barSource),
-            /<InfoMark size="size-icon" tone="subtle" \/>/.test(barSource),
-            /<span id=\{reasonId\} className="text-body-sm text-foreground-subtle tabular-nums">\s*\{lastReason\}/.test(barSource),
+            /gap-selection-bar-reason-gap whitespace-nowrap pr-gap-lg text-foreground-subtle">/.test(barSource),
+            /<InfoMark size="size-icon" \/>/.test(barSource),
+            /<span id=\{reasonId\} className="text-body-sm tabular-nums">\s*\{lastReason\}/.test(barSource),
         ].join(" "),
         "true true true"
     );
@@ -3018,7 +3018,7 @@ export function run({ check, assert, log }) {
     check(
         "  a note is a 14 mark in Ink 3 centered in its 16, named with the note and showing it above under the pointer, between the status and the day (0n, #607)",
         [
-            /<span role="cell" className="flex self-center">\s*\{row\.note && \(\s*<span role="img" aria-label=\{COPY\.noteMark\(row\.note\)\} data-tip=\{row\.note\} className="relative flex h-\[var\(--text-body--line-height\)\] w-\(--size-icon\) items-center justify-center">\s*<Icon name="message-square" className="size-icon-sm text-foreground-subtle" \/>\s*<\/span>\s*\)\}\s*<\/span>\s*\{\/\*[^]*?\*\/\}\s*<span role="cell" className="text-foreground-muted">\s*<Instant at=\{row\.updatedAt\}/.test(assetListSource) &&
+            /<span role="cell" className="flex self-center">\s*\{row\.note && \(\s*<span role="img" aria-label=\{COPY\.noteMark\(row\.note\)\} data-tip=\{row\.note\} className="relative flex h-\[var\(--text-body--line-height\)\] w-\(--size-icon\) items-center justify-center">\s*<Icon name="message-square" kind="qualifier" className="size-icon-sm" \/>\s*<\/span>\s*\)\}\s*<\/span>\s*\{\/\*[^]*?\*\/\}\s*<span role="cell" className="text-foreground-muted">\s*<Instant at=\{row\.updatedAt\}/.test(assetListSource) &&
                 ASSET_LIST_COPY.noteMark("At the yard") === "Note: At the yard",
             /<div key=\{row\.id\} role="row" \{\.\.\.tooltip\.cutProps\(\)\}/.test(assetListSource),
             /const tooltip = useTooltip\(\{ placement: "above" \}\);/.test(assetListSource),

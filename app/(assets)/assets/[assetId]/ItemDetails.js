@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { Button, Field, FormBusy, Refusal, SheetInput, TextInput, useRefusalFocus } from "@/app/components/Controls";
+import { Button, Field, FormBusy, SheetInput, TextInput, useRefusalFocus } from "@/app/components/Controls";
 import { DialogFrame } from "@/app/components/DialogFrame";
 import Icon from "@/app/components/Icon";
 import { ASSET_NOTE_COPY, readNoteSubmission } from "@/lib/assetNote";
@@ -59,7 +59,7 @@ const DETAILS = {
         addName: ASSET_SERIAL_COPY.addSerial,
         editName: ASSET_SERIAL_COPY.editSerial,
         emptyText: ASSET_SERIAL_COPY.addSerial,
-        mark: <Icon name="barcode" className="size-icon text-foreground-muted" />,
+        mark: <Icon name="barcode" kind="qualifier" className="size-icon" />,
         face: "figures",
         // A serial number is a maker's, set with even figures and not in the portal's id face (0h,
         // #607), and a desk types it as it is read.
@@ -76,7 +76,7 @@ const DETAILS = {
         addName: ASSET_NOTE_COPY.addNote,
         editName: ASSET_NOTE_COPY.editNote,
         emptyText: ASSET_NOTE_COPY.addANote,
-        mark: <Icon name="message-square" className="size-icon text-foreground-muted" />,
+        mark: <Icon name="message-square" kind="qualifier" className="size-icon" />,
         face: "text",
         fieldFace: "",
         read: (input) => readNoteSubmission({ mayWriteNote: true }, input),
@@ -99,7 +99,9 @@ function workingOf(detail, answer, stored) {
 /**
  * The action's answer as the field draws it: a serial number taken names the item holding it in the
  * id's face, while the field still holds the number refused (`taken`); anything else is the sentence
- * as it came (`said`), drawn where the dialog's actions would say it.
+ * as it came (`said`), the field's `notice` in the help's place with the count kept at the line's end,
+ * as the files of 2026-11-05 draw a value somebody else changed first (#614), where it stood under the
+ * field as a line of its own until then.
  */
 function serverAnswer(control, draft) {
     if (!control.refusal) return { taken: null, said: null };
@@ -180,7 +182,7 @@ function DetailsRow({ kind, value, writable }) {
                 ) : (
                     // `Add` in the value's column, its face reaching 8 left of it and its plus mark 3 (1f).
                     <button ref={openerRef} type="button" aria-label={detail.addName} onClick={() => control.start("desk")} className="-my-[calc((var(--height-control-inline)-var(--text-body--line-height))/2)] -ml-details-add-bleed-left inline-flex h-control-inline items-center gap-note-add-gap rounded-control pr-control-inline-inset-x pl-note-add-bleed-left text-body-sm font-semibold text-primary hover:bg-selected hover:text-primary-hover">
-                        <Icon name="plus" className="size-icon-sm shrink-0" />
+                        <Icon name="plus" kind="words" className="size-icon-sm shrink-0" />
                         {detail.copy.add}
                     </button>
                 )}
@@ -239,15 +241,11 @@ function RowEditor({ kind, value, control, onClose }) {
                     centered={false}
                     help={detail.help}
                     refusal={(pressed ? answer.refusal : null) ?? server.taken}
+                    notice={server.said}
                     count={detail.count?.(draft.length)}
                 >
                     <TextInput size="md" value={draft} onChange={setDraft} inputRef={inputRef} autoComplete="off" {...detail.typing} />
                 </Field>
-                {server.said && (
-                    <div className="pt-details-actions-stack">
-                        <Refusal>{server.said}</Refusal>
-                    </div>
-                )}
                 <div className="flex justify-end gap-gap pt-details-actions-stack">
                     <Button variant="bordered" size="md" onClick={onClose}>
                         {detail.copy.cancel}
@@ -364,14 +362,17 @@ function DetailSheet({ kind, value, open, control }) {
             done={{ label: detail.copy.done, onPress: done, busyLabel: detail.copy.working[workingOf(detail, answer, value)] }}
         >
             <div className="flex flex-col px-mobile-gutter">
-                <Field label={detail.name} labelHidden size="xl" help={detail.help} refusal={(pressed ? answer.refusal : null) ?? server.taken} count={detail.count?.(draft.length)}>
+                <Field
+                    label={detail.name}
+                    labelHidden
+                    size="xl"
+                    help={detail.help}
+                    refusal={(pressed ? answer.refusal : null) ?? server.taken}
+                    notice={server.said}
+                    count={detail.count?.(draft.length)}
+                >
                     <SheetInput value={draft} onChange={setDraft} onDone={done} clearLabel={detail.copy.clear} {...detail.typing} />
                 </Field>
-                {server.said && (
-                    <div className="pt-mobile-drawer-body-stack">
-                        <Refusal>{server.said}</Refusal>
-                    </div>
-                )}
             </div>
         </DialogFrame>
     );

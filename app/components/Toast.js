@@ -85,7 +85,7 @@ export default function Toast({ shown, line, action, onAction, dismissLabel, onD
             className="inset-auto bottom-0 mx-0 mt-0 mb-toast-offset h-toast -translate-x-1/2 items-center gap-toast-inline overflow-visible rounded-card bg-foreground-default pr-toast-inset-right pl-toast-inset-left font-ui whitespace-nowrap text-white shadow-toast open:flex"
         >
             <span className="flex items-center gap-gap text-body">
-                <Icon name="circle-alert" className="size-icon shrink-0" />
+                <Icon name="circle-alert" kind="words" className="size-icon shrink-0" />
                 {line}
             </span>
             <div className="flex items-center gap-toast-action-gap">
@@ -93,7 +93,7 @@ export default function Toast({ shown, line, action, onAction, dismissLabel, onD
                     {action}
                 </button>
                 <button type="button" aria-label={dismissLabel} onClick={() => closeToast(toastRef.current, opener, onDismiss)} className={`${TOAST_BUTTON} aspect-square`}>
-                    <Icon name="x" className="size-icon-sm" />
+                    <Icon name="x" kind="words" className="size-icon-sm" />
                 </button>
             </div>
         </div>

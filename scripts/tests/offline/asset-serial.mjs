@@ -256,10 +256,13 @@ export async function run({ check, log }) {
     check("  too much, and one changed first, Soo's words (#612)", `${ASSET_SERIAL_COPY.tooLong} | ${ASSET_SERIAL_COPY.changedFirst}`, "Use 50 characters or fewer. | Someone else changed this serial number first. Nothing was saved.");
     check("  working, the note's", Object.values(ASSET_SERIAL_COPY.working).join(" | "), "Saving… | Adding… | Removing…");
     check(
-        "the list's: the search, the found line's word and the two sentences",
+        "the list's: the search, 1d's column and the two sentences",
         [ASSET_LIST_COPY.searchLabel, ASSET_LIST_COPY.serialLabel, ASSET_LIST_COPY.noSerialMatchOn("23-USA-09"), ASSET_LIST_COPY.noSerialMatchFiltered].join(" | "),
         "Search items, IDs or serials | Serial number | No item on 23-USA-09 has the serial number | No item in these filters has the serial number"
     );
+    // THE FOUND LINE SAYS IT SHORT (1a3, #614): the files of 2026-11-05 draw `Serial` before the
+    // number, the desk row's word, where they drew `Serial number`; 1d's column keeps the long one.
+    check("the found line's word before the number, the short one (#614)", ASSET_LIST_COPY.foundSerialLabel, "Serial");
 
     // ── the action ──────────────────────────────────────────────────────────
     log("");
@@ -333,7 +336,7 @@ export async function run({ check, log }) {
         ].join(" "),
         "true true true true"
     );
-    check("the found line says the number after the id", /\{serialNumber && \(\s*<>\s*<Dot \/>\s*<span className="shrink-0 text-foreground-subtle">\{ASSET_LIST_COPY\.serialLabel\}<\/span>/.test(parseFile(FOUND).source), true);
+    check("the found line says the number after the id", /\{serialNumber && \(\s*<>\s*<Dot \/>\s*<span className="shrink-0 text-foreground-subtle">\{ASSET_LIST_COPY\.foundSerialLabel\}<\/span>/.test(parseFile(FOUND).source), true);
 
     // ── anti-vacuity ────────────────────────────────────────────────────────
     log("");

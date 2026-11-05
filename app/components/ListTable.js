@@ -159,7 +159,7 @@ function Figures({ children, className = "" }) {
  * fetches nothing.
  */
 function PagerStep({ href, onPress, label, back }) {
-    const mark = <Icon name={back ? "chevron-left" : "chevron-right"} className="size-icon" />;
+    const mark = <Icon name={back ? "chevron-left" : "chevron-right"} kind="words" className="size-icon" />;
     const look = "flex aspect-square h-control items-center justify-center rounded-control";
     if (onPress) {
         return (

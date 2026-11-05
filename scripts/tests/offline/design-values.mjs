@@ -198,6 +198,10 @@ const VALUES = [
     ["--size-icon-sm", "0.875rem", null],
     // Every mark's line, whatever its size (#502).
     ["--stroke-width-icon", "1.25px", null],
+    // A mark's ink is what it does beside its words (0a Icon box, the files of 2026-11-05, #614):
+    // a qualifier in Ink 3, a current or chosen mark in Accent, each by the ink's own name.
+    ["--color-icon-subtle", "var(--color-foreground-subtle)", null],
+    ["--color-icon-selected", "var(--color-primary)", null],
     ["--spacing-control-inline-inset-x", "0.5rem", null],
     ["--spacing-control-inset-x", "0.625rem", null],
     ["--spacing-control-lg-inset-x", "1rem", null],
@@ -1097,8 +1101,7 @@ export async function run({ check, assert, log }) {
         "--color-scrollbar-thumb-hover",
         "--color-mobile-input-background",
     ];
-    for (const name of washes) check(`  ${name} is the foreground in an amount`, mixes(declared.get(name) ?? "").join(" "), "--color-foreground-default");
-    // A column held over a row under the pointer stands on the Wash made opaque (0b Row, #552):
+    for (const name of washes) check(`  ${name} is the foreground in an amount`, mixes(declared.get(name) ?? "").join(" "), "--color-foreground-default");    // A column held over a row under the pointer stands on the Wash made opaque (0b Row, #552):
     // the same amount of the foreground over white, mixed in sRGB as the browser composites the
     // Wash over a white row, so the held column and the row beside it read as one ground.
     const amountOver = (value, space, over) => value.match(new RegExp(`^color-mix\\(in ${space}, var\\(--color-foreground-default\\) ([\\d.]+)%, ${over}\\)$`))?.[1] ?? null;

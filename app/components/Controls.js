@@ -160,19 +160,20 @@ export function useField() {
  * gave a sign-in page's own refusal the info mark instead.
  */
 function AlertMark() {
-    return <Icon name="circle-alert" className="size-icon shrink-0" />;
+    return <Icon name="circle-alert" kind="words" className="size-icon shrink-0" />;
 }
 
 /**
- * The mark before what a notice says: a circle with an i in it, in Ink 2 — 18 in Tools 0a's
- * Notice, and 16 beside a sentence on a sign-in page (#148) or a dialog's (#495). In Ink 3 it
- * leads the reason a selection bar's action gives (0b, #495), the ink that reason is set in.
- * Its line is every mark's since #502, where the 16 had drawn its ring a touch heavier.
+ * The mark before what a notice says: a circle with an i in it — 18 in Tools 0a's Notice, and
+ * 16 beside a sentence on a sign-in page (#148), a dialog's (#495) and the reason a selection
+ * bar's action gives (0b, #495). It is a message's mark, so it takes its sentence's ink (#614):
+ * Ink in the Notice, whose mark the files of 2026-11-05 lift from Ink 2 with the 0a Icon box's
+ * rule, Ink 2 beside a refusal and Ink 3 beside the selection bar's reason, each from the line
+ * holding both. Its line is every mark's since #502, where the 16 had drawn its ring a touch
+ * heavier.
  */
-const INFO_MARK_TONE = { muted: "text-foreground-muted", subtle: "text-foreground-subtle" };
-
-export function InfoMark({ size = "size-mobile-alert-icon", tone = "muted" }) {
-    return <Icon name="info" className={`${size} shrink-0 ${INFO_MARK_TONE[tone]}`} />;
+export function InfoMark({ size = "size-mobile-alert-icon" }) {
+    return <Icon name="info" kind="words" className={`${size} shrink-0`} />;
 }
 
 /**
@@ -487,6 +488,12 @@ export function ButtonLink({ variant = "filled", size = "lg", href, mark, childr
  * `Optional` beside a level a row may leave empty. It is part of the label, so the field is named
  * `Size Optional` and assistive tech hears that it may be left empty.
  *
+ * `notice` IS WHAT THE SERVER SAID OF A PRESS THE READER COULD NOT HAVE KNOWN WOULD FAIL (1f, 1j-b2,
+ * 1j-b3; #614): a value somebody else changed first, said in the line's place at Ink 2 behind the 16
+ * info mark, 6 from it — `Refusal`'s look, and at 15 and 4 in on a phone's sheet — where the help
+ * gives way to it and the count keeps the line's end, as the files of 2026-11-05 draw it. It
+ * stands after a refusal of the value itself, which is the reader's to fix and in red.
+ *
  * `count` IS HOW MUCH THE FIELD HOLDS AGAINST WHAT IT MAY, AT THE LINE'S END (0a Note, 1f, 1j-b2;
  * #533): `28/50` in the line's ink, 12 after what the line says, and in Red with the field while
  * it refuses. It describes the field as the line does, and is not read out as it changes, which
@@ -501,6 +508,7 @@ export function Field({
     size = "lg",
     help,
     note,
+    notice,
     refusal,
     reserveMessage = false,
     count,
@@ -511,7 +519,7 @@ export function Field({
     const labelId = `${base}label`;
     const messageId = `${base}message`;
     const countId = `${base}count`;
-    const said = refusal || note || help;
+    const said = refusal || notice || note || help;
     const described = [said ? messageId : null, count !== undefined ? countId : null].filter(Boolean).join(" ") || undefined;
     const context = { control, labelId, messageId: described, refused: Boolean(refusal) };
     const xl = size === "xl";
@@ -536,6 +544,13 @@ export function Field({
                         </span>
                     )}
                     <span>{refusal}</span>
+                </p>
+            ) : notice ? (
+                <p role="alert" className="flex items-start gap-refusal-gap text-foreground-muted">
+                    <span className={`flex h-[var(--text-body-sm--line-height)] shrink-0 items-center ${xl ? "max-sm:h-[var(--text-mobile-body-sm--line-height)]" : ""}`}>
+                        <InfoMark size="size-icon" />
+                    </span>
+                    <span>{notice}</span>
                 </p>
             ) : note ? (
                 <p className="text-foreground-muted">{note}</p>
@@ -698,27 +713,27 @@ const SEARCH_CLEAR =
 const FIELD_CLEAR_LOOK = {
     phone: {
         button: "-mr-[calc(var(--spacing-mobile-input-inset-x)+1px)] ml-auto hidden size-mobile-touch-target shrink-0 items-center justify-end pr-mobile-input-clear-inset-right text-foreground-subtle active:opacity-mobile-pressed max-sm:inline-flex",
-        mark: <Icon name="x" className="size-mobile-input-clear-icon" />,
+        mark: <Icon name="x" kind="words" className="size-mobile-input-clear-icon" />,
     },
     sheet: {
         button: "-mr-mobile-input-inset-x flex size-mobile-touch-target shrink-0 items-center justify-end pr-mobile-input-clear-inset-right text-foreground-subtle active:opacity-mobile-pressed",
-        mark: <Icon name="x" className="size-mobile-input-clear-icon" />,
+        mark: <Icon name="x" kind="words" className="size-mobile-input-clear-icon" />,
     },
     sheetField: {
         button: "absolute top-1/2 right-0 flex size-mobile-touch-target -translate-y-1/2 items-center justify-end pr-mobile-input-clear-inset-right text-foreground-subtle active:opacity-mobile-pressed",
-        mark: <Icon name="x" className="size-mobile-input-clear-icon" />,
+        mark: <Icon name="x" kind="words" className="size-mobile-input-clear-icon" />,
     },
     search: {
         button: SEARCH_CLEAR,
-        mark: <Icon name="x" className="size-clear-icon" />,
+        mark: <Icon name="x" kind="words" className="size-clear-icon" />,
     },
     deskSearch: {
         button: `${SEARCH_CLEAR} max-sm:hidden`,
-        mark: <Icon name="x" className="size-clear-icon" />,
+        mark: <Icon name="x" kind="words" className="size-clear-icon" />,
     },
     dialogSearch: {
         button: "flex aspect-square h-control-sm shrink-0 items-center justify-center rounded-control text-foreground-subtle hover:bg-hover hover:text-foreground-default",
-        mark: <Icon name="x" className="size-icon-sm" />,
+        mark: <Icon name="x" kind="words" className="size-icon-sm" />,
     },
 };
 
@@ -802,8 +817,8 @@ export function SheetInput({ value, onChange, onDone, placeholder, label, clearL
  * value, so a screen reader hears `Job, 26-DEMO-01` and not the value alone; the id the label
  * points at stays the desk control's. Inside a busy form it opens nothing (#469).
  *
- * AN `icon` STANDS 10 BEFORE ITS VALUE, AT 18 IN INK 3 (Tools 0a Field: "an 18 icon 10
- * before it unless the field carries a label") — the foot bar's name field, whose label is
+ * AN `icon` STANDS 10 BEFORE ITS VALUE, AT 18 (Tools 0a Field: "an 18 icon 10 before it unless
+ * the field carries a label"), a field's mark and so Ink 3 by its own kind (#614) — the foot bar's name field, whose label is
  * for assistive tech alone (#463). There its placeholder is the label's own words, so while
  * it holds nothing it is named by the label alone rather than by the same words twice. A
  * field that refuses takes the Red edge (Tools 0a Field error), the line under it its
@@ -829,7 +844,7 @@ export function SheetField({ value, placeholder, onOpen, chevron = false, icon, 
             {value || placeholder}
         </span>
     );
-    const mark = icon && <span className="flex size-mobile-input-icon shrink-0 items-center justify-center text-foreground-subtle">{icon}</span>;
+    const mark = icon && <span className="flex size-mobile-input-icon shrink-0 items-center justify-center">{icon}</span>;
     if (!onOpen) {
         return (
             <div className={look}>
@@ -852,7 +867,7 @@ export function SheetField({ value, placeholder, onOpen, chevron = false, icon, 
         >
             {mark}
             {said}
-            {chevron && <Icon name="chevron-down" className="size-icon-sm shrink-0 text-foreground-subtle" />}
+            {chevron && <Icon name="chevron-down" kind="qualifier" className="size-icon-sm shrink-0" />}
         </button>
     );
     if (!onClear) return opener;
@@ -914,7 +929,7 @@ export function SheetChip({ value, placeholder, onOpen, icon }) {
             >
                 <span className={`${pill} ${field.refused ? "" : "group-focus-visible/chip:not-group-data-quiet-focus/chip:border-border-focus"}`}>
                     {content}
-                    <Icon name="chevron-down" className="size-icon shrink-0 text-foreground-subtle" />
+                    <Icon name="chevron-down" kind="qualifier" className="size-icon shrink-0" />
                 </span>
             </button>
         </div>
@@ -939,7 +954,7 @@ export function SheetChip({ value, placeholder, onOpen, icon }) {
  */
 export function Checkbox({ label, checked, indeterminate = false, onChange }) {
     return (
-        <label className="group/checkbox relative z-10 -mx-[calc((var(--height-control)-var(--size-icon))/2)] -my-[calc((var(--height-control)-var(--text-body--line-height))/2)] flex aspect-square h-control shrink-0 cursor-pointer items-center justify-center self-center rounded-control">
+        <label className="group/checkbox relative z-10 -mx-[calc((var(--height-control)-var(--size-icon))/2)] -my-[calc((var(--height-control)-var(--text-body--line-height))/2)] flex aspect-square h-control shrink-0 cursor-pointer items-center justify-center self-center rounded-control text-white">
             <input
                 type="checkbox"
                 aria-label={label}
@@ -950,8 +965,8 @@ export function Checkbox({ label, checked, indeterminate = false, onChange }) {
                 }}
                 className="peer size-icon cursor-pointer appearance-none rounded-badge border border-checkbox-border bg-white group-hover/checkbox:bg-[linear-gradient(var(--color-hover-subtle),var(--color-hover-subtle))] checked:border-primary checked:bg-primary group-hover/checkbox:checked:border-primary-hover group-hover/checkbox:checked:bg-primary-hover indeterminate:border-primary indeterminate:bg-primary group-hover/checkbox:indeterminate:border-primary-hover group-hover/checkbox:indeterminate:bg-primary-hover"
             />
-            <Icon name="check" className="pointer-events-none absolute hidden size-checkbox-mark text-white peer-checked:block" />
-            <Icon name="minus" className="pointer-events-none absolute hidden size-checkbox-mark text-white peer-indeterminate:block" />
+            <Icon name="check" kind="words" className="pointer-events-none absolute hidden size-checkbox-mark peer-checked:block" />
+            <Icon name="minus" kind="words" className="pointer-events-none absolute hidden size-checkbox-mark peer-indeterminate:block" />
         </label>
     );
 }
@@ -984,7 +999,7 @@ export function NumberField({ name, value, onChange, min, max }) {
             }`}
         >
             <button type="button" aria-label={COPY.fewer} aria-disabled={formBusy || undefined} onClick={step(-1)} className={STEP}>
-                <Icon name="minus" className="size-icon-sm" />
+                <Icon name="minus" kind="words" className="size-icon-sm" />
             </button>
             <input
                 id={field.control}
@@ -1000,7 +1015,7 @@ export function NumberField({ name, value, onChange, min, max }) {
                 className="h-control-sm min-w-0 flex-1 bg-transparent text-center text-body tabular-nums text-foreground-default caret-primary outline-none pointer-coarse:text-mobile-body"
             />
             <button type="button" aria-label={COPY.more} aria-disabled={formBusy || undefined} onClick={step(1)} className={STEP}>
-                <Icon name="plus" className="size-icon-sm" />
+                <Icon name="plus" kind="words" className="size-icon-sm" />
             </button>
         </div>
     );
@@ -1150,8 +1165,8 @@ export function Choice({ name, options, value, onChange, placeholder, look = "fi
                 }}
                 className={CHOICE_LOOK[look](field.refused)}
             >
-                {look === "chip" && <Icon name="map-pin" className="size-icon-sm shrink-0 text-foreground-subtle" />}
-                {look === "sort" && <Icon name="arrow-up-down" className="size-icon-sm shrink-0 text-foreground-subtle" />}
+                {look === "chip" && <Icon name="map-pin" kind="qualifier" className="size-icon-sm shrink-0" />}
+                {look === "sort" && <Icon name="arrow-up-down" kind="qualifier" className="size-icon-sm shrink-0" />}
                 {chosen >= 0 && options[chosen].note ? (
                     <span className="flex min-w-0 flex-1 gap-gap text-foreground-default">
                         <span className="shrink-0">{options[chosen].label}</span>
@@ -1170,14 +1185,15 @@ export function Choice({ name, options, value, onChange, placeholder, look = "fi
                     level's 12 running into its side room (1d, 1f), and the sort's 12 (#540). */}
                 <Icon
                     name="chevron-down"
+                    kind={look === "crumb" ? "words" : "qualifier"}
                     className={
                         look === "crumb"
                             ? "-mr-breadcrumb-chevron-bleed size-breadcrumb-chevron shrink-0"
                             : look === "chip"
-                              ? "size-job-chip-chevron shrink-0 text-foreground-subtle"
+                              ? "size-job-chip-chevron shrink-0"
                               : look === "sort"
-                                ? "size-sort-chevron shrink-0 text-foreground-subtle"
-                                : "size-icon-sm shrink-0 text-foreground-subtle"
+                                ? "size-sort-chevron shrink-0"
+                                : "size-icon-sm shrink-0"
                     }
                 />
             </div>
@@ -1487,7 +1503,8 @@ export function SearchField({ label, value, onChange, clearLabel, onEnter }) {
         <div role="search" className="relative h-control w-list-search shrink-0">
             <Icon
                 name="search"
-                className="pointer-events-none absolute top-1/2 left-search-icon-inset size-icon-sm -translate-y-1/2 text-foreground-subtle"
+                kind="qualifier"
+                className="pointer-events-none absolute top-1/2 left-search-icon-inset size-icon-sm -translate-y-1/2"
             />
             <input
                 ref={inputRef}
@@ -1663,7 +1680,7 @@ export function FilterChip({ label, options, values, onChange, clearLabel, sever
                     ) : (
                         label
                     )}
-                    <Icon name="chevron-down" className={`size-filter-chip-chevron shrink-0 ${held.length > 0 ? "text-foreground-subtle" : ""}`} />
+                    <Icon name="chevron-down" kind={held.length > 0 ? "qualifier" : "words"} className="size-filter-chip-chevron shrink-0" />
                 </div>
                 {held.length > 0 && (
                     <button
@@ -1676,7 +1693,7 @@ export function FilterChip({ label, options, values, onChange, clearLabel, sever
                         }}
                         className="flex h-full w-clear-button items-center justify-center rounded-r-[calc(var(--radius-control)-1px)] text-foreground-subtle hover:bg-selected-hover hover:text-foreground-default"
                     >
-                        <Icon name="x" className="size-clear-icon" />
+                        <Icon name="x" kind="words" className="size-clear-icon" />
                     </button>
                 )}
             </div>
@@ -1748,7 +1765,7 @@ export function ToggleChip({ label, on, onChange, clearLabel }) {
                 }}
                 className="flex h-full w-clear-button items-center justify-center rounded-r-[calc(var(--radius-control)-1px)] text-foreground-subtle hover:bg-selected-hover hover:text-foreground-default"
             >
-                <Icon name="x" className="size-clear-icon" />
+                <Icon name="x" kind="words" className="size-clear-icon" />
             </button>
         </div>
     );

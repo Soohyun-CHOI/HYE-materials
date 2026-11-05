@@ -101,7 +101,7 @@ export default function RailAccount({ account: words, expanded = false, tip }) {
                     {/* A reader who holds no role is their name alone (#519). */}
                     {words.role && <span className="max-w-full truncate text-heading-sm font-normal text-foreground-subtle">{words.role}</span>}
                 </span>
-                <Icon name="chevron-up" className="ml-auto hidden size-account-chevron shrink-0 text-foreground-subtle group-data-expanded:block" />
+                <Icon name="chevron-up" kind="qualifier" className="ml-auto hidden size-account-chevron shrink-0 group-data-expanded:block" />
             </button>
             <ActionMenu
                 id={menuId}

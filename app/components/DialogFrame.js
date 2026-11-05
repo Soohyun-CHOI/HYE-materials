@@ -568,7 +568,7 @@ export function DialogFrame({
                         onClick={ask}
                         className="flex h-dialog-close aspect-square items-center justify-center rounded-control text-foreground-subtle not-aria-disabled:hover:bg-hover not-aria-disabled:hover:text-foreground-default"
                     >
-                        <Icon name="x" className="size-icon-sm" />
+                        <Icon name="x" kind="words" className="size-icon-sm" />
                     </button>
                 </div>
             )}
@@ -743,9 +743,10 @@ export function DialogBody({ lane = false, foot, children }) {
  *
  * `results` are `{ key, label, match, place, detail }`: `match` the part of `label` what is typed
  * matched, set at 600 (`lib/assetTransition.js:matchedPart`'s shape); `place` what tells the
- * label from another of the same words, and what found it where the label did not (#547), after
- * it at 13 in Ink 3, giving its room up first; and `detail` what picking it leads to, at the
- * row's end at 13 in Ink 3.
+ * label from another of the same words, and what found it where the label did not (#547), 8 after
+ * it in Ink 3 at the label's 14, giving its room up first — at 13 until the files of 2026-11-05
+ * drew a word that qualifies an option at its name's size (0a Menu, #614); and `detail` what
+ * picking it leads to, at the row's end at 13 in Ink 3.
  */
 export function DialogSearch({ label, value, onChange, clearLabel, filters, results, resultsLabel, onPick, empty }) {
     const inputRef = useRef(null);
@@ -777,7 +778,7 @@ export function DialogSearch({ label, value, onChange, clearLabel, filters, resu
     return (
         <div data-dialog-body="" className="flex min-h-0 grow flex-col">
             <div className="relative mt-dialog-search-inset-top flex h-dialog-search-row shrink-0 items-center gap-gap pr-dialog-inset pl-[calc(var(--spacing-dialog-inset)-var(--spacing-dialog-search-icon-bleed))]">
-                <Icon name="search" className="size-icon shrink-0 text-foreground-subtle" />
+                <Icon name="search" kind="qualifier" className="size-icon shrink-0" />
                 <input
                     ref={inputRef}
                     type="text"
@@ -828,7 +829,7 @@ export function DialogSearch({ label, value, onChange, clearLabel, filters, resu
                                         result.label
                                     )}
                                 </span>
-                                {result.place && <span className="min-w-0 shrink-[1000] truncate text-body-sm text-foreground-subtle">{result.place}</span>}
+                                {result.place && <span className="min-w-0 shrink-[1000] truncate text-body text-foreground-subtle">{result.place}</span>}
                             </span>
                             {result.detail && <span className="shrink-0 text-body-sm text-foreground-subtle tabular-nums">{result.detail}</span>}
                         </div>
@@ -915,7 +916,7 @@ export function SheetRows({ rows }) {
                                 row.label
                             )}
                         </span>
-                        {row.chosen && <Icon name="check" className="size-mobile-drawer-row-icon shrink-0 text-primary" />}
+                        {row.chosen && <Icon name="check" kind="current" className="size-mobile-drawer-row-icon shrink-0" />}
                     </button>
                 </li>
             ))}

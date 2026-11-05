@@ -454,7 +454,7 @@ export function run({ check, assert, log }) {
         const sheetChip = fnSource(CONTROLS, "SheetChip");
         check(
             "the foot bar's pill draws its icon and its chevron in 0a's 16 box",
-            [/<span className="flex size-icon shrink-0 items-center/.test(sheetChip), /name="chevron-down" className="size-icon shrink-0/.test(sheetChip)].join(" "),
+            [/<span className="flex size-icon shrink-0 items-center/.test(sheetChip), /name="chevron-down" kind="qualifier" className="size-icon shrink-0/.test(sheetChip)].join(" "),
             "true true"
         );
         // A REFUSED PRESS TAKES FOCUS TO THE FIRST FIELD REFUSED: a field says it refuses on its
@@ -817,6 +817,15 @@ export function run({ check, assert, log }) {
                 /\bgap-refusal-gap\b/.test(functionSource("Refusal")),
                 !/danger/.test(functionSource("Refusal")),
             ].join(" "),
+            // THE NOTICE'S MARK TAKES ITS SENTENCE'S INK (Tools 0a Notice, 0a Icon box, #614): the
+            // files of 2026-11-05 draw its 18 info mark in Ink beside the Ink sentence, where they
+            // drew it Ink 2 — a message's mark, so the Notice sets Ink once and the mark asks none.
+            noticeInk: [
+                /\btext-foreground-default\b/.test(functionSource("Notice")),
+                /<InfoMark \/>/.test(functionSource("Notice")),
+                !/text-foreground-(muted|subtle)/.test(functionSource("Notice")),
+                /export function InfoMark\(\{ size = "size-mobile-alert-icon" \}\) \{\s*return <Icon name="info" kind="words" className=\{`\$\{size\} shrink-0`\} \/>;/.test(source),
+            ].join(" "),
             // And centered it is a sign-in step's line (0o, #495): centered from the phone's edge
             // up, and below it set left at 15 and 4 in, as the line under a code stands.
             refusalCentered:
@@ -862,6 +871,7 @@ export function run({ check, assert, log }) {
     check("  and a field's label 15 there", controlRules.label, true);
     check("  and a refusal of the whole dialog 15 there, in the refusal every form shares", controlRules.refusal, true);
     check("a refusal of the whole dialog is Ink 2 behind the info mark, 6 from it, and never Red (#495)", controlRules.refusalMessage, "true true true true");
+    check("the Notice's info mark takes its sentence's Ink, the mark asking no ink of its own (#614)", controlRules.noticeInk, "true true true true");
     check("  and centered, a sign-in step's: centered from the phone's edge up, below it set left at 15 and 4 in (#495)", controlRules.refusalCentered, true);
     // `centered` IS A SIGN-IN STEP'S ALONE, which is what lets the phone-size rule below excuse
     // it: a dialog drawing one would put the step's phone sizes outside a sheet.
@@ -982,8 +992,8 @@ export function run({ check, assert, log }) {
             ["h-control ", "min-w-job-chip", "pl-job-chip-inset-left", "pr-job-chip-inset-right", "gap-control-icon-gap", "text-body-sm", "font-medium", "border-border", "bg-white", "aria-expanded:bg-hover-subtle"]
                 .filter((t) => !chipLook.includes(t))
                 .join(" "),
-            /\{look === "chip" && <Icon name="map-pin" className="size-icon-sm shrink-0 text-foreground-subtle" \/>\}/.test(choiceLooks),
-            /: look === "chip"\s*\? "size-job-chip-chevron shrink-0 text-foreground-subtle"/.test(choiceLooks),
+            /\{look === "chip" && <Icon name="map-pin" kind="qualifier" className="size-icon-sm shrink-0" \/>\}/.test(choiceLooks),
+            /name="chevron-down"\s*kind=\{look === "crumb" \? "words" : "qualifier"\}/.test(choiceLooks) && /: look === "chip"\s*\? "size-job-chip-chevron shrink-0"/.test(choiceLooks),
             /look === "chip" && label|aria-hidden="true" className="shrink-0 text-foreground-subtle">\s*\{label\}/.test(choiceLooks),
         ].join(" · "),
         " · true · true · false"
@@ -1003,18 +1013,18 @@ export function run({ check, assert, log }) {
             ["h-control ", "border border-transparent", "pr-[calc(var(--spacing-sort-inset-right)-1px)]", "pl-[calc(var(--spacing-sort-inset-left)-1px)]", "gap-control-icon-gap", "rounded-control", "text-body-sm", "font-medium", "not-aria-readonly:hover:bg-hover", "focus-visible:border-border-focus", "aria-expanded:bg-hover"]
                 .filter((t) => !looks.includes(t))
                 .join(" "),
-            /\{look === "sort" && <Icon name="arrow-up-down" className="size-icon-sm shrink-0 text-foreground-subtle" \/>\}/.test(choice),
-            /: look === "sort"\s*\? "size-sort-chevron shrink-0 text-foreground-subtle"/.test(choice),
+            /\{look === "sort" && <Icon name="arrow-up-down" kind="qualifier" className="size-icon-sm shrink-0" \/>\}/.test(choice),
+            /name="chevron-down"\s*kind=\{look === "crumb" \? "words" : "qualifier"\}/.test(choice) && /: look === "sort"\s*\? "size-sort-chevron shrink-0"/.test(choice),
             /checkSlot=\{look === "sort"\}/.test(choice),
             /checkSlot \? "gap-sort-check-gap" : "gap-gap"/.test(list) &&
-                /\{checkSlot \? \(\s*<span aria-hidden="true" className="flex size-icon-sm shrink-0">\s*\{option\.checked && <Icon name="check" className="size-icon-sm text-primary" \/>\}\s*<\/span>/.test(list),
+                /\{checkSlot \? \(\s*<span aria-hidden="true" className="flex size-icon-sm shrink-0">\s*\{option\.checked && <Icon name="check" kind="current" className="size-icon-sm" \/>\}\s*<\/span>/.test(list),
         ].join(" · ");
     check("the sort is a ghost 32 behind its mark, its list from its right end keeping the check's room (#540)", sortFacts(sortLook, choiceLooks, fieldListSource), " · true · true · true · true");
     check(
         "  and a sort drawn on an Edge, with the field's chevron and a list that grows with its check, is seen (anti-vacuity)",
         sortFacts(
             sortLook.replace("border border-transparent", "border border-border"),
-            choiceLooks.replace('? "size-sort-chevron shrink-0 text-foreground-subtle"', '? "size-icon-sm shrink-0 text-foreground-subtle"'),
+            choiceLooks.replace('? "size-sort-chevron shrink-0"', '? "size-icon-sm shrink-0"'),
             fieldListSource.replace('checkSlot ? "gap-sort-check-gap" : "gap-gap"', '"gap-gap"')
         ),
         "border border-transparent · true · false · true · false"
@@ -1576,7 +1586,7 @@ export function run({ check, assert, log }) {
             /min-h-mobile-drawer-row/.test(rowsSource),
             /px-mobile-drawer-row-inset-x py-mobile-drawer-row-inset-y/.test(rowsSource),
             /\{index > 0 && <div aria-hidden="true" className="ml-mobile-drawer-row-inset-x h-px bg-divider-subtle" \/>\}/.test(rowsSource),
-            /\{row\.chosen && <Icon name="check" className="size-mobile-drawer-row-icon shrink-0 text-primary" \/>\}/.test(rowsSource),
+            /\{row\.chosen && <Icon name="check" kind="current" className="size-mobile-drawer-row-icon shrink-0" \/>\}/.test(rowsSource),
         ].join(" "),
         "true true true true"
     );
@@ -2155,6 +2165,16 @@ export function run({ check, assert, log }) {
         "  and a refusal in Red behind the alert mark is seen",
         controlFacts(parseSource('export function Refusal({ children }) { return <p role="alert" className="flex gap-gap text-danger"><AlertMark />{children}</p>; }\n', "<planted-red-refusal>")).refusalMessage,
         "false false false false"
+    );
+    check(
+        "  and a Notice whose mark stands in Ink 2, as main drew it, is seen (#614)",
+        controlFacts(
+            parseSource(
+                'export function Notice({ children }) { return <div role="alert" className="text-foreground-default"><span className="text-foreground-muted"><InfoMark /></span><span>{children}</span></div>; }\n',
+                "<planted-ink-2-notice>"
+            )
+        ).noticeInk,
+        "true true false false"
     );
     check(
         "  and a busy label sharing a cell with the resting one is seen",

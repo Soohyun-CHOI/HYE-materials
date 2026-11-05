@@ -240,7 +240,7 @@ export function SelectionBar({ shown, label, count, notOnPage, words, clearLabel
                     {...tip.targetProps(clearLabel)}
                     className="flex aspect-square h-control shrink-0 items-center justify-center rounded-control text-foreground-subtle hover:bg-hover hover:text-foreground-default"
                 >
-                    <Icon name="x" className="size-icon" />
+                    <Icon name="x" kind="words" className="size-icon" />
                 </button>
                 <span className="flex whitespace-nowrap text-body">
                     <span className="grid font-semibold">
@@ -275,9 +275,9 @@ export function SelectionBar({ shown, label, count, notOnPage, words, clearLabel
                     }`}
                 >
                     <span className="min-w-0 overflow-hidden">
-                        <span className="flex items-center gap-selection-bar-reason-gap whitespace-nowrap pr-gap-lg">
-                            <InfoMark size="size-icon" tone="subtle" />
-                            <span id={reasonId} className="text-body-sm text-foreground-subtle tabular-nums">
+                        <span className="flex items-center gap-selection-bar-reason-gap whitespace-nowrap pr-gap-lg text-foreground-subtle">
+                            <InfoMark size="size-icon" />
+                            <span id={reasonId} className="text-body-sm tabular-nums">
                                 {lastReason}
                             </span>
                         </span>

@@ -399,7 +399,7 @@ export function run({ check, assert, log }) {
     // for the opener that had none.
     check(
         "  to the catalog, in the catalog's word and faced behind a book (1a, #566), keyed as the opener beside it is",
-        `${/<ButtonLink key="catalog" variant="faced" mark=\{<Icon name="book-open" className="size-icon shrink-0" \/>\} href=\{ASSET_CATALOG_PATH\}>\s*\{ASSET_CATALOG_COPY\.heading\}\s*<\/ButtonLink>/.test(categoryPage.source)} ${/<RegistrationDialog key="registration" \{\.\.\.registration\} \/>/.test(categoryPage.source)}`,
+        `${/<ButtonLink key="catalog" variant="faced" mark=\{<Icon name="book-open" kind="words" className="size-icon shrink-0" \/>\} href=\{ASSET_CATALOG_PATH\}>\s*\{ASSET_CATALOG_COPY\.heading\}\s*<\/ButtonLink>/.test(categoryPage.source)} ${/<RegistrationDialog key="registration" \{\.\.\.registration\} \/>/.test(categoryPage.source)}`,
         "true true"
     );
     check(

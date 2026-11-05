@@ -19,8 +19,17 @@
 //      call is given a size — a mark given none is an `<svg>` at the browser's 300 by 150.
 //      Which file draws which marks is typed below too, so a mark that goes missing from a
 //      screen fails here rather than on the screen.
+//   5. THE INK IS THE KIND, DECIDED IN ONE PLACE (#614): the files of 2026-11-05 give the 0a Icon
+//      box a rule for a mark beside words — one that names or qualifies what follows is Ink 3,
+//      one that belongs to what the reader does or is told takes its words' ink, and one that
+//      marks what is current or chosen is Accent. So every call names its `kind`, a literal of
+//      the three or a choice between them, and no call's classes carry a color: the module alone
+//      turns a kind into an ink, through the two names `app/designValues.css` declares for it,
+//      and which kind each file's marks take is typed below, so a mark moved to another kind
+//      fails here.
 //
-// WHAT IT CANNOT SEE: whether a mark renders at the size it is given, in the ink around it
+// WHAT IT CANNOT SEE: whether a mark renders at the size it is given, in the ink around it — a
+// `words` mark's being whatever its words stand in, which a parent's class sets —
 // and with the line its stroke resolves to — a class is Tailwind's to resolve and a page a
 // browser's to draw, so those are measured in a browser and written into the pull request;
 // whether the shape a call names is the one the design draws at that place; and a shape
@@ -34,6 +43,13 @@ import { isMain, standalone } from "./_harness.mjs";
 export const title = "Every mark drawn from one source, as the design draws it (#502)";
 
 const ICON_MODULE = "app/components/Icon.js";
+
+/**
+ * Each kind of mark and the class that inks it (0a Icon box, #614): a qualifier in
+ * `--color-icon-subtle`, Ink 3; a current or chosen mark in `--color-icon-selected`, Accent; and a
+ * mark that takes its words' ink in no class at all, the frame stroking in `currentColor`.
+ */
+const KIND_INK = { qualifier: "text-icon-subtle", current: "text-icon-selected", words: "" };
 
 /**
  * The files that draw an `<svg>` that is not a mark, each with why. A file here that stops
@@ -204,6 +220,63 @@ const MARKS_BY_FILE = {
     "app/login/jobs/JobsForm.js": ["check", "circle-alert", "search"],
 };
 
+/**
+ * Which kind each file's marks are, call by call — the shape (or shapes) and the kind (or kinds a
+ * choice gives) — as the rule of 2026-11-05 sorts them. A qualifier: a status, the value a
+ * control holds (the job's pin, the sort's arrows, a set chip's chevron), a field (a search's
+ * mark, the foot bar's name field, a field's chevron), a value or note line, a detail in a log
+ * line, and the account's chevron and 1k-c's mark, which the files draw in Ink 3. Its words': a
+ * button, a rail or path item, a message, an error, and a mark in a control of its own — a
+ * checkbox's check, a clear's ×. Current: a list's check on what is chosen, and the current
+ * section's icon.
+ */
+const KINDS_BY_FILE = {
+    "app/(assets)/asset-categories/FoundItem.js": ["chevron-right:words"],
+    "app/(assets)/asset-categories/[categoryRecordId]/AssetList.js": ["message-square:qualifier"],
+    "app/(assets)/asset-categories/page.js": ["book-open:words"],
+    // The phone's two lines lead with a qualifier, Ink 3 since the files of 2026-11-05 where they
+    // drew Ink 2; the desk's `Add` is a button's plus, in its Accent.
+    "app/(assets)/assets/[assetId]/ItemDetails.js": ["barcode:qualifier", "message-square:qualifier", "plus:words"],
+    "app/(assets)/assets/[assetId]/MoreActions.js": ["ellipsis:words", "ellipsis:words"],
+    "app/(assets)/assets/[assetId]/TransitionBar.js": ["user:qualifier"],
+    "app/(assets)/assets/[assetId]/page.js": ["arrow-right:qualifier", "map-pin:qualifier", "search-x:qualifier", "user:qualifier"],
+    "app/components/Breadcrumb.js": ["chevron-left:words"],
+    "app/components/Controls.js": [
+        "arrow-up-down:qualifier",
+        "check:words",
+        "chevron-down:qualifier",
+        "chevron-down:qualifier",
+        "chevron-down:qualifier|words",
+        "chevron-down:qualifier|words",
+        "circle-alert:words",
+        "info:words",
+        "map-pin:qualifier",
+        "minus:words",
+        "minus:words",
+        "plus:words",
+        "search:qualifier",
+        "x:words",
+        "x:words",
+        "x:words",
+        "x:words",
+        "x:words",
+        "x:words",
+        "x:words",
+        "x:words",
+    ],
+    "app/components/DialogFrame.js": ["check:current", "search:qualifier", "x:words"],
+    "app/components/ListFrame.js": ["x:words"],
+    "app/components/ListTable.js": ["chevron-left/chevron-right:words"],
+    "app/components/Menu.js": ["check:current", "check:current", "check:words", "ellipsis:words"],
+    "app/components/Rail.js": ["clipboard-list/file-text/receipt/tag/truck/wrench:current|words", "panel-left:words"],
+    "app/components/RailAccount.js": ["chevron-up:qualifier"],
+    "app/components/Toast.js": ["circle-alert:words", "x:words"],
+    "app/login/jobs/JobsForm.js": ["check:words", "circle-alert:words", "search:qualifier"],
+};
+
+/** A call as `KINDS_BY_FILE` types it: its shapes, then its kinds. */
+const callKey = (call) => `${[...call.names].sort().join("/")}:${[...call.kinds].sort().join("|")}`;
+
 const repoRelative = (abs) => toPosix(abs).slice(toPosix(REPO_ROOT).length + 1);
 const jsxNameOf = (element) => (element.openingElement.name.type === "JSXIdentifier" ? element.openingElement.name.name : null);
 const attributesOf = (element) => element.openingElement.attributes;
@@ -337,7 +410,7 @@ export function iconCallsIn(ast, source) {
     const calls = [];
     walk(ast, (n) => {
         if (n.type !== "JSXElement" || jsxNameOf(n) !== "Icon") return;
-        const call = { names: [], sized: false, crop: null, extra: [] };
+        const call = { names: [], kinds: [], kindOpaque: false, sized: false, crop: null, extra: [], classTokens: [] };
         for (const a of attributesOf(n)) {
             if (a.type === "JSXSpreadAttribute") {
                 call.extra.push("...");
@@ -354,6 +427,18 @@ export function iconCallsIn(ast, source) {
                 const tokens = classTokens(value, enclosing(n));
                 call.sized = tokens.some((t) => /^size-/.test(t) || /^h-/.test(t));
                 call.classTokens = tokens;
+            } else if (name === "kind") {
+                // A literal, or a choice whose every leaf is one: anything else is opaque.
+                const leaves = (node) =>
+                    node?.type === "ConditionalExpression"
+                        ? [...leaves(node.consequent), ...leaves(node.alternate)]
+                        : node?.type === "LogicalExpression"
+                          ? [...leaves(node.left), ...leaves(node.right)]
+                          : [node];
+                for (const leaf of leaves(value)) {
+                    if (leaf?.type === "Literal" && typeof leaf.value === "string") call.kinds.push(leaf.value);
+                    else call.kindOpaque = true;
+                }
             } else if (name === "crop") call.crop = source.slice(value.start, value.end);
             else call.extra.push(name);
         }
@@ -361,6 +446,36 @@ export function iconCallsIn(ast, source) {
         calls.push(call);
     });
     return calls;
+}
+
+/** A class that colors: a text, fill or stroke color under any variant. */
+const COLORING = /(?:^|:)(?:text|fill|stroke)-/;
+
+/**
+ * The judgment of claim 5, pure: every call names a kind the module knows, as literals, and
+ * carries no class that colors it.
+ */
+export function judgeKinds({ callsByFile, kinds }) {
+    const failures = [];
+    for (const [file, calls] of callsByFile) {
+        for (const call of calls) {
+            const label = call.names.join("/");
+            if (call.kinds.length === 0 && !call.kindOpaque) failures.push(`${file} draws ${label} with no kind`);
+            if (call.kindOpaque) failures.push(`${file} draws ${label} with a kind no literal spells`);
+            for (const kind of call.kinds) if (!kinds.includes(kind)) failures.push(`${file} draws ${label} as "${kind}", which is no kind`);
+            for (const token of call.classTokens ?? []) if (COLORING.test(token)) failures.push(`${file} colors ${label} with ${token}`);
+        }
+    }
+    return failures;
+}
+
+/** The module's `KIND_INK`, read off its AST. */
+export function kindInkIn(ast) {
+    let table = null;
+    walk(ast, (n) => {
+        if (n.type === "VariableDeclarator" && n.id?.name === "KIND_INK") table = plainObject(n.init);
+    });
+    return table;
 }
 
 /** The judgment of claim 4, pure: `callsByFile` maps a file to what `iconCallsIn` read off it. */
@@ -409,7 +524,7 @@ export function run({ check, assert, log }) {
     const frame = frameOf(icon.ast, icon.source);
     log("");
     log("the frame every mark is drawn in (0a Icon box):");
-    check("  it takes a shape, a crop and classes, and nothing else", frame?.props.join(" "), "name crop className");
+    check("  it takes a shape, a kind, a crop and classes, and nothing else", frame?.props.join(" "), "name kind crop className");
     check("  on Lucide's 24 grid, a crop keeping its full height", frame?.svg.viewBox, 'crop ? `${crop[0]} 0 ${crop[1]} 24` : "0 0 24 24"');
     check(
         "  in the ink around it, with round caps and joins and no fill",
@@ -420,7 +535,7 @@ export function run({ check, assert, log }) {
     check(
         "  its line the one name, a cropped mark drawing past its box at its crop's width",
         [frame?.svg.className, frame?.svg.style].join(" | "),
-        '`stroke-icon ${crop ? "overflow-visible" : ""} ${className}` | crop ? { aspectRatio: `${crop[1]} / 24` } : undefined'
+        '`stroke-icon ${KIND_INK[kind]} ${crop ? "overflow-visible" : ""} ${className}` | crop ? { aspectRatio: `${crop[1]} / 24` } : undefined'
     );
     check("  and every shape stroked so the line does not scale", [frame?.shape.vectorEffect, frame?.shape["..."]].join(" "), "non-scaling-stroke attributes");
 
@@ -446,6 +561,19 @@ export function run({ check, assert, log }) {
         "  the one cropped mark is 1d's chevron, the grid's 8 to 16",
         [...callsByFile].flatMap(([file, calls]) => calls.filter((c) => c.crop !== null).map((c) => `${file}: ${c.names.join("/")} ${c.crop}`)).join(" | "),
         "app/components/Breadcrumb.js: chevron-left [8, 8]"
+    );
+
+    // ── 5: the ink is the kind ───────────────────────────────────────────────
+    log("");
+    log("every mark names its kind and no color, and the module alone inks a kind (0a Icon box, #614):");
+    check("  the module's kinds and the class each draws in", JSON.stringify(kindInkIn(icon.ast)), JSON.stringify(KIND_INK));
+    check("  every call names one of them as a literal, and none colors itself", judgeKinds({ callsByFile, kinds: Object.keys(KIND_INK) }).join(" | "), "");
+    check(
+        "  the kinds each file's marks take",
+        [...callsByFile].map(([file, calls]) => `${file}: ${calls.map(callKey).sort().join(" ")}`).join(" | "),
+        Object.entries(KINDS_BY_FILE)
+            .map(([file, keys]) => `${file}: ${[...keys].sort().join(" ")}`)
+            .join(" | ")
     );
 
     // ── anti-vacuity ─────────────────────────────────────────────────────────
@@ -518,6 +646,27 @@ export function run({ check, assert, log }) {
         "  but a cropped mark needs a height, which a size does not stand in for",
         iconCallsIn(planted('export const A = () => <Icon name="chevron-left" crop={[8, 8]} className="size-icon" />;\n').ast, 'export const A = () => <Icon name="chevron-left" crop={[8, 8]} className="size-icon" />;\n')[0]?.sized,
         false
+    );
+    const kindsOf = (source) => judgeKinds({ callsByFile: callsOf(source), kinds: Object.keys(KIND_INK) }).join(" | ");
+    check(
+        "  a mark with no kind, one with a kind the module has none of, and one whose kind no literal spells are reported (#614)",
+        kindsOf('export const A = ({ k }) => <><Icon name="x" className="size-icon" /><Icon name="check" kind="accent" className="size-icon" /><Icon name="tag" kind={k} className="size-icon" /></>;\n'),
+        `${plantedFile} draws x with no kind | ${plantedFile} draws check as "accent", which is no kind | ${plantedFile} draws tag with a kind no literal spells`
+    );
+    check(
+        "  and a mark given its color by a class, under a variant too, beside a choice of kinds that is read whole (#614)",
+        kindsOf('export const A = ({ on }) => <><Icon name="map-pin" kind="qualifier" className="size-icon text-foreground-subtle" /><Icon name="check" kind={on ? "current" : "words"} className="size-icon group-hover:text-primary-hover" /></>;\n'),
+        `${plantedFile} colors map-pin with text-foreground-subtle | ${plantedFile} colors check with group-hover:text-primary-hover`
+    );
+    check(
+        "  a mark moved to another kind is a different entry (#614)",
+        callKey(iconCallsIn(planted('export const A = () => <Icon name="barcode" kind="words" className="size-icon" />;\n').ast, "")[0]),
+        "barcode:words"
+    );
+    check(
+        "  and a module inking a kind with its own color is read as it is (#614)",
+        JSON.stringify(kindInkIn(planted('const KIND_INK = { qualifier: "text-foreground-muted", current: "text-icon-selected", words: "" };\n').ast)),
+        '{"qualifier":"text-foreground-muted","current":"text-icon-selected","words":""}'
     );
 }
 
