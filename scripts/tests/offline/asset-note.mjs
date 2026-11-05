@@ -131,7 +131,7 @@ export function run({ check, assert, log }) {
         "In stock: true, Out: true, In repair: true, Retired: true, Deleted: false"
     );
     check(
-        "  a retired item takes its note and still says no more check-outs or check-ins can be recorded (#612)",
+        "  a retired item takes its note and still says it is retired (#612)",
         [planOf(siteManager(JOB_A), ASSET_STATUS.RETIRED).mayWriteNote, planOf(siteManager(JOB_A), ASSET_STATUS.RETIRED).event, planOf(siteManager(JOB_A), ASSET_STATUS.RETIRED).refusal].join(" | "),
         `true |  | ${ASSET_TRANSITION_COPY.noTransition}`
     );

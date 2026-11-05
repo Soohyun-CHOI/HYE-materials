@@ -180,7 +180,7 @@ export function run({ check, assert, log }) {
     check("  a job no list offers is none", said(readLend(home, { drawnJobId: OWNER.id, jobId: "recGone" })), refused("Choose a job."));
     check("  whose item it is now is asked first", said(readLend(home, { drawnJobId: BORROWER.id, jobId: "" })), refused("This item is on 25-USA-13 now. Nothing was saved."));
     check("  a page drawn before somebody checked it out is stale", said(readLend(plan("site manager on the owner", { status: ASSET_STATUS.OUT }), { drawnJobId: OWNER.id, jobId: BORROWER.id })), refused("Someone else recorded this first. Nothing was saved.", true));
-    check("  a retired item says the terminal sentence", said(readLend(plan("site manager on the owner", { status: ASSET_STATUS.RETIRED }), { drawnJobId: OWNER.id, jobId: BORROWER.id })), refused("No more check-outs or check-ins can be recorded."));
+    check("  a retired item says the terminal sentence", said(readLend(plan("site manager on the owner", { status: ASSET_STATUS.RETIRED }), { drawnJobId: OWNER.id, jobId: BORROWER.id })), refused("This item is retired."));
     check("nothing is lent on: the borrower's press is stale", said(readLend(loaned, { drawnJobId: BORROWER.id, jobId: OTHER.id })), refused("Someone else recorded this first. Nothing was saved.", true));
     check("  and the owner's, once lent, no longer theirs to record", said(readLend(plan("site manager on the owner", { job: BORROWER.id }), { drawnJobId: OWNER.id, jobId: OTHER.id })), refused("Only 26-USA-12 can record this item. Nothing was saved."));
     const halfLent = plan("site manager on the owner", { latest: lentEntry });

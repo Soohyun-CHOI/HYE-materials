@@ -16,11 +16,14 @@ that the sweep is already enumerated.
 **SINCE #612 AN ENTRY HERE IS ONE DESIGN TAKES IN ITS NEXT SENDING, AND THOSE
 THAT ARE NOT SAY SO WHERE THEY STAND.** Soo set the words and states below against
 Tools 52 and Sign in 28 and sent each to Design on 2026-11-05 to be drawn in the
-next sending; the app holds them now. Three were not in that sending: the first
-entry, the purchase request screen's (#333), which is not about the tools axis;
-#520's name in two places; and the serial number's export column (#601). One
-row was set after it: the retired item's sentence, in #612's last entry. Each
-waits for the sending that takes it up. What the files and the app draw alike was
+next sending; the app holds them now. #520's name in two places was not in that
+sending and waits for the one that takes it up, and one row was set after it:
+the retired item's sentence, in #612's last entry. The first entry, the purchase
+request screen's (#333), waits on no sending, since the files draw no such
+screen: the app decides it when the materials screens open again. The serial
+number's export column (#601) and the sign-in mail's plain-text part are no
+entries, the files drawing neither: they are the app's, in `docs/notes/tools.md`
+and `docs/notes/authorization.md`. What the files and the app draw alike was
 taken off this list in #612: the axis's name (#591), 1a3's state for an item at
 another job (#541), the category list's empty sentence (#531), the export's
 failure (#553), #520's first two rows, #513's table of `item`, #514's level
@@ -37,7 +40,7 @@ base already was, and one act stopped having two words: an edit request asks for
 an edit, and what it produces is a row in the edit log.
 
 **The screen was left alone, deliberately.** #333's scope was the code and the
-schema; the wording is Design's. So `/prs/[prId]` still says `correction` in six
+schema, not the screen's word. So `/prs/[prId]` still says `correction` in six
 places, and the identifiers named after those six strings were left with them —
 an identifier that mirrors a button is a truthful name for as long as the button
 says it.
@@ -93,7 +96,7 @@ A row of `PR Edit Requests`: an **edit request**. `Initiated By`, `Sent To`,
 `Purchase Requests."PR Edit Requests"` and, on `Users`, `PR Edit Requests
 (Initiated)` and `PR Edit Requests (Sent To)`.
 
-**One reason to prefer `edit` if the design has no view of its own:** the same
+**One reason to prefer `edit`:** the same
 screen already says `Edit and continue` for the other thing a signer can do to a
 request, and `Edit payment`, `Edit` and both edit screens use the word elsewhere.
 `correction` on this screen is the app's only use of the word for something a
@@ -107,8 +110,10 @@ bars it there is this screen. If this screen stops saying `correction`, that bar
 is worth re-deriving rather than assuming — `naming.md`'s bullet on it says so in
 its own words.
 
-**Not sent on 2026-11-05**: the purchase request screen is closed (#542), and this
-entry waits for the sending that takes that screen up.
+**The app decides it when the materials screens open again (#612, Soo).** The
+files draw no purchase request screen, so no sending takes this entry up. The
+screen is closed (#542); the word is chosen, and swept with everything under
+`What moves with them`, when `lib/openScreens.js` opens it.
 
 ---
 
@@ -386,9 +391,8 @@ calls the job an item belongs to `Assets."Owner Job"`, the job it stands on
 The files draw the serial number in 1a3's line and 1a's search, 1d's column,
 1f's `Details` row edited where it stands and its refusal naming the item that
 holds the number, 1j's line, 1j-b3's sheet and its refusal. They draw no limit
-on what is typed, no stale press, no wait, no number on more than one kind, and
-no export. Design takes each in the next sending, but for the export's column,
-which was not sent.
+on what is typed, no stale press, no wait and no number on more than one kind.
+Design takes each in the next sending.
 
 | String | Where | The files |
 |---|---|---|
@@ -396,7 +400,6 @@ which was not sent.
 | `Someone else changed this serial number first. Nothing was saved.` | under the field, when the number changed since the page was drawn | draw no stale press |
 | `Saving…`, `Adding…`, `Removing…` | the row's `Save` and the sheet's `Done`, busy, heard and not seen | draw no wait |
 | one line per item, 8 apart | 1a3, a number standing on items of more than one kind | draw one line |
-| `Serial number` | the export's second sheet, after `Item ID` — **not sent on 2026-11-05** | draw no export |
 
 **The limit and its sentence are the note's**, a value one line holds, so a
 number past it is refused in the note's words rather than cut — `Use 50
@@ -426,7 +429,7 @@ each in the next sending.
 | `Use 50 characters or fewer.` | a note past 50, after a press, in the line under the field | draw `Max 50 characters.` (1f, 1j-b2) |
 | `10 items will show the new name.`, `1 item will show the new name.` | 1l's edit, over the actions, when it would rename items | draw no such line |
 | `This wasn't fully recorded. Do it again to finish.` | under the status, after a check-out, check-in, sending, return from repair or retirement whose status write failed | draw no such state |
-| `No more check-outs or check-ins can be recorded.` | a phone's foot bar on a retired item, and the refusal for a press on one retired first — **set after the sending of 2026-11-05** | draw `Nothing more can be recorded here.` (1j-c) |
+| `This item is retired.` | a phone's foot bar on a retired item, and the refusal for a press on one retired first — **set after the sending of 2026-11-05** | draw `Nothing more can be recorded here.` (1j-c) |
 | a serial number and a note written in every status a screen shows | 1f, 1g, 1j | draw both writable in 1g's `In repair` alone, and neither in 1g's `Retired`, 1j-e or 1j-c |
 | `More actions` in a phone's top bar on an item out or in repair, and over its sheets | 1j-b, 1j-b2, 1j-b3, 1j-e | draw none there |
 | the registration's second step starting on the list's job, its code and name (#565) | 1b | draws `Choose a job` |
@@ -444,10 +447,9 @@ each in the next sending.
 item's job wherever it stands, as 1a3 draws it since 2026-11-02, and `Print labels`
 past a print's labels is `aria-disabled` and still takes focus, as 1e draws it —
 both taken in #612, so neither is listed. **The details in every status** follow
-from neither being an event, and a retired item says on a phone the clause its
-retirement's dialog promised, `No more check-outs or check-ins can be recorded.`,
-where 1j-c's `Nothing more can be recorded here.` would contradict the two lines
-that still write. **The states the files draw no
+from neither being an event, and a retired item says on a phone what it is,
+`This item is retired.`, where 1j-c's `Nothing more can be recorded here.` would
+contradict the two lines that still write. **The states the files draw no
 moment for** take the words the app's other refusals and working words take.
 
 The keys are `ASSET_LIST_COPY.noItemsOn` and `.pageNotFound` in

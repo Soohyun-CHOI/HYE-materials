@@ -145,6 +145,13 @@ function copyStrings() {
 const TOOL_ITEM_NOUN = /\btool items?\b/i;
 
 /**
+ * The words a sentence takes to say what may no longer be done to an item (#612): a negation,
+ * a measure of what is left, or an act. The retired item's sentence stands under its serial
+ * number and note, which still write, so it takes none of them.
+ */
+const CLAIMS_AN_END = /\b(no|not|nothing|none|never|cannot|can['’]t|won['’]t|any|anything|more|longer|locked|final|records?|recorded|edit(s|ed)?|chang(e|es|ed)|writ(e|es|ten)|sav(e|es|ed)|add(s|ed)?)\b/i;
+
+/**
  * The source text of `propName` in the object argument of every call to `fnName`.
  *
  * THE ARGUMENT AND NOT THE NAME, which is the whole point of this file's AST half.
@@ -816,7 +823,7 @@ export function run({ check, assert, log }) {
         0
     );
     // The two sentences the sweep carried the noun into, by value.
-    check("the terminal sentence, the retirement dialog's clause (#612)", ASSET_TRANSITION_COPY.noTransition, "No more check-outs or check-ins can be recorded.");
+    check("the terminal sentence, the status itself (#612)", ASSET_TRANSITION_COPY.noTransition, "This item is retired.");
     // THE STALE PRESS IN 1k's WORDS (#463), the person in full, `already` and the moment as
     // a part the page draws in the reader's zone since the design's final files (#495), the
     // noun hyphenated and the verb not.
@@ -1670,19 +1677,23 @@ export function run({ check, assert, log }) {
     // `no check-out or check-in to record`, which enumerated two of three absent
     // controls once a retire control stood beside them.
     // AND SINCE #463 IT NAMES NO STATUS EITHER: the status stands directly above it.
-    // SINCE #612 IT IS THE CLAUSE THE RETIREMENT DIALOG PROMISES, Soo's: the design's
-    // `Nothing more can be recorded here.` stopped being true once the page it stands on
-    // writes the item's serial number and note in every status, so the sentence says what a
-    // retirement promised before its press, and claims no more. One clause in two places,
-    // held as one.
+    // SINCE #612 IT IS THE STATUS ITSELF, Soo's: the design's `Nothing more can be recorded
+    // here.` stopped being true once the page it stands on writes the item's serial number
+    // and note in every status, so the sentence says what the item is and nothing of what
+    // may still be written — no negation, no act and no measure of what is left, any of
+    // which would read as covering the two lines above it.
     const terminal = ASSET_TRANSITION_COPY.noTransition;
     check(
-        "the terminal sentence is the retirement dialog's own clause (#612)",
-        ASSET_TRANSITION_COPY.retireBody.toLowerCase().includes(terminal.toLowerCase().replace(/\.$/, "")),
+        "the terminal sentence says the item is retired (#612)",
+        new RegExp(`\\bis ${ASSET_STATUS.RETIRED}\\.$`, "i").test(terminal),
         true
     );
-    check("  and claims no end beyond the events, beside details that still write", /nothing|anything|any more\b/i.test(terminal), false);
-    check("  and no status", ASSET_STATUS_VALUES.filter((status) => terminal.includes(status)).length, 0);
+    check("  and claims no end, beside the serial number and note that still write", CLAIMS_AN_END.test(terminal), false);
+    check(
+        "  the words a claim takes are seen in the sentences it replaced",
+        ["Nothing more can be recorded here.", "No more check-outs or check-ins can be recorded.", "This item is retired and can't be edited."].filter((s) => CLAIMS_AN_END.test(s)).length,
+        3
+    );
 
     // ── 10: the question, on the design's frame (#458) ─────────────────────
     // ONE COMPONENT FOR BOTH WIDTHS: 0l's Confirm at a desk and Tools 0a's sheet that

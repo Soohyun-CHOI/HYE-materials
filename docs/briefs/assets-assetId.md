@@ -568,12 +568,11 @@ without a sentence, and with nothing written.
 **An asset whose status allows no event** offers none. `Retired` is the only
 such status, and it is reachable — the retire control is what puts an asset
 there. **A desk draws nothing in the actions' place** (1f); a phone's foot bar
-says `No more check-outs or check-ins can be recorded.` to a site manager — the
-clause the retirement's dialog promises, Soo's since #612, where 1j draws
-`Nothing more can be recorded here.`, which the serial number and note lines
-above it, writable in every status, made false. The sentence names no status,
-since the status stands above it. A reader who is not a site manager has no
-foot bar to say it in (#506).
+says `This item is retired.` to a site manager — the status itself, Soo's since
+#612, where 1j draws `Nothing more can be recorded here.`, which the serial
+number and note lines above it, writable in every status, made false. It says
+what the item is and nothing of what may still be written. A reader who is not a
+site manager has no foot bar to say it in (#506).
 
 **A history entry is three facts, and a `Checked out` entry is four** — the job
 was one of each until #597. The fourth is who the tool went to: `Checked out to Dana K` at a desk, the `to` in Ink 3,
