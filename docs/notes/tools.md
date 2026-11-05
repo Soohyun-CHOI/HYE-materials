@@ -2309,6 +2309,40 @@ On Soo's phone three things on an item's page were not the design's: a press on 
 
 **WHAT ONLY A PHONE SHOWS** — Safari's own press on `More actions` with its menu open, a held line's wash and the dots on its screen — was handed to Soo to see.
 
+## The foot bar, a phone field, a closing sheet's focus, and the last sending of 2026-11-04 (#607)
+
+#607's second pass took three things Soo saw and the files Design sent after its first: the phone's foot bar under the body, a phone field's edge and ×, and the ring round the page's title once a sheet closed — and everything Tools 51 changed against Tools 50 that is a shape or a word. `docs/notes/design-system.md` has the reasoning (`The files of 2026-11-04's last sending`); this has what the files moved and what a browser read.
+
+**WHAT TOOLS 51 MOVED AGAINST TOOLS 50, SCREEN BY SCREEN.** Each was read off the template and, where the app draws it, measured at 1440 × 900 and at 373 × 810 under touch, main's tree and this one on one server.
+
+| Screen | In Tools 51 | Here |
+|---|---|---|
+| 1a3, a line found by a number | the number in Instrument Sans 14, even figures, after `Serial number` | taken; main Fragment Mono 13, now Instrument Sans 14, 8 after the name |
+| 1d (and its states 1c, 1e) | id 144 → 152, number 128 → 160, status 240 → from 240 taking the room left, a 16 note column, date 120 | taken; main 144, 128, 240, 308; now 152, 160, 492, 16 |
+| 1d | the number in Instrument Sans 14, even figures | taken; main Fragment Mono 13 |
+| 1d | the note a 14 mark at Ink 3 under no head, the note its tooltip | taken; the mark centered in its 16, over the row's link, the note 6 above it |
+| 1f, 1g | `Details`' number and its field in Instrument Sans, even figures | taken; main Fragment Mono 14 with its tracking |
+| 1f, 1g, 1j-b2 | the note's field with no example | taken; main `e.g. At the Riverside yard` |
+| 1j | the number's line in Instrument Sans 15, even figures | taken |
+| 1j, 1j-b2, 1j-b3 | a field's × an 18 mark, its target ending on the field's edge | taken; main's sheet × ended 2 inside at 15, ink 21.63 in; now 0, 18, ink 15.88 |
+| 1j-a | the foot bar's `Checked out to` drawing a × once it holds a name | taken; laid over the field's end, 48 ending on the edge, 18, ink 15.88 in, the name stopping 10 before it; main drew none |
+| 1l | the type column 80 → 88 | taken |
+| 0a | Field, Note and Value line rows saying the above | taken as said |
+
+Sign in 27 gives every phone field the same ×, the email and name fields Edge focus while they hold the caret, and the job step's bar its place under the body (1k); Invoices 48 changes 0b's column widths, 0h's faces and 0n's note in a list into the sentences the rows above follow. Soo then ruled every foot bar the job step's, white under the body, and a × on every field a phone types in and on a desk's search alone, which gives the job step's search a list search's × at a desk (1l) beside the phone's it drew (1k); `docs/notes/design-system.md` has both.
+
+**WHAT A BROWSER READ, MAIN AND THIS BRANCH, ON THE TEST BASE AS `soo@` AT `k.localhost:3607`.** On `HYE-AST-261019-104` at 373 × 810 under touch: the foot bar at 662 to 810 at the top and 300 down, at 334 to 474 with a keyboard 336 tall stood in over a field placed on the page and back after, and held at 662 under the open name sheet, which stood at 464 to 810 and at 128 to 474 over the keyboard, the body fixed — the same in both, the bar's ground transparent in main and white here. On `/login` at a host with no session, the email field's edge 215,218,223 at rest and 137,140,146 while typing in both; its × ended 7 in from the field's edge at 15, ink 26.63 in, in main, and on the edge at 18, ink 15.88 in, here. With a stand-in for Safari's press, main's name sheet closed by a tap behind it put focus on the page's `h1`, and this branch's on the field that opened it, marked quiet with no outline; opened by Enter and closed by Escape it went to the field, unmarked, `focus-visible` and on Edge focus. At 1440 the check-out dialog closed by its × put focus on `Check out` in both, marked quiet here, and by Escape on `Check out` with the browser's ring in both. 1d, 1a3, `Details` and 1l read as the table says.
+
+**AND ONCE THE RULINGS OF 2026-11-05 WERE IN.** On `/login` signed out, the email and code steps' bars stood where main's did at 373 × 810 and at 375 × 667, at rest and over a keyboard stood in, white where main's were transparent; the content ended at 270 and 345, above the bar at 373 × 810, and the code step's ran 56 under it at 375 × 667 with a keyboard of 300. On `-104` at 373 × 810, `Measure 607` put in the foot bar's name field through its sheet drew the × that 1j-a draws, as the table says, its target centered in the field's 50; a press on it emptied the name with the sheet shut and focus on the field, marked quiet, its edge at rest, and an Enter on it the same with focus visible and on Edge focus; main drew no × and the name ran to 16 from the edge. The job step, which `soo@` holds jobs for, was let through for the measure by taking the page's redirect out while it ran and putting the file back byte for byte: at 373 × 810 its × ended on the field's edge at 18, ink 15.88 in, where main's ended 7 in at 15, ink 26.63 in, and a press emptied it with the caret kept; at 1440 a × 24 by 38, 1 inside the field's end and top, rounded 0 7 7 0 and a 13 mark, the words stopping 30 from the end, where main drew none and stopped them at 13. 1a's search kept its 24 by 30 in both, and the asset page at 1440 drew no foot bar and no ×.
+
+**THE OPERATIONS.** Main and this branch alike: the asset page **7**, 6 once just after an event; 1a **4**, 8 on the server's first view; 1d **4**; `/asset-catalog` **3**; `/login` 0; `/login/jobs` **2**.
+
+**THE TEST BASE TOOK FOUR WRITES THROUGH THE APP, AND READS NOBODY ASKED FOR.** A note, `At the yard 607`, on `HYE-AST-261019-137`, for 1d to draw a mark; and on `-104` a check-out to `Phone 597` and its check-in, two `Asset Log` rows, from a press that landed on the check-out dialog's recent names where the walk meant its `Cancel`, and an Enter after it. The asset page drew again four times while main's files were swapped in under it, 28 reads. The pass after the rulings wrote nothing: the name put in the foot bar's field was emptied and never sent. No sign-in token was minted.
+
+**WHAT THE CHECKS HOLD.** Four are new: `offline/moved-focus.mjs` — `focusShows` by value, `movedFocus.js` loaded over a stand-in document with its press and key played, the frame's opener and closing and every `.focus(` the frame and the hold keep, and every control opening a dialog that draws a focus face skipping the quiet mark, as Tailwind reads it; `offline/phone-field-edge.mjs` — the ×'s target, mark and ink against the field's room and Edge, laid over the name field's end, which field takes which look, a desk's a search's alone, and Edge focus; `offline/foot-bar-ground.mjs` — every bar's white, drawn whatever it is handed, and no bar handed a prop it does not take; `offline/serial-face.mjs` — no serial number in the id's face anywhere under `app/`, and each place it is drawn. `offline/asset-list-view.mjs`, `asset-catalog.mjs`, `asset-note.mjs`, `dialog-frame.mjs`, `field-clear.mjs`, `icons.mjs` and `design-values.mjs` follow the new shapes. **105 mutations were run, one at a time, and all fail — nine of them on a `below` the rulings then took out — and each of the 58 assertions the new checks make fails under at least one**, and the older checks still fail what they held — a job column dropped, a whole cell's tooltip, a heading not made focusable, the note's help changed.
+
+**WHAT ONLY A PHONE SHOWS** — Safari's own press and the ring it draws or not, a keyboard's cover under the job step's bar, the edge while typing, a finger on the name field's ×, and what a short phone's keyboard leaves of the code step above its bar — was handed to Soo to see.
+
 ## Three tables, and what each is for
 
 `Tools` is the KIND. `Tool Items` is the object. `Tool Log` is the history.

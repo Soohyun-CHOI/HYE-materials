@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useId } from "react";
 import { Checkbox } from "@/app/components/Controls";
 import Dot from "@/app/components/Dot";
+import Icon from "@/app/components/Icon";
 import Instant from "@/app/components/Instant";
 import ListFrame, { SelectionBar } from "@/app/components/ListFrame";
 import { Pager, TABLE_HEAD, TABLE_ROW, TABLE_ROW_LINK, TABLE_ROW_SELECTED } from "@/app/components/ListTable";
@@ -23,23 +24,25 @@ import { DAY_FORMAT } from "@/lib/format";
 import StatusMark from "../../StatusMark";
 import LabelsDialog from "../../assets/LabelsDialog";
 
-// 1d's columns since #601: the box, the printed id at 144 and the serial number at 128 after it, the
-// status at 240 — and after an `Out` who holds it — the note taking the room left, and the day each
-// item last changed at 120. The id stood at 240 from #533 until the files of 2026-11-04 gave the
-// serial number a column of its own. The status took the room left from #520, when 1d drew the
-// day in the job's place, and stood at 160 with the job after it from #463.
+// 1d's columns since the files of 2026-11-04's afternoon (#607): the box, the printed id at 152 and
+// the serial number at 160 after it, the status — and after an `Out` who holds it — taking the room
+// left from 240, the note's mark in a 16 of its own under no head, and the day each item last changed
+// at 120 — 0b's rule, a fixed column the longest value the base holds and 12, rounded up to 8, and a
+// serial number's 160 since its length is its maker's. From #601 the id stood at 144, the number at
+// 128 and the status at 240, and the note's words took the room left; the id stood at 240 from #533.
+// The status took the room left from #520 to #601, and stood at 160 with the job after it from #463.
 const COLUMNS =
-    "grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-serial)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";
+    "grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-serial)_minmax(var(--width-table-status),1fr)_var(--size-icon)_var(--width-table-date)]";
 // The same four for a reader who selects nothing (#506), with no box to hold room for, as 1d
 // draws the list for a reader with no role.
 const COLUMNS_WITHOUT_BOX =
-    "grid-cols-[var(--width-table-id)_var(--width-table-serial)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";
-// On all jobs (1d, #548), the job each item is on at 96 after its serial number, the note
+    "grid-cols-[var(--width-table-id)_var(--width-table-serial)_minmax(var(--width-table-status),1fr)_var(--size-icon)_var(--width-table-date)]";
+// On all jobs (1d, #548), the job each item is on at 96 after its serial number, the status
 // giving up the room, as 1d draws it. Each a literal, for the stylesheet.
 const COLUMNS_WITH_JOB =
-    "grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-serial)_var(--width-table-job)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";
+    "grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-serial)_var(--width-table-job)_minmax(var(--width-table-status),1fr)_var(--size-icon)_var(--width-table-date)]";
 const COLUMNS_WITH_JOB_WITHOUT_BOX =
-    "grid-cols-[var(--width-table-id)_var(--width-table-serial)_var(--width-table-job)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]";
+    "grid-cols-[var(--width-table-id)_var(--width-table-serial)_var(--width-table-job)_minmax(var(--width-table-status),1fr)_var(--size-icon)_var(--width-table-date)]";
 
 // One page of a category's assets, drawn as 1d's table (#463): a box on each and one for the
 // page in the column head, and the selection bar that opens the labels' dialog on what they
@@ -129,7 +132,8 @@ export default function AssetList({ categoryRecordId, itemName, selects, showsJo
     const summary = describeSelection(selection, pageIds);
     const selecting = summary.count > 0;
     const reasonId = useId();
-    // A note its column cuts shows whole above its cell (#533), as a cut catalog cell does.
+    // A cut serial number shows whole above its cell, as a cut catalog cell does, and a note above
+    // its mark (0n, #607).
     const tooltip = useTooltip({ placement: "above" });
 
     // THE ONE WRITE, AND IT IS NOT A NAVIGATION — see the header. It keeps the page
@@ -201,7 +205,10 @@ export default function AssetList({ categoryRecordId, itemName, selects, showsJo
                     <span role="columnheader">{COPY.serialLabel}</span>
                     {showsJob && <span role="columnheader">{COPY.jobLabel}</span>}
                     <span role="columnheader">{COPY.statusLabel}</span>
-                    <span role="columnheader">{COPY.noteLabel}</span>
+                    {/* The note's column stands under no head (0n, #607); its name is for assistive tech. */}
+                    <span role="columnheader">
+                        <span className="sr-only">{COPY.noteLabel}</span>
+                    </span>
                     <span role="columnheader">{COPY.updatedLabel}</span>
                 </div>
                 {/* In the order the page cut them in, newest change first or by printed id
@@ -229,10 +236,11 @@ export default function AssetList({ categoryRecordId, itemName, selects, showsJo
                                     {row.assetId}
                                 </Link>
                             </span>
-                            {/* Its serial number in the id's face at 13 and Ink 2, cut at its column's
-                                end and shown whole above it under the pointer as the note is (1d,
-                                #601). Nothing for an item with none. */}
-                            <span role="cell" className="min-w-0 font-id text-body-sm tracking-id text-foreground-muted">
+                            {/* Its serial number at the row's 14 with even figures and Ink 2 — a maker's
+                                number, which the portal's id face is not for (0h, #607) — cut at its
+                                column's end and shown whole above it under the pointer (1d, #601).
+                                Nothing for an item with none. */}
+                            <span role="cell" className="min-w-0 text-foreground-muted tabular-nums">
                                 <span data-cut="" className="block truncate">
                                     {row.serialNumber}
                                 </span>
@@ -269,14 +277,17 @@ export default function AssetList({ categoryRecordId, itemName, selects, showsJo
                                     )}
                                 </span>
                             </span>
-                            {/* Its note, on one line in Ink 2 and cut at its column's end, the
-                                whole of it above the cell under the pointer (1d, #533) — the
-                                catalog's cut cell (#538), since the row's link covers the cell and
-                                a `title` on it would never be seen. Nothing for an item with none. */}
-                            <span role="cell" className="min-w-0 text-foreground-muted">
-                                <span data-cut="" className="block truncate">
-                                    {row.note}
-                                </span>
+                            {/* A note is a 14 speech-bubble mark in Ink 3, centered in its 16, and the
+                                note itself above it under the pointer (0n, 1d, #607) — the row's tooltip,
+                                since the row's link covers the cell; the mark stands over the link, and
+                                assistive tech reads the note from its name. Its words in a column of
+                                their own from #533 until then. Nothing for an item with none. */}
+                            <span role="cell" className="flex self-center">
+                                {row.note && (
+                                    <span role="img" aria-label={COPY.noteMark(row.note)} data-tip={row.note} className="relative flex h-[var(--text-body--line-height)] w-(--size-icon) items-center justify-center">
+                                        <Icon name="message-square" className="size-icon-sm text-foreground-subtle" />
+                                    </span>
+                                )}
                             </span>
                             {/* The day it last changed, in the reader's own zone (#374) and
                                 Ink 2, the year written out (#520); nothing for an item whose

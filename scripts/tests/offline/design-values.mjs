@@ -279,8 +279,8 @@ const VALUES = [
     ["--spacing-table-column-inline", "1.25rem", null],
     // 1a's counts at 56 since the files of 2026-10-23 (#566), 96 until then.
     ["--width-table-count", "3.5rem", null],
-    ["--width-table-id", "9rem", null],
-    ["--width-table-serial", "8rem", null],
+    ["--width-table-id", "9.5rem", null],
+    ["--width-table-serial", "10rem", null],
     // The job's column, on all of a reader's jobs (1d, #548).
     ["--width-table-job", "6rem", null],
     // The status's column, held again beside the note's (1d, #533).
@@ -294,7 +294,7 @@ const VALUES = [
     ["--min-width-catalog-maker", "7.5rem", null],
     ["--min-width-catalog-part-number", "8rem", null],
     ["--min-width-catalog-category", "8.5rem", null],
-    ["--width-catalog-type", "5rem", null],
+    ["--width-catalog-type", "5.5rem", null],
     ["--width-catalog-items", "3rem", null],
     // How far in a list on Fill sets its table from the window's edge (1l, #538).
     ["--spacing-fill-table-inset-right", "2.25rem", null],
@@ -620,11 +620,11 @@ const VALUES = [
     ["--spacing-mobile-input-gap", "0.625rem", null],
     ["--color-mobile-input-background", "color-mix(in oklab, var(--color-foreground-default) 5.5%, transparent)", null],
     ["--spacing-mobile-field-stack", "1.25rem", null],
-    // From the drawings, not the spec (#458).
-    ["--size-mobile-input-clear-icon", "0.9375rem", null],
-    // The clear ×'s target, a phone field's refusal and the alert (#473); the target is the
-    // drawings'.
-    ["--spacing-mobile-input-clear-inset-right", "0.375rem", null],
+    // The clear ×'s mark, 18 since Tools 0a's Field row gave it (#607).
+    ["--size-mobile-input-clear-icon", "1.125rem", null],
+    // The clear ×'s mark inside its target's end, on every phone field (#607), a phone field's
+    // refusal and the alert (#473).
+    ["--spacing-mobile-input-clear-inset-right", "0.75rem", null],
     ["--spacing-mobile-input-message-inset-x", "0.25rem", null],
     ["--spacing-mobile-input-message-gap", "0.375rem", null],
     ["--spacing-mobile-alert-inset-y", "0.875rem", null],
@@ -645,8 +645,6 @@ const VALUES = [
     // The title block's lines on a phone, 4 apart (0a, #538): the id over the name, the caption under it,
     // and the item's job under that behind its pin, 14 (1j, #597).
     ["--spacing-mobile-title-block-stack", "0.25rem", null],
-    // The clear × of the one field in a sheet, from the field's edge (1j-b2, #533).
-    ["--spacing-mobile-sheet-input-clear-inset-right", "0.125rem", null],
     // The phone's note line a writer presses, past its text either side and above and below (0a Note, 1j; #533).
     ["--spacing-mobile-note-bleed-x", "0.75rem", null],
     ["--spacing-mobile-note-bleed-y", "0.875rem", null],

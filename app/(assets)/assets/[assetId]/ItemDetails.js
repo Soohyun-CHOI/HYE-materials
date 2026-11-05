@@ -60,10 +60,10 @@ const DETAILS = {
         editName: ASSET_SERIAL_COPY.editSerial,
         emptyText: ASSET_SERIAL_COPY.addSerial,
         mark: <Icon name="barcode" className="size-icon text-foreground-muted" />,
-        face: "id",
-        // A serial number edited at a desk is typed in the face it is read in; the axis loads Fragment
-        // Mono, which the controls' own module, read by the sign-in pages too, may not name.
-        fieldFace: "[&_input]:font-id [&_input]:tracking-id",
+        face: "figures",
+        // A serial number is a maker's, set with even figures and not in the portal's id face (0h,
+        // #607), and a desk types it as it is read.
+        fieldFace: "[&_input]:tabular-nums",
         read: (input) => readSerialSubmission({ mayWriteSerial: true }, input),
         valueOf: (answer) => answer.serialNumber,
         // A maker's number is typed as printed: the keyboard starts in capitals, and nothing corrects it.
@@ -83,7 +83,6 @@ const DETAILS = {
         valueOf: (answer) => answer.note,
         help: ASSET_NOTE_COPY.help,
         count: ASSET_NOTE_COPY.count,
-        placeholder: ASSET_NOTE_COPY.placeholder,
         typing: {},
     },
 };
@@ -116,8 +115,8 @@ function serverAnswer(control, draft) {
     };
 }
 
-/** The value as a line shows it: an id's in the id's face, wrapping anywhere. */
-const VALUE_FACE = { id: "font-id tracking-id [overflow-wrap:anywhere]", text: "text-pretty" };
+/** The value as a line shows it: a serial number with even figures, wrapping anywhere (0h, #607). */
+const VALUE_FACE = { figures: "tabular-nums [overflow-wrap:anywhere]", text: "text-pretty" };
 
 /**
  * The desk's `Details` block (1f, 1g): its name, then a row for each detail that has a value or that
@@ -242,7 +241,7 @@ function RowEditor({ kind, value, control, onClose }) {
                     refusal={(pressed ? answer.refusal : null) ?? server.taken}
                     count={detail.count?.(draft.length)}
                 >
-                    <TextInput size="md" value={draft} onChange={setDraft} inputRef={inputRef} placeholder={detail.placeholder} autoComplete="off" {...detail.typing} />
+                    <TextInput size="md" value={draft} onChange={setDraft} inputRef={inputRef} autoComplete="off" {...detail.typing} />
                 </Field>
                 {server.said && (
                     <div className="pt-details-actions-stack">
@@ -289,8 +288,8 @@ export function PhoneDetails({ serialNumber, note, mayWriteSerial, mayWriteNote 
 }
 
 /**
- * One line on a phone: its mark 16 in Ink 2 beside the value at 15 in Ink 2 — a serial number in the
- * id's face — or the line's name in Ink 3 where there is none. For whoever may write it the whole line
+ * One line on a phone: its mark 16 in Ink 2 beside the value at 15 in Ink 2 — a serial number with
+ * even figures (0h, #607) — or the line's name in Ink 3 where there is none. For whoever may write it the whole line
  * is the press, named for what it edits and described by the value; for anybody else it is the value
  * alone, and a serial number's name is said to assistive tech alone (0a Value line).
  */
@@ -366,7 +365,7 @@ function DetailSheet({ kind, value, open, control }) {
         >
             <div className="flex flex-col px-mobile-gutter">
                 <Field label={detail.name} labelHidden size="xl" help={detail.help} refusal={(pressed ? answer.refusal : null) ?? server.taken} count={detail.count?.(draft.length)}>
-                    <SheetInput value={draft} onChange={setDraft} onDone={done} placeholder={detail.placeholder} clearLabel={detail.copy.clear} {...detail.typing} />
+                    <SheetInput value={draft} onChange={setDraft} onDone={done} clearLabel={detail.copy.clear} {...detail.typing} />
                 </Field>
                 {server.said && (
                     <div className="pt-mobile-drawer-body-stack">

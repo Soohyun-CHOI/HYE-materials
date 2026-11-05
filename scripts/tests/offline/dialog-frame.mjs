@@ -1201,11 +1201,13 @@ export function run({ check, assert, log }) {
             heading: [
                 /focusHeading\(document\.querySelector\("h1"\)\)/.test(pageHeading),
                 /if \(!heading\.hasAttribute\("tabindex"\)\) heading\.tabIndex = -1;/.test(heading),
-                /heading\.focus\(\)/.test(heading),
+                // Drawn for the keyboard alone (#607, `movedFocus.js`).
+                /moveFocus\(heading\)/.test(heading),
             ].join(" "),
-            // Since #495 a closing also sends focus there when the opener did not take it back,
-            // which an opener its page has hidden cannot.
-            onClose: /const opener = openerRef\.current;\s*dialog\.close\(\);\s*\/\/[^\n]*\n\s*if \(unprompted \|\| \(opener !== null && document\.activeElement !== opener\)\) focusPageHeading\(\);/.test(
+            // A closing hands focus to the opener it kept while that can hold it — which the browser's
+            // own closing does not find where Safari gave a press no focus (#607) — and to the heading
+            // otherwise: a dialog nothing opened, or an opener its page has hidden (#495).
+            onClose: /const opener = openerRef\.current;\s*dialog\.close\(\);\s*(?:\/\/[^\n]*\n\s*)*if \(!unprompted && opener !== null && canHoldFocus\(opener\)\) moveFocus\(opener\);\s*else focusPageHeading\(\);/.test(
                 source
             ),
             // A dialog its page stops drawing closes as the window changes size, after the
@@ -1224,7 +1226,7 @@ export function run({ check, assert, log }) {
     };
     const frameRules = frameFacts(frame);
     check("  a dialog no press opened hands focus to the page's heading, made focusable", frameRules.heading, "true true true");
-    check("  and only one marked unprompted, or one its opener did not take focus back from, in the branch that closes it (#495)", frameRules.onClose, true);
+    check("  and a closing hands focus to the opener it kept while that can hold it, and to the heading otherwise (#495, #607)", frameRules.onClose, true);
     check("a dialog its page stops drawing closes as the window changes size, busy or not, after its owner's onHidden (#495)", frameRules.hidden, "true true");
     check("  a dialog's sentence describes the dialog it stands in, and stops when it goes", frameRules.describes, "true true true");
     check("  and the actions wrap rather than run off a narrow dialog", frameRules.wraps, true);
@@ -1517,14 +1519,14 @@ export function run({ check, assert, log }) {
                 /queueMicrotask\(\(\) => \{\s*if \(!dialog\.isConnected\) focusAfterRemoval\(opener\);/.test(frameSource),
                 /if \(!dialog\?\.open\) return;\s*const opener = openerRef\.current;/.test(frameSource),
             ].join(" "),
-            opener: /openerRef\.current = unprompted \|\| document\.activeElement === document\.body \? null : document\.activeElement;\s*dialog\.showModal\(\);/.test(
+            opener: /const holding = document\.activeElement && document\.activeElement !== document\.body \? document\.activeElement : null;\s*openerRef\.current = unprompted \? null : \(holding \?\? pressedControl\(\)\);\s*dialog\.showModal\(\);/.test(
                 frameSource
             ),
             backTo: (() => {
                 const fn = functionNamed(ast, "focusAfterRemoval");
                 const body = fn ? source.slice(fn.start, fn.end) : "";
                 return [
-                    /if \(opener\?\.isConnected\) \{\s*opener\.focus\(\);\s*if \(document\.activeElement === opener\) return;\s*\}/.test(body),
+                    /if \(opener\?\.isConnected\) \{\s*moveFocus\(opener\);\s*if \(document\.activeElement === opener\) return;\s*\}/.test(body),
                     /\}\s*focusPageHeading\(\);\s*\}$/.test(body),
                 ].join(" ");
             })(),
@@ -1540,7 +1542,7 @@ export function run({ check, assert, log }) {
     check("a sheet holding a field ends its head in its own text button", sheetRules.done, true);
     check("  which says it is working while its sheet sends, and turns its press away (#533)", sheetRules.doneBusy, "true true true true");
     check("a dialog taken away open hands focus back, after the removal", sheetRules.removed, "true true");
-    check("  to the opener it kept as it opened, none for a dialog no press opened", sheetRules.opener, true);
+    check("  to the opener it kept as it opened — what held focus, or what the press began on where nothing did (#607) — none for a dialog no press opened", sheetRules.opener, true);
     check("  or to the heading when the opener is gone or will not take focus", sheetRules.backTo, "true true");
     // WHAT A SHEET HOLDS TAKES THE PHONE'S SIZES FROM ITS MARK, never from the frame's own
     // branch: the body's sides and 20 between fields, the sentence at 16, the actions
@@ -2149,7 +2151,7 @@ export function run({ check, assert, log }) {
     // hands focus back on every close, names no description and holds its actions on a line.
     const plantedFrame = frameFacts(
         parseSource(
-            "function focusHeading(heading) { heading.focus(); }\n" +
+            "function focusHeading(heading) { moveFocus(heading); }\n" +
                 'function focusPageHeading() { focusHeading(document.querySelector("main")); }\n' +
                 "export function DialogFrame({ open }) { useLayoutEffect(() => { if (!open) { dialog.close(); focusPageHeading(); } }, [open]); }\n" +
                 "export function DialogMessage({ children }) { return <p>{children}</p>; }\n" +

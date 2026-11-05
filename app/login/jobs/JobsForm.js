@@ -150,9 +150,11 @@ function useHeld(bandRef) {
 /**
  * The search (1k, 1l). At a desk a 40 field on the Field ground with no border, its 14 mark 12
  * in and its words past it, white with the Edge focus border while it holds the caret — 0f's
- * search at a sign-in page's height, with no × as 1l draws it. On a phone a 50 form field in a
- * band 8 deep that holds to the top of the page: white on an Edge border, its 18 mark 10 before
- * the words and the clear × at its end once it holds anything (Tools 0a Field).
+ * search at a sign-in page's height, its × a list search's (1a) once it holds anything, the
+ * words stopping clear of it. On a phone a 50 form field in a band 8 deep that holds to the top
+ * of the page: white on an Edge border, its 18 mark 10 before the words and the clear × at its
+ * end once it holds anything (Tools 0a Field). A search is the one field a desk draws a × in
+ * (`Controls.js:FIELD_CLEAR_LOOK`).
  *
  * ITS RETURN KEY IS `done` AND SENDS NOTHING: a search is not the step's answer, so Enter
  * lowers the keyboard rather than pressing `Continue`.
@@ -196,9 +198,14 @@ function SearchBand({ value, onChange, readOnly, inputRef }) {
                     autoCapitalize="none"
                     spellCheck={false}
                     enterKeyHint="done"
-                    className="w-full min-w-0 bg-transparent text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle max-sm:h-full max-sm:flex-1 max-sm:text-mobile-body pointer-coarse:text-mobile-body sm:h-control-xl sm:rounded-control sm:border sm:border-transparent sm:bg-background-muted sm:pr-input-inset-x sm:pl-[calc(var(--spacing-input-inset-x)+var(--size-icon-sm)+var(--spacing-gap))] sm:text-body sm:focus:border-border-focus sm:focus:bg-white"
+                    className="w-full min-w-0 bg-transparent text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle max-sm:h-full max-sm:flex-1 max-sm:text-mobile-body pointer-coarse:text-mobile-body sm:h-control-xl sm:rounded-control sm:border sm:border-transparent sm:bg-background-muted sm:pr-search-inset-right sm:pl-[calc(var(--spacing-input-inset-x)+var(--size-icon-sm)+var(--spacing-gap))] sm:text-body sm:focus:border-border-focus sm:focus:bg-white"
                 />
-                {value !== "" && !readOnly && <FieldClear look="phone" onChange={onChange} focus={() => inputRef.current?.focus()} />}
+                {value !== "" && !readOnly && (
+                    <>
+                        <FieldClear look="phone" label={COPY.clearSearch} onChange={onChange} focus={() => inputRef.current?.focus()} />
+                        <FieldClear look="deskSearch" label={COPY.clearSearch} onChange={onChange} focus={() => inputRef.current?.focus()} />
+                    </>
+                )}
             </div>
         </div>
     );

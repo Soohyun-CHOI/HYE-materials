@@ -122,17 +122,17 @@
     --spacing-selection-bar-reason-gap: 0.375rem; /* Selection bar, 6: from the info mark that leads an action's reason to its words */
     --spacing-table-column-inline: 1.25rem; /* 1a and 1d, 20: between two columns — from the drawings, not the spec */
     --width-table-count: 3.5rem; /* 1a, 56: a column of counts — from the drawings, not the spec */
-    --width-table-id: 9rem; /* 1d, 144: a column of printed ids, beside the serial number since the files of 2026-11-04 (#601) — from the drawings, not the spec */
-    --width-table-serial: 8rem; /* 1d, 128: a column of serial numbers (#601) — from the drawings, not the spec */
+    --width-table-id: 9.5rem; /* 1d, 152: a column of printed ids, the longest the base holds and 12, rounded up to 8 (0b, #607); 144 from #601 — from the drawings, by the spec's rule */
+    --width-table-serial: 10rem; /* 0b, 160: a column of serial numbers, whose length is their maker's (#607); 128 from #601 */
     --width-table-job: 6rem; /* 1d, 96: a column of job codes, on all of a reader's jobs — from the drawings, not the spec */
-    --width-table-status: 15rem; /* 1d, 240: a column of statuses, beside the note's — from the drawings, not the spec */
+    --width-table-status: 15rem; /* 1d, 240: the least a column of statuses takes, the room left beyond it since the note became a mark (#607) — from the drawings, not the spec */
     --width-table-date: 7.5rem; /* 1d, 120: a column of days — from the drawings, not the spec */
     --min-width-catalog-name: 20rem; /* 1l, 320: the least the catalog's name column takes, sharing what is left at a weight of 2 — the drawing's, by 0b Row's rule */
     --width-catalog-size: 6rem; /* 1l, 96: the catalog's size column, fixed — the drawing's, by 0b Row's rule */
     --min-width-catalog-maker: 7.5rem; /* 1l, 120: the least the catalog's maker column takes, sharing what is left at a weight of 1 — the drawing's, by 0b Row's rule */
     --min-width-catalog-part-number: 8rem; /* 1l, 128: the least the catalog's part number column takes, at a weight of 1 — the drawing's, by 0b Row's rule */
     --min-width-catalog-category: 8.5rem; /* 1l, 136: the least the catalog's category column takes, at a weight of 1 — the drawing's, by 0b Row's rule */
-    --width-catalog-type: 5rem; /* 1l, 80: the catalog's type column, fixed — the drawing's, by 0b Row's rule */
+    --width-catalog-type: 5.5rem; /* 1l, 88: the catalog's type column, fixed — the drawing's, by 0b Row's rule, its longest value and 12 since #607 */
     --width-catalog-items: 3rem; /* 1l, 48: the catalog's column of how many items stand under a row, fixed — the drawing's, by 0b Row's rule */
     --spacing-fill-table-inset-right: 2.25rem; /* 1l, 36: how far in from the window's edge a list on Fill sets its table, the lane's 8 within it — from the drawings, not the spec */
     --spacing-catalog-preview-stack: 0.125rem; /* 1l, 2: from Shows as to the name under it in the catalog's dialog — from the drawings, not the spec */
@@ -451,9 +451,8 @@
     --spacing-mobile-input-gap: 0.625rem; /* Field, 10: from its icon to its value, and between any two parts inside it */
     --color-mobile-input-background: color-mix(in oklab, var(--color-foreground-default) 5.5%, transparent); /* Field, the one field in a sheet: filled, ink at 0.055, no edge */
     --spacing-mobile-field-stack: 1.25rem; /* Field label, 20: from a field to the next label */
-    --size-mobile-input-clear-icon: 0.9375rem; /* Field, 15: the mark of the clear × at its end — from the drawings, not the spec */
-    --spacing-mobile-input-clear-inset-right: 0.375rem; /* 1a, 6: that ×'s target from the field's inside edge — from the drawings, not the spec */
-    --spacing-mobile-sheet-input-clear-inset-right: 0.125rem; /* 1j-b2, 2: the clear ×'s target from the edge of the one field in a sheet — from the drawings, not the spec */
+    --size-mobile-input-clear-icon: 1.125rem; /* Field, 18: the mark of the clear × at its end (#607; 15 from the drawings until then) */
+    --spacing-mobile-input-clear-inset-right: 0.75rem; /* Field, 12: the clear ×'s mark inside the end of its target, which ends on the field's edge, so the x's ink ends 16 from it (#607) — the 12 from the drawings, the 16 the spec */
     --spacing-mobile-input-message-inset-x: 0.25rem; /* Tools 0a, 4: a field's refusal in from the field's edge, and — from 1a's drawing, not the spec — the line under a code */
     --spacing-mobile-input-message-gap: 0.375rem; /* Tools 0a, 6: from a refusal's mark to its sentence */
     --spacing-mobile-alert-inset-y: 0.875rem; /* Tools 0a, 14: inside an alert, above and below */

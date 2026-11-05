@@ -25,7 +25,8 @@ import { readFoundHolderAction } from "./actions";
  * readCategoryList`); an item in the table stands on a job the band already names.
  *
  * A SERIAL NUMBER SEARCHED SAYS ITSELF AFTER THE ID (1a3, #601): `Serial number` in Ink 3 and the
- * number in the id's face, 8 apart — `serialNumber` comes only with an item found by its number, in
+ * number at 14 with even figures, 8 apart — a maker's number, which the portal's id face is not for
+ * since the files of 2026-11-04's afternoon (0h, #607) — `serialNumber` comes only with an item found by its number, in
  * the table or by the base — and a number two kinds hold draws a line for each.
  *
  * IT IS A WAY THERE AND NARROWS NOTHING. The row the item stands under is the list's, under it as
@@ -65,13 +66,13 @@ export default function FoundItem({ found }) {
         >
             <span className="flex min-w-0 flex-1 items-center overflow-hidden whitespace-nowrap">
                 <span className="shrink-0 font-id text-body-sm tracking-id">{assetId}</span>
-                {/* Found by its serial number (1a3, #601): the value's name in Ink 3, then the number in
-                    the id's face, after the id and before the name. */}
+                {/* Found by its serial number (1a3, #601): the value's name in Ink 3, then the number with
+                    even figures (0h, #607), after the id and before the name. */}
                 {serialNumber && (
                     <>
                         <Dot />
                         <span className="shrink-0 text-foreground-subtle">{ASSET_LIST_COPY.serialLabel}</span>
-                        <span className="ml-gap shrink-0 font-id text-body-sm tracking-id">{serialNumber}</span>
+                        <span className="ml-gap shrink-0 tabular-nums">{serialNumber}</span>
                     </>
                 )}
                 <Dot />

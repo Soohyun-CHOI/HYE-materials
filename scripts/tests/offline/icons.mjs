@@ -179,6 +179,8 @@ const DESIGN_SHAPES = {
 const MARKS_BY_FILE = {
     // The way to the item a search found by its id ends on 0f's chevron (1a, #541).
     "app/(assets)/asset-categories/FoundItem.js": ["chevron-right"],
+    // 1d's note, a mark in its row since the files of 2026-11-04's afternoon (0n, #607).
+    "app/(assets)/asset-categories/[categoryRecordId]/AssetList.js": ["message-square"],
     // The office's way to the catalog is led by a book (1a, #566).
     "app/(assets)/asset-categories/page.js": ["book-open"],
     // An item's two details (#533, #601): the desk's `Add` and the phone's two marks.

@@ -107,8 +107,9 @@ maker's number printed on the item, and its **note**, the one line a site
 manager keeps on it — what sets it apart from the others of its kind, a cracked
 case, the crate it is kept in. At a desk they are the record rail's first block,
 `Details`, a row each — `Serial` and `Note` in Ink 3, the value after them, the
-serial number in the id's face (1f); on a phone, a line each 12 under the status,
-the serial number's behind a barcode mark in the id's face and the note's behind
+serial number with even figures, a maker's number the portal's id face is not for
+(1f; 0h, #607); on a phone, a line each 12 under the status, the serial number's
+behind a barcode mark with even figures and the note's behind
 a speech-bubble mark, in Ink 2, wrapping if it must (1j; 0a Value line, 0a Note).
 Each is read by everybody wherever an item has one, on every status, a retired
 one's and one in repair included; with neither, a reader who may write neither
@@ -152,7 +153,9 @@ was given standing in the foot bar (#495).
 At a desk the check-out's dialog asks it in its one field, labeled
 `Checked out to`, that reads `e.g. Jane Doe` while it is empty (#458) — the
 job's field above it went with #597. On a
-phone the foot bar's field reads `Checked out to` behind a person's mark. The
+phone the foot bar's field reads `Checked out to` behind a person's mark, and
+once it holds a name it ends in a ×, `Clear`, that empties it without opening
+the sheet (1j-a). The
 people it names have no account here, so it is free text rather than a picker
 over a list of users. **A check-out cannot be recorded without one.** **The
 dialog's `Check out` and the foot bar's press always act (#522), and a press

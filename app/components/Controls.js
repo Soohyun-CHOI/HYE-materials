@@ -19,6 +19,7 @@ import {
 } from "@/lib/controls";
 import Icon from "./Icon";
 import Menu from "./Menu";
+import { moveFocus } from "./movedFocus";
 
 /*
  * The controls Claude Design draws in 0a and 0f (#456): a button, a field with its label
@@ -675,22 +676,47 @@ export function TextInput({ size = "lg", suffix, value, onChange, readOnly = fal
 
 /**
  * Each field's clear × as the drawings give it, by the field it ends (#605): a phone field's below
- * the phone's edge alone, its target the least a touch target takes pulled into the field's room
- * (Tools 0a Field) — `TextInput`'s at `xl` and the job step's search (#554), whose desk look is a
- * search's; the one field in a sheet's, ending 2 inside its edge (1j-b2); a list's search's, 24 at
- * its right end (1a); and the search a dialog is built around's, 30 (1b).
+ * the phone's edge alone — `TextInput`'s at `xl` and the job step's search (#554, 1k); the one
+ * field in a sheet's; the foot bar's name field's (1j-a), over the field that opens its sheet; a
+ * list's search's, 24 at its right end (1a), which the job step's search takes at a desk (1l); and
+ * the search a dialog is built around's, 30 (1b).
+ *
+ * A PHONE'S FIELD TAKES ONE WHEREVER WORDS ARE TYPED OR A NAME IS CHOSEN, A DESK'S ONLY IN A
+ * SEARCH, by Soo's ruling of 2026-11-05: the job step's search draws a desk's (1l), and the foot
+ * bar's name field one once it holds a name (1j-a). `offline/phone-field-edge.mjs` holds which
+ * field takes which.
+ *
+ * A PHONE FIELD'S × IS ONE RULE SINCE #607 (Tools 0a Field): an 18 mark in Ink 3 whose ink ends 16
+ * from the field's edge, its 48 target ending on that edge. So the target reaches past the field's
+ * 16 of room to its outer edge — past the 1px Edge too on a field that draws one, which the one
+ * field in a sheet does not — and the mark stands 12 inside the target's end, which puts the x's
+ * ink 16 in. Until then the mark was 15, centered in its target, and the target ended 6 inside a
+ * bordered field's edge and 2 inside a sheet field's (1a, 1j-b2).
  */
+// A search's × fills its field's height inside the 1px edge, whatever that height is: 30 in a
+// list's 32 (1a), 38 in the job step's 40 (1l).
+const SEARCH_CLEAR =
+    "absolute inset-y-px right-px flex w-clear-button items-center justify-center rounded-r-[calc(var(--radius-control)-1px)] text-foreground-subtle hover:bg-hover hover:text-foreground-default";
+
 const FIELD_CLEAR_LOOK = {
     phone: {
-        button: "-mr-[calc(var(--spacing-mobile-input-inset-x)-var(--spacing-mobile-input-clear-inset-right))] ml-auto hidden size-mobile-touch-target shrink-0 items-center justify-center text-foreground-subtle active:opacity-mobile-pressed max-sm:inline-flex",
+        button: "-mr-[calc(var(--spacing-mobile-input-inset-x)+1px)] ml-auto hidden size-mobile-touch-target shrink-0 items-center justify-end pr-mobile-input-clear-inset-right text-foreground-subtle active:opacity-mobile-pressed max-sm:inline-flex",
         mark: <Icon name="x" className="size-mobile-input-clear-icon" />,
     },
     sheet: {
-        button: "-mr-[calc(var(--spacing-mobile-input-inset-x)-var(--spacing-mobile-sheet-input-clear-inset-right))] flex size-mobile-touch-target shrink-0 items-center justify-center text-foreground-subtle active:opacity-mobile-pressed",
+        button: "-mr-mobile-input-inset-x flex size-mobile-touch-target shrink-0 items-center justify-end pr-mobile-input-clear-inset-right text-foreground-subtle active:opacity-mobile-pressed",
+        mark: <Icon name="x" className="size-mobile-input-clear-icon" />,
+    },
+    sheetField: {
+        button: "absolute top-1/2 right-0 flex size-mobile-touch-target -translate-y-1/2 items-center justify-end pr-mobile-input-clear-inset-right text-foreground-subtle active:opacity-mobile-pressed",
         mark: <Icon name="x" className="size-mobile-input-clear-icon" />,
     },
     search: {
-        button: "absolute top-px right-px flex h-[calc(var(--height-control)-2px)] w-clear-button items-center justify-center rounded-r-[calc(var(--radius-control)-1px)] text-foreground-subtle hover:bg-hover hover:text-foreground-default",
+        button: SEARCH_CLEAR,
+        mark: <Icon name="x" className="size-clear-icon" />,
+    },
+    deskSearch: {
+        button: `${SEARCH_CLEAR} max-sm:hidden`,
         mark: <Icon name="x" className="size-clear-icon" />,
     },
     dialogSearch: {
@@ -722,9 +748,8 @@ export function FieldClear({ look, label = COPY.clear, onChange, focus }) {
  *
  * TWO SHEETS TYPE INTO IT, SO IT IS ONE PART (#533). 1j's name sheet drew it inline from #458;
  * the note sheet is the second (1j-b2), and two copies of one field would be two answers to how
- * it looks. The clear's target ends 2 inside the field's edge, the field keeping its 16, as
- * 1j-b2 draws it — the one sheet field the files of 2026-10-16 draw a clear on — where the name
- * sheet's ended on the edge itself, its 16 given up while it held a value. Inside a `Field` it takes the field's id, its line and whether it refuses, a refusal
+ * it looks. Its clear is every phone field's since #607 (`FIELD_CLEAR_LOOK`): the target ends on
+ * the field's edge and the x's ink 16 inside it. Inside a `Field` it takes the field's id, its line and whether it refuses, a refusal
  * drawing the Red edge as a ring inside the field (1j-b2), and the field's label names it; the
  * name sheet's stands alone, and `label` names it. Inside a busy form it is read-only and offers
  * no clear (#469).
@@ -786,14 +811,22 @@ export function SheetInput({ value, onChange, onDone, placeholder, label, clearL
  * it holds nothing it is named by the label alone rather than by the same words twice. A
  * field that refuses takes the Red edge (Tools 0a Field error), the line under it its
  * `Field`'s.
+ *
+ * AN `onClear` DRAWS THE CLEAR × ONCE IT HOLDS A VALUE (1j-a): a phone field's, its 48 target
+ * ending on the field's edge, laid over the field's end beside the button rather than in it,
+ * since a button holds no other. It empties the value without opening the sheet, and focus goes
+ * to the field as the × goes (`moveFocus`, drawn after a key alone). The value stops 10 before
+ * the target, as a field's parts stand apart. Inside a busy form there is none.
  */
-export function SheetField({ value, placeholder, onOpen, chevron = false, icon }) {
+export function SheetField({ value, placeholder, onOpen, chevron = false, icon, onClear, clearLabel }) {
     const field = useField();
     const formBusy = Boolean(useContext(FormBusyContext));
     const valueId = useId();
+    const openerRef = useRef(null);
+    const clearable = Boolean(onOpen && onClear && value) && !formBusy;
     const look = `flex h-mobile-input w-full items-center gap-mobile-input-gap rounded-mobile-control border bg-white px-mobile-input-inset-x text-mobile-body sm:hidden ${
         field.refused ? "border-danger" : "border-border"
-    } ${icon ? "" : "justify-between"}`;
+    } ${icon ? "" : "justify-between"} ${clearable ? "pr-[calc(var(--spacing-mobile-touch-target)+var(--spacing-mobile-input-gap)-1px)]" : ""}`;
     const said = (
         <span id={valueId} className={`min-w-0 truncate ${icon ? "flex-1" : ""} ${value ? "text-foreground-default" : "text-foreground-subtle"}`}>
             {value || placeholder}
@@ -809,20 +842,30 @@ export function SheetField({ value, placeholder, onOpen, chevron = false, icon }
         );
     }
     const named = icon && !value ? field.labelId : field.labelId ? `${field.labelId} ${valueId}` : valueId;
-    return (
+    const opener = (
         <button
+            ref={openerRef}
             type="button"
             aria-haspopup="dialog"
             aria-labelledby={named}
             aria-describedby={field.messageId}
             aria-disabled={formBusy || undefined}
             onClick={formBusy ? undefined : onOpen}
-            className={`${look} text-left outline-none ${field.refused ? "" : "focus-visible:border-border-focus"} not-aria-disabled:active:bg-hover-subtle`}
+            className={`${look} text-left outline-none ${field.refused ? "" : "not-data-quiet-focus:focus-visible:border-border-focus"} not-aria-disabled:active:bg-hover-subtle`}
         >
             {mark}
             {said}
             {chevron && <Icon name="chevron-down" className="size-icon-sm shrink-0 text-foreground-subtle" />}
         </button>
+    );
+    if (!onClear) return opener;
+    // The frame stands whether the × does or not, so the button focus goes to as the × goes is the
+    // one still drawn.
+    return (
+        <div className="relative sm:hidden">
+            {opener}
+            {clearable && <FieldClear look="sheetField" label={clearLabel} onChange={() => onClear()} focus={() => moveFocus(openerRef.current)} />}
+        </div>
     );
 }
 
@@ -872,7 +915,7 @@ export function SheetChip({ value, placeholder, onOpen, icon }) {
                 onClick={formBusy ? undefined : onOpen}
                 className="group/chip -mt-mobile-bottom-bar-inset-top inline-flex max-w-full pt-mobile-bottom-bar-inset-top text-left outline-none [&:not([aria-disabled]):active>span]:bg-hover-subtle"
             >
-                <span className={`${pill} ${field.refused ? "" : "group-focus-visible/chip:border-border-focus"}`}>
+                <span className={`${pill} ${field.refused ? "" : "group-focus-visible/chip:not-group-data-quiet-focus/chip:border-border-focus"}`}>
                     {content}
                     <Icon name="chevron-down" className="size-icon shrink-0 text-foreground-subtle" />
                 </span>
