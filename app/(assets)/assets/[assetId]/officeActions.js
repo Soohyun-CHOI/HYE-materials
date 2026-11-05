@@ -94,8 +94,7 @@ async function changeAssetJobHandler(prevState, formData) {
                     jobRecordId: answer.jobRecordId,
                     error,
                 });
-                const codeOf = (id) => jobs.find((job) => job.id === id)?.jobCode ?? "";
-                return refuse(COPY.halfDone({ from: codeOf(asset.job?.[0]), to: codeOf(answer.jobRecordId) }));
+                return refuse(COPY.halfDone);
             }
         }
 

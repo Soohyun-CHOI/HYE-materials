@@ -237,7 +237,7 @@ export function run({ check, assert, log }) {
     const kindPage = parseFile(KIND_PAGE).source;
     assert(
         "a kind's page reads as empty when every item of the kind was deleted",
-        /if \(page\.total === 0 && itemCountOf\(category\) > 0\) \{/.test(kindPage) && !/category\.assets\.length/.test(kindPage)
+        /kindEmptyState\(\{ total: page\.total, itemCount: itemCountOf\(category\),/.test(kindPage) && !/category\.assets\.length/.test(kindPage)
     );
     const assetPage = parseFile(ASSET_PAGE).source;
     assert(

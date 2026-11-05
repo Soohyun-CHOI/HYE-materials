@@ -43,7 +43,10 @@ registering more of it (#451).
 way `Vendors` and `Materials` mint none, because nothing prints a category and
 nobody quotes one; its place in the catalog is its identity, and a name is
 not a path. So the URL carries Airtable's own record id and says nothing a
-reader recognizes, which is why the browser tab says only `Item` (`Tool` until #519).
+reader recognizes, and the browser tab names the kind from the row the page
+reads — `Drill, Milwaukee · HYE USA Portal`, as every other page states its own
+subject before the product's name — and `Page not found` for an id no row
+carries. It said only `Item` until #612 (`Tool` until #519).
 
 **It is used at a desk, and the asset's screen is the one on this axis a
 phone shows** (#336). The width container lives in the layout with no width,
@@ -281,9 +284,11 @@ can make up to a hundred. Both steps carry the selection, so what was
 selected on one page is still selected on the next, and the job the list
 stands on (#509).
 
-**When the job holds none of this category's items (#509, #520):** the head and
-nothing under it, `0` and the breadcrumb's job saying it, which the design does not
-draw: `Nothing added yet` would be false there. The rows, the pager and the page
+**When the job holds none of this category's items and another job does (#509,
+#520, #612):** the head, `0`, and in place of the entries the heading `No items
+on 25-USA-13`, the job by its code, with no sentence under it — the head still
+offers `Add items` to whoever may add (Soo's words; 1d draws `Nothing added yet`
+there, which would be false). From #509 to #612 the head stood alone. The rows, the pager and the page
 box are always the job's alone, and the breadcrumb's `Equipment & Tools` keeps the
 job. An asset off the job is left off this list and still opens from its label or a
 link. A job in the address the list does not offer is answered where the list
@@ -313,7 +318,8 @@ count with a page whose boxes show fewer — and it is the only place those asse
 appear until the labels' dialog draws them.
 
 **When more are selected than one print takes:** the bar counts them,
-`101 selected`, and the print control does not act, with
+`101 selected`, and the print control does not act — it still takes focus and
+names why, 1e's `aria-disabled` since #612, where it was disabled — with
 `Up to 100 labels per print.` before it behind an info mark, where it said
 `One print takes at most 100.` until #495. The labels' dialog reads a hundred
 at most (#457), and the label screen printed the first hundred of a longer
@@ -364,7 +370,8 @@ must not draw this reader a disabled opener, or the sentence**, on this screen
 or another.
 
 **When no category carries the record id in the address:** the screen is the
-heading `Item not found` and a way back to `/asset-categories`. Nothing on this axis
+heading `Page not found` (#612; `Item not found` until then, which an item's own
+screen keeps) and `Back to Equipment & Tools`, the way to `/asset-categories`. Nothing on this axis
 is gated by role or job, so unlike the request, order and invoice screens
 this refusal answers one state — no such category — rather than standing in
 for two.

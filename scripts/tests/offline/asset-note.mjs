@@ -26,7 +26,7 @@ import { ASSET_TRANSITION_COPY, planTransition } from "../../../lib/assetTransit
 import { parseFile, parseSource, resolveFunction } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "An item's note: what it keeps, who writes it, and where it is asked (#533)";
+export const title = "An item's note: what it keeps, who writes it, and where it is asked (#533, #612)";
 
 const ACTIONS = "app/(assets)/assets/[assetId]/actions.js";
 const ASSETS = "lib/airtable/assets.js";
@@ -123,10 +123,17 @@ export function run({ check, assert, log }) {
     log("who may write it — planTransition's mayWriteNote, status by status:");
     // On JOB_A unless said otherwise, the item's job being what decides since #597.
     const planOf = (user, status, assetJobId = JOB_A.id) => planTransition({ user, jobs: ALL_JOBS, status, assetJobId });
+    // IN EVERY STATUS THE APP SHOWS SINCE #612, at its maker and once retired too; a deleted item is
+    // drawn nowhere, so nobody meets it to write on.
     check(
-        "a site manager on the item's job, while the item is in stock or out",
+        "a site manager on the item's job, in every status the app shows",
         ASSET_STATUS_VALUES.map((status) => `${status}: ${planOf(siteManager(JOB_A), status).mayWriteNote}`).join(", "),
-        "In stock: true, Out: true, In repair: false, Retired: false, Deleted: false"
+        "In stock: true, Out: true, In repair: true, Retired: true, Deleted: false"
+    );
+    check(
+        "  a retired item takes its note and still says it is retired (#612)",
+        [planOf(siteManager(JOB_A), ASSET_STATUS.RETIRED).mayWriteNote, planOf(siteManager(JOB_A), ASSET_STATUS.RETIRED).event, planOf(siteManager(JOB_A), ASSET_STATUS.RETIRED).refusal].join(" | "),
+        `true |  | ${ASSET_TRANSITION_COPY.noTransition}`
     );
     check(
         "  nobody who is not a site manager, on any status",
@@ -160,7 +167,7 @@ export function run({ check, assert, log }) {
     check(
         "the field's line and its count, and no example in the field since the files of 2026-11-04's afternoon (#607)",
         ["placeholder" in ASSET_NOTE_COPY, ASSET_NOTE_COPY.help, ASSET_NOTE_COPY.count(28), ASSET_NOTE_COPY.count(55), ASSET_NOTE_COPY.tooLong].join(" | "),
-        "false | Up to 50 characters. | 28/50 | 55/50 | Max 50 characters."
+        "false | Up to 50 characters. | 28/50 | 55/50 | Use 50 characters or fewer."
     );
     check(
         "the actions and their working words",
@@ -168,7 +175,7 @@ export function run({ check, assert, log }) {
         "Save | Done | Saving… | Adding… | Removing…"
     );
     check("  Cancel and the clear mark the transition's own", `${ASSET_NOTE_COPY.cancel === ASSET_TRANSITION_COPY.cancel} ${ASSET_NOTE_COPY.clear === ASSET_TRANSITION_COPY.clearName}`, "true true");
-    check("a note changed first", ASSET_NOTE_COPY.changedFirst, "Nothing was saved. Someone else changed this note first.");
+    check("a note changed first, what happened and then the press (#612)", ASSET_NOTE_COPY.changedFirst, "Someone else changed this note first. Nothing was saved.");
 
     // ── the action ──────────────────────────────────────────────────────────
     log("");

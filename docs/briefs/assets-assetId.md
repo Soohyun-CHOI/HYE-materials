@@ -159,8 +159,9 @@ the sheet (1j-a). The
 people it names have no account here, so it is free text rather than a picker
 over a list of users. **A check-out cannot be recorded without one.** **The
 dialog's `Check out` and the foot bar's press always act (#522), and a press
-with no name is answered under the field**, `Enter a name to check out.`, as 1k
-draws it, focus going to the field (1k-b). Nothing is written. Until #597 a press
+with no name is answered under the field**, `Enter a name.`, at both widths —
+the desk dialog's words since #612, where both said 1k's `Enter a name to check
+out.` — focus going to the field (1k-b). Nothing is written. Until #597 a press
 with no job chosen was answered under the job the same way. A field of nothing but spaces is the
 same refusal. Until #522 the dialog's `Check out` could not act until the field
 held a name.
@@ -417,9 +418,12 @@ retirement's question and the two details' included; the asset carries no such i
 the event was recorded but the asset's own status was not updated. A line
 saying a check-in would move the item to another job stood under the dialog's
 job until #597, when no press moved an item any more. The last is the only
-one that means something was written, and its sentence says so — the reader is
-told the event is safe, what everybody else will read until it is fixed, and
-that pressing again fixes it. Ordinarily nothing stands there.
+one that means something was written, and its sentence says so — `This wasn't
+fully recorded. Do it again to finish.` since #612, where until then it named the
+event, the item and the status the lists still read — and pressing again fixes
+it. A loan left half done says the same in its own act: `The item wasn't fully
+lent to 26-USA-12. Lend it again to finish.` and `The item wasn't fully
+returned. Return it again to finish.` Ordinarily nothing stands there.
 
 **EVERY REFUSAL ARRIVES ON A FRESHLY RENDERED PAGE, AND THAT IS WHAT THE FIRST
 SENTENCE IS WRITTEN AGAINST.** The status, the control's direction and the
@@ -452,8 +456,10 @@ re-renders the page, the page has nothing to offer a retired asset, and the
 dialog disappears with its menu; what the reader is left looking at is the
 status saying it is the end.
 
-**For a site manager on the item's job (#597), while the item is in stock or out, a way to
-write its serial number and its note (#533, #601).** At a desk `Edit` stands at
+**For a site manager on the item's job (#597), in every status the app shows — in
+stock, out, in repair and retired (#612) — a way to write its serial number and its
+note (#533, #601).** Neither records an event, so a retired item takes them though
+nothing more is recorded against it, and its phone's foot bar still says so. At a desk `Edit` stands at
 a row's end, an Inline control named `Edit serial number` or `Edit note`, and
 `Add` in Accent with its plus mark stands in the value's place where there is
 none, named `Add serial number` or `Add note` (1f). Either turns the row into a
@@ -471,7 +477,7 @@ stays open, the caret stays in the field and its placeholder shows again, and
 `Done` or `Save` then takes the empty field as it takes any value. A press
 behind the sheet, on its handle or a drag down puts it away and saves nothing,
 and none of them while it saves (#580). **More than 50 is refused, and nothing
-is cut**: the field turns Red and its line says `Max 50 characters.`, with the
+is cut**: the field turns Red and its line says `Use 50 characters or fewer.`, with the
 note's count in Red, the field keeping what was typed. What is kept is trimmed,
 each run of spaces one, its case as typed; a value that comes out as the one
 already there writes nothing. **A serial number another item of the kind holds
@@ -479,14 +485,13 @@ is refused by naming it** — `HYE-AST-261019-104 already has this serial
 number.` under the field in Red, the id in the id's face — read again from the
 base as the press saves, and the sentence goes once the field no longer holds
 the number refused. **A reader who may not write meets the values, and nothing
-where there is none** — not a site manager on the item's job, or an item in
-repair or retired, whose values stand as they were (1f, 1j-c, 1j-d, 1j-e). **A
-value somebody else changed while this one was being written** is refused with
-`Nothing was saved. Someone else changed this note first.`, or `this serial
-number`, the page drawn again with theirs and what was typed still in the field,
-so a second press writes over it knowingly; a press on an item somebody has
-since sent for repair or retired is answered by the page drawn again, with no
-way to write and nothing said.
+where there is none** — anybody who is not a site manager on the item's job (1f
+`Another job`, 1j-d). Until #612 an item in repair or retired took no value
+either, though 1g drew both at a desk. **A value somebody else changed while this
+one was being written** is refused with `Someone else changed this note first.
+Nothing was saved.`, or `this serial number`, the page drawn again with theirs
+and what was typed still in the field, so a second press writes over it
+knowingly.
 
 **For the office, while the item's history holds its `Created` entry alone, a
 way to change its job (#583; 1f, 1j-f).** `Change job` stands in `More actions`
@@ -508,9 +513,8 @@ dialog away, and the page drawn again says `Something has been recorded on this
 item, so its job can't be changed.` under the status; a reader who is no longer
 the office reads `Changing an item's job is for Admins.` there. **A change left
 half done** — the entry moved and the item not — says, where the press was,
-`The Created entry is on 26-USA-06 now, but the item is still on 26-USA-05, and
-the lists will say so. Save again to finish.`, and the next Save writes the half
-that is left. An item with any other entry offers no `Change job`, and nothing
+`The job wasn't fully changed. Save again to finish.`, and the next Save writes
+the half that is left. An item with any other entry offers no `Change job`, and nothing
 is drawn in its place.
 
 **For the office, on the same item, a way to delete it (#582; 1f, 1j).**
@@ -530,8 +534,8 @@ the page drawn again says `Something has been recorded on this item, so it
 can't be deleted.` under the status; a reader who is no longer the office reads
 `Deleting an item is for Admins.` there. **A deletion left half done** — its
 entry recorded and the item still on the lists — shows the `Deleted` entry in
-its history and says, where the press was, `The Deleted entry is recorded, but
-the item is still on the lists. Delete it again to finish.`; `Delete this item`
+its history and says, where the press was, `The item wasn't fully deleted.
+Delete it again to finish.`; `Delete this item`
 stays on that page, alone of the office's two, and finishes it.
 
 **A site manager on another job, or on none, reads the item as anybody does
@@ -561,12 +565,14 @@ drawn while they were one** — a dialog left open, a foot bar filled in — is
 answered by the page drawn again for who they are now, without the controls and
 without a sentence, and with nothing written.
 
-**An asset whose status allows nothing** offers nothing. `Retired` is the only
+**An asset whose status allows no event** offers none. `Retired` is the only
 such status, and it is reachable — the retire control is what puts an asset
 there. **A desk draws nothing in the actions' place** (1f); a phone's foot bar
-says `Nothing more can be recorded here.` (1j) to a site manager, and the
-sentence names no status, since the status stands above it. A reader who is not
-a site manager has no foot bar to say it in (#506).
+says `This item is retired.` to a site manager — the status itself, Soo's since
+#612, where 1j draws `Nothing more can be recorded here.`, which the serial
+number and note lines above it, writable in every status, made false. It says
+what the item is and nothing of what may still be written. A reader who is not a
+site manager has no foot bar to say it in (#506).
 
 **A history entry is three facts, and a `Checked out` entry is four** — the job
 was one of each until #597. The fourth is who the tool went to: `Checked out to Dana K` at a desk, the `to` in Ink 3,

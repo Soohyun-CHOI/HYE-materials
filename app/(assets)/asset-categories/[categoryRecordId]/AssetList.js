@@ -179,7 +179,7 @@ export default function AssetList({ categoryRecordId, itemName, selects, showsJo
                             title={LABEL_COPY.openFromCategory}
                             itemName={itemName}
                             assetIds={selection}
-                            disabled={!summary.printable}
+                            unavailable={!summary.printable}
                             describedBy={summary.reason ? reasonId : undefined}
                         />
                     </SelectionBar>

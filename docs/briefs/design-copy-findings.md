@@ -13,6 +13,24 @@ word have different owners and different lifetimes, which is the whole reason
 `docs/notes/naming.md` keeps a table of the divergences. What an entry buys is
 that the sweep is already enumerated.
 
+**SINCE #612 AN ENTRY HERE IS ONE DESIGN TAKES IN ITS NEXT SENDING, AND THOSE
+THAT ARE NOT SAY SO WHERE THEY STAND.** Soo set the words and states below against
+Tools 52 and Sign in 28 and sent each to Design on 2026-11-05 to be drawn in the
+next sending; the app holds them now. #520's name in two places was not in that
+sending and waits for the one that takes it up, and one row was set after it:
+the retired item's sentence, in #612's last entry. The first entry, the purchase
+request screen's (#333), waits on no sending, since the files draw no such
+screen: the app decides it when the materials screens open again. **What the
+files draw nothing of is no entry**: the export file's columns — the serial
+number's (#601), and a loan's `On loan` and `Owner job` (#598) — and the sign-in
+mail's plain-text part are the app's, in `docs/notes/tools.md` and
+`docs/notes/authorization.md`. What the files and the app draw alike was
+taken off this list in #612: the axis's name (#591), 1a3's state for an item at
+another job (#541), the category list's empty sentence (#531), the export's
+failure (#553), #520's first two rows, #513's table of `item`, #514's level
+words, and the desk's `Details` in repair (#601), which the app draws as 1g does
+since #612.
+
 ---
 
 ## `correction`, for what a signer sends back (#333)
@@ -23,7 +41,7 @@ base already was, and one act stopped having two words: an edit request asks for
 an edit, and what it produces is a row in the edit log.
 
 **The screen was left alone, deliberately.** #333's scope was the code and the
-schema; the wording is Design's. So `/prs/[prId]` still says `correction` in six
+schema, not the screen's word. So `/prs/[prId]` still says `correction` in six
 places, and the identifiers named after those six strings were left with them —
 an identifier that mirrors a button is a truthful name for as long as the button
 says it.
@@ -79,7 +97,7 @@ A row of `PR Edit Requests`: an **edit request**. `Initiated By`, `Sent To`,
 `Purchase Requests."PR Edit Requests"` and, on `Users`, `PR Edit Requests
 (Initiated)` and `PR Edit Requests (Sent To)`.
 
-**One reason to prefer `edit` if the design has no view of its own:** the same
+**One reason to prefer `edit`:** the same
 screen already says `Edit and continue` for the other thing a signer can do to a
 request, and `Edit payment`, `Edit` and both edit screens use the word elsewhere.
 `correction` on this screen is the app's only use of the word for something a
@@ -93,203 +111,83 @@ bars it there is this screen. If this screen stops saying `correction`, that bar
 is worth re-deriving rather than assuming — `naming.md`'s bullet on it says so in
 its own words.
 
----
-
-## `item`, for an asset and for a category (#513, #519)
-
-`Tool Items`, `Tools` and `Tool Log` became `Assets`, `Asset Categories` and
-`Asset Log`: the axis holds equipment as well as tools, and the office calls each
-thing it labels and tracks an asset. The routes moved with them —
-`/asset-categories`, `/asset-categories/[categoryRecordId]`, `/assets/[assetId]`
-and the printed `/l/[labelCode]` — and so did the code.
-
-**The screens say `item` for both since #519, the design's word**: a row of the
-category list is an item, and so is each labeled one. They said `tool` for both
-from #455, with `item` only where a category's own screen counted what is under
-it, and #513 moved one word alone, the axis's own name: `Tools & Equipment`, on
-the rail, the category list's heading and tab, the breadcrumb, the root screen's
-link and `Back to Tools & Equipment`, which stays — it is the site's word for what
-the office calls assets, `Equipment & Tools` since #591 (below). So the screen
-word and the base's word differ on both tables, and the column below says which
-of the two each string names, since a later sweep needs to know.
-
-### What a reader sees
-
-| String | Where | Names |
-|---|---|---|
-| `Add items`, `Add 1 item`, `Add 5 items` | registration dialog: title, opener, submit | assets |
-| `Couldn't add the items. Try again.` | registration dialog | assets |
-| `1 item couldn't be added`, `5 items couldn't be added` | the shortfall's title | assets |
-| `1 item has no creation date`, `5 items have no creation date` | the notice's title | assets |
-| `That item isn't available any more.` | registration dialog | a category |
-| `No items yet` | the category list, empty | categories |
-| `Each item shows here with how many are in stock, out, in repair and retired.` | the category list, empty | a category |
-| `Name` | the category list: the name column's head | a category |
-| `item`, `items` after the head's figure | both lists, assistive tech only | categories, assets |
-| `Item` | a category's page: the tab | a category |
-| `Item ID` | a category's page: the column of codes | assets |
-| `Nothing added yet` | a category's page, empty | assets |
-| `Item not found` | a category's page and an asset's: not found | either |
-| `QR label for this item` | an asset's page: the label's name, assistive tech only | an asset |
-| `No item has the code …`, `No item has this code. …` | an asset's page: not found | an asset |
-| `This item was last scanned on …` | check-out and check-in | an asset |
-| `Retire this item`, `Retire item` | an asset's page: the menu and the confirm | an asset |
-
-`…, and the lists will say so. Do it again.`, a scan whose status was not saved,
-said `the tool lists` until #519 and says the lists alone: the sentence is about
-the two list screens, and `item lists` would read as a list of items.
-
-### What moves with them
-
-A copy key named after its string takes the string's word when the string moves,
-#333's shape, and every one did in #519:
-
-- `ASSET_LIST_COPY.noItemsHeading`, `.noItems` and `.nameLabel` in
-  `lib/assetListView.js` — `noToolsHeading`, `noTools` and the borrowed
-  `toolLabel` until #519 — and `.backToTools`, which says the axis's name.
-  `toolNoun` went, since both lists count in `itemNoun` now.
-- `ASSET_COPY.toolLabel` in `lib/assetView.js` went: the category list was its one
-  reader.
-- `ASSET_REGISTRATION_COPY.itemGone` in `lib/assetRegistration.js`, `toolGone`
-  until #519.
-- The checks that pin these strings by value: `offline/asset-registration.mjs`,
-  `asset-list-view.mjs`, `asset-view.mjs`, `asset-transition.mjs`,
-  `asset-screen-words.mjs` and `screen-briefs.mjs`.
-  `scripts/screen-strings.mjs` finds the screens.
-
-### What the base calls it
-
-An `Assets` row is an **asset**: `Asset ID` (`HYE-AST-YYMMDD-###`), `Category`,
-`Job`, `Status`. An `Asset Categories` row is a **category**: `Item Name`, a
-formula over `Level 3`, `Size`, `Maker` and `Part Number`, beside `Level 1`
-and `Level 2` (#514; over `Level 2` and `Size` until then; beside `Class` too
-until #552 took the class off the catalog). An `Asset
-Log` row is an entry in an asset's history. `Level 1`'s value `Tool` is the type
-and not this word, and stays. `docs/notes/naming.md` has the rows for `tool` /
-`item`, `Equipment & Tools`, `category` and the six level words.
+**The app decides it when the materials screens open again (#612, Soo).** The
+files draw no purchase request screen, so no sending takes this entry up. The
+screen is closed (#542); the word is chosen, and swept with everything under
+`What moves with them`, when `lib/openScreens.js` opens it.
 
 ---
 
-## The catalog's six levels (#514)
+## A name in two places (#520, #522)
 
-The registration names a kind by its type, category and name on its first
-step, and by its size and model on its second; the list says the category
-beside each name, and the two pages that head a kind say the type and the
-category under it (#519, the design's; the class after them until #552). The level words are the issue's,
-and both steps took 1b's in #520 — the search and its chips, no line under the
-title while it picks, the size and the model as chips, `None` and `Not
-specified` for a choice left empty, and `Choose a size.` and `Choose a model.`
-for one not made — so `All types`, `Choose a name` and its refusal, the path
-beside a name in the search and on the line under the title, the second step's
-placeholders and `No size`, `No maker` and `No part #` left this table then.
-
-### What a reader sees
-
-| String | Where | Shape it takes |
-|---|---|---|
-| `Type`, `Category`, `Name`, `Size`, `Maker`, `Part #` | the levels | the issue's words |
-| `Tool · Power tools` | a kind's caption and an asset's | 1d, 1f, 1j (#519, #552) |
-
-**`None` and `Not specified` are values and not placeholders**, which is why
-they are chips of their own, set in Ink 3 as 1b sets them: chosen — by the
-reader, or already, where one is the choice's only option — each says the row
-without a size or a model is the one being added. `None` is also what the
-catalog's check sets aside as a value (`isPlaceholder`), which is why #514 wrote
-one word per level instead; the design's word was taken in #520, since a row
-carrying it never reaches the dialog.
-
----
-
-## Where a screen says other than the design's files (#520, #522)
-
-What #520 found the design's files drawing or stating otherwise than the
-screens, and where each stands in the files #522 read. **The latest files
-decide what a screen draws (#522)**, and a decision taken with an earlier issue
-does not outrank them: an entry here is a question for the next sending, never a
-reason to keep a screen as it is.
-
-| The files #520 read | The files #522 read | The screen |
-|---|---|---|
-| 0h: a date in a table column reads `MM/DD` | 0h: a date reads `MM/DD/YYYY` | `09/22/2026`, a category's list, `Updated` |
-| 1b lists the names holding what is typed alphabetically | 0h: the exact name, then names starting with what was typed, then names holding it, each group alphabetical | the registration's search, in that order |
-| 1b draws every name alone on its row and under the title | the same, over a catalog holding no name twice | a name in two places says where |
-
-**In the first two rows the files now say what the screens say**, so neither
-is a difference any more; they stay as the record of what #520 asked about.
-
-**A name in two places says where it stands**, in Ink 3 after the name, because
-#517's catalog held two `Band Saw`s — one a machining machine, one a power tool —
-and two `Pipe Cutter`s, and 1b's rows would draw each pair as the same row twice.
-The category tells the band saws apart; the pipe cutters shared theirs, `Cutter`,
-so they say the type before it. #528's revised catalog keeps the two band saws,
-one a cutting machine, and no pipe cutter, so no row on the base draws the type
-before a shared category now. A name in one place says neither, as 1b draws
-it. The line under the title says the same after a dot, since the second step
-is where the reader confirms which of the two was picked. **The files #522 read
-draw no case of it**: their catalog holds every name once, so they say nothing
-about how two rows of one name are told apart, and the first file that draws
-the case decides it.
+**Not sent on 2026-11-05.** 1b draws every name alone on its row and under the
+title, over a catalog holding no name twice; the screens say where a name in two
+places stands, in Ink 3 after the name, because #517's catalog held two `Band
+Saw`s — one a machining machine, one a power tool — and two `Pipe Cutter`s, and
+1b's rows would draw each pair as the same row twice. The category tells the band
+saws apart; the pipe cutters shared theirs, `Cutter`, so they say the type before
+it. #528's revised catalog keeps the two band saws, one a cutting machine, and no
+pipe cutter, so no row on the base draws the type before a shared category now. A
+name in one place says neither, as 1b draws it. The line under the title says the
+same after a dot, since the second step is where the reader confirms which of the
+two was picked. The files draw no case of it, and the first file that draws the
+case decides it.
 
 ---
 
 ## What #531's screens say that the files of 2026-10-15 do not (#531)
 
 The files draw an item sent for repair and taken back (1a, 1d, 1f, 1j-a, 1j-e)
-and none of the moments around either press. What a screen says in their place
-follows a rule the design already states, and the next sending decides each.
+and none of the moments around either press. Design takes each in the next
+sending.
 
 | String | Where | The files |
 |---|---|---|
-| `Each item shows here with how many are in stock, out, in repair and retired.` | the category list, empty (1a) | `… in stock, out and retired.` over four columns |
 | `Sending for repair…` | `More actions`, busy, heard and not seen | draw no wait for it |
 | `Returning from repair…` | the return's press, busy, heard and not seen | draw no busy press |
 | `… already sent this for repair on …`, `… already returned this from repair on …` | a refused press, under the status | draw no repair refusal |
 | `Nothing was saved.` | a refused press on either repair control | the same |
 | `Someone else recorded this first. Nothing was saved.` | a refused repair press, no entry read | the same |
 
-**The empty sentence names all four statuses**, Soo's ruling over the drawing's
-three: the list counts four. **The two working words are 0f's rule** — the
-control's verb in its `-ing` form — and `More actions` carries the sending's,
-since the menu that sent it has closed; while it is on its way the button is
-busy, its spinner over its dots, which the files do not draw either. **A refused
-repair follows 1k's sentence** with the event's own words, and ends on
-`Nothing was saved.` because neither event has a noun that reads as one: `Your
-send-for-repair wasn't saved.` is not English. **Where the latest entry cannot
-be read, a refused repair says who got in front and not what they did**:
-`Someone else recorded this first. Nothing was saved.` In this app a scan is a
-check-out or a check-in, and whoever got in front of a sending may have checked
-the item out, sent it or retired it. A refused scan keeps `Someone else scanned
-this first.`
+**The two working words are 0f's rule** — the control's verb in its `-ing` form —
+and `More actions` carries the sending's, since the menu that sent it has closed;
+while it is on its way the button is busy, its spinner over its dots, which the
+files do not draw either. **A refused repair follows 1k's sentence** with the
+event's own words, and ends on `Nothing was saved.` because neither event has a
+noun that reads as one: `Your send-for-repair wasn't saved.` is not English.
+**Where the latest entry cannot be read, a refused repair says who got in front
+and not what they did**: `Someone else recorded this first. Nothing was saved.`
+In this app a scan is a check-out or a check-in, and whoever got in front of a
+sending may have checked the item out, sent it or retired it. A refused scan
+keeps `Someone else scanned this first.`
 
 The keys are `ASSET_TRANSITION_COPY.working`, `.movedAct`, `.firstVerb`,
-`.someoneFirst` and `.notSaved` in
-`lib/assetTransition.js` and `ASSET_LIST_COPY.noItems` in
-`lib/assetListView.js`, each held by value in `offline/asset-transition.mjs`
-or `asset-list-view.mjs`. The base's words are its own: `In repair`,
+`.someoneFirst` and `.notSaved` in `lib/assetTransition.js`, held by value in
+`offline/asset-transition.mjs`. The base's words are its own: `In repair`,
 `Sent for repair` and `Returned from repair`, which the controls say in the
 imperative.
 
 ---
 
-## What an item's note says that the files of 2026-10-16 do not (#533)
+## What an item's note says that the files of 2026-10-16 do not (#533, #612)
 
 The files draw the note in 1d's column, 1f's line, dialog and its refusal, 1j's
-line and 1j-b2's sheet, and none of the moments after a press. What a screen
-says in their place follows a rule the design already states, and the next
-sending decides each.
+line and 1j-b2's sheet, and none of the moments after a press. Design takes each
+in the next sending.
 
 | String | Where | The files |
 |---|---|---|
-| `Saving…`, `Adding…`, `Removing…` | the dialog's commitment and `Remove note` until #601, the desk row's `Save` since, and the sheet's `Done`, busy, heard and not seen | draw no wait for any |
-| `Nothing was saved. Someone else changed this note first.` | the dialog over its actions, or the sheet under its field, when the note changed since the page was drawn | draw no refused note |
+| `Saving…`, `Adding…`, `Removing…` | the desk row's `Save` and the sheet's `Done`, busy, heard and not seen | draw no wait for any |
+| `Someone else changed this note first. Nothing was saved.` | under the desk row's field or the sheet's, when the note changed since the page was drawn | draw no refused note |
 | `Edit note` | the name of a desk's `Edit` | name the phone's line so, and the desk's button by its word |
 
-**The working words are 0f's rule**, each commitment's verb in its `-ing`
-form, and a field cleared and saved says `Removing…`, since that is what it
-does. **The refusal takes 1k's two halves**, what became of the press and then
-why, and names nobody: nothing records who wrote a note. **The desk's `Edit` is
-named `Edit note`**, the words the phone's line is named by, so the one act has
-one name at both widths and the button's own word stays in it.
+**The working words are 0f's rule**, each commitment's verb in its `-ing` form,
+and a field cleared and saved says `Removing…`, since that is what it does. **The
+refusal is in 1k's order since #612**, Soo's: what happened first, then what
+became of the press — `Nothing was saved. Someone else changed this note first.`
+until then — and names nobody, since nothing records who wrote a note. **The
+desk's `Edit` is named `Edit note`**, the words the phone's line is named by, so
+the one act has one name at both widths and the button's own word stays in it.
 
 The keys are `ASSET_NOTE_COPY.working`, `.changedFirst` and `.editNote` in
 `lib/assetNote.js`, held by value in `offline/asset-note.mjs`. The base's word is
@@ -297,78 +195,12 @@ the screen's: `Assets."Note"`.
 
 ---
 
-## What the list's `Export` says that the files of 2026-10-22 do not (#553)
-
-The files of 2026-10-22 drew 1a's `Export`, its name `Export to Excel` and its
-wait, and no press that comes back with no file. What the screen said there was
-Soo's ruling, in the shape the app's other refusals of a press take, until the
-next sending decided it.
-
-| String | Where | The files of 2026-10-22 |
-|---|---|---|
-| `Couldn't export the list. Try again.` | before `Export` on its line, after a press that made no file, until the next | drew no failure |
-
-**The words were `Couldn't add the items. Try again.`'s**, the registration's
-for a press that wrote nothing, with the export's verb and its object: what
-failed is the list, which is what the button exports. It was set as a refusal
-about the whole of an act is set, the info mark and the line in Ink 2, before
-the control as 0f sets a reason.
-
-**The files of 2026-10-23 draw the failure, and the screen says theirs
-(#566)**: 0k's toast, `Couldn't export.` with `Try again` and `Dismiss`
-(`asset-categories.md`), the drawing's `’` written `'` as every sentence in the
-app is, by Soo's ruling. So this is no difference any more, and it stays as the
-record of what #553 asked.
-
-The keys are `ASSET_EXPORT_COPY.failed`, `.retry` and `.dismiss` in
-`lib/assetListExport.js`, held by value in `offline/asset-export.mjs`. Nothing
-on the base is named for them.
-
----
-
-## What the list's search for an item's id says that the files of 2026-10-22 do not (#541)
-
-The files draw 1a's `No ID match` with `No item has the ID` and the id typed
-after it. The app says the drawing's sentence only where no job holds the id.
-The app's rows on one job are that job's, so there the sentence names that job,
-by Soo's ruling, while the item stands at another job or before every job has
-been asked (#599); and where an item carries the id but the band leaves it off —
-a `Job` chip on `All jobs` taking its job off, or a type or a category leaving
-its row off — the sentence says the filters hold none (#599, Soo's ruling that
-the drawing's sentence is false there). The next sending decides both.
-
-| String | Where | The files |
-|---|---|---|
-| `No item on 23-USA-09 has the ID` | where the rows stood, on a list standing on one job, before the id typed — under the line to an item at another job, or until every job has answered | draw `No item has the ID`, and no state for an item at another job |
-| `No item in these filters has the ID` | where the rows stood, before the id typed, when an item carries the id and the band leaves it off — under the line to that item | draw `No item has the ID`, and no state for an id the band hides |
-
-**`these filters` is the band's word for what narrows the list**: the same
-two words close `No items match these filters`, which the files draw for a band
-that empties the list with no search. The line over the rows names the item and
-its job, so the sentence need not say which chip left it off.
-
-**The job is named because the drawing's sentence would be false there**: an
-item on another job is not in this job's rows, and `No item has the ID` would
-deny it. Since #599 the list asks every job for it and draws 1a3's `Item ID`
-line over the rows with the item's job in it, behind the same dot — Soo's
-ruling, since the files draw no such state; until #599 nothing found it for a
-reader on the one job, and `All jobs` did. The job is said by its code, as the
-head's chip says it.
-
-The keys are `ASSET_LIST_COPY.noIdMatch`, `.noIdMatchOn` and
-`.noIdMatchFiltered` in `lib/assetListView.js`, held by value in
-`offline/asset-id-search.mjs` and, which one stands once every job has
-answered, `offline/asset-id-elsewhere.mjs`.
-The base's word for an item's id is `Assets."Asset ID"`.
-
----
-
 ## What the registration's search says that the files of 2026-10-23 do not (#547, #566)
 
 The files draw 1b's search as `Search items`, the words the list's band said
 until #541 gave it `or item IDs`. The registration's search finds a kind by its
-name, its maker, its part number and its size since #547, and says what it
-finds one by; the next sending decides it.
+name, its maker, its part number and its size since #547, and says what it finds
+one by. Design takes it in the next sending.
 
 | String | Where | The files |
 |---|---|---|
@@ -386,55 +218,62 @@ searches `Level 3`, `Size`, `Maker` and `Part Number` in `Asset Categories`.
 
 ---
 
-## What the axis is called on screen, which the files do not say (#591)
+## What the list's search says for an item at another job or off the band (#541, #599, #601, #612)
 
-The files call the assets axis `Tools & Equipment` everywhere they name it: the
-rail, 1a's heading, the breadcrumb on 1d, 1f and 1l, and 1h's way back. **The
-app says `Equipment & Tools`, by Soo's ruling** — this entry is the app's
-decision, not a finding the design has to settle, and it stands until the files
-read the same.
+The files of 2026-11-02 draw 1a3's `ID at another job`: the line to the item with
+its job, over the rows, and `No item at 26-USA-05 has the ID`. The app says `on`,
+as it says a job everywhere else (`This item is on 26-USA-07 now.`), by Soo's
+ruling of #612; and where an item carries the id but the band leaves it off — a
+`Job` chip on `All jobs` taking its job off, or a type or a category leaving its
+row off — it says the filters hold none, which the files do not draw. Design takes
+both in the next sending.
 
 | String | Where | The files |
 |---|---|---|
-| `Equipment & Tools` | the rail, the category list's heading and tab title, every breadcrumb's first level, the export's file name and first sheet | draw `Tools & Equipment` |
-| `Back to Equipment & Tools` | a category's page and an asset's, not found | draw `Back to Tools & Equipment` |
+| `No item on 23-USA-09 has the ID` | where the rows stood, on a list standing on one job, under the line to an item at another job, or until every job has answered | draw `No item at 26-USA-05 has the ID` |
+| `No item on 23-USA-09 has the serial number` | the same, for a number found at another job | draw no number at another job |
+| `No item in these filters has the ID`, `No item in these filters has the serial number` | where the rows stood, when an item carries the text and the band leaves it off — under the line to that item | draw no state for text the band hides |
 
-The keys are `ASSET_LIST_COPY.heading` in `lib/assetListView.js`, which the
-rail, every breadcrumb and the export read, and `ASSET_COPY.backToTools` in
-`lib/assetView.js`; `offline/name-sheet-list.mjs` holds both by value and fails
-any string under `app/` or `lib/` saying the old name. The key `backToTools`
-and every identifier, address and table keep their names: no table is called
-either word, and `docs/notes/naming.md` has the row.
+**`these filters` is the band's word for what narrows the list**: the same two
+words close `No items match these filters`, which the files draw for a band that
+empties the list with no search. The line over the rows names the item and its
+job — every line does since #612, the files' 1a3 `Item ID` — so the sentence need
+not say which chip left it off.
+
+The keys are `ASSET_LIST_COPY.noIdMatchOn`, `.noIdMatchFiltered`,
+`.noSerialMatchOn` and `.noSerialMatchFiltered` in `lib/assetListView.js`, held by
+value in `offline/asset-id-search.mjs`, `asset-id-elsewhere.mjs` and
+`asset-serial.mjs`. The base's word for an item's id is `Assets."Asset ID"`.
 
 ---
 
-## What an item's job change says that the files of 2026-10-30 do not (#583)
+## What an item's job change says that the files of 2026-10-30 do not (#583, #612)
 
-The files draw `Change job` in 1f's `More actions` and its dialog, and in
-1j-f's menu and sheet, and none of the moments after a press. What a screen
-says in their place follows a rule the design already states, and the next
-sending decides each.
+The files draw `Change job` in 1f's `More actions` and its dialog, and in 1j-f's
+menu and sheet, and none of the moments after a press. Design takes each in the
+next sending.
 
 | String | Where | The files |
 |---|---|---|
 | `Save` | the phone's sheet, at its head's end | draw the sheet's rows and no commitment |
 | `Saving…` | the dialog's `Save` and the sheet's, busy, heard and not seen | draw no wait for either |
 | `Something has been recorded on this item, so its job can't be changed.` | under the status, after a Save on an item something was recorded on since | draw no refused change |
-| `The Created entry is on 26-USA-06 now, but the item is still on 26-USA-05, and the lists will say so. Save again to finish.` | over the dialog's actions or under the sheet's rows, and under the status once it is closed, when the item's own write failed | the same |
+| `The job wasn't fully changed. Save again to finish.` | over the dialog's actions or under the sheet's rows, and under the status once it is closed, when the item's own write failed | the same |
 | `Changing an item's job is for Admins.` | under the status, after a Save by a reader no longer the office | the same |
 | `Choose a job.` | under the field, for a job no list offers, which no screen sends | the same |
 
 **The phone's `Save` is Soo's ruling**: a press on a row there moves the check
 and saves nothing, as the desk's choice saves nothing until its `Save`, so the
-sheet takes a commitment where the note's sheet takes `Done` — at its head's
-end, which stays on screen over every job. **The working word is 0f's rule**,
-`Save` in its `-ing` form. **Something recorded since is said, where the note's
-refusal of the same kind says nothing**: the reader pressed `Save` on a dialog
-that goes with its line, so the page drawn again says that nothing moved and
-why. **A change left half done names the history's entry by its event**, the
-word the history shows, and both jobs by their codes. **The two words for a
-reader the office no longer is, and a job no list offers**, are a sentence the
-action owes a request no screen makes, the second the registration's own.
+sheet takes a commitment where the note's sheet takes `Done` — at its head's end,
+which stays on screen over every job. **The working word is 0f's rule**, `Save` in
+its `-ing` form. **Something recorded since is said**: the reader pressed `Save`
+on a dialog that goes with its line, so the page drawn again says that nothing
+moved and why. **A change left half done is said in Soo's words since #612**, the
+words every act left half done shares — what is not whole, then the press that
+finishes it — where it named the history's entry and both jobs until then. **The
+two words for a reader the office no longer is, and a job no list offers**, are a
+sentence the action owes a request no screen makes, the second the registration's
+own.
 
 The keys are `ASSET_OFFICE_COPY.save`, `.saving`, `.recordedSince`,
 `.halfDone`, `.noAccess` and `.jobNoneChosen` in `lib/assetOfficeActs.js`, held
@@ -443,28 +282,27 @@ an `Asset Log` row whose `Event` is `Created`.
 
 ---
 
-## What an item's deletion says that the files of 2026-10-30 do not (#582)
+## What an item's deletion says that the files of 2026-10-30 do not (#582, #612)
 
 The files draw `Delete this item` in 1f's and 1j's `More actions`, the desk's
-question and the phone's sheet, and none of the moments after a press, and
-they draw no screen a deletion lands on. What a screen says in their place
-follows a rule the design already states, and the next sending decides each.
+question and the phone's sheet, and none of the moments after a press, and they
+draw no screen a deletion lands on. Design takes each in the next sending.
 
 | String | Where | The files |
 |---|---|---|
 | `Deleting…` | the question's `Delete item`, busy, at both widths | draw no wait |
 | `Something has been recorded on this item, so it can't be deleted.` | under the status, after a press on an item something was recorded on since | draw no refused deletion |
-| `The Deleted entry is recorded, but the item is still on the lists. Delete it again to finish.` | over the question's actions, and under the status once it is closed, when the item's own write failed | the same |
+| `The item wasn't fully deleted. Delete it again to finish.` | over the question's actions, and under the status once it is closed, when the item's own write failed | the same |
 | `Deleting an item is for Admins.` | under the status, after a press by a reader no longer the office | the same |
+| the item's kind's list on the job it was on, without the item | where a deletion lands | draw none |
 
 **The working word is 0f's rule**, `Delete` in its `-ing` form, as the
 retirement's `Retiring…` is. **Something recorded since is said**, as the job
-change's is: the reader pressed `Delete item` on a question that goes with its
-line. **A deletion left half done names the history's entry by its event**,
-`Deleted`, the word the history shows beside the item it has not yet left.
-**Where a deletion lands is the item's kind's list on the job it was on**, the
-breadcrumb's level above the page that is gone, with nothing said: the list
-without the item is what says it happened (#321).
+change's is. **A deletion left half done is said in the job change's words since
+#612**, where it named the history's `Deleted` entry until then. **Where a
+deletion lands is the item's kind's list on the job it was on**, the breadcrumb's
+level above the page that is gone, with nothing said: the list without the item
+is what says it happened (#321).
 
 The keys are `ASSET_OFFICE_COPY.deleteWorking`, `.deleteRecordedSince`,
 `.deleteHalfDone` and `.deleteNoAccess` in `lib/assetOfficeActs.js`, held by
@@ -472,13 +310,14 @@ value in `offline/asset-office-acts.mjs`, and `deletedLanding` beside them is
 the landing. The base calls the history's entry an `Asset Log` row whose
 `Event` is `Deleted`, and the item's status the same word.
 
+---
+
 ## What a refused press and a label run say that the files of 2026-11-02 do not (#597)
 
 The files draw an item that sits on another job (1f `Another job`, 1j-d) and the
 lists on another job and on all jobs, and none of the moments a press is refused
 because the item is no longer the reader's to record. They draw no label run
-naming a code on another job either. What a screen says in their place follows
-the refusals the design already draws (1k), and the next sending decides each.
+naming a code on another job either. Design takes each in the next sending.
 
 | String | Where | The files |
 |---|---|---|
@@ -490,10 +329,11 @@ the refusals the design already draws (1k), and the next sending decides each.
 title says too once the page is drawn again, in the voice the files give a job
 that records (#598's `26-USA-01 can no longer record it.`), and **ends on what
 the press saved**, 1k's ending: `Your check-out wasn't saved.` or `Your check-in
-wasn't saved.`, and `Nothing was saved.` for a sending, a return, a retirement
-or a note, which have no noun that reads as one. **The label run's codes stand
-in the codes not found's shape**, under how many: the read refuses their
-labels, and a short run printed in silence leaves somebody counting stickers.
+wasn't saved.`, and `Nothing was saved.` for a sending, a return, a loan, a
+retirement or a detail, which have no noun that reads as one. **The label run's
+codes stand in the codes not found's shape**, under how many: the read refuses
+their labels, and a short run printed in silence leaves somebody counting
+stickers.
 
 The keys are `ASSET_TRANSITION_COPY.notYours` and `.movedTo` in
 `lib/assetTransition.js` and `ASSET_LABEL_PAGE_COPY.notYours` in
@@ -501,84 +341,119 @@ The keys are `ASSET_TRANSITION_COPY.notYours` and `.movedTo` in
 `offline/asset-transition.mjs`. The base calls the job an item is on
 `Assets."Job"`, and a code a label prints the end of `Asset ID`.
 
-## What a loan says that the files of 2026-11-02 do not (#598)
+---
+
+## What a loan says that the files of 2026-11-02 do not (#598, #612)
 
 The files draw a lending's menu line, its dialog and sheet, the return's
-question at both widths, `On loan from` under a borrowed item's title, `On
-loan` on 1a and 1d, and the history's route under a loan's two entries. They
-draw no wait on either commitment, no loan left half done, and no export.
-What a screen says in their place follows the words the design already draws,
-and the next sending decides each.
+question at both widths, `On loan from` under a borrowed item's title, `On loan`
+on 1a and 1d, and the history's route under a loan's two entries. They draw no
+wait on either commitment and no loan left half done. Design takes each in the
+next sending.
 
 | String | Where | The files |
 |---|---|---|
 | `Returned to owner` | the history entry a return leaves, at both widths | write `Returned` |
 | `Lending…` / `Returning…` | to assistive tech while `Lend` or `Return item` is on its way | draw no wait |
-| `The Lent entry is recorded, but the item is still on 25-USA-13, and the lists will say so. Lend it to 26-USA-12 again to finish.` | over the lending's actions, or under the status once closed | draw no half-done loan |
-| `The Returned to owner entry is recorded, but the item is still on 26-USA-12, and the lists will say so. Return it again to finish.` | over the return's actions, or under the status | the same |
+| `The item wasn't fully lent to 26-USA-12. Lend it again to finish.` | over the lending's actions, or under the status once closed | draw no half-done loan |
+| `The item wasn't fully returned. Return it again to finish.` | over the return's actions, or under the status | the same |
 | `Jisoo Park already lent this to another job on …` | under the status, after a press somebody's lending got in front of | draw no refused loan |
 | `… already returned this to its owner on …` | the same, after a return | the same |
-| `On loan` | the export's first sheet, between `In repair` and `Retired`, on one job's file | draw no export |
-| `Owner job` | the export's second sheet, after `Job` | the same |
 | a kind's page row on loan with no label box | 1d on the owner job | draw a box on every row |
 
 **The event is the base's, and the history prints it as stored**, so a bare
 `Returned` would have stood beside `Returned from repair` in the base and on
-the page naming either; Soo approved the longer word. **The half-done
-sentences are the office's job change's shape** (#583): what the history
-already says, what the lists still say, and the press that finishes it. **The
-refusals are 1k's** with a loan's acts, and end on `Nothing was saved.`, the
-sentence a press with no noun ends on. **The export's columns are the list's
-words** — the first sheet's heads are 1a's, `On loan` among them on one job —
-and the second sheet's is the field the base calls `Owner Job`, in the sheet's
-case. **A row on loan carries no box** because its label is the job it stands
-on's to print (`lib/assetJob.js:recordsOn`): a box that selected it would lead to
-`1 item not on your jobs`.
+the page naming either; Soo approved the longer word. **The half-done sentences
+are the job change's shape since #612**: what is not whole, and the press that
+finishes it — a lending naming the job it went to, since lending again finishes
+it only there; until #612 they named the entry and the job the lists still say.
+**The refusals are 1k's** with a loan's acts, and end on `Nothing was saved.`,
+the sentence a press with no noun ends on. **A row on loan carries no box** because its label is the job it stands on's to
+print (`lib/assetJob.js:recordsOn`): a box that selected it would lead to `1 item
+not on your jobs`.
 
 The keys are `ASSET_TRANSITION_COPY.lendHalfDone`, `.returnHalfDone`,
-`.working` and `.movedAct` in `lib/assetTransition.js`, `ASSET_EVENT` in
-`lib/assetStatus.js`, and `ASSET_EXPORT_COPY.ownerJob` and
-`ASSET_LIST_COPY.onLoanLabel` in `lib/assetListExport.js` and
-`lib/assetListView.js`, held by value in `offline/asset-loan.mjs`. The base
+`.working` and `.movedAct` in `lib/assetTransition.js` and `ASSET_EVENT` in
+`lib/assetStatus.js`, held by value in `offline/asset-loan.mjs`. The base
 calls the job an item belongs to `Assets."Owner Job"`, the job it stands on
 `Assets."Job"`, and the two events `Lent` and `Returned to owner`.
 
 ---
 
-## What an item's serial number says that the files of 2026-11-04 do not (#601)
+## What an item's serial number says that the files of 2026-11-04 do not (#601, #612)
 
 The files draw the serial number in 1a3's line and 1a's search, 1d's column,
 1f's `Details` row edited where it stands and its refusal naming the item that
 holds the number, 1j's line, 1j-b3's sheet and its refusal. They draw no limit
-on what is typed, no stale press, no wait, no number found at another job or
-off the band, no number on more than one kind, and no export. What a screen
-says in their place follows the words the design already draws, and the next
-sending decides each.
+on what is typed, no stale press, no wait and no number on more than one kind.
+Design takes each in the next sending.
 
 | String | Where | The files |
 |---|---|---|
-| `Max 50 characters.` | under the serial number's field, past 50 typed | draw no limit |
-| `Nothing was saved. Someone else changed this serial number first.` | under the field, when the number changed since the page was drawn | draw no stale press |
+| `Use 50 characters or fewer.` | under the serial number's field, after a press past 50 typed | draw no limit |
+| `Someone else changed this serial number first. Nothing was saved.` | under the field, when the number changed since the page was drawn | draw no stale press |
 | `Saving…`, `Adding…`, `Removing…` | the row's `Save` and the sheet's `Done`, busy, heard and not seen | draw no wait |
-| `No item on 23-USA-09 has the serial number` | 1a's emptied rows, under a line found at another job | draw no number at another job |
-| `No item in these filters has the serial number` | 1a's rows the band empties, under a line it leaves off | the same |
 | one line per item, 8 apart | 1a3, a number standing on items of more than one kind | draw one line |
-| `Serial number` | the export's second sheet, after `Item ID` | draw no export |
-| no `Edit` or `Add` in `Details` | 1g at a desk, in repair | draw both, where 1j-e reads alone |
 
 **The limit and its sentence are the note's**, a value one line holds, so a
-number past it is refused in the note's words rather than cut. **The stale
-press and the working words are the note's too**, with the detail's own noun.
-**The two list sentences are #599's with `serial number` for `ID`**, said only
-once the base has named an item, since before then what was typed may be a
-name and the rows' own sentence is true. **A number may stand on items of more
-than one kind**, being one item's within its kind, so a line stands for each.
-**In repair nothing is written** (`lib/assetStatus.js:MAY_WRITE_NOTE_IN_STATUS`,
-#533): 1g's `Edit` and `Add` would offer a write the app refuses, and 1j-e
-already reads both alone, so the desk reads as 1j-e does. Taking 1g's would
-change who may write, which is the issue's to decide and not the files'.
+number past it is refused in the note's words rather than cut — `Use 50
+characters or fewer.` since #612, Soo's, where both said `Max 50 characters.`.
+**The stale press and the working words are the note's too**, with the detail's
+own noun. **A number may stand on items of more than one kind**, being one item's
+within its kind, so a line stands for each. The two sentences for a number at
+another job or off the band are the id's (#541's entry above).
 
 The keys are `ASSET_SERIAL_COPY.tooLong`, `.changedFirst` and `.working` in
-`lib/assetSerial.js`, and `ASSET_LIST_COPY.noSerialMatchOn` and
-`.noSerialMatchFiltered` in `lib/assetListView.js`, held by value in
-`offline/asset-serial.mjs`. The base's field is `Assets."Serial Number"`.
+`lib/assetSerial.js`, held by value in `offline/asset-serial.mjs`. The base's
+field is `Assets."Serial Number"`.
+
+---
+
+## What Soo set against Tools 52 and Sign in 28 that the files do not draw (#612)
+
+Words and states the app holds since #612 that no entry above names. Design takes
+each in the next sending.
+
+| String or state | Where | The files |
+|---|---|---|
+| `No items on 25-USA-13` | 1d, a kind with items on other jobs and none on the job the page stands on | draw `Nothing added yet` (1d `No items`, `No items · another job`) |
+| `Page not found`, `Back to Equipment & Tools` | an address no kind carries | draw none; 1h is an item's, which keeps `Item not found` |
+| `Enter a name.` | a check-out pressed with no name, at both widths | draw it at a desk (1f) and `Enter a name to check out.` on a phone (1k-b) |
+| `Incorrect code. 4 attempts left.`, `Incorrect code. 1 attempt left.` | the code step, a code that does not match | draw `Wrong code. 4 tries left.` (Sign in 1a-f, 1e) |
+| `Use 50 characters or fewer.` | a note past 50, after a press, in the line under the field | draw `Max 50 characters.` (1f, 1j-b2) |
+| `10 items will show the new name.`, `1 item will show the new name.` | 1l's edit, over the actions, when it would rename items | draw no such line |
+| `This wasn't fully recorded. Do it again to finish.` | under the status, after a check-out, check-in, sending, return from repair or retirement whose status write failed | draw no such state |
+| `This item is retired.` | a phone's foot bar on a retired item, and the refusal for a press on one retired first — **set after the sending of 2026-11-05** | draw `Nothing more can be recorded here.` (1j-c) |
+| a serial number and a note written in every status a screen shows | 1f, 1g, 1j | draw both writable in 1g's `In repair` alone, and neither in 1g's `Retired`, 1j-e or 1j-c |
+| `More actions` in a phone's top bar on an item out or in repair, and over its sheets | 1j-b, 1j-b2, 1j-b3, 1j-e | draw none there |
+| the registration's second step starting on the list's job, its code and name (#565) | 1b | draws `Choose a job` |
+| `Jisoo Park already checked this in on 10/05/2026 8:50 AM. Your check-in wasn't saved.` | under the status, after a check-in somebody got in front of | draw 1k-a's check-out alone |
+| `All jobs` on the category list: the band's `Job` chip, and no `On loan` column | 1a | draw `All jobs` on 1d alone |
+| an Admin who is also a site manager: `Catalog` and `Add items` together in the head, and `More actions` holding `Send for repair`, `Lend to another job`, `Change job`, `Retire this item` and `Delete this item` | 1a, 1f | draw each role apart |
+| `Enter the 6-digit code from the email.` | the code step, a code pressed short | draw none |
+| `This code no longer works` | the code step, a code used, no longer waited on, or not valid | draw it for a link alone (1f) |
+| `Enter your first name.` | the name step, the first name empty | draw the last name's |
+| `Couldn't save your jobs. Try again.` | the job step, a write that failed | draw none |
+| `Enter a category.`, `Couldn't save the item. Try again.`, `The category was added, but the item wasn't. Try again.`, `Couldn't create the category. Try again.`, `Couldn't remove the item. Try again.`, `This item isn't in the catalog any more.`, `Items use it now, so it stays in the catalog.`, `You don't have access to this page. Keeping the catalog is for Admins.` | 1l | draw none |
+| `Checking out…`, `Checking in…`, `Retiring…`; `Loading…` for the labels; 1l's `Saving…`, `Adding…`, `Creating…`, `Discontinuing…`, `Restoring…`, `Removing…` | heard while a press is on its way | draw none |
+
+**The words are Soo's, where the files say otherwise.** A found line names its
+item's job wherever it stands, as 1a3 draws it since 2026-11-02, and `Print labels`
+past a print's labels is `aria-disabled` and still takes focus, as 1e draws it —
+both taken in #612, so neither is listed. **The details in every status** follow
+from neither being an event, and a retired item says on a phone what it is,
+`This item is retired.`, where 1j-c's `Nothing more can be recorded here.` would
+contradict the two lines that still write. **The states the files draw no
+moment for** take the words the app's other refusals and working words take.
+
+The keys are `ASSET_LIST_COPY.noItemsOn` and `.pageNotFound` in
+`lib/assetListView.js` (`offline/kind-empty-state.mjs`);
+`ASSET_TRANSITION_COPY.nameRequired`, `.statusNotUpdated` and `.noTransition` in
+`lib/assetTransition.js` (`offline/asset-transition.mjs`); `CODE_COPY` in
+`lib/authTokenState.js` (`offline/auth-token-state.mjs`); `ASSET_NOTE_COPY.tooLong`
+(`offline/asset-note.mjs`); `ASSET_CATALOG_COPY.renames` and its refusals in
+`lib/assetCatalog.js` (`offline/asset-catalog.mjs`); `USER_NAME_COPY` and
+`USER_JOBS_COPY` in `lib/userName.js` and `lib/userJobs.js`; and
+`lib/assetStatus.js:mayWriteDetailsIn`, the shown map's answer, for the details
+(`offline/asset-status.mjs`). The base's fields are `Assets."Note"` and
+`."Serial Number"`, whose descriptions say who writes them.

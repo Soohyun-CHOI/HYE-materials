@@ -161,7 +161,7 @@ function deletion582({ check, assert, log }) {
     check("  or the id, for an item under no kind", ASSET_OFFICE_COPY.deleteHeading({ itemName: "", assetId: "HYE-AST-260909-004" }), "Delete HYE-AST-260909-004?");
     check("the body", ASSET_OFFICE_COPY.deleteBody, "It will be deleted along with its history. This can't be undone.");
     check("something recorded since", ASSET_OFFICE_COPY.deleteRecordedSince, "Something has been recorded on this item, so it can't be deleted.");
-    check("a deletion left half done", ASSET_OFFICE_COPY.deleteHalfDone, "The Deleted entry is recorded, but the item is still on the lists. Delete it again to finish.");
+    check("a deletion left half done, Soo's words (#612)", ASSET_OFFICE_COPY.deleteHalfDone, "The item wasn't fully deleted. Delete it again to finish.");
     check("a reader who is not the office", ASSET_OFFICE_COPY.deleteNoAccess, "Deleting an item is for Admins.");
 
     // ── the action ──────────────────────────────────────────────────────────
@@ -356,11 +356,7 @@ export function run({ check, assert, log }) {
         "Change job | Job | Choose a job | Save | Saving… | Cancel"
     );
     check("something recorded since", ASSET_OFFICE_COPY.recordedSince, "Something has been recorded on this item, so its job can't be changed.");
-    check(
-        "a change left half done, naming both jobs",
-        ASSET_OFFICE_COPY.halfDone({ from: "26-USA-05", to: "26-USA-06" }),
-        "The Created entry is on 26-USA-06 now, but the item is still on 26-USA-05, and the lists will say so. Save again to finish."
-    );
+    check("a change left half done, Soo's words (#612)", ASSET_OFFICE_COPY.halfDone, "The job wasn't fully changed. Save again to finish.");
     check("a reader who is not the office", ASSET_OFFICE_COPY.noAccess, "Changing an item's job is for Admins.");
     check("a job the list does not offer", ASSET_OFFICE_COPY.jobNoneChosen, "Choose a job.");
     const officeSource = parseFile(OFFICE).source;
@@ -446,8 +442,8 @@ export function run({ check, assert, log }) {
         "false true false"
     );
     assert(
-        "  a failed asset write named on the page with both jobs, never written back",
-        /\} catch \(error\) \{[\s\S]*console\.error\([\s\S]*return refuse\(COPY\.halfDone\(\{ from: codeOf\(asset\.job\?\.\[0\]\), to: codeOf\(answer\.jobRecordId\) \}\)\);\s*\}/.test(handlerSource) &&
+        "  a failed asset write named on the page, never written back",
+        /\} catch \(error\) \{[\s\S]*console\.error\([\s\S]*return refuse\(COPY\.halfDone\);\s*\}/.test(handlerSource) &&
             (handlerSource.match(/updateAssetJob\(|updateCreatedEntryJob\(/g) ?? []).length === 2
     );
     check("  and no row records the change", /createAssetLogEntry|createFirstAssetLogEntries|writeEvent/.test(handlerSource), false);

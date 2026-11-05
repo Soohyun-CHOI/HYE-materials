@@ -116,7 +116,8 @@ under it stay where they are on every other screen.
 after `Discontinued` and a dot for a discontinued row. On the left of the
 actions `Discontinue`, or `Restore` for a discontinued row, each writing that
 alone and closing. While an edit would give the items under the row a new
-name, a line over the actions says so — `Its 10 items take the new name.`
+name, a line over the actions says so — `10 items will show the new name.`
+(#612; `Its 10 items take the new name.` until then)
 
 **When nothing stands under the edited row:** `More actions` beside the close,
 whose one item, `Remove from catalog`, asks `Remove … from catalog?` — `It

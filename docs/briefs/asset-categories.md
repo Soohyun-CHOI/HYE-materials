@@ -244,19 +244,20 @@ the job the list stands on, or on all jobs and among those the `Job` chip takes.
 Found, its row is the
 one row left, with the counts it always has, and under the band, held with it,
 one line is the way to the item's own screen: its id in the id's face, its
-name, its status with the mark an item's list draws it with and, while it is
-out, who holds it — the one fact read from the base for it — a dot between
-each, and a chevron at its end (1a). Enter in the search opens it too. **The
+name, the job it stands on by its code in Ink 2 (#612, as 1a3 draws it), its
+status with the mark an item's list draws it with and, while it is out, who
+holds it — the one fact read from the base for it — a dot between each, and a
+chevron at its end (1a). Until #612 a line named the job only for an item off
+the table. Enter in the search opens it too. **The
 line is a way there and narrows nothing**: the list's head, chips and pager
 count the row, and `Export` holds that row and every item under it.
 
 **On one job, an id no item there carries is looked up at every job (#599).**
-Found at another job, the same line stands over the rows with the item's job
-after its name, by its code behind the same dot, in Ink 2 as an item's list
-draws a job, and Enter or a press opens the item; the rows stay the job's,
+Found at another job, the same line stands over the rows naming that job, and
+Enter or a press opens the item; the rows stay the job's,
 emptied, and say `No item on 23-USA-09 has the ID` and the id typed, naming the
-job (Soo's words, `design-copy-findings.md`). The files draw no state for this:
-it is 1a3's `Item ID` line with the job in it, by Soo's ruling. Until the answer
+job (Soo's words, `design-copy-findings.md`: `on`, where the files' 1a3 says
+`at`). Until the answer
 comes the sentence stands alone, so a reload draws the line a moment after the
 list. Found on no job, the list says 1a3's `No ID match`: `No item has the ID`
 and the id typed — which on all jobs, every job, it says at once for an id no
@@ -275,7 +276,7 @@ any case and with spaces round it, the hyphens and every other character as
 typed; a piece of one finds nothing by it and is searched for in the names as
 any word is. Found on the job the list stands on, or on all jobs and among those
 the chips take, each kind holding it is a row and each item holding it a line
-over the rows, 8 apart in the rows' order — the line of an id with `Serial number`
+over the rows naming its job, 8 apart in the rows' order — the line of an id with `Serial number`
 in Ink 3 and the number with even figures after the id (0h, #607), behind the
 same dot. One
 number may stand on items of more than one kind, since it is one item's within

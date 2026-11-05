@@ -944,7 +944,7 @@ export function SheetRows({ rows }) {
  * first in the order a keyboard meets them, as it stands first on the line.
  *
  * A `note` IS WHAT A PRESS WILL DO, SET ON THE REFUSAL'S LINE BEFORE ANY PRESS (1l, #527): an
- * edit's `Its 10 items take the new name.`, the same mark and words, heard as a status rather
+ * edit's `10 items will show the new name.`, the same mark and words, heard as a status rather
  * than an alert since it answers nothing. A refusal takes the line from it while there is one.
  */
 export function DialogActions({ refusal, note, secondary, children }) {

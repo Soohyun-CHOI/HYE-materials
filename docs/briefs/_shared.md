@@ -608,7 +608,7 @@ The first step: `Sign in`, `Enter your work email.`, the placeholder `name`,
 domain. The code step: `Check your email`, `Enter the code we sent to`, `Change`,
 `Sign in`, `Didn't get it?`, `Resend email` and `Email sent`. A code that can
 still work is refused under the boxes — `Enter the 6-digit code from the email.` /
-`Wrong code. 4 tries left.` — and one that cannot is the step's title: `Too many
+`Incorrect code. 4 attempts left.` (#612) — and one that cannot is the step's title: `Too many
 tries` / `This code has expired` / `This code no longer works`, with `Get a new code
 sent to` and `Send new email`. A request that did not happen, on any step, is
 `Something went wrong. Try again.` The figures come from the constants that decide

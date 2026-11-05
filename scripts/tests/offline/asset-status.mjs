@@ -49,7 +49,6 @@ import {
     LOAN_MOVES_FROM_STATUS,
     MAY_RETIRE_FROM_STATUS,
     MAY_SEND_FOR_REPAIR_FROM_STATUS,
-    MAY_WRITE_NOTE_IN_STATUS,
     SHOWN_BY_STATUS,
     SHOWN_STATUS_VALUES,
     STATUS_AFTER_EVENT,
@@ -64,13 +63,14 @@ import {
     loanMovesFrom,
     mayRetireFrom,
     maySendForRepairFrom,
-    mayWriteNoteIn,
+    mayWriteDetailsIn,
     shownIn,
     statusAfterEvent,
 } from "../../../lib/assetStatus.js";
+import * as ASSET_STATUS_MODULE from "../../../lib/assetStatus.js";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Tool status and event vocabularies, and the maps between them (#334, #362, #363, #531, #569, #582, #598)";
+export const title = "Tool status and event vocabularies, and the maps between them (#334, #362, #363, #531, #569, #582, #598, #612)";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PY_PATH = resolve(HERE, "../../import/ran/create_tools_334.py");
@@ -225,7 +225,7 @@ function shown582({ check, log, assert }) {
     check("  it offers no press", EVENT_OFFERED_BY_STATUS["Deleted"], null);
     check("  it may not be retired", MAY_RETIRE_FROM_STATUS["Deleted"], false);
     check("  nor sent for repair", MAY_SEND_FOR_REPAIR_FROM_STATUS["Deleted"], false);
-    check("  nor have its note written", MAY_WRITE_NOTE_IN_STATUS["Deleted"], false);
+    check("  nor have its serial number or note written", mayWriteDetailsIn("Deleted"), false);
     check("  nor count in a total", COUNTED_IN_TOTAL_BY_STATUS["Deleted"], false);
     check("  its entry takes the asset's job", JOB_SOURCE_OF_EVENT["Deleted"], "asset");
     check("  and it is shown nowhere", SHOWN_BY_STATUS["Deleted"], false);
@@ -620,43 +620,40 @@ export function run({ check, log, assert }) {
         true
     );
 
-    // ── the sixth map: in which statuses an item's note may be written (#533) ──
-    // By value: while the item is on a job, in stock or out; not while it is at its maker,
-    // whose trip #531 left unrecorded, and not once it is retired, which records nothing more.
+    // ── in which statuses an item's serial number and note may be written (#533, #601, #612) ──
+    // By value: in every status the app shows, since #612 — at its maker and once retired too,
+    // since neither records an event — and so a reading of the shown map rather than a map of its
+    // own, which it was from #533 to #612, `In stock` and `Out` alone.
     log("");
-    log("in which statuses an item's note may be written, by value (#533):");
-    check("In stock", MAY_WRITE_NOTE_IN_STATUS["In stock"], true);
-    check("Out", MAY_WRITE_NOTE_IN_STATUS["Out"], true);
-    check("In repair", MAY_WRITE_NOTE_IN_STATUS["In repair"], false);
-    check("Retired", MAY_WRITE_NOTE_IN_STATUS["Retired"], false);
-    check("Deleted (#582)", MAY_WRITE_NOTE_IN_STATUS["Deleted"], false);
-    check("  five entries, one per status", Object.keys(MAY_WRITE_NOTE_IN_STATUS).sort().join(" | "), "Deleted | In repair | In stock | Out | Retired");
-    check("  every entry is a boolean", Object.values(MAY_WRITE_NOTE_IN_STATUS).filter((v) => typeof v !== "boolean").length, 0);
-    check("mayWriteNoteIn applies it, over five", ASSET_STATUS_VALUES.map((s) => mayWriteNoteIn(s)).join(","), "true,true,false,false,false");
-    let noteThrew = null;
+    log("in which statuses an item's serial number and note may be written, by value (#612):");
+    check("details: In stock", mayWriteDetailsIn("In stock"), true);
+    check("details: Out", mayWriteDetailsIn("Out"), true);
+    check("details: In repair", mayWriteDetailsIn("In repair"), true);
+    check("details: Retired", mayWriteDetailsIn("Retired"), true);
+    check("details: Deleted, which no screen shows", mayWriteDetailsIn("Deleted"), false);
+    check(
+        "  the shown map's answer, status by status",
+        ASSET_STATUS_VALUES.filter((s) => mayWriteDetailsIn(s) !== shownIn(s)).join(" | "),
+        ""
+    );
+    check(
+        "  and no map of its own is exported beside it",
+        Object.keys(ASSET_STATUS_MODULE).filter((name) => /NOTE|DETAIL|SERIAL/.test(name) && name === name.toUpperCase()).join(" | "),
+        ""
+    );
+    let detailsThrew = null;
     try {
-        mayWriteNoteIn("Lost");
+        mayWriteDetailsIn("Lost");
     } catch (err) {
-        noteThrew = err.message;
+        detailsThrew = err.message;
     }
-    assert("a status outside the vocabulary throws rather than reading false", Boolean(noteThrew));
-    assert("  and the throw names the module to edit", (noteThrew || "").includes("lib/assetStatus.js"));
-    // IT PARTS FROM THE PRESS AND FROM THE RETIREMENT ON `In repair`, which offers a press and
-    // may be retired, and its note may not be written — so it is a map of its own.
+    assert("details: a status outside the vocabulary throws rather than reading false", Boolean(detailsThrew));
+    assert("  and the throw names the module to edit", (detailsThrew || "").includes("lib/assetStatus.js"));
+    // A RETIRED ITEM TAKES ITS DETAILS AND NO EVENT, which is where the two part.
     check(
-        "  statuses offering a press whose note may not be written",
-        ASSET_STATUS_VALUES.filter((s) => eventOfferedBy(s) && !mayWriteNoteIn(s)).join(" | "),
-        "In repair"
-    );
-    check(
-        "  statuses that may be retired and whose note may not be written",
-        ASSET_STATUS_VALUES.filter((s) => mayRetireFrom(s) && !mayWriteNoteIn(s)).join(" | "),
-        "In repair"
-    );
-    check(
-        "  statuses whose note may be written and that may not be sent for repair",
-        ASSET_STATUS_VALUES.filter((s) => mayWriteNoteIn(s) && !maySendForRepairFrom(s)).join(" | "),
-        "Out"
+        "  statuses whose details may be written and that offer no press, no sending and no retirement",
+        ASSET_STATUS_VALUES.filter((s) => mayWriteDetailsIn(s) && !eventOfferedBy(s) && !maySendForRepairFrom(s) && !mayRetireFrom(s)).join(" | "),
+        "Retired"
     );
 
     // ── the fifth map: where each event's row takes its job from (#531, #597, #598) ─────

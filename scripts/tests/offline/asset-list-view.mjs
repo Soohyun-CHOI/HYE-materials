@@ -410,11 +410,11 @@ function allJobs548({ check, log }) {
     );
     const listPage = parseFile(LIST_SCREEN).source;
     check(
-        "the list carries the scope's choice, draws no state for a reader on no job (#593), and the list is told it is on all of them",
+        "the list carries the scope's choice, draws no state for a reader on no job (#593), and the list is told it is on all of them and handed every job (#612)",
         [
             !/onNoJob/.test(listPage),
             /const job = scope\.choice;/.test(listPage),
-            /<AssetCategoryList\s+rows=\{rows\}\s+job=\{job\}\s+jobCode=\{scope\.job\?\.jobCode \?\? null\}\s+allJobs=\{scope\.allJobs\}\s+jobs=\{choosable\}/.test(listPage),
+            /<AssetCategoryList\s+rows=\{rows\}\s+job=\{job\}\s+jobCode=\{scope\.job\?\.jobCode \?\? null\}\s+allJobs=\{scope\.allJobs\}\s+jobs=\{scope\.jobs\.map\(\(\{ id, jobCode \}\) => \(\{ id, jobCode \}\)\)\}/.test(listPage),
         ].join(" "),
         "true true true"
     );
@@ -1363,7 +1363,7 @@ export function run({ check, assert, log }) {
         // only for a site manager, and `none` for a read made whoever is reading.
         let readUnder = "none";
         let printFrom = null;
-        let printDisabled = null;
+        let printUnavailable = null;
         let printTitle = null;
         let pageBoxOver = null;
         const categoryPathCalls = [];
@@ -1399,8 +1399,8 @@ export function run({ check, assert, log }) {
             if (n.type === "JSXOpeningElement" && n.name?.name === "LabelsDialog") {
                 const attribute = (name) => n.attributes.find((a) => a.name?.name === name)?.value?.expression;
                 printFrom = origin(attribute("assetIds"));
-                const disabled = attribute("disabled");
-                printDisabled = disabled && source ? source.slice(disabled.start, disabled.end) : "none";
+                const unavailable = attribute("unavailable");
+                printUnavailable = unavailable && source ? source.slice(unavailable.start, unavailable.end) : "none";
                 const title = attribute("title");
                 printTitle = title ? nameOf(title) : "none";
             }
@@ -1418,7 +1418,7 @@ export function run({ check, assert, log }) {
             if (callee === "window.history.replaceState") replaced++;
             if (callee === "useRouter" || callee === "redirect" || /^router\./.test(callee)) routed.push(callee);
         });
-        return { selection, readOff, readUnder, printFrom, printDisabled, printTitle, pageBoxOver, categoryPathCalls, replaced, routed };
+        return { selection, readOff, readUnder, printFrom, printUnavailable, printTitle, pageBoxOver, categoryPathCalls, replaced, routed };
     };
     const listFile = parseFile(ASSET_LIST);
     const list = listFacts(listFile.ast, listFile.source);
@@ -1432,7 +1432,7 @@ export function run({ check, assert, log }) {
     check("  the labels' opener is handed it", list.printFrom, list.selection);
     // `describeSelection` says why a press would not print — nothing selected, or more
     // than one print takes — and the opener is drawn disabled on exactly that.
-    check("  and is disabled where the list's sentence says why", list.printDisabled, "!summary.printable");
+    check("  and is unavailable where the list's sentence says why (#612)", list.printUnavailable, "!summary.printable");
     // ITS WORD IS THE DIALOG'S TITLE FROM A CATEGORY'S PAGE, `Print labels`. The opener hands
     // the dialog its title, so the asset page's `Print label` here would title a run
     // of many with one label's word, and no figure on the page would move.
@@ -1466,7 +1466,7 @@ export function run({ check, assert, log }) {
     check("  a read of the first id alone is seen so", plantedList.readOff, 'get("id")');
     check("  and one made whoever is reading is seen so", plantedList.readUnder, "none");
     check("  an opener handed the rows is seen so", plantedList.printFrom, "rows");
-    check("  and one never disabled is seen so", plantedList.printDisabled, "none");
+    check("  and one never unavailable is seen so", plantedList.printUnavailable, "none");
     check("  and one with no title of its own is seen so", plantedList.printTitle, "none");
     check("  a page box over a wider list is seen so", plantedList.pageBoxOver, "everyId");
     check("  a step dropping the selection is seen", plantedList.categoryPathCalls.join(", "), "CallExpression, 2 arguments");
@@ -1793,7 +1793,7 @@ export function run({ check, assert, log }) {
     check(
         "  the empty list's the same opener, bordered, under the empty branch and the same reader",
         `${openers[1]?.handed} | ${openers[1]?.asks} | ${openers[1]?.under}`,
-        "catalog: catalog, category: opened, jobs: assignedJobs, listJobId: listJobId, opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | none | page.total === 0, recording.adds"
+        "catalog: catalog, category: opened, jobs: assignedJobs, listJobId: listJobId, opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | none | empty, recording.adds"
     );
     // WHAT THE CATEGORY AND THE CATALOG ARE (#507), off their declarations, since `category: opened`
     // above reads alike whatever `opened` is: the row the page read, by the id the action
@@ -2117,8 +2117,8 @@ export function run({ check, assert, log }) {
         "{selecting} {selecting} true"
     );
     check(
-        "  and its print control acts on what one print takes, pointing at the reason the bar draws (#495)",
-        `${propSources(itemList, "LabelsDialog", "disabled").join()} ${propSources(itemList, "LabelsDialog", "describedBy").join()} ${propSources(itemList, "LabelsDialog", "assetIds").join()} ${propSources(itemList, "LabelsDialog", "disabledReason").length}`,
+        "  and its print control acts on what one print takes, pointing at the reason the bar draws (#495, #612)",
+        `${propSources(itemList, "LabelsDialog", "unavailable").join()} ${propSources(itemList, "LabelsDialog", "describedBy").join()} ${propSources(itemList, "LabelsDialog", "assetIds").join()} ${propSources(itemList, "LabelsDialog", "disabledReason").length}`,
         "{!summary.printable} {summary.reason ? reasonId : undefined} {selection} 0"
     );
     check(
@@ -2647,7 +2647,7 @@ export function run({ check, assert, log }) {
         [
             /const choosable = scope\.jobs\.length > 1 \?/.test(listSource) &&
                 /band=\{choosable && <JobChoice jobs=\{choosable\} job=\{job\} \/>\}/.test(listSource) &&
-                /band=\{\s*<>\s*\{jobs && <JobChoice jobs=\{jobs\} job=\{job\} filters=\{reading\.held\} \/>\}\s*<SearchField/.test(categoryListSource) &&
+                /band=\{\s*<>\s*\{jobs\.length > 1 && <JobChoice jobs=\{jobs\} job=\{job\} filters=\{reading\.held\} \/>\}\s*<SearchField/.test(categoryListSource) &&
                 ![listSource, categoryListSource].some((source) => /<ListHeader(?:(?!<\/ListHeader>)[\s\S])*<JobChoice/.test(source)),
             /key: "job",\s*control: \(\s*<CategoryJobChoice/.test(categorySource) && !/<ListHeader[\s\S]*?<CategoryJobChoice[\s\S]*?<\/ListHeader>/.test(categorySource),
             /key: "job",\s*control: \(\s*<JobChoice\s+look="crumb"/.test(assetSource),

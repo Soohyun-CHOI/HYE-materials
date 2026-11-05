@@ -124,7 +124,7 @@ still work:
 | Refusal | Sentence |
 |---|---|
 | not six digits, when `Sign in` is pressed early | `Enter the 6-digit code from the email.` |
-| a code that does not match | `Wrong code. 4 tries left.` (`1 try left.` at one) |
+| a code that does not match | `Incorrect code. 4 attempts left.` (`1 attempt left.` at one, #612) |
 
 The next figure starts a new code. The others are about the email itself, so no code
 can work any more: **the boxes and the button go**, the title names why, the line

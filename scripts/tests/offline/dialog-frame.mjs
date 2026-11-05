@@ -1721,8 +1721,8 @@ export function run({ check, assert, log }) {
             button: [
                 /const formWaits = useContext\(FormBusyContext\);/.test(button),
                 /buttonBusyState\(\{ busy, formBusy: formWaits, submits: type === "submit", disabled \}\)/.test(button),
-                /onClick=\{state \? \(event\) => event\.preventDefault\(\) : onClick\}/.test(button),
-                /aria-disabled=\{state \? true : undefined\}/.test(button),
+                /const turnsAway = Boolean\(state\) \|\| unavailable;/.test(button) && /onClick=\{turnsAway \? \(event\) => event\.preventDefault\(\) : onClick\}/.test(button),
+                /aria-disabled=\{turnsAway \|\| undefined\}/.test(button),
                 /aria-busy=\{working \|\| undefined\}/.test(button) && /data-busy=\{working \|\| undefined\}/.test(button),
             ].join(" "),
             text: [reads("TextInput"), /const locked = readOnly \|\| formBusy;/.test(text), /readOnly=\{locked\}/.test(text)].join(" "),
@@ -1824,8 +1824,28 @@ export function run({ check, assert, log }) {
     const closeTag = frame.source.match(/<button[^>]*aria-label=\{COPY\.close\}[^>]*>/)?.[0] ?? "";
     check(
         "  which is what a disabled action, a busy or locked one and a close held while its dialog sends say",
-        [/disabled=\{disabled\}/.test(controlsText), /aria-disabled=\{state \? true : undefined\}/.test(controlsText), /aria-disabled=\{busy \? true : undefined\}/.test(closeTag)].join(" "),
+        [/disabled=\{disabled\}/.test(controlsText), /aria-disabled=\{turnsAway \|\| undefined\}/.test(controlsText), /aria-disabled=\{busy \? true : undefined\}/.test(closeTag)].join(" "),
         "true true true"
+    );
+    // AN ACTION THAT CANNOT ACT AND STILL TAKES FOCUS (#612): `unavailable` turns its press away and
+    // says so with `aria-disabled`, never `disabled`, which would take it out of the keyboard's order —
+    // and draws a disabled action's look, which a locked one does not, off an attribute of its own.
+    const buttonFn = functionNamed(controls.ast, "Button");
+    const buttonSource = buttonFn ? controls.source.slice(buttonFn.start, buttonFn.end) : "";
+    check(
+        "an unavailable action: aria-disabled and its press turned away, never disabled (#612)",
+        [
+            /unavailable = false/.test(buttonSource),
+            /const turnsAway = Boolean\(state\) \|\| unavailable;/.test(buttonSource),
+            /disabled=\{disabled\}/.test(buttonSource) && !/disabled=\{[^}]*unavailable/.test(buttonSource),
+            /data-unavailable=\{unavailable \|\| undefined\}/.test(buttonSource),
+        ].join(" "),
+        "true true true true"
+    );
+    check(
+        "  and a filled one draws the disabled fill off that attribute alone (0f Disabled)",
+        /filled: "[^"]*\bdisabled:bg-primary-disabled data-unavailable:bg-primary-disabled"/.test(controlsText),
+        true
     );
     // Anti-vacuity: a planted rule outside the layer, withholding the hand from disabled alone,
     // is read as what it is, and a stylesheet giving no hand reads as none.

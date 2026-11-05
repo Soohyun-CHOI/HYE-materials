@@ -142,6 +142,9 @@ const CLASSIFIED = {
     // `Assets."Serial Number"` (#601): made on both bases by this script, which the guard lets make that one
     // field on the live base and nothing else beyond descriptions.
     "scripts/import/ran/add_serial_number_601.mjs": { describes: true },
+    // `Assets."Note"` and `."Serial Number"`'s descriptions, which #612 made false: who writes them, in
+    // every status the app shows. Descriptions alone, on either base.
+    "scripts/import/describe_details_612.mjs": { describes: true },
     // `Asset Log."Event"`'s two loan options (#598), made by a row written with typecast and deleted at
     // once on the test base, and refused on the live base, where they are a hand step.
     "scripts/import/ran/add_loan_events_598.mjs": { writes: ["rowRequest"] },

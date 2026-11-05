@@ -130,13 +130,7 @@ function copyStrings() {
     out.push(ASSET_TRANSITION_COPY.notYours({ jobCode: JOB_B.jobCode, attempted: ASSET_EVENT.CHECKED_OUT }));
     out.push(ASSET_TRANSITION_COPY.movedTo({ jobCode: JOB_B.jobCode, attempted: ASSET_EVENT.RETIRED }));
     out.push(ASSET_TRANSITION_COPY.retireHeading({ itemName: "DEMO Rotary Hammer", assetId: "HYE-AST-261001-022" }));
-    out.push(
-        ASSET_TRANSITION_COPY.statusNotUpdated({
-            assetId: "HYE-AST-260909-004",
-            event: ASSET_EVENT.CHECKED_OUT,
-            status: ASSET_STATUS.IN_STOCK,
-        })
-    );
+    out.push(ASSET_TRANSITION_COPY.statusNotUpdated);
     return out.filter((s) => typeof s === "string");
 }
 
@@ -149,6 +143,13 @@ function copyStrings() {
  * require.
  */
 const TOOL_ITEM_NOUN = /\btool items?\b/i;
+
+/**
+ * The words a sentence takes to say what may no longer be done to an item (#612): a negation,
+ * a measure of what is left, or an act. The retired item's sentence stands under its serial
+ * number and note, which still write, so it takes none of them.
+ */
+const CLAIMS_AN_END = /\b(no|not|nothing|none|never|cannot|can['’]t|won['’]t|any|anything|more|longer|locked|final|records?|recorded|edit(s|ed)?|chang(e|es|ed)|writ(e|es|ten)|sav(e|es|ed)|add(s|ed)?)\b/i;
 
 /**
  * The source text of `propName` in the object argument of every call to `fnName`.
@@ -489,7 +490,7 @@ export function run({ check, assert, log }) {
     log("and what refuses:");
     const retired = planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: ASSET_STATUS.RETIRED, assetJobId: JOB_A.id });
     check("a retired asset offers nothing", retired.event, null);
-    check("  and says so, in the design's sentence (#463)", retired.refusal, ASSET_TRANSITION_COPY.noTransition);
+    check("  and says so, in the terminal sentence (#463, #612)", retired.refusal, ASSET_TRANSITION_COPY.noTransition);
 
     const noJob = planTransition({ user: actor(), jobs: ALL_JOBS, status: ASSET_STATUS.IN_STOCK, assetJobId: JOB_A.id });
     check("somebody on no job is offered nothing", noJob.event, null);
@@ -822,7 +823,7 @@ export function run({ check, assert, log }) {
         0
     );
     // The two sentences the sweep carried the noun into, by value.
-    check("the terminal sentence, the design's (1j)", ASSET_TRANSITION_COPY.noTransition, "Nothing more can be recorded here.");
+    check("the terminal sentence, the status itself (#612)", ASSET_TRANSITION_COPY.noTransition, "This item is retired.");
     // THE STALE PRESS IN 1k's WORDS (#463), the person in full, `already` and the moment as
     // a part the page draws in the reader's zone since the design's final files (#495), the
     // noun hyphenated and the verb not.
@@ -934,16 +935,8 @@ export function run({ check, assert, log }) {
         ""
     );
 
-    // The failure sentence has to carry all three facts a person can act on.
-    const half = ASSET_TRANSITION_COPY.statusNotUpdated({
-        assetId: "HYE-AST-260909-004",
-        event: ASSET_EVENT.CHECKED_OUT,
-        status: ASSET_STATUS.IN_STOCK,
-    });
-    assert("a failed status write names the asset", half.includes("HYE-AST-260909-004"));
-    assert("  says the event is on the record", half.includes(ASSET_EVENT.CHECKED_OUT) && half.includes("recorded"));
-    assert("  says what everybody else will read", half.includes(ASSET_STATUS.IN_STOCK));
-    assert("  and says pressing again fixes it", half.includes("Do it again"));
+    // The failure sentence, Soo's since #612: the act is not whole, and doing it again finishes it.
+    check("a failed status write, said by value (#612)", ASSET_TRANSITION_COPY.statusNotUpdated, "This wasn't fully recorded. Do it again to finish.");
 
     // ── 6: the actions, read off their own call sites ──────────────────────
     log("");
@@ -1678,17 +1671,29 @@ export function run({ check, assert, log }) {
     check("the head of the recent names, on both widths", ASSET_TRANSITION_COPY.recentHeading, "Recently at this job");
     check("the name sheet's end", ASSET_TRANSITION_COPY.sheetDone, "Done");
     check("  and the name of its clear mark", ASSET_TRANSITION_COPY.clearName, "Clear");
-    check("a check-out with no name is answered in 1k's words", ASSET_TRANSITION_COPY.nameRequired, "Enter a name to check out.");
+    check("a check-out with no name is answered in the desk dialog's words, at both widths (#612)", ASSET_TRANSITION_COPY.nameRequired, "Enter a name.");
 
     // THE TERMINAL SENTENCE WIDENED WITH THE SCREEN. #362 wrote it as
     // `no check-out or check-in to record`, which enumerated two of three absent
     // controls once a retire control stood beside them.
-    // AND SINCE #463 IT NAMES NO STATUS EITHER: the design's sentence states the end, and the
-    // status stands directly above it.
+    // AND SINCE #463 IT NAMES NO STATUS EITHER: the status stands directly above it.
+    // SINCE #612 IT IS THE STATUS ITSELF, Soo's: the design's `Nothing more can be recorded
+    // here.` stopped being true once the page it stands on writes the item's serial number
+    // and note in every status, so the sentence says what the item is and nothing of what
+    // may still be written — no negation, no act and no measure of what is left, any of
+    // which would read as covering the two lines above it.
     const terminal = ASSET_TRANSITION_COPY.noTransition;
-    assert("the terminal sentence states the end rather than listing what is missing", /nothing more can be recorded/i.test(terminal));
-    check("  naming no control", terminal.match(/check-(out|in)/g)?.length ?? 0, 0);
-    check("  and no status", ASSET_STATUS_VALUES.filter((status) => terminal.includes(status)).length, 0);
+    check(
+        "the terminal sentence says the item is retired (#612)",
+        new RegExp(`\\bis ${ASSET_STATUS.RETIRED}\\.$`, "i").test(terminal),
+        true
+    );
+    check("  and claims no end, beside the serial number and note that still write", CLAIMS_AN_END.test(terminal), false);
+    check(
+        "  the words a claim takes are seen in the sentences it replaced",
+        ["Nothing more can be recorded here.", "No more check-outs or check-ins can be recorded.", "This item is retired and can't be edited."].filter((s) => CLAIMS_AN_END.test(s)).length,
+        3
+    );
 
     // ── 10: the question, on the design's frame (#458) ─────────────────────
     // ONE COMPONENT FOR BOTH WIDTHS: 0l's Confirm at a desk and Tools 0a's sheet that

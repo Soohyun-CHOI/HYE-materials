@@ -16,8 +16,8 @@ import { useAssetTransition } from "./AssetTransition";
  * two are one kind of thing: a value somebody keeps on the item, written in place, no event.
  *
  * READ BY EVERYBODY, WRITTEN BY WHOEVER THE PLAN SAYS. The page hands down `planTransition`'s
- * `mayWriteSerial` and `mayWriteNote` — one answer, a site manager on the item's own job while it is
- * in stock or out (#597, `lib/assetStatus.js:MAY_WRITE_NOTE_IN_STATUS`). A line with a value is read
+ * `mayWriteSerial` and `mayWriteNote` — one answer, a site manager on the item's own job in every
+ * status the app shows (#597, #612, `lib/assetStatus.js:mayWriteDetailsIn`). A line with a value is read
  * by everybody; one with none stands only for a reader who may write it, as `Add` at a desk and the
  * line holding its name in Ink 3 on a phone, and for anybody else is not drawn — nor, with neither
  * line drawn, is `Details` (1f `Admin`).

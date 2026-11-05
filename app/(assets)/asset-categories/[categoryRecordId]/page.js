@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAssetsByRecordIds } from "@/lib/airtable/assets";
@@ -8,6 +9,7 @@ import {
     ASSET_LIST_COPY as COPY,
     holderRowIds,
     idsInScope,
+    kindEmptyState,
     lastChangeOf,
     loanedTo,
     pageOfAssets,
@@ -30,15 +32,41 @@ import CategoryJobChoice from "./CategoryJobChoice";
 import CategorySort from "./CategorySort";
 import AssetList from "./AssetList";
 
-// Static, the way `/materials/[materialId]` is and for the same reason: the
-// segment is an Airtable record id, which names nothing a reader would recognize,
-// so a tab carrying the category's name would have to resolve it — and that is a
-// SECOND read of the same record, since generateMetadata runs separately from the
-// page render and the Airtable SDK deduplicates nothing. The other asset screen
-// with a dynamic segment carries the printed id in the URL already, so it names
-// its record for no operations at all. `Item` since #519, the screens' word for a row of the
-// list, where it was `Tool`.
-export const metadata = { title: "Item" };
+/*
+ * THE TAB NAMES THE KIND, AND NAMING IT READS NOTHING (#612). The segment is a record id,
+ * which names nothing a reader would recognize, so the name is the row's — and resolving it
+ * in `generateMetadata` would be a SECOND read of the record, since that runs apart from the
+ * page and the Airtable SDK deduplicates nothing, and one outside the page's scope, for a
+ * signed-out reader too. So the page hands over the name it read: one slot per render
+ * (React's `cache`), which the page marks started before anything else and settles — with
+ * the kind's name once its row is read, `Page not found` for an id no row carries, and
+ * nothing on any other way out, a redirect to sign in among them, which leaves the
+ * product's name alone — and which `generateMetadata` waits on.
+ *
+ * **IT WAITS ONLY ON A PAGE THAT STARTED IN ITS RENDER, OR IT WOULD WAIT FOREVER.** A
+ * redirect is rendered twice: the page and the title together, then the title alone for the
+ * response that redirects, with a slot nobody settles — measured on #612, where a signed-out
+ * request held its 307 open and a bot's, which blocks on the title, answered nothing. Next
+ * starts the page before it asks for the title, measured in both renders and for a bot, so
+ * a slot not started is the title-alone render, answered at once with the product's name;
+ * were the order to change, the tab would say the product's name and nothing would wait.
+ * The other asset screen with a dynamic segment names its record off the printed id in its
+ * address. The tab said `Item` from #519 and `Tool` before it, the static title of every kind.
+ */
+const kindTitle = cache(() => {
+    let settle;
+    const named = new Promise((resolve) => {
+        settle = resolve;
+    });
+    return { started: false, named, settle };
+});
+
+export async function generateMetadata() {
+    const slot = kindTitle();
+    if (!slot.started) return {};
+    const title = await slot.named;
+    return title ? { title } : {};
+}
 
 /**
  * One category and its assets, a page at a time (#339).
@@ -144,7 +172,9 @@ export const metadata = { title: "Item" };
  * run is made here, and an `id` on the address is left unread — and neither part of a
  * registration's account, which is told to whoever added. An empty category tells them who
  * fills it, `Items show here once a site manager adds them.`, where a site manager is told it
- * fills when they add, over the opener (1d, #519). **So does a site manager on another job's
+ * fills when they add, over the opener (1d, #519) — when nothing anywhere stands under the kind;
+ * one with items on other jobs and none on this one says `No items on 25-USA-13` since #612
+ * (`kindEmptyState`). **So does a site manager on another job's
  * list since #597** (1d `Another job`, `No items · another job`), and **on all jobs one meets
  * the opener and no box** (1d `All jobs`) — **one on no job reads what anybody does, there too,
  * since #610**: every question is `listRecording`, asked once here —
@@ -173,7 +203,11 @@ export const metadata = { title: "Item" };
 // wrapper and the route template, so every page of every category aggregates into one
 // row rather than one per record.
 export default async function AssetCategoryPage(props) {
-    return withOpsLabel("/asset-categories/[categoryRecordId]", () => renderCategoryPage(props));
+    // The tab's slot, marked started before the first await, and settled on every way out, so
+    // no title waits on a page that left before reading its row; a second settle does nothing.
+    const title = kindTitle();
+    title.started = true;
+    return withOpsLabel("/asset-categories/[categoryRecordId]", () => renderCategoryPage(props).finally(() => title.settle(null)));
 }
 
 // Every signed-in user, with no Role and no Job gate (#337) — the same reader the rest
@@ -187,13 +221,16 @@ async function renderCategoryPage({ params, searchParams }) {
     // than as a throw. The id reaches a formula only through `orByRecordId`,
     // which escapes it. The job list beside it, since the scope comes off it (#509).
     const [[category], jobs] = await Promise.all([getAssetCategoriesByRecordIds([categoryRecordId]), getAllJobs()]);
+    // The tab's name, off the row just read and the heading's own words (see `kindTitle`).
+    kindTitle().settle(category ? category.itemName : COPY.pageNotFound);
     if (!category) {
         // 1h's shape, which the asset page draws for a code no asset carries: the
         // heading centered in the column and the way back under it. An address carries a
-        // record id here, which says nothing to a reader, so there is no sentence naming it.
+        // record id here, which says nothing to a reader, so there is no sentence naming it,
+        // and the heading names the page rather than an item (#612).
         return (
             <div className="flex min-h-full flex-col items-center justify-center px-page-gutter text-center font-ui text-foreground-default">
-                <h1 className="text-heading font-semibold">{COPY.notFoundHeading}</h1>
+                <h1 className="text-heading font-semibold">{COPY.pageNotFound}</h1>
                 <div className="mt-gap-lg">
                     <ButtonLink variant="bordered" href={ASSET_CATEGORIES_PATH}>
                         {COPY.backToTools}
@@ -297,19 +334,29 @@ async function renderCategoryPage({ params, searchParams }) {
         </ListHeader>
     );
 
-    // Assets under the category, none of them in the scope (#509): the head alone, whose
-    // count and choice say it, where the empty category's words below would be false. A deleted
-    // item stands under nothing (#582), so a kind whose every item was deleted reads as empty:
-    // `itemCountOf` counts its link less what the app does not show, off the row already read.
-    if (page.total === 0 && itemCountOf(category) > 0) {
-        return <ListFrame top={top} header={header} />;
+    // The two empties (1d, #612): items under the kind on other jobs and none in the scope, the
+    // job's own empty, its heading alone under the head that counts none and offers the opener; or
+    // nothing under the kind anywhere, the empty category's words. A deleted item stands under
+    // nothing (#582), so a kind whose every item was deleted reads as the second: `itemCountOf`
+    // counts its link less what the app does not show, off the row already read.
+    const empty = kindEmptyState({ total: page.total, itemCount: itemCountOf(category), jobCode: scope.job?.jobCode ?? null });
+    if (empty?.elsewhere) {
+        return (
+            <ListFrame top={top} header={header}>
+                {empty.heading && (
+                    <div className="flex flex-col items-center pt-list-empty-state-inset-top text-center">
+                        <h2 className="text-heading font-semibold">{empty.heading}</h2>
+                    </div>
+                )}
+            </ListFrame>
+        );
     }
 
-    if (page.total === 0) {
+    if (empty) {
         return (
             <ListFrame top={top} header={header}>
                 <div className="flex flex-col items-center pt-list-empty-state-inset-top text-center">
-                    <h2 className="text-heading font-semibold">{COPY.noAssetsHeading}</h2>
+                    <h2 className="text-heading font-semibold">{empty.heading}</h2>
                     {/* Who fills it (1d, #519): the site manager, with the opener under it (#506),
                         or a site manager, for anybody else. */}
                     <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">

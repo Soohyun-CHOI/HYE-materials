@@ -305,7 +305,7 @@ export function run({ check, log }) {
         "  and the openers on both lists stand under that answer alone, which asks the reader's own jobs on all of them (#610)",
         `${openersUnder(list)} || ${openersUnder(category)} || ${asksIn(parseFile(VIEW), "listRecording")} || ${bound(category, "assignedJobs")}`,
         "RegistrationDialog[recording.adds] | RegistrationDialog[rows.length === 0 && recording.adds] || " +
-            "RegistrationDialog[recording.adds] | RegistrationDialog[page.total === 0 && recording.adds] || " +
+            "RegistrationDialog[recording.adds] | RegistrationDialog[empty && recording.adds] || " +
             "recordsOn(user, scope?.job?.id) | isSiteManager(user) | canRegisterAssets(user, scope.jobs) || " +
             "assignedJobsFor(user, jobs).map(({ id, jobCode, jobName }) => ({ id, jobCode, jobName }))"
     );

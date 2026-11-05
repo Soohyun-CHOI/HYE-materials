@@ -343,9 +343,10 @@ function runCode({ check, assert, log }) {
     check("every refusal has words", refusals.filter((s) => !sentence(s)).join(), "");
     check("  and success has none — it says so by arriving (#321)", CODE_COPY[CODE_STATES.VALID], undefined);
     check("  and there are no extra entries", Object.keys(CODE_COPY).length, refusals.length);
-    check("one try left is singular", CODE_COPY[CODE_STATES.WRONG](1), "Wrong code. 1 try left.");
-    check("  two are plural", CODE_COPY[CODE_STATES.WRONG](2), "Wrong code. 2 tries left.");
-    check("  and four, as the design draws it", CODE_COPY[CODE_STATES.WRONG](4), "Wrong code. 4 tries left.");
+    // `Incorrect code.` and attempts since #612, Soo's, one shape for every count.
+    check("one attempt left is singular (#612)", CODE_COPY[CODE_STATES.WRONG](1), "Incorrect code. 1 attempt left.");
+    check("  two are plural", CODE_COPY[CODE_STATES.WRONG](2), "Incorrect code. 2 attempts left.");
+    check("  and four, the count the design draws", CODE_COPY[CODE_STATES.WRONG](4), "Incorrect code. 4 attempts left.");
     check("a short code, which the design does not draw, keeps #471's sentence", CODE_COPY[CODE_STATES.MALFORMED], "Enter the 6-digit code from the email.");
     // Read off the source, since a figure spelled out renders the same until the length moves.
     const stateSource = readFileSync(new URL("../../../lib/authTokenState.js", import.meta.url), "utf8");
