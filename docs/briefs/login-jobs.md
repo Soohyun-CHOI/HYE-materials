@@ -85,9 +85,10 @@ a reader.
 **A reader this step does not ask and who holds no job** — the office or the
 President — starts the Equipment & Tools list on all jobs (#593), where the one
 of them not counted as the office stood on a no-job state until then. A site
-manager on no job who is the office or the President still meets `Ask the office
-to assign you to a job` where a category's own screen adds items, and no opener
-on the list.
+manager on no job who is the office or the President meets no opener on any
+screen, and nothing said in its place (#610), where until #610 a category's own
+screen drew its opener disabled with `Ask the office to assign you to a job`
+before it.
 
 **The wordmark and the frame are every sign-in step's**, so the four read as one
 flow. At a desk this step's column stands nearer the top than the others — 10% of

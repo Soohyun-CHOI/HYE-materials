@@ -894,8 +894,8 @@ export async function run({ check, assert, log }) {
     // 19 does not reset — with no `action` prop anywhere, since a dialog is never open
     // before hydration. What it says is read off what the reading and the action answered,
     // as `fields` and `error`; its fields start from what the opener handed over. Opened on
-    // a category, the category is the line under the title and its row goes as it stands; a
-    // reader who may not register meets a disabled opener with the reason; and it is open
+    // a category, the category is the line under the title and its row goes as it stands; its
+    // opener opens it, drawn disabled for nobody since #610; and it is open
     // only while the address is the one it was opened at. Since #507 it has two steps: the
     // first's search lists the catalog's names and picks through `pick`, and only the second
     // step commits. Since #514 the first narrows by a type and a category, the category one the
@@ -918,6 +918,8 @@ export async function run({ check, assert, log }) {
             openWhile: null,
             address: null,
             gate: null,
+            opener: null,
+            formUnder: "nothing",
             nameField: [],
             commitment: null,
             commitmentUnder: "nothing",
@@ -1133,6 +1135,14 @@ export async function run({ check, assert, log }) {
                 });
                 if (button) facts.gate = `${text(n.test)} → Button ${attributesOf(button)}`;
             }
+            // The opener the default export draws, and what its form stands under (#610): the
+            // first `Button` it draws, and the left of a `&&` whose right is the form.
+            if (n.type === "FunctionDeclaration" && n.id?.name === "RegistrationDialog")
+                walk(n, (inner) => {
+                    if (!facts.opener && inner.type === "JSXOpeningElement" && inner.name?.name === "Button") facts.opener = `Button ${attributesOf(inner)}`;
+                    if (inner.type === "LogicalExpression" && inner.right?.type === "JSXElement" && inner.right.openingElement.name?.name === "RegistrationForm")
+                        facts.formUnder = text(inner.left);
+                });
             // Where the row is submitted from, and what it holds (#507, #514): a hidden field on
             // the second step, holding the row the steps made — or the one a page opened it on.
             if (n.type === "ConditionalExpression")
@@ -1300,11 +1310,14 @@ export async function run({ check, assert, log }) {
         "{ ...reading, fields: { ...reading.fields, ...detailRefusals(details.levels) } }"
     );
     check("  only the second step commits", dialog.commitmentUnder, 'step === "name" else');
+    // NO OPENER IS EVER DRAWN DISABLED (#610): a page draws one only where the reader may add
+    // (`listRecording`), so the opener opens and its form stands under nothing. Until #610 a
+    // reader who may not register met it disabled with `noJob` before it.
     check(
-        "a reader who may not register meets the opener disabled, with why before it",
-        dialog.gate,
+        "the opener opens the dialog, with no gate drawing it disabled and nothing over its form (#610)",
+        `${dialog.opener} | ${dialog.gate ?? "no gate"} | ${dialog.formUnder}`,
         // In the look its opener asks for (#463): an empty list's second opener is bordered.
-        "!canRegister → Button variant: variant, disabled, disabledReason: COPY.noJob"
+        "Button variant: variant, onClick: registration.start | no gate | nothing"
     );
     check(
         "and it is open only while the address is the one it was opened at",
@@ -1338,6 +1351,7 @@ export async function run({ check, assert, log }) {
                 "  const address = useSearchParams().toString();\n" +
                 "  const open = openedAt !== null;\n" +
                 "  if (canRegister === false) return <Button disabled>{opener}</Button>;\n" +
+                "  return <>{canRegister && <RegistrationForm />}</>;\n" +
                 "}\n" +
                 "function RegistrationForm({ quantity }) {\n" +
                 "  const [state, formAction] = useActionState(registerAssetsAction, null);\n" +
@@ -1391,7 +1405,11 @@ export async function run({ check, assert, log }) {
     check("  and the class said under the choices", plantedDialog.classSaid, true);
     check("  a press that drops the levels' refusals is seen", plantedDialog.secondStepRefusal, "reading");
     check("  a commitment on both steps is seen", plantedDialog.commitmentUnder, "nothing");
-    check("  a gate on something else, with no reason, is seen", plantedDialog.gate, "canRegister === false → Button disabled");
+    check(
+        "  an opener drawn disabled behind a gate, and a form drawn under it, are seen (#610)",
+        `${plantedDialog.opener} | ${plantedDialog.gate} | ${plantedDialog.formUnder}`,
+        "Button disabled | canRegister === false → Button disabled | canRegister"
+    );
     check(
         "  and a dialog that stays open over a moved address is seen",
         `${plantedDialog.openWhile} where address = ${plantedDialog.address}`,

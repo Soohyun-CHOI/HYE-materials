@@ -13,7 +13,7 @@ import {
 } from "@/lib/assetListView";
 import { registrationCatalog } from "@/lib/assetCategory";
 import { ASSET_CATALOG_COPY } from "@/lib/assetCatalog";
-import { ASSET_REGISTRATION_COPY, canRegisterAssets } from "@/lib/assetRegistration";
+import { ASSET_REGISTRATION_COPY } from "@/lib/assetRegistration";
 import { ASSET_CATALOG_PATH } from "@/lib/assetRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
 import { ButtonLink } from "@/app/components/Controls";
@@ -136,8 +136,8 @@ async function renderCategoriesPage({ searchParams }) {
     const [categories, allJobs] = await Promise.all([getAllAssetCategories(), getAllJobs()]);
     const scope = assetListScope(user, allJobs, sp.job);
     // Whether this reader adds assets from this list (#506, #597) — a site manager, on their own
-    // job's list or on all jobs — the one question every opener below is drawn under. It reads
-    // the scope and the reader, so it costs nothing.
+    // job's list or on all jobs while they hold a job (#610) — the one question every opener
+    // below is drawn under. It reads the scope and the reader, so it costs nothing.
     const recording = listRecording(user, scope);
     // The categories on the job, and the statuses of theirs there as this server keeps them, each
     // with the id its label prints (#541) — one question about what changed, whatever stands under
@@ -161,26 +161,23 @@ async function renderCategoriesPage({ searchParams }) {
     // the one the list stands on when that is one of the reader's own (#565) — none on all of
     // them — which the scope already answered off the address, so the opener reads nothing more.
     //
-    // WHETHER THERE IS AN OPENER AT ALL IS THE LIST'S JOB AND THE READER'S OWN JOBS (#593, #597):
-    // `recording.adds` — on another job's list a site manager reads what anybody does — and
-    // `canRegister`, the question the dialog asks of `assignedJobsFor`. A site manager assigned to
-    // none meets no opener here, as 1a2 drew their list (#522), where a category's page draws its
-    // opener disabled with the reason.
-    const registration = {
-        opener: ASSET_REGISTRATION_COPY.heading,
-        canRegister: canRegisterAssets(user, allJobs),
-        jobs: assignedJobsFor(user, allJobs).map(({ id, jobCode, jobName }) => ({ id, jobCode, jobName })),
-        listJobId: scope.job?.id ?? null,
-        catalog: registrationCatalog(categories),
-    };
-    // A site manager on no job meets no opener in the head (1a2, #522): the design drew its no-job
-    // state with the heading alone, where #509 drew the opener locked with why before it.
+    // WHETHER THERE IS AN OPENER AT ALL IS `recording.adds` ALONE (#597, #610): on another job's
+    // list a site manager reads what anybody does, and one assigned to no job meets no opener and
+    // no sentence saying why, here as on a kind's page — `listRecording` asks the registration's
+    // own question of their assignments. #509 drew the opener locked with why before it, 1a2
+    // drew the head alone (#522), and until #610 this page asked that question beside `adds`.
     //
     // EACH OF THE HEAD'S CONTROLS MADE HERE CARRIES A KEY (#527). Handed to the list, a client
     // component, they arrive as elements this page made and stand among the head's children
     // there, where React asked a key of them and warned on every load of the list without one —
     // the registration's opener alone did, measured for a reader the catalog's is not drawn for.
-    const opener = recording.adds && registration.canRegister && <RegistrationDialog key="registration" {...registration} />;
+    const registration = {
+        opener: ASSET_REGISTRATION_COPY.heading,
+        jobs: assignedJobsFor(user, allJobs).map(({ id, jobCode, jobName }) => ({ id, jobCode, jobName })),
+        listJobId: scope.job?.id ?? null,
+        catalog: registrationCatalog(categories),
+    };
+    const opener = recording.adds && <RegistrationDialog key="registration" {...registration} />;
     // The way to the catalog, the office's alone (#527) and in every state of the head.
     const catalog = office && (
         <ButtonLink key="catalog" variant="faced" mark={<Icon name="book-open" className="size-icon shrink-0" />} href={ASSET_CATALOG_PATH}>
@@ -207,7 +204,7 @@ async function renderCategoriesPage({ searchParams }) {
                     <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">
                         {recording.adds ? COPY.noItems : COPY.untilASiteManagerAdds}
                     </p>
-                    {recording.adds && registration.canRegister && (
+                    {recording.adds && (
                         <div className="mt-gap-lg">
                             <RegistrationDialog {...registration} variant="bordered" />
                         </div>

@@ -15,7 +15,8 @@
 //      on the item's job, on another, on two and on none, a reader who is not one, and the office
 //      as and as not a site manager — and `planTransition`'s `records` being that answer for each.
 //   2. A LIST BY VALUE (`listRecording`): on the reader's own job's list the opener and the boxes,
-//      on another's neither, and on all jobs the opener alone.
+//      on another's neither, and on all jobs the opener alone — and since #610 only for a site
+//      manager holding a job the list holds, so one on no job is offered nothing on any list.
 //   3. THE THREE ACTIONS OFF THEIR SOURCE: each plans on the item's job as read, compares the job
 //      the page was drawn on and writes none the form names, and a refusal about whose item it is
 //      is said; the retirement a status got in front of says nothing, as it did.
@@ -127,8 +128,18 @@ export function run({ check, assert, log }) {
     check(
         "on 23-USA-09's, on 26-USA-12's, and on all jobs",
         Object.entries(READERS).map(([name, user]) => `${name}: ${[A.id, C.id, ALL_JOBS].map((job) => offers(user, job)).join(" ")}`).join(" | "),
-        "site manager on 23-USA-09: add/boxes -/- add/- | site manager on two: add/boxes -/- add/- | site manager on none: -/- -/- add/- | " +
+        "site manager on 23-USA-09: add/boxes -/- add/- | site manager on two: add/boxes -/- add/- | site manager on none: -/- -/- -/- | " +
             "not a site manager, on 23-USA-09: -/- -/- -/- | office, not a site manager, on 23-USA-09: -/- -/- -/- | office, a site manager on 26-USA-12: -/- add/boxes add/-"
+    );
+    // ON ALL JOBS THE OPENER ASKS A JOB TO ADD ONTO AMONG THE JOBS THE LIST HOLDS (#610): a site
+    // manager on no job is offered nothing there, as on one job, and neither is one whose only
+    // assignment is a job the list does not hold — one #488 would take off the choice — since the
+    // registration's choice is drawn from those same jobs.
+    const offGone = { isSiteManager: true, assignedJobs: ["recJ9"] };
+    check(
+        "  on all jobs, a site manager whose only job the list does not hold is offered nothing, and one beside it the opener",
+        `${offers(offGone, ALL_JOBS)} ${offers({ isSiteManager: true, assignedJobs: ["recJ9", C.id] }, ALL_JOBS)}`,
+        "-/- add/-"
     );
     check("  a list on no job at all offers nothing", JSON.stringify(listRecording(READERS["site manager on 23-USA-09"], { job: null, allJobs: false })), '{"adds":false,"selects":false}');
     check("  and a list with no scope nothing either", JSON.stringify(listRecording(READERS["site manager on 23-USA-09"], undefined)), '{"adds":false,"selects":false}');

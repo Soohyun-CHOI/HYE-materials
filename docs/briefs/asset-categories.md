@@ -75,11 +75,13 @@ the list rather than inside it, because the reader with no items at all is the
 one who needs it most. It is a site manager's on their own job's list and on
 all jobs, since what they add goes on a job of their own (#597; 1a), and on
 another job's list it is drawn for nobody (1a `Another job`) — it stood on every
-job's list from #593 to #597: for one assigned to no job it is drawn none, as 1a2
-drew that state
-(#522, #593; #509 drew it disabled, and an office reader assigned to no job met
-it disabled, with `Ask the office to assign you to a job` before it, until
-#593), and **a reader who is not a site manager is drawn none (#506)** — being
+job's list from #593 to #597. **A site manager assigned to no job is drawn none,
+on this screen and on every other, with no sentence saying why (#610)**: sign-in
+asks a reader with no job to choose one (#554), all but the office and the
+President, so the request the sentence pointed at is that step's. #509 drew it
+disabled here with `Ask the office to assign you to a job` before it, 1a2 drew
+the head alone from #522, and a category's screen drew it disabled with that
+sentence until #610. **A reader who is not a site manager is drawn none (#506)** — being
 one is not something the office assigns on request the way a job is, so a
 disabled control with a reason would send them nowhere. **It carries the job the
 list stands on (#565)**, which the dialog's job starts on when it is one of the

@@ -91,24 +91,27 @@ import { registerAssetsAction } from "./actions";
  * THE OFFER'S OPENER STANDS IN A DIALOG OF ITS OWN SINCE #459, so it cannot be this
  * component: the offer puts itself away as the registration opens, and a control inside
  * a dialog that is gone cannot hold the one that replaced it. So the parts are exported —
- * `useRegistrationOpening` for the rule below, `RegistrationOpener` for the gate, and
- * `RegistrationForm` for the dialog — and this default export is them assembled for an
- * opener that stands on a page. Each is one implementation, whichever of the two draws it.
+ * `useRegistrationOpening` for the rule below and `RegistrationForm` for the dialog — and
+ * this default export is them assembled under an opener that stands on a page. Each is one
+ * implementation, whichever of the two draws it. `RegistrationOpener` was a third, the gate
+ * below, until #610 left it nothing to gate.
  *
  * AN EMPTY LIST DRAWS A SECOND OPENER, BORDERED, UNDER ITS SENTENCE (1a, 1d; #463) — another
  * of these beside the head's, `variant` its one difference — since a list with nothing in it
  * is where the reader who needs the dialog most is looking.
  *
- * A SITE MANAGER ON NO JOB MEETS EVERY OPENER DRAWN AND DISABLED, WITH WHY BEFORE IT (0f),
- * and the dialog never opens for them. What #451 kept is kept for them: all three ask one
- * predicate, `canRegisterAssets`, which the page asks and hands down as `canRegister`,
- * and the reason is said beside the control that cannot act, rather than on a screen
- * arrived at to be refused, which is also `/invoices`' rule against landing a reader on a
- * refusal. **A reader who is not a site manager meets no opener at all (#506)** — each page
- * draws this only under `isSiteManager` — which is that same rule read for a role: a job
- * assignment is something to ask the office for, and being a site manager is not, so
- * `New invoice`'s shape fits rather than a disabled opener with a reason that would send
- * them nowhere.
+ * EVERY OPENER IS DRAWN WHERE THE READER MAY USE IT AND NOWHERE ELSE, SO NONE IS EVER DISABLED
+ * (#610). Each page draws this under `lib/assetListView.js:listRecording`'s `adds`: a site
+ * manager on the list's job, or on all jobs one holding a job (`canRegisterAssets`). **A reader
+ * who is not a site manager meets no opener at all (#506)**, `/invoices`' `New invoice` rule
+ * read for a role, and **neither does a site manager on no job**, with no sentence saying why:
+ * sign-in asks a reader with no job for one (#554), which is the request the sentence pointed
+ * at, and leaves out only the office and the President, so they are the only such site managers
+ * a page meets. From #456 to #610 such a site manager met a kind's page's openers and the offer drawn
+ * disabled with `Ask the office to assign you to a job` before them (0f), while
+ * `/asset-categories` drew them none from #522 — one reader, two answers. The action still
+ * refuses them in those words, said here over the actions to a reader whose last job was taken
+ * off while the dialog was open, and otherwise to a caller with no screen.
  *
  * WHAT A SUBMISSION MAY BE IS ASKED BEFORE IT IS SENT, and asked of the same function the
  * action asks, `readRegistration`, against the same catalog rows: a refusal about a field is
@@ -144,26 +147,24 @@ import { registerAssetsAction } from "./actions";
  * while it is open, because a modal dialog leaves the page behind it inert. Each opening
  * starts from what the opener hands over, and not from what the last one was left holding.
  */
-export default function RegistrationDialog({ opener, variant, canRegister, jobs, listJobId, category = null, catalog = [], quantity }) {
+export default function RegistrationDialog({ opener, variant = "filled", jobs, listJobId, category = null, catalog = [], quantity }) {
     const registration = useRegistrationOpening();
 
     return (
         <>
-            <RegistrationOpener variant={variant} canRegister={canRegister} onOpen={registration.start}>
+            <Button variant={variant} onClick={registration.start}>
                 {opener}
-            </RegistrationOpener>
-            {canRegister && (
-                <RegistrationForm
-                    key={registration.opening}
-                    open={registration.open}
-                    onClose={registration.close}
-                    jobs={jobs}
-                    listJobId={listJobId}
-                    category={category}
-                    catalog={catalog}
-                    quantity={quantity}
-                />
-            )}
+            </Button>
+            <RegistrationForm
+                key={registration.opening}
+                open={registration.open}
+                onClose={registration.close}
+                jobs={jobs}
+                listJobId={listJobId}
+                category={category}
+                catalog={catalog}
+                quantity={quantity}
+            />
         </>
     );
 }
@@ -188,25 +189,6 @@ export function useRegistrationOpening() {
         },
         close: () => setOpenedAt(null),
     };
-}
-
-/**
- * The control that opens the dialog — or, for a reader who may not register, the same
- * control drawn disabled with why before it (0f), and the dialog never opens for them.
- */
-export function RegistrationOpener({ variant = "filled", canRegister, onOpen, children }) {
-    if (!canRegister) {
-        return (
-            <Button variant={variant} disabled disabledReason={COPY.noJob}>
-                {children}
-            </Button>
-        );
-    }
-    return (
-        <Button variant={variant} onClick={onOpen}>
-            {children}
-        </Button>
-    );
 }
 
 /**

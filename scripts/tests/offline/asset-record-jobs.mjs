@@ -16,7 +16,8 @@
 // recordsOn`). So what is held below is which items each reader records on, by the item's job,
 // and a list's `Add items` and label boxes stand on the reader's own job's list — or, for the
 // opener alone, on all jobs (`lib/assetListView.js:listRecording`), where the scope's job is
-// asked of the reader's assignments and never taken from the view.
+// asked of the reader's assignments and never taken from the view. Since #610 that opener on all
+// jobs asks the reader's assignments too, so a site manager on no job is offered it on no list.
 //
 // SO IT HOLDS TWO THINGS:
 //
@@ -53,6 +54,7 @@ const CATEGORY = "app/(assets)/asset-categories/[categoryRecordId]/page.js";
 const ITEM = "app/(assets)/assets/[assetId]/page.js";
 const REGISTER = "app/(assets)/asset-categories/actions.js";
 const RECORD = "app/(assets)/assets/[assetId]/actions.js";
+const VIEW = "lib/assetListView.js";
 
 /**
  * Every file that imports `assetListScope`, and why. One more fails until it is here — a recording
@@ -70,7 +72,7 @@ const SCOPE_READERS = {
 const RECORDING_ELEMENTS = ["RegistrationDialog", "RegistrationShortfall", "RegistrationUnlogged", "LabelsDialog", "AssetTransition"];
 
 /** The bindings the pages feed those elements from. */
-const RECORDING_BINDINGS = ["registration", "opener", "canRegister", "assignedJobs", "listJobId", "transition", "recentRows", "recorder", "recording"];
+const RECORDING_BINDINGS = ["registration", "opener", "assignedJobs", "listJobId", "transition", "recentRows", "recorder", "recording"];
 
 /** Every file under app/ and lib/ importing `name`, as a repo-relative path. */
 function importersOf(name) {
@@ -110,6 +112,19 @@ export function scopeFeeds(parsed) {
 /** The conditions every recording element on a page is drawn under, each occurrence's joined. */
 function recordingConditions(ast) {
     return RECORDING_ELEMENTS.flatMap((element) => conditionsOf(ast, { element }).map((under) => `${element}[${under.join(" && ")}]`));
+}
+
+/**
+ * The judgments a function asks — each call to `recordsOn`, `isSiteManager` or `canRegisterAssets`
+ * in it, as written, in source order (#610).
+ */
+function asksIn(parsed, name) {
+    const fn = resolveFunction(parsed.ast, name);
+    const found = [];
+    walk(fn ?? {}, (n) => {
+        if (n.type === "CallExpression" && ["recordsOn", "isSiteManager", "canRegisterAssets"].includes(n.callee?.name)) found.push(parsed.source.slice(n.start, n.end));
+    });
+    return found.join(" | ") || "none";
 }
 
 /** What a binding is written as, its whitespace folded, or "not bound". */
@@ -199,7 +214,7 @@ export function run({ check, log }) {
                 .map((r) => `${Number(r.adds)}${Number(r.selects)}`)
                 .join(" ")
         ),
-        "site manager on two: 11 00 10 | site manager on one: 11 00 10 | site manager on none: 00 00 10 | " +
+        "site manager on two: 11 00 10 | site manager on one: 11 00 10 | site manager on none: 00 00 00 | " +
             "office on none: 00 00 00 | office, a site manager on one: 00 11 10 | reader who records nothing: 00 00 00"
     );
     check(
@@ -278,11 +293,21 @@ export function run({ check, log }) {
         [list, category, item].flatMap((page) => recordingConditions(page.ast)).filter((under) => /scope|onNoJob/.test(under)).join(" | "),
         ""
     );
+    // AND EVERY OPENER ON BOTH LISTS STANDS UNDER THAT ANSWER ALONE (#610), which on all jobs asks
+    // the registration's own question of the reader's assignments over the jobs the list holds —
+    // so no page asks it beside the answer, as 1a did until #610, and a site manager on no job
+    // meets no opener on either, where a kind's page drew its two disabled.
+    const openersUnder = (page) =>
+        recordingConditions(page.ast)
+            .filter((under) => under.startsWith("RegistrationDialog"))
+            .join(" | ");
     check(
-        "  and the list's opener asks the reader's own jobs, as a category's page does",
-        `${recordingConditions(list.ast).join(" | ")} || ${bound(category, "canRegister")} | ${bound(category, "assignedJobs")}`,
-        "RegistrationDialog[recording.adds && registration.canRegister] | RegistrationDialog[rows.length === 0 && recording.adds && registration.canRegister] || " +
-            "canRegisterAssets(user, jobs) | assignedJobsFor(user, jobs).map(({ id, jobCode, jobName }) => ({ id, jobCode, jobName }))"
+        "  and the openers on both lists stand under that answer alone, which asks the reader's own jobs on all of them (#610)",
+        `${openersUnder(list)} || ${openersUnder(category)} || ${asksIn(parseFile(VIEW), "listRecording")} || ${bound(category, "assignedJobs")}`,
+        "RegistrationDialog[recording.adds] | RegistrationDialog[rows.length === 0 && recording.adds] || " +
+            "RegistrationDialog[recording.adds] | RegistrationDialog[page.total === 0 && recording.adds] || " +
+            "recordsOn(user, scope?.job?.id) | isSiteManager(user) | canRegisterAssets(user, scope.jobs) || " +
+            "assignedJobsFor(user, jobs).map(({ id, jobCode, jobName }) => ({ id, jobCode, jobName }))"
     );
     check(
         "an asset's page plans from the item's own job, its owner job and its latest entry (#598), and offers the names that job gave (#597)",

@@ -362,10 +362,10 @@ export function ButtonLabel({ size, busyLabel, children }) {
  * undone, `ghost` for one that is its word alone — a dialog's `Back`, at `md` (#520) — its
  * Destructive kind `ghostDanger` (1l's `Discontinue`, #527), and `bordered` for the rest.
  *
- * A DISABLED ACTION SAYS WHY BEFORE IT, ON ITS OWN LINE (0f Disabled): the reason sits 14
- * before the button at 13 and Ink 3, and the button names it as its description, so a
- * screen reader reaching the control hears what stops it. That is the one place the rule
- * is drawn, so every opener that cannot act says so the same way.
+ * A DISABLED ACTION NAMES WHY AS ITS DESCRIPTION, `describedBy` below, so a screen reader
+ * reaching the control hears what stops it. From #456 to #610 a `disabledReason` drew it 14
+ * before the button at 13 and Ink 3 (0f Disabled) for the registration's openers, the one
+ * caller; #610 draws a reader who may not add no opener at all, which left it none.
  *
  * A BUSY ACTION IS NOT A DISABLED ONE (0f Working). `busy` keeps the fill, turns a press
  * away — a submit included, so a second press cannot send the form twice, and Enter in a
@@ -397,21 +397,19 @@ export function ButtonLabel({ size, busyLabel, children }) {
  * `ref` IS THE BUTTON ITSELF (#566), for a caller that hands focus back to it — 1a's `Export`,
  * which a toast reporting its press returns focus to.
  */
-export function Button({ variant = "filled", size = "lg", type = "button", disabled = false, disabledReason, describedBy, busy = false, busyLabel, holdWidthOf, ariaLabel, ref, onClick, children }) {
-    const reasonId = useId();
+export function Button({ variant = "filled", size = "lg", type = "button", disabled = false, describedBy, busy = false, busyLabel, holdWidthOf, ariaLabel, ref, onClick, children }) {
     // What the form waits on, as the frame said it: its submit, or `"action"` (#527).
     const formWaits = useContext(FormBusyContext);
     const state = buttonBusyState({ busy, formBusy: formWaits, submits: type === "submit", disabled });
     const working = state === "working";
-    const explained = disabled && Boolean(disabledReason);
-    const button = (
+    return (
         <button
             ref={ref}
             type={type}
             disabled={disabled}
             onClick={state ? (event) => event.preventDefault() : onClick}
             aria-label={ariaLabel}
-            aria-describedby={explained ? reasonId : describedBy}
+            aria-describedby={describedBy}
             aria-busy={working || undefined}
             aria-disabled={state ? true : undefined}
             data-busy={working || undefined}
@@ -430,15 +428,6 @@ export function Button({ variant = "filled", size = "lg", type = "button", disab
                 )}
             </ButtonLabel>
         </button>
-    );
-    if (!explained) return button;
-    return (
-        <span className="inline-flex items-center gap-gap-lg">
-            <span id={reasonId} className="font-ui text-body-sm text-foreground-subtle">
-                {disabledReason}
-            </span>
-            {button}
-        </span>
     );
 }
 

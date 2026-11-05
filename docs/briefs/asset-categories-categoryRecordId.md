@@ -96,8 +96,12 @@ dialog's job starts on when it is one of the reader's own; on `All jobs`, or on
 a job the office views and is not assigned to, the job starts unchosen
 (`tools-new.md`). It is on this screen for every category it finds, the one with
 nothing under it included, for a site manager on the job the list stands on, and
-on `All jobs` for every site manager — one assigned to no job sees it disabled
-there, with `Ask the office to assign you to a job` before it. **On another job's
+on `All jobs` for every site manager holding a job. **A site manager assigned to
+no job is drawn none, here and on every other screen, with no sentence saying
+why (#610)** — sign-in asks a reader with no job to choose one (#554), all but
+the office and the President — where until #610 this screen drew it disabled on
+`All jobs`, with `Ask the office to assign you to a job` before it, and the
+category list drew none. **On another job's
 list it is drawn for nobody** (#597; 1d `Another job`), where the site manager
 reads the list as anybody does. **A reader who is not a site manager is drawn none**
 (#506): being one is not something the office assigns on request the way a job
@@ -345,7 +349,19 @@ the room, as 1d draws it without the box (#533, #607; the status took it from #5
 read for them, so it marks no entry and rides no step. Nothing replaces any of
 it with a sentence: the screen is theirs to read, and a control is absent
 rather than disabled because being a site manager is not something one asks
-the office for the way a job is.
+the office for.
+
+**When the site manager is assigned to no job (#610):** the screen a reader who
+is not a site manager reads, on every job and on `All jobs` alike — no
+`Add items` and nothing said in its place, `Items show here once a site manager
+adds them.` under an empty category, and neither dialog a landing tells. Until
+#610 `All jobs` drew `Add items` disabled for them with `Ask the office to
+assign you to a job` before it, as the dialog a registration that fell short
+opens drew `Add 2 more`, while the category list drew neither: one reader, two
+answers. A job is asked for at sign-in (#554), of everyone but the office and
+the President, so that is the request the sentence pointed at, and **a design
+must not draw this reader a disabled opener, or the sentence**, on this screen
+or another.
 
 **When no category carries the record id in the address:** the screen is the
 heading `Item not found` and a way back to `/asset-categories`. Nothing on this axis
