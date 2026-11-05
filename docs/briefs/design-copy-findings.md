@@ -20,10 +20,11 @@ next sending; the app holds them now. #520's name in two places was not in that
 sending and waits for the one that takes it up, and one row was set after it:
 the retired item's sentence, in #612's last entry. The first entry, the purchase
 request screen's (#333), waits on no sending, since the files draw no such
-screen: the app decides it when the materials screens open again. The serial
-number's export column (#601) and the sign-in mail's plain-text part are no
-entries, the files drawing neither: they are the app's, in `docs/notes/tools.md`
-and `docs/notes/authorization.md`. What the files and the app draw alike was
+screen: the app decides it when the materials screens open again. **What the
+files draw nothing of is no entry**: the export file's columns — the serial
+number's (#601), and a loan's `On loan` and `Owner job` (#598) — and the sign-in
+mail's plain-text part are the app's, in `docs/notes/tools.md` and
+`docs/notes/authorization.md`. What the files and the app draw alike was
 taken off this list in #612: the axis's name (#591), 1a3's state for an item at
 another job (#541), the category list's empty sentence (#531), the export's
 failure (#553), #520's first two rows, #513's table of `item`, #514's level
@@ -347,8 +348,8 @@ The keys are `ASSET_TRANSITION_COPY.notYours` and `.movedTo` in
 The files draw a lending's menu line, its dialog and sheet, the return's
 question at both widths, `On loan from` under a borrowed item's title, `On loan`
 on 1a and 1d, and the history's route under a loan's two entries. They draw no
-wait on either commitment, no loan left half done, and no export. Design takes
-each in the next sending.
+wait on either commitment and no loan left half done. Design takes each in the
+next sending.
 
 | String | Where | The files |
 |---|---|---|
@@ -358,8 +359,6 @@ each in the next sending.
 | `The item wasn't fully returned. Return it again to finish.` | over the return's actions, or under the status | the same |
 | `Jisoo Park already lent this to another job on …` | under the status, after a press somebody's lending got in front of | draw no refused loan |
 | `… already returned this to its owner on …` | the same, after a return | the same |
-| `On loan` | the export's first sheet, between `In repair` and `Retired`, on one job's file | draw no export |
-| `Owner job` | the export's second sheet, after `Job` | the same |
 | a kind's page row on loan with no label box | 1d on the owner job | draw a box on every row |
 
 **The event is the base's, and the history prints it as stored**, so a bare
@@ -369,18 +368,13 @@ are the job change's shape since #612**: what is not whole, and the press that
 finishes it — a lending naming the job it went to, since lending again finishes
 it only there; until #612 they named the entry and the job the lists still say.
 **The refusals are 1k's** with a loan's acts, and end on `Nothing was saved.`,
-the sentence a press with no noun ends on. **The export's columns are the list's
-words** — the first sheet's heads are 1a's, `On loan` among them on one job — and
-the second sheet's is the field the base calls `Owner Job`, in the sheet's case.
-**A row on loan carries no box** because its label is the job it stands on's to
+the sentence a press with no noun ends on. **A row on loan carries no box** because its label is the job it stands on's to
 print (`lib/assetJob.js:recordsOn`): a box that selected it would lead to `1 item
 not on your jobs`.
 
 The keys are `ASSET_TRANSITION_COPY.lendHalfDone`, `.returnHalfDone`,
-`.working` and `.movedAct` in `lib/assetTransition.js`, `ASSET_EVENT` in
-`lib/assetStatus.js`, and `ASSET_EXPORT_COPY.ownerJob` and
-`ASSET_LIST_COPY.onLoanLabel` in `lib/assetListExport.js` and
-`lib/assetListView.js`, held by value in `offline/asset-loan.mjs`. The base
+`.working` and `.movedAct` in `lib/assetTransition.js` and `ASSET_EVENT` in
+`lib/assetStatus.js`, held by value in `offline/asset-loan.mjs`. The base
 calls the job an item belongs to `Assets."Owner Job"`, the job it stands on
 `Assets."Job"`, and the two events `Lent` and `Returned to owner`.
 
