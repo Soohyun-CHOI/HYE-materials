@@ -1,4 +1,5 @@
 import { isTyping, keyboardHeight, takesTyping } from "./keyboardViewport.js";
+import { moveFocus } from "./movedFocus.js";
 
 /*
  * What holds a phone's sheet still while it is open (#579): the page behind it, and the
@@ -133,7 +134,8 @@ export function holdPage(win, doc) {
             const toNothing = gaining === null && doc.hasFocus();
             const turn = focusTurn({ toField: gaining !== null && fieldInDialog(gaining), fromField: fieldInDialog(leaving), toNothing });
             if (turn === "field") gaining.focus({ preventScroll: true });
-            else if (turn === "title") titleOf(leaving, doc)?.focus({ preventScroll: true });
+            // The title is focus the app moves after a tap, drawn for the keyboard alone (#607).
+            else if (turn === "title") moveFocus(titleOf(leaving, doc), { preventScroll: true });
         };
         held = {
             x,

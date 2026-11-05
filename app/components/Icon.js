@@ -12,6 +12,14 @@
  * upgrades — and could not carry the line either (below). A shape the design comes to draw is
  * copied out of Lucide at the design's release, its elements in Lucide's order.
  *
+ * BUT FOR ONE, `ellipsis`, WHOSE DOTS ARE FILLED (#607). The files of 2026-11-04's afternoon draw
+ * `More actions`' three dots as discs where Lucide strokes three rings of radius 1, and each disc's
+ * radius is the ring's outer edge — 1.94 at 16, 1.625 at 24, 2.07 at 14, which is 1 and half the
+ * line every time. So the dots keep Lucide's ring and take `currentColor` inside it: the one line
+ * around a filled dot of 1 is that disc at every size, where a radius written per size would not
+ * follow a rem size. Drawn as rings, the phone's 24 dots each held a hole 0.75 across, which a
+ * phone shows; at 16 the hole was 0.08 across and at 14 the line closed it.
+ *
  * ONE LINE FOR EVERY MARK, AND IT DOES NOT SCALE. The stroke is `--stroke-width-icon` and
  * every shape is drawn `non-scaling-stroke`, so a 40 mark and an 11 chevron carry the one
  * 1.25px the design gives both — which its files write in each mark's own grid units, 1.88 at
@@ -71,7 +79,8 @@
  *   DEALINGS IN THE SOFTWARE.
  */
 
-// Each shape by its Lucide name, as lucide-react 1.52.0 holds it, its elements in Lucide's order.
+// Each shape by its Lucide name, as lucide-react 1.52.0 holds it but for `ellipsis`'s fill, its
+// elements in Lucide's order.
 const SHAPES = {
     // Between a loan's two jobs under its history entry on a phone (1j, #598).
     "arrow-right": [
@@ -114,10 +123,12 @@ const SHAPES = {
         ["path", { d: "M8 11h.01" }],
         ["path", { d: "M8 16h.01" }],
     ],
+    // `More actions` at every size (1f, 1j, 1l): Lucide's dots filled, the one shape that departs
+    // from 1.52.0 (#607, above).
     ellipsis: [
-        ["circle", { cx: "12", cy: "12", r: "1" }],
-        ["circle", { cx: "19", cy: "12", r: "1" }],
-        ["circle", { cx: "5", cy: "12", r: "1" }],
+        ["circle", { cx: "12", cy: "12", r: "1", fill: "currentColor" }],
+        ["circle", { cx: "19", cy: "12", r: "1", fill: "currentColor" }],
+        ["circle", { cx: "5", cy: "12", r: "1", fill: "currentColor" }],
     ],
     "file-text": [
         ["path", { d: "M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" }],

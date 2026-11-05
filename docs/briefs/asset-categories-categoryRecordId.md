@@ -160,22 +160,25 @@ retired item reads more here than in that column, by as many as are retired.
 
 **evidence.** One entry per asset, **newest first** (1d), each carrying
 five facts: its printed `Asset ID`, which is the way into that asset's
-own screen; its serial number (#601), in the id's face and nothing where it has
-none; its status, one of `In stock`, `Out`, `In repair` (#531) or `Retired`, and after an
+own screen; its serial number (#601), with even figures — a maker's number, which
+the portal's id face is not for (0h, #607) — and nothing where it has none; its status, one of `In stock`, `Out`, `In repair` (#531) or `Retired`, and after an
 `Out` who it was checked out to, `Out · Hyunwoo Kang`; its note (#533), the one
-line a site manager keeps on it, in Ink 2 and nothing where it has none; and the day it last
+line a site manager keeps on it, as a 14 speech-bubble mark in Ink 3 in a column
+of its own under no head, and nothing where it has none (0n, #607); and the day it last
 changed, `09/22/2026` — the day of its latest scan, retirement or registration,
 in the reader's own zone (1d, #520). Each carries its box as well, for a site
 manager on the list's job; see above. On `All jobs` each also carries the job it is on, after its
 id (#548; below).
 
-**The note is one line, cut at its column's end and shown whole above its cell
-under the pointer (#533)**, as the catalog shows a cut value (1l): it is at most
-50 characters, and a row is one line. **A note changes no day**: it is no event,
-so writing one moves nothing in the `Updated` column, which says when the item
-itself last moved, and nor does a serial number. The status's column is 240 again beside it, as 1d draws it, where
-it took the room left from #520 until #533. **The serial number's column is 128 after the id's,
-which narrows to 144 for it, the note's giving up the rest (1d, #601).**
+**A note stands as its mark, the note itself shown above it under the pointer
+and in its name to assistive tech (0n, #607)**, as the catalog shows a cut value
+(1l); from #533 until then its words stood in a column of their own, cut at the
+column's end. **A note changes no day**: it is no event, so writing one moves
+nothing in the `Updated` column, which says when the item itself last moved, and
+nor does a serial number. The status's column takes the room left from 240, as
+1d draws it; it took the room left from #520 until #533, and was 240 beside the
+note's words until #607. **The id's column is 152 and the serial number's 160
+after it (0b, #607)**, where they were 144 and 128 from #601.
 
 **The day is written with its year, which 0h does not ask for in a table
 column** — it says `MM/DD` there — and 1d draws it in full; the year stays
@@ -184,7 +187,7 @@ would not say which. **The job each asset is on stood in the day's place from
 #463 until 1d drew the day**: where an asset was last scanned is on its own
 screen, and the breadcrumb says the one the list is narrowed to. **On `All jobs` it is a column again (1d, #548)**, after the
 printed id and, since #601, its serial number, the job's code in a lighter ink, since the breadcrumb no longer says
-it for every row; the note gives up the room. A selection there may hold items on
+it for every row; the status gives up the room. A selection there may hold items on
 several jobs, and one print takes them together.
 
 **Newest first moves every row along at each registration, and that was
@@ -336,8 +339,8 @@ on it, and none of the controls a site manager uses here — no `Add items` in
 the head or under an empty list, no box on an entry or for the page, no
 selection bar and so nothing to print, and neither dialog a registration's
 landing tells, which speak to whoever added. The column of boxes goes with
-the boxes, so the table is `Item ID`, `Serial number`, `Status`, `Note` and `Updated`, the note taking
-the room, as 1d draws it without the box (#533; the status took it from #520, and
+the boxes, so the table is `Item ID`, `Serial number`, `Status`, the note's mark and `Updated`, the status taking
+the room, as 1d draws it without the box (#533, #607; the status took it from #520, and
 `Job` stood in the day's place until then). A selection carried on the address is not
 read for them, so it marks no entry and rides no step. Nothing replaces any of
 it with a sentence: the screen is theirs to read, and a control is absent
@@ -443,7 +446,8 @@ the paging exists to avoid — this page reads only the entries it draws,
 whatever the category's size.
 
 **The column over each code is `Item ID`, beside `Serial number`, `Status`, `Note` and `Updated`
-(#519, #520, #533, #601).** `Note` is the field's name on the base, `Assets."Note"`, and
+(#519, #520, #533, #601)**, `Note` said to assistive tech alone since 1d draws the mark's column under
+no head (#607). `Note` is the field's name on the base, `Assets."Note"`, and
 the asset's own screen labels the note's field with it; `Serial number` is `Assets."Serial Number"`,
 which the asset's own screen's field and sheet say, its desk row `Serial` for short as 1f draws it. It was `Tool ID` from #463, `Item` from #455, the design's word then,
 and `Tool item` before it. `Status` names one field and is the word the asset's

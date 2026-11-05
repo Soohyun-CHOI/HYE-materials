@@ -797,7 +797,8 @@ export function run({ check, assert, log }) {
             /<div\s+key=\{row\.id\}\s+role="row"\s+\{\.\.\.tip\.cutProps\(\)\}/.test(list),
             (list.match(/data-cut=""/g) ?? []).length === 2 &&
                 /const CUT_CELLS = \[\s*\{ key: "size", figures: true \},\s*\{ key: "maker" \},\s*\{ key: "partNumber", figures: true \},\s*\{ key: "level2" \},\s*\{ key: "level1" \},?\s*\];/.test(list),
-            /if \(!cell \|\| cell\.scrollWidth <= cell\.clientWidth \+ 1\) \{\s*if \(shownOn\.current\) hide\(\);\s*return;\s*\}/.test(tooltip),
+            // A mark standing for a value shows it whatever is cut (0n, #607); a cell of words, only cut.
+            /const tip = cell\?\.dataset\.tip;\s*if \(!cell \|\| \(tip === undefined && cell\.scrollWidth <= cell\.clientWidth \+ 1\)\) \{\s*if \(shownOn\.current\) hide\(\);\s*return;\s*\}/.test(tooltip),
         ].join(" ");
     check("a cut value shows whole above its cell, the row handing the tooltip the pointer, a cell whole showing none", cutShown(parseFile(LIST).source, parseFile("app/components/Tooltip.js").source), "true true true");
     check(

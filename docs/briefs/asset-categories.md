@@ -274,7 +274,8 @@ typed; a piece of one finds nothing by it and is searched for in the names as
 any word is. Found on the job the list stands on, or on all jobs and among those
 the chips take, each kind holding it is a row and each item holding it a line
 over the rows, 8 apart in the rows' order — the line of an id with `Serial number`
-in Ink 3 and the number in the id's face after the id, behind the same dot. One
+in Ink 3 and the number with even figures after the id (0h, #607), behind the
+same dot. One
 number may stand on items of more than one kind, since it is one item's within
 its kind. Anywhere else it is asked of every job once the typing rests half a
 second, or at once on Enter, which opens the item where only one holds it: found,

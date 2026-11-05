@@ -30,7 +30,9 @@ already, and neither needs an assignment to work.
 **identity.** The product's name as the wordmark, the same as on every step before
 it, the title `Choose your jobs` and the sentence `Pick every job you work on.`
 
-**action.** A search, `Search jobs`, and under it every job there is, one row each:
+**action.** A search, `Search jobs`, which ends in a × that empties it, `Clear
+search`, once it holds anything, at a desk and on a phone; and under it every job
+there is, one row each:
 the job's code and its name, and a box that is ticked when the job is chosen —
 several may be. At a desk the box leads the row and the list scrolls in the
 column; on a phone the code stands over the name, a round check ends the row, the

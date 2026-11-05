@@ -52,9 +52,9 @@ const BAR_STACK = {
  * refusal (0o).
  *
  * ON A PHONE IT IS THE BOTTOM BAR (Tools 0a Foot bar): at the page's foot, sticky, 16 above
- * and either side and 20 below, its rows 12 apart, drawing no rule, no ground and no shadow
- * — and while the content runs on under it, a soft edge, the translucent white over a blur,
- * fading in over the 24 above it. **It rides on the keyboard**, 12 below it rather than 20,
+ * and either side and 20 below, its rows 12 apart, drawing no rule and no shadow — and while
+ * the content runs on past it, a soft edge, the translucent white over a blur, fading in over
+ * the 24 above it. **It rides on the keyboard**, 12 below it rather than 20,
  * so a screen's action and its field are both in sight while somebody types: a browser that
  * shrinks the page for its keyboard keeps a sticky bar above it by itself — every screen that
  * draws this asks for that (`keyboardViewport.js`), the asset page only since #495,
@@ -79,6 +79,18 @@ const BAR_STACK = {
  * its own room. `phoneOnly` is a bar a desk does not draw at all — the asset page's, whose
  * desk asks in its header instead — and is the bar's own class rather than a wrapper's, since
  * a wrapper would be what the sticky bar is held inside.
+ *
+ * **IT HOLDS THE SCREEN'S FOOT UNDER THE BODY, SO IT TAKES THE PAGE'S WHITE (#607)**, as Tools
+ * 0a's Foot bar row has it since the files of 2026-11-04's afternoon: the body ends at the bar's
+ * top and nothing runs beneath it. Those files draw the asset page's (1j) and the job step's
+ * (Sign in 1k) so, while Sign in 27's email, code and name steps still draw content running on
+ * under a translucent bar; every bar is 0a's, by Soo's ruling of 2026-11-05, so that one sign-in
+ * does not draw two bars. The files draw it in a fixed frame whose body scrolls; here the
+ * document scrolls, as every phone screen has since #463 and as the keyboard's cover (#568) and
+ * the held sheet (#579) are built on, so the bar keeps its place and its ride on the keyboard and
+ * takes the page's white for its own ground. What runs past its top is hidden there, the soft
+ * edge still fading in over the 24 above while the body runs on — the one thing the files draw
+ * differently.
  */
 export default function BottomBar({ stack = "form", bleed = true, phoneOnly = false, children }) {
     const markRef = useRef(null);
@@ -92,7 +104,7 @@ export default function BottomBar({ stack = "form", bleed = true, phoneOnly = fa
                 ref={barRef}
                 data-keyboard={keyboard || undefined}
                 style={{ "--keyboard-cover": `${cover}px` }}
-                className={`${BAR_STACK[stack] ?? ""} ${phoneOnly ? "sm:hidden" : ""} ${bleed ? "max-sm:-mx-mobile-gutter" : ""} max-sm:sticky max-sm:bottom-(--keyboard-cover) max-sm:isolate max-sm:order-last max-sm:mt-auto max-sm:flex max-sm:flex-col max-sm:gap-mobile-bottom-bar-stack max-sm:px-mobile-gutter max-sm:pt-mobile-bottom-bar-inset-top max-sm:pb-mobile-bottom-bar-inset-bottom max-sm:data-keyboard:pb-mobile-bottom-bar-keyboard-inset-bottom max-sm:[:root:has(&)]:overscroll-y-none`}
+                className={`${BAR_STACK[stack] ?? ""} ${phoneOnly ? "sm:hidden" : ""} ${bleed ? "max-sm:-mx-mobile-gutter" : ""} max-sm:sticky max-sm:bg-white max-sm:bottom-(--keyboard-cover) max-sm:isolate max-sm:order-last max-sm:mt-auto max-sm:flex max-sm:flex-col max-sm:gap-mobile-bottom-bar-stack max-sm:px-mobile-gutter max-sm:pt-mobile-bottom-bar-inset-top max-sm:pb-mobile-bottom-bar-inset-bottom max-sm:data-keyboard:pb-mobile-bottom-bar-keyboard-inset-bottom max-sm:[:root:has(&)]:overscroll-y-none`}
             >
                 <span
                     aria-hidden="true"

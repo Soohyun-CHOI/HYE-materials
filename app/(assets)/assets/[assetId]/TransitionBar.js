@@ -111,7 +111,14 @@ export default function TransitionBar({ recentCheckOuts }) {
                 <FormBusy busy={repairPending ? "action" : pending}>
                     {asksName && (
                         <Field label={COPY.checkedOutToLabel} labelAs="span" labelHidden size="xl" refusal={pressed ? refusals.nameRefusal : null}>
-                            <SheetField value={name} placeholder={COPY.checkedOutToLabel} icon={<Icon name="user" className="size-full" />} onOpen={() => setNaming(true)} />
+                            <SheetField
+                                value={name}
+                                placeholder={COPY.checkedOutToLabel}
+                                icon={<Icon name="user" className="size-full" />}
+                                onOpen={() => setNaming(true)}
+                                onClear={() => setName("")}
+                                clearLabel={COPY.clearName}
+                            />
                         </Field>
                     )}
                     <Button type="submit" size="xl" busyLabel={COPY.working[plan.event]}>

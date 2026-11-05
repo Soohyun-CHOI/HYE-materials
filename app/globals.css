@@ -46,3 +46,14 @@ body {
     cursor: pointer;
   }
 }
+
+/* Focus the app moves by itself after a press is drawn as no drawing draws it: the browser's own
+   ring is taken off it, and a key pressed takes the mark away, so it is drawn for whoever moves by
+   the keyboard (#607, `app/components/movedFocus.js`). Safari judged such a focus visible after a
+   tap and drew its blue ring round the page's title as a sheet closed. A control that draws its
+   own focus face reads the mark too. */
+@layer base {
+  [data-quiet-focus]:focus {
+    outline: none;
+  }
+}

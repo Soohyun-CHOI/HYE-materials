@@ -5,6 +5,7 @@ import { keepFocus, searchResultsKey } from "@/lib/controls";
 import { DIALOG_FRAME_COPY as COPY, focusLost } from "@/lib/dialogFrame";
 import { ButtonLabel, FieldClear, FormBusy, Refusal, useFormBusy } from "./Controls";
 import Icon from "./Icon";
+import { moveFocus, pressedControl } from "./movedFocus";
 import { SCROLL_LANE } from "./scrollLane";
 import { liesBehind, watchDrag } from "./sheetDrag";
 import { watchSheet } from "./sheetHold";
@@ -186,12 +187,13 @@ import useKeyboardCover from "./useKeyboardCover";
 
 /**
  * Focus on a heading, made focusable if nothing made it so — where a page or a dialog
- * begins (#459, #469). With no heading, focus stays where it is.
+ * begins (#459, #469). With no heading, focus stays where it is. Drawn for the keyboard alone
+ * (`movedFocus.js`, #607).
  */
 function focusHeading(heading) {
     if (!heading) return;
     if (!heading.hasAttribute("tabindex")) heading.tabIndex = -1;
-    heading.focus();
+    moveFocus(heading);
 }
 
 /**
@@ -223,7 +225,7 @@ function focusInside(dialog, title) {
     const body = dialog.querySelector("[data-dialog-body]");
     const control = body ? [...body.querySelectorAll(FOCUSABLE)].find((element) => element.tabIndex >= 0 && canHoldFocus(element)) : undefined;
     if (control) {
-        control.focus();
+        moveFocus(control);
         return control;
     }
     focusHeading(title);
@@ -237,7 +239,7 @@ function focusInside(dialog, title) {
  */
 function focusAfterRemoval(opener) {
     if (opener?.isConnected) {
-        opener.focus();
+        moveFocus(opener);
         if (document.activeElement === opener) return;
     }
     focusPageHeading();
@@ -422,7 +424,10 @@ export function DialogFrame({
         const dialog = dialogRef.current;
         if (!dialog) return;
         if (open && !dialog.open) {
-            openerRef.current = unprompted || document.activeElement === document.body ? null : document.activeElement;
+            // What holds focus, or where nothing does — a tap in Safari, which gives a pressed
+            // button none — what the press began on (#607, `movedFocus.js`).
+            const holding = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
+            openerRef.current = unprompted ? null : (holding ?? pressedControl());
             dialog.showModal();
             const field = dialog.querySelector("input:not([type=hidden])");
             if (field) field.focus();
@@ -430,8 +435,11 @@ export function DialogFrame({
         } else if (!open && dialog.open) {
             const opener = openerRef.current;
             dialog.close();
-            // An opener its page has hidden cannot take focus back (#495 — the header).
-            if (unprompted || (opener !== null && document.activeElement !== opener)) focusPageHeading();
+            // Focus goes back to the opener, which the browser's own closing finds in Chrome and
+            // not where Safari gave the press no focus (#607); and to the heading for a dialog
+            // nothing opened, or an opener its page has hidden (#495 — the header).
+            if (!unprompted && opener !== null && canHoldFocus(opener)) moveFocus(opener);
+            else focusPageHeading();
         }
     }, [open, unprompted, sheet, recordId]);
 

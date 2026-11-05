@@ -28,10 +28,13 @@ import { useAssetTransition } from "./AssetTransition";
  * back to what opened it. A cleared field saved removes the value, so the note's `Remove note`, which
  * its dialog drew from #533 until these files took the dialog away, has no place left to stand.
  *
- * ON A PHONE THE WHOLE LINE IS THE PRESS (0a), at least 48 and 12 past the text either side, washed
- * while held — and where both lines are presses, the serial number's reaches 22 above its text and 6
- * below and the note's 6 above and 22 below, so each keeps 48 and neither covers the other (0a Value
- * line). It opens a sheet holding `SheetInput`, whose `Done` saves and on a cleared field removes.
+ * ON A PHONE THE WHOLE LINE IS THE PRESS (0a), at least 48 and 12 past the text either side — and
+ * where both lines are presses, the serial number's reaches 22 above its text and 6 below and the
+ * note's 6 above and 22 below, so each keeps 48 and neither covers the other (0a Value line). **What a
+ * press washes is the line 6 above and below its text and 12 past it, in Hover, however far its
+ * target reaches** (0a Note, #607): the target past that is the button's `::after`, which a press
+ * on it holds the button `:active` through. It opens a sheet holding `SheetInput`, whose `Done`
+ * saves and on a cleared field removes.
  *
  * WHAT A PRESS MAY SEND IS ASKED HERE BEFORE IT IS SENT AND AGAIN BY THE ACTION — `readNoteSubmission`
  * and `readSerialSubmission`, the one order (`lib/assetNote.js:readDetailSubmission`). Too much typed is
@@ -57,10 +60,10 @@ const DETAILS = {
         editName: ASSET_SERIAL_COPY.editSerial,
         emptyText: ASSET_SERIAL_COPY.addSerial,
         mark: <Icon name="barcode" className="size-icon text-foreground-muted" />,
-        face: "id",
-        // A serial number edited at a desk is typed in the face it is read in; the axis loads Fragment
-        // Mono, which the controls' own module, read by the sign-in pages too, may not name.
-        fieldFace: "[&_input]:font-id [&_input]:tracking-id",
+        face: "figures",
+        // A serial number is a maker's, set with even figures and not in the portal's id face (0h,
+        // #607), and a desk types it as it is read.
+        fieldFace: "[&_input]:tabular-nums",
         read: (input) => readSerialSubmission({ mayWriteSerial: true }, input),
         valueOf: (answer) => answer.serialNumber,
         // A maker's number is typed as printed: the keyboard starts in capitals, and nothing corrects it.
@@ -80,7 +83,6 @@ const DETAILS = {
         valueOf: (answer) => answer.note,
         help: ASSET_NOTE_COPY.help,
         count: ASSET_NOTE_COPY.count,
-        placeholder: ASSET_NOTE_COPY.placeholder,
         typing: {},
     },
 };
@@ -113,8 +115,8 @@ function serverAnswer(control, draft) {
     };
 }
 
-/** The value as a line shows it: an id's in the id's face, wrapping anywhere. */
-const VALUE_FACE = { id: "font-id tracking-id [overflow-wrap:anywhere]", text: "text-pretty" };
+/** The value as a line shows it: a serial number with even figures, wrapping anywhere (0h, #607). */
+const VALUE_FACE = { figures: "tabular-nums [overflow-wrap:anywhere]", text: "text-pretty" };
 
 /**
  * The desk's `Details` block (1f, 1g): its name, then a row for each detail that has a value or that
@@ -239,7 +241,7 @@ function RowEditor({ kind, value, control, onClose }) {
                     refusal={(pressed ? answer.refusal : null) ?? server.taken}
                     count={detail.count?.(draft.length)}
                 >
-                    <TextInput size="md" value={draft} onChange={setDraft} inputRef={inputRef} placeholder={detail.placeholder} autoComplete="off" {...detail.typing} />
+                    <TextInput size="md" value={draft} onChange={setDraft} inputRef={inputRef} autoComplete="off" {...detail.typing} />
                 </Field>
                 {server.said && (
                     <div className="pt-details-actions-stack">
@@ -259,13 +261,16 @@ function RowEditor({ kind, value, control, onClose }) {
     );
 }
 
-// Each line's press on a phone: alone, 14 above and below its text; paired, the serial number's
-// reaching up and the note's down (0a Value line).
-const DETAIL_PRESS = "-mx-mobile-note-bleed-x flex min-h-mobile-touch-target w-[calc(100%+2*var(--spacing-mobile-note-bleed-x))] items-start gap-gap rounded-mobile-control px-mobile-note-bleed-x text-left text-mobile-body-sm active:bg-hover-subtle";
-const DETAIL_BLEED = {
-    alone: "-my-mobile-note-bleed-y py-mobile-note-bleed-y",
-    upper: "-mt-mobile-detail-bleed-outer -mb-mobile-detail-bleed-inner pt-mobile-detail-bleed-outer pb-mobile-detail-bleed-inner",
-    lower: "-mt-mobile-detail-bleed-inner -mb-mobile-detail-bleed-outer pt-mobile-detail-bleed-inner pb-mobile-detail-bleed-outer",
+// Each line's press on a phone (0a Note, 0a Value line): the button is the face a press washes in
+// Hover — 6 above and below its text and 12 past it either side, rounded at 12, however far the
+// target reaches (#607) — and its `::after` is the target past the face: alone, 14 above and below
+// the text; paired, the serial number's 22 up and the note's 22 down, each 6 toward the other (#601).
+const DETAIL_PRESS =
+    "relative -mx-mobile-note-bleed-x -my-mobile-detail-bleed-inner flex w-[calc(100%+2*var(--spacing-mobile-note-bleed-x))] items-start gap-gap rounded-mobile-control px-mobile-note-bleed-x py-mobile-detail-bleed-inner text-left text-mobile-body-sm active:bg-hover after:absolute after:inset-x-0";
+const DETAIL_TARGET = {
+    alone: "after:inset-y-[calc(var(--spacing-mobile-detail-bleed-inner)-var(--spacing-mobile-note-bleed-y))]",
+    upper: "after:top-[calc(var(--spacing-mobile-detail-bleed-inner)-var(--spacing-mobile-detail-bleed-outer))] after:bottom-0",
+    lower: "after:top-0 after:bottom-[calc(var(--spacing-mobile-detail-bleed-inner)-var(--spacing-mobile-detail-bleed-outer))]",
 };
 
 /**
@@ -276,19 +281,19 @@ export function PhoneDetails({ serialNumber, note, mayWriteSerial, mayWriteNote 
     const paired = mayWriteSerial && mayWriteNote;
     return (
         <>
-            {(serialNumber || mayWriteSerial) && <PhoneDetail kind="serial" value={serialNumber} writable={mayWriteSerial} bleed={paired ? "upper" : "alone"} />}
-            {(note || mayWriteNote) && <PhoneDetail kind="note" value={note} writable={mayWriteNote} bleed={paired ? "lower" : "alone"} />}
+            {(serialNumber || mayWriteSerial) && <PhoneDetail kind="serial" value={serialNumber} writable={mayWriteSerial} target={paired ? "upper" : "alone"} />}
+            {(note || mayWriteNote) && <PhoneDetail kind="note" value={note} writable={mayWriteNote} target={paired ? "lower" : "alone"} />}
         </>
     );
 }
 
 /**
- * One line on a phone: its mark 16 in Ink 2 beside the value at 15 in Ink 2 — a serial number in the
- * id's face — or the line's name in Ink 3 where there is none. For whoever may write it the whole line
+ * One line on a phone: its mark 16 in Ink 2 beside the value at 15 in Ink 2 — a serial number with
+ * even figures (0h, #607) — or the line's name in Ink 3 where there is none. For whoever may write it the whole line
  * is the press, named for what it edits and described by the value; for anybody else it is the value
  * alone, and a serial number's name is said to assistive tech alone (0a Value line).
  */
-function PhoneDetail({ kind, value, writable, bleed }) {
+function PhoneDetail({ kind, value, writable, target }) {
     const detail = DETAILS[kind];
     const control = useAssetTransition()[kind];
     const textId = useId();
@@ -311,7 +316,7 @@ function PhoneDetail({ kind, value, writable, bleed }) {
                     aria-label={value ? detail.editName : undefined}
                     aria-describedby={value ? textId : undefined}
                     onClick={() => control.start("phone")}
-                    className={`${DETAIL_PRESS} ${DETAIL_BLEED[bleed]}`}
+                    className={`${DETAIL_PRESS} ${DETAIL_TARGET[target]}`}
                 >
                     {content}
                 </button>
@@ -360,7 +365,7 @@ function DetailSheet({ kind, value, open, control }) {
         >
             <div className="flex flex-col px-mobile-gutter">
                 <Field label={detail.name} labelHidden size="xl" help={detail.help} refusal={(pressed ? answer.refusal : null) ?? server.taken} count={detail.count?.(draft.length)}>
-                    <SheetInput value={draft} onChange={setDraft} onDone={done} placeholder={detail.placeholder} clearLabel={detail.copy.clear} {...detail.typing} />
+                    <SheetInput value={draft} onChange={setDraft} onDone={done} clearLabel={detail.copy.clear} {...detail.typing} />
                 </Field>
                 {server.said && (
                     <div className="pt-mobile-drawer-body-stack">

@@ -7,7 +7,7 @@
 // fake event, which counts what is asked of it.
 //
 // OFF THE SOURCE, WHERE IT IS ASKED. Every × the app draws is found by its mark and named: a field's,
-// drawn by `Controls.js:FieldClear` and nowhere else — at the five fields that end in one — or one that
+// drawn by `Controls.js:FieldClear` and nowhere else — at the six fields that end in one — or one that
 // is no field's, each with why. A clear written by hand beside a field, a `Done` or a sheet's row that
 // lets focus go, and a `mousedown` stopped by an arrow of its own rather than `keepFocus` are each a
 // failure here.
@@ -32,14 +32,14 @@ const MENU = "app/components/Menu.js";
 
 /** The fields that end in a ×, by file and the look each draws it in. */
 const FIELD_CLEARS = {
-    "app/components/Controls.js": ["phone", "sheet", "search"],
+    "app/components/Controls.js": ["phone", "sheet", "sheetField", "search"],
     "app/components/DialogFrame.js": ["dialogSearch"],
-    "app/login/jobs/JobsForm.js": ["phone"],
+    "app/login/jobs/JobsForm.js": ["phone", "deskSearch"],
 };
 
 /** Every × the app draws that is no field's, by file, with why each is not a field's clear. */
 const OTHER_MARKS = {
-    "app/components/Controls.js": "FieldClear's four looks, and a filter chip's and a toggle chip's clear: a chip holds a choice, not a typed value",
+    "app/components/Controls.js": "FieldClear's looks, and a filter chip's and a toggle chip's clear: a chip holds a choice, not a typed value",
     "app/components/DialogFrame.js": "the dialog's close",
     "app/components/ListFrame.js": "the selection bar's clear, which empties a selection of rows",
     "app/components/Toast.js": "a toast's dismiss",
@@ -131,9 +131,9 @@ export function run({ check, assert, log }) {
     const looks = resolveFunction(controls.ast, "FieldClear");
     check("  FieldClear spreads the one press, and draws its look's mark", [/\{\.\.\.fieldClearPress\(\{ onChange, focus \}\)\}/.test(controls.source.slice(looks?.start ?? 0, looks?.end ?? 0)), /\{mark\}/.test(controls.source.slice(looks?.start ?? 0, looks?.end ?? 0))].join(" "), "true true");
     check(
-        "  and its four looks each draw the x at the field's size",
+        "  and each of its six looks draws the x at the field's size",
         (controls.source.match(/mark: <Icon name="x" className="(size-mobile-input-clear-icon|size-clear-icon|size-icon-sm)" \/>,/g) ?? []).length,
-        4
+        6
     );
     const drawn = Object.fromEntries(files.map(({ path, ast }) => [path, fieldClearsIn(ast)]).filter(([, found]) => found.length > 0));
     check(

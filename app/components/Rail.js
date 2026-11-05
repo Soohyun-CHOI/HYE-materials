@@ -7,6 +7,7 @@ import { focusFellFromPage } from "@/lib/dialogFrame";
 import { NAVIGATION_COPY as COPY, NAVIGATION_SECTIONS, currentOf } from "@/lib/navigation";
 import { WORDMARK } from "@/lib/productName";
 import Icon from "./Icon";
+import { useOpenerPress } from "./Menu";
 import RailAccount from "./RailAccount";
 import { canHoldFocus, focusPageHeading } from "./DialogFrame";
 import { SCROLL_LANE } from "./scrollLane";
@@ -173,6 +174,7 @@ export default function Rail({ account, children }) {
     const [expanded, setExpanded] = useState(false);
     const navRef = useRef(null);
     const toggleRef = useRef(null);
+    const press = useOpenerPress(expanded);
     const tip = useTooltip({ enabled: !expanded });
     const toggleWord = expanded ? COPY.collapse : COPY.expand;
 
@@ -189,7 +191,9 @@ export default function Rail({ account, children }) {
     }, [isPanel]);
 
     // A Panel goes on a press outside it and on Escape, which hands focus back to the
-    // toggle that opened it. From 1280 up the rail is part of the layout and stays.
+    // toggle that opened it. From 1280 up the rail is part of the layout and stays. A press
+    // on the toggle while the rail is expanded collapses it, in Safari too, where the press
+    // takes focus out of a Panel holding it and the Panel goes first (`useOpenerPress`, #607).
     useEffect(() => {
         if (!expanded) return undefined;
         const onPointerDown = (event) => {
@@ -227,7 +231,8 @@ export default function Rail({ account, children }) {
                             type="button"
                             aria-expanded={expanded}
                             aria-label={toggleWord}
-                            onClick={() => setExpanded((was) => !was)}
+                            onPointerDown={press.onPointerDown}
+                            onClick={(event) => setExpanded(!press.closes(event))}
                             {...tip.targetProps(toggleWord)}
                             className="flex h-control aspect-square shrink-0 items-center justify-center rounded-control text-foreground-default hover:bg-hover"
                         >

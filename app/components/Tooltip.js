@@ -78,21 +78,26 @@ export function useTooltip({ enabled = true, placement = "beside" } = {}) {
         onBlur: hide,
     });
 
-    /** What a row of cells that may cut their text needs (`[data-cut]` in each): the cut one's whole text, above it. */
+    /**
+     * What a row of cells that may cut their text needs (`[data-cut]` in each): the cut one's whole
+     * text, above it. A mark standing for a value the row does not write out (`[data-tip]`, 0n — 1d's
+     * note since #607) shows that value above its cell whenever the pointer is over it.
+     */
     const cutProps = () => ({
         onPointerMove: (event) => {
-            const cell = [...event.currentTarget.querySelectorAll("[data-cut]")].find((cut) => {
+            const cell = [...event.currentTarget.querySelectorAll("[data-cut], [data-tip]")].find((cut) => {
                 const box = (cut.closest('[role="cell"]') ?? cut).getBoundingClientRect();
                 return event.clientX >= box.left && event.clientX < box.right;
             });
-            if (!cell || cell.scrollWidth <= cell.clientWidth + 1) {
+            const tip = cell?.dataset.tip;
+            if (!cell || (tip === undefined && cell.scrollWidth <= cell.clientWidth + 1)) {
                 if (shownOn.current) hide();
                 return;
             }
             if (shownOn.current === cell) return;
             hide();
             shownOn.current = cell;
-            show(cell.closest('[role="cell"]') ?? cell, cell.textContent);
+            show(cell.closest('[role="cell"]') ?? cell, tip ?? cell.textContent);
         },
         onPointerLeave: hide,
     });

@@ -443,8 +443,8 @@ function allJobs548({ check, log }) {
     check(
         "its list puts the job at 96 after the serial number on all of them, with the box and without, headed `Job` (#601)",
         [
-            listFile.includes('"grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-serial)_var(--width-table-job)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]"'),
-            listFile.includes('"grid-cols-[var(--width-table-id)_var(--width-table-serial)_var(--width-table-job)_var(--width-table-status)_minmax(0,1fr)_var(--width-table-date)]"'),
+            listFile.includes('"grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-serial)_var(--width-table-job)_minmax(var(--width-table-status),1fr)_var(--size-icon)_var(--width-table-date)]"'),
+            listFile.includes('"grid-cols-[var(--width-table-id)_var(--width-table-serial)_var(--width-table-job)_minmax(var(--width-table-status),1fr)_var(--size-icon)_var(--width-table-date)]"'),
             /const columns = showsJob \? \(selects \? COLUMNS_WITH_JOB : COLUMNS_WITH_JOB_WITHOUT_BOX\) : selects \? COLUMNS : COLUMNS_WITHOUT_BOX;/.test(listFile),
             /\{COPY\.assetIdLabel\}<\/span>\s*<span role="columnheader">\{COPY\.serialLabel\}<\/span>\s*\{showsJob && <span role="columnheader">\{COPY\.jobLabel\}<\/span>\}\s*<span role="columnheader">\{COPY\.statusLabel\}/.test(listFile),
             /\{showsJob && \(\s*<span role="cell" className="min-w-0 truncate text-foreground-muted tabular-nums">\s*\{row\.jobCode\}/.test(listFile),
@@ -2991,16 +2991,17 @@ export function run({ check, assert, log }) {
         "true true"
     );
 
-    // THE LIST'S COLUMNS (1d, #533): the id, the status at 240 with who holds an `Out` after it,
-    // the note taking the room left, and the day at 120 where the job stood — with the box and
+    // THE LIST'S COLUMNS (1d, #533, #607): the id at 152, the serial number at 160, the status taking
+    // the room left from 240 with who holds an `Out` after it, the note's mark in a 16 under no head —
+    // its name for assistive tech alone — and the day at 120 where the job stood, with the box and
     // without.
     const assetListSource = parseFile(ASSET_LIST).source;
     check(
-        "the list's columns are the id, the serial number (#601), the status, the note and the day, with the box and without",
+        "the list's columns are the id, the serial number, the status from 240, the note's mark under no head and the day, with the box and without (#607)",
         [
-            /const COLUMNS =\s*"grid-cols-\[var\(--size-icon\)_var\(--width-table-id\)_var\(--width-table-serial\)_var\(--width-table-status\)_minmax\(0,1fr\)_var\(--width-table-date\)\]";/.test(assetListSource),
-            /const COLUMNS_WITHOUT_BOX =\s*"grid-cols-\[var\(--width-table-id\)_var\(--width-table-serial\)_var\(--width-table-status\)_minmax\(0,1fr\)_var\(--width-table-date\)\]";/.test(assetListSource),
-            /\{COPY\.assetIdLabel\}<\/span>\s*<span role="columnheader">\{COPY\.serialLabel\}<\/span>\s*\{showsJob && [^\n]*\}\s*<span role="columnheader">\{COPY\.statusLabel\}<\/span>\s*<span role="columnheader">\{COPY\.noteLabel\}<\/span>\s*<span role="columnheader">\{COPY\.updatedLabel\}<\/span>/.test(
+            /const COLUMNS =\s*"grid-cols-\[var\(--size-icon\)_var\(--width-table-id\)_var\(--width-table-serial\)_minmax\(var\(--width-table-status\),1fr\)_var\(--size-icon\)_var\(--width-table-date\)\]";/.test(assetListSource),
+            /const COLUMNS_WITHOUT_BOX =\s*"grid-cols-\[var\(--width-table-id\)_var\(--width-table-serial\)_minmax\(var\(--width-table-status\),1fr\)_var\(--size-icon\)_var\(--width-table-date\)\]";/.test(assetListSource),
+            /\{COPY\.assetIdLabel\}<\/span>\s*<span role="columnheader">\{COPY\.serialLabel\}<\/span>\s*\{showsJob && [^\n]*\}\s*<span role="columnheader">\{COPY\.statusLabel\}<\/span>\s*\{\/\*[^]*?\*\/\}\s*<span role="columnheader">\s*<span className="sr-only">\{COPY\.noteLabel\}<\/span>\s*<\/span>\s*<span role="columnheader">\{COPY\.updatedLabel\}<\/span>/.test(
                 assetListSource
             ),
             // The job is a column on all of a reader's jobs alone (#548), held in #548's block.
@@ -3009,9 +3010,10 @@ export function run({ check, assert, log }) {
         "true true true true"
     );
     check(
-        "  the note in Ink 2 on one line, cut and shown whole above its cell, between the status and the day (#533)",
+        "  a note is a 14 mark in Ink 3 centered in its 16, named with the note and showing it above under the pointer, between the status and the day (0n, #607)",
         [
-            /<span role="cell" className="min-w-0 text-foreground-muted">\s*<span data-cut="" className="block truncate">\s*\{row\.note\}\s*<\/span>\s*<\/span>\s*\{\/\*[^]*?\*\/\}\s*<span role="cell" className="text-foreground-muted">\s*<Instant at=\{row\.updatedAt\}/.test(assetListSource),
+            /<span role="cell" className="flex self-center">\s*\{row\.note && \(\s*<span role="img" aria-label=\{COPY\.noteMark\(row\.note\)\} data-tip=\{row\.note\} className="relative flex h-\[var\(--text-body--line-height\)\] w-\(--size-icon\) items-center justify-center">\s*<Icon name="message-square" className="size-icon-sm text-foreground-subtle" \/>\s*<\/span>\s*\)\}\s*<\/span>\s*\{\/\*[^]*?\*\/\}\s*<span role="cell" className="text-foreground-muted">\s*<Instant at=\{row\.updatedAt\}/.test(assetListSource) &&
+                ASSET_LIST_COPY.noteMark("At the yard") === "Note: At the yard",
             /<div key=\{row\.id\} role="row" \{\.\.\.tooltip\.cutProps\(\)\}/.test(assetListSource),
             /const tooltip = useTooltip\(\{ placement: "above" \}\);/.test(assetListSource),
             /\{tooltip\.element\}/.test(assetListSource),
