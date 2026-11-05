@@ -221,7 +221,7 @@ export function Notice({ children }) {
  * screen waits on, as the Notice's did (#463).
  *
  * A LINE THAT REFUSES NOTHING TAKES THE SAME LOOK AS `role="status"` (#527): 1l sets what an edit
- * will do — `Its 10 items take the new name.` — as this line before the press, which is a note
+ * will do — `10 items will show the new name.` — as this line before the press, which is a note
  * the reader reads rather than an answer to a press, so it is heard when it changes and not as
  * an alert. `DialogActions`' `note` is its one caller.
  */
@@ -280,7 +280,7 @@ const sizeOf = (variant, size) => (GHOSTS.includes(variant) && size === "lg" ? "
 // A faced action is 0f's Faced, no outline at a 36, its mark and word in Ink 2 lifting to Ink as
 // it fills at Hover (0f Ink on hover) — the category list's way to the catalog (1a, #566).
 const BUTTON_VARIANT = {
-    filled: "bg-primary text-white not-disabled:not-aria-disabled:hover:bg-primary-hover disabled:bg-primary-disabled",
+    filled: "bg-primary text-white not-disabled:not-aria-disabled:hover:bg-primary-hover disabled:bg-primary-disabled data-unavailable:bg-primary-disabled",
     bordered: "border border-border bg-white text-foreground-default not-disabled:not-aria-disabled:hover:bg-hover-subtle",
     danger: "bg-danger text-white not-disabled:not-aria-disabled:hover:bg-danger-hover",
     ghost: "text-foreground-default not-disabled:not-aria-disabled:hover:bg-hover",
@@ -385,6 +385,12 @@ export function ButtonLabel({ size, busyLabel, children }) {
  * reason in a column of its own that comes and goes with the bar's motion (0b), so the
  * button points at it rather than drawing one before itself.
  *
+ * `unavailable` IS AN ACTION THAT CANNOT ACT AND STILL TAKES FOCUS (#612), the selection bar's
+ * `Print labels` past a print's labels as 1e draws it: `aria-disabled` with its press turned away,
+ * so a keyboard reaches it and hears the reason `describedBy` points at, where `disabled` takes it
+ * out of the order. It looks as a disabled one does — a filled action's fill at 40% (0f Disabled) —
+ * where a locked one keeps its look, so it says so with `data-unavailable` of its own.
+ *
  * `holdWidthOf` IS WORDS THE ACTION KEEPS ROOM FOR (#522): a commitment whose words carry a
  * count the reader changes in place holds the width of a longer form of them, unseen and
  * unread, so it does not grow and shrink under the reader's hand — 1b's `Add 1 item`, as wide
@@ -397,22 +403,24 @@ export function ButtonLabel({ size, busyLabel, children }) {
  * `ref` IS THE BUTTON ITSELF (#566), for a caller that hands focus back to it — 1a's `Export`,
  * which a toast reporting its press returns focus to.
  */
-export function Button({ variant = "filled", size = "lg", type = "button", disabled = false, describedBy, busy = false, busyLabel, holdWidthOf, ariaLabel, ref, onClick, children }) {
+export function Button({ variant = "filled", size = "lg", type = "button", disabled = false, unavailable = false, describedBy, busy = false, busyLabel, holdWidthOf, ariaLabel, ref, onClick, children }) {
     // What the form waits on, as the frame said it: its submit, or `"action"` (#527).
     const formWaits = useContext(FormBusyContext);
     const state = buttonBusyState({ busy, formBusy: formWaits, submits: type === "submit", disabled });
     const working = state === "working";
+    const turnsAway = Boolean(state) || unavailable;
     return (
         <button
             ref={ref}
             type={type}
             disabled={disabled}
-            onClick={state ? (event) => event.preventDefault() : onClick}
+            onClick={turnsAway ? (event) => event.preventDefault() : onClick}
             aria-label={ariaLabel}
             aria-describedby={describedBy}
             aria-busy={working || undefined}
-            aria-disabled={state ? true : undefined}
+            aria-disabled={turnsAway || undefined}
             data-busy={working || undefined}
+            data-unavailable={unavailable || undefined}
             className={`group/button ${BUTTON} ${sizeOf(variant, size)} ${insetOf(variant, size)} ${BUTTON_VARIANT[variant]} ${SHEET_BUTTON} ${SHEET_BUTTON_VARIANT[variant]}`}
         >
             <ButtonLabel size={size} busyLabel={busyLabel}>

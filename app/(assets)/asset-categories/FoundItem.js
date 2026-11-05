@@ -17,12 +17,12 @@ import { readFoundHolderAction } from "./actions";
  * a dot between each — and a 16 chevron in the Accent at its end, 16 from them at least. The
  * whole line is the way to the item's own page, and Enter in the search is too.
  *
- * AN ITEM THE TABLE DOES NOT SHOW SAYS ITS JOB (#599), by its code after the name and behind the
- * same dot, in Ink 2 with tabular figures — 1d's job column's look, the drawings' one job code in an
- * item's row; the files draw no line for this state, and Soo's ruling is the line of 1a3's
- * `Item ID` with the job in it. `jobCode` comes only with an item the base named for an id the
- * table shows none for — at another job, or kept out by the band (`lib/assetListView.js:
- * readCategoryList`); an item in the table stands on a job the band already names.
+ * EVERY LINE SAYS ITS ITEM'S JOB (#612), by its code after the name and behind the same dot, in
+ * Ink 2 with tabular figures — 1d's job column's look, as 1a3's `Item ID` line draws it since the
+ * files of 2026-11-02. `jobCode` is the job the item stands on, the list's own for an item in the
+ * table and another for one the base named at another job or kept out by the band
+ * (`lib/assetListView.js:readCategoryList`). From #599 to #612 only the second said it, on the
+ * reading that the band already names the list's job.
  *
  * A SERIAL NUMBER SEARCHED SAYS ITSELF AFTER THE ID (1a3, #601): `Serial number` in Ink 3 and the
  * number at 14 with even figures, 8 apart — a maker's number, which the portal's id face is not for

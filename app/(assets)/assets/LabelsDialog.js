@@ -25,8 +25,9 @@ import "./labels.css";
 // address, so the press reads the run on the server first (`readAssetLabelsAction`)
 // and the dialog opens on what comes back. An asset's page has read its record and
 // built its symbol as it rendered, so it hands over that one label and the press opens
-// the dialog at once. The opener is a 0a button in both, and a category's page disables it
-// where its list says why (`describeSelection`). **Both pages draw it for a site manager
+// the dialog at once. The opener is a 0a button in both, and a category's page marks it unable to
+// act — `aria-disabled`, still reached by the keyboard (#612) — where its list says why
+// (`describeSelection`). **Both pages draw it for a site manager
 // alone (#506)**, and the read behind the first refuses anybody else.
 //
 // A PRESS WHILE THE READ IS IN FLIGHT IS TURNED AWAY RATHER THAN THE BUTTON DISABLED,
@@ -140,7 +141,7 @@ const labelCodeFont = Inconsolata({ subsets: ["latin"], variable: "--font-label-
  * page hands over; `assetIds` is what a category's page has selected, read when
  * pressed. `itemName` is the line under the title.
  */
-export default function LabelsDialog({ title, itemName, run: handed, assetIds, disabled = false, describedBy, variant = "filled" }) {
+export default function LabelsDialog({ title, itemName, run: handed, assetIds, unavailable = false, describedBy, variant = "filled" }) {
     const [open, setOpen] = useState(false);
     const [run, setRun] = useState(handed ?? null);
     const [pending, startTransition] = useTransition();
@@ -167,7 +168,7 @@ export default function LabelsDialog({ title, itemName, run: handed, assetIds, d
         <>
             <Button
                 variant={variant}
-                disabled={disabled}
+                unavailable={unavailable}
                 describedBy={describedBy}
                 busy={pending}
                 busyLabel={COPY.working}

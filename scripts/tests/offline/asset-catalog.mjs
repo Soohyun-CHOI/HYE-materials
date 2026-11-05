@@ -682,7 +682,7 @@ export function run({ check, assert, log }) {
     check(
         "  an edit's line, its note, its secondary actions and its menu",
         [C.itemCount(0), C.itemCount(1), C.itemCount(10), C.renames(1), C.renames(10), C.discontinue, C.restore, C.moreActions, C.remove, C.removeTitle("Wrench 16 mm"), C.removeSays].join(" | "),
-        "No items | 1 item | 10 items | Its 1 item takes the new name. | Its 10 items take the new name. | Discontinue | Restore | More actions | Remove from catalog | Remove Wrench 16 mm from catalog? | It comes out of the catalog. No items use it."
+        "No items | 1 item | 10 items | 1 item will show the new name. | 10 items will show the new name. | Discontinue | Restore | More actions | Remove from catalog | Remove Wrench 16 mm from catalog? | It comes out of the catalog. No items use it."
     );
     check(
         "  a row's one control, and none of the words a selection said before #552 took away `Set class`",

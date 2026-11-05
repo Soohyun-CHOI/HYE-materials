@@ -298,7 +298,7 @@ async function lendAssetHandler(prevState, formData) {
             event: ASSET_EVENT.LENT,
             answer,
             user,
-            halfDone: ASSET_TRANSITION_COPY.lendHalfDone({ from: plan.jobCode ?? "", to }),
+            halfDone: ASSET_TRANSITION_COPY.lendHalfDone({ to }),
         });
         if (failed) return failed;
         redirect(assetPath(asset.assetId));
@@ -322,7 +322,7 @@ async function returnAssetToOwnerHandler(prevState, formData) {
             event: ASSET_EVENT.RETURNED_TO_OWNER,
             answer,
             user,
-            halfDone: ASSET_TRANSITION_COPY.returnHalfDone({ from: plan.jobCode ?? "" }),
+            halfDone: ASSET_TRANSITION_COPY.returnHalfDone,
         });
         if (failed) return failed;
         redirect(assetPath(asset.assetId));
@@ -443,8 +443,8 @@ async function updateAssetNoteHandler(prevState, formData) {
  * else: the note's action (above) with one question more.
  *
  * THE NOTE'S WRAPPER, PLAN AND ORDER. Only a site manager gets past `withSiteManagerAction`; the body
- * asks `planTransition` the rest on a fresh read of the item — its own job's site manager, in stock or
- * out (`mayWriteSerial`, the note's answer) — then `recordingRefusal` against the job the page was
+ * asks `planTransition` the rest on a fresh read of the item — its own job's site manager, in any
+ * status the app shows (`mayWriteSerial`, the note's answer, #612) — then `recordingRefusal` against the job the page was
  * drawn on, then `readSerialSubmission`: the number the page was drawn with against the one stored,
  * the limit, a number kept to the one there. A refusal of any of them is the note's and is said as
  * the note's is.
@@ -559,8 +559,8 @@ async function updateAssetSerialHandler(prevState, formData) {
  * only `error` says less than it did.
  *
  * AND A REFUSAL THE PAGE SAYS ON ITS OWN IS `null`, the page and nothing beside it (#533): a
- * note pressed on an item somebody retired or sent for repair since, or a retirement somebody
- * got in front of, whose fresh page draws no control to write with — #378's terminal case,
+ * retirement somebody got in front of — and from #533 to #612 a note pressed on an item somebody
+ * retired or sent for repair since — whose fresh page draws no control to write with — #378's terminal case,
  * which the wrapper's own refusal answers the same way (#506). A press by a reader the item is
  * no longer the reader's to record is not one of them since #597: the page drawn again shows
  * the item's job and no control, and nothing on it says the press was theirs and was lost.
@@ -675,13 +675,7 @@ async function writeEvent({ asset, event, jobRecordId, checkedOutTo, user, from 
                 error,
             }
         );
-        return refuse(
-            ASSET_TRANSITION_COPY.statusNotUpdated({
-                assetId: asset.assetId,
-                event,
-                status: from,
-            })
-        );
+        return refuse(ASSET_TRANSITION_COPY.statusNotUpdated);
     }
 
     return null;

@@ -64,8 +64,9 @@ const COLUMNS_WITH_LOAN = "grid-cols-[minmax(0,1fr)_repeat(5,var(--width-table-c
  * rows stood, naming what was typed, with one control that clears the search alone when that
  * is all that narrows and everything otherwise (`emptiedListWords`); no pager stands under it.
  *
- * THE HEAD HOLDS THE OPENERS, AND THE BAND STARTS ON THE JOB'S CHIP (1a, #566). `jobs` are the
- * jobs the chip offers, wherever there are several, and the chip is drawn here so it can carry what
+ * THE HEAD HOLDS THE OPENERS, AND THE BAND STARTS ON THE JOB'S CHIP (1a, #566). `jobs` are every
+ * job, `{ id, jobCode }` — what a found line names its item's job by (#612) — and the chip offers
+ * them wherever there are several, and the chip is drawn here so it can carry what
  * the band holds to the job chosen; it stood in the head before `Catalog` from #519 until the
  * files of 2026-10-23 moved it ahead of the search. `catalog` is the office's way to the catalog
  * (#527) and `opener` a site manager's, each drawn by the page, which reads what it needs.
@@ -176,7 +177,7 @@ export default function AssetCategoryList({ rows, job, jobCode = null, allJobs =
             }
             band={
                 <>
-                    {jobs && <JobChoice jobs={jobs} job={job} filters={reading.held} />}
+                    {jobs.length > 1 && <JobChoice jobs={jobs} job={job} filters={reading.held} />}
                     <SearchField label={COPY.searchLabel} value={typed} onChange={search} clearLabel={COPY.clearSearch} onEnter={open} />
                     {ASSET_LIST_FACETS.map((facet) => (
                         <FilterChip

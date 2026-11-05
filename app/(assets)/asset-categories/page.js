@@ -215,14 +215,15 @@ async function renderCategoriesPage({ searchParams }) {
     }
 
     // The job the list stands on is named where a search for an id finds no item on it (#541), until
-    // every job is asked and none holds it (#599), and on all of them none is.
+    // every job is asked and none holds it (#599), and on all of them none is. Every job goes with
+    // it, which a found line names its item's by (#612) and its choice offers while there are two.
     return (
         <AssetCategoryList
             rows={rows}
             job={job}
             jobCode={scope.job?.jobCode ?? null}
             allJobs={scope.allJobs}
-            jobs={choosable}
+            jobs={scope.jobs.map(({ id, jobCode }) => ({ id, jobCode }))}
             catalog={catalog}
             opener={opener}
         />

@@ -70,7 +70,7 @@ const JOB_RECORDS = [
     { id: "recJ2", jobCode: "25-USA-13", assets: holding((each) => each.job[0] === "recJ2") },
     { id: "recJ3", jobCode: "26-USA-12", assets: [] },
 ];
-// The jobs the list's choice holds, as the page hands them to the list (`choosable`).
+// Every job, as the page hands them to the list since #612, which names a found line's job by them.
 const JOBS = JOB_RECORDS.map(({ id, jobCode }) => ({ id, jobCode }));
 // What the status memory hands the page: every item but the deleted one, which
 // `lib/airtable/assets.js:getAssetStatuses` leaves out by `isShownAsset` (#582).
@@ -160,7 +160,7 @@ export function run({ check, log }) {
     // ── the five cases ──────────────────────────────────────────────────────
     log("an id on the job the list stands on:");
     const here = read(JOB_ONE, "q=261019-430");
-    check("an id the job holds is found in its rows, no job named, and nothing is asked", said(here), "kWelder | HYE-AST-261019-430 · TIG Welder · - · Out | -");
+    check("an id the job holds is found in its rows, its line naming that job (#612), and nothing is asked", said(here), "kWelder | HYE-AST-261019-430 · TIG Welder · 23-USA-09 · Out | -");
 
     log("");
     log("an id at another job:");
@@ -217,7 +217,7 @@ export function run({ check, log }) {
         "- | HYE-AST-261019-432 · TIG Welder · 25-USA-13 · Retired | HYE-AST-261019-432 | No item in these filters has the ID | 261019-432 | Clear all | recJ1"
     );
     const onChip = read(ALL, "q=261019-432&job=all&job=recJ2", { allJobs: true });
-    check("  the chip taking the item's job finds it in its row, and asks nothing", said(onChip), "kWelder | HYE-AST-261019-432 · TIG Welder · - · Retired | -");
+    check("  the chip taking the item's job finds it in its row, naming the job, and asks nothing", said(onChip), "kWelder | HYE-AST-261019-432 · TIG Welder · 25-USA-13 · Retired | -");
     const chipNowhere = read(ALL, "q=261019-999&job=all&job=recJ1", { allJobs: true });
     check("  an id no row carries says the drawing's sentence whatever the chip holds, and asks nothing", `${said(chipNowhere)} | ${sentence(chipNowhere, null)}`, "- | - | - | No item has the ID | 261019-999 | Clear all");
     const typeOff = read(ALL, "q=261019-432&type=Tool", { allJobs: true, elsewhere: { "HYE-AST-261019-432": AT_JOB_TWO } });
@@ -246,7 +246,7 @@ export function run({ check, log }) {
     check("on all jobs, which are every job, an id the rows do not carry is asked of nothing", said(allNowhere), "- | - | -");
     check("  and says the drawing's sentence", sentence(allNowhere, null), "No item has the ID | 261019-999 | Clear search");
     const allThere = read(ALL, "q=261019-432", { allJobs: true, elsewhere: { "HYE-AST-261019-432": AT_JOB_TWO } });
-    check("  an id on any job is found in its row, the line naming no job, whatever answer is held", said(allThere), "kWelder | HYE-AST-261019-432 · TIG Welder · - · Retired | -");
+    check("  an id on any job is found in its row, the line naming its job, whatever answer is held", said(allThere), "kWelder | HYE-AST-261019-432 · TIG Welder · 25-USA-13 · Retired | -");
     const typedThere = read(JOB_ONE, "q=261019-432&type=Tool", { elsewhere: { "HYE-AST-261019-432": AT_JOB_TWO } });
     check(
         "on one job an item at another job stands over the rows whatever the chips hold, the job's sentence and the control clearing all",
@@ -262,6 +262,16 @@ export function run({ check, log }) {
     check("an answer is drawn beside its own id alone", `${said(otherIds)} ${otherIds.nowhere}`, "- | - | HYE-AST-261019-432 false");
     const unsearched = read(JOB_ONE, "");
     check("a list nobody searched asks nothing", `${unsearched.asks} ${unsearched.asksBy} ${unsearched.nowhere} ${unsearched.found.length}`, "null null false 0");
+    // EVERY LINE NAMES ITS ITEM'S JOB SINCE #612, the table's as well as the base's — the files draw
+    // 1a3's `Item ID` line with it — so across every reading above, each line drawn carries a code,
+    // and the one it carries is the job the item stands on.
+    const lines = [here, there, offChip, offChipThere, onChip, typeOff, hidden, hiddenThere, goneSince, allThere, typedThere].flatMap((reading) => reading.found);
+    check("every line drawn names its item's job (#612)", `${lines.length > 0} ${lines.filter((item) => !item.jobCode).length}`, "true 0");
+    check(
+        "  the job the item stands on, wherever the list stands",
+        [...new Set(lines.map((item) => `${item.assetId}@${item.jobCode}`))].sort().join(" | "),
+        "HYE-AST-261019-430@23-USA-09 | HYE-AST-261019-432@25-USA-13"
+    );
 
     // ── the source ──────────────────────────────────────────────────────────
     log("");

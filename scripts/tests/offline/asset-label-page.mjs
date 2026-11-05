@@ -1291,32 +1291,39 @@ export function run({ check, assert, log }) {
 
     // ── 7d: the opener stays pressable while the run is read (#457) ─────────
     log("");
-    log("the opener is disabled for its page's reason and for nothing else:");
+    log("the opener is unable to act for its page's reason and for nothing else, and never disabled:");
     // A BUTTON DISABLED UNDER THE POINTER DROPS FOCUS TO THE PAGE, which a browser showed:
     // the opener was disabled while a tool's run was read, so the dialog opened with
     // nothing to hand focus back to, and closing it left the reader at the top of the
     // document rather than on the opener CLAUDE.md's overlay rule names. A press during
-    // the read is ignored instead, and the dialog's header says so.
-    const openerDisabled = (parsed) => {
+    // the read is ignored instead, and the dialog's header says so. AND SINCE #612 ITS PAGE'S
+    // REASON IS `unavailable`, `aria-disabled`, as 1e draws `Print labels` past a print's labels:
+    // the keyboard still reaches it and hears why, where `disabled` took it out of the order.
+    const openerAttribute = (parsed, name) => {
         let found = "none";
         walk(parsed.ast, (n) => {
             if (n.type !== "FunctionDeclaration" || n.id?.name !== "LabelsDialog") return;
             walk(n, (m) => {
                 if (m.type !== "JSXOpeningElement" || m.name?.name !== "Button") return;
-                const value = m.attributes.find((a) => a.name?.name === "disabled")?.value?.expression;
+                const value = m.attributes.find((a) => a.name?.name === name)?.value?.expression;
                 found = value ? parsed.source.slice(value.start, value.end) : "never";
             });
         });
         return found;
     };
-    check("the opener is disabled by what its page hands it, alone", openerDisabled(component), "disabled");
+    check(
+        "the opener is unavailable by what its page hands it, alone, and never disabled (#612)",
+        `${openerAttribute(component, "unavailable")} | ${openerAttribute(component, "disabled")}`,
+        "unavailable | never"
+    );
     check(
         "  where one disabled while the read is in flight is seen so",
-        openerDisabled(
+        openerAttribute(
             parseSource(
                 "export default function LabelsDialog({ disabled }) { return <Button disabled={disabled || pending} />; }\n",
                 "<planted-opener>"
-            )
+            ),
+            "disabled"
         ),
         "disabled || pending"
     );

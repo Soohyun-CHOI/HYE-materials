@@ -350,7 +350,7 @@ const PINNED = [
     "Resend email",
     "Email sent",
     "Enter the 6-digit code from the email.",
-    "Wrong code. 4 tries left.",
+    "Incorrect code. 4 attempts left.",
     "Too many tries",
     "This code has expired",
     "This code no longer works",

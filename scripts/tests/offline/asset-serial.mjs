@@ -147,7 +147,7 @@ export async function run({ check, log }) {
     const plan = (reader, status) => planTransition({ user: READERS[reader], jobs: JOBS, status, assetJobId: J1.id, ownerJobId: J1.id });
     const SHOWN = [ASSET_STATUS.IN_STOCK, ASSET_STATUS.OUT, ASSET_STATUS.IN_REPAIR, ASSET_STATUS.RETIRED, ASSET_STATUS.DELETED];
     const row = (reader) => SHOWN.map((status) => `${status}: ${plan(reader, status).mayWriteSerial}`).join(", ");
-    check("the item's own job's site manager: in stock and out", row("site manager on the item's job"), "In stock: true, Out: true, In repair: false, Retired: false, Deleted: false");
+    check("the item's own job's site manager: in every status the app shows (#612)", row("site manager on the item's job"), "In stock: true, Out: true, In repair: true, Retired: true, Deleted: false");
     for (const reader of Object.keys(READERS).slice(1)) {
         check(`  ${reader}: never`, SHOWN.map((status) => plan(reader, status).mayWriteSerial).join(","), "false,false,false,false,false");
     }
@@ -199,9 +199,9 @@ export async function run({ check, log }) {
     };
     check("each row carries its items' numbers by job and printed id, and nothing for an item with none", JSON.stringify(ONE_JOB.find((each) => each.id === "kSaw").serials), '{"recJ1":{"HYE-AST-261001-002":"B53AD2304217"}}');
     check(
-        "a number on the job finds every item of it there, each kind's row and a line each in the rows' order, asking nothing",
+        "a number on the job finds every item of it there, each kind's row and a line each in the rows' order naming the job, asking nothing",
         said(read(ONE_JOB, "q=b53ad2304217")),
-        "kSaw,kDrill | HYE-AST-261001-002 · B53AD2304217 · Band Saw · - · Out + HYE-AST-261001-001 · B53AD2304217 · Drill, DeWalt · - · In stock | - | -"
+        "kSaw,kDrill | HYE-AST-261001-002 · B53AD2304217 · Band Saw · 23-USA-09 · Out + HYE-AST-261001-001 · B53AD2304217 · Drill, DeWalt · 23-USA-09 · In stock | - | -"
     );
     check("  the spaces around it are no part of it", said(read(ONE_JOB, "q=%20%20B53AD2304217%20")).split(" | ")[0], "kSaw,kDrill");
     check("  a part of it finds no item by it, and is asked as what may be a number", said(read(ONE_JOB, "q=B53AD")), "- | - | B53AD | serial");
@@ -217,7 +217,7 @@ export async function run({ check, log }) {
     const nowhere = read(ONE_JOB, "q=ZZ9999", { elsewhere: { ZZ9999: [] } });
     check("  a number the base finds on no item says a name's sentence", `${nowhere.nowhere} ${nowhere.bySerial} ${sentence(nowhere, J1.jobCode)}`, "true false No items match | ZZ9999");
     check("on all jobs, which are every job, a number no row carries is asked of nothing", said(read(EVERY_JOB, "q=ZZ9999&job=all", { allJobs: true })), "- | - | - | -");
-    check("  and one on any job is found in its row", said(read(EVERY_JOB, "q=J47AD2210396&job=all", { allJobs: true })), "kGauge | HYE-AST-261002-001 · J47AD2210396 · Gap Gauge · - · Retired | - | -");
+    check("  and one on any job is found in its row, its line naming the job it is on", said(read(EVERY_JOB, "q=J47AD2210396&job=all", { allJobs: true })), "kGauge | HYE-AST-261002-001 · J47AD2210396 · Gap Gauge · 25-USA-13 · Retired | - | -");
     const offChip = read(EVERY_JOB, `q=J47AD2210396&job=all&job=${J1.id}`, { allJobs: true });
     check("  the Job chip taking its job off asks every job, as an id is asked", said(offChip), "- | - | J47AD2210396 | serial");
     const offChipAnswered = read(EVERY_JOB, `q=J47AD2210396&job=all&job=${J1.id}`, {
@@ -230,7 +230,7 @@ export async function run({ check, log }) {
     const twice = read(summarizeAssetCategories(KINDS, [...ON_J1, ...ON_J2, asset("HYE-AST-261002-002", "kSaw", J2.id, ASSET_STATUS.IN_STOCK, "B53AD2304217")]), `q=B53AD2304217&job=all&job=${J1.id}`, {
         allJobs: true,
     });
-    check("  and the line names the chip's jobs' items alone, where the kind holds the number on another job too", said(twice).split(" | ")[1], "HYE-AST-261001-002 · B53AD2304217 · Band Saw · - · Out + HYE-AST-261001-001 · B53AD2304217 · Drill, DeWalt · - · In stock");
+    check("  and the line names the chip's jobs' items alone, where the kind holds the number on another job too", said(twice).split(" | ")[1], "HYE-AST-261001-002 · B53AD2304217 · Band Saw · 23-USA-09 · Out + HYE-AST-261001-001 · B53AD2304217 · Drill, DeWalt · 23-USA-09 · In stock");
     const unsearched = [read(ONE_JOB, ""), read([], "")];
     check("a list nobody searched asks nothing, a job with no rows included", unsearched.map((each) => `${each.asks} ${each.asksBy} ${each.found.length}`).join(" | "), "null null 0 | null null 0");
     check("what may be a number is asked once the typing has rested half a second", SERIAL_ASK_REST_MS, 500);
@@ -253,7 +253,7 @@ export async function run({ check, log }) {
     check("  the openings", [ASSET_SERIAL_COPY.addSerial, ASSET_SERIAL_COPY.editSerial, ASSET_SERIAL_COPY.add, ASSET_SERIAL_COPY.edit].join(" | "), "Add serial number | Edit serial number | Add | Edit");
     check("  the actions, the note's", [ASSET_SERIAL_COPY.save, ASSET_SERIAL_COPY.cancel, ASSET_SERIAL_COPY.done, ASSET_SERIAL_COPY.clear].join(" | "), [ASSET_NOTE_COPY.save, ASSET_NOTE_COPY.cancel, ASSET_NOTE_COPY.done, ASSET_NOTE_COPY.clear].join(" | "));
     check("  a number taken, the design's sentence", `${ASSET_SERIAL_COPY.takenBy("HYE-AST-261019-104")} || ${ASSET_SERIAL_COPY.takenRest}`, "HYE-AST-261019-104 already has this serial number. || already has this serial number.");
-    check("  too much, and one changed first, the app's", `${ASSET_SERIAL_COPY.tooLong} | ${ASSET_SERIAL_COPY.changedFirst}`, "Max 50 characters. | Nothing was saved. Someone else changed this serial number first.");
+    check("  too much, and one changed first, Soo's words (#612)", `${ASSET_SERIAL_COPY.tooLong} | ${ASSET_SERIAL_COPY.changedFirst}`, "Use 50 characters or fewer. | Someone else changed this serial number first. Nothing was saved.");
     check("  working, the note's", Object.values(ASSET_SERIAL_COPY.working).join(" | "), "Saving… | Adding… | Removing…");
     check(
         "the list's: the search, the found line's word and the two sentences",
