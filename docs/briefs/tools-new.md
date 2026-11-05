@@ -146,21 +146,24 @@ they pressed on, drawn again without the dialog, and nothing said. Adding items
 is a site manager's, and `Is Admin` does not make one: the office's flag opens
 the office's screens, and this track does not pass through the office.
 
-**When the site manager is assigned to no job:** the dialog does not open. Every
-control that would open it is drawn disabled, with `Ask the office to assign
-you to a job` before it on its line (#456). **It says ask, not join (#455)**:
-nothing in the app lets a person join a job — the office assigns one in
-Airtable — so an instruction to join is one the reader cannot follow, which is
-why the design's `Join a job to create tools` went back to the design and this
-came back. **Since #522 the category list draws none for a site manager
-assigned to no job**: 1a2's no-job state was the heading and its sentence alone,
-where #509 drew the opener there disabled too, and since #593, when every reader
-stands on every job and that state went, the list asks the reader's own
-assignments whether to draw it at all. A category's own screen still draws it
-disabled with that sentence. `Assets."Job"` is required, the job comes from the
-reader's own assignments with no exception for the office, so an Admin assigned
-to no job meets the disabled opener on a category's screen, and none on the
-list.
+**When the site manager is assigned to no job:** there is no control that opens
+it, on any screen, and nothing is said in its place (#610) — the reader reads
+each screen as one who is not a site manager does. The action behind it refuses
+them with `Ask the office to assign you to a job`, which reaches a screen only
+as this dialog's refusal over its actions, for a reader whose last job was
+taken off while it was open. A job is asked for at sign-in (#554), of everyone but the
+office and the President, so that step is where the request the sentence
+pointed at is made. `Assets."Job"` is required and the job comes from the
+reader's own assignments with no exception for the office, so an Admin or the
+President marked as a site manager and assigned to no job is the reader this
+meets. **Until #610 one reader met two answers**: the category list drew no
+opener for them (1a2 from #522, and since #593 asked of their own assignments),
+while a category's screen drew both of its openers and the one in the dialog a
+registration that fell short opens disabled, with that sentence before each on
+its line (#456). **The sentence says ask, not join (#455)**: nothing in the app
+lets a person join a job — the office assigns one in Airtable — which is why
+the design's `Join a job to create tools` went back to the design and this came
+back.
 
 **When the reader is assigned to exactly one job:** the job is already chosen,
 in a choice holding that one job.

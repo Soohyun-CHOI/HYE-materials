@@ -1272,16 +1272,16 @@ export function run({ check, assert, log }) {
         facts.accountFrom,
         "asked: sp.asked, unlogged: sp.unlogged, unwritten: sp.unwritten"
     );
-    // AND, SINCE #456, what the fork's opener needs of the reader: whether they may
-    // register, asked once on this page, and the jobs the dialog offers — the same two the
-    // page's own opener is handed, so the two openers cannot answer the reader differently.
-    // Since #507 the category it opens on is the page's opener's too, and so is the catalog that
-    // admits it, and since #565 the job the list stands on; what those three are is read off
-    // their declarations below, beside the openers.
+    // AND, SINCE #456, what the fork's opener needs of the reader: the jobs the dialog offers,
+    // the page's own opener's, so the two openers cannot answer the reader differently — and
+    // until #610 whether they may register, which the page's `adds` answers since, over the
+    // fork as over the opener. Since #507 the category it opens on is the page's opener's too,
+    // and so is the catalog that admits it, and since #565 the job the list stands on; what
+    // those three are is read off their declarations below, beside the openers.
     check(
-        "  the fork is handed the page opener's tool and catalog, that reading and the page's answer about the reader",
+        "  the fork is handed the page opener's tool, catalog and jobs, and that reading (#610)",
         facts.fork,
-        "account: account, canRegister: canRegister, catalog: catalog, category: opened, jobs: assignedJobs, listJobId: listJobId"
+        "account: account, catalog: catalog, category: opened, jobs: assignedJobs, listJobId: listJobId"
     );
     check("  and the notice the category's name and the same reading", facts.notice, "account: account, itemName: category.itemName");
     check("  which the page no longer lists itself", facts.mappedFromAddress, "");
@@ -1481,8 +1481,8 @@ export function run({ check, assert, log }) {
     // count, so its words and the dialog are handed one value — and since #459 the fork is
     // a dialog of its own: open while `accountToTell` tells it and the registration is
     // shut, closed with `Not now` on the close and on Escape as on its own answer, handing
-    // focus to the page's heading, and opening the form through the one opening rule
-    // behind the one gate. Its title and its sentence are read here too (#485), as the
+    // focus to the page's heading, and opening the form through the one opening rule from
+    // a live button, gated by nothing since #610. Its title and its sentence are read here too (#485), as the
     // expressions whose values `offline/asset-registration.mjs` holds for a batch that
     // failed. None of that moves a figure, so it is read off the source — and the
     // notice's `Got it` below is held the same way.
@@ -1515,11 +1515,15 @@ export function run({ check, assert, log }) {
                 const quantity = n.attributes.find((a) => a.name?.name === "quantity");
                 if (quantity) handed = text(quantity.value?.expression);
             }
-            // The gate and what it says: its props, and the one expression it holds.
-            if (n.type === "JSXElement" && n.openingElement.name?.name === "RegistrationOpener") {
+            // The answer that goes on and what it says: the control holding `registerOthers`, its
+            // props and the one expression it holds — a `Button` since #610, where a gate
+            // (`RegistrationOpener`) drew it disabled for a site manager on no job until then.
+            if (n.type === "JSXElement") {
                 const said = n.children.find((c) => c.type === "JSXExpressionContainer");
-                gate = `${dialogProps(n.openingElement)} → ${text(said?.expression)}`;
-                if (said?.expression?.type === "CallExpression") offers = said.expression.arguments.map(text).join(", ");
+                if (said?.expression?.type === "CallExpression" && text(said.expression.callee) === "COPY.registerOthers") {
+                    gate = `${n.openingElement.name?.name} ${dialogProps(n.openingElement)} → ${text(said.expression)}`;
+                    offers = said.expression.arguments.map(text).join(", ");
+                }
             }
             if (n.type === "JSXElement" && n.openingElement.name?.name === "DialogMessage") {
                 const said = n.children.find((c) => c.type === "JSXExpressionContainer");
@@ -1580,12 +1584,12 @@ export function run({ check, assert, log }) {
         fork.frame,
         "open: told && !registration.open · onClose: notNow · unprompted"
     );
-    check("  whose own answer that stops is the same `Not now`", fork.answers, "notNow");
+    check("  whose answers are the same `Not now` and the opening, in that order (#610)", fork.answers, "notNow, registration.start");
     check("its answer that goes on opens through the one opening rule", fork.registration, "useRegistrationOpening()");
     check(
-        "  behind the one gate, in the fork's own words",
+        "  a live button with no gate, in the fork's own words (#610)",
         fork.gate,
-        "canRegister: canRegister, onOpen: registration.start → COPY.registerOthers(account.unwritten)"
+        "Button onClick: registration.start → COPY.registerOthers(account.unwritten)"
     );
     // The category and the catalog are the page's, handed through (#507): the dialog starts on
     // the category's second step, and the reading admits it only while that catalog offers it.
@@ -1622,7 +1626,7 @@ export function run({ check, assert, log }) {
                 "    <DialogFrame open={told} onClose={() => {}} title={COPY.shortfallHeading(account.asked)}>\n" +
                 "      <DialogMessage>{COPY.shortfall(account.unwritten)}</DialogMessage>\n" +
                 "      <Button onClick={finish}>{COPY.doneRegistering}</Button>\n" +
-                "      <RegistrationOpener canRegister={true} onOpen={() => {}}>{COPY.registerOthers(account.asked)}</RegistrationOpener>\n" +
+                "      <RegistrationOpener canRegister={canRegister} onOpen={() => {}}>{COPY.registerOthers(account.asked)}</RegistrationOpener>\n" +
                 "    </DialogFrame>\n" +
                 "    <RegistrationForm open={true} onClose={finish} jobs={jobs} tool={{ id: categoryRecordId }} quantity={requested} />\n" +
                 "  </>);\n" +
@@ -1643,9 +1647,9 @@ export function run({ check, assert, log }) {
     );
     check("  an opening kept by itself is seen", plantedFork.registration, "{ open: false }");
     check(
-        "  a gate opened on nothing, naming another count, is seen",
+        "  a gate opened on nothing, naming another count, is seen (#610)",
         plantedFork.gate,
-        "canRegister: true, onOpen: ArrowFunctionExpression → COPY.registerOthers(account.asked)"
+        "RegistrationOpener canRegister: canRegister, onOpen: ArrowFunctionExpression → COPY.registerOthers(account.asked)"
     );
     check(
         "  a form opened on a row of its own making with no catalog, another count and always is seen",
@@ -1707,11 +1711,13 @@ export function run({ check, assert, log }) {
     // THE OPENERS OF THE REGISTRATION DIALOG, ON BOTH SCREENS (#451, #456). A category's page
     // opens it on that category and with no count, in the dialog's own title — `Add items` since
     // #519, `Add tools` from #485 — and the list opens it on no category. Each stands under ONE condition since #506,
-    // that the reader is a site manager — the page's `recorder` — and under nothing else: a
-    // category with nothing under it keeps its opener, and so does a site manager on no job, whom
-    // the opener itself tells why it cannot act (0f). What decides that is one predicate,
-    // `canRegisterAssets`, asked by each page and handed down, so no opener answers the
-    // reader differently. An opener drawn only beside the list renders this very page on
+    // that the reader is a site manager — the list's `recording.adds` since #597 — and under
+    // nothing else: a category with nothing under it keeps its opener. **Since #610 that answer
+    // is the whole of it**: `listRecording` asks `canRegisterAssets` itself on all jobs, so a site
+    // manager on no job meets no opener, and no page hands an opener a gate of its own — until
+    // then each page asked the predicate and handed it down as `canRegister`, the opener drawing
+    // itself disabled with why before it (0f) on a kind's page. `asks` reads that gate, which a
+    // planted page still hands. An opener drawn only beside the list renders this very page on
     // every category this base holds, so none of that shows in a figure and all of it is read
     // off the source. WHICH condition, and not only how many, since #506: a count of one is
     // what an opener gated on the reader's job would read as too.
@@ -1778,16 +1784,16 @@ export function run({ check, assert, log }) {
     check(
         "  on this tool and its catalog, with no count, in the dialog's own title",
         openers[0]?.handed,
-        "canRegister: canRegister, catalog: catalog, category: opened, jobs: assignedJobs, listJobId: listJobId, opener: ASSET_REGISTRATION_COPY.heading"
+        "catalog: catalog, category: opened, jobs: assignedJobs, listJobId: listJobId, opener: ASSET_REGISTRATION_COPY.heading"
     );
-    check("  asking the one predicate every opener asks", openers[0]?.asks, "canRegisterAssets");
+    check("  handed no gate of its own, the list's answer deciding whether it is drawn (#610)", openers[0]?.asks, "none");
     // Under the list's answer since #597 (`listRecording`): a site manager on the job the list
     // stands on, or on all jobs — never on another job's list, where it stood until then.
     check("  and under the list being one the reader adds on — their own job's, or all jobs (#506, #597)", openers[0]?.under, "recording.adds");
     check(
         "  the empty list's the same opener, bordered, under the empty branch and the same reader",
         `${openers[1]?.handed} | ${openers[1]?.asks} | ${openers[1]?.under}`,
-        "canRegister: canRegister, catalog: catalog, category: opened, jobs: assignedJobs, listJobId: listJobId, opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | canRegisterAssets | page.total === 0, recording.adds"
+        "catalog: catalog, category: opened, jobs: assignedJobs, listJobId: listJobId, opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | none | page.total === 0, recording.adds"
     );
     // WHAT THE CATEGORY AND THE CATALOG ARE (#507), off their declarations, since `category: opened`
     // above reads alike whatever `opened` is: the row the page read, by the id the action
@@ -1825,21 +1831,21 @@ export function run({ check, assert, log }) {
     check(
         "  on no tool, in the same title, with the whole catalog to pick from — whatever the list's scope (#509, #507)",
         listOpeners[0]?.handed,
-        "canRegister: canRegisterAssets(user, allJobs), catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), key: registration, listJobId: scope.job?.id ?? null, opener: ASSET_REGISTRATION_COPY.heading"
+        "catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), key: registration, listJobId: scope.job?.id ?? null, opener: ASSET_REGISTRATION_COPY.heading"
     );
-    check("  asking the same predicate", listOpeners[0]?.asks, "canRegisterAssets");
-    // A SITE MANAGER ON NO JOB MEETS NO OPENER IN THE HEAD (1a2, #522), and since #593 that is
-    // asked of their own jobs (`canRegister`) and not of the jobs the list may stand on, which are
-    // every job for every reader.
+    check("  handed no gate either (#610)", listOpeners[0]?.asks, "none");
+    // A SITE MANAGER ON NO JOB MEETS NO OPENER IN THE HEAD (1a2, #522), asked of their own jobs
+    // and not of the jobs the list may stand on, which are every job for every reader (#593) —
+    // by the list's answer itself since #610, where this page asked `canRegister` beside it.
     check(
-        "  and under the list being one the reader adds on, and a job of their own to add to (#506, #522, #593, #597)",
+        "  and under the list's answer alone, which holds whether the reader has a job to add to (#506, #522, #593, #597, #610)",
         listOpeners[0]?.under,
-        "recording.adds && registration.canRegister"
+        "recording.adds"
     );
     check(
         "  the empty list's the same opener, bordered, under the empty branch and the same reader",
         `${listOpeners[1]?.handed} | ${listOpeners[1]?.asks} | ${listOpeners[1]?.under}`,
-        "canRegister: canRegisterAssets(user, allJobs), catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), listJobId: scope.job?.id ?? null, opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | canRegisterAssets | rows.length === 0, recording.adds && registration.canRegister"
+        "catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), listJobId: scope.job?.id ?? null, opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | none | rows.length === 0, recording.adds"
     );
     // The count a suggested tool carried, its link array's length (#456), was held here until
     // #507: a suggestion is a name of the catalog now, beside its category, and how many of a
@@ -2657,13 +2663,13 @@ export function run({ check, assert, log }) {
         "Items show here once a site manager adds them. | Items show here once you add them. | false | false"
     );
     check(
-        "  the list: no state for a reader on no job, a figure of none, the sentence by who reads it, the opener under a site manager's own jobs",
+        "  the list: no state for a reader on no job, a figure of none, the sentence by who reads it, the opener under the list's answer alone (#610)",
         [
             !/onNoJob|noJobHeading|untilAssigned/.test(listSource),
             /count=\{0\}/.test(listSource),
             /<h2 className="text-heading font-semibold">\{COPY\.noItemsHeading\}<\/h2>/.test(listSource),
             /\{recording\.adds \? COPY\.noItems : COPY\.untilASiteManagerAdds\}/.test(listSource),
-            /\{recording\.adds && registration\.canRegister && \(/.test(listSource),
+            /if \(rows\.length === 0\) \{[\s\S]*?\{recording\.adds && \(\s*<div className="mt-gap-lg">\s*<RegistrationDialog/.test(listSource),
         ].join(" "),
         "true true true true true"
     );

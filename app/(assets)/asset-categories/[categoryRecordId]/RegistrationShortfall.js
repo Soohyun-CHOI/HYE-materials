@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { Button } from "@/app/components/Controls";
 import { DialogActions, DialogBody, DialogFrame, DialogMessage } from "@/app/components/DialogFrame";
 import { ASSET_REGISTRATION_COPY as COPY, accountToTell } from "@/lib/assetRegistration";
-import { RegistrationForm, RegistrationOpener, useRegistrationOpening } from "../RegistrationDialog";
+import { RegistrationForm, useRegistrationOpening } from "../RegistrationDialog";
 
 // What a registration that fell short offers where it lands (#449): write the rest, or
 // be done. A FORK AND NOT A NOTICE, and the difference is what the markup carries — two
@@ -44,9 +44,10 @@ import { RegistrationForm, RegistrationOpener, useRegistrationOpening } from "..
 // back, because nothing answered it — the question stands until `Not now`, and the
 // address still carries it, so the screen says what a reload would. A registration that
 // lands answers it by moving the address, and the new one carries only its own account.
-// For a site manager on no job the answer is drawn disabled with the reason before it, as
-// every opener is (#456); the fork is told to a site manager alone (#506), since whoever
-// added is one.
+// The fork is told under the page's `adds` (#506, #610), a site manager who may add, since
+// whoever added is one, so its answer is never drawn disabled: until #610 a site manager on
+// no job met it so, with the reason before it, as they met every opener on a kind's page
+// (#456).
 //
 // `Not now` IS THE OTHER ANSWER, AND IT ENDS THE QUESTION: `asked` and `unwritten` leave
 // the address, so a reload does not ask again. The close and Escape answer it too — the
@@ -69,7 +70,7 @@ import { RegistrationForm, RegistrationOpener, useRegistrationOpening } from "..
 // EVERY WORD IS `ASSET_REGISTRATION_COPY`'s, this axis's rule since #338: they are a
 // registration's words wherever they are drawn, which is also why the fork is a file of
 // its own rather than part of the list.
-export default function RegistrationShortfall({ category, catalog, account, canRegister, jobs, listJobId }) {
+export default function RegistrationShortfall({ category, catalog, account, jobs, listJobId }) {
     const address = useSearchParams();
     const registration = useRegistrationOpening();
     const told = accountToTell(account, address) === "shortfall";
@@ -97,23 +98,19 @@ export default function RegistrationShortfall({ category, catalog, account, canR
                     <Button variant="bordered" onClick={notNow}>
                         {COPY.doneRegistering}
                     </Button>
-                    <RegistrationOpener canRegister={canRegister} onOpen={registration.start}>
-                        {COPY.registerOthers(account.unwritten)}
-                    </RegistrationOpener>
+                    <Button onClick={registration.start}>{COPY.registerOthers(account.unwritten)}</Button>
                 </DialogActions>
             </DialogFrame>
-            {canRegister && (
-                <RegistrationForm
-                    key={registration.opening}
-                    open={registration.open}
-                    onClose={registration.close}
-                    jobs={jobs}
-                    listJobId={listJobId}
-                    category={category}
-                    catalog={catalog}
-                    quantity={account.unwritten}
-                />
-            )}
+            <RegistrationForm
+                key={registration.opening}
+                open={registration.open}
+                onClose={registration.close}
+                jobs={jobs}
+                listJobId={listJobId}
+                category={category}
+                catalog={catalog}
+                quantity={account.unwritten}
+            />
         </>
     );
 }

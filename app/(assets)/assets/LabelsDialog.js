@@ -140,7 +140,7 @@ const labelCodeFont = Inconsolata({ subsets: ["latin"], variable: "--font-label-
  * page hands over; `assetIds` is what a category's page has selected, read when
  * pressed. `itemName` is the line under the title.
  */
-export default function LabelsDialog({ title, itemName, run: handed, assetIds, disabled = false, disabledReason, describedBy, variant = "filled" }) {
+export default function LabelsDialog({ title, itemName, run: handed, assetIds, disabled = false, describedBy, variant = "filled" }) {
     const [open, setOpen] = useState(false);
     const [run, setRun] = useState(handed ?? null);
     const [pending, startTransition] = useTransition();
@@ -168,7 +168,6 @@ export default function LabelsDialog({ title, itemName, run: handed, assetIds, d
             <Button
                 variant={variant}
                 disabled={disabled}
-                disabledReason={disabledReason}
                 describedBy={describedBy}
                 busy={pending}
                 busyLabel={COPY.working}

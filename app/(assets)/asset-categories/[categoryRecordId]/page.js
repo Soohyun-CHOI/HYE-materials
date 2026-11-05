@@ -15,7 +15,7 @@ import {
     listRecording,
 } from "@/lib/assetListView";
 import { itemCountOf, registrationCatalog } from "@/lib/assetCategory";
-import { ASSET_REGISTRATION_COPY, canRegisterAssets, readRegistrationAccount } from "@/lib/assetRegistration";
+import { ASSET_REGISTRATION_COPY, readRegistrationAccount } from "@/lib/assetRegistration";
 import { ASSET_CATEGORIES_PATH, LIST_SORTS, assetCategoriesPath, readSort } from "@/lib/assetRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
 import Breadcrumb from "@/app/components/Breadcrumb";
@@ -127,9 +127,10 @@ export const metadata = { title: "Item" };
  * registration dialog on this kind and with no count — nothing here knows how many
  * were bought — and costs nothing: the kind is the row already read, and the reader
  * and the job list are what this page reads anyway. It is drawn for every kind this page
- * finds, the one with nothing under it included — disabled, with the reason before it,
- * for a site manager on no job, as the offer below is (#456); `/asset-categories` draws such a
- * site manager no opener at all (#522, #593).
+ * finds, the one with nothing under it included, and for a site manager on no job not at all,
+ * with no sentence saying why, as `/asset-categories` draws them none (#522, #610): until #610
+ * this page drew it and the offer below disabled, with `Ask the office to assign you to a job`
+ * before each (#456).
  * The dialog starts at its second step on this kind (#507): the kind is submitted by its
  * record id, and the dialog is handed the kind as the catalog it may pick from — so the
  * levels it asks start on this kind's values (#514) — which is none at all for a row the
@@ -145,7 +146,8 @@ export const metadata = { title: "Item" };
  * fills it, `Items show here once a site manager adds them.`, where a site manager is told it
  * fills when they add, over the opener (1d, #519). **So does a site manager on another job's
  * list since #597** (1d `Another job`, `No items · another job`), and **on all jobs one meets
- * the opener and no box** (1d `All jobs`): every question is `listRecording`, asked once here —
+ * the opener and no box** (1d `All jobs`) — **one on no job reads what anybody does, there too,
+ * since #610**: every question is `listRecording`, asked once here —
  * `adds` for the opener, the account and the empty list's words, `selects` for the boxes and
  * the bar — and the actions behind those controls ask the same of the base, the label read
  * of each item it is handed.
@@ -224,16 +226,15 @@ async function renderCategoryPage({ params, searchParams }) {
 
     const account = readRegistrationAccount({ asked: sp.asked, unwritten: sp.unwritten, unlogged: sp.unlogged });
     // Whether this reader adds assets here and prints their labels here (#506, #597): a site
-    // manager on the job the list stands on does both, one on all jobs adds alone, and on
-    // another job's list neither. Every control below that does either is drawn under it, and
-    // nothing else on the page is.
+    // manager on the job the list stands on does both, one on all jobs adds alone while they
+    // hold a job (#610), and on another job's list neither. Every control below that does
+    // either is drawn under it, and nothing else on the page is.
     const recording = listRecording(user, scope);
-    // What both openers on this page hand the registration dialog (#456): whether this
-    // site manager may register, which is the one predicate every opener asks, the
-    // jobs its choice offers, and the job this list stands on, which that choice starts on
-    // when it is one of them (#565) — none on all jobs, and the scope's answer
-    // rather than the address's, so it costs nothing.
-    const canRegister = canRegisterAssets(user, jobs);
+    // What both openers on this page hand the registration dialog (#456): the jobs its choice
+    // offers, and the job this list stands on, which that choice starts on when it is one of
+    // them (#565) — none on all jobs, and the scope's answer rather than the address's, so it
+    // costs nothing. Whether there is an opener is `recording.adds`, which a site manager on no
+    // job is never answered (#610).
     const assignedJobs = assignedJobsFor(user, jobs).map(({ id, jobCode, jobName }) => ({ id, jobCode, jobName }));
     const listJobId = scope.job?.id ?? null;
 
@@ -274,7 +275,7 @@ async function renderCategoryPage({ params, searchParams }) {
     // level its second step asks has this row's value already chosen (#514).
     const opened = { id: category.id, itemName: category.itemName };
     const catalog = registrationCatalog([category]);
-    const registration = { opener: ASSET_REGISTRATION_COPY.heading, canRegister, jobs: assignedJobs, listJobId, category: opened, catalog };
+    const registration = { opener: ASSET_REGISTRATION_COPY.heading, jobs: assignedJobs, listJobId, category: opened, catalog };
     // The head's controls stand in a column at its foot (1d, #540): `Add items` for a site manager,
     // and under it, while the list has rows to order, the sort — pulled out past the content's edge by
     // its own room, so its chevron meets it, and 14 over the column head where the head's foot is 18.
@@ -373,15 +374,15 @@ async function renderCategoryPage({ params, searchParams }) {
                 includes the notice's assets, which were written. Each is a dialog since
                 #459, one at a time and the notice first; it stands first here too, so when
                 its answer hands over to the fork the one closes before the other opens. Both
-                are told to whoever added, which is a site manager (#506); an address carrying
-                them reaches anybody else only as a copied link, and tells them nothing. */}
+                are told to whoever added, which is a site manager with a job (#506, #610); an
+                address carrying them reaches anybody else only as a copied link, and tells them
+                nothing. */}
             {recording.adds && account.unlogged.length > 0 && <RegistrationUnlogged itemName={category.itemName} account={account} />}
             {recording.adds && account.unwritten > 0 && (
                 <RegistrationShortfall
                     category={opened}
                     catalog={catalog}
                     account={account}
-                    canRegister={canRegister}
                     jobs={assignedJobs}
                     listJobId={listJobId}
                 />
