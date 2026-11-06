@@ -146,6 +146,7 @@
     --spacing-list-empty-state-inset-top: 15rem; /* 1a and 1d, 240: above a list's empty state — from the drawings, not the spec */
     --spacing-list-emptied-inset-y: 3.75rem; /* 1a, 60: above and below what a list says once its band has emptied it — from the drawings, not the spec */
     --spacing-list-emptied-stack: 0.75rem; /* 1a, 12: from that sentence to the control under it — from the drawings, not the spec */
+    --spacing-closed-page-inset-bottom: 3rem; /* 1l Not Admin closed, 48: under the one sentence of a page the reader may no longer use (0b Row), which sets it above the middle — from the drawings, not the spec */
     --height-found-item: 2.5rem; /* 1a, 40: the way to the item a search found by its id, on the Face under the band — from the drawings, not the spec */
     --spacing-found-item-inset-x: 0.75rem; /* 1a, 12: inside that way's Edge, either side — from the drawings, not the spec */
     --spacing-found-item-inline: 1rem; /* 1a, 16: the least room from its words to its chevron — from the drawings, not the spec */
@@ -157,12 +158,13 @@
     --color-selected-border: #C1DEFD; /* Edge: the border of anything sitting on the face — a set filter chip */
     --color-primary: oklch(0.487 0.216 257); /* Accent: the primary action, a current icon, a focused caret */
     --color-primary-hover: oklch(0.437 0.211 257); /* Accent hover: a filled action under the pointer */
-    --color-primary-disabled: color-mix(in oklab, var(--color-primary) 40%, transparent); /* 0f Disabled: a filled action that cannot act yet */
+    --color-primary-disabled: color-mix(in oklab, var(--color-primary) 40%, transparent); /* 0f Disabled: a filled action that cannot act */
 
     /* 0d · Red — the one red that carries a message, and a destructive action. */
     --color-danger-subtle: #FFF4F5; /* Face: under the pointer on a destructive action */
     --color-danger: #DC0015; /* Accent: any mark, any word, any bar that carries a message */
     --color-danger-hover: oklch(0.512 0.205 27); /* Accent hover: a filled red action under the pointer */
+    --color-danger-disabled: color-mix(in oklab, var(--color-danger) 40%, transparent); /* 0f Disabled: a filled red action that cannot act, a dialog's commitment that pressing again cannot change (Invoices 0l) */
 
     /* 0e · Ink — one hue, and a foreground for what the text says. */
     --color-foreground-default: oklch(0.255 0.013 265); /* Ink: every figure, every heading, an id at rest, a row of text */
@@ -192,7 +194,8 @@
     --transition-delay-busy: 300ms; /* 0f, 300ms: how long an action that has started waits before it shows it is busy */
     --size-spinner: 1rem; /* 0f, 16: the spinner a busy action shows before its -ing label */
     --animate-spinner: spin 0.7s linear infinite; /* 0f: the spinner's turn — from the drawings' stylesheet, not the spec */
-    --color-spinner-track: color-mix(in oklab, currentColor 35%, transparent); /* 0f: the spinner's track, its label's ink at 35% — from the drawings' stylesheet, not the spec */
+    --color-spinner-track: color-mix(in oklab, currentColor 35%, transparent); /* 0f: the spinner's track on a filled action, its label's white at 35% — from the drawings' stylesheet, not the spec */
+    --color-unfilled-spinner-track: color-mix(in oklab, currentColor 20%, transparent); /* 0f: the spinner's track on an action with no fill, its words' Ink at 20% — 1a's Export, 1l's Discontinue and Restore — from the drawings, not the spec */
 
     /* 0g · Status — the mark carries the state. */
     --size-status-indicator: 0.5625rem; /* Status, 9: the mark */
@@ -521,6 +524,7 @@
     --spacing-mobile-drawer-heading-stack: 0.25rem; /* Sheet, 4: from a list's heading to its first row — from the drawings, not the spec */
     --spacing-mobile-drawer-subtitle-stack: 0.25rem; /* Sheet, 4: the line under its title, 1j-f's lending's whose it stays (#598) — from the drawings, not the spec */
     --spacing-mobile-drawer-header-action-inset-x: 0.75rem; /* Sheet, 12: either side of the Done at its title's end, pulled back out — from the drawings, not the spec */
+    --color-mobile-drawer-header-action-spinner-track: color-mix(in oklab, currentColor 25%, transparent); /* Tools 0a Busy: the 16 spinner a text button such as Done holds in its words' width, its Accent at 25% — from the drawings, not the spec */
     --spacing-mobile-drawer-body-stack: 1.25rem; /* Sheet that confirms, 20: the actions under the sentence — every sheet's actions under what it holds */
     --spacing-mobile-drawer-action-stack: 0.75rem; /* Sheet that confirms, 12: between the stacked actions — every sheet's */
     --spacing-mobile-confirm-inset-top: 1.5rem; /* Sheet that confirms, 24: its title from its top */

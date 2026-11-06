@@ -337,7 +337,8 @@ function laidOutAsSheet(dialog) {
  * `closesOnBackdrop` and `done` are the phone's sheet (#458), the header
  * again — and a sheet whose `Done` sends what it holds, the note sheet's (#533), names its
  * `-ing` word as `done.busyLabel`, so while the frame is `busy` its `Done` is 0f's Working, the
- * phone's spinner alone, as a sheet's commitment is. `onHidden` runs before the frame closes a
+ * spinner alone — 0a's text button, a 16 in Accent in its words' width since #616, where it took a
+ * sheet's commitment's 20 until the files drew it. `onHidden` runs before the frame closes a
  * dialog its page stopped drawing (#495).
  * `wide` is 0l's 480, a dialog that searches a list and picks from it, and `fixed` holds it at
  * 1b's 490 while what it asks changes with what was picked (#520): what it holds then takes
@@ -555,7 +556,9 @@ export function DialogFrame({
                         data-busy={(busy && done.busyLabel) || undefined}
                         className="group/button relative flex h-mobile-touch-target items-center rounded-full px-mobile-drawer-header-action-inset-x text-mobile-heading font-semibold text-primary not-aria-disabled:active:opacity-mobile-pressed"
                     >
-                        <ButtonLabel busyLabel={done.busyLabel}>{done.label}</ButtonLabel>
+                        <ButtonLabel on="text" busyLabel={done.busyLabel}>
+                            {done.label}
+                        </ButtonLabel>
                     </button>
                 </div>
             ) : (

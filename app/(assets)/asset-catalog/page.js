@@ -18,7 +18,12 @@ export const metadata = { title: COPY.heading };
  * behind this page are wrapped in — and no file on the assets axis reads the flag itself
  * (`offline/site-manager.mjs`). A reader who is not the office reads why in the page's place,
  * the shape the Invoices file's 1g draws for `/invoices/new`: the page names a role, which is
- * not a record whose existence a refusal could give away.
+ * not a record whose existence a refusal could give away. **`CatalogList` draws that sentence
+ * too (#616)**, handed no catalog, so a dialog open when an action finds its reader no longer the
+ * office stands across the page drawn again, as 1l `Not Admin` draws it: the page renders one
+ * component either way, which React keeps with what it holds, where a paragraph of the page's
+ * own put in its place took the dialog with the list. The list draws that page as 0b draws one
+ * the reader may no longer use, its breadcrumb and the sentence alone (Tools 55's 1l).
  *
  * THREE READS: the session, the whole catalog — one list request per hundred rows — and every
  * group, one more. A row's items are counted off its `Assets` link array, which the catalog's read
@@ -31,13 +36,7 @@ export default async function AssetCatalogPage() {
 
 async function renderCatalogPage() {
     const { authorized } = await requireAdmin();
-    if (!authorized) {
-        return (
-            <div className="flex h-full items-center justify-center px-page-gutter text-center font-ui text-body text-foreground-muted">
-                <p>{COPY.noAccess}</p>
-            </div>
-        );
-    }
+    if (!authorized) return <CatalogList rows={null} groups={null} />;
 
     const [categories, groups] = await Promise.all([getAllAssetCategories(), getAllAssetCategoryGroups()]);
     return <CatalogList rows={catalogRows(categories)} groups={groups.map(({ level1, level2 }) => ({ level1, level2 }))} />;

@@ -1,7 +1,7 @@
 "use client";
 
 import { Inconsolata } from "next/font/google";
-import { useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition } from "react";
 import { Button } from "@/app/components/Controls";
 import { DialogActions, DialogBody, DialogFrame, DialogMessage } from "@/app/components/DialogFrame";
 import Dot from "@/app/components/Dot";
@@ -22,23 +22,27 @@ import "./labels.css";
 //
 // TWO OPENERS, AND WHAT EACH HANDS OVER IS WHAT ITS PAGE HAS. A category's page opens it on
 // what its list has selected, which that page holds only as printed ids off its own
-// address, so the press reads the run on the server first (`readAssetLabelsAction`)
-// and the dialog opens on what comes back. An asset's page has read its record and
-// built its symbol as it rendered, so it hands over that one label and the press opens
-// the dialog at once. The opener is a 0a button in both, and a category's page marks it unable to
+// address, so the run is read on the server (`readAssetLabelsAction`) while the dialog
+// stands (`useLabelRun`). An asset's page has read its record and built its symbol as it
+// rendered, so it hands over that one label (`LabelsDialog`). Either press opens the dialog at
+// once. The opener is a 0a button in both, and a category's page marks it unable to
 // act — `aria-disabled`, still reached by the keyboard (#612) — where its list says why
 // (`describeSelection`). **Both pages draw it for a site manager
 // alone (#506)**, and the read behind the first refuses anybody else.
 //
-// A PRESS WHILE THE READ IS IN FLIGHT IS TURNED AWAY RATHER THAN THE BUTTON DISABLED,
-// which a browser showed: a button disabled under the pointer drops focus to the page, so
-// the dialog opened with nothing to hand focus back to and its closing left the reader at
-// the top of the document, where CLAUDE.md's overlay rule wants the opener. **Since #495 the
-// wait is 0f's Working**, the opener busy and not disabled: after 300ms its spinner stands
-// in its label's place at its resting width, and its `-ing` word is `Loading…` for
-// assistive tech, since the press opens the labels to print rather than printing them
-// (`ASSET_LABEL_PAGE_COPY.working`). 1e draws nothing between the press and the dialog, and
-// nothing marked the wait until then.
+// THE WAIT IS THE DIALOG'S `Print`, AS 1e AND 1f DRAW IT SINCE THE FILES OF 2026-11-06 (#616):
+// 0f's Working, busy and not disabled — after 300ms its spinner stands in its label's place at
+// its resting width, `Loading…` for assistive tech (`ASSET_LABEL_PAGE_COPY.working`) — while a
+// category's page reads its run, and in either dialog while the code's face is awaited before the
+// browser's print dialog. While the run reads, the pane is empty and the column holds nothing but
+// its actions, `Print` with the dialog's title. **A read that fails is said over the actions,
+// `Couldn't load the labels. Try again.`, and `Print` reads again; one refused to a reader no
+// longer a site manager says so, `Print` turned away (#612) and described by it**, the page drawn
+// again behind without its boxes and bar — which is why a category's page holds the dialog
+// outside its selection bar, where it stands across that page. From #495 until #616 the opener
+// was busy while it read, the dialog opened on what came back and a refused read opened nothing.
+// A press while the read is in flight is turned away rather than the button disabled, as the
+// opener's was: a button disabled under the pointer drops focus to the page.
 //
 // NOTHING IS WRITTEN TO THE ADDRESS TO OPEN IT, which is #456's shape rather than #459's.
 // A category's page already carries the selection on its address, so a copied link is a
@@ -134,50 +138,99 @@ import "./labels.css";
 const labelCodeFont = Inconsolata({ subsets: ["latin"], variable: "--font-label-code" });
 
 /**
- * The control that opens the labels' dialog, and the dialog.
+ * An asset's page's control that opens the labels' dialog on the one label it hands over, and the
+ * dialog, which opens at once.
  *
  * `title` is the opener's word and the dialog's title, one string for both — the
- * arrangement the registration dialog has with its openers. `run` is the run an asset's
- * page hands over; `assetIds` is what a category's page has selected, read when
- * pressed. `itemName` is the line under the title.
+ * arrangement the registration dialog has with its openers. `run` is the run the page
+ * hands over. `itemName` is the line under the title.
  */
-export default function LabelsDialog({ title, itemName, run: handed, assetIds, unavailable = false, describedBy, variant = "filled" }) {
+export default function LabelsDialog({ title, itemName, run, variant = "filled" }) {
     const [open, setOpen] = useState(false);
-    const [run, setRun] = useState(handed ?? null);
-    const [pending, startTransition] = useTransition();
+    return (
+        <>
+            <Button variant={variant} onClick={() => setOpen(true)}>
+                {title}
+            </Button>
+            <LabelsFrame open={open} onClose={() => setOpen(false)} title={title} itemName={itemName} answer={{ run }} />
+        </>
+    );
+}
 
-    const press = () => {
-        if (handed) {
-            setRun(handed);
-            setOpen(true);
-            return;
-        }
-        if (pending) return;
+/**
+ * A category's page's labels (#457, #616): what its opener's press does — open the dialog and
+ * read the run of what the list selected, `assetIds`, while it stands — and what the dialog shows.
+ * The page draws the opener in its selection bar and `LabelRunFrame` outside it, so a refusal that
+ * draws the page again without the bar leaves the dialog standing.
+ *
+ * `answer` is null until a press's first read answers, then `{ run }`, `{ refusal }` — the
+ * action's sentence for a reader no longer a site manager — or `{ failed: true }` for a read that
+ * threw; `reading` is whether a read is on its way, a failure's answer standing over a read again
+ * until the next takes its place (Tools 56's 1e); `opening` counts the presses, so each mounts the
+ * dialog anew. A read an earlier press
+ * sent is not answered over a later one's. ONE READ A PRESS, the run's operations and no more: the
+ * dialog opening asks the server nothing.
+ */
+export function useLabelRun() {
+    const [open, setOpen] = useState(false);
+    const [opening, setOpening] = useState(0);
+    const [asked, setAsked] = useState([]);
+    const [answer, setAnswer] = useState(null);
+    const [reading, setReading] = useState(false);
+    const [, startTransition] = useTransition();
+    const latest = useRef(0);
+
+    const read = (assetIds) => {
+        latest.current += 1;
+        const sent = latest.current;
+        setReading(true);
         startTransition(async () => {
-            const read = await readAssetLabelsAction(assetIds);
-            // A read refused to a reader who is not a site manager answers null (#506), with
-            // the page re-rendered in the same response — without this opener — so there is
-            // nothing to open.
-            if (!read) return;
-            setRun(read);
-            setOpen(true);
+            let answered;
+            try {
+                const run = await readAssetLabelsAction(assetIds);
+                answered = run?.error ? { refusal: run.error } : { run };
+            } catch {
+                answered = { failed: true };
+            }
+            if (sent !== latest.current) return;
+            setAnswer(answered);
+            setReading(false);
         });
     };
 
+    return {
+        open,
+        opening,
+        answer,
+        reading,
+        press: (assetIds) => {
+            setOpening((count) => count + 1);
+            setAsked(assetIds);
+            setOpen(true);
+            setAnswer(null);
+            read(assetIds);
+        },
+        // A read again after a failure keeps the failure's sentence over the actions while `Print`
+        // waits, as 1e draws it (Tools 56), and the run's answer takes its place.
+        retry: () => read(asked),
+        close: () => setOpen(false),
+    };
+}
+
+/** The dialog a category's page's press opens (`useLabelRun`), mounted anew for each press. */
+export function LabelRunFrame({ labels, title, itemName }) {
+    if (labels.opening === 0) return null;
     return (
-        <>
-            <Button
-                variant={variant}
-                unavailable={unavailable}
-                describedBy={describedBy}
-                busy={pending}
-                busyLabel={COPY.working}
-                onClick={press}
-            >
-                {title}
-            </Button>
-            {run && <LabelsFrame open={open} onClose={() => setOpen(false)} title={title} itemName={itemName} run={run} />}
-        </>
+        <LabelsFrame
+            key={labels.opening}
+            open={labels.open}
+            onClose={labels.close}
+            title={title}
+            itemName={itemName}
+            answer={labels.answer}
+            reading={labels.reading}
+            onRetry={labels.retry}
+        />
     );
 }
 
@@ -216,9 +269,24 @@ function NamedCodes({ heading, codes }) {
  * draws can be printed from such a host. **Codes on items off the reader's jobs (#597)** are
  * the second state's again, under their own count beside the codes not found, as the read
  * refuses their labels: the design draws nothing for them either.
+ *
+ * AND THREE BEFORE A RUN (#616), a category's page's read, each 0l's dialog whose content could
+ * not be prepared or may no longer be shown (Invoices 53, Tools 56's 1e `Labels failed` and `No
+ * permission`): its head, the message line and its actions alone, the pane kept empty so the
+ * dialog keeps its size, and `Print` with the title's words, no count. On its way, no line and
+ * `Print` waiting; failed, `Couldn't load the labels. Try again.` and `Print` reading again,
+ * waiting with the sentence kept until the run comes; refused, the action's sentence and `Print`
+ * turned away, described by it. `answer` is `{ run }` once there is one, `reading` whether a read
+ * is on its way (`useLabelRun`).
  */
-function LabelsFrame({ open, onClose, title, itemName, run }) {
-    const { budget, pages, printing, named, missing, elsewhere, tooLarge } = describeLabelRun(run);
+function LabelsFrame({ open, onClose, title, itemName, answer, reading = false, onRetry }) {
+    const refusalId = useId();
+    // Whether the press is waiting for the code's face before the browser's print dialog.
+    const [preparing, setPreparing] = useState(false);
+    const run = answer?.run ?? null;
+    const refusal = answer?.refusal ?? null;
+    const said = refusal ?? (answer?.failed ? COPY.readFailed : null);
+    const { budget, pages, printing, named, missing, elsewhere, tooLarge } = run ? describeLabelRun(run) : {};
 
     // The page is the label as it reads, sized through two custom properties so the
     // stylesheet can turn it at print (#526). The pane's columns are the page as the
@@ -235,71 +303,89 @@ function LabelsFrame({ open, onClose, title, itemName, run }) {
     // AFTER THE FACE, AND SHUT WHEN THE PRINT DIALOG IS. The browser's print dialog
     // closes with the label printed or not, and either way the dialog has done its
     // part — 1e's asset page draws its commitment closing it. A print that did not
-    // go is one press of the opener away.
+    // go is one press of the opener away. `Print` waits while the face is awaited (#616).
     const print = async () => {
+        setPreparing(true);
         await document.fonts.ready;
-        window.addEventListener("afterprint", onClose, { once: true });
+        window.addEventListener(
+            "afterprint",
+            () => {
+                setPreparing(false);
+                onClose();
+            },
+            { once: true }
+        );
         window.print();
     };
 
-    const preview =
-        printing > 0 ? (
-            <ul
-                role="list"
-                aria-label={COPY.pages}
-                className={`label-list grid min-h-full content-center justify-center gap-x-dialog-preview-inline gap-y-dialog-preview-stack ${labelCodeFont.variable}`}
-                style={listStyle}
-            >
-                {pages.map((label, index) => (
-                    <li key={label.assetId} className="label-item" aria-label={COPY.page({ page: index + 1, code: label.labelCode })}>
-                        <div className="label-frame overflow-hidden rounded-preview bg-white shadow-preview">
-                            <LabelPage label={label} budget={budget} pageStyle={pageStyle} />
-                        </div>
-                    </li>
-                ))}
-            </ul>
-        ) : (
-            <p className="flex h-full items-center justify-center text-body text-foreground-subtle">{COPY.noLabels}</p>
-        );
+    const preview = !run ? null : printing > 0 ? (
+        <ul
+            role="list"
+            aria-label={COPY.pages}
+            className={`label-list grid min-h-full content-center justify-center gap-x-dialog-preview-inline gap-y-dialog-preview-stack ${labelCodeFont.variable}`}
+            style={listStyle}
+        >
+            {pages.map((label, index) => (
+                <li key={label.assetId} className="label-item" aria-label={COPY.page({ page: index + 1, code: label.labelCode })}>
+                    <div className="label-frame overflow-hidden rounded-preview bg-white shadow-preview">
+                        <LabelPage label={label} budget={budget} pageStyle={pageStyle} />
+                    </div>
+                </li>
+            ))}
+        </ul>
+    ) : (
+        <p className="flex h-full items-center justify-center text-body text-foreground-subtle">{COPY.noLabels}</p>
+    );
 
     return (
         <DialogFrame open={open} onClose={onClose} title={title} subtitle={itemName} preview={preview}>
             <DialogBody>
-                <div className="flex flex-col gap-dialog-column-stack">
-                    <DialogMessage>
-                        {COPY.count({ printing, named })}
-                        <Dot />
-                        <span className="text-foreground-muted">{COPY.size}</span>
-                    </DialogMessage>
-                    {missing.length > 0 && <NamedCodes heading={COPY.notFound(missing.length)} codes={missing} />}
-                    {elsewhere.length > 0 && <NamedCodes heading={COPY.notYours(elsewhere.length)} codes={elsewhere} />}
-                    {tooLarge > 0 && <p className="text-body-sm text-pretty text-foreground-muted">{COPY.symbolTooLarge(tooLarge)}</p>}
-                    {printing > 0 && (
-                        <div className="flex flex-col gap-gap">
-                            <p className="text-body-sm font-medium">{COPY.hintHeading}</p>
-                            <ol className="flex flex-col gap-gap">
-                                {COPY.hintSteps.map((step, index) => (
-                                    <li key={step} className="flex items-center gap-gap text-body-sm">
-                                        <span
-                                            aria-hidden="true"
-                                            className="flex size-dialog-step shrink-0 items-center justify-center rounded-full bg-background-muted text-heading-sm tabular-nums text-foreground-muted"
-                                        >
-                                            {index + 1}
-                                        </span>
-                                        {step}
-                                    </li>
-                                ))}
-                            </ol>
-                        </div>
-                    )}
-                </div>
+                {run && (
+                    <div className="flex flex-col gap-dialog-column-stack">
+                        <DialogMessage>
+                            {COPY.count({ printing, named })}
+                            <Dot />
+                            <span className="text-foreground-muted">{COPY.size}</span>
+                        </DialogMessage>
+                        {missing.length > 0 && <NamedCodes heading={COPY.notFound(missing.length)} codes={missing} />}
+                        {elsewhere.length > 0 && <NamedCodes heading={COPY.notYours(elsewhere.length)} codes={elsewhere} />}
+                        {tooLarge > 0 && <p className="text-body-sm text-pretty text-foreground-muted">{COPY.symbolTooLarge(tooLarge)}</p>}
+                        {printing > 0 && (
+                            <div className="flex flex-col gap-gap">
+                                <p className="text-body-sm font-medium">{COPY.hintHeading}</p>
+                                <ol className="flex flex-col gap-gap">
+                                    {COPY.hintSteps.map((step, index) => (
+                                        <li key={step} className="flex items-center gap-gap text-body-sm">
+                                            <span
+                                                aria-hidden="true"
+                                                className="flex size-dialog-step shrink-0 items-center justify-center rounded-full bg-background-muted text-heading-sm tabular-nums text-foreground-muted"
+                                            >
+                                                {index + 1}
+                                            </span>
+                                            {step}
+                                        </li>
+                                    ))}
+                                </ol>
+                            </div>
+                        )}
+                    </div>
+                )}
             </DialogBody>
-            <DialogActions>
+            <DialogActions refusal={said} refusalId={refusalId}>
                 <Button variant="bordered" onClick={onClose}>
                     {COPY.cancel}
                 </Button>
-                <Button disabled={printing === 0} onClick={print}>
-                    {printing > 0 ? COPY.print({ labels: printing }) : title}
+                {/* Waiting while the run is read or the face awaited, reading again after a read
+                    that failed, and turned away after a refusal (#616). */}
+                <Button
+                    disabled={run !== null && printing === 0}
+                    unavailable={refusal !== null}
+                    describedBy={refusal !== null ? refusalId : undefined}
+                    busy={reading || preparing}
+                    busyLabel={COPY.working}
+                    onClick={run ? print : onRetry}
+                >
+                    {run && printing > 0 ? COPY.print({ labels: printing }) : title}
                 </Button>
             </DialogActions>
         </DialogFrame>

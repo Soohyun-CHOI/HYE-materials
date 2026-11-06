@@ -310,6 +310,8 @@ const VALUES = [
     // What a list says once its band has emptied it (1a, #520).
     ["--spacing-list-emptied-inset-y", "3.75rem", null],
     ["--spacing-list-emptied-stack", "0.75rem", null],
+    // Under the sentence of a page the reader may no longer use (0b Row, 1l `Not Admin, closed`, #616).
+    ["--spacing-closed-page-inset-bottom", "3rem", null],
     // The way to the item a search found by its id, under the band (1a, #541).
     ["--height-found-item", "2.5rem", null],
     ["--spacing-found-item-inset-x", "0.75rem", null],
@@ -325,6 +327,8 @@ const VALUES = [
     ["--color-danger-subtle", "#FFF4F5", null],
     ["--color-danger", "#DC0015", null],
     ["--color-danger-hover", "oklch(0.512 0.205 27)", null],
+    // A red commitment that cannot act, as Tools 54 holds a dialog's it refused (#616).
+    ["--color-danger-disabled", "color-mix(in oklab, var(--color-danger) 40%, transparent)", null],
     // 0e · Ink
     ["--color-foreground-default", "oklch(0.255 0.013 265)", null],
     ["--color-foreground-muted", "oklch(0.405 0.013 265)", null],
@@ -352,6 +356,8 @@ const VALUES = [
     ["--size-spinner", "1rem", null],
     ["--animate-spinner", "spin 0.7s linear infinite", null],
     ["--color-spinner-track", "color-mix(in oklab, currentColor 35%, transparent)", null],
+    // The track on an action with no fill, its Ink at 20% (#616).
+    ["--color-unfilled-spinner-track", "color-mix(in oklab, currentColor 20%, transparent)", null],
     // 0g · Status
     ["--size-status-indicator", "0.5625rem", null],
     ["--stroke-width-status-ring", "1.5px", null],
@@ -705,6 +711,8 @@ const VALUES = [
     // The lending's sheet's line under its title (#598).
     ["--spacing-mobile-drawer-subtitle-stack", "0.25rem", null],
     ["--spacing-mobile-drawer-header-action-inset-x", "0.75rem", null],
+    // The 16 spinner the Done holds in its words' width, its Accent at 25% (#616).
+    ["--color-mobile-drawer-header-action-spinner-track", "color-mix(in oklab, currentColor 25%, transparent)", null],
     // The sheet that confirms gives every sheet's actions their arrangement (#458).
     ["--spacing-mobile-drawer-body-stack", "1.25rem", null],
     ["--spacing-mobile-drawer-action-stack", "0.75rem", null],

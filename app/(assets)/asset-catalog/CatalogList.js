@@ -81,12 +81,28 @@ const CUT_CELLS = [{ key: "size", figures: true }, { key: "maker" }, { key: "par
  * gave every row selected one class; #552 took the class off the catalog, and the box, the
  * page's box and the selection bar went with the one act they were for, as 1l draws the list
  * since 2026-10-21.
+ *
+ * A READER WHO IS NOT THE OFFICE IS HANDED NO CATALOG, AND READS WHY IN THE LIST'S PLACE (#616).
+ * `rows` is null then, the page's answer that `requireAdmin` refused, and this draws the page as
+ * 0b draws one the reader may no longer use (Tools 55's 1l `Not Admin, closed`): the breadcrumb,
+ * and `Only admins can edit the catalog.` alone under it, no title, centered in what is left. The
+ * page drew the sentence itself until #616, with no breadcrumb and at 14, and this did the same
+ * until Tools 55. A dialog open when an action found its reader no longer the office stands
+ * across that page drawn again (1l `Not Admin`): it draws from the catalog it was opened on,
+ * kept here while no catalog comes, says the sentence over its actions and holds its commitment
+ * (`office`), as the item page's dialogs do since #614.
  */
 export default function CatalogList({ rows, groups }) {
     const params = useSearchParams();
+    // The catalog as last drawn for the office, which an open dialog keeps drawing from once the
+    // reader is no longer the office and the page hands none (#616).
+    const office = rows !== null;
+    const [drawn, setDrawn] = useState(() => ({ rows: rows ?? [], groups: groups ?? [] }));
+    if (office && (drawn.rows !== rows || drawn.groups !== groups)) setDrawn({ rows, groups });
+    const catalog = office ? { rows, groups } : drawn;
     const asked = { ...readAssetListFilters(params), discontinued: params.get("discontinued") === "1" };
     const [typed, setTyped] = useState(asked.q);
-    const reading = filterCatalogRows(rows, groups, { ...asked, q: typed });
+    const reading = filterCatalogRows(catalog.rows, catalog.groups, { ...asked, q: typed });
     const page = pageOfAssetCategories(reading.rows, params.get("page"));
 
     // The dialog open, and the question, each mounted anew for an opening.
@@ -129,132 +145,146 @@ export default function CatalogList({ rows, groups }) {
     const count = reading.narrowed ? FILTER_BAR_COPY.count(reading.rows.length, reading.total) : reading.total;
     const emptied = reading.narrowed && reading.rows.length === 0;
     const tip = useTooltip({ placement: "above" });
+    // The bar back to Tools & Equipment, the list's and the page a reader may no longer use alike.
+    const breadcrumb = <Breadcrumb levels={[{ label: ASSET_LIST_COPY.heading, href: ASSET_CATEGORIES_PATH }]} />;
 
     return (
         <>
-            <ListFrameFill
-                top={<Breadcrumb levels={[{ label: ASSET_LIST_COPY.heading, href: ASSET_CATEGORIES_PATH }]} />}
-                header={
-                    <ListHeader title={COPY.heading} count={count} noun={ASSET_LIST_COPY.itemNoun(reading.rows.length)} underBreadcrumb fill>
-                        {/* 1l's two openers, 8 apart. */}
-                        <div className="flex items-center gap-gap">
-                            <Button variant="bordered" onClick={() => openEntry({ mode: "category" })}>
-                                {COPY.newCategoryTitle}
-                            </Button>
-                            <Button onClick={() => openEntry({ mode: "add" })}>{COPY.addTitle}</Button>
-                        </div>
-                    </ListHeader>
-                }
-                band={
-                    <>
-                        <SearchField label={COPY.searchLabel} value={typed} onChange={search} clearLabel={COPY.clearSearch} />
-                        {/* 1l draws each chip's list as a lane of its own up to 340, where 1a's
-                            never scroll: the catalog offers every category its groups hold (#555). */}
-                        {ASSET_LIST_FACETS.map((facet) => (
-                            <FilterChip
-                                key={facet}
-                                label={ASSET_LIST_COPY.facetLabel[facet]}
-                                options={reading.facets[facet].map(({ value, count: held }) => ({ value, label: value, count: held }))}
-                                values={reading.held[facet]}
-                                onChange={(values) => write({ ...reading.held, [facet]: values })}
-                                clearLabel={ASSET_LIST_COPY.clearFacet[facet]}
-                                several={ASSET_LIST_COPY.selectedCount}
-                                lane="max-h-catalog-filter-list"
+            {office ? (
+                <ListFrameFill
+                    top={breadcrumb}
+                    header={
+                        <ListHeader title={COPY.heading} count={count} noun={ASSET_LIST_COPY.itemNoun(reading.rows.length)} underBreadcrumb fill>
+                            {/* 1l's two openers, 8 apart. */}
+                            <div className="flex items-center gap-gap">
+                                <Button variant="bordered" onClick={() => openEntry({ mode: "category" })}>
+                                    {COPY.newCategoryTitle}
+                                </Button>
+                                <Button onClick={() => openEntry({ mode: "add" })}>{COPY.addTitle}</Button>
+                            </div>
+                        </ListHeader>
+                    }
+                    band={
+                        <>
+                            <SearchField label={COPY.searchLabel} value={typed} onChange={search} clearLabel={COPY.clearSearch} />
+                            {/* 1l draws each chip's list as a lane of its own up to 340, where 1a's
+                                never scroll: the catalog offers every category its groups hold (#555). */}
+                            {ASSET_LIST_FACETS.map((facet) => (
+                                <FilterChip
+                                    key={facet}
+                                    label={ASSET_LIST_COPY.facetLabel[facet]}
+                                    options={reading.facets[facet].map(({ value, count: held }) => ({ value, label: value, count: held }))}
+                                    values={reading.held[facet]}
+                                    onChange={(values) => write({ ...reading.held, [facet]: values })}
+                                    clearLabel={ASSET_LIST_COPY.clearFacet[facet]}
+                                    several={ASSET_LIST_COPY.selectedCount}
+                                    lane="max-h-catalog-filter-list"
+                                />
+                            ))}
+                            <ToggleChip
+                                label={COPY.discontinuedOnly}
+                                on={reading.held.discontinued}
+                                onChange={(on) => write({ ...reading.held, discontinued: on })}
+                                clearLabel={COPY.clearDiscontinued}
                             />
-                        ))}
-                        <ToggleChip
-                            label={COPY.discontinuedOnly}
-                            on={reading.held.discontinued}
-                            onChange={(on) => write({ ...reading.held, discontinued: on })}
-                            clearLabel={COPY.clearDiscontinued}
-                        />
-                        <div className="-mr-sort-inset-right ml-auto">
-                            <SortChoice list={LIST_SORTS.kinds} sort={reading.held.sort} onChange={(sort) => write({ ...reading.held, sort })} />
-                        </div>
-                    </>
-                }
-                label={COPY.heading}
-                // The name's head is held at the start with the name's column, on the head's own
-                // Sticky ground at rest and on white once the table scrolls under it (0b Row).
-                columnHead={
-                    <div role="row" className={`${TABLE_HEAD_FILL} ${COLUMNS} ${LEAST}`}>
-                        {COLUMN_ORDER.map((key) => (
-                            <span
-                                key={key}
-                                role="columnheader"
-                                className={
-                                    key === "level3"
-                                        ? `${PINNED} group-data-scrolled-sideways/fill:bg-white`
-                                        : key === "assetCount"
-                                          ? "text-right"
-                                          : "truncate"
-                                }
-                            >
-                                {COPY.columns[key]}
-                            </span>
-                        ))}
-                    </div>
-                }
-                footer={
-                    reading.rows.length > 0 && (
-                        <Pager
-                            fill
-                            range={ASSET_LIST_COPY.range({ from: page.from + 1, to: page.to, total: page.total })}
-                            position={pagerPosition(page)}
-                            previous={{ onPress: page.page > 1 ? () => write(reading.held, page.page - 1) : undefined, label: ASSET_LIST_COPY.previous }}
-                            next={{ onPress: page.page < page.pageCount ? () => write(reading.held, page.page + 1) : undefined, label: ASSET_LIST_COPY.next }}
-                        />
-                    )
-                }
-                // What a band that emptied the list says, under a Rule where the rows stood (1l).
-                empty={
-                    emptied && (
-                        <div className="flex flex-col items-center gap-list-emptied-stack border-t border-divider py-list-emptied-inset-y text-center">
-                            <p className="text-body">{COPY.noneMatch}</p>
-                            <Button variant="bordered" size="md" onClick={clearAll}>
-                                {COPY.clearAll}
-                            </Button>
-                        </div>
-                    )
-                }
-            >
-                {page.rows.map((row) => (
-                    <div
-                        key={row.id}
-                        role="row"
-                        {...tip.cutProps()}
-                        onClick={pressRow}
-                        className={`group/row cursor-pointer ${TABLE_ROW_FILL} ${COLUMNS} ${LEAST}`}
-                    >
-                        {/* The name, held at the table's start, and after it a discontinued row's
-                            mark at 13 in Ink 3 (1l). */}
-                        <span role="cell" className={`${PINNED} gap-gap whitespace-nowrap bg-white group-hover/row:bg-pinned-column-hover`}>
-                            <span data-cut="" className="min-w-0 truncate">
-                                <button
-                                    type="button"
-                                    aria-label={COPY.editRow(row.itemName)}
-                                    onClick={() => openEntry({ mode: "edit", row })}
-                                    className={`${TABLE_ROW_LINK} cursor-pointer text-left`}
+                            <div className="-mr-sort-inset-right ml-auto">
+                                <SortChoice list={LIST_SORTS.kinds} sort={reading.held.sort} onChange={(sort) => write({ ...reading.held, sort })} />
+                            </div>
+                        </>
+                    }
+                    label={COPY.heading}
+                    // The name's head is held at the start with the name's column, on the head's own
+                    // Sticky ground at rest and on white once the table scrolls under it (0b Row).
+                    columnHead={
+                        <div role="row" className={`${TABLE_HEAD_FILL} ${COLUMNS} ${LEAST}`}>
+                            {COLUMN_ORDER.map((key) => (
+                                <span
+                                    key={key}
+                                    role="columnheader"
+                                    className={
+                                        key === "level3"
+                                            ? `${PINNED} group-data-scrolled-sideways/fill:bg-white`
+                                            : key === "assetCount"
+                                              ? "text-right"
+                                              : "truncate"
+                                    }
                                 >
-                                    {row.level3}
-                                </button>
-                            </span>
-                            {row.discontinued && <span className="shrink-0 text-body-sm text-foreground-subtle">{COPY.discontinued}</span>}
-                        </span>
-                        {CUT_CELLS.map(({ key, figures }) => (
-                            <span key={key} role="cell" className="min-w-0">
-                                <span data-cut="" className={`block truncate ${figures ? "tabular-nums" : ""}`}>
-                                    {row[key]}
+                                    {COPY.columns[key]}
                                 </span>
+                            ))}
+                        </div>
+                    }
+                    footer={
+                        reading.rows.length > 0 && (
+                            <Pager
+                                fill
+                                range={ASSET_LIST_COPY.range({ from: page.from + 1, to: page.to, total: page.total })}
+                                position={pagerPosition(page)}
+                                previous={{ onPress: page.page > 1 ? () => write(reading.held, page.page - 1) : undefined, label: ASSET_LIST_COPY.previous }}
+                                next={{ onPress: page.page < page.pageCount ? () => write(reading.held, page.page + 1) : undefined, label: ASSET_LIST_COPY.next }}
+                            />
+                        )
+                    }
+                    // What a band that emptied the list says, under a Rule where the rows stood (1l).
+                    empty={
+                        emptied && (
+                            <div className="flex flex-col items-center gap-list-emptied-stack border-t border-divider py-list-emptied-inset-y text-center">
+                                <p className="text-body">{COPY.noneMatch}</p>
+                                <Button variant="bordered" size="md" onClick={clearAll}>
+                                    {COPY.clearAll}
+                                </Button>
+                            </div>
+                        )
+                    }
+                >
+                    {page.rows.map((row) => (
+                        <div
+                            key={row.id}
+                            role="row"
+                            {...tip.cutProps()}
+                            onClick={pressRow}
+                            className={`group/row cursor-pointer ${TABLE_ROW_FILL} ${COLUMNS} ${LEAST}`}
+                        >
+                            {/* The name, held at the table's start, and after it a discontinued row's
+                                mark at 13 in Ink 3 (1l). */}
+                            <span role="cell" className={`${PINNED} gap-gap whitespace-nowrap bg-white group-hover/row:bg-pinned-column-hover`}>
+                                <span data-cut="" className="min-w-0 truncate">
+                                    <button
+                                        type="button"
+                                        aria-label={COPY.editRow(row.itemName)}
+                                        onClick={() => openEntry({ mode: "edit", row })}
+                                        className={`${TABLE_ROW_LINK} cursor-pointer text-left`}
+                                    >
+                                        {row.level3}
+                                    </button>
+                                </span>
+                                {row.discontinued && <span className="shrink-0 text-body-sm text-foreground-subtle">{COPY.discontinued}</span>}
                             </span>
-                        ))}
-                        {/* A row nothing stands under says `0` in Ink 3, as 1a's counts do. */}
-                        <span role="cell" className={`text-right tabular-nums ${row.assetCount === 0 ? "text-foreground-subtle" : ""}`}>
-                            {row.assetCount}
-                        </span>
+                            {CUT_CELLS.map(({ key, figures }) => (
+                                <span key={key} role="cell" className="min-w-0">
+                                    <span data-cut="" className={`block truncate ${figures ? "tabular-nums" : ""}`}>
+                                        {row[key]}
+                                    </span>
+                                </span>
+                            ))}
+                            {/* A row nothing stands under says `0` in Ink 3, as 1a's counts do. */}
+                            <span role="cell" className={`text-right tabular-nums ${row.assetCount === 0 ? "text-foreground-subtle" : ""}`}>
+                                {row.assetCount}
+                            </span>
+                        </div>
+                    ))}
+                </ListFrameFill>
+            ) : (
+                // A page the reader may no longer use (0b Row, Tools 55's 1l `Not Admin, closed`): the
+                // breadcrumb alone, then the one sentence with no title, at 13 in Ink 2 and at most 480,
+                // centered in what the breadcrumb leaves with 48 under it.
+                <div className="flex h-full flex-col font-ui">
+                    <div className="shrink-0">{breadcrumb}</div>
+                    <div className="flex min-h-0 flex-1 items-center justify-center px-page-gutter pb-closed-page-inset-bottom">
+                        <p className="max-w-empty-state text-center text-body-sm text-pretty text-foreground-muted">{COPY.noAccess}</p>
                     </div>
-                ))}
-            </ListFrameFill>
+                </div>
+            )}
             {tip.element}
             {entry && (
                 <EntryDialog
@@ -263,11 +293,12 @@ export default function CatalogList({ rows, groups }) {
                     open={entryShown}
                     onClose={() => setEntryShown(false)}
                     onRemove={openRemove}
-                    rows={rows}
-                    groups={groups}
+                    rows={catalog.rows}
+                    groups={catalog.groups}
+                    office={office}
                 />
             )}
-            {removing && <RemoveDialog key={removing.key} row={removing.row} open={removeShown} onClose={() => setRemoveShown(false)} />}
+            {removing && <RemoveDialog key={removing.key} row={removing.row} rows={catalog.rows} office={office} open={removeShown} onClose={() => setRemoveShown(false)} />}
         </>
     );
 }

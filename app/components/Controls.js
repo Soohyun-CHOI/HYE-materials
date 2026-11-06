@@ -270,10 +270,12 @@ const insetOf = (variant, size) =>
 const sizeOf = (variant, size) => (GHOSTS.includes(variant) && size === "lg" ? "inline-flex h-control shrink-0 text-body" : BUTTON_SIZE[size]);
 
 // 0f: a filled action hovers to its Accent hover and keeps its white ink, and one that
-// cannot act yet keeps its fill at 40% and takes no hover; a bordered one fills at Wash
+// cannot act keeps its fill at 40% and takes no hover; a bordered one fills at Wash
 // and leaves its Edge alone. A destructive commitment is filled red and hovers to Red's
-// Accent hover (0f Destructive, 0d) — the retirement's (#458). A ghost is its word alone in
-// Ink, 10 either side, and fills at Hover (Ghost, 0f Faced) — a dialog's `Back` (1b, #520). A
+// Accent hover (0f Destructive, 0d) — the retirement's (#458) — and one that cannot act keeps
+// its red at 40% the same way, as Tools 54 holds a retirement or a deletion it refused (#616).
+// A ghost is its word alone in Ink, 10 either side, and fills at Hover (Ghost, 0f Faced) — a
+// dialog's `Back` (1b, #520). A
 // busy one of any kind takes no hover (0f Working), and neither does one locked with it
 // (#469): both are `aria-disabled`, which is what the hover is written against. It is written
 // against what is NOT disabled rather than what is enabled, so a link drawn as an action
@@ -281,10 +283,12 @@ const sizeOf = (variant, size) => (GHOSTS.includes(variant) && size === "lg" ? "
 // size: transparent at rest, red on red's Face under the pointer — 1l's `Discontinue` (#527).
 // A faced action is 0f's Faced, no outline at a 36, its mark and word in Ink 2 lifting to Ink as
 // it fills at Hover (0f Ink on hover) — the category list's way to the catalog (1a, #566).
+// The kinds whose words are white on a fill, and so whose spinner turns on one (`SPINNER_TRACK`).
+const FILLED = ["filled", "danger"];
 const BUTTON_VARIANT = {
     filled: "bg-primary text-white not-disabled:not-aria-disabled:hover:bg-primary-hover disabled:bg-primary-disabled data-unavailable:bg-primary-disabled",
     bordered: "border border-border bg-white text-foreground-default not-disabled:not-aria-disabled:hover:bg-hover-subtle",
-    danger: "bg-danger text-white not-disabled:not-aria-disabled:hover:bg-danger-hover",
+    danger: "bg-danger text-white not-disabled:not-aria-disabled:hover:bg-danger-hover data-unavailable:bg-danger-disabled",
     ghost: "text-foreground-default not-disabled:not-aria-disabled:hover:bg-hover",
     ghostDanger: "text-foreground-default not-disabled:not-aria-disabled:hover:bg-danger-subtle not-disabled:not-aria-disabled:hover:text-danger",
     faced: "text-foreground-muted not-disabled:not-aria-disabled:hover:bg-hover not-disabled:not-aria-disabled:hover:text-foreground-default",
@@ -308,17 +312,22 @@ const SHEET_BUTTON_VARIANT = {
 
 /**
  * 0f's spinner, in the ink of the label it stands for: 16, and the phone's 20 on a sign-in
- * page or in a sheet (Tools 0a Busy, #469).
+ * page or in a sheet (Tools 0a Busy, #469) — but in a text button, 0a's `Done`, which holds a 16
+ * in its words' width at both (#616).
+ *
+ * ITS TRACK IS THAT INK AT WHAT THE DRAWINGS SET FOR IT (#616), `on` naming what it turns on:
+ * a fill's white at 35%, an action with no fill at its words' Ink at 20% — 1a's `Export`, 1l's
+ * `Discontinue` and `Restore` — and a text button's Accent at 25%. Until #616 every spinner took
+ * the first, which the files draw for white alone.
  */
-function Spinner({ size }) {
-    return (
-        <span
-            aria-hidden="true"
-            className={`block size-spinner shrink-0 animate-spinner rounded-full border-2 border-spinner-track border-t-current ${
-                size === "xl" ? "max-sm:size-mobile-spinner" : "max-sm:in-data-[sheet]:size-mobile-spinner"
-            }`}
-        />
-    );
+const SPINNER_TRACK = {
+    fill: "border-spinner-track",
+    unfilled: "border-unfilled-spinner-track",
+    text: "border-mobile-drawer-header-action-spinner-track",
+};
+function Spinner({ size, on = "fill" }) {
+    const phoneSize = on === "text" ? "" : size === "xl" ? "max-sm:size-mobile-spinner" : "max-sm:in-data-[sheet]:size-mobile-spinner";
+    return <span aria-hidden="true" className={`block size-spinner shrink-0 animate-spinner rounded-full border-2 ${SPINNER_TRACK[on]} border-t-current ${phoneSize}`} />;
 }
 
 /**
@@ -343,15 +352,16 @@ function Spinner({ size }) {
  *
  * AN ICON BUTTON TAKES IT TOO (#531): the asset page's `More actions` is busy while the
  * `Send for repair` chosen from its menu is on its way, and lays the spinner over its dots
- * the same way, in a button that is `group/button`, positioned and marked `data-busy`.
+ * the same way, in a button that is `group/button`, positioned and marked `data-busy`. It has
+ * no fill, so its spinner is `unfilled` (#616); `on` is the spinner's (`SPINNER_TRACK`).
  */
-export function ButtonLabel({ size, busyLabel, children }) {
+export function ButtonLabel({ size, on, busyLabel, children }) {
     if (!busyLabel) return children;
     return (
         <>
             <span className="transition-[visibility] duration-0 group-data-busy/button:invisible group-data-busy/button:delay-busy">{children}</span>
             <span className="invisible absolute inset-0 flex items-center justify-center gap-gap transition-[visibility] duration-0 group-data-busy/button:visible group-data-busy/button:delay-busy">
-                <Spinner size={size} />
+                <Spinner size={size} on={on} />
                 <span className={size === "xl" ? "max-sm:sr-only" : "sr-only"}>{busyLabel}</span>
             </span>
         </>
@@ -390,8 +400,10 @@ export function ButtonLabel({ size, busyLabel, children }) {
  * `unavailable` IS AN ACTION THAT CANNOT ACT AND STILL TAKES FOCUS (#612), the selection bar's
  * `Print labels` past a print's labels as 1e draws it: `aria-disabled` with its press turned away,
  * so a keyboard reaches it and hears the reason `describedBy` points at, where `disabled` takes it
- * out of the order. It looks as a disabled one does — a filled action's fill at 40% (0f Disabled) —
- * where a locked one keeps its look, so it says so with `data-unavailable` of its own.
+ * out of the order. It looks as a disabled one does — a filled action's fill at 40% (0f Disabled),
+ * a destructive one's red at 40% since #616, the commitment of a dialog whose press pressing again
+ * cannot change (Invoices 0l, Tools 54's 1f) — where a locked one keeps its look, so it says so with
+ * `data-unavailable` of its own.
  *
  * `holdWidthOf` IS WORDS THE ACTION KEEPS ROOM FOR (#522): a commitment whose words carry a
  * count the reader changes in place holds the width of a longer form of them, unseen and
@@ -425,7 +437,7 @@ export function Button({ variant = "filled", size = "lg", type = "button", disab
             data-unavailable={unavailable || undefined}
             className={`group/button ${BUTTON} ${sizeOf(variant, size)} ${insetOf(variant, size)} ${BUTTON_VARIANT[variant]} ${SHEET_BUTTON} ${SHEET_BUTTON_VARIANT[variant]}`}
         >
-            <ButtonLabel size={size} busyLabel={busyLabel}>
+            <ButtonLabel size={size} on={FILLED.includes(variant) ? "fill" : "unfilled"} busyLabel={busyLabel}>
                 {holdWidthOf ? (
                     <span className="inline-grid justify-items-center tabular-nums">
                         <span aria-hidden="true" className="invisible col-start-1 row-start-1">

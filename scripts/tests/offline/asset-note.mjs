@@ -271,7 +271,9 @@ export function run({ check, assert, log }) {
     check(
         "the press sends the item, the job the page was drawn on, what was typed, and the note the page was drawn with",
         [
-            /formData\.set\("assetId", assetId\);\s*formData\.set\("drawnJobId", drawnJobId \?\? ""\);\s*formData\.set\(field, typed\);\s*formData\.set\("previous", previous\);/.test(slot),
+            // The job the editor was opened on, held while it stands (#616).
+            /const drawnOn = useDrawnOn\(openOn !== null, drawnJobId\);/.test(slot) &&
+                /formData\.set\("assetId", assetId\);\s*formData\.set\("drawnJobId", drawnOn\.drawnJobId \?\? ""\);\s*formData\.set\(field, typed\);\s*formData\.set\("previous", previous\);/.test(slot),
             /startTransition\(\(\) => formAction\(formData\)\);/.test(slot),
             /const \[answer, formAction, pending\] = useActionState\(action, null\);/.test(slot),
             /const note = useDetail\(updateAssetNoteAction, \{ field: "note", assetId, drawnJobId: assetJobRecordId, onSent: \(\) => setLastSent\("note"\) \}\);/.test(provider),
@@ -303,7 +305,8 @@ export function run({ check, assert, log }) {
         [
             /\{writable && \(\s*<button\s+ref=\{openerRef\}\s+type="button"\s+aria-label=\{detail\.editName\}\s+onClick=\{\(\) => control\.start\("desk"\)\}/.test(functionSource(component, "DetailsRow")),
             /const open = control\.openOn === "desk";/.test(functionSource(component, "DetailsRow")) &&
-                /<RowEditor key=\{control\.opening\} kind=\{kind\} value=\{value\} available=\{writable\} control=\{control\} onClose=\{close\} \/>/.test(functionSource(component, "DetailsRow")) &&
+                // Turned away too once the item moved off the job the editor was opened on (#616).
+                /<RowEditor key=\{control\.opening\} kind=\{kind\} value=\{value\} available=\{writable && !control\.moved\} control=\{control\} onClose=\{close\} \/>/.test(functionSource(component, "DetailsRow")) &&
                 /<Button type="submit" size="md" unavailable=\{!available\}/.test(functionSource(component, "RowEditor")),
             /\{writable && <DetailSheet key=\{control\.opening\} kind=\{kind\} value=\{value\} open=\{control\.openOn === "phone"\} control=\{control\} \/>\}/.test(functionSource(component, "PhoneDetail")),
             /\) : \(\s*<p className="flex items-start gap-gap text-mobile-body-sm">\{content\}<\/p>\s*\)\}/.test(functionSource(component, "PhoneDetail")),

@@ -63,6 +63,7 @@ const ITEM = "app/(assets)/assets/[assetId]/page.js";
 const ASSET_LIST = "app/(assets)/asset-categories/[categoryRecordId]/AssetList.js";
 const LABELS = "app/(assets)/assets/LabelsDialog.js";
 const ITEM_ACTIONS = "app/(assets)/assets/[assetId]/actions.js";
+const LABEL_ACTIONS = "app/(assets)/assets/actions.js";
 
 /** The assets axis's server actions, each `file::export`. One more fails until it is here. */
 const ASSET_ACTIONS = [
@@ -402,9 +403,10 @@ export function run({ check, assert, log }) {
     );
     // WHICH REFUSAL EACH PASSES (#614). A refusal is a function the gate calls in the handler's
     // place, so a call site choosing it is a call site choosing what runs for a reader the gate
-    // turned away: one of the two below, and nothing else.
+    // turned away: one of the three below, and nothing else. The labels' says it in the dialog
+    // their press opens since #616, where they passed the registration's until then.
     check(
-        "  each passes its refusal: an item's page names whose item it is, the labels and the registration say nothing",
+        "  each passes its refusal: an item's page names whose item it is, the labels say theirs in their dialog, the registration says nothing (#616)",
         actions
             .filter((e) => ASSET_ACTIONS.includes(`${e.file}::${e.name}`))
             .map((e) => `${e.name}: ${refusalOf(e.ast, e.name)}`)
@@ -412,7 +414,7 @@ export function run({ check, assert, log }) {
             .join(" | "),
         ASSET_ACTIONS.map((key) => {
             const [file, name] = key.split("::");
-            return `${name}: ${file === ITEM_ACTIONS ? "refuseNotASiteManager" : "refuseWithThePage"}`;
+            return `${name}: ${file === ITEM_ACTIONS ? "refuseNotASiteManager" : file === LABEL_ACTIONS ? "refuseLabels" : "refuseWithThePage"}`;
         })
             .sort()
             .join(" | ")
@@ -502,7 +504,26 @@ export function run({ check, assert, log }) {
         `${refusal ? callsTo(refusal, "refresh").length : 0} refresh, returns ${returned.join(", ")}`,
         "1 refresh, returns null"
     );
-    check("  exported, for the labels and the registration to pass (#614)", /\nexport function refuseWithThePage\(\)/.test(authz.source.replace(/\r\n/g, "\n")), true);
+    check("  exported, for the registration to pass (#614, #616)", /\nexport function refuseWithThePage\(\)/.test(authz.source.replace(/\r\n/g, "\n")), true);
+
+    // THE LABELS' REFUSAL DRAWS THE PAGE AGAIN AND SAYS WHY, AND READS NOTHING (#616): one call to
+    // `refresh`, the dialog's sentence returned as the action's `error`, and no entry point.
+    {
+        const labelActions = parseFile(LABEL_ACTIONS);
+        const fn = resolveFunction(labelActions.ast, "refuseLabels");
+        const called = new Set();
+        const answered = [];
+        walk(fn ?? {}, (n) => {
+            if (n.type === "CallExpression") called.add(n.callee?.name ?? n.callee?.type);
+            if (n.type === "ReturnStatement") answered.push(n.argument ? labelActions.source.slice(n.argument.start, n.argument.end) : "nothing");
+        });
+        check(
+            "the labels' refusal draws the page again and hands the dialog its sentence, reading nothing (#616)",
+            `${[...called].sort().join(", ")}; returns ${answered.join(", ")}`,
+            "refresh; returns { error: ASSET_LABEL_PAGE_COPY.noPermission }"
+        );
+        check("  and is no entry point", /export (async )?function refuseLabels|export const refuseLabels/.test(labelActions.source), false);
+    }
 
     // ── 3: the screens ───────────────────────────────────────────────────────
     log("");
@@ -599,15 +620,18 @@ export function run({ check, assert, log }) {
         "canRegisterAssets(user, jobs), asked 0 time(s), isSiteManager 0"
     );
 
-    // ── 4: the labels' dialog opens on nothing when the read is refused ──────
+    // ── 4: a refused read is said in the dialog its press opened (#616) ─────
+    // Until #616 the dialog opened after the read and a refused one, `null`, opened nothing. The
+    // press opens it now, so the refusal's sentence is the answer it says, never a run it draws:
+    // `offline/asset-label-page.mjs` holds the frame turning `Print` away on it.
     log("");
-    log("a refused read opens no labels:");
+    log("a refused read draws no labels, and is said in the dialog:");
     const labels = parseFile(LABELS).source.replace(/\/\/[^\n]*\n/g, "\n");
-    const guarded = /const read = await readAssetLabelsAction\(assetIds\);\s*if \(!read\) return;\s*setRun\(read\);/;
-    assert("the dialog sets no run and opens nothing on a null read", guarded.test(labels));
+    const answered = /const run = await readAssetLabelsAction\(assetIds\);\s*answered = run\?\.error \? \{ refusal: run\.error \} : \{ run \};/;
+    assert("the dialog takes a refusal's sentence as what it says, and no run (#616)", answered.test(labels));
     assert(
-        "  and a press that opens whatever comes back is seen not to",
-        !guarded.test("const read = await readAssetLabelsAction(assetIds);\n setRun(read);\n setOpen(true);\n")
+        "  and a press that draws whatever comes back as a run is seen not to",
+        !answered.test("const run = await readAssetLabelsAction(assetIds);\n answered = { run };\n")
     );
 }
 

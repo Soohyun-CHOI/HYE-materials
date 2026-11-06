@@ -243,7 +243,7 @@ export default function MoreActions({ phone = false, account = null }) {
                         : "group/button relative flex aspect-square h-control shrink-0 items-center justify-center rounded-control text-foreground-default not-aria-disabled:hover:bg-hover aria-expanded:bg-hover"
                 }
             >
-                <ButtonLabel size={phone ? "xl" : "lg"} busyLabel={ASSET_TRANSITION_COPY.working[ASSET_EVENT.SENT_FOR_REPAIR]}>
+                <ButtonLabel size={phone ? "xl" : "lg"} on="unfilled" busyLabel={ASSET_TRANSITION_COPY.working[ASSET_EVENT.SENT_FOR_REPAIR]}>
                     <Dots phone={phone} />
                 </ButtonLabel>
             </button>

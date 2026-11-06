@@ -103,8 +103,10 @@ const offered = (facet) => facet.map(({ value, count }) => `${value} ${count}`).
 
 /**
  * The page's gate as its source states it: how many times it asks `requireAdmin`, whether a
- * refusal returns before anything is read, whether the reads and the list come after that return,
- * and whether the refusal draws the page's own sentence.
+ * refusal returns before anything is read, whether the reads and the list handed them come after
+ * that return, and whether the refusal hands the list no catalog — `rows={null}`, which the list
+ * answers with `COPY.noAccess` in its own place since #616, where the refusal drew the sentence
+ * itself and the dialog went with the list.
  */
 export function gateShape({ ast }) {
     const gates = callsTo(ast, "requireAdmin");
@@ -121,22 +123,25 @@ export function gateShape({ ast }) {
     });
     const returns = [];
     walk(refusal?.consequent ?? {}, (n) => n.type === "ReturnStatement" && returns.push(n));
-    let saysWhy = false;
+    const inside = (node) => Boolean(refusal) && node.start > refusal.start && node.end < refusal.end;
+    let handsNone = false;
     walk(refusal?.consequent ?? {}, (n) => {
-        if (n.type === "MemberExpression" && n.object?.name === "COPY" && n.property?.name === "noAccess") saysWhy = true;
+        if (n.type !== "JSXOpeningElement" || n.name?.name !== "CatalogList") return;
+        const rows = n.attributes.find((a) => a.name?.name === "rows")?.value?.expression;
+        if (rows?.type === "Literal" && rows.value === null) handsNone = true;
     });
     const after = (node) => Boolean(refusal) && Boolean(node) && node.start > refusal.end;
     const reads = ["getAllAssetCategories", "getAllAssetCategoryGroups"].map((name) => callsTo(ast, name)[0]);
     let list = null;
     walk(ast, (n) => {
-        if (n.type === "JSXOpeningElement" && n.name?.name === "CatalogList") list ??= n;
+        if (n.type === "JSXOpeningElement" && n.name?.name === "CatalogList" && !inside(n)) list ??= n;
     });
     return [
         `asked ${gates.length}`,
         `refused ${Boolean(refusal) && returns.length > 0 && after(gates[0]) === false && gates[0]?.start < refusal.start}`,
         `reads after ${reads.every(after)}`,
         `list after ${after(list)}`,
-        `says why ${saysWhy}`,
+        `hands none ${handsNone}`,
     ].join(", ");
 }
 
@@ -163,9 +168,114 @@ function drawn({ ast }, name) {
     return count;
 }
 
+/**
+ * A catalog commitment asking the catalog as it is now (#616), read off the dialogs and the list:
+ * an edit's `Save changes` standing on its row, the question's `Remove from catalog` on its row with
+ * nothing under it, each `unavailable` and described by the sentence; the list handing the question
+ * the catalog; and `Discontinue` and `Restore` keeping their own, as 1l `Removed first` draws them.
+ */
+function standingFacts(dialogs, list) {
+    return {
+        edit: [
+            /export function EntryDialog\(\{ entry, open, onClose, onRemove, rows, groups, office \}\)/.test(dialogs),
+            /const standing = office && \(!editing \|\| rows\.some\(\(each\) => each\.id === editing\)\);/.test(dialogs),
+            /<Button type="submit" unavailable=\{!standing\} describedBy=\{!standing && refusal \? refusalId : undefined\} busyLabel=\{COPY\.working\[mode\]\}>/.test(dialogs),
+        ].join(" "),
+        remove: [
+            /export function RemoveDialog\(\{ row, rows, office, open, onClose \}\)/.test(dialogs),
+            /const removable = office && rows\.find\(\(each\) => each\.id === row\.id\)\?\.assetCount === 0;/.test(dialogs),
+            /<Button variant="danger" type="submit" unavailable=\{!removable\} describedBy=\{!removable && refusal \? refusalId : undefined\} busyLabel=\{COPY\.working\.remove\}>/.test(dialogs),
+        ].join(" "),
+        described: (dialogs.match(/<DialogActions\s+refusal=\{refusal\}\s+refusalId=\{refusalId\}/g) ?? []).length,
+        handed: [
+            /<EntryDialog\b[^/]*?\srows=\{catalog\.rows\}\s+groups=\{catalog\.groups\}\s+office=\{office\}\s*\/>/.test(list),
+            /<RemoveDialog key=\{removing\.key\} row=\{removing\.row\} rows=\{catalog\.rows\} office=\{office\} /.test(list),
+        ].join(" "),
+        others: !/variant="ghost(?:Danger)?"[^>]*unavailable/.test(dialogs),
+    };
+}
+
+/**
+ * The list a reader who is not the office is handed (#616), read off its source: the office is a
+ * catalog handed, the catalog last drawn for the office kept while none comes and the one the list
+ * and its dialogs draw from, and `COPY.noAccess` drawn in the list's place — the page's paragraph
+ * until #616, which took an open dialog with the list. 1l `Not Admin` draws the dialog standing.
+ */
+function officeFacts(list) {
+    return [
+        /const office = rows !== null;/.test(list),
+        /if \(office && \(drawn\.rows !== rows \|\| drawn\.groups !== groups\)\) setDrawn\(\{ rows, groups \}\);/.test(list),
+        /const catalog = office \? \{ rows, groups \} : drawn;/.test(list),
+        /filterCatalogRows\(catalog\.rows, catalog\.groups,/.test(list),
+        /\{office \? \(\s*<ListFrameFill[\s\S]*<\/ListFrameFill>\s*\) : \(\s*(?:\/\/[^\n]*\n\s*)*<div className="flex h-full flex-col font-ui">[\s\S]*?\{COPY\.noAccess\}<\/p>/.test(list),
+    ].join(" ");
+}
+
+/**
+ * That page as 0b draws a page the reader may no longer use (Invoices 52, Tools 55's 1l `Not Admin,
+ * closed`): the list's own breadcrumb, one binding for both; under it a region taking what is left,
+ * the page's gutters either side and 48 under; and the sentence alone in it, at 13 in Ink 2, at most
+ * 480 and centered, with no heading. Until Tools 55 the sentence stood at 14 with no breadcrumb.
+ */
+function closedPageFacts(list) {
+    const closed = list.slice(list.indexOf("</ListFrameFill>"), list.indexOf("{tip.element}"));
+    return [
+        /const breadcrumb = <Breadcrumb levels=\{\[\{ label: ASSET_LIST_COPY\.heading, href: ASSET_CATEGORIES_PATH \}\]\} \/>;/.test(list) &&
+            /top=\{breadcrumb\}/.test(list) &&
+            (list.match(/<Breadcrumb\b/g) ?? []).length === 1,
+        /<div className="flex h-full flex-col font-ui">\s*<div className="shrink-0">\{breadcrumb\}<\/div>/.test(closed),
+        /<div className="flex min-h-0 flex-1 items-center justify-center px-page-gutter pb-closed-page-inset-bottom">/.test(closed),
+        /<p className="max-w-empty-state text-center text-body-sm text-pretty text-foreground-muted">\{COPY\.noAccess\}<\/p>/.test(closed),
+        !/<h[1-6]\b/.test(closed),
+    ].join(" ");
+}
+
 export function run({ check, assert, log }) {
+    // ── #616: a commitment pressing again cannot change ─────────────────────
+    // First, so no older line that throws under a mutation can keep these from failing. Tools 54
+    // holds 1l's `Save changes` and `Remove from catalog` at 40% once the row is gone or used, and
+    // the item page's rule (#614) gives the same answer: the catalog drawn again offers neither.
+    {
+        log("a catalog commitment asking the catalog as it is now (#616):");
+        const facts = standingFacts(parseFile(DIALOGS).source, parseFile(LIST).source);
+        check("an edit's commitment stands on the office and its row in the catalog drawn again, unavailable and described once either is gone", facts.edit, "true true true");
+        check("  the question's on the office and its row with nothing under it, the same way", facts.remove, "true true true");
+        check("  each dialog naming its sentence for the commitment to point at", facts.described, 2);
+        check("  the list handing both the catalog it draws from and whether the reader is the office", facts.handed, "true true");
+        check("  a reader who is not the office handed no catalog, the last one kept, the sentence in the list's place", officeFacts(parseFile(LIST).source), "true true true true true");
+        check(
+            "  that page keeping the list's breadcrumb alone, the sentence at 13 under it with no title, centered in what is left (Tools 55)",
+            closedPageFacts(parseFile(LIST).source),
+            "true true true true true"
+        );
+        check(
+            "  and the page as it stood before Tools 55, no breadcrumb and at 14, is seen so",
+            closedPageFacts(
+                'const tip = 1; return <>{office ? (<ListFrameFill top={<Breadcrumb levels={[]} />}></ListFrameFill>) : (<div className="flex h-full items-center justify-center px-page-gutter text-center font-ui text-body text-foreground-muted"><h2>{COPY.noAccess}</h2><p>{COPY.noAccess}</p></div>)}{tip.element}</>;'
+            ),
+            "false false false false false"
+        );
+        check("  and Discontinue and Restore keeping their own", facts.others, true);
+        const planted = standingFacts(
+            "export function EntryDialog() { return <DialogActions refusal={refusal} note={x}><Button type=\"submit\" busyLabel={COPY.working[mode]}>{y}</Button></DialogActions>; }\n" +
+                'export function RemoveDialog({ row, open, onClose }) { return <DialogActions refusal={refusal}><Button variant="danger" type="submit" busyLabel={COPY.working.remove}>{z}</Button><Button variant="ghostDanger" unavailable={!standing}>{w}</Button></DialogActions>; }\n',
+            "<EntryDialog key={entry.key} rows={rows} groups={groups} />{removing && <RemoveDialog key={removing.key} row={removing.row} open={removeShown} />}"
+        );
+        check(
+            "  dialogs as #614 left them, every commitment live and a Discontinue turned away, are seen",
+            [planted.edit, planted.remove, planted.described, planted.handed, planted.others].join(" / "),
+            "false false false / false false false / 0 / false false / false"
+        );
+        check(
+            "  and a list handed every catalog, the page drawing the sentence itself, is seen",
+            officeFacts("const reading = filterCatalogRows(rows, groups, asked); return <><ListFrameFill /></>;"),
+            "false false false false false"
+        );
+        log("");
+    }
+
     // ── #555: everything a dialog's field opens on ──────────────────────────
-    // First, so no older line that throws under a mutation can keep these from failing.
+    // Second, so no older line that throws under a mutation can keep these from failing.
     log("the whole list the Category and the Name open on, before anything is typed (#555):");
     const listed = (choices) => choices.map(({ label, chosen }) => `${label}${chosen ? "*" : ""}`).join(", ");
     const wholeRows = catalogRows(CATEGORIES);
@@ -365,25 +475,35 @@ export function run({ check, assert, log }) {
     log("the office reaches the page, through the app's Admin gate, and is the one offered the way to it:");
     const page = parseFile(PAGE);
     check(
-        "the page asks requireAdmin once and refuses before it reads, saying why",
+        "the page asks requireAdmin once and refuses before it reads, handing the list no catalog (#616)",
         gateShape(page),
-        "asked 1, refused true, reads after true, list after true, says why true"
+        "asked 1, refused true, reads after true, list after true, hands none true"
     );
     // ANTI-VACUITY: a page reading before its gate, and one never refusing, are each seen.
     check(
         "  a page that reads before it refuses is seen",
         gateShape(
             parseSource(
-                "async function r() { const c = await getAllAssetCategories(); const { authorized } = await requireAdmin(); if (!authorized) { return <p>{COPY.noAccess}</p>; } const g = await getAllAssetCategoryGroups(); return <CatalogList rows={c} />; }",
+                "async function r() { const c = await getAllAssetCategories(); const { authorized } = await requireAdmin(); if (!authorized) { return <CatalogList rows={null} groups={null} />; } const g = await getAllAssetCategoryGroups(); return <CatalogList rows={c} />; }",
                 "<planted-early-read>"
             )
         ),
-        "asked 1, refused true, reads after false, list after true, says why true"
+        "asked 1, refused true, reads after false, list after true, hands none true"
+    );
+    check(
+        "  and one whose refusal draws its own paragraph, taking the dialog with the list, as until #616",
+        gateShape(
+            parseSource(
+                "async function r() { const { authorized } = await requireAdmin(); if (!authorized) { return <p>{COPY.noAccess}</p>; } const c = await getAllAssetCategories(); const g = await getAllAssetCategoryGroups(); return <CatalogList rows={c} />; }",
+                "<planted-own-paragraph>"
+            )
+        ),
+        "asked 1, refused true, reads after true, list after true, hands none false"
     );
     check(
         "  and one that never refuses",
         gateShape(parseSource("async function r() { const { authorized } = await requireAdmin(); return <CatalogList />; }", "<planted-no-refusal>")),
-        "asked 1, refused false, reads after false, list after false, says why false"
+        "asked 1, refused false, reads after false, list after false, hands none false"
     );
     const categoryPage = parseFile(CATEGORY_LIST_PAGE);
     check("the category list binds the gate's answer for the office", officeBinding(categoryPage), "office");

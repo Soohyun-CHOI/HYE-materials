@@ -130,10 +130,27 @@ no picker, and it names a code it did not find in the sticker's form,
 
 ## What it carries only sometimes
 
-**While its page reads the labels, the dialog is not open yet (#495).** The
-control that opens it keeps its width and, after 300ms, draws a spinner in place
-of its words, saying `Loading…` to assistive tech: the press reads the labels
-rather than printing them. The dialog opens when the read answers.
+**While the labels are prepared, the dialog's `Print` waits (#616).** A press
+of either opener opens the dialog at once; while a category's page reads the
+labels, the pane is empty, the column holds its actions alone, and `Print` —
+the title's words until the run comes — keeps its width and, after 300ms, draws
+a spinner in place of its words, saying `Loading…` to assistive tech, as 1e and
+1f draw it. It waits the same way in either dialog while the code's face is
+loaded before the browser's print dialog. From #495 until #616 the opener waited
+and the dialog opened when the read answered.
+
+**When the read fails or is refused (#616):** the dialog says so over its
+actions with the info mark — `Couldn't load the labels. Try again.`, `Print`
+reading again, or for a reader who is no longer a site manager
+`You no longer have permission to print.`, on one line, `Print` at 40% and
+turned away, the page behind drawn again without its boxes — as 1e draws
+`Labels failed` and `No permission`. Either is 0l's dialog whose content could
+not be prepared or may no longer be shown: its head, the line and its actions
+alone, the pane kept empty at its width so the dialog keeps its size, and
+`Print labels` with no count. A read again keeps the failure's line while
+`Print` waits, and the run takes its place: the pages, the count and
+`Print 5 labels`. An asset's page reads nothing for its one label, so neither
+state can arise there.
 
 **When nothing is selected, the dialog does not open:** a category's page draws no
 selection bar and so no control to press (0b, #463). It drew its control disabled

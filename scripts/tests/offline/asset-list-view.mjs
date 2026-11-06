@@ -1395,14 +1395,29 @@ export function run({ check, assert, log }) {
                 ? nameOf(unfiltered(init.callee.object))
                 : nameOf(node ?? {});
         };
+        // SINCE #616 THE OPENER IS THE LIST'S OWN BUTTON, its words the dialog's title, its press
+        // handing the selection to `useLabelRun`'s `press`; the dialog is `LabelRunFrame`, titled
+        // by the same words. Until then both were `LabelsDialog`, handed `assetIds` and `title`.
+        let frameTitle = "none";
         walk(ast, (n) => {
-            if (n.type === "JSXOpeningElement" && n.name?.name === "LabelsDialog") {
-                const attribute = (name) => n.attributes.find((a) => a.name?.name === name)?.value?.expression;
-                printFrom = origin(attribute("assetIds"));
-                const unavailable = attribute("unavailable");
-                printUnavailable = unavailable && source ? source.slice(unavailable.start, unavailable.end) : "none";
-                const title = attribute("title");
-                printTitle = title ? nameOf(title) : "none";
+            if (n.type === "JSXElement" && n.openingElement.name?.name === "Button") {
+                const words = n.children.find((c) => c.type === "JSXExpressionContainer")?.expression;
+                if (nameOf(words) === "LABEL_COPY.openFromCategory") {
+                    const attribute = (name) => n.openingElement.attributes.find((a) => a.name?.name === name)?.value?.expression;
+                    const onClick = attribute("onClick");
+                    const pressed =
+                        onClick?.type === "ArrowFunctionExpression" && onClick.body?.type === "CallExpression" && nameOf(onClick.body.callee) === "labels.press"
+                            ? onClick.body.arguments[0]
+                            : null;
+                    printFrom = pressed ? origin(pressed) : "none";
+                    const unavailable = attribute("unavailable");
+                    printUnavailable = unavailable && source ? source.slice(unavailable.start, unavailable.end) : "none";
+                    printTitle = nameOf(words);
+                }
+            }
+            if (n.type === "JSXOpeningElement" && n.name?.name === "LabelRunFrame") {
+                const title = n.attributes.find((a) => a.name?.name === "title")?.value?.expression;
+                frameTitle = title ? nameOf(title) : "none";
             }
             if (n.type !== "CallExpression") return;
             const callee = nameOf(n.callee);
@@ -1418,7 +1433,7 @@ export function run({ check, assert, log }) {
             if (callee === "window.history.replaceState") replaced++;
             if (callee === "useRouter" || callee === "redirect" || /^router\./.test(callee)) routed.push(callee);
         });
-        return { selection, readOff, readUnder, printFrom, printUnavailable, printTitle, pageBoxOver, categoryPathCalls, replaced, routed };
+        return { selection, readOff, readUnder, printFrom, printUnavailable, printTitle: `${printTitle} / ${frameTitle}`, pageBoxOver, categoryPathCalls, replaced, routed };
     };
     const listFile = parseFile(ASSET_LIST);
     const list = listFacts(listFile.ast, listFile.source);
@@ -1436,7 +1451,7 @@ export function run({ check, assert, log }) {
     // ITS WORD IS THE DIALOG'S TITLE FROM A CATEGORY'S PAGE, `Print labels`. The opener hands
     // the dialog its title, so the asset page's `Print label` here would title a run
     // of many with one label's word, and no figure on the page would move.
-    check("  and says the dialog's word for a run from a category", list.printTitle, "LABEL_COPY.openFromCategory");
+    check("  and says the dialog's word for a run from a category", list.printTitle, "LABEL_COPY.openFromCategory / LABEL_COPY.openFromCategory");
     check("  the page box acts on the rows the page handed it", list.pageBoxOver, "rows");
     check(
         "  every address it writes carries a selection — the new one, or the current one on a step — and the job (#509)",
@@ -1456,7 +1471,8 @@ export function run({ check, assert, log }) {
             "  const wider = everyId.map((id) => id);\n" +
             "  const press = () => router.replace(assetCategoryPath(categoryRecordId, page, togglePage(selection, wider)));\n" +
             "  return (<>\n" +
-            "    <LabelsDialog assetIds={rows.map((row) => row.assetId)} />\n" +
+            "    <Button onClick={() => labels.press(rows.map((row) => row.assetId))}>{LABEL_COPY.openFromCategory}</Button>\n" +
+            "    <LabelRunFrame labels={labels} />\n" +
             "    <Link href={assetCategoryPath(categoryRecordId, page + 1)} />\n" +
             "  </>);\n" +
             "}\n",
@@ -1467,7 +1483,7 @@ export function run({ check, assert, log }) {
     check("  and one made whoever is reading is seen so", plantedList.readUnder, "none");
     check("  an opener handed the rows is seen so", plantedList.printFrom, "rows");
     check("  and one never unavailable is seen so", plantedList.printUnavailable, "none");
-    check("  and one with no title of its own is seen so", plantedList.printTitle, "none");
+    check("  and one with no title of its own is seen so", plantedList.printTitle, "LABEL_COPY.openFromCategory / none");
     check("  a page box over a wider list is seen so", plantedList.pageBoxOver, "everyId");
     check("  a step dropping the selection is seen", plantedList.categoryPathCalls.join(", "), "CallExpression, 2 arguments");
     check("  and the router is seen", plantedList.routed.join(", "), "useRouter, router.replace");
@@ -2118,8 +2134,8 @@ export function run({ check, assert, log }) {
     );
     check(
         "  and its print control acts on what one print takes, pointing at the reason the bar draws (#495, #612)",
-        `${propSources(itemList, "LabelsDialog", "unavailable").join()} ${propSources(itemList, "LabelsDialog", "describedBy").join()} ${propSources(itemList, "LabelsDialog", "assetIds").join()} ${propSources(itemList, "LabelsDialog", "disabledReason").length}`,
-        "{!summary.printable} {summary.reason ? reasonId : undefined} {selection} 0"
+        `${propSources(itemList, "Button", "unavailable").join()} ${propSources(itemList, "Button", "describedBy").join()} ${propSources(itemList, "Button", "onClick").join()} ${propSources(itemList, "Button", "disabledReason").length}`,
+        "{!summary.printable} {summary.reason ? reasonId : undefined} {() => labels.press(selection)} 0"
     );
     check(
         "  which the bar is handed with the id it draws it under",

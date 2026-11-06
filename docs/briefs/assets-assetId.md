@@ -308,7 +308,9 @@ action, reading the item and the reader again, refuses it on the page drawn
 again, by what changed (#614). An item whose job is not the one the page was
 drawn on says `This item moved to 26-USA-07. Nothing was saved.`, naming the job
 it is on now, whether the reader records there or not — the press is refused
-rather than recorded somewhere they did not see. One that did not move, whose
+rather than recorded somewhere they did not see, and at a desk the dialog or
+editor that sent it holds its commitment until it is closed and opened again
+on the page as it now stands (#616). One that did not move, whose
 reader no longer records on it — taken off its job, or no longer a site manager
 — says `You no longer have permission to update this item. Nothing was
 saved.` Either says the same whatever was pressed, the retirement's and the two
@@ -414,14 +416,16 @@ not assume the facts arrive together.
 **A refusal of the press, said where the press was (#614).** At a desk, in the
 dialog or question that sent it, over its actions: it stands until the reader
 closes it, showing what it was opened on, and its commitment is turned away and
-names the sentence when the page drawn again no longer offers the act. A desk's
+names the sentence when the page drawn again no longer offers the act, or the
+item is on another job than the one it was opened on, whoever records there —
+drawn at 40% as a disabled one is, the red retirement and deletion too (#616). A desk's
 press with no dialog — a check-in, a return from repair, `Send for repair` —
 says it in a toast at the foot of the page, which stays until it is dismissed or
 the next press. On a phone, the notice under the status in the title block
 (1k), the sheet or question that sent it closed. Those that reach it: someone else has
 already recorded something, so the press was not saved; the item is no longer
-the reader's to record, or moved to another of their jobs, since the page was
-drawn (#597, above), the retirement's question and the two details' included;
+the reader's to record, or moved to another job, theirs or not, since the page
+was drawn (#597, above), the retirement's question and the two details' included;
 the reader is no longer a site manager (#614); the asset carries no such id; and
 the event was recorded but the asset's own status was not updated. A line
 saying a check-in would move the item to another job stood under the dialog's
@@ -581,8 +585,9 @@ without a sentence, and with nothing written.
 such status, and it is reachable — the retire control is what puts an asset
 there. **A desk draws nothing in the actions' place** (1f); a phone's foot bar
 says `This item is retired.` to a site manager — the status itself, Soo's since
-#612, where 1j draws `Nothing more can be recorded here.`, which the serial
-number and note lines above it, writable in every status, made false. It says
+#612 and 1j's since the files of 2026-11-05, where it drew `Nothing more can be
+recorded here.`, which the serial number and note lines above it, writable in
+every status, made false. It says
 what the item is and nothing of what may still be written. A reader who is not a
 site manager has no foot bar to say it in (#506).
 

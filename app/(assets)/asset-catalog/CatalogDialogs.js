@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { Button, Combobox, Field, SegmentedChoice, TextInput, useRefusalFocus } from "@/app/components/Controls";
 import { DialogActions, DialogBody, DialogFrame, DialogMessage, DialogSummary } from "@/app/components/DialogFrame";
 import Dot from "@/app/components/Dot";
@@ -53,6 +53,16 @@ import { addAssetCategoryGroupAction, removeAssetCategoryAction, saveAssetCatego
  *
  * EVERY CALL BINDS WHAT THE ACTION ANSWERS (#185): a refusal of the whole press is said over the
  * actions, and a press that wrote closes the dialog, the page drawn again with what it wrote.
+ *
+ * A COMMITMENT ASKS THE CATALOG AS IT IS NOW (#616), as the item page's do (#614): an edit's `Save
+ * changes` once the catalog drawn again holds its row no longer, and the question's `Remove from
+ * catalog` once its row is gone or an item stands under it, are `unavailable` and described by the
+ * sentence that said so, since pressing again cannot change it — Tools 54's 1l `Removed first` and
+ * `Now in use`. **Every commitment asks whether the reader is still the office (`office`)**, the
+ * page drawn again for one who is not handing the list no catalog: the dialog stands over
+ * `Only admins can edit the catalog.`, says it over its actions and holds its commitment, an add's
+ * and a category's too — 1l `Not Admin`. Its other acts keep theirs: 1l leaves `Discontinue` live
+ * there.
  */
 
 const TYPES = ASSET_TYPE_VALUES.map((value) => ({ value, label: value }));
@@ -67,9 +77,10 @@ function openingValues(entry) {
  * The dialog an entry opens (1l): `entry.mode` is `add`, `edit` — with the `row` it saves over —
  * or `category`. `rows` are the catalog's and `groups` the categories its types hold, which the
  * fields suggest from and the reading asks of; `onRemove` hands a row nothing stands under to
- * the question.
+ * the question. `office` is whether the page drawn again is still the office's, and `rows` and
+ * `groups` the catalog it last drew while it was.
  */
-export function EntryDialog({ entry, open, onClose, onRemove, rows, groups }) {
+export function EntryDialog({ entry, open, onClose, onRemove, rows, groups, office }) {
     const { mode, row } = entry;
     const category = mode === "category";
     const editing = mode === "edit" ? row.id : null;
@@ -85,6 +96,10 @@ export function EntryDialog({ entry, open, onClose, onRemove, rows, groups }) {
     const [working, setWorking] = useState(null);
     const [pending, startTransition] = useTransition();
     const focusRefused = useRefusalFocus();
+    const refusalId = useId();
+    // Whether the page drawn again is still the office's, and its catalog still holds the row an
+    // edit saves over (#616).
+    const standing = office && (!editing || rows.some((each) => each.id === editing));
 
     const reading = category ? readCategoryEntry(values, groups) : readCatalogEntry(values, { rows, groups, editing });
     const fields = { ...answered, ...(tried ? (reading.fields ?? {}) : {}) };
@@ -252,6 +267,7 @@ export function EntryDialog({ entry, open, onClose, onRemove, rows, groups }) {
             </DialogBody>
             <DialogActions
                 refusal={refusal}
+                refusalId={refusalId}
                 note={editing && renamesItems(row, values, { rows }) ? COPY.renames(row.assetCount) : null}
                 secondary={
                     editing &&
@@ -269,7 +285,7 @@ export function EntryDialog({ entry, open, onClose, onRemove, rows, groups }) {
                 <Button variant="bordered" onClick={onClose}>
                     {COPY.cancel}
                 </Button>
-                <Button type="submit" busyLabel={COPY.working[mode]}>
+                <Button type="submit" unavailable={!standing} describedBy={!standing && refusal ? refusalId : undefined} busyLabel={COPY.working[mode]}>
                     {COPY.submit[mode]}
                 </Button>
             </DialogActions>
@@ -280,11 +296,15 @@ export function EntryDialog({ entry, open, onClose, onRemove, rows, groups }) {
 /**
  * The question before a row nothing stands under leaves the catalog (1l): its whole name in the
  * title, what removing it ends, and the red commitment. The action reads the row again first,
- * so one an item came to stand under since stays, and the question says why.
+ * so one an item came to stand under since stays, and the question says why — its commitment
+ * `unavailable` once `rows`, the catalog drawn again, holds the row no longer or an item under it,
+ * or the page drawn again is no longer the office's (`office`, #616).
  */
-export function RemoveDialog({ row, open, onClose }) {
+export function RemoveDialog({ row, rows, office, open, onClose }) {
     const [refusal, setRefusal] = useState(null);
     const [pending, startTransition] = useTransition();
+    const refusalId = useId();
+    const removable = office && rows.find((each) => each.id === row.id)?.assetCount === 0;
 
     const submit = (event) => {
         event.preventDefault();
@@ -301,11 +321,11 @@ export function RemoveDialog({ row, open, onClose }) {
             <DialogBody>
                 <DialogMessage>{COPY.removeSays}</DialogMessage>
             </DialogBody>
-            <DialogActions refusal={refusal}>
+            <DialogActions refusal={refusal} refusalId={refusalId}>
                 <Button variant="bordered" onClick={onClose}>
                     {COPY.cancel}
                 </Button>
-                <Button variant="danger" type="submit" busyLabel={COPY.working.remove}>
+                <Button variant="danger" type="submit" unavailable={!removable} describedBy={!removable && refusal ? refusalId : undefined} busyLabel={COPY.working.remove}>
                     {COPY.remove}
                 </Button>
             </DialogActions>

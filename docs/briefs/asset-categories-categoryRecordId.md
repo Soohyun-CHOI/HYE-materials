@@ -287,8 +287,9 @@ stands on (#509).
 **When the job holds none of this category's items and another job does (#509,
 #520, #612):** the head, `0`, and in place of the entries the heading `No items
 on 25-USA-13`, the job by its code, with no sentence under it — the head still
-offers `Add items` to whoever may add (Soo's words; 1d draws `Nothing added yet`
-there, which would be false). From #509 to #612 the head stood alone. The rows, the pager and the page
+offers `Add items` to whoever may add (Soo's words, which 1d draws since the files
+of 2026-11-05; it drew `Nothing added yet` there until then, which would have been
+false). From #509 to #612 the head stood alone. The rows, the pager and the page
 box are always the job's alone, and the breadcrumb's `Equipment & Tools` keeps the
 job. An asset off the job is left off this list and still opens from its label or a
 link. A job in the address the list does not offer is answered where the list

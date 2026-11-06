@@ -414,7 +414,7 @@ export function run({ check, assert, log }) {
             /const busy = Boolean\(transition\?\.repairPending\);/.test(opener) &&
                 /aria-busy=\{busy \|\| undefined\}\s*aria-disabled=\{busy \|\| undefined\}\s*data-busy=\{busy \|\| undefined\}/.test(opener) &&
                 /if \(busy\) return;/.test(opener) &&
-                /<ButtonLabel size=\{phone \? "xl" : "lg"\} busyLabel=\{ASSET_TRANSITION_COPY\.working\[ASSET_EVENT\.SENT_FOR_REPAIR\]\}>/.test(opener)
+                /<ButtonLabel size=\{phone \? "xl" : "lg"\} on="unfilled" busyLabel=\{ASSET_TRANSITION_COPY\.working\[ASSET_EVENT\.SENT_FOR_REPAIR\]\}>/.test(opener)
         );
         const dialogSource = parseFile(DIALOG).source;
         assert(

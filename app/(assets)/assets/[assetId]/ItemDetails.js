@@ -46,7 +46,8 @@ import { useAssetTransition } from "./AssetTransition";
  * THE ANSWER IS THE PROVIDER'S (`AssetTransition.js:useDetail`), said where the press was while the
  * opening that sent it stands. A desk's editor stands until the reader closes it, so every answer it
  * gets is said in its field's line — the item moved, or no longer the reader's to write, too — its
- * `Save` `unavailable` once the page drawn again no longer lets the reader write the detail (#614); a
+ * `Save` `unavailable` once the page drawn again no longer lets the reader write the detail (#614) or
+ * the item is on another job than the one the editor was opened on, whoever writes there (#616); a
  * phone's sheet keeps its own answers and the page ends it for one about whose the item is, said
  * under the status (#597).
  *
@@ -173,7 +174,7 @@ function DetailsRow({ kind, value, writable }) {
                 which a 26 control set inline in one drew 22. */}
             <dd className="flex min-w-0 flex-col items-start text-body">
                 {open ? (
-                    <RowEditor key={control.opening} kind={kind} value={value} available={writable} control={control} onClose={close} />
+                    <RowEditor key={control.opening} kind={kind} value={value} available={writable && !control.moved} control={control} onClose={close} />
                 ) : value ? (
                     <div className="flex items-start justify-between gap-details-edit-inline self-stretch">
                         <span className={`min-w-0 text-foreground-default ${VALUE_FACE[detail.face]}`}>{value}</span>

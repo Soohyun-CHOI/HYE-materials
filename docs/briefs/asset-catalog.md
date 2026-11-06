@@ -3,7 +3,10 @@
 Route: `/asset-catalog`
 Who reaches it: the office, `Is Admin` (#527). Anyone else signed in reads one
 sentence in its place, `Only admins can edit the catalog.` (#614) — the shape the
-Invoices file's 1g draws for an Admin's screen.
+Invoices file's 1g draws for an Admin's screen. It is a page the reader may no
+longer use (0b Row), drawn as Tools 55's 1l `Not Admin, closed`: the breadcrumb
+back to Tools & Equipment alone, and under it the sentence with no title, at 13
+in Ink 2 and at most 480, centered in what is left with 48 under it.
 Its way in is `Catalog` in the head of `/asset-categories`, drawn for the office
 alone.
 Which width comes first: **desktop**, and it is the only one: the catalog is
@@ -122,7 +125,18 @@ name, a line over the actions says so — `10 items will show the new name.`
 **When nothing stands under the edited row:** `More actions` beside the close,
 whose one item, `Remove from catalog`, asks `Remove … from catalog?` — `It
 comes out of the catalog. No items use it.` — before the row goes. A row items
-came to stand under since stays, and the question says why.
+came to stand under since stays, and the question says why. A row somebody
+removed first, or one items came to stand under, leaves the commitment that
+named it at 40% and described by that sentence, since pressing again cannot
+change it: an edit's `Save changes` and the question's `Remove from catalog`, as
+1l draws them (#616); `Discontinue` and `Restore` keep theirs.
+
+**When the reader stopped being the office while a dialog was open:** the press
+says `Only admins can edit the catalog.` in the dialog, over its actions, and the
+dialog stands — the page behind it drawn again with that sentence in the list's
+place — its commitment at 40% and described by it, an add's and a category's as
+well as an edit's and a removal's, as 1l `Not Admin` draws it (#616). Until
+#616 the dialog went with the list.
 
 **When a press wrote nothing:** its reason over the dialog's actions, saying what
 the press was — `Couldn't add it to the catalog. Try again.` for an add,

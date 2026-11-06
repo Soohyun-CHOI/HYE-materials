@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useId } from "react";
-import { Checkbox } from "@/app/components/Controls";
+import { Button, Checkbox } from "@/app/components/Controls";
 import Dot from "@/app/components/Dot";
 import Icon from "@/app/components/Icon";
 import Instant from "@/app/components/Instant";
@@ -22,7 +22,7 @@ import {
 import { readAssetIds, assetPath, assetCategoryPath } from "@/lib/assetRoutes";
 import { DAY_FORMAT } from "@/lib/format";
 import StatusMark from "../../StatusMark";
-import LabelsDialog from "../../assets/LabelsDialog";
+import { LabelRunFrame, useLabelRun } from "../../assets/LabelsDialog";
 
 // 1d's columns since the files of 2026-11-04's afternoon (#607): the box, the printed id at 152 and
 // the serial number at 160 after it, the status — and after an `Out` who holds it — taking the room
@@ -135,6 +135,9 @@ export default function AssetList({ categoryRecordId, itemName, selects, showsJo
     // A cut serial number shows whole above its cell, as a cut catalog cell does, and a note above
     // its mark (0n, #607).
     const tooltip = useTooltip({ placement: "above" });
+    // The labels' dialog the bar's control opens (#457), held here and drawn outside the bar, so a
+    // refusal that draws the page again without the bar leaves it standing (#616).
+    const labels = useLabelRun();
 
     // THE ONE WRITE, AND IT IS NOT A NAVIGATION — see the header. It keeps the page
     // the reader is on, resolved rather than as typed.
@@ -142,165 +145,164 @@ export default function AssetList({ categoryRecordId, itemName, selects, showsJo
     const clear = () => replaceSelection([]);
 
     return (
-        <ListFrame
-            top={top}
-            header={header}
-            // Which rows this page shows of how many, stated whether or not there is a second
-            // page: #326 names "nothing on screen says whether a reader is looking at everything
-            // or at the beginning of it" as the defect. Which page it is and the steps stand only
-            // past one page (0b, #519). Both steps carry the selection.
-            footer={
-                <Pager
-                    range={COPY.range({ from: page.from + 1, to: page.to, total: page.total })}
-                    position={pagerPosition(page)}
-                    previous={{ href: page.page > 1 ? assetCategoryPath(categoryRecordId, page.page - 1, selection, { job, sort }) : null, label: COPY.previous }}
-                    next={{ href: page.page < page.pageCount ? assetCategoryPath(categoryRecordId, page.page + 1, selection, { job, sort }) : null, label: COPY.next }}
-                />
-            }
-            // The bar comes with the first box pressed and goes with the last (0b): the count,
-            // how many are on other pages, the way out, and the print control, which opens the
-            // labels' dialog on the selection as it stands, in ascending id, under this
-            // category's name (#457) — and says why it does not act on more than one print takes,
-            // in a column of the bar's own that the control points at (#495).
-            overlay={
-                selects ? (
-                    <SelectionBar
-                        shown={selecting}
-                        label={COPY.selectionBar}
-                        count={summary.count}
-                        notOnPage={summary.notOnPage}
-                        words={{ count: COPY.selectedCount, notOnPage: COPY.notOnPage }}
-                        clearLabel={COPY.clearSelection}
-                        onClear={clear}
-                        reason={summary.reason}
-                        reasonId={reasonId}
-                    >
-                        <LabelsDialog
-                            title={LABEL_COPY.openFromCategory}
-                            itemName={itemName}
-                            assetIds={selection}
-                            unavailable={!summary.printable}
-                            describedBy={summary.reason ? reasonId : undefined}
-                        />
-                    </SelectionBar>
-                ) : null
-            }
-            overlayShown={selecting}
-        >
-            <div role="table" aria-label={itemName}>
-                {/* This page's box: its state is this page's alone, and a partly selected
-                    page shows as mixed, which is a DOM property with no attribute. */}
-                <div role="row" className={`${TABLE_HEAD} ${columns}`}>
-                    {selects && (
-                        <span role="columnheader" className="flex self-center">
-                            <Checkbox
-                                label={COPY.selectPage}
-                                checked={pageState === "all"}
-                                indeterminate={pageState === "some"}
-                                onChange={() => replaceSelection(togglePage(selection, pageIds))}
-                            />
+        <>
+            <ListFrame
+                top={top}
+                header={header}
+                // Which rows this page shows of how many, stated whether or not there is a second
+                // page: #326 names "nothing on screen says whether a reader is looking at everything
+                // or at the beginning of it" as the defect. Which page it is and the steps stand only
+                // past one page (0b, #519). Both steps carry the selection.
+                footer={
+                    <Pager
+                        range={COPY.range({ from: page.from + 1, to: page.to, total: page.total })}
+                        position={pagerPosition(page)}
+                        previous={{ href: page.page > 1 ? assetCategoryPath(categoryRecordId, page.page - 1, selection, { job, sort }) : null, label: COPY.previous }}
+                        next={{ href: page.page < page.pageCount ? assetCategoryPath(categoryRecordId, page.page + 1, selection, { job, sort }) : null, label: COPY.next }}
+                    />
+                }
+                // The bar comes with the first box pressed and goes with the last (0b): the count,
+                // how many are on other pages, the way out, and the print control, which opens the
+                // labels' dialog on the selection as it stands, in ascending id, under this
+                // category's name (#457) — and says why it does not act on more than one print takes,
+                // in a column of the bar's own that the control points at (#495).
+                overlay={
+                    selects ? (
+                        <SelectionBar
+                            shown={selecting}
+                            label={COPY.selectionBar}
+                            count={summary.count}
+                            notOnPage={summary.notOnPage}
+                            words={{ count: COPY.selectedCount, notOnPage: COPY.notOnPage }}
+                            clearLabel={COPY.clearSelection}
+                            onClear={clear}
+                            reason={summary.reason}
+                            reasonId={reasonId}
+                        >
+                            <Button unavailable={!summary.printable} describedBy={summary.reason ? reasonId : undefined} onClick={() => labels.press(selection)}>
+                                {LABEL_COPY.openFromCategory}
+                            </Button>
+                        </SelectionBar>
+                    ) : null
+                }
+                overlayShown={selecting}
+            >
+                <div role="table" aria-label={itemName}>
+                    {/* This page's box: its state is this page's alone, and a partly selected
+                        page shows as mixed, which is a DOM property with no attribute. */}
+                    <div role="row" className={`${TABLE_HEAD} ${columns}`}>
+                        {selects && (
+                            <span role="columnheader" className="flex self-center">
+                                <Checkbox
+                                    label={COPY.selectPage}
+                                    checked={pageState === "all"}
+                                    indeterminate={pageState === "some"}
+                                    onChange={() => replaceSelection(togglePage(selection, pageIds))}
+                                />
+                            </span>
+                        )}
+                        <span role="columnheader">{COPY.assetIdLabel}</span>
+                        <span role="columnheader">{COPY.serialLabel}</span>
+                        {showsJob && <span role="columnheader">{COPY.jobLabel}</span>}
+                        <span role="columnheader">{COPY.statusLabel}</span>
+                        {/* The note's column stands under no head (0n, #607); its name is for assistive tech. */}
+                        <span role="columnheader">
+                            <span className="sr-only">{COPY.noteLabel}</span>
                         </span>
-                    )}
-                    <span role="columnheader">{COPY.assetIdLabel}</span>
-                    <span role="columnheader">{COPY.serialLabel}</span>
-                    {showsJob && <span role="columnheader">{COPY.jobLabel}</span>}
-                    <span role="columnheader">{COPY.statusLabel}</span>
-                    {/* The note's column stands under no head (0n, #607); its name is for assistive tech. */}
-                    <span role="columnheader">
-                        <span className="sr-only">{COPY.noteLabel}</span>
-                    </span>
-                    <span role="columnheader">{COPY.updatedLabel}</span>
-                </div>
-                {/* In the order the page cut them in, newest change first or by printed id
-                    (`pageOfAssets`, #540). Nothing here sorts. */}
-                {rows.map((row) => {
-                    const onLoan = row.loanedTo !== null && row.loanedTo !== undefined;
-                    const selected = !onLoan && selection.includes(row.assetId);
-                    return (
-                        <div key={row.id} role="row" {...tooltip.cutProps()} className={`${TABLE_ROW} ${columns} ${selected ? TABLE_ROW_SELECTED : ""}`}>
-                            {/* No box on a row on loan to another job (#598): its label is that
-                                job's to print, so its cell holds the column's room and nothing. */}
-                            {selects && (
-                                <span role="cell" className="flex self-center">
-                                    {!onLoan && (
-                                        <Checkbox
-                                            label={COPY.selectAsset(row.assetId)}
-                                            checked={selected}
-                                            onChange={() => replaceSelection(toggleAsset(selection, row.assetId))}
-                                        />
-                                    )}
-                                </span>
-                            )}
-                            <span role="cell" className="min-w-0 truncate font-id text-body-sm tracking-id">
-                                <Link href={assetPath(row.assetId)} className={TABLE_ROW_LINK}>
-                                    {row.assetId}
-                                </Link>
-                            </span>
-                            {/* Its serial number at the row's 14 with even figures and Ink 2 — a maker's
-                                number, which the portal's id face is not for (0h, #607) — cut at its
-                                column's end and shown whole above it under the pointer (1d, #601).
-                                Nothing for an item with none. */}
-                            <span role="cell" className="min-w-0 text-foreground-muted tabular-nums">
-                                <span data-cut="" className="block truncate">
-                                    {row.serialNumber}
-                                </span>
-                            </span>
-                            {/* The job it is on, by its code in Ink 2, its figures tabular (1d,
-                                #548) — only while the list is on all jobs. */}
-                            {showsJob && (
-                                <span role="cell" className="min-w-0 truncate text-foreground-muted tabular-nums">
-                                    {row.jobCode}
-                                </span>
-                            )}
-                            {/* The status, and after an `Out` who holds it, behind 0e's dot in
-                                Ink 2 (1d, #520) — the value only that state has, which the
-                                item's own page says beside its status too. Centered in the
-                                row as 1d draws it: on the row's baseline its mark lifted the
-                                word half a pixel (#522). */}
-                            <span role="cell" className="flex min-w-0 items-baseline gap-gap self-center">
-                                <StatusMark status={row.status} onLoan={onLoan} />
-                                {/* On loan from the job the page stands on (1d, #598): the word and
-                                    the job it stands on, in the place a holder takes after `Out`. */}
-                                <span className="flex min-w-0 items-baseline whitespace-nowrap">
-                                    <span className="shrink-0">{onLoan ? COPY.onLoanLabel : row.status}</span>
-                                    {onLoan && row.loanedTo && (
-                                        <>
-                                            <Dot />
-                                            <span className="min-w-0 truncate text-foreground-muted tabular-nums">{row.loanedTo}</span>
-                                        </>
-                                    )}
-                                    {!onLoan && row.holder && (
-                                        <>
-                                            <Dot />
-                                            <span className="min-w-0 truncate text-foreground-muted">{row.holder}</span>
-                                        </>
-                                    )}
-                                </span>
-                            </span>
-                            {/* A note is a 14 speech-bubble mark in Ink 3, centered in its 16, and the
-                                note itself above it under the pointer (0n, 1d, #607) — the row's tooltip,
-                                since the row's link covers the cell; the mark stands over the link, and
-                                assistive tech reads the note from its name. Its words in a column of
-                                their own from #533 until then. Nothing for an item with none. */}
-                            <span role="cell" className="flex self-center">
-                                {row.note && (
-                                    <span role="img" aria-label={COPY.noteMark(row.note)} data-tip={row.note} className="relative flex h-[var(--text-body--line-height)] w-(--size-icon) items-center justify-center">
-                                        <Icon name="message-square" kind="qualifier" className="size-icon-sm" />
+                        <span role="columnheader">{COPY.updatedLabel}</span>
+                    </div>
+                    {/* In the order the page cut them in, newest change first or by printed id
+                        (`pageOfAssets`, #540). Nothing here sorts. */}
+                    {rows.map((row) => {
+                        const onLoan = row.loanedTo !== null && row.loanedTo !== undefined;
+                        const selected = !onLoan && selection.includes(row.assetId);
+                        return (
+                            <div key={row.id} role="row" {...tooltip.cutProps()} className={`${TABLE_ROW} ${columns} ${selected ? TABLE_ROW_SELECTED : ""}`}>
+                                {/* No box on a row on loan to another job (#598): its label is that
+                                    job's to print, so its cell holds the column's room and nothing. */}
+                                {selects && (
+                                    <span role="cell" className="flex self-center">
+                                        {!onLoan && (
+                                            <Checkbox
+                                                label={COPY.selectAsset(row.assetId)}
+                                                checked={selected}
+                                                onChange={() => replaceSelection(toggleAsset(selection, row.assetId))}
+                                            />
+                                        )}
                                     </span>
                                 )}
-                            </span>
-                            {/* The day it last changed, in the reader's own zone (#374) and
-                                Ink 2, the year written out (#520); nothing for an item whose
-                                log holds no row. */}
-                            <span role="cell" className="text-foreground-muted">
-                                <Instant at={row.updatedAt} format={DAY_FORMAT} />
-                            </span>
-                        </div>
-                    );
-                })}
-            </div>
-            {tooltip.element}
-            {children}
-        </ListFrame>
+                                <span role="cell" className="min-w-0 truncate font-id text-body-sm tracking-id">
+                                    <Link href={assetPath(row.assetId)} className={TABLE_ROW_LINK}>
+                                        {row.assetId}
+                                    </Link>
+                                </span>
+                                {/* Its serial number at the row's 14 with even figures and Ink 2 — a maker's
+                                    number, which the portal's id face is not for (0h, #607) — cut at its
+                                    column's end and shown whole above it under the pointer (1d, #601).
+                                    Nothing for an item with none. */}
+                                <span role="cell" className="min-w-0 text-foreground-muted tabular-nums">
+                                    <span data-cut="" className="block truncate">
+                                        {row.serialNumber}
+                                    </span>
+                                </span>
+                                {/* The job it is on, by its code in Ink 2, its figures tabular (1d,
+                                    #548) — only while the list is on all jobs. */}
+                                {showsJob && (
+                                    <span role="cell" className="min-w-0 truncate text-foreground-muted tabular-nums">
+                                        {row.jobCode}
+                                    </span>
+                                )}
+                                {/* The status, and after an `Out` who holds it, behind 0e's dot in
+                                    Ink 2 (1d, #520) — the value only that state has, which the
+                                    item's own page says beside its status too. Centered in the
+                                    row as 1d draws it: on the row's baseline its mark lifted the
+                                    word half a pixel (#522). */}
+                                <span role="cell" className="flex min-w-0 items-baseline gap-gap self-center">
+                                    <StatusMark status={row.status} onLoan={onLoan} />
+                                    {/* On loan from the job the page stands on (1d, #598): the word and
+                                        the job it stands on, in the place a holder takes after `Out`. */}
+                                    <span className="flex min-w-0 items-baseline whitespace-nowrap">
+                                        <span className="shrink-0">{onLoan ? COPY.onLoanLabel : row.status}</span>
+                                        {onLoan && row.loanedTo && (
+                                            <>
+                                                <Dot />
+                                                <span className="min-w-0 truncate text-foreground-muted tabular-nums">{row.loanedTo}</span>
+                                            </>
+                                        )}
+                                        {!onLoan && row.holder && (
+                                            <>
+                                                <Dot />
+                                                <span className="min-w-0 truncate text-foreground-muted">{row.holder}</span>
+                                            </>
+                                        )}
+                                    </span>
+                                </span>
+                                {/* A note is a 14 speech-bubble mark in Ink 3, centered in its 16, and the
+                                    note itself above it under the pointer (0n, 1d, #607) — the row's tooltip,
+                                    since the row's link covers the cell; the mark stands over the link, and
+                                    assistive tech reads the note from its name. Its words in a column of
+                                    their own from #533 until then. Nothing for an item with none. */}
+                                <span role="cell" className="flex self-center">
+                                    {row.note && (
+                                        <span role="img" aria-label={COPY.noteMark(row.note)} data-tip={row.note} className="relative flex h-[var(--text-body--line-height)] w-(--size-icon) items-center justify-center">
+                                            <Icon name="message-square" kind="qualifier" className="size-icon-sm" />
+                                        </span>
+                                    )}
+                                </span>
+                                {/* The day it last changed, in the reader's own zone (#374) and
+                                    Ink 2, the year written out (#520); nothing for an item whose
+                                    log holds no row. */}
+                                <span role="cell" className="text-foreground-muted">
+                                    <Instant at={row.updatedAt} format={DAY_FORMAT} />
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+                {tooltip.element}
+                {children}
+            </ListFrame>
+            <LabelRunFrame labels={labels} title={LABEL_COPY.openFromCategory} itemName={itemName} />
+        </>
     );
 }

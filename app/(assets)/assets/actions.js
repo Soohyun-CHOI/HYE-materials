@@ -1,11 +1,12 @@
 "use server";
 
+import { refresh } from "next/cache";
 import { headers } from "next/headers";
-import { refuseWithThePage, requireUser, withSiteManagerAction } from "@/lib/authz";
+import { requireUser, withSiteManagerAction } from "@/lib/authz";
 import { getAssetsByAssetIds } from "@/lib/airtable/assets";
 import { recordsOn } from "@/lib/assetJob";
 import { QR_SIDE_MODULES, buildAssetLabel } from "@/lib/assetLabelQR";
-import { MAX_LABELS_PER_REQUEST } from "@/lib/assetLabelPage";
+import { ASSET_LABEL_PAGE_COPY, MAX_LABELS_PER_REQUEST } from "@/lib/assetLabelPage";
 import { namedCode, readAssetIds } from "@/lib/assetRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
 
@@ -36,8 +37,9 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * ONLY A SITE MANAGER PRINTS LABELS (#506), AND SINCE #597 ONLY ONE ON THE ITEM'S JOB. Until
  * #506 every signed-in reader could print any label (#337) and the session was the gate; then
  * `withSiteManagerAction` refused anybody else before this body runs — the category's page
- * rendered again without its boxes and bar, and `null`, which the dialog opens on nothing
- * for — and the wrapper was the whole gate, no asset being one reader's rather than
+ * rendered again without its boxes and bar, and since #616 the sentence the dialog, open from
+ * the press, says over its actions (`refuseLabels`), where it was `null` and no dialog opened
+ * until then — and the wrapper was the whole gate, no asset being one reader's rather than
  * another's. **Since #597 an item is its job's site managers' to record**, its label among it,
  * so this body compares each item it reads against the reader (`lib/assetJob.js:recordsOn`):
  * a list draws boxes on its own job's rows alone, and this is the re-authorization a directly
@@ -57,7 +59,19 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * behind Vercel's proxy, the source the asset's page reads its own from — so the
  * symbol it shows and the label printed for it encode one string.
  */
-export const readAssetLabelsAction = withSiteManagerAction(refuseWithThePage, readAssetLabelsHandler);
+export const readAssetLabelsAction = withSiteManagerAction(refuseLabels, readAssetLabelsHandler);
+
+/**
+ * What a press of a category's `Print labels` answers a reader no longer a site manager (#616): the
+ * page drawn again as they read it now, without its boxes and bar (#378), and the sentence the
+ * dialog — open since the press, standing across that page — says over its actions, its `Print`
+ * turned away. `lib/authz.js:refuseWithThePage` answered until then, `null` and no dialog. It
+ * reads nothing and writes nothing; not exported, since an export of this file is an entry point.
+ */
+function refuseLabels() {
+    refresh();
+    return { error: ASSET_LABEL_PAGE_COPY.noPermission };
+}
 
 async function readAssetLabelsHandler(assetIds) {
     return withOpsLabel("readAssetLabelsAction", async () => {

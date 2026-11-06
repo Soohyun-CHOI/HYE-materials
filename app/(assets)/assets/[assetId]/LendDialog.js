@@ -27,8 +27,8 @@ import { ASSET_TRANSITION_COPY as COPY, lendStart, readLend } from "@/lib/assetT
  * WHAT A PRESS MAY SEND IS `readLend`, ASKED HERE BEFORE IT IS SENT AND AGAIN BY THE ACTION. The
  * answer is the page's provider's: at a desk every answer is said over the dialog's actions, which
  * stands until the reader closes it, its `Lend` `unavailable` once the page no longer offers a lending
- * (`available`) — somebody lent it first, it is no longer the reader's to record — and live for one
- * left half done; on a phone any answer closes the sheet and is said under the status (#614). What the
+ * (`available`) — somebody lent it first, it is no longer the reader's to record, it moved off the job
+ * the dialog was opened on (#616) — and live for one left half done; on a phone any answer closes the sheet and is said under the status (#614). What the
  * dialog offers is the page it was opened from (`plan`, held while it stands).
  *
  * A SENDING IS SAID IN WHAT SENT IT (0f Working, #469). EVERY STRING COMES FROM `ASSET_TRANSITION_COPY`.
