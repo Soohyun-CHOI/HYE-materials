@@ -585,8 +585,9 @@ without a sentence, and with nothing written.
 such status, and it is reachable — the retire control is what puts an asset
 there. **A desk draws nothing in the actions' place** (1f); a phone's foot bar
 says `This item is retired.` to a site manager — the status itself, Soo's since
-#612, where 1j draws `Nothing more can be recorded here.`, which the serial
-number and note lines above it, writable in every status, made false. It says
+#612 and 1j's since the files of 2026-11-05, where it drew `Nothing more can be
+recorded here.`, which the serial number and note lines above it, writable in
+every status, made false. It says
 what the item is and nothing of what may still be written. A reader who is not a
 site manager has no foot bar to say it in (#506).
 

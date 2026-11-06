@@ -207,7 +207,26 @@ function officeFacts(list) {
         /if \(office && \(drawn\.rows !== rows \|\| drawn\.groups !== groups\)\) setDrawn\(\{ rows, groups \}\);/.test(list),
         /const catalog = office \? \{ rows, groups \} : drawn;/.test(list),
         /filterCatalogRows\(catalog\.rows, catalog\.groups,/.test(list),
-        /\{office \? \(\s*<ListFrameFill[\s\S]*<\/ListFrameFill>\s*\) : \(\s*<div className="flex h-full items-center justify-center px-page-gutter text-center font-ui text-body text-foreground-muted">\s*<p>\{COPY\.noAccess\}<\/p>/.test(list),
+        /\{office \? \(\s*<ListFrameFill[\s\S]*<\/ListFrameFill>\s*\) : \(\s*(?:\/\/[^\n]*\n\s*)*<div className="flex h-full flex-col font-ui">[\s\S]*?\{COPY\.noAccess\}<\/p>/.test(list),
+    ].join(" ");
+}
+
+/**
+ * That page as 0b draws a page the reader may no longer use (Invoices 52, Tools 55's 1l `Not Admin,
+ * closed`): the list's own breadcrumb, one binding for both; under it a region taking what is left,
+ * the page's gutters either side and 48 under; and the sentence alone in it, at 13 in Ink 2, at most
+ * 480 and centered, with no heading. Until Tools 55 the sentence stood at 14 with no breadcrumb.
+ */
+function closedPageFacts(list) {
+    const closed = list.slice(list.indexOf("</ListFrameFill>"), list.indexOf("{tip.element}"));
+    return [
+        /const breadcrumb = <Breadcrumb levels=\{\[\{ label: ASSET_LIST_COPY\.heading, href: ASSET_CATEGORIES_PATH \}\]\} \/>;/.test(list) &&
+            /top=\{breadcrumb\}/.test(list) &&
+            (list.match(/<Breadcrumb\b/g) ?? []).length === 1,
+        /<div className="flex h-full flex-col font-ui">\s*<div className="shrink-0">\{breadcrumb\}<\/div>/.test(closed),
+        /<div className="flex min-h-0 flex-1 items-center justify-center px-page-gutter pb-closed-page-inset-bottom">/.test(closed),
+        /<p className="max-w-empty-state text-center text-body-sm text-pretty text-foreground-muted">\{COPY\.noAccess\}<\/p>/.test(closed),
+        !/<h[1-6]\b/.test(closed),
     ].join(" ");
 }
 
@@ -224,6 +243,18 @@ export function run({ check, assert, log }) {
         check("  each dialog naming its sentence for the commitment to point at", facts.described, 2);
         check("  the list handing both the catalog it draws from and whether the reader is the office", facts.handed, "true true");
         check("  a reader who is not the office handed no catalog, the last one kept, the sentence in the list's place", officeFacts(parseFile(LIST).source), "true true true true true");
+        check(
+            "  that page keeping the list's breadcrumb alone, the sentence at 13 under it with no title, centered in what is left (Tools 55)",
+            closedPageFacts(parseFile(LIST).source),
+            "true true true true true"
+        );
+        check(
+            "  and the page as it stood before Tools 55, no breadcrumb and at 14, is seen so",
+            closedPageFacts(
+                'const tip = 1; return <>{office ? (<ListFrameFill top={<Breadcrumb levels={[]} />}></ListFrameFill>) : (<div className="flex h-full items-center justify-center px-page-gutter text-center font-ui text-body text-foreground-muted"><h2>{COPY.noAccess}</h2><p>{COPY.noAccess}</p></div>)}{tip.element}</>;'
+            ),
+            "false false false false false"
+        );
         check("  and Discontinue and Restore keeping their own", facts.others, true);
         const planted = standingFacts(
             "export function EntryDialog() { return <DialogActions refusal={refusal} note={x}><Button type=\"submit\" busyLabel={COPY.working[mode]}>{y}</Button></DialogActions>; }\n" +

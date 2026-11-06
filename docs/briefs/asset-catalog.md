@@ -3,7 +3,10 @@
 Route: `/asset-catalog`
 Who reaches it: the office, `Is Admin` (#527). Anyone else signed in reads one
 sentence in its place, `Only admins can edit the catalog.` (#614) — the shape the
-Invoices file's 1g draws for an Admin's screen.
+Invoices file's 1g draws for an Admin's screen. It is a page the reader may no
+longer use (0b Row), drawn as Tools 55's 1l `Not Admin, closed`: the breadcrumb
+back to Tools & Equipment alone, and under it the sentence with no title, at 13
+in Ink 2 and at most 480, centered in what is left with 48 under it.
 Its way in is `Catalog` in the head of `/asset-categories`, drawn for the office
 alone.
 Which width comes first: **desktop**, and it is the only one: the catalog is

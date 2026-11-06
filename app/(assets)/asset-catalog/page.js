@@ -22,7 +22,8 @@ export const metadata = { title: COPY.heading };
  * too (#616)**, handed no catalog, so a dialog open when an action finds its reader no longer the
  * office stands across the page drawn again, as 1l `Not Admin` draws it: the page renders one
  * component either way, which React keeps with what it holds, where a paragraph of the page's
- * own put in its place took the dialog with the list.
+ * own put in its place took the dialog with the list. The list draws that page as 0b draws one
+ * the reader may no longer use, its breadcrumb and the sentence alone (Tools 55's 1l).
  *
  * THREE READS: the session, the whole catalog — one list request per hundred rows — and every
  * group, one more. A row's items are counted off its `Assets` link array, which the catalog's read

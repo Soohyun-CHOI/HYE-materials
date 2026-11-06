@@ -238,10 +238,10 @@ function readFacts(dialog, list) {
     const one = (pattern, source) => pattern.test(source);
     return {
         press: [
-            one(/press: \(assetIds\) => \{\s*setOpening\(\(count\) => count \+ 1\);\s*setAsked\(assetIds\);\s*setOpen\(true\);\s*read\(assetIds\);\s*\}/, dialog),
+            one(/press: \(assetIds\) => \{\s*setOpening\(\(count\) => count \+ 1\);\s*setAsked\(assetIds\);\s*setOpen\(true\);\s*setAnswer\(null\);\s*read\(assetIds\);\s*\}/, dialog),
             (dialog.match(/readAssetLabelsAction\(/g) ?? []).length === 1,
             one(/answered = run\?\.error \? \{ refusal: run\.error \} : \{ run \};\s*\} catch \{\s*answered = \{ failed: true \};/, dialog),
-            one(/if \(sent === latest\.current\) setAnswer\(answered\);/, dialog),
+            one(/if \(sent !== latest\.current\) return;\s*setAnswer\(answered\);\s*setReading\(false\);/, dialog),
             one(/retry: \(\) => read\(asked\)/, dialog),
         ].join(" "),
         frame: [
@@ -250,7 +250,18 @@ function readFacts(dialog, list) {
             one(/unavailable=\{refusal !== null\}\s+describedBy=\{refusal !== null \? refusalId : undefined\}/, dialog),
             one(/onClick=\{run \? print : onRetry\}/, dialog),
             one(/const preview = !run \? null :/, dialog),
-            one(/<LabelsFrame key=\{labels\.opening\} /, dialog),
+            one(/<LabelsFrame\s+key=\{labels\.opening\}/, dialog),
+        ].join(" "),
+        // 0l's dialog whose content could not be prepared (Invoices 53, Tools 56's 1e): the pane kept,
+        // empty, so the dialog keeps its size — the frame draws one for any `preview` handed, `null`
+        // included — the column's body nothing without a run, and a read again keeping the failure's
+        // sentence while `Print` waits: `read` clears no answer, a press does, and `Print` waits on
+        // `reading`, which the hook hands the frame.
+        empty: [
+            one(/<DialogFrame open=\{open\} onClose=\{onClose\} title=\{title\} subtitle=\{itemName\} preview=\{preview\}>/, dialog),
+            one(/<DialogBody>\s*\{run && \(/, dialog),
+            !/const read = \(assetIds\) => \{[^}]*setAnswer\(null\)/.test(dialog),
+            one(/busy=\{reading \|\| preparing\}/, dialog) && one(/reading=\{labels\.reading\}/, dialog),
         ].join(" "),
         face: one(/setPreparing\(true\);\s*await document\.fonts\.ready;/, dialog),
         list: [
@@ -272,10 +283,21 @@ export function run({ check, assert, log }) {
         const facts = readFacts(parseFile(COMPONENT_SOURCE).source, parseFile(LIST_SOURCE).source);
         check("the press opens the dialog and reads once, a run, a refusal or a failure answering the latest press", facts.press, "true true true true true");
         check("  the frame says a refusal or a failure, Print reading again after one and turned away after the other", facts.frame, "true true true true true true");
+        check(
+            "  its head, line and actions alone, the empty pane keeping the dialog's size, a read again keeping the failure's line (Tools 56)",
+            facts.empty,
+            "true true true true"
+        );
+        check(
+            "  the frame drawing its pane for any preview handed, null included, so an empty one keeps 780 by 520",
+            /const withPreview = preview !== undefined;/.test(parseFile("app/components/DialogFrame.js").source),
+            true
+        );
         check("  Print waiting while the face is awaited too", facts.face, true);
         check("  the list opening it and holding it outside the bar a refusal takes away", facts.list, "true true true true");
         check("  the failure's words, by value", COPY.readFailed, "Couldn't load the labels. Try again.");
-        check("  and the refusal's", COPY.noPermission, "You no longer have permission to print these labels.");
+        // Soo's shorter words of 2026-11-06, as Tools 55's 1e `No permission` says them.
+        check("  and the refusal's", COPY.noPermission, "You no longer have permission to print.");
         const planted = readFacts(
             "export default function LabelsDialog() { const press = async () => { const read = await readAssetLabelsAction(assetIds); if (!read) return; setRun(read); setOpen(true); }; return <><Button busy={pending}>{title}</Button><LabelsFrame run={run} /></>; }\n" +
                 "function LabelsFrame({ run }) { const print = async () => { await document.fonts.ready; window.print(); }; return <DialogActions><Button disabled={printing === 0} onClick={print}>{title}</Button></DialogActions>; }\n",
@@ -285,6 +307,15 @@ export function run({ check, assert, log }) {
             "  a dialog opening after its read, as until #616, is seen so",
             [planted.press, planted.frame, planted.face, planted.list].join(" / "),
             "false true false false false / false false false false false false / false / false false false false"
+        );
+        check(
+            "  and one clearing the failure's line on a read again, its pane gone and its body drawn whatever came, is seen so",
+            readFacts(
+                "const read = (assetIds) => { latest.current += 1; setAnswer(null); };\n" +
+                    "return <DialogFrame open={open} onClose={onClose} title={title}><DialogBody><DialogMessage /></DialogBody><Button busy={answer === null || preparing} /></DialogFrame>;\n",
+                ""
+            ).empty,
+            "false false false false"
         );
         log("");
     }
@@ -1423,9 +1454,9 @@ export function run({ check, assert, log }) {
     check(
         "  Print busy while a run reads or the face is awaited, and not disabled by it, saying that word (#616)",
         [
-            /busy=\{answer === null \|\| preparing\}/.test(parseFile(COMPONENT_SOURCE).source),
+            /busy=\{reading \|\| preparing\}/.test(parseFile(COMPONENT_SOURCE).source),
             /busyLabel=\{COPY\.working\}/.test(parseFile(COMPONENT_SOURCE).source),
-            !/disabled=\{[^}]*(?:pending|answer|preparing)/.test(parseFile(COMPONENT_SOURCE).source),
+            !/disabled=\{[^}]*(?:pending|answer|reading|preparing)/.test(parseFile(COMPONENT_SOURCE).source),
         ].join(" "),
         "true true true"
     );

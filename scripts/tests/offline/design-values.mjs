@@ -310,6 +310,8 @@ const VALUES = [
     // What a list says once its band has emptied it (1a, #520).
     ["--spacing-list-emptied-inset-y", "3.75rem", null],
     ["--spacing-list-emptied-stack", "0.75rem", null],
+    // Under the sentence of a page the reader may no longer use (0b Row, 1l `Not Admin, closed`, #616).
+    ["--spacing-closed-page-inset-bottom", "3rem", null],
     // The way to the item a search found by its id, under the band (1a, #541).
     ["--height-found-item", "2.5rem", null],
     ["--spacing-found-item-inset-x", "0.75rem", null],

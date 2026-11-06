@@ -83,9 +83,11 @@ const CUT_CELLS = [{ key: "size", figures: true }, { key: "maker" }, { key: "par
  * since 2026-10-21.
  *
  * A READER WHO IS NOT THE OFFICE IS HANDED NO CATALOG, AND READS WHY IN THE LIST'S PLACE (#616).
- * `rows` is null then, the page's answer that `requireAdmin` refused, and this draws
- * `Only admins can edit the catalog.` where the list stands, centered, as the page drew it
- * itself until #616. A dialog open when an action found its reader no longer the office stands
+ * `rows` is null then, the page's answer that `requireAdmin` refused, and this draws the page as
+ * 0b draws one the reader may no longer use (Tools 55's 1l `Not Admin, closed`): the breadcrumb,
+ * and `Only admins can edit the catalog.` alone under it, no title, centered in what is left. The
+ * page drew the sentence itself until #616, with no breadcrumb and at 14, and this did the same
+ * until Tools 55. A dialog open when an action found its reader no longer the office stands
  * across that page drawn again (1l `Not Admin`): it draws from the catalog it was opened on,
  * kept here while no catalog comes, says the sentence over its actions and holds its commitment
  * (`office`), as the item page's dialogs do since #614.
@@ -143,12 +145,14 @@ export default function CatalogList({ rows, groups }) {
     const count = reading.narrowed ? FILTER_BAR_COPY.count(reading.rows.length, reading.total) : reading.total;
     const emptied = reading.narrowed && reading.rows.length === 0;
     const tip = useTooltip({ placement: "above" });
+    // The bar back to Tools & Equipment, the list's and the page a reader may no longer use alike.
+    const breadcrumb = <Breadcrumb levels={[{ label: ASSET_LIST_COPY.heading, href: ASSET_CATEGORIES_PATH }]} />;
 
     return (
         <>
             {office ? (
                 <ListFrameFill
-                    top={<Breadcrumb levels={[{ label: ASSET_LIST_COPY.heading, href: ASSET_CATEGORIES_PATH }]} />}
+                    top={breadcrumb}
                     header={
                         <ListHeader title={COPY.heading} count={count} noun={ASSET_LIST_COPY.itemNoun(reading.rows.length)} underBreadcrumb fill>
                             {/* 1l's two openers, 8 apart. */}
@@ -271,8 +275,14 @@ export default function CatalogList({ rows, groups }) {
                     ))}
                 </ListFrameFill>
             ) : (
-                <div className="flex h-full items-center justify-center px-page-gutter text-center font-ui text-body text-foreground-muted">
-                    <p>{COPY.noAccess}</p>
+                // A page the reader may no longer use (0b Row, Tools 55's 1l `Not Admin, closed`): the
+                // breadcrumb alone, then the one sentence with no title, at 13 in Ink 2 and at most 480,
+                // centered in what the breadcrumb leaves with 48 under it.
+                <div className="flex h-full flex-col font-ui">
+                    <div className="shrink-0">{breadcrumb}</div>
+                    <div className="flex min-h-0 flex-1 items-center justify-center px-page-gutter pb-closed-page-inset-bottom">
+                        <p className="max-w-empty-state text-center text-body-sm text-pretty text-foreground-muted">{COPY.noAccess}</p>
+                    </div>
                 </div>
             )}
             {tip.element}

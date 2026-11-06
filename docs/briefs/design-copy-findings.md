@@ -26,9 +26,8 @@ materials screens open again.
 **What the files draw nothing of is no entry**: the export file's columns — the
 serial number's (#601), and a loan's `On loan` and `Owner job` (#598) — the
 sign-in mail's plain-text part, a job change's `Choose a job.`, which no screen
-can send, where a deletion lands, a list the app already draws, and a
-category's labels whose read failed or was refused (#616), are the app's, in
-`docs/notes/tools.md`, `docs/notes/authorization.md` and the briefs.
+can send, and where a deletion lands, a list the app already draws, are the
+app's, in `docs/notes/tools.md` and `docs/notes/authorization.md`.
 
 ---
 

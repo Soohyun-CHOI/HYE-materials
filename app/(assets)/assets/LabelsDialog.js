@@ -163,9 +163,11 @@ export default function LabelsDialog({ title, itemName, run, variant = "filled" 
  * The page draws the opener in its selection bar and `LabelRunFrame` outside it, so a refusal that
  * draws the page again without the bar leaves the dialog standing.
  *
- * `answer` is null while the latest read is on its way, then `{ run }`, `{ refusal }` — the
+ * `answer` is null until a press's first read answers, then `{ run }`, `{ refusal }` — the
  * action's sentence for a reader no longer a site manager — or `{ failed: true }` for a read that
- * threw; `opening` counts the presses, so each mounts the dialog anew. A read an earlier press
+ * threw; `reading` is whether a read is on its way, a failure's answer standing over a read again
+ * until the next takes its place (Tools 56's 1e); `opening` counts the presses, so each mounts the
+ * dialog anew. A read an earlier press
  * sent is not answered over a later one's. ONE READ A PRESS, the run's operations and no more: the
  * dialog opening asks the server nothing.
  */
@@ -174,13 +176,14 @@ export function useLabelRun() {
     const [opening, setOpening] = useState(0);
     const [asked, setAsked] = useState([]);
     const [answer, setAnswer] = useState(null);
+    const [reading, setReading] = useState(false);
     const [, startTransition] = useTransition();
     const latest = useRef(0);
 
     const read = (assetIds) => {
         latest.current += 1;
         const sent = latest.current;
-        setAnswer(null);
+        setReading(true);
         startTransition(async () => {
             let answered;
             try {
@@ -189,7 +192,9 @@ export function useLabelRun() {
             } catch {
                 answered = { failed: true };
             }
-            if (sent === latest.current) setAnswer(answered);
+            if (sent !== latest.current) return;
+            setAnswer(answered);
+            setReading(false);
         });
     };
 
@@ -197,12 +202,16 @@ export function useLabelRun() {
         open,
         opening,
         answer,
+        reading,
         press: (assetIds) => {
             setOpening((count) => count + 1);
             setAsked(assetIds);
             setOpen(true);
+            setAnswer(null);
             read(assetIds);
         },
+        // A read again after a failure keeps the failure's sentence over the actions while `Print`
+        // waits, as 1e draws it (Tools 56), and the run's answer takes its place.
         retry: () => read(asked),
         close: () => setOpen(false),
     };
@@ -211,7 +220,18 @@ export function useLabelRun() {
 /** The dialog a category's page's press opens (`useLabelRun`), mounted anew for each press. */
 export function LabelRunFrame({ labels, title, itemName }) {
     if (labels.opening === 0) return null;
-    return <LabelsFrame key={labels.opening} open={labels.open} onClose={labels.close} title={title} itemName={itemName} answer={labels.answer} onRetry={labels.retry} />;
+    return (
+        <LabelsFrame
+            key={labels.opening}
+            open={labels.open}
+            onClose={labels.close}
+            title={title}
+            itemName={itemName}
+            answer={labels.answer}
+            reading={labels.reading}
+            onRetry={labels.retry}
+        />
+    );
 }
 
 /**
@@ -250,12 +270,16 @@ function NamedCodes({ heading, codes }) {
  * the second state's again, under their own count beside the codes not found, as the read
  * refuses their labels: the design draws nothing for them either.
  *
- * AND THREE BEFORE A RUN (#616), a category's page's read: on its way, the pane empty, the column
- * its actions alone and `Print` waiting with the title's words; failed, `Couldn't load the labels.
- * Try again.` over the actions and `Print` reading again; refused, the action's sentence there and
- * `Print` turned away, described by it. `answer` is `{ run }` once there is one (`useLabelRun`).
+ * AND THREE BEFORE A RUN (#616), a category's page's read, each 0l's dialog whose content could
+ * not be prepared or may no longer be shown (Invoices 53, Tools 56's 1e `Labels failed` and `No
+ * permission`): its head, the message line and its actions alone, the pane kept empty so the
+ * dialog keeps its size, and `Print` with the title's words, no count. On its way, no line and
+ * `Print` waiting; failed, `Couldn't load the labels. Try again.` and `Print` reading again,
+ * waiting with the sentence kept until the run comes; refused, the action's sentence and `Print`
+ * turned away, described by it. `answer` is `{ run }` once there is one, `reading` whether a read
+ * is on its way (`useLabelRun`).
  */
-function LabelsFrame({ open, onClose, title, itemName, answer, onRetry }) {
+function LabelsFrame({ open, onClose, title, itemName, answer, reading = false, onRetry }) {
     const refusalId = useId();
     // Whether the press is waiting for the code's face before the browser's print dialog.
     const [preparing, setPreparing] = useState(false);
@@ -357,7 +381,7 @@ function LabelsFrame({ open, onClose, title, itemName, answer, onRetry }) {
                     disabled={run !== null && printing === 0}
                     unavailable={refusal !== null}
                     describedBy={refusal !== null ? refusalId : undefined}
-                    busy={answer === null || preparing}
+                    busy={reading || preparing}
                     busyLabel={COPY.working}
                     onClick={run ? print : onRetry}
                 >

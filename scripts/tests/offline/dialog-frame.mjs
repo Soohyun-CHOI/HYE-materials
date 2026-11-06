@@ -2144,7 +2144,7 @@ export function run({ check, assert, log }) {
             'EntryDialog: button {pending && working === "restore"}, button {pending && working === "discontinue"} · named, named, named · 0 disabled by sending',
             // The labels' `Print`, waiting while a category's run reads or the face is awaited (#616),
             // where the opener waited on the read from #495.
-            "LabelsFrame: button {answer === null || preparing} · named · 0 disabled by sending",
+            "LabelsFrame: button {reading || preparing} · named · 0 disabled by sending",
             // 1a's `Export`, working while the file is made (#553).
             "ListExport: button {busy} · named · 0 disabled by sending",
             // An item's detail edited where it stands at a desk (1f, #601): its `Save` working while the

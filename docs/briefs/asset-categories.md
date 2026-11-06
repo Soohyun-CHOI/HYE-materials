@@ -211,8 +211,8 @@ ground that one figure would have to choose between those readings.
 
 **When the job holds no items:** in place of the rows, a heading and a
 sentence, `No items yet` and `Each item shows here with how many are in
-stock, out, in repair and retired.` — `in repair` since #531, where the files
-of 2026-10-15 still name three — and under them a second, bordered `Add items`
+stock, out, in repair and retired.` — `in repair` since #531, as 1a2 draws it,
+where the files of 2026-10-15 named three — and under them a second, bordered `Add items`
 (1a, #463, #519). The control in the head is still there, and both are the way to
 make one; so is the job's choice, to move to another job, alone in the band where
 the list with rows puts it (#566). No search, chip or pager stands over or under
