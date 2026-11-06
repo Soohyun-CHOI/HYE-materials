@@ -148,7 +148,7 @@ export async function run({ check, assert }) {
             refusedWith = args;
             recordOperation("get", "/Assets");
             recordOperation("get", "/Jobs");
-            return { error: "Only 26-USA-07 can record this item. Nothing was saved." };
+            return { error: "You no longer have permission to update this item. Nothing was saved." };
         },
         async () => ({ ok: true })
     );
@@ -159,7 +159,7 @@ export async function run({ check, assert }) {
     check(
         "a refusal is handed the press's arguments, and its answer is the action's",
         `${refusedWith?.length} ${refusedWith?.[0]} ${refusedWith?.[1]?.get?.("assetId")} ${refusedAnswer?.error}`,
-        "2 before HYE-AST-261019-104 Only 26-USA-07 can record this item. Nothing was saved."
+        "2 before HYE-AST-261019-104 You no longer have permission to update this item. Nothing was saved."
     );
     check(
         "  its reads are attributed to `authz refusal`, the gate's to `authz gate`, and none unlabeled",

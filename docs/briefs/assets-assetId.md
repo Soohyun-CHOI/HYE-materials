@@ -305,14 +305,14 @@ open, the press is refused and said (#597).** The office may change an item's
 job (#583), and the office assigns jobs; either can happen between drawing the
 page and pressing. Every press carries the job the page was drawn on, and the
 action, reading the item and the reader again, refuses it on the page drawn
-again: `Only 26-USA-07 can record this item. Nothing was saved.` whatever was
-pressed when the item is no longer the reader's to record (#614), and `This item
-is on 26-USA-07 now. Your check-out wasn't saved.` when it moved to another of
-their jobs — the press is refused rather than recorded somewhere they did not
-see. The retirement's and the two details' are refused the same way, ending on
-`Nothing was saved.`, and each is said where its press was (below). A reader
-who stops being a site manager while the page is open is told the first,
-naming the job the item stands on, whatever they pressed (#614).
+again, by what changed (#614). An item whose job is not the one the page was
+drawn on says `This item moved to 26-USA-07. Nothing was saved.`, naming the job
+it is on now, whether the reader records there or not — the press is refused
+rather than recorded somewhere they did not see. One that did not move, whose
+reader no longer records on it — taken off its job, or no longer a site manager
+— says `You no longer have permission to update this item. Nothing was
+saved.` Either says the same whatever was pressed, the retirement's and the two
+details' included, and each is said where its press was (below).
 
 **The transition has no heading.** The two blocks below it name things —
 `History`, `Label` — and a heading over the act would have to name it in the
@@ -427,9 +427,9 @@ the event was recorded but the asset's own status was not updated. A line
 saying a check-in would move the item to another job stood under the dialog's
 job until #597, when no press moved an item any more. The last is the only
 one that means something was written, and its sentence says so — `This wasn't
-fully recorded. Do it again to finish.` since #612, where until then it named the
-event, the item and the status the lists still read — and pressing again fixes
-it. A loan left half done says the same in its own act: `The item wasn't fully
+fully saved. Try again to finish.` since #614, and `This wasn't fully recorded.
+Do it again to finish.` from #612, where until then it named the event, the item
+and the status the lists still read — and pressing again fixes it. A loan left half done says the same in its own act: `The item wasn't fully
 lent to 26-USA-12. Lend it again to finish.` and `The item wasn't fully
 returned. Return it again to finish.` Ordinarily nothing is said.
 
@@ -499,8 +499,9 @@ one was being written** is refused with `Someone else changed this note first.
 Nothing was saved.`, or `this serial number`, the page drawn again with theirs
 and what was typed still in the field, so a second press writes over it
 knowingly. **One no longer the reader's to write** — taken off the item's job —
-says `Only 26-USA-07 can record this item. Nothing was saved.` in the field's
-line at a desk, the field standing and `Save` turned away, and on a phone the
+says `You no longer have permission to update this item. Nothing was saved.`,
+or `This item moved to 26-USA-07. Nothing was saved.` for one that moved, in the
+field's line at a desk, the field standing and `Save` turned away, and on a phone the
 sheet closes and the notice says it (#614).
 
 **For the office, while the item's history holds its `Created` entry alone, a

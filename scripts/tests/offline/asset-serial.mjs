@@ -71,7 +71,7 @@ export function serialActionFacts(handler) {
     const order = [
         at(/const asset = await getAssetByAssetId\(asked\);/),
         at(/const plan = planTransition\(\{ user, jobs: await getAllJobs\(\), status: asset\.status, assetJobId: asset\.job\?\.\[0\], ownerJobId: asset\.ownerJob\?\.\[0\] \}\);/),
-        at(/const recording = recordingRefusal\(plan, \{ drawnJobId: String\(formData\.get\("drawnJobId"\) \?\? ""\), attempted: null \}\);/),
+        at(/const recording = recordingRefusal\(plan, \{ drawnJobId: String\(formData\.get\("drawnJobId"\) \?\? ""\) \}\);/),
         at(/const answer = readSerialSubmission\(plan, \{ typed, previous: String\(formData\.get\("previous"\) \?\? ""\), stored: asset\.serialNumber \}\);/),
         at(/items: await getAssetsBySerialNumber\(answer\.serialNumber\),/),
         at(/if \(holder\) return \{ refusal: ASSET_SERIAL_COPY\.takenBy\(holder\), takenBy: holder \};/),

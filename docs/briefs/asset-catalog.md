@@ -2,8 +2,8 @@
 
 Route: `/asset-catalog`
 Who reaches it: the office, `Is Admin` (#527). Anyone else signed in reads one
-sentence in its place, `You don't have access to this page. Keeping the catalog
-is for Admins.` — the shape the Invoices file's 1g draws for an Admin's screen.
+sentence in its place, `Only admins can edit the catalog.` (#614) — the shape the
+Invoices file's 1g draws for an Admin's screen.
 Its way in is `Catalog` in the head of `/asset-categories`, drawn for the office
 alone.
 Which width comes first: **desktop**, and it is the only one: the catalog is

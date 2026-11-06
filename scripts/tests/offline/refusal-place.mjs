@@ -16,7 +16,7 @@
 import { parseSource, parseFile } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 import { ASSET_COPY } from "../../../lib/assetView.js";
-import { ASSET_EVENT, ASSET_STATUS } from "../../../lib/assetStatus.js";
+import { ASSET_STATUS } from "../../../lib/assetStatus.js";
 import { planTransition, recordingRefusal } from "../../../lib/assetTransition.js";
 
 export const title = "Where an item page's refused press is said — the dialog, the toast or the Notice (#614)";
@@ -151,28 +151,28 @@ export function run({ check, assert, log }) {
     const facts = providerFacts(provider.source);
     assert("the provider and its component were found", /export default function AssetTransition\(/.test(provider.source));
 
-    // A READER WHO IS NO LONGER A SITE MANAGER IS TOLD WHOSE ITEM IT IS (#614). The gate turns the press
-    // away before any body runs, and the item page's refusal answers with the plan of a reader who
-    // records on nothing (`refuseNotASiteManager`), which names the job the item stands on as a site
-    // manager off it is told — the owner job of an item on loan is not it. Said in the places below,
-    // as every answer is; `offline/site-manager.mjs` holds which refusal each action passes.
-    log("a press from a reader who is no longer a site manager names the item's job:");
+    // A READER WHO IS NO LONGER A SITE MANAGER IS TOLD THE PRESS IS NOT THEIRS TO MAKE (#614). The gate
+    // turns the press away before any body runs, and the item page's refusal answers with the plan of a
+    // reader who records on nothing (`refuseNotASiteManager`), so it says what a site manager off the
+    // item's job is told: that they may not, or, for an item moved since the page was drawn, the job it
+    // stands on — the owner job of an item on loan is not it. Said in the places below, as every answer
+    // is; `offline/site-manager.mjs` holds which refusal each action passes.
+    log("a press from a reader who is no longer a site manager says which cause it met:");
     const jobs = [
         { id: "recJob7", jobCode: "26-USA-07" },
         { id: "recJob9", jobCode: "26-USA-09" },
     ];
-    const asGate = recordingRefusal(planTransition({ user: null, jobs, status: ASSET_STATUS.IN_STOCK, assetJobId: "recJob7", ownerJobId: "recJob9" }), {
-        drawnJobId: "recJob7",
-        attempted: null,
-    });
+    const lentAway = planTransition({ user: null, jobs, status: ASSET_STATUS.IN_STOCK, assetJobId: "recJob7", ownerJobId: "recJob9" });
+    const asGate = recordingRefusal(lentAway, { drawnJobId: "recJob7" });
+    const asGateMoved = recordingRefusal(lentAway, { drawnJobId: "recJob9" });
     const demoted = recordingRefusal(
         planTransition({ user: { isSiteManager: false, assignedJobs: ["recJob7"] }, jobs, status: ASSET_STATUS.OUT, assetJobId: "recJob7", ownerJobId: "recJob7" }),
-        { drawnJobId: "recJob7", attempted: ASSET_EVENT.CHECKED_IN }
+        { drawnJobId: "recJob7" }
     );
     check(
-        "  the gate's refusal and a body's say one sentence, naming the job the item stands on",
-        `${asGate} | ${demoted}`,
-        "Only 26-USA-07 can record this item. Nothing was saved. | Only 26-USA-07 can record this item. Nothing was saved."
+        "  the gate's refusal and a body's say the reader may not, and an item moved since says where it stands, not its owner",
+        `${asGate} | ${demoted} | ${asGateMoved}`,
+        "You no longer have permission to update this item. Nothing was saved. | You no longer have permission to update this item. Nothing was saved. | This item moved to 26-USA-07. Nothing was saved."
     );
 
     log("an opening knows its width, whether it says its answer, and whether that answer has come:");

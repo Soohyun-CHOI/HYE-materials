@@ -66,7 +66,7 @@ function actionFacts(handler) {
         plansInLock: /planTransition\(\{ user, jobs: await getAllJobs\(\), status: asset\.status, assetJobId: asset\.job\?\.\[0\], ownerJobId: asset\.ownerJob\?\.\[0\] \}\)/.test(locked),
         // Whose item it is now, asked of the plan before the note's own rule (#597), and said.
         asksRecording:
-            /const recording = recordingRefusal\(plan, \{ drawnJobId: String\(formData\.get\("drawnJobId"\) \?\? ""\), attempted: null \}\);\s*if \(recording\) return \{ refusal: recording \};\s*const answer = readNoteSubmission\(/.test(
+            /const recording = recordingRefusal\(plan, \{ drawnJobId: String\(formData\.get\("drawnJobId"\) \?\? ""\) \}\);\s*if \(recording\) return \{ refusal: recording \};\s*const answer = readNoteSubmission\(/.test(
                 locked
             ),
         asksRule:

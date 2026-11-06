@@ -123,22 +123,32 @@ Tools 53 and Sign in 29 draw every other word and state #612 sent, and every
 sign-in one, and #614 says each where they draw it: a refused press in the
 dialog or question that sent it at a desk, a press with no dialog as 0k's toast,
 and on a phone as 0a's Notice under the status with the sheet or question
-closed. These they draw otherwise or not at all, the four after the busy words
-being ones #614 decided where the files draw nothing. The app keeps its own
-until Soo decides each; a row decided goes from here in the commit that makes
-the app say it.
+closed. These they draw otherwise or not at all. Some are states #614 decided
+where the files draw nothing, and on 2026-11-06 Soo reworded several, among
+them two the files draw in the words they replaced, which Soo asks Design to
+change. The app keeps its own until Soo decides each; a row
+decided goes from here in the commit that makes the app say it.
 
 | String or state | The app | The files | Key |
 |---|---|---|---|
-| `Someone else recorded this first. Nothing was saved.` | a refused repair press with no entry read (#531) | draw none | `.someoneFirst` |
+| `Someone else updated this item first. Nothing was saved.` | a refused repair, lending or return with no entry read (#531, #598); `recorded this` until Soo's words of 2026-11-06 | draw none | `.someoneFirst`, `.firstAct` |
 | `No item in these filters has the serial number` | 1a, a number the band leaves off | draw the ID's sentence alone (1a3 `ID hidden by filters`) | `ASSET_LIST_COPY.noSerialMatchFiltered` (#601) |
 | `Adding…`, `Removing…` for the note and the serial number, and a phone sheet's `Done` and the job change's `Save` busy | heard while a press is on its way | draw the desk row's `Saving…` alone | `ASSET_NOTE_COPY.working`, `ASSET_SERIAL_COPY.working`, `ASSET_OFFICE_COPY.saving` (#533, #601, #583) |
 | `Retiring…`, `Deleting…`, `Loading…`; 1l's `Saving…`, `Adding…`, `Creating…`, `Discontinuing…`, `Restoring…` | heard while a press is on its way | draw none; 1l's `Removing…` they draw | `ASSET_TRANSITION_COPY.retireWorking`, `ASSET_OFFICE_COPY.deleteWorking`, `ASSET_LABEL_PAGE_COPY.working`, `ASSET_CATALOG_COPY.working` (#612, #582) |
 | `This item is retired.` in the retirement's question, `Retire` turned away | a desk's retirement somebody got in front of (#614) | draw none | `ASSET_TRANSITION_COPY.noTransition` |
-| `Only 26-USA-07 can record this item. Nothing was saved.` or `This item is on 26-USA-07 now. Nothing was saved.` under the field, `Save` turned away for the first | a desk's `Details` editor, which stands, refused because the item is no longer the reader's or moved to another of their jobs (#614) | draw a value changed first, too much typed and a number another item holds there, not these | `.notYours`, `.movedTo` |
-| `This wasn't fully recorded. Do it again to finish.` in the Notice, the question closed | a phone's retirement left half done (#614) | draw a half-done lending in the Notice (1k-f), not a retirement | `.statusNotUpdated` |
-| `Only 26-USA-07 can record this item. Nothing was saved.`, naming the item's job | a press from a reader who stopped being a site manager while the page was open: in the dialog or question at a desk, its commitment turned away, in the toast for a press with no dialog, and in the Notice on a phone, the sheet closed (#614) | draw the sentence for a reader off the item's job (1f `Check out: lent away`, 1k-d), not this | `.notYours`, `refuseNotASiteManager` |
-| `The category was added, but the item wasn't. Try again.`, `Couldn't create the category. Try again.`, `This item isn't in the catalog any more.`, `Items use it now, so it stays in the catalog.`, `You don't have access to this page. Keeping the catalog is for Admins.` | 1l | draw none | `ASSET_CATALOG_COPY.categoryOnly`, `.categoryNotCreated`, `.gone`, `.hasItems`, `.noAccess` (#612) |
+| `This item moved to 26-USA-07. Nothing was saved.`, the job it is on now | an item whose job is not the one the page was drawn on, whether the reader records there or not, whatever was pressed (Soo, 2026-11-06) | 1f `Check out: moved job` and 1k-d `Moved to another job` draw `This item is on 26-USA-07 now. Your check-out wasn't saved.`; 1f `Check out: lent away` and 1k-d `Lent to another job` draw `Only 26-USA-07 can record this item. Nothing was saved.` | `.movedTo` |
+| `You no longer have permission to update this item. Nothing was saved.` | an item that did not move, whose reader no longer records on it — taken off its job, or no longer a site manager while the page was open — whatever was pressed, said where the press was (Soo, 2026-11-06) | draw none | `.noPermission`, `refuseNotASiteManager` |
+| either of the two above under the field, `Save` turned away for the second | a desk's `Details` editor, which stands (#614) | draw a value changed first, too much typed and a number another item holds there, not these | `.movedTo`, `.noPermission` |
+| `This wasn't fully saved. Try again to finish.` | a check-out, check-in, sending, return from repair or retirement left half done (Soo, 2026-11-06) | 1f `Check out: half done`, the toasts `Check in: half done` and `Repair: half done`, the question's `Retire: half done` and 1k-f `Check out` draw `This wasn't fully recorded. Do it again to finish.` | `.statusNotUpdated` |
+| the same in the Notice, the question closed | a phone's retirement left half done (#614) | draw a half-done lending in the Notice (1k-f), not a retirement | `.statusNotUpdated` |
+| `The category was added, but the item wasn't. Try again.`, `Couldn't create the category. Try again.`, `This item was already removed from the catalog.`, `It can't be removed because items use it.`, `Only admins can edit the catalog.` | 1l; the last three Soo's words of 2026-11-06 | draw none | `ASSET_CATALOG_COPY.categoryOnly`, `.categoryNotCreated`, `.gone`, `.hasItems`, `.noAccess` (#612) |
+
+**`Soo, 2026-11-06` marks words set on planning grounds after the files
+arrived**, in #614's third commit. The two refusals for a press
+no longer the reader's were split by whether the reader still recorded —
+`Only 26-USA-07 can record this item.` for one who did not, `This item is on
+26-USA-07 now.` for one whose item moved to another of their jobs — and are
+split by what changed since: the item's job first, then the reader.
 
 **The busy words are heard and not seen**: a button busy on the item's page
 or the catalog draws the spinner in its word's place and says the word to a

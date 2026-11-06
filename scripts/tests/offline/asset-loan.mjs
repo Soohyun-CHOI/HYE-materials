@@ -178,11 +178,11 @@ export function run({ check, assert, log }) {
     check("  none chosen is the design's sentence", said(readLend(home, { drawnJobId: OWNER.id, jobId: "" })), refused("Choose a job."));
     check("  the owner job itself is no choice", said(readLend(home, { drawnJobId: OWNER.id, jobId: OWNER.id })), refused("Choose a job."));
     check("  a job no list offers is none", said(readLend(home, { drawnJobId: OWNER.id, jobId: "recGone" })), refused("Choose a job."));
-    check("  whose item it is now is asked first", said(readLend(home, { drawnJobId: BORROWER.id, jobId: "" })), refused("This item is on 25-USA-13 now. Nothing was saved."));
-    check("  a page drawn before somebody checked it out is stale", said(readLend(plan("site manager on the owner", { status: ASSET_STATUS.OUT }), { drawnJobId: OWNER.id, jobId: BORROWER.id })), refused("Someone else recorded this first. Nothing was saved.", true));
+    check("  whose item it is now is asked first", said(readLend(home, { drawnJobId: BORROWER.id, jobId: "" })), refused("This item moved to 25-USA-13. Nothing was saved."));
+    check("  a page drawn before somebody checked it out is stale", said(readLend(plan("site manager on the owner", { status: ASSET_STATUS.OUT }), { drawnJobId: OWNER.id, jobId: BORROWER.id })), refused("Someone else updated this item first. Nothing was saved.", true));
     check("  a retired item says the terminal sentence", said(readLend(plan("site manager on the owner", { status: ASSET_STATUS.RETIRED }), { drawnJobId: OWNER.id, jobId: BORROWER.id })), refused("This item is retired."));
-    check("nothing is lent on: the borrower's press is stale", said(readLend(loaned, { drawnJobId: BORROWER.id, jobId: OTHER.id })), refused("Someone else recorded this first. Nothing was saved.", true));
-    check("  and the owner's, once lent, no longer theirs to record", said(readLend(plan("site manager on the owner", { job: BORROWER.id }), { drawnJobId: OWNER.id, jobId: OTHER.id })), refused("Only 26-USA-12 can record this item. Nothing was saved."));
+    check("nothing is lent on: the borrower's press is stale", said(readLend(loaned, { drawnJobId: BORROWER.id, jobId: OTHER.id })), refused("Someone else updated this item first. Nothing was saved.", true));
+    check("  and the owner's, once lent, no longer theirs to record", said(readLend(plan("site manager on the owner", { job: BORROWER.id }), { drawnJobId: OWNER.id, jobId: OTHER.id })), refused("This item moved to 26-USA-12. Nothing was saved."));
     const halfLent = plan("site manager on the owner", { latest: lentEntry });
     check("a lending left half done is finished to its job with no second entry", said(readLend(halfLent, { drawnJobId: OWNER.id, jobId: BORROWER.id })), writes(BORROWER.id, false));
     check(
@@ -192,9 +192,9 @@ export function run({ check, assert, log }) {
     );
     check("  and its dialog opens on that job, a fresh one on none", `${lendStart(halfLent)}|${lendStart(home)}`, `${BORROWER.id}|`);
     check("a return writes its entry and the item, on the owner job", said(readReturn(loaned, { drawnJobId: BORROWER.id })), writes(OWNER.id, true));
-    check("  a page drawn before a check-out is stale", said(readReturn(plan("site manager on the borrower", { status: ASSET_STATUS.OUT, job: BORROWER.id }), { drawnJobId: BORROWER.id })), refused("Someone else recorded this first. Nothing was saved.", true));
-    check("  one returned by somebody else since is no longer the reader's", said(readReturn(plan("site manager on the borrower"), { drawnJobId: BORROWER.id })), refused("Only 25-USA-13 can record this item. Nothing was saved."));
-    check("  and an item at home is none to return", said(readReturn(home, { drawnJobId: OWNER.id })), refused("Someone else recorded this first. Nothing was saved.", true));
+    check("  a page drawn before a check-out is stale", said(readReturn(plan("site manager on the borrower", { status: ASSET_STATUS.OUT, job: BORROWER.id }), { drawnJobId: BORROWER.id })), refused("Someone else updated this item first. Nothing was saved.", true));
+    check("  one returned by somebody else since is no longer the reader's", said(readReturn(plan("site manager on the borrower"), { drawnJobId: BORROWER.id })), refused("This item moved to 25-USA-13. Nothing was saved."));
+    check("  and an item at home is none to return", said(readReturn(home, { drawnJobId: OWNER.id })), refused("Someone else updated this item first. Nothing was saved.", true));
     check("a return left half done writes the item alone", said(readReturn(plan("site manager on the borrower", { job: BORROWER.id, latest: returnedEntry }), { drawnJobId: BORROWER.id })), writes(OWNER.id, false));
 
     // ── 4: the list's count, by value ───────────────────────────────────────

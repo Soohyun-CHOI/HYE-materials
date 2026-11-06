@@ -351,7 +351,7 @@ export function run({ check, assert, log }) {
             "Discontinued only",
             "Clear discontinued filter",
             "Nothing in the catalog matches",
-            "You don't have access to this page. Keeping the catalog is for Admins.",
+            "Only admins can edit the catalog.",
         ])
     );
     check(
@@ -716,8 +716,8 @@ export function run({ check, assert, log }) {
             "The category was added, but the item wasn't. Try again.",
             "Couldn't create the category. Try again.",
             "Couldn't remove it from the catalog. Try again.",
-            "This item isn't in the catalog any more.",
-            "Items use it now, so it stays in the catalog.",
+            "This item was already removed from the catalog.",
+            "It can't be removed because items use it.",
         ])
     );
     check(

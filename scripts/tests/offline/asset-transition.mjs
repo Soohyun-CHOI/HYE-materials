@@ -128,8 +128,8 @@ function copyStrings() {
         ASSET_TRANSITION_COPY.moved({ attempted: ASSET_EVENT.CHECKED_IN }),
     ])
         out.push(...parts);
-    out.push(ASSET_TRANSITION_COPY.notYours({ jobCode: JOB_B.jobCode, attempted: ASSET_EVENT.CHECKED_OUT }));
-    out.push(ASSET_TRANSITION_COPY.movedTo({ jobCode: JOB_B.jobCode, attempted: ASSET_EVENT.RETIRED }));
+    out.push(ASSET_TRANSITION_COPY.noPermission);
+    out.push(ASSET_TRANSITION_COPY.movedTo({ jobCode: JOB_B.jobCode }));
     out.push(ASSET_TRANSITION_COPY.retireHeading({ itemName: "DEMO Rotary Hammer", assetId: "HYE-AST-261001-022" }));
     out.push(ASSET_TRANSITION_COPY.statusNotUpdated);
     return out.filter((s) => typeof s === "string");
@@ -314,9 +314,9 @@ export function run({ check, assert, log }) {
             "Checked out/recJobA/Dana K/false/null"
         );
         check(
-            "a reader who does not record on the item is refused a sending, the item's job named (#597)",
+            "a reader who does not record on the item is refused a sending, told they may not (#597, #614)",
             read(planOf(actor(), ASSET_STATUS.IN_STOCK), { event: ASSET_EVENT.SENT_FOR_REPAIR, drawnJobId: JOB_A.id }),
-            `null/null/null/false/${ASSET_TRANSITION_COPY.notYours({ jobCode: JOB_A.jobCode, attempted: ASSET_EVENT.SENT_FOR_REPAIR })}`
+            `null/null/null/false/${ASSET_TRANSITION_COPY.noPermission}`
         );
 
         log("");
@@ -352,17 +352,17 @@ export function run({ check, assert, log }) {
             JSON.stringify(["Jisoo Park already returned this from repair on ", { at: "2026-10-15T14:00:00.000Z" }, ". Nothing was saved."])
         );
         // NOT `scanned`: in this app a scan is a check-out or a check-in, and whoever got in
-        // front of a repair's press may have done either, sent it or retired it.
-        check("  and a sending refused with no entry read", nothingSaved, "Someone else recorded this first. Nothing was saved.");
+        // front of a repair's press may have done either, sent it or retired it. Soo's words since #614.
+        check("  and a sending refused with no entry read", nothingSaved, "Someone else updated this item first. Nothing was saved.");
         check(
             "  and a return",
             ASSET_TRANSITION_COPY.someoneFirst({ attempted: ASSET_EVENT.RETURNED_FROM_REPAIR }),
-            "Someone else recorded this first. Nothing was saved."
+            "Someone else updated this item first. Nothing was saved."
         );
         check(
             "  the same sentence when the latest entry did not resolve",
             JSON.stringify(ASSET_TRANSITION_COPY.moved({ by: "Jisoo Park", attempted: ASSET_EVENT.SENT_FOR_REPAIR })),
-            JSON.stringify(["Someone else recorded this first. Nothing was saved."])
+            JSON.stringify(["Someone else updated this item first. Nothing was saved."])
         );
         check(
             "  while a scan's still says it was scanned",
@@ -557,60 +557,69 @@ export function run({ check, assert, log }) {
     check(
         "  saying someone else recorded it first, as no press names it (#531)",
         readSubmission(inStock, { ...CHECKING_OUT, event: "Job Changed", drawnJobId: JOB_A.id }).refusal,
-        "Someone else recorded this first. Nothing was saved."
+        "Someone else updated this item first. Nothing was saved."
     );
     check("an empty event is refused", readSubmission(inStock, { ...CHECKING_OUT, event: "", drawnJobId: JOB_A.id }).event, null);
 
-    // ── 3a: whose item it is now, compared before anything else (#597) ─────
+    // ── 3a: whether the press is still the reader's, compared before anything else (#597) ─────
     // THE JOB IS NEVER THE FORM'S: the row takes the item's own as the action read it, and the
-    // form's only job is the one the page was drawn on, compared and never written.
+    // form's only job is the one the page was drawn on, compared and never written. Since #614
+    // the job is asked first and the reader second, each cause its own sentence (Soo).
     log("");
-    log("whose item it is now, before anything about the press (#597):");
+    log("whether the press is still the reader's, before anything about the press (#597, #614):");
     check("a job the form names is dropped, the item's taken", readSubmission(inStock, { ...CHECKING_OUT, drawnJobId: JOB_A.id, jobId: JOB_B.id }).jobRecordId, "recJobA");
     const movedOn = planTransition({ user: actor(JOB_A, JOB_B), jobs: ALL_JOBS, status: ASSET_STATUS.IN_STOCK, assetJobId: JOB_B.id });
     const moved = readSubmission(movedOn, { ...CHECKING_OUT, drawnJobId: JOB_A.id });
     check(
         "a page drawn on the job the item has left is refused, saying where it is now and that nothing was saved",
         `${moved.event} ${moved.jobRecordId} ${moved.stale} | ${moved.refusal}`,
-        "null null false | This item is on 26-DEMO-02 now. Your check-out wasn't saved."
+        "null null false | This item moved to 26-DEMO-02. Nothing was saved."
     );
     check("  though the reader is on the job it moved to", movedOn.records, true);
-    check("  and a form carrying no drawn job reads as drawn on none", readSubmission(movedOn, { ...CHECKING_OUT }).refusal, ASSET_TRANSITION_COPY.movedTo({ jobCode: "26-DEMO-02", attempted: ASSET_EVENT.CHECKED_OUT }));
+    check("  and a form carrying no drawn job reads as drawn on none", readSubmission(movedOn, { ...CHECKING_OUT }).refusal, ASSET_TRANSITION_COPY.movedTo({ jobCode: "26-DEMO-02" }));
     const takenOff = planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: ASSET_STATUS.IN_STOCK, assetJobId: JOB_B.id });
     check(
-        "a reader the item's job is not one of is refused, naming whose it is",
+        "an item moved to a job the reader is not on says where it is, the job asked before the reader (#614)",
         readSubmission(takenOff, { ...CHECKING_OUT, drawnJobId: JOB_A.id }).refusal,
-        "Only 26-DEMO-02 can record this item. Nothing was saved."
+        "This item moved to 26-DEMO-02. Nothing was saved."
     );
-    check("  drawn on its job or not", readSubmission(takenOff, { ...CHECKING_OUT, drawnJobId: JOB_B.id }).refusal, "Only 26-DEMO-02 can record this item. Nothing was saved.");
+    check(
+        "  and one that did not move, the reader no longer on its job, says they may not (#614)",
+        readSubmission(takenOff, { ...CHECKING_OUT, drawnJobId: JOB_B.id }).refusal,
+        "You no longer have permission to update this item. Nothing was saved."
+    );
+    check(
+        "  as does one whose reader is no longer a site manager",
+        readSubmission(planTransition({ user: { ...actor(JOB_B), isSiteManager: false }, jobs: ALL_JOBS, status: ASSET_STATUS.IN_STOCK, assetJobId: JOB_B.id }), { ...CHECKING_OUT, drawnJobId: JOB_B.id }).refusal,
+        "You no longer have permission to update this item. Nothing was saved."
+    );
     check(
         "  before a status that allows nothing",
-        readSubmission(planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: ASSET_STATUS.RETIRED, assetJobId: JOB_B.id }), { ...CHECKING_OUT, drawnJobId: JOB_A.id }).refusal,
-        "Only 26-DEMO-02 can record this item. Nothing was saved."
+        readSubmission(planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: ASSET_STATUS.RETIRED, assetJobId: JOB_B.id }), { ...CHECKING_OUT, drawnJobId: JOB_B.id }).refusal,
+        "You no longer have permission to update this item. Nothing was saved."
     );
     check(
         "  and a move before a stale page",
         readSubmission(movedOn, { ...CHECKING_OUT, event: ASSET_EVENT.CHECKED_IN, drawnJobId: JOB_A.id }).refusal,
-        "This item is on 26-DEMO-02 now. Your check-in wasn't saved."
+        "This item moved to 26-DEMO-02. Nothing was saved."
     );
     check(
         "the reading is recordingRefusal's, null on the plan the page drew",
-        `${recordingRefusal(inStock, { drawnJobId: JOB_A.id, attempted: ASSET_EVENT.CHECKED_OUT })} | ${recordingRefusal(movedOn, { drawnJobId: JOB_A.id, attempted: ASSET_EVENT.RETIRED })}`,
-        "null | This item is on 26-DEMO-02 now. Nothing was saved."
+        `${recordingRefusal(inStock, { drawnJobId: JOB_A.id })} | ${recordingRefusal(movedOn, { drawnJobId: JOB_A.id })} | ${recordingRefusal(takenOff, { drawnJobId: JOB_B.id })}`,
+        "null | This item moved to 26-DEMO-02. Nothing was saved. | You no longer have permission to update this item. Nothing was saved."
     );
-    check("  and the sentence for an item on no job says only what was not saved", ASSET_TRANSITION_COPY.notYours({ jobCode: null }), "Nothing was saved.");
-    // WHOSE IT IS NOW ENDS ON `Nothing was saved.` WHATEVER WAS PRESSED (#614): the files of 2026-11-05
-    // draw it so for a check-out (1f `Check out: lent away`, 1k-d), where the item moved to another
-    // of the reader's jobs still ends on the press's own noun.
+    check("  and the sentence for an item moved to no job says only what was not saved", ASSET_TRANSITION_COPY.movedTo({ jobCode: null }), "Nothing was saved.");
+    // EITHER CAUSE ENDS ON `Nothing was saved.` WHATEVER WAS PRESSED (#614), and names no press.
     check(
-        "  a check-out, a check-in and a sending refused for whose it is all end on Nothing was saved., and a move keeps its noun (#614)",
+        "  a check-out, a check-in and a sending refused for either cause say the same sentence (#614)",
         [
-            ASSET_TRANSITION_COPY.notYours({ jobCode: "26-DEMO-02", attempted: ASSET_EVENT.CHECKED_OUT }),
-            ASSET_TRANSITION_COPY.notYours({ jobCode: "26-DEMO-02", attempted: ASSET_EVENT.CHECKED_IN }),
-            ASSET_TRANSITION_COPY.notYours({ jobCode: "26-DEMO-02", attempted: ASSET_EVENT.SENT_FOR_REPAIR }),
-            ASSET_TRANSITION_COPY.movedTo({ jobCode: "26-DEMO-02", attempted: ASSET_EVENT.CHECKED_OUT }),
+            readSubmission(movedOn, { ...CHECKING_OUT, drawnJobId: JOB_A.id }).refusal,
+            readSubmission(movedOn, { ...CHECKING_OUT, event: ASSET_EVENT.CHECKED_IN, drawnJobId: JOB_A.id }).refusal,
+            readSubmission(movedOn, { ...CHECKING_OUT, event: ASSET_EVENT.SENT_FOR_REPAIR, drawnJobId: JOB_A.id }).refusal,
+            readSubmission(takenOff, { ...CHECKING_OUT, drawnJobId: JOB_B.id }).refusal,
+            readSubmission(takenOff, { ...CHECKING_OUT, event: ASSET_EVENT.SENT_FOR_REPAIR, drawnJobId: JOB_B.id }).refusal,
         ].join(" | "),
-        "Only 26-DEMO-02 can record this item. Nothing was saved. | Only 26-DEMO-02 can record this item. Nothing was saved. | Only 26-DEMO-02 can record this item. Nothing was saved. | This item is on 26-DEMO-02 now. Your check-out wasn't saved."
+        "This item moved to 26-DEMO-02. Nothing was saved. | This item moved to 26-DEMO-02. Nothing was saved. | This item moved to 26-DEMO-02. Nothing was saved. | You no longer have permission to update this item. Nothing was saved. | You no longer have permission to update this item. Nothing was saved."
     );
 
     // ── 3b: a check-out cannot be recorded without a name (#376) ───────────
@@ -675,7 +684,7 @@ export function run({ check, assert, log }) {
     check(
         "  and so is an item no longer the reader's (#597)",
         readSubmission(takenOff, { ...CHECKING_OUT, checkedOutTo: "", drawnJobId: JOB_B.id }).refusal,
-        "Only 26-DEMO-02 can record this item. Nothing was saved."
+        "You no longer have permission to update this item. Nothing was saved."
     );
 
     // ── 3b': the one field a press can leave empty (#463, #597) ───────────
@@ -858,18 +867,10 @@ export function run({ check, assert, log }) {
     );
     check("  nor an event read with its moment", JSON.stringify(ASSET_TRANSITION_COPY.moved({ by: "Jisoo Park", at: "2026-10-05T13:50:00.000Z", attempted: ASSET_EVENT.CHECKED_OUT })), JSON.stringify(["Someone else scanned this first. Your check-out wasn't saved."]));
     check("  that last the one sentence the action answers with", ASSET_TRANSITION_COPY.someoneFirst({ attempted: ASSET_EVENT.CHECKED_IN }), "Someone else scanned this first. Your check-in wasn't saved.");
-    // WHOSE ITEM IT IS NOW (#597), the app's words since the files draw neither: each names the
-    // job the item is on and ends on what the press saved, 1k's ending.
-    check(
-        "  an item no longer the reader's",
-        ASSET_TRANSITION_COPY.notYours({ jobCode: "26-DEMO-02", attempted: ASSET_EVENT.CHECKED_IN }),
-        "Only 26-DEMO-02 can record this item. Nothing was saved."
-    );
-    check(
-        "  and one moved since the page was drawn",
-        ASSET_TRANSITION_COPY.movedTo({ jobCode: "26-DEMO-02", attempted: ASSET_EVENT.SENT_FOR_REPAIR }),
-        "This item is on 26-DEMO-02 now. Nothing was saved."
-    );
+    // WHETHER THE PRESS IS STILL THE READER'S (#597), Soo's words since #614, which the files draw
+    // otherwise: one per cause, each ending on `Nothing was saved.` whatever was pressed.
+    check("  an item no longer the reader's", ASSET_TRANSITION_COPY.noPermission, "You no longer have permission to update this item. Nothing was saved.");
+    check("  and one moved since the page was drawn", ASSET_TRANSITION_COPY.movedTo({ jobCode: "26-DEMO-02" }), "This item moved to 26-DEMO-02. Nothing was saved.");
     // `kind` is the notes' explanatory word for what separates `Asset Categories` from
     // `Assets` and names no row (#338); `transition` is this issue's, for the
     // act. Neither may reach a screen.
@@ -923,13 +924,13 @@ export function run({ check, assert, log }) {
     // WHAT GOT IN FRONT WITH NO ENTRY READ (#531), keyed by the press as the act is.
     check(
         "every offerable event says what got in front of it",
-        offerable.filter((e) => !ASSET_TRANSITION_COPY.firstVerb[e]).join(", "),
+        offerable.filter((e) => !ASSET_TRANSITION_COPY.firstAct[e]).join(", "),
         ""
     );
     check(
-        "  the scans `scanned` and the repair's and the loan's `recorded` (#598)",
-        Object.entries(ASSET_TRANSITION_COPY.firstVerb).map(([e, verb]) => `${e}: ${verb}`).join(" | "),
-        "Checked out: scanned | Checked in: scanned | Sent for repair: recorded | Returned from repair: recorded | Lent: recorded | Returned to owner: recorded"
+        "  the scans `scanned this` and the repair's and the loan's `updated this item` (#598, #614)",
+        Object.entries(ASSET_TRANSITION_COPY.firstAct).map(([e, act]) => `${e}: ${act}`).join(" | "),
+        "Checked out: scanned this | Checked in: scanned this | Sent for repair: updated this item | Returned from repair: updated this item | Lent: updated this item | Returned to owner: updated this item"
     );
     check("  the noun hyphenated, as the design writes it since 2026-10-05", Object.values(ASSET_TRANSITION_COPY.eventNoun).join(" | "), "check-out | check-in");
     check(
@@ -950,7 +951,7 @@ export function run({ check, assert, log }) {
     );
 
     // The failure sentence, Soo's since #612: the act is not whole, and doing it again finishes it.
-    check("a failed status write, said by value (#612)", ASSET_TRANSITION_COPY.statusNotUpdated, "This wasn't fully recorded. Do it again to finish.");
+    check("a failed status write, said by value (#612, #614)", ASSET_TRANSITION_COPY.statusNotUpdated, "This wasn't fully saved. Try again to finish.");
 
     // ── 6: the actions, read off their own call sites ──────────────────────
     log("");
@@ -1621,10 +1622,10 @@ export function run({ check, assert, log }) {
     // is answered: somebody who retired this first makes the fresh plan terminal.
     check("a retired asset refuses", readRetirement(retired, { drawnJobId: JOB_A.id }).jobRecordId, null);
     check("  in the plan's own words", readRetirement(retired, { drawnJobId: JOB_A.id }).refusal, retired.refusal);
-    // WHOSE ITEM IT IS NOW, before the status (#597): a site manager not on its job is told
-    // whose it is, and a page drawn on the job it has left that it is elsewhere now.
-    check("and a reader the item's job is not one of is refused, whose it is named", readRetirement(noJob, { drawnJobId: JOB_A.id }).refusal, "Only 26-DEMO-01 can record this item. Nothing was saved.");
-    check("  and a page drawn on the job it left", readRetirement(movedOn, { drawnJobId: JOB_A.id }).refusal, "This item is on 26-DEMO-02 now. Nothing was saved.");
+    // WHETHER THE PRESS IS STILL THE READER'S, before the status (#597, #614): a site manager not on
+    // its job is told they may not, and a page drawn on the job it has left where it is now.
+    check("and a reader the item's job is not one of is refused, told they may not", readRetirement(noJob, { drawnJobId: JOB_A.id }).refusal, "You no longer have permission to update this item. Nothing was saved.");
+    check("  and a page drawn on the job it left", readRetirement(movedOn, { drawnJobId: JOB_A.id }).refusal, "This item moved to 26-DEMO-02. Nothing was saved.");
     // NEITHER AN EVENT NOR A JOB IS TAKEN OR COMPARED, which is where this parts
     // from `readSubmission` twice over. The returned shape says so: no event,
     // and a record id rather than a job the caller could have named.

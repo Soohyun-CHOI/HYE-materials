@@ -47,8 +47,8 @@ import { withOpsLabel } from "@/lib/airtableOps";
  *
  * ONLY A SITE MANAGER RECORDS, AND THE WRAPPER DECIDES THAT BEFORE THIS BODY RUNS
  * (#506). `withSiteManagerAction` refuses anybody else — the page they pressed on,
- * rendered again without the controls, and since #614 whose item it is
- * (`refuseNotASiteManager`). **What this body decides is the
+ * rendered again without the controls, and since #614 that the press is no longer theirs
+ * to make (`refuseNotASiteManager`). **What this body decides is the
  * asset (#597)**: only a site manager on the job the item sits on records on it
  * (`lib/assetJob.js:recordsOn`, through `planTransition` on a fresh read), with no office
  * clause — recording is site work — and deliberately not `canAccessJobDeliveries`, which
@@ -421,7 +421,7 @@ async function updateAssetNoteHandler(prevState, formData) {
             if (!asset) return { refusal: ASSET_COPY.notFoundHeading };
 
             const plan = planTransition({ user, jobs: await getAllJobs(), status: asset.status, assetJobId: asset.job?.[0], ownerJobId: asset.ownerJob?.[0] });
-            const recording = recordingRefusal(plan, { drawnJobId: String(formData.get("drawnJobId") ?? ""), attempted: null });
+            const recording = recordingRefusal(plan, { drawnJobId: String(formData.get("drawnJobId") ?? "") });
             if (recording) return { refusal: recording };
             const answer = readNoteSubmission(plan, {
                 typed: String(formData.get("note") ?? ""),
@@ -485,7 +485,7 @@ async function updateAssetSerialHandler(prevState, formData) {
             if (!asset) return { refusal: ASSET_COPY.notFoundHeading };
 
             const plan = planTransition({ user, jobs: await getAllJobs(), status: asset.status, assetJobId: asset.job?.[0], ownerJobId: asset.ownerJob?.[0] });
-            const recording = recordingRefusal(plan, { drawnJobId: String(formData.get("drawnJobId") ?? ""), attempted: null });
+            const recording = recordingRefusal(plan, { drawnJobId: String(formData.get("drawnJobId") ?? "") });
             if (recording) return { refusal: recording };
             const answer = readSerialSubmission(plan, { typed, previous: String(formData.get("previous") ?? ""), stored: asset.serialNumber });
             if (answer.ended || answer.refusal) return answer;
@@ -576,8 +576,10 @@ function refuse(error, moved = null, takenBy = null) {
 /**
  * What a press from a reader who is not a site manager answers on an item's page (#614), which
  * `withSiteManagerAction` calls in the handler's place for all six of the page's acts: the page
- * drawn again, and whose item it is — `Only 26-USA-07 can record this item. Nothing was saved.`,
- * the sentence a site manager off the item's job is told (`recordingRefusal`, #597).
+ * drawn again, and `You no longer have permission to update this item. Nothing was saved.` —
+ * or, when the item's job is not the one the page was drawn on, `This item moved to 26-USA-07.
+ * Nothing was saved.` — the sentences a site manager off the item's job is told
+ * (`recordingRefusal`, #597).
  *
  * SAID, WHERE THE CATEGORY'S PAGE AND THE LIST SAY NOTHING (`lib/authz.js:refuseWithThePage`),
  * BECAUSE THIS PAGE'S OPENINGS OUTLIVE THE PAGE DRAWN AGAIN (#614): a desk's dialog or question
@@ -585,10 +587,10 @@ function refuse(error, moved = null, takenBy = null) {
  * sheet closes onto a page that does not say the press was the reader's and was lost. Soo's
  * decision; the files of 2026-11-05 draw neither.
  *
- * THE JOB IS THE ITEM'S AS JUST READ, the one under its title on the page drawn again, through the
- * plan of a reader who records on nothing — the gate's verdict, so the reader is not read again:
- * `planTransition` reads the code off the job list and `recordingRefusal` answers `notYours` of it,
- * so this and the bodies cannot name the job two ways. An item no read hands back any more is
+ * THE ITEM IS READ AGAIN, AND THE READER IS NOT: the plan is of a reader who records on nothing,
+ * the gate's verdict, so `recordingRefusal` answers as the bodies do — the job the item moved to,
+ * read off the job list, when it is not the one the form was drawn on, and `noPermission` when it
+ * is — and this and the bodies cannot say it two ways. An item no read hands back any more is
  * answered in the page's own words, as the bodies answer it.
  *
  * TWO OPERATIONS BESIDE THE GATE'S, attributed to `authz refusal` (`lib/authzWrap.js`): the item
@@ -598,7 +600,7 @@ async function refuseNotASiteManager(prevState, formData) {
     const asset = await getAssetByAssetId(String(formData.get("assetId") ?? ""));
     if (!asset) return refuse(ASSET_COPY.notFoundHeading);
     const plan = planTransition({ user: null, jobs: await getAllJobs(), status: asset.status, assetJobId: asset.job?.[0], ownerJobId: asset.ownerJob?.[0] });
-    return refuse(recordingRefusal(plan, { drawnJobId: String(formData.get("drawnJobId") ?? ""), attempted: null }));
+    return refuse(recordingRefusal(plan, { drawnJobId: String(formData.get("drawnJobId") ?? "") }));
 }
 
 /**

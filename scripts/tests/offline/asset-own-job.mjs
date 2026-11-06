@@ -162,7 +162,7 @@ export function run({ check, assert, log }) {
     const note = handlerSource(record, "updateAssetNoteHandler");
     assert(
         "the note asks whose item it is before its own rule, and says the answer",
-        /const recording = recordingRefusal\(plan, \{ drawnJobId: String\(formData\.get\("drawnJobId"\) \?\? ""\), attempted: null \}\);\s*if \(recording\) return \{ refusal: recording \};/.test(note) &&
+        /const recording = recordingRefusal\(plan, \{ drawnJobId: String\(formData\.get\("drawnJobId"\) \?\? ""\) \}\);\s*if \(recording\) return \{ refusal: recording \};/.test(note) &&
             note.indexOf("recordingRefusal(") < note.indexOf("readNoteSubmission(")
     );
     const retire = handlerSource(record, "retireAssetHandler");
@@ -178,11 +178,11 @@ export function run({ check, assert, log }) {
     check(
         "  and the sentences they say, by value",
         [
-            ASSET_TRANSITION_COPY.notYours({ jobCode: B.jobCode, attempted: "Checked out" }),
-            ASSET_TRANSITION_COPY.movedTo({ jobCode: B.jobCode, attempted: "Checked in" }),
-            ASSET_TRANSITION_COPY.notYours({ jobCode: B.jobCode, attempted: null }),
+            ASSET_TRANSITION_COPY.noPermission,
+            ASSET_TRANSITION_COPY.movedTo({ jobCode: B.jobCode }),
+            ASSET_TRANSITION_COPY.movedTo({ jobCode: null }),
         ].join(" | "),
-        "Only 25-USA-13 can record this item. Nothing was saved. | This item is on 25-USA-13 now. Your check-in wasn't saved. | Only 25-USA-13 can record this item. Nothing was saved."
+        "You no longer have permission to update this item. Nothing was saved. | This item moved to 25-USA-13. Nothing was saved. | Nothing was saved."
     );
 
     // ── 4: the label read ────────────────────────────────────────────────────

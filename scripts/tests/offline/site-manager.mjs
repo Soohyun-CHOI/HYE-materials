@@ -464,6 +464,13 @@ export function run({ check, assert, log }) {
             "String, get, getAllJobs, getAssetByAssetId, planTransition, recordingRefusal, refuse"
         );
         check("  plans for a reader who records on nothing, and answers through refuse", `${user}; ${returned.join(", ")}`, "null; refuse, refuse");
+        // THE FORM'S DRAWN JOB IS COMPARED, as the bodies compare it, so an item moved since the page
+        // was drawn says where it is now and one that did not says the reader may not (#614).
+        check(
+            "  and compares the job the form was drawn on, as the bodies do (#614)",
+            fn ? /recordingRefusal\(plan, \{ drawnJobId: String\(formData\.get\("drawnJobId"\) \?\? ""\) \}\)/.test(item.source.slice(fn.start, fn.end)) : false,
+            true
+        );
         check("  and is no entry point", /export (async )?function refuseNotASiteManager|export const refuseNotASiteManager/.test(item.source), false);
     }
 

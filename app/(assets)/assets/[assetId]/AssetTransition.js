@@ -71,7 +71,7 @@ import TransitionForm from "./TransitionForm";
  * EVERY FORM CARRIES THE ITEM'S JOB AS THE PAGE WAS DRAWN (#597), `drawnJobId`, which each action
  * compares and never writes (`lib/assetTransition.js:recordingRefusal`). A desk's opening that
  * stands across a page drawn again on another job posts the job it stands on now, so a press
- * after `This item is on 26-USA-07 now.` records there, as the page now says.
+ * after `This item moved to 26-USA-07.` records there, as the page now says.
  */
 const TransitionContext = createContext(null);
 
