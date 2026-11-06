@@ -87,7 +87,7 @@ async function saveAssetCategoryHandler(prevState, formData) {
                 addedCategory = Boolean(made.created);
                 group = made.created ?? made.exists;
             } catch {
-                return { error: COPY.notSaved };
+                return { error: COPY.notSaved[editing ? "edit" : "add"] };
             }
         }
 
@@ -96,7 +96,7 @@ async function saveAssetCategoryHandler(prevState, formData) {
             written = editing ? await updateAssetCategory(editing, entry, group.id) : await createAssetCategory(entry, group.id);
         } catch {
             if (addedCategory) refresh();
-            return { error: addedCategory ? COPY.categoryOnly : COPY.notSaved };
+            return { error: addedCategory ? COPY.categoryOnly : COPY.notSaved[editing ? "edit" : "add"] };
         }
         if (written.gone) {
             refresh();
@@ -152,7 +152,7 @@ async function setAssetCategoryDiscontinuedHandler(categoryRecordId, discontinue
         try {
             await setAssetCategoryDiscontinued(row.id, discontinued === true);
         } catch {
-            return { error: COPY.notSaved };
+            return { error: COPY.notSaved.edit };
         }
         refresh();
         return { done: true };

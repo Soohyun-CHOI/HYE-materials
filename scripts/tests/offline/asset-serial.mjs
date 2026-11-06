@@ -71,7 +71,7 @@ export function serialActionFacts(handler) {
     const order = [
         at(/const asset = await getAssetByAssetId\(asked\);/),
         at(/const plan = planTransition\(\{ user, jobs: await getAllJobs\(\), status: asset\.status, assetJobId: asset\.job\?\.\[0\], ownerJobId: asset\.ownerJob\?\.\[0\] \}\);/),
-        at(/const recording = recordingRefusal\(plan, \{ drawnJobId: String\(formData\.get\("drawnJobId"\) \?\? ""\), attempted: null \}\);/),
+        at(/const recording = recordingRefusal\(plan, \{ drawnJobId: String\(formData\.get\("drawnJobId"\) \?\? ""\) \}\);/),
         at(/const answer = readSerialSubmission\(plan, \{ typed, previous: String\(formData\.get\("previous"\) \?\? ""\), stored: asset\.serialNumber \}\);/),
         at(/items: await getAssetsBySerialNumber\(answer\.serialNumber\),/),
         at(/if \(holder\) return \{ refusal: ASSET_SERIAL_COPY\.takenBy\(holder\), takenBy: holder \};/),
@@ -256,16 +256,19 @@ export async function run({ check, log }) {
     check("  too much, and one changed first, Soo's words (#612)", `${ASSET_SERIAL_COPY.tooLong} | ${ASSET_SERIAL_COPY.changedFirst}`, "Use 50 characters or fewer. | Someone else changed this serial number first. Nothing was saved.");
     check("  working, the note's", Object.values(ASSET_SERIAL_COPY.working).join(" | "), "Saving… | Adding… | Removing…");
     check(
-        "the list's: the search, the found line's word and the two sentences",
+        "the list's: the search, 1d's column and the two sentences",
         [ASSET_LIST_COPY.searchLabel, ASSET_LIST_COPY.serialLabel, ASSET_LIST_COPY.noSerialMatchOn("23-USA-09"), ASSET_LIST_COPY.noSerialMatchFiltered].join(" | "),
         "Search items, IDs or serials | Serial number | No item on 23-USA-09 has the serial number | No item in these filters has the serial number"
     );
+    // THE FOUND LINE SAYS IT SHORT (1a3, #614): the files of 2026-11-05 draw `Serial` before the
+    // number, the desk row's word, where they drew `Serial number`; 1d's column keeps the long one.
+    check("the found line's word before the number, the short one (#614)", ASSET_LIST_COPY.foundSerialLabel, "Serial");
 
     // ── the action ──────────────────────────────────────────────────────────
     log("");
     log("the action, off its source:");
     const actions = parseFile(ACTIONS);
-    check("the note's wrapper around a handler nobody can call round it", /export const updateAssetSerialAction = withSiteManagerAction\(updateAssetSerialHandler\);/.test(actions.source) && !/export (async )?function updateAssetSerialHandler/.test(actions.source), true);
+    check("the note's wrapper around a handler nobody can call round it", /export const updateAssetSerialAction = withSiteManagerAction\(refuseNotASiteManager, updateAssetSerialHandler\);/.test(actions.source) && !/export (async )?function updateAssetSerialHandler/.test(actions.source), true);
     const facts = serialActionFacts(functionSource(actions, "updateAssetSerialHandler"));
     check(
         "  labeled, locked on the number, the note's plan and order, the kind asked, a cleared number asking nothing, no event, and a taken number refused naming its holder",
@@ -313,10 +316,10 @@ export async function run({ check, log }) {
     check("a category's rows carry it off the read they came from, and its list draws it", `${/serialNumber: asset\.serialNumber,/.test(parseFile(CATEGORY_PAGE).source)} ${/\{row\.serialNumber\}/.test(parseFile(ASSET_LIST).source)}`, "true true");
     const provider = parseFile(PROVIDER).source;
     check(
-        "the provider holds its answer as the note's, ending an opening the plan stops offering",
+        "the provider holds its answer as the note's, ending a phone's opening the plan stops offering (#614)",
         [
             /const serial = useDetail\(updateAssetSerialAction, \{ field: "serialNumber", assetId, drawnJobId: assetJobRecordId, onSent: \(\) => setLastSent\("serial"\) \}\);/.test(provider),
-            /if \(serial\.openOn !== null && !plan\.mayWriteSerial\) serial\.end\(\);/.test(provider),
+            /if \(serial\.openOn === "phone" && !plan\.mayWriteSerial\) serial\.end\(\);/.test(provider),
             /serial: serial\.saidInOpening \? null : serial\.sentence,/.test(provider),
             /takenBy: saidInOpening \? \(answer\?\.takenBy \?\? null\) : null,/.test(provider),
         ].join(" "),
@@ -333,7 +336,7 @@ export async function run({ check, log }) {
         ].join(" "),
         "true true true true"
     );
-    check("the found line says the number after the id", /\{serialNumber && \(\s*<>\s*<Dot \/>\s*<span className="shrink-0 text-foreground-subtle">\{ASSET_LIST_COPY\.serialLabel\}<\/span>/.test(parseFile(FOUND).source), true);
+    check("the found line says the number after the id", /\{serialNumber && \(\s*<>\s*<Dot \/>\s*<span className="shrink-0 text-foreground-subtle">\{ASSET_LIST_COPY\.foundSerialLabel\}<\/span>/.test(parseFile(FOUND).source), true);
 
     // ── anti-vacuity ────────────────────────────────────────────────────────
     log("");

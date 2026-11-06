@@ -75,8 +75,9 @@ holds its height, so going between the steps never moves its edges.
   sizes`, or `3 models` where it asks one size or none — and nothing where it
   asks neither. **One name can stand in two places, and those are two
   names**: the office's `Band Saw` is `Equipment > Machining` and `Tool >
-  Power Tool`, so each of its rows says its category after the name in a
-  lighter ink; `Pipe Cutter` is a `Cutter` of both types, so its rows say the
+  Power Tool`, so each of its rows says its category 8 after the name in a
+  lighter ink at the name's size, as the files of 2026-11-05 draw the case
+  (#614); `Pipe Cutter` is a `Cutter` of both types, so its rows say the
   type and the category, `Equipment · Cutter`. A name in one place says
   neither, and one in two places that something else found says its place
   and then what found it, `Power Tool · DeWalt (DCS375)`. **Picking one goes
@@ -87,7 +88,8 @@ holds its height, so going between the steps never moves its edges.
   choices over a search field, `All types` and `All categories` until chosen,
   and the search offered five names with their places beside them.
 - **The second takes the rest.** The name picked on the line under the title —
-  with where it stands, after a dot, for a name in two places — and `Back` at
+  with where it stands 8 after it in the lighter ink, for a name in two places,
+  where a dot parted them until the files of 2026-11-05 (#614) — and `Back` at
   the actions' left, which goes back to the first step with the search as it
   was left; picking the name again keeps what was chosen. It was `Change`,
   beside the name and its whole place on that line, from #507 to #520. Then

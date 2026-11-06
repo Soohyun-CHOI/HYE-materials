@@ -24,8 +24,8 @@ import { readFoundHolderAction } from "./actions";
  * (`lib/assetListView.js:readCategoryList`). From #599 to #612 only the second said it, on the
  * reading that the band already names the list's job.
  *
- * A SERIAL NUMBER SEARCHED SAYS ITSELF AFTER THE ID (1a3, #601): `Serial number` in Ink 3 and the
- * number at 14 with even figures, 8 apart — a maker's number, which the portal's id face is not for
+ * A SERIAL NUMBER SEARCHED SAYS ITSELF AFTER THE ID (1a3, #601): `Serial` in Ink 3 — `Serial
+ * number` until the files of 2026-11-05 (#614) — and the number at 14 with even figures, 8 apart — a maker's number, which the portal's id face is not for
  * since the files of 2026-11-04's afternoon (0h, #607) — `serialNumber` comes only with an item found by its number, in
  * the table or by the base — and a number two kinds hold draws a line for each.
  *
@@ -62,16 +62,19 @@ export default function FoundItem({ found }) {
     return (
         <Link
             href={assetPath(assetId)}
-            className="group flex h-found-item items-center gap-found-item-inline rounded-control border border-selected-border bg-selected px-found-item-inset-x text-body text-foreground-default outline-none hover:bg-selected-hover focus-visible:border-border-focus"
+            className="flex h-found-item items-center gap-found-item-inline rounded-control border border-selected-border bg-selected px-found-item-inset-x text-body text-primary outline-none hover:bg-selected-hover hover:text-primary-hover focus-visible:border-border-focus"
         >
-            <span className="flex min-w-0 flex-1 items-center overflow-hidden whitespace-nowrap">
+            {/* The line is a link and takes a link's Accent, lifting under the pointer, which its
+                chevron takes as a mark that belongs to the press (0a Icon box, #614); the words
+                in it stand in Ink, as 1a3 draws them. */}
+            <span className="flex min-w-0 flex-1 items-center overflow-hidden whitespace-nowrap text-foreground-default">
                 <span className="shrink-0 font-id text-body-sm tracking-id">{assetId}</span>
                 {/* Found by its serial number (1a3, #601): the value's name in Ink 3, then the number with
                     even figures (0h, #607), after the id and before the name. */}
                 {serialNumber && (
                     <>
                         <Dot />
-                        <span className="shrink-0 text-foreground-subtle">{ASSET_LIST_COPY.serialLabel}</span>
+                        <span className="shrink-0 text-foreground-subtle">{ASSET_LIST_COPY.foundSerialLabel}</span>
                         <span className="ml-gap shrink-0 tabular-nums">{serialNumber}</span>
                     </>
                 )}
@@ -97,7 +100,7 @@ export default function FoundItem({ found }) {
                     </span>
                 </span>
             </span>
-            <Icon name="chevron-right" className="size-icon shrink-0 text-primary group-hover:text-primary-hover" />
+            <Icon name="chevron-right" kind="words" className="size-icon shrink-0" />
         </Link>
     );
 }

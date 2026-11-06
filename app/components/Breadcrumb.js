@@ -62,7 +62,7 @@ export default function Breadcrumb({ levels, current, title, phone = true }) {
         >
             {current === undefined && levels.length === 1 && !levels[0].control ? (
                 <Link href={levels[0].href} className={`${LEVEL} -mx-control-inline-inset-x gap-gap`}>
-                    <Icon name="chevron-left" crop={[8, 8]} className="h-[var(--size-icon-sm)] shrink-0" />
+                    <Icon name="chevron-left" kind="words" crop={[8, 8]} className="h-[var(--size-icon-sm)] shrink-0" />
                     {levels[0].label}
                 </Link>
             ) : (

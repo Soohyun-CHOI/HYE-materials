@@ -10,6 +10,11 @@
 // beside it on the Hover, and the expanded rail's current section at 500 in Ink on the Face,
 // the other rows and the collapsed rail as they were.
 //
+// AND THE COLLAPSED RAIL AS THE FILES OF 2026-11-05 DRAW IT (#614): every row at rest in Ink 2,
+// collapsed as expanded, its icon a rail item's and so its word's ink, and the current one's
+// icon in Accent by its own kind (0a Icon box) — which the row's class no longer carries, so the
+// icon's kind is read off its call and its ink off `Icon.js`, each through Tailwind.
+//
 // WHAT IT CANNOT SEE. Which rule wins when two equally specific classes disagree — it names
 // both rather than choosing, so a tie fails rather than passing on a guess — and anything
 // only a browser draws. The issue's walk measured both in the app at 1440.
@@ -26,6 +31,7 @@ export const title = "Add note under the pointer and the rail's current section,
 // serial number and the note.
 const NOTE = "app/(assets)/assets/[assetId]/ItemDetails.js";
 const RAIL = "app/components/Rail.js";
+const ICON = "app/components/Icon.js";
 
 /**
  * The figures the files of 2026-10-27 give (`Tools - new direction.dc (42).html`): 1f's `Add
@@ -135,6 +141,32 @@ export function noteOpeners(parsed) {
     };
 }
 
+/** `Icon.js`'s ink for each kind, its `KIND_INK` table as class lists (#614). */
+export function kindInks(parsed) {
+    const inks = {};
+    walk(parsed.ast, (n) => {
+        if (n.type !== "VariableDeclarator" || n.id?.name !== "KIND_INK" || n.init?.type !== "ObjectExpression") return;
+        for (const p of n.init.properties) inks[p.key.name ?? p.key.value] = String(p.value.value).split(/\s+/).filter(Boolean);
+    });
+    return inks;
+}
+
+/** The kind a section's icon takes on the current section and on another, off a parsed `Rail.js`. */
+export function sectionIconKinds(parsed) {
+    let kind = null;
+    walk(parsed.ast, (n) => {
+        if (kind || n.type !== "JSXElement" || !named(n, "Icon")) return;
+        const nameValue = attributeSource(parsed, n, "name") ?? "";
+        if (nameValue.includes("SECTION_ICONS")) kind = n.openingElement.attributes.find((a) => a.name?.name === "kind")?.value ?? null;
+    });
+    const expression = kind?.type === "JSXExpressionContainer" ? kind.expression : kind;
+    if (expression?.type === "Literal") return { current: expression.value, other: expression.value };
+    if (expression?.type === "ConditionalExpression" && expression.test.type === "Identifier" && expression.test.name === "current") {
+        return { current: expression.consequent.value, other: expression.alternate.value };
+    }
+    return { current: null, other: null };
+}
+
 /** A section's row, off a parsed `Rail.js`: the link carrying `data-current`. */
 export function sectionRow(parsed) {
     return classesOf(parsed, (n) => named(n, "Link") && attributeSource(parsed, n, "data-current") !== null);
@@ -165,8 +197,15 @@ export async function run({ check, log }) {
     check("  and under the pointer, unchanged", at(row, "expanded", "current", "hover"), face({ background: DRAWING.face, color: DRAWING.ink, weight: DRAWING.rowWeight }));
     check("  another section, expanded", at(row, "expanded"), face({ color: DRAWING.ink2, weight: DRAWING.rowWeight }));
     check("  and under the pointer", at(row, "expanded", "hover"), face({ background: DRAWING.hover, color: DRAWING.ink, weight: DRAWING.rowWeight }));
-    check("  the current section, collapsed, its word out of sight", at(row, "current"), face({ background: DRAWING.face, color: DRAWING.accent, weight: DRAWING.rowWeight }));
-    check("  another section, collapsed", at(row), face({ color: DRAWING.ink3, weight: DRAWING.rowWeight }));
+    check("  the current section, collapsed, its word out of sight", at(row, "current"), face({ background: DRAWING.face, color: DRAWING.ink, weight: DRAWING.rowWeight }));
+    check("  another section, collapsed, in Ink 2 as expanded (#614)", at(row), face({ color: DRAWING.ink2, weight: DRAWING.rowWeight }));
+
+    // THE SECTION'S ICON (#614): the current one's in Accent by its kind, every other its row's.
+    const inks = kindInks(parseFile(ICON));
+    const kinds = sectionIconKinds(parseFile(RAIL));
+    check("  a section's icon is `current` on the current section and `words` on every other", `${kinds.current} ${kinds.other}`, "current words");
+    check("  the current section's icon is in Accent, collapsed and expanded", at(inks[kinds.current] ?? []), face({ color: DRAWING.accent }));
+    check("  another section's icon draws no ink of its own, so its row's stands", at(inks[kinds.other] ?? ["?"]), face({ color: "none" }));
 
     // ANTI-VACUITY: the readers find each element and see the states main drew — `Add note`
     // washed at Hover in Accent, the current section at 600 — and a tie, a nesting the file does
@@ -188,6 +227,16 @@ export async function run({ check, log }) {
         )
     );
     check("  a planted current section at 600 is seen", at(plantedRow, "expanded", "current"), face({ background: DRAWING.face, color: DRAWING.ink, weight: "600" }));
+    check(
+        "  a planted section icon current on every row, and one with no kind, are seen (#614)",
+        [
+            sectionIconKinds(parseSource('export default function R() { return <Icon name={SECTION_ICONS[k]} kind="current" className="size-icon" />; }', "<planted Rail>")),
+            sectionIconKinds(parseSource('export default function R() { return <Icon name={SECTION_ICONS[k]} className="size-icon" />; }', "<planted Rail>")),
+        ]
+            .map((k) => `${k.current} ${k.other}`)
+            .join(" | "),
+        "current current | null null"
+    );
     check("  two equally specific weights are named, not chosen", at(["font-medium", "font-semibold"]), face({ color: "none", weight: "500 or 600" }));
     check(
         "  a nesting the file does not know holds in no state",

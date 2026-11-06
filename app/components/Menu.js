@@ -192,11 +192,11 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
                         {multiselectable && (
                             <span
                                 aria-hidden="true"
-                                className={`mr-[calc(var(--spacing-menu-box-gap)-var(--spacing-gap))] flex size-icon shrink-0 items-center justify-center rounded-badge border ${
+                                className={`mr-[calc(var(--spacing-menu-box-gap)-var(--spacing-gap))] flex size-icon shrink-0 items-center justify-center rounded-badge border text-white ${
                                     option.selected ? "border-primary bg-primary" : "border-checkbox-border bg-white"
                                 }`}
                             >
-                                {option.selected && <Icon name="check" className="size-checkbox-mark text-white" />}
+                                {option.selected && <Icon name="check" kind="words" className="size-checkbox-mark" />}
                             </span>
                         )}
                         <span
@@ -220,10 +220,10 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
                         )}
                         {checkSlot ? (
                             <span aria-hidden="true" className="flex size-icon-sm shrink-0">
-                                {option.checked && <Icon name="check" className="size-icon-sm text-primary" />}
+                                {option.checked && <Icon name="check" kind="current" className="size-icon-sm" />}
                             </span>
                         ) : (
-                            option.checked && <Icon name="check" className="size-icon-sm shrink-0 text-primary" />
+                            option.checked && <Icon name="check" kind="current" className="size-icon-sm shrink-0" />
                         )}
                     </div>
                 ))}
@@ -524,7 +524,7 @@ export function MenuButton({ label, locked = false, items }) {
                 }}
                 className={MENU_BUTTON_LOOK}
             >
-                <Icon name="ellipsis" className="size-icon-sm" />
+                <Icon name="ellipsis" kind="words" className="size-icon-sm" />
             </button>
             <ActionMenu
                 id={menuId}

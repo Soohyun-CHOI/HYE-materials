@@ -224,7 +224,7 @@ function deletion582({ check, assert, log }) {
     );
     assert(
         "  the line the copy's own, Destructive, opening the question with focus on the button",
-        /key: "delete",\s*label: ASSET_OFFICE_COPY\.deleteOpener,\s*tone: "danger",\s*(\/\/[^\n]*\n\s*)?separated: [^,]+,\s*onSelect: \(\) => \{\s*buttonRef\.current\?\.focus\(\);\s*setOpen\(false\);\s*transition\.openDeletion\(\);/.test(menu)
+        /key: "delete",\s*label: ASSET_OFFICE_COPY\.deleteOpener,\s*tone: "danger",\s*(\/\/[^\n]*\n\s*)?separated: [^,]+,\s*onSelect: \(\) => \{\s*buttonRef\.current\?\.focus\(\);\s*setOpen\(false\);\s*transition\.openDeletion\(phone \? "phone" : "desk"\);/.test(menu)
     );
     const confirm = parseFile(CONFIRM);
     const confirmBody = confirm.source;
@@ -235,25 +235,29 @@ function deletion582({ check, assert, log }) {
     assert(
         "  its body, then Cancel and the red commitment saying Deleting… while it sends, the refusal above them",
         /<DialogMessage>\{COPY\.deleteBody\}<\/DialogMessage>/.test(confirmBody) &&
-            /<DialogActions refusal=\{refusal\}>\s*<Button variant="bordered" onClick=\{onClose\}>\s*\{COPY\.cancel\}\s*<\/Button>\s*<Button variant="danger" type="submit" busyLabel=\{COPY\.deleteWorking\}>\s*\{COPY\.deleteSubmit\}/.test(confirmBody)
+            /<DialogActions refusal=\{refusal\} refusalId=\{refusalId\}>\s*<Button variant="bordered" onClick=\{onClose\}>\s*\{COPY\.cancel\}\s*<\/Button>\s*<Button variant="danger" type="submit" unavailable=\{!available\} describedBy=\{!available && refusal \? refusalId : undefined\} busyLabel=\{COPY\.deleteWorking\}>\s*\{COPY\.deleteSubmit\}/.test(confirmBody)
     );
     check("  posting the asset's id and nothing else", [...confirm.source.matchAll(/<input[^>]*name="(\w+)"/g)].map((m) => m[1]).join(","), "assetId");
     const confirmWords = [...confirm.source.matchAll(/\bCOPY\.(\w+)/g)].map((m) => m[1]);
     check("  every word it draws is the copy's", confirmWords.filter((key) => !(key in ASSET_OFFICE_COPY)).join(","), "");
     assert("  and the reader of it reads words", confirmWords.length >= 5);
     const retirement = parseFile("app/(assets)/assets/[assetId]/RetirementConfirm.js").source;
-    assert("  the same frame the retirement's question opens in", /\bsheet\s*closesOnBackdrop/.test(retirement) && /<Button variant="danger" type="submit" busyLabel=/.test(retirement));
+    assert("  the same frame the retirement's question opens in", /\bsheet\s*closesOnBackdrop/.test(retirement) && /<Button variant="danger" type="submit" unavailable=\{!available\} describedBy=\{!available && refusal \? refusalId : undefined\} busyLabel=/.test(retirement));
     const provider = parseFile(PROVIDER).source;
     assert("  the provider binds the action, so the answer outlives the question", /const \[deleteAnswer, deleteFormAction, deletePending\] = useActionState\(deleteAssetAction, null\);/.test(provider));
-    assert("  a deletion the plan no longer offers is no longer open", /if \(deleting && !office\?\.mayDelete\) setDeleting\(false\);/.test(provider));
     assert(
-        "  said in the question only by the opening that sent it, while open, and drawn while the plan offers it",
-        /const deleteSaidInDialog = deleting && deleteSentFor === deleteOpening;/.test(provider) &&
-            /\{office\?\.mayDelete && \(\s*<DeleteConfirm[\s\S]*?busy=\{deletePending\}\s*refusal=\{deleteSaidInDialog \? deleteSentence : null\}/.test(provider)
+        "  a phone's deletion the plan no longer offers or its answer closes, a desk's standing (#614)",
+        /if \(phone\(deleting\) && \(!office\?\.mayDelete \|\| deleting\.answered\)\) deleting\.end\(\);/.test(provider) && !/setDeleting\(false\)/.test(provider)
+    );
+    assert(
+        "  said in the question only by the opening that sent it, while open, and drawn while the plan offers it or once it opened, its commitment asking the page as it is (#614)",
+        /const deleting = useOpening\(deleteAnswer, deletePending\);/.test(provider) &&
+            /\{\(office\?\.mayDelete \|\| deleting\.count > 0\) && \(\s*<DeleteConfirm[\s\S]*?available=\{Boolean\(office\?\.mayDelete\)\}[\s\S]*?busy=\{deletePending\}\s*refusal=\{deleting\.said \? deleteSentence : null\}/.test(provider)
     );
     assert(
         "  a send recording which opening sent it and that it was last",
-        /send=\{\(formData\) => \{\s*setDeleteSentFor\(deleteOpening\);\s*setLastSent\("delete"\);\s*startTransition\(\(\) => deleteFormAction\(formData\)\);\s*\}\}/.test(provider)
+        /send=\{sendFrom\(deleting, "delete", deleteFormAction\)\}/.test(provider) &&
+            /const sendFrom = \(each, key, action\) => \(formData\) => \{\s*each\.sent\(\);\s*setLastSent\(key\);\s*startTransition\(\(\) => action\(formData\)\);\s*\};/.test(provider)
     );
     const page = parseFile(PAGE).source;
     assert(
@@ -499,7 +503,12 @@ export function run({ check, assert, log }) {
         /key: "job",\s*label: ASSET_OFFICE_COPY\.changeJob,\s*onSelect: \(\) => \{\s*buttonRef\.current\?\.focus\(\);\s*setOpen\(false\);\s*transition\.jobChange\.start\(phone \? "phone" : "desk"\);/.test(menu) &&
             !/key: "job",[^}]*tone:/.test(menu)
     );
-    assert("  each width drawing its own: the sheet on a phone, the dialog at a desk", /\{mayChangeJob && \(phone \? <JobChangeSheet \/> : <JobChangeDialog \/>\)\}/.test(menu));
+    assert(
+        "  each width drawing its own, both drawn by the provider: the sheet on a phone, the dialog at a desk (#614)",
+        !/<JobChange(Sheet|Dialog|Form|Rows)/.test(menu) &&
+            /<JobChangeForm\s+key=\{`desk-\$\{changing\.count\}`\}\s+open=\{changing\.on === "desk"\}/.test(parseFile(PROVIDER).source) &&
+            /<JobChangeRows\s+key=\{`phone-\$\{changing\.count\}`\}\s+open=\{changing\.on === "phone"\}/.test(parseFile(PROVIDER).source)
+    );
 
     // ── the dialog and the sheet ────────────────────────────────────────────
     log("");
@@ -515,8 +524,8 @@ export function run({ check, assert, log }) {
         assert(
             `  ${width} handed that owner job, which the page reads off the asset (#598)`,
             new RegExp(`function ${name}\\(\\{[^}]*\\bassetOwnerJobRecordId\\b[^}]*\\}\\)`).test(body) &&
-                dialogs.source.split("assetOwnerJobRecordId={jobChange.assetOwnerJobRecordId}").length === 3 &&
-                /\r?\n\s+assetOwnerJobRecordId,\r?\n/.test(parseFile("app/(assets)/assets/[assetId]/AssetTransition.js").source) &&
+                parseFile(PROVIDER).source.split("assetOwnerJobRecordId={assetOwnerJobRecordId}").length === 3 &&
+                /export default function AssetTransition\(\{[^}]*\bassetOwnerJobRecordId = null\b[^}]*\}\)/.test(parseFile("app/(assets)/assets/[assetId]/AssetTransition.js").source) &&
                 /assetOwnerJobRecordId=\{asset\.ownerJob\?\.\[0\] \?\? null\}/.test(parseFile("app/(assets)/assets/[assetId]/page.js").source)
         );
         assert(
@@ -528,17 +537,12 @@ export function run({ check, assert, log }) {
     }
     const desk = functionSource(dialogs, "JobChangeForm");
     assert("  the desk's choice the field's, posting the job chosen", /<Field label=\{COPY\.jobLabel\} labelAs="span"/.test(desk) && /<Choice name="jobId" options=\{options\} value=\{jobId\} onChange=\{setJobId\}/.test(desk));
-    assert("  its commitment Save, saying Saving… while it sends, beside Cancel", /<Button type="submit" busyLabel=\{COPY\.saving\}>\s*\{COPY\.save\}/.test(desk) && /\{COPY\.cancel\}/.test(desk) && /<DialogActions refusal=\{refusal\}>/.test(desk));
+    assert("  its commitment Save, saying Saving… while it sends, beside Cancel", /<Button type="submit" unavailable=\{!available\} describedBy=\{!available && refusal \? refusalId : undefined\} busyLabel=\{COPY\.saving\}>\s*\{COPY\.save\}/.test(desk) && /\{COPY\.cancel\}/.test(desk) && /<DialogActions refusal=\{refusal\} refusalId=\{refusalId\}>/.test(desk));
     const sheet = functionSource(dialogs, "JobChangeRows");
     assert("  the sheet's Save at its head's end, saying Saving… while it sends", /done=\{\{ label: COPY\.save, onPress: save, busyLabel: COPY\.saving \}\}/.test(sheet) && /\bsheet\b\s*closesOnBackdrop/.test(sheet));
     assert("  its rows move the check and save nothing", /onPress: \(\) => setJobId\(job\.id\),/.test(sheet) && /chosen: job\.id === jobId,/.test(sheet));
     assert("  its Save posting the asset and the job chosen", /formData\.set\("assetId", assetId\);\s*formData\.set\("jobId", jobId\);\s*onSend\(formData\);/.test(sheet));
-    assert("  a refusal said under the rows", /<Refusal>\{said\}<\/Refusal>/.test(sheet) && /const said = refusal \?\? \(pressed \? answer\.refusal : null\);/.test(sheet));
-    check(
-        "each opens at its own width",
-        `${/open=\{jobChange\.openOn === "desk"\}/.test(functionSource(dialogs, "JobChangeDialog"))} ${/open=\{jobChange\.openOn === "phone"\}/.test(functionSource(dialogs, "JobChangeSheet"))}`,
-        "true true"
-    );
+    assert("  its own refusal said under the rows, the server's closing it (#614)", /<Refusal>\{said\}<\/Refusal>/.test(sheet) && /const said = pressed \? answer\.refusal : null;/.test(sheet));
     const said = [...dialogs.source.matchAll(/\bCOPY\.(\w+)/g)].map((m) => m[1]);
     check("every word either draws is the copy's", said.filter((key) => !(key in ASSET_OFFICE_COPY)).join(","), "");
     assert("  and the reader of it reads words", said.length >= 6);
@@ -554,20 +558,23 @@ export function run({ check, assert, log }) {
     log("where the provider says the answer:");
     const provider = parseFile(PROVIDER).source;
     assert("  it binds the action, so the answer outlives the dialog", /const \[jobAnswer, jobFormAction, jobPending\] = useActionState\(changeAssetJobAction, null\);/.test(provider));
-    assert("  a change the plan no longer offers is no longer open", /if \(changingOn !== null && !office\?\.mayChangeJob\) setChangingOn\(null\);/.test(provider));
-    assert("  said in the dialog only by the opening that sent it, while open", /const jobSaidInDialog = changingOn !== null && jobSentFor === jobOpening;/.test(provider) && /refusal: jobSaidInDialog \? jobSentence : null,/.test(provider));
+    assert("  a phone's change the plan no longer offers or its answer closes, a desk's standing (#614)", /if \(phone\(changing\) && \(!office\?\.mayChangeJob \|\| changing\.answered\)\) changing\.end\(\);/.test(provider) && !/setChangingOn\(null\)/.test(provider));
+    assert(
+        "  said in the dialog only by the opening that sent it, while open, its Save asking the page as it is (#614)",
+        /const said = on !== null && sentFor === count;/.test(provider) && /refusal=\{changing\.said \? jobSentence : null\}/.test(provider) && /available=\{Boolean\(office\?\.mayChangeJob\)\}/.test(provider)
+    );
     // One map of what each action's answer says under the status since #597, which put the
     // retirement's and the note's beside these, and the last sent is the one said.
     assert(
         "  and under the status otherwise, when it was sent last",
-        /job: jobSaidInDialog \? null : jobSentence,/.test(provider) &&
-            /delete: deleteSaidInDialog \? null : deleteSentence,/.test(provider) &&
-            /event: open \? null : transitionSentence,/.test(provider) &&
+        /job: changing\.said \? null : jobSentence,/.test(provider) &&
+            /delete: deleting\.said \? null : deleteSentence,/.test(provider) &&
+            /event: eventSaidInDialog \|\| eventVia === "desk" \? null : transitionSentence,/.test(provider) &&
             /statusSentence: said\[lastSent \?\? "event"\],/.test(provider)
     );
     assert(
         "  a send recording which opening sent it and that it was last",
-        /send: \(formData\) => \{\s*setJobSentFor\(jobOpening\);\s*setLastSent\("job"\);\s*startTransition\(\(\) => jobFormAction\(formData\)\);\s*\},/.test(provider)
+        (provider.match(/onSend=\{sendFrom\(changing, "job", jobFormAction\)\}/g) ?? []).length === 2
     );
 
     // ── anti-vacuity ────────────────────────────────────────────────────────

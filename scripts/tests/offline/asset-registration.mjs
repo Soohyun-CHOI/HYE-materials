@@ -1235,7 +1235,23 @@ export async function run({ check, assert, log }) {
     check(
         "opened on a category, it is the line under the title, a picked name is, with its place where it has two, and picking says nothing",
         dialog.subtitle,
-        'category ? category.itemName : step === "details" ? [picked.level3, picked.place.length > 0 && ( <> <Dot /> {placeOf(picked.place)} </> ), placeOf(picked.place)] : undefined'
+        'category ? category.itemName : step === "details" ? [picked.level3, picked.place.length > 0 && <span className="ml-gap text-foreground-subtle">{placeOf(picked.place)}</span>, placeOf(picked.place)] : undefined'
+    );
+    // A NAME IN TWO PLACES SAYS WHERE AT ITS NAME'S SIZE, 8 AFTER IT IN INK 3 (#520, #614): the files
+    // of 2026-11-05 are the first to draw the case — `Band Saw  Cutting` and `Chop Saw  Tool · Cutting`
+    // in 1b's list at 14, and `Band Saw  Power Tool` under the title at 13 — and a word that
+    // qualifies an option keeps its place in the field once chosen (0a Menu). Until then the list
+    // set it at 13 and the line under the title behind a dot.
+    const frameSource = parseFile("app/components/DialogFrame.js").source;
+    const dialogSource = parseFile(DIALOG).source;
+    check(
+        "  a result's place is 8 after its name in Ink 3 at the name's 14, and the line under the title says it 8 after the name with no dot (#614)",
+        [
+            /<span className="flex min-w-0 flex-1 items-baseline gap-gap whitespace-nowrap">\s*<span className="min-w-0 truncate text-body text-foreground-default">/.test(frameSource),
+            /\{result\.place && <span className="min-w-0 shrink-\[1000\] truncate text-body text-foreground-subtle">\{result\.place\}<\/span>\}/.test(frameSource),
+            /<Dot \/>\s*\{placeOf\(picked\.place\)\}/.test(dialogSource),
+        ].join(" "),
+        "true true false"
     );
     // THE FRAME (#520): 0l's 480, since the dialog searches a list and picks from it, held at 1b's
     // 490 while it picks — and at its content's height opened on a kind, which picks nothing.

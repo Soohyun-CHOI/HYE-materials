@@ -66,7 +66,7 @@ function actionFacts(handler) {
         plansInLock: /planTransition\(\{ user, jobs: await getAllJobs\(\), status: asset\.status, assetJobId: asset\.job\?\.\[0\], ownerJobId: asset\.ownerJob\?\.\[0\] \}\)/.test(locked),
         // Whose item it is now, asked of the plan before the note's own rule (#597), and said.
         asksRecording:
-            /const recording = recordingRefusal\(plan, \{ drawnJobId: String\(formData\.get\("drawnJobId"\) \?\? ""\), attempted: null \}\);\s*if \(recording\) return \{ refusal: recording \};\s*const answer = readNoteSubmission\(/.test(
+            /const recording = recordingRefusal\(plan, \{ drawnJobId: String\(formData\.get\("drawnJobId"\) \?\? ""\) \}\);\s*if \(recording\) return \{ refusal: recording \};\s*const answer = readNoteSubmission\(/.test(
                 locked
             ),
         asksRule:
@@ -183,7 +183,7 @@ export function run({ check, assert, log }) {
     const actions = parseFile(ACTIONS);
     const handler = functionSource(actions, "updateAssetNoteHandler");
     assert("the handler was found", handler !== "");
-    assert("  behind the site manager's gate", /export const updateAssetNoteAction = withSiteManagerAction\(updateAssetNoteHandler\);/.test(actions.source));
+    assert("  behind the site manager's gate", /export const updateAssetNoteAction = withSiteManagerAction\(refuseNotASiteManager, updateAssetNoteHandler\);/.test(actions.source));
     const facts = actionFacts(handler);
     check(
         "its scope, its lock keyed by the printed id folded, the read, the plan and the rule inside it",
@@ -281,28 +281,30 @@ export function run({ check, assert, log }) {
         "true true true true true true"
     );
     check(
-        "  a reader who may not write meets nothing where there is no note",
+        "  a reader who may not write meets nothing where there is no note, but a desk's editor still standing (#614)",
         [
-            /\]\.filter\(\(row\) => row\.value \|\| row\.writable\);\s*if \(rows\.length === 0\) return null;/.test(functionSource(component, "DetailsBlock")),
+            /\]\.filter\(\(row\) => row\.value \|\| row\.writable \|\| transition\?\.\[row\.kind\]\?\.openOn === "desk"\);\s*if \(rows\.length === 0\) return null;/.test(functionSource(component, "DetailsBlock")),
             /\{\(note \|\| mayWriteNote\) && <PhoneDetail kind="note"/.test(functionSource(component, "PhoneDetails")),
         ].join(" "),
         "true true"
     );
     check(
-        "  the answer said only to the opening that sent it, and under the status once the page ended it",
+        "  the answer said only to the opening that sent it, and under the status once the page ended a phone's (#614)",
         [
             /const saidInOpening = sentFor === opening;/.test(slot),
             /refusal: saidInOpening \? sentence : null,/.test(slot),
             /note: note\.saidInOpening \? null : note\.sentence,/.test(provider),
-            /if \(note\.openOn !== null && !plan\.mayWriteNote\) note\.end\(\);/.test(provider),
+            /if \(note\.openOn === "phone" && !plan\.mayWriteNote\) note\.end\(\);/.test(provider) && !/if \(note\.openOn !== null && !plan\.mayWriteNote\)/.test(provider),
         ].join(" "),
         "true true true true"
     );
     check(
-        "  each width's opener is drawn for a writer alone, and opens its own",
+        "  each width's opener is drawn for a writer alone, and opens its own, a desk's editor standing once opened, its Save turned away when the page no longer lets the reader write (#614)",
         [
             /\{writable && \(\s*<button\s+ref=\{openerRef\}\s+type="button"\s+aria-label=\{detail\.editName\}\s+onClick=\{\(\) => control\.start\("desk"\)\}/.test(functionSource(component, "DetailsRow")),
-            /const open = writable && control\.openOn === "desk";/.test(functionSource(component, "DetailsRow")),
+            /const open = control\.openOn === "desk";/.test(functionSource(component, "DetailsRow")) &&
+                /<RowEditor key=\{control\.opening\} kind=\{kind\} value=\{value\} available=\{writable\} control=\{control\} onClose=\{close\} \/>/.test(functionSource(component, "DetailsRow")) &&
+                /<Button type="submit" size="md" unavailable=\{!available\}/.test(functionSource(component, "RowEditor")),
             /\{writable && <DetailSheet key=\{control\.opening\} kind=\{kind\} value=\{value\} open=\{control\.openOn === "phone"\} control=\{control\} \/>\}/.test(functionSource(component, "PhoneDetail")),
             /\) : \(\s*<p className="flex items-start gap-gap text-mobile-body-sm">\{content\}<\/p>\s*\)\}/.test(functionSource(component, "PhoneDetail")),
         ].join(" "),
@@ -317,11 +319,31 @@ export function run({ check, assert, log }) {
                 /const answer = detail\.read\(\{ typed: draft, previous: value, stored: value \}\);/.test(body),
                 /if \(answer\.refusal\) \{\s*setPressed\(true\);/.test(body),
                 /if \(answer\.unchanged\) \{\s*(onClose|control\.close)\(\);\s*return;\s*\}\s*control\.send\(\{ typed: draft, previous: value, by: "submit" \}\);/.test(body),
-                /refusal=\{\(pressed \? answer\.refusal : null\) \?\? server\.taken\}\s*count=\{detail\.count\?\.\(draft\.length\)\}/.test(body),
+                /refusal=\{\(pressed \? answer\.refusal : null\) \?\? server\.taken\}\s*notice=\{server\.said\}\s*count=\{detail\.count\?\.\(draft\.length\)\}/.test(body),
             ].join(" "),
             "true true true true"
         );
+        // WHAT THE SERVER SAID STANDS IN THE LINE'S PLACE, THE COUNT KEPT (1f, 1j-b2, 1j-b3; #614): a
+        // value somebody else changed first is the field's `notice`, where the help was, and no line of
+        // its own under the field, as the files of 2026-11-05 draw it.
+        check(
+            `  the ${name === "RowEditor" ? "desk's row" : "phone's sheet"} says the server's answer as the field's notice, and draws no line of its own under it (#614)`,
+            [/notice=\{server\.said\}/.test(body), /<Refusal>\{server\.said\}<\/Refusal>/.test(body)].join(" "),
+            "true false"
+        );
     }
+    // THE FIELD'S NOTICE (#614): after a refusal of the value and before a note and the help, at Ink 2
+    // behind the 16 info mark, 6 from it, and at the phone's 15 in a sheet, the count staying at the end.
+    const fieldSource = functionSource(parseFile("app/components/Controls.js"), "Field");
+    check(
+        "  the field draws a notice in the line's place at Ink 2 behind the info mark, after a refusal and before a note and the help (#614)",
+        [
+            /const said = refusal \|\| notice \|\| note \|\| help;/.test(fieldSource),
+            /\) : notice \? \(\s*<p role="alert" className="flex items-start gap-refusal-gap text-foreground-muted">\s*<span className=\{`flex h-\[var\(--text-body-sm--line-height\)\] shrink-0 items-center \$\{xl \? "max-sm:h-\[var\(--text-mobile-body-sm--line-height\)\]" : ""\}`\}>\s*<InfoMark size="size-icon" \/>/.test(fieldSource),
+            /\{message\}\s*<span id=\{countId\} className=\{`ml-auto shrink-0 tabular-nums/.test(fieldSource),
+        ].join(" "),
+        "true true true"
+    );
     // A CLEARED FIELD SAVED REMOVES IT, AND NO CONTROL OF ITS OWN DOES (1f, since the files of 2026-11-04):
     // the desk's dialog drew `Remove note` from #533, and its `-ing` word is the cleared save's now.
     check(

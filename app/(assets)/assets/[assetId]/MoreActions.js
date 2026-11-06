@@ -12,12 +12,10 @@ import { ASSET_COPY } from "@/lib/assetView";
 import { ASSET_TRANSITION_COPY } from "@/lib/assetTransition";
 import { ASSET_OFFICE_COPY } from "@/lib/assetOfficeActs";
 import { useAssetTransition } from "./AssetTransition";
-import { JobChangeDialog, JobChangeSheet } from "./JobChange";
-import { LendDialog, LendSheet } from "./LendDialog";
 
 /** Three filled dots, 16 at a desk and 24 in a phone's top bar (1f, 1j; `Icon.js`, #607). */
 function Dots({ phone }) {
-    return phone ? <Icon name="ellipsis" className="size-mobile-top-bar-icon" /> : <Icon name="ellipsis" className="size-icon" />;
+    return phone ? <Icon name="ellipsis" kind="words" className="size-mobile-top-bar-icon" /> : <Icon name="ellipsis" kind="words" className="size-icon" />;
 }
 
 /**
@@ -70,14 +68,15 @@ function Dots({ phone }) {
  * the retirement, and #582's deletion beside it. The rule stands only where the office's line
  * does, as the files draw it: a site manager's menu holds the sending over the retirement with
  * none. Choosing it hands focus to this button and opens this width's own `Change job` — the
- * desk's dialog or the phone's sheet, drawn here (`JobChange.js`).
+ * desk's dialog or the phone's sheet (`JobChange.js`), which the page's provider draws since #614, so
+ * a desk's stands across the page drawn again.
  *
  * AND A LOAN'S LINE AFTER `Send for repair` (#598; 1f, 1j-f, 1j-g), each in Ink: `Lend to another job`
  * for a site manager on the job that owns an item in stock there, and `Return to owner` for one on the
  * job it was lent to, never both. Each moves the item and ends nothing, so it stands with the sending;
  * **at a desk the rule parts it from the retirement, and on a phone no rule does**, as the files draw
  * the two widths. Choosing the lending hands focus to this button and opens this width's dialog or
- * sheet (`LendDialog.js`), drawn here as the job change's is; choosing the return opens its question,
+ * sheet (`LendDialog.js`), which the provider draws as it draws the job change's; choosing the return opens its question,
  * one for both widths (`ReturnConfirm`), which the page's provider draws.
  *
  * AND THE OFFICE'S `Delete this item` LAST (#582; 1f, 1j), under the same condition, after the
@@ -133,7 +132,7 @@ export default function MoreActions({ phone = false, account = null }) {
                       onSelect: () => {
                           buttonRef.current?.focus();
                           setOpen(false);
-                          transition.sendForRepair();
+                          transition.sendForRepair(phone ? "phone" : "desk");
                       },
                   },
               ]
@@ -159,7 +158,7 @@ export default function MoreActions({ phone = false, account = null }) {
                       onSelect: () => {
                           buttonRef.current?.focus();
                           setOpen(false);
-                          transition.openReturn();
+                          transition.openReturn(phone ? "phone" : "desk");
                       },
                   },
               ]
@@ -189,7 +188,7 @@ export default function MoreActions({ phone = false, account = null }) {
                       onSelect: () => {
                           buttonRef.current?.focus();
                           setOpen(false);
-                          transition.openRetirement();
+                          transition.openRetirement(phone ? "phone" : "desk");
                       },
                   },
               ]
@@ -205,7 +204,7 @@ export default function MoreActions({ phone = false, account = null }) {
                       onSelect: () => {
                           buttonRef.current?.focus();
                           setOpen(false);
-                          transition.openDeletion();
+                          transition.openDeletion(phone ? "phone" : "desk");
                       },
                   },
               ]
@@ -275,8 +274,6 @@ export default function MoreActions({ phone = false, account = null }) {
                 onClose={close}
             />
             {phone && account && <form id={formId} action="/api/auth/logout" method="POST" hidden />}
-            {mayChangeJob && (phone ? <JobChangeSheet /> : <JobChangeDialog />)}
-            {mayLend && (phone ? <LendSheet /> : <LendDialog />)}
             {!phone && tip.element}
         </div>
     );

@@ -1,20 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Button, Combobox, Field, FormBusy, SheetField, useRefusalFocus } from "@/app/components/Controls";
-import { DialogActions, DialogBody, DialogFrame } from "@/app/components/DialogFrame";
-import {
-    ASSET_TRANSITION_COPY as COPY,
-    asksBeforeRecording,
-    fieldRefusals,
-    matchedPart,
-    namesAreRecent,
-    offeredNames,
-    readSubmission,
-    recentNamesFor,
-} from "@/lib/assetTransition";
-import NameSheet from "./NameSheet";
-import { useRefusalSentence, useAssetTransition } from "./AssetTransition";
+import { Button, FormBusy } from "@/app/components/Controls";
+import { ASSET_TRANSITION_COPY as COPY, asksBeforeRecording } from "@/lib/assetTransition";
+import { useAssetTransition } from "./AssetTransition";
 
 /**
  * The one transition this asset's status allows (#362), as a desk asks it: the press or
@@ -25,9 +13,9 @@ import { useRefusalSentence, useAssetTransition } from "./AssetTransition";
  * A PRESS WHEN THERE IS NOTHING TO ASK, A DIALOG WHEN THERE IS. A check-out records who the
  * asset went to, so it always opens the design's dialog (1f); a check-in and a return from
  * repair record on the press (1g, 1f). `asksBeforeRecording` is the split, and the press and
- * the opener are one button, so a refusal that turns one into the other — it re-renders the
- * page in place (#378) — leaves the reader on the same control, which the frame hands focus
- * back to as the dialog goes.
+ * the opener are one button. A refusal re-renders the page in place (#378) under a desk's dialog
+ * that stands until the reader closes it (#614); the frame then hands focus back to this button if
+ * it still stands, and to the page's heading if the page drawn again replaced it.
  *
  * NO JOB SINCE #597 (1f, the files of 2026-11-02). The dialog asked for the job above the name
  * until then — chosen for a person on several jobs, with a sentence under it when the choice
@@ -49,11 +37,11 @@ import { useRefusalSentence, useAssetTransition } from "./AssetTransition";
  * given, the empty field the reason.
  *
  * THE ANSWER IS THE PAGE'S, NOT THIS CONTROL'S (#463). The press and the dialog send through
- * `AssetTransition`, which holds the action's answer and whether the dialog is open: a
- * refusal the dialog can stand open for — the status left unwritten — is said above its
- * actions, and every other stands in the page's title block, where the design says a refused
- * press (1k). A page drawn again on another job ends the opening (#597), so a press refused
- * because the item moved is said there too.
+ * `AssetTransition`, which holds the action's answer, draws the dialog (`TransitionForm.js`) and
+ * holds it open until the reader closes it: every refusal of its press is said above its actions,
+ * whatever the page drawn again offers, and a press with no dialog says its refusal in 0k's toast,
+ * as the files of 2026-11-05 draw both (#614). Until then a refusal that took the dialog's offer
+ * away took the dialog, and the sentence stood in the page's title block.
  *
  * AN ITEM IN REPAIR OFFERS ITS RETURN AS A PRESS (#531, 1f). While the menu's `Send for repair`
  * is on its way the press locks — its look kept, its press turned away — rather than drawing a
@@ -86,143 +74,37 @@ import { useRefusalSentence, useAssetTransition } from "./AssetTransition";
  * EVERY STRING COMES FROM `ASSET_TRANSITION_COPY`, which `offline/asset-list-view.mjs` holds by
  * failing on any JSX text under app/(assets)/.
  */
-export default function TransitionDialog({ recentCheckOuts }) {
-    const { plan, assetId, drawnJobId, answer, formAction, pending, repairPending, send, sends, open, opening, openDialog, closeDialog, carry } =
-        useAssetTransition();
-    const refusal = useRefusalSentence(answer);
+export default function TransitionDialog() {
+    const { plan, assetId, drawnJobId, formAction, pending, repairPending, sends, openDialog } = useAssetTransition();
     const asks = asksBeforeRecording(plan);
 
     return (
-        <>
-            <form
-                action={asks ? undefined : formAction}
-                onSubmit={(event) => {
-                    if (!asks) {
-                        sends(plan.event);
-                        return;
-                    }
-                    event.preventDefault();
-                    openDialog();
-                }}
-            >
-                {/* THE PRESS POSTS WHAT IT RECORDS: the event the page offered, which the action
-                    compares and never writes, and the job the page was drawn on, compared the same
-                    way (#597). The opener posts nothing — what it opens asks first. */}
-                {!asks && (
-                    <>
-                        <input type="hidden" name="assetId" value={assetId} />
-                        <input type="hidden" name="drawnJobId" value={drawnJobId ?? ""} />
-                        <input type="hidden" name="event" value={plan.event} />
-                    </>
-                )}
-                <FormBusy busy={repairPending ? "action" : false}>
-                    <Button type="submit" busy={!asks && pending} busyLabel={asks ? undefined : COPY.working[plan.event]}>
-                        {COPY.control[plan.event]}
-                    </Button>
-                </FormBusy>
-            </form>
-            {asks && (
-                <TransitionForm
-                    key={opening}
-                    open={open}
-                    onClose={closeDialog}
-                    plan={plan}
-                    assetId={assetId}
-                    drawnJobId={drawnJobId}
-                    recentCheckOuts={recentCheckOuts}
-                    pending={pending}
-                    refusal={open ? refusal : null}
-                    onSend={send}
-                    onCarry={carry}
-                />
+        <form
+            action={asks ? undefined : formAction}
+            onSubmit={(event) => {
+                if (!asks) {
+                    sends(plan.event, "desk");
+                    return;
+                }
+                event.preventDefault();
+                openDialog();
+            }}
+        >
+            {/* THE PRESS POSTS WHAT IT RECORDS: the event the page offered, which the action
+                compares and never writes, and the job the page was drawn on, compared the same
+                way (#597). The opener posts nothing — what it opens asks first. */}
+            {!asks && (
+                <>
+                    <input type="hidden" name="assetId" value={assetId} />
+                    <input type="hidden" name="drawnJobId" value={drawnJobId ?? ""} />
+                    <input type="hidden" name="event" value={plan.event} />
+                </>
             )}
-        </>
-    );
-}
-
-/** The dialog itself: who the asset goes to, and the commitment. */
-function TransitionForm({ open, onClose, plan, assetId, drawnJobId, recentCheckOuts, pending, refusal, onSend, onCarry }) {
-    const [name, setName] = useState("");
-    const [listOpen, setListOpen] = useState(false);
-    const [naming, setNaming] = useState(false);
-    // Which event a press asked for, as the foot bar keeps it: a refusal that flips the status
-    // offers the other event, which nobody has pressed for yet.
-    const [pressedFor, setPressedFor] = useState(null);
-    const focusRefused = useRefusalFocus();
-
-    // WHO THE ITEM'S JOB HAS RECENTLY HANDED ASSETS TO, NARROWED IN THE BROWSER (#376, #597). The
-    // page read that job's rows; typing narrows them further.
-    const recent = recentNamesFor(recentCheckOuts, { jobCode: plan.jobCode });
-    const offered = offeredNames(recent, name);
-    const pressed = pressedFor === plan.event;
-    const refusals = fieldRefusals(plan, { checkedOutTo: name });
-
-    const submit = (event) => {
-        event.preventDefault();
-        const formData = new FormData(event.currentTarget);
-        const answer = readSubmission(plan, {
-            event: String(formData.get("event") ?? ""),
-            drawnJobId: String(formData.get("drawnJobId") ?? ""),
-            checkedOutTo: String(formData.get("checkedOutTo") ?? ""),
-        });
-        if (answer.refusal) {
-            setPressedFor(plan.event);
-            focusRefused(event.currentTarget);
-            return;
-        }
-        onSend(formData);
-    };
-
-    return (
-        <>
-            <DialogFrame
-                open={open}
-                onClose={onClose}
-                onHidden={() => onCarry({ name })}
-                busy={pending}
-                title={COPY.control[plan.event]}
-                onSubmit={submit}
-                sheet
-            >
-                <input type="hidden" name="assetId" value={assetId} />
-                <input type="hidden" name="drawnJobId" value={drawnJobId ?? ""} />
-                {/* The event the page offered. The action re-derives it from the stored
-                    status and compares — it never writes this value. */}
-                <input type="hidden" name="event" value={plan.event} />
-                <DialogBody>
-                    <Field label={COPY.checkedOutToLabel} refusal={pressed ? refusals.nameRefusal : null}>
-                        <div className="max-sm:hidden">
-                            <Combobox
-                                name="checkedOutTo"
-                                value={name}
-                                onChange={setName}
-                                suggestions={offered.map((person) => ({ label: person, match: matchedPart(person, name) }))}
-                                heading={namesAreRecent(name) ? COPY.recentHeading : undefined}
-                                placeholder={COPY.namePlaceholder}
-                                listOpen={listOpen}
-                                onListOpenChange={setListOpen}
-                            />
-                        </div>
-                        <SheetField value={name} placeholder={COPY.namePlaceholder} onOpen={() => setNaming(true)} />
-                    </Field>
-                </DialogBody>
-                <DialogActions refusal={refusal}>
-                    <Button variant="bordered" onClick={onClose}>
-                        {COPY.cancel}
-                    </Button>
-                    <Button type="submit" busyLabel={COPY.working[plan.event]}>
-                        {COPY.control[plan.event]}
-                    </Button>
-                </DialogActions>
-            </DialogFrame>
-            <NameSheet
-                open={open && naming}
-                onClose={() => setNaming(false)}
-                value={name}
-                onChange={setName}
-                names={offered}
-                hasRecent={recent.length > 0}
-            />
-        </>
+            <FormBusy busy={repairPending ? "action" : false}>
+                <Button type="submit" busy={!asks && pending} busyLabel={asks ? undefined : COPY.working[plan.event]}>
+                    {COPY.control[plan.event]}
+                </Button>
+            </FormBusy>
+        </form>
     );
 }

@@ -60,6 +60,8 @@
     --size-checkbox-mark: 0.75rem; /* 1d, 12: the check or the dash a checkbox draws in its 16 — from the drawings, not the spec */
     --size-icon-sm: 0.875rem; /* Icon box, 14: the mark a 28 square holds, and a Nested 30 inside a field */
     --stroke-width-icon: 1.25px; /* Icon box, 1.25: every mark's line, whatever its size — each drawn from Lucide on its 24 grid, round caps and joins (#502) */
+    --color-icon-subtle: var(--color-foreground-subtle); /* Icon box, Ink 3: a mark beside words that names or qualifies what follows — a status, the value a control holds, a field, a value or note line, a detail in a log line — whatever its words take (#614). One that belongs to what the reader does or is told takes its words' ink and has no name */
+    --color-icon-selected: var(--color-primary); /* Icon box, Accent: a mark beside words that marks what is current or chosen, its words left at Ink (#614) */
     --spacing-control-inline-inset-x: 0.5rem; /* Side room, 8: either side of an inline summary's words, and of a 26 pill (0f) */
     --spacing-control-inset-x: 0.625rem; /* Side room, 10: either side of a chip's or a menu option's words */
     --spacing-control-lg-inset-x: 1rem; /* Side room, 16: either side of a 36px control's words */
@@ -165,7 +167,7 @@
     /* 0e · Ink — one hue, and a foreground for what the text says. */
     --color-foreground-default: oklch(0.255 0.013 265); /* Ink: every figure, every heading, an id at rest, a row of text */
     --color-foreground-muted: oklch(0.405 0.013 265); /* Ink 2: the sentence under a heading, a note beside a value, the breadcrumb above a title */
-    --color-foreground-subtle: oklch(0.505 0.012 265); /* Ink 3: a column head, a block's name, a field label, a unit, a placeholder, a status mark */
+    --color-foreground-subtle: oklch(0.505 0.012 265); /* Ink 3: a column head, a block's name, a field label, a unit, a placeholder, a mark that names what follows (0a) */
     --color-foreground-faint: oklch(0.760 0.010 265); /* Ink 4: the dot between two clauses, the / between breadcrumb levels, a disabled pager arrow, a disabled control's glyph */
     --color-checkbox-border: oklch(0.800 0.010 265); /* Ink 5: the edge of an empty checkbox. The row's other use, a bar standing in for a line of text, is drawn nowhere yet and takes a name of its own with its reader */
     --spacing-separator-inline: 0.5625rem; /* Ink 4, 9: either side of the dot between two clauses, everywhere */
@@ -226,6 +228,7 @@
        drawings, not the spec: the Tools and Invoices files draw every date this way and
        no row states it. `app/components/Instant.js` is its one reader, on every screen. */
     --opacity-date-separator: 45%; /* 1f, 1j: a date's slashes */
+    --opacity-toast-date-separator: 60%; /* 1f's toast: a date's slashes on its Ink ground, which the toast hands its line in place of the page's 45% (#614) — from the drawings, not the spec */
     --spacing-date-separator-inline: 1.5px; /* 1f, 1j: either side of a slash, a fraction of a pixel kept in px */
     --spacing-date-time-inline: 0.5625rem; /* 1f, 9: from a date to its time */
     --spacing-mobile-date-time-inline: 0.5rem; /* 1j, 8: from a date to its time on a phone */

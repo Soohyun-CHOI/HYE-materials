@@ -99,7 +99,7 @@ export default function JobsForm({ jobs, destination = "" }) {
                 {refused && (
                     <p role="alert" className="flex items-start justify-center gap-mobile-input-message-gap text-mobile-body-sm text-danger sm:hidden">
                         <span className="flex h-[var(--text-mobile-body-sm--line-height)] shrink-0 items-center">
-                            <Icon name="circle-alert" className="size-icon" />
+                            <Icon name="circle-alert" kind="words" className="size-icon" />
                         </span>
                         <span className="text-pretty">{COPY.refusal.none}</span>
                     </p>
@@ -178,7 +178,8 @@ function SearchBand({ value, onChange, readOnly, inputRef }) {
             >
                 <Icon
                     name="search"
-                    className="pointer-events-none size-icon-sm shrink-0 text-foreground-subtle sm:absolute sm:top-1/2 sm:left-input-inset-x sm:-translate-y-1/2 max-sm:size-mobile-input-icon"
+                    kind="qualifier"
+                    className="pointer-events-none size-icon-sm shrink-0 sm:absolute sm:top-1/2 sm:left-input-inset-x sm:-translate-y-1/2 max-sm:size-mobile-input-icon"
                 />
                 <input
                     ref={inputRef}
@@ -266,7 +267,7 @@ function JobList({ rows, noMatch, query, onToggle, locked }) {
                     key={job.id}
                     className="relative flex h-control-lg shrink-0 cursor-pointer items-center gap-menu-box-gap rounded-control px-input-inset-x text-body has-[input:focus-visible]:bg-hover sm:hover:bg-hover max-sm:h-auto max-sm:min-h-mobile-sign-in-option max-sm:gap-mobile-sign-in-option-inline max-sm:rounded-none max-sm:px-mobile-gutter max-sm:active:bg-hover max-sm:not-first:before:absolute max-sm:not-first:before:inset-x-mobile-gutter max-sm:not-first:before:top-0 max-sm:not-first:before:h-px max-sm:not-first:before:bg-divider-subtle"
                 >
-                    <span className="relative flex shrink-0 items-center justify-center max-sm:order-last">
+                    <span className="relative flex shrink-0 items-center justify-center text-white max-sm:order-last">
                         <input
                             type="checkbox"
                             checked={job.on}
@@ -274,7 +275,7 @@ function JobList({ rows, noMatch, query, onToggle, locked }) {
                             aria-disabled={locked || undefined}
                             className="peer size-icon cursor-pointer appearance-none rounded-badge border border-checkbox-border bg-white outline-none checked:border-primary checked:bg-primary max-sm:size-mobile-sign-in-check max-sm:rounded-full max-sm:border-[1.5px] max-sm:bg-transparent max-sm:checked:border-primary max-sm:checked:bg-primary"
                         />
-                        <Icon name="check" className="pointer-events-none absolute hidden size-sign-in-check-mark text-white peer-checked:block max-sm:size-mobile-sign-in-check-mark" />
+                        <Icon name="check" kind="words" className="pointer-events-none absolute hidden size-sign-in-check-mark peer-checked:block max-sm:size-mobile-sign-in-check-mark" />
                     </span>
                     <span className="flex min-w-0 flex-1 items-baseline max-sm:flex-col max-sm:items-stretch">
                         <span className="shrink-0 text-foreground-default tabular-nums max-sm:text-mobile-body max-sm:font-medium">{job.jobCode}</span>

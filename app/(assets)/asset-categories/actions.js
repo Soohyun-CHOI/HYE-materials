@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireUser, withSiteManagerAction } from "@/lib/authz";
+import { refuseWithThePage, requireUser, withSiteManagerAction } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllAssetCategories, getAssetCategoriesByRecordIds } from "@/lib/airtable/assetCategories";
 import { createAssets, getAssetByAssetId, getAssetsByRecordIds, getAssetsBySerialNumber } from "@/lib/airtable/assets";
@@ -112,7 +112,7 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * the dialog, as it reached none on the form before #449: it fails before anything this
  * action could word, where the refusal below is for a batch that ran and wrote none.
  */
-export const registerAssetsAction = withSiteManagerAction(registerAssetsHandler);
+export const registerAssetsAction = withSiteManagerAction(refuseWithThePage, registerAssetsHandler);
 
 async function registerAssetsHandler(prevState, formData) {
     return withOpsLabel("registerAssetsAction", async () => {

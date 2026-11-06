@@ -184,7 +184,7 @@ function AssetNotFound({ asked, account }) {
                 <MoreActions phone account={account} />
             </TopBar>
             <div className="flex flex-1 flex-col items-center justify-center px-page-gutter text-center max-sm:px-mobile-empty-state-inset-x max-sm:pb-mobile-empty-state-inset-bottom">
-                <Icon name="search-x" className="mb-gap size-mobile-empty-state-icon text-foreground-subtle sm:hidden" />
+                <Icon name="search-x" kind="qualifier" className="mb-gap size-mobile-empty-state-icon sm:hidden" />
                 <div className="flex flex-col items-center gap-mobile-title-block-stack max-sm:mt-gap">
                     <p className={`${ID_ON_PHONE} sm:hidden`}>{asked}</p>
                     <h1 className="text-heading font-semibold max-sm:text-mobile-heading-lg">{COPY.notFoundHeading}</h1>
@@ -330,6 +330,7 @@ async function renderAssetPage({ params }) {
             assetOwnerJobRecordId={asset.ownerJob?.[0] ?? null}
             assetId={asset.assetId}
             itemName={category?.itemName}
+            recentCheckOuts={recentCheckOuts}
         >
             <div className="font-ui text-foreground-default max-sm:flex max-sm:flex-1 max-sm:flex-col">
                 {/* THE PHONE'S HEAD (1j): `More actions`, which holds the retirement when there
@@ -454,7 +455,7 @@ async function renderAssetPage({ params }) {
                             them alone too. */}
                         {!transition.refusal && (transition.event || menuActs) && (
                             <div className="-mt-record-header-actions-bleed flex shrink-0 items-center gap-gap max-sm:hidden">
-                                {transition.event && <TransitionDialog recentCheckOuts={recentCheckOuts} />}
+                                {transition.event && <TransitionDialog />}
                                 {menuActs && <MoreActions />}
                             </div>
                         )}
@@ -595,12 +596,12 @@ function History({ rows, nameById, jobCodeById }) {
                             </p>
                             {route && (
                                 <p className="flex items-center gap-gap text-mobile-body-xs text-foreground-muted tabular-nums sm:hidden">
-                                    <Icon name="map-pin" className="size-mobile-log-icon shrink-0 text-foreground-subtle" />
+                                    <Icon name="map-pin" kind="qualifier" className="size-mobile-log-icon shrink-0" />
                                     <span className="inline-flex min-w-0 items-center gap-mobile-log-route-gap">
                                         {route.from && (
                                             <>
                                                 <span>{route.from}</span>
-                                                <Icon name="arrow-right" className="size-mobile-log-icon shrink-0 text-foreground-subtle" />
+                                                <Icon name="arrow-right" kind="qualifier" className="size-mobile-log-icon shrink-0" />
                                                 <span className="sr-only">{COPY.historyTo}</span>
                                             </>
                                         )}
@@ -610,7 +611,7 @@ function History({ rows, nameById, jobCodeById }) {
                             )}
                             {handedTo && (
                                 <p className="flex items-center gap-gap text-mobile-body-xs sm:hidden">
-                                    <Icon name="user" className="size-mobile-log-icon shrink-0 text-foreground-subtle" />
+                                    <Icon name="user" kind="qualifier" className="size-mobile-log-icon shrink-0" />
                                     <span className="min-w-0 text-pretty">{facts.checkedOutTo}</span>
                                 </p>
                             )}

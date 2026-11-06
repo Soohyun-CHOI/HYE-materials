@@ -303,18 +303,15 @@ export function RegistrationForm({ open, onClose, jobs, listJobId, category, cat
               ));
 
     // The line under the title (1b): the kind a page opened it on, or the name the first step
-    // picked — with where it stands, for a name in two places (#520) — and none while it picks.
+    // picked — with where it stands, for a name in two places (#520), 8 after it in Ink 3 as the
+    // list said it, where a dot parted the two until the files of 2026-11-05 drew the case (0a
+    // Menu, #614) — and none while it picks.
     const subtitle = category ? (
         category.itemName
     ) : step === "details" ? (
         <>
             {picked.level3}
-            {picked.place.length > 0 && (
-                <>
-                    <Dot />
-                    {placeOf(picked.place)}
-                </>
-            )}
+            {picked.place.length > 0 && <span className="ml-gap text-foreground-subtle">{placeOf(picked.place)}</span>}
         </>
     ) : undefined;
 

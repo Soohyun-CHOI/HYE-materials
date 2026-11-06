@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { Button, Field, FormBusy, Refusal, SheetInput, TextInput, useRefusalFocus } from "@/app/components/Controls";
+import { Button, Field, FormBusy, SheetInput, TextInput, useRefusalFocus } from "@/app/components/Controls";
 import { DialogFrame } from "@/app/components/DialogFrame";
 import Icon from "@/app/components/Icon";
 import { ASSET_NOTE_COPY, readNoteSubmission } from "@/lib/assetNote";
@@ -44,7 +44,11 @@ import { useAssetTransition } from "./AssetTransition";
  * goes once the field no longer holds the number refused, since it is about that number alone.
  *
  * THE ANSWER IS THE PROVIDER'S (`AssetTransition.js:useDetail`), said where the press was while the
- * opening that sent it stands, and under the status once the page has ended it (#597).
+ * opening that sent it stands. A desk's editor stands until the reader closes it, so every answer it
+ * gets is said in its field's line — the item moved, or no longer the reader's to write, too — its
+ * `Save` `unavailable` once the page drawn again no longer lets the reader write the detail (#614); a
+ * phone's sheet keeps its own answers and the page ends it for one about whose the item is, said
+ * under the status (#597).
  *
  * EVERY STRING COMES FROM `ASSET_SERIAL_COPY`, `ASSET_NOTE_COPY` OR `ASSET_COPY`, which
  * `offline/asset-list-view.mjs` holds by failing on any JSX text under app/(assets)/.
@@ -59,7 +63,7 @@ const DETAILS = {
         addName: ASSET_SERIAL_COPY.addSerial,
         editName: ASSET_SERIAL_COPY.editSerial,
         emptyText: ASSET_SERIAL_COPY.addSerial,
-        mark: <Icon name="barcode" className="size-icon text-foreground-muted" />,
+        mark: <Icon name="barcode" kind="qualifier" className="size-icon" />,
         face: "figures",
         // A serial number is a maker's, set with even figures and not in the portal's id face (0h,
         // #607), and a desk types it as it is read.
@@ -76,7 +80,7 @@ const DETAILS = {
         addName: ASSET_NOTE_COPY.addNote,
         editName: ASSET_NOTE_COPY.editNote,
         emptyText: ASSET_NOTE_COPY.addANote,
-        mark: <Icon name="message-square" className="size-icon text-foreground-muted" />,
+        mark: <Icon name="message-square" kind="qualifier" className="size-icon" />,
         face: "text",
         fieldFace: "",
         read: (input) => readNoteSubmission({ mayWriteNote: true }, input),
@@ -99,7 +103,9 @@ function workingOf(detail, answer, stored) {
 /**
  * The action's answer as the field draws it: a serial number taken names the item holding it in the
  * id's face, while the field still holds the number refused (`taken`); anything else is the sentence
- * as it came (`said`), drawn where the dialog's actions would say it.
+ * as it came (`said`), the field's `notice` in the help's place with the count kept at the line's end,
+ * as the files of 2026-11-05 draw a value somebody else changed first (#614), where it stood under the
+ * field as a line of its own until then.
  */
 function serverAnswer(control, draft) {
     if (!control.refusal) return { taken: null, said: null };
@@ -123,10 +129,12 @@ const VALUE_FACE = { figures: "tabular-nums [overflow-wrap:anywhere]", text: "te
  * the reader may write, the serial number first — 40 over the label's block, at the rail's head.
  */
 export function DetailsBlock({ serialNumber, note, mayWriteSerial, mayWriteNote }) {
+    const transition = useAssetTransition();
+    // A row whose editor stands across a page that no longer lets the reader write it keeps its place (#614).
     const rows = [
         { kind: "serial", value: serialNumber, writable: mayWriteSerial },
         { kind: "note", value: note, writable: mayWriteNote },
-    ].filter((row) => row.value || row.writable);
+    ].filter((row) => row.value || row.writable || transition?.[row.kind]?.openOn === "desk");
     if (rows.length === 0) return null;
     return (
         <section className="pb-details-block-stack">
@@ -144,7 +152,7 @@ export function DetailsBlock({ serialNumber, note, mayWriteSerial, mayWriteNote 
 function DetailsRow({ kind, value, writable }) {
     const detail = DETAILS[kind];
     const control = useAssetTransition()[kind];
-    const open = writable && control.openOn === "desk";
+    const open = control.openOn === "desk";
     const openerRef = useRef(null);
     // Focus goes back to what opened the field once it has closed and the opener is drawn again.
     const returning = useRef(false);
@@ -165,7 +173,7 @@ function DetailsRow({ kind, value, writable }) {
                 which a 26 control set inline in one drew 22. */}
             <dd className="flex min-w-0 flex-col items-start text-body">
                 {open ? (
-                    <RowEditor key={control.opening} kind={kind} value={value} control={control} onClose={close} />
+                    <RowEditor key={control.opening} kind={kind} value={value} available={writable} control={control} onClose={close} />
                 ) : value ? (
                     <div className="flex items-start justify-between gap-details-edit-inline self-stretch">
                         <span className={`min-w-0 text-foreground-default ${VALUE_FACE[detail.face]}`}>{value}</span>
@@ -180,7 +188,7 @@ function DetailsRow({ kind, value, writable }) {
                 ) : (
                     // `Add` in the value's column, its face reaching 8 left of it and its plus mark 3 (1f).
                     <button ref={openerRef} type="button" aria-label={detail.addName} onClick={() => control.start("desk")} className="-my-[calc((var(--height-control-inline)-var(--text-body--line-height))/2)] -ml-details-add-bleed-left inline-flex h-control-inline items-center gap-note-add-gap rounded-control pr-control-inline-inset-x pl-note-add-bleed-left text-body-sm font-semibold text-primary hover:bg-selected hover:text-primary-hover">
-                        <Icon name="plus" className="size-icon-sm shrink-0" />
+                        <Icon name="plus" kind="words" className="size-icon-sm shrink-0" />
                         {detail.copy.add}
                     </button>
                 )}
@@ -193,7 +201,7 @@ function DetailsRow({ kind, value, writable }) {
  * A row edited where it stands (1f): the field, 32 and centered on the row's line, the value in it
  * and the caret at its end; the note's line and count under it; `Cancel` and `Save` 12 under that.
  */
-function RowEditor({ kind, value, control, onClose }) {
+function RowEditor({ kind, value, available, control, onClose }) {
     const detail = DETAILS[kind];
     const [draft, setDraft] = useState(value);
     const [pressed, setPressed] = useState(false);
@@ -239,20 +247,16 @@ function RowEditor({ kind, value, control, onClose }) {
                     centered={false}
                     help={detail.help}
                     refusal={(pressed ? answer.refusal : null) ?? server.taken}
+                    notice={server.said}
                     count={detail.count?.(draft.length)}
                 >
                     <TextInput size="md" value={draft} onChange={setDraft} inputRef={inputRef} autoComplete="off" {...detail.typing} />
                 </Field>
-                {server.said && (
-                    <div className="pt-details-actions-stack">
-                        <Refusal>{server.said}</Refusal>
-                    </div>
-                )}
                 <div className="flex justify-end gap-gap pt-details-actions-stack">
                     <Button variant="bordered" size="md" onClick={onClose}>
                         {detail.copy.cancel}
                     </Button>
-                    <Button type="submit" size="md" busyLabel={detail.copy.working[workingOf(detail, answer, value)]}>
+                    <Button type="submit" size="md" unavailable={!available} busyLabel={detail.copy.working[workingOf(detail, answer, value)]}>
                         {detail.copy.save}
                     </Button>
                 </div>
@@ -364,14 +368,17 @@ function DetailSheet({ kind, value, open, control }) {
             done={{ label: detail.copy.done, onPress: done, busyLabel: detail.copy.working[workingOf(detail, answer, value)] }}
         >
             <div className="flex flex-col px-mobile-gutter">
-                <Field label={detail.name} labelHidden size="xl" help={detail.help} refusal={(pressed ? answer.refusal : null) ?? server.taken} count={detail.count?.(draft.length)}>
+                <Field
+                    label={detail.name}
+                    labelHidden
+                    size="xl"
+                    help={detail.help}
+                    refusal={(pressed ? answer.refusal : null) ?? server.taken}
+                    notice={server.said}
+                    count={detail.count?.(draft.length)}
+                >
                     <SheetInput value={draft} onChange={setDraft} onDone={done} clearLabel={detail.copy.clear} {...detail.typing} />
                 </Field>
-                {server.said && (
-                    <div className="pt-mobile-drawer-body-stack">
-                        <Refusal>{server.said}</Refusal>
-                    </div>
-                )}
             </div>
         </DialogFrame>
     );

@@ -285,7 +285,7 @@ export default function AssetList({ categoryRecordId, itemName, selects, showsJo
                             <span role="cell" className="flex self-center">
                                 {row.note && (
                                     <span role="img" aria-label={COPY.noteMark(row.note)} data-tip={row.note} className="relative flex h-[var(--text-body--line-height)] w-(--size-icon) items-center justify-center">
-                                        <Icon name="message-square" className="size-icon-sm text-foreground-subtle" />
+                                        <Icon name="message-square" kind="qualifier" className="size-icon-sm" />
                                     </span>
                                 )}
                             </span>

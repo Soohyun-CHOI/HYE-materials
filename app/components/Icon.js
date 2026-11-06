@@ -1,8 +1,21 @@
 /*
  * Every mark the design draws, and the one frame they are drawn in (#502). Claude Design draws
  * each from Lucide on its 24 grid, stroked at 1.25px whatever its size, with round caps and
- * joins (0a Icon box); a screen names the shape here and gives it a size, its ink coming from
- * the text around it. `docs/notes/design-system.md` has what was weighed and measured.
+ * joins (0a Icon box); a screen names the shape here, gives it a size and says what kind of
+ * mark it is, and the kind is its ink. `docs/notes/design-system.md` has what was weighed and
+ * measured.
+ *
+ * A MARK'S INK IS WHAT IT DOES, AND IT IS DECIDED HERE AND NOWHERE ELSE (#614). The files of
+ * 2026-11-05 give the Icon box a rule for a mark beside words: one that names or qualifies what
+ * follows — a status, the value a control holds, a field, a value or note line, a detail in a
+ * log line — is Ink 3 whatever its words take (`qualifier`); one that belongs to what the reader
+ * does or is told — a button, a rail or path item, a message, an error — takes its words' ink
+ * and lifts with them (`words`); and one that marks what is current or chosen is Accent and
+ * leaves its words at Ink (`current`). So a call names its `kind` and never a color: the two
+ * inks a kind fixes are `--color-icon-subtle` and `--color-icon-selected`, and `words` is the
+ * `currentColor` the frame already strokes in. A mark standing in a control of its own — a
+ * checkbox's check, a clear's × — is `words`, its control's ink being its words'.
+ * `offline/icons.mjs` holds every call to a kind and none to a color class.
  *
  * LUCIDE 1.52.0'S SHAPES, COPIED RATHER THAN DEPENDED ON. That is the release the design draws
  * its marks from since Design moved them to it on 2026-10-07; that morning's files drew Lucide as
@@ -202,16 +215,20 @@ const SHAPES = {
     ],
 };
 
+// Each kind's ink (0a Icon box, #614): the two a kind fixes, and its words' for the third.
+const KIND_INK = { qualifier: "text-icon-subtle", current: "text-icon-selected", words: "" };
+
 /**
- * One mark: `name` is its shape's Lucide name, `className` its size — a `size-*` name the
- * design gives it, or a height alone when it is cropped — and anything else it takes from where
- * it stands, its ink among them. `crop` is the grid's columns its ink spans, `[from, width]`.
+ * One mark: `name` is its shape's Lucide name, `kind` what it does beside its words, which is
+ * its ink — `qualifier`, `words` or `current` (above) — and `className` its size, a `size-*`
+ * name the design gives it or a height alone when it is cropped, and where it stands, but no
+ * color. `crop` is the grid's columns its ink spans, `[from, width]`.
  *
  * The shapes are drawn before the frame holds them, so `scripts/screen-strings.mjs` — which
  * takes a module's table read inside a JSX child as a screen's words — does not list their
  * path data as copy on every screen that draws a mark.
  */
-export default function Icon({ name, crop, className }) {
+export default function Icon({ name, kind, crop, className }) {
     const shapes = SHAPES[name].map(([Shape, attributes], index) => <Shape key={index} vectorEffect="non-scaling-stroke" {...attributes} />);
     return (
         <svg
@@ -222,7 +239,7 @@ export default function Icon({ name, crop, className }) {
             strokeLinejoin="round"
             aria-hidden="true"
             style={crop ? { aspectRatio: `${crop[1]} / 24` } : undefined}
-            className={`stroke-icon ${crop ? "overflow-visible" : ""} ${className}`}
+            className={`stroke-icon ${KIND_INK[kind]} ${crop ? "overflow-visible" : ""} ${className}`}
         >
             {shapes}
         </svg>

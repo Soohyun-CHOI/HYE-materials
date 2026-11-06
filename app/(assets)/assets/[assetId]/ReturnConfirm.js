@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { Button } from "@/app/components/Controls";
 import { DialogActions, DialogBody, DialogFrame, DialogMessage } from "@/app/components/DialogFrame";
 import { ASSET_EVENT } from "@/lib/assetStatus";
@@ -11,10 +12,15 @@ import { ASSET_TRANSITION_COPY as COPY } from "@/lib/assetTransition";
  * (`RetirementConfirm`), as the files draw the two alike.
  *
  * A PART, OPENED BY `More actions`' `Return to owner` at either width and drawn once for both by the
- * page's provider (`AssetTransition.js`), which holds the return's answer: a refusal that takes this
- * away — the item returned or moved since, so the reader no longer records on it — is said under the
- * status of the page drawn again. So it is handed whether it is open, the asset and the job it was
- * drawn on, the two jobs it names, the wait and the sentence it says.
+ * page's provider (`AssetTransition.js`), which holds the return's answer. So it is handed whether it is
+ * open and whether the page still offers it, the asset and the job it was drawn on, the two jobs it
+ * names as it was opened on them, the wait and the sentence it says.
+ *
+ * WHERE ITS ANSWER IS SAID IS THE PROVIDER'S (#614): at a desk above its actions, every refusal and a
+ * press left half done alike, the question standing until the reader closes it, its commitment
+ * `unavailable` and described by the sentence once the page drawn again no longer offers the act
+ * (`available`), live while it does; on a phone any answer closes it and is said under the status,
+ * as the files of 2026-11-05 draw both.
  *
  * THE TITLE ASKS AND NAMES THE ITEM AND THE JOB IT GOES BACK TO, AND THE LINE UNDER IT IS THE ID; the
  * one sentence says what becomes true — the item is on its owner's list again and this job no longer
@@ -26,7 +32,8 @@ import { ASSET_TRANSITION_COPY as COPY } from "@/lib/assetTransition";
  * left half done is said above its actions, and pressing again finishes it; a landing draws the page
  * again on the owner job, and this goes with the line that opened it.
  */
-export default function ReturnConfirm({ open, onClose, assetId, drawnJobId, itemName, ownerJobCode, jobCode, busy, refusal, send }) {
+export default function ReturnConfirm({ open, onClose, available, assetId, drawnJobId, itemName, ownerJobCode, jobCode, busy, refusal, send }) {
+    const refusalId = useId();
     const submit = (event) => {
         event.preventDefault();
         send(new FormData(event.currentTarget));
@@ -48,11 +55,11 @@ export default function ReturnConfirm({ open, onClose, assetId, drawnJobId, item
             <DialogBody>
                 <DialogMessage>{COPY.returnBody({ ownerJobCode, jobCode })}</DialogMessage>
             </DialogBody>
-            <DialogActions refusal={refusal}>
+            <DialogActions refusal={refusal} refusalId={refusalId}>
                 <Button variant="bordered" onClick={onClose}>
                     {COPY.cancel}
                 </Button>
-                <Button type="submit" busyLabel={COPY.working[ASSET_EVENT.RETURNED_TO_OWNER]}>
+                <Button type="submit" unavailable={!available} describedBy={!available && refusal ? refusalId : undefined} busyLabel={COPY.working[ASSET_EVENT.RETURNED_TO_OWNER]}>
                     {COPY.returnSubmit}
                 </Button>
             </DialogActions>

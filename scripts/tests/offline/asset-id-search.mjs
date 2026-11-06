@@ -227,9 +227,20 @@ export function run({ check, log }) {
     );
     check(
         "  and draws on the design's names for its 40, its 12 inside and its 16 to the chevron, on the Face inside its Edge",
-        /className="group flex h-found-item items-center gap-found-item-inline rounded-control border border-selected-border bg-selected px-found-item-inset-x /.test(found) &&
-            /<Icon name="chevron-right" className="size-icon shrink-0 text-primary group-hover:text-primary-hover" \/>/.test(found),
+        /className="flex h-found-item items-center gap-found-item-inline rounded-control border border-selected-border bg-selected px-found-item-inset-x /.test(found) &&
+            /<Icon name="chevron-right" kind="words" className="size-icon shrink-0" \/>/.test(found),
         true
+    );
+    // ITS CHEVRON IS THE LINK'S ACCENT AND LIFTS WITH IT, ITS WORDS IN INK (1a3, #614): a mark that
+    // belongs to the press takes the press's ink (0a Icon box), so the link is Accent and Accent
+    // hover and the words inside it stand in Ink, as 1a3 draws them.
+    check(
+        "  the line is a link in Accent lifting under the pointer, its chevron taking that ink and its words in Ink (#614)",
+        [
+            /px-found-item-inset-x text-body text-primary outline-none hover:bg-selected-hover hover:text-primary-hover /.test(found),
+            /<span className="flex min-w-0 flex-1 items-center overflow-hidden whitespace-nowrap text-foreground-default">/.test(found),
+        ].join(" "),
+        "true true"
     );
 
     const frame = parseFile(FRAME).source;

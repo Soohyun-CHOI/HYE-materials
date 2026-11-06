@@ -98,7 +98,7 @@ export default function TransitionBar({ recentCheckOuts }) {
             focusRefused(event.currentTarget);
             return;
         }
-        send(formData);
+        send(formData, "phone");
     };
 
     return (
@@ -114,7 +114,7 @@ export default function TransitionBar({ recentCheckOuts }) {
                             <SheetField
                                 value={name}
                                 placeholder={COPY.checkedOutToLabel}
-                                icon={<Icon name="user" className="size-full" />}
+                                icon={<Icon name="user" kind="qualifier" className="size-full" />}
                                 onOpen={() => setNaming(true)}
                                 onClear={() => setName("")}
                                 clearLabel={COPY.clearName}

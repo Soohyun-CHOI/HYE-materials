@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { Button } from "@/app/components/Controls";
 import { DialogActions, DialogBody, DialogFrame, DialogMessage } from "@/app/components/DialogFrame";
 import { ASSET_OFFICE_COPY as COPY } from "@/lib/assetOfficeActs";
@@ -10,10 +11,14 @@ import { ASSET_OFFICE_COPY as COPY } from "@/lib/assetOfficeActs";
  * (`RetirementConfirm`), as the files draw both alike.
  *
  * A PART, OPENED BY `More actions`' `Delete this item` at either width and drawn once for both by
- * the page's provider (`AssetTransition.js`), which holds the deletion's answer: a refusal that
- * takes this away — something recorded since, a reader no longer the office — is said under the
- * status of the page drawn again, where the job change says its own, and that needs the answer to
- * outlive this. So it is handed whether it is open, the asset, the wait and the sentence it says.
+ * the page's provider (`AssetTransition.js`), which holds the deletion's answer. So it is handed whether
+ * it is open and whether the page still offers it, the asset, the wait and the sentence it says.
+ *
+ * WHERE ITS ANSWER IS SAID IS THE PROVIDER'S (#614): at a desk above its actions, every refusal and a
+ * press left half done alike, the question standing until the reader closes it, its commitment
+ * `unavailable` and described by the sentence once the page drawn again no longer offers the act
+ * (`available`), live while it does; on a phone any answer closes it and is said under the status,
+ * as the files of 2026-11-05 draw both.
  *
  * THE TITLE ASKS AND NAMES THE ITEM, AND THE LINE UNDER IT IS THE ID AND NOTHING ELSE; the one
  * sentence says what becomes true; the commitment is filled red with the act's verb (0f
@@ -26,7 +31,8 @@ import { ASSET_OFFICE_COPY as COPY } from "@/lib/assetOfficeActs";
  * left half done is said above its actions, and pressing again finishes it; a landing goes to the
  * item's kind's list (`deletedLanding`), and the page this stood on goes with it.
  */
-export default function DeleteConfirm({ open, onClose, assetId, itemName, busy, refusal, send }) {
+export default function DeleteConfirm({ open, onClose, available, assetId, itemName, busy, refusal, send }) {
+    const refusalId = useId();
     const submit = (event) => {
         event.preventDefault();
         send(new FormData(event.currentTarget));
@@ -47,11 +53,11 @@ export default function DeleteConfirm({ open, onClose, assetId, itemName, busy, 
             <DialogBody>
                 <DialogMessage>{COPY.deleteBody}</DialogMessage>
             </DialogBody>
-            <DialogActions refusal={refusal}>
+            <DialogActions refusal={refusal} refusalId={refusalId}>
                 <Button variant="bordered" onClick={onClose}>
                     {COPY.cancel}
                 </Button>
-                <Button variant="danger" type="submit" busyLabel={COPY.deleteWorking}>
+                <Button variant="danger" type="submit" unavailable={!available} describedBy={!available && refusal ? refusalId : undefined} busyLabel={COPY.deleteWorking}>
                     {COPY.deleteSubmit}
                 </Button>
             </DialogActions>

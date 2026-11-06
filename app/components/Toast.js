@@ -1,14 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import { focusPageHeading } from "./DialogFrame";
 import Icon from "./Icon";
 
 // Its action and its dismiss: faceless 32s in white, filling at Toast's own hover (0k Toast).
 const TOAST_BUTTON = "flex h-control shrink-0 items-center justify-center rounded-control text-white hover:bg-toast-hover";
 
-// Whatever closes a toast hands focus back to its opener first, if focus is inside it.
+// Whatever closes a toast hands focus back to its opener first, if focus is inside it — or, where the
+// page drawn again took the opener away, to the page's heading (#614).
 function closeToast(toast, opener, then) {
-    if (toast?.contains(document.activeElement)) opener?.current?.focus();
+    if (opener && toast?.contains(document.activeElement)) {
+        if (opener.current?.isConnected) opener.current.focus();
+        else focusPageHeading();
+    }
     then();
 }
 
@@ -20,7 +25,11 @@ function closeToast(toast, opener, then) {
  * line names what happened and the action what to do next, and the caller's words keep them
  * apart; this file has no words of its own.
  *
- * WRITTEN FOR 1a's EXPORT (#566), AND A FAILURE IS ALL IT DRAWS. A failure leads its line with a
+ * WRITTEN FOR 1a's EXPORT (#566), AND A FAILURE IS ALL IT DRAWS. Its action is the caller's to give:
+ * an item's page at a desk says a refused press with no dialog here (#614) and gives none, 1f's
+ * toast holding its line and its dismiss alone, and `desk` keeps it from the phone, which says the
+ * same answer under the status (1k). A moment in its line is the date's notation with its slashes at
+ * the toast's 60%, where the page's are 45% (`--opacity-toast-date-separator`, 1f). A failure leads its line with a
  * 16 white alert mark 8 before it and stays until it is dismissed or its action is taken (0k),
  * so `shown` is the caller's and nothing here times it out. A toast that reports a success,
  * which no screen draws yet, drops the mark; whether it goes by itself is the design's to say.
@@ -40,7 +49,7 @@ function closeToast(toast, opener, then) {
  * whose press it reports: its action and its dismiss go with it, and focus never falls to the
  * page (`modalStyles.js`). One its caller stops drawing goes with the caller (#495).
  */
-export default function Toast({ shown, line, action, onAction, dismissLabel, onDismiss, opener }) {
+export default function Toast({ shown, line, action, onAction, dismissLabel, onDismiss, opener, desk = false }) {
     const toastRef = useRef(null);
 
     const place = useCallback(() => {
@@ -82,18 +91,20 @@ export default function Toast({ shown, line, action, onAction, dismissLabel, onD
             ref={toastRef}
             popover="manual"
             role="alert"
-            className="inset-auto bottom-0 mx-0 mt-0 mb-toast-offset h-toast -translate-x-1/2 items-center gap-toast-inline overflow-visible rounded-card bg-foreground-default pr-toast-inset-right pl-toast-inset-left font-ui whitespace-nowrap text-white shadow-toast open:flex"
+            className={`inset-auto bottom-0 mx-0 mt-0 mb-toast-offset h-toast -translate-x-1/2 items-center gap-toast-inline overflow-visible rounded-card bg-foreground-default pr-toast-inset-right pl-toast-inset-left font-ui whitespace-nowrap text-white shadow-toast open:flex ${desk ? "max-sm:open:hidden" : ""}`}
         >
-            <span className="flex items-center gap-gap text-body">
-                <Icon name="circle-alert" className="size-icon shrink-0" />
+            <span className="flex items-center gap-gap text-body [--opacity-date-separator:var(--opacity-toast-date-separator)]">
+                <Icon name="circle-alert" kind="words" className="size-icon shrink-0" />
                 {line}
             </span>
             <div className="flex items-center gap-toast-action-gap">
-                <button type="button" onClick={() => closeToast(toastRef.current, opener, onAction)} className={`${TOAST_BUTTON} px-ghost-inset-x text-body font-semibold`}>
-                    {action}
-                </button>
+                {action && (
+                    <button type="button" onClick={() => closeToast(toastRef.current, opener, onAction)} className={`${TOAST_BUTTON} px-ghost-inset-x text-body font-semibold`}>
+                        {action}
+                    </button>
+                )}
                 <button type="button" aria-label={dismissLabel} onClick={() => closeToast(toastRef.current, opener, onDismiss)} className={`${TOAST_BUTTON} aspect-square`}>
-                    <Icon name="x" className="size-icon-sm" />
+                    <Icon name="x" kind="words" className="size-icon-sm" />
                 </button>
             </div>
         </div>

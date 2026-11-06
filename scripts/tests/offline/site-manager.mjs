@@ -15,15 +15,17 @@
 //      alone, and nothing on the assets axis asking the office's flag or the role instead —
 //      but for the one read #509 admits, in the list's scope (`SCOPE` below).
 //   2. THE SERVER. Every export of a `"use server"` file on the assets axis is
-//      `withSiteManagerAction(handler)`, found by walking the tree rather than listed — so
+//      `withSiteManagerAction(refuse, handler)`, found by walking the tree rather than listed — so
 //      a fifth action fails until it is wrapped and this inventory says so — and no handler
 //      is exported, so the wrapper cannot be stepped round. The office's are the exception and
 //      are held file by file: the catalog's page's (#527), and an asset's job change in
 //      `officeActions.js` beside its page's (#583), each `withAdminAction` round a handler kept
 //      in, and no action of a site manager's stands in those files or one of the office's in
-//      theirs. lib/authz.js binds that wrapper
-//      to `createFlagGuard` over a gate whose verdict is `isSiteManager`, with a refusal that
-//      re-renders the page and says nothing.
+//      theirs. lib/authz.js makes that wrapper
+//      `createFlagGuard` over a gate whose verdict is `isSiteManager`, and each call site passes
+//      one of two refusals (#614): the page again and nothing said, the labels' and the
+//      registration's, or on an item's page whose item it is, which reads the item and writes
+//      nothing.
 //   3. THE SCREENS. Each asset page asks its one answer once, and every control a site manager
 //      alone uses is drawn under it. It was `isSiteManager`, bound to `recorder` on each page,
 //      until #597 put the item's job in it: the two lists bind `recording` to
@@ -60,6 +62,7 @@ const CATEGORY = "app/(assets)/asset-categories/[categoryRecordId]/page.js";
 const ITEM = "app/(assets)/assets/[assetId]/page.js";
 const ASSET_LIST = "app/(assets)/asset-categories/[categoryRecordId]/AssetList.js";
 const LABELS = "app/(assets)/assets/LabelsDialog.js";
+const ITEM_ACTIONS = "app/(assets)/assets/[assetId]/actions.js";
 
 /** The assets axis's server actions, each `file::export`. One more fails until it is here. */
 const ASSET_ACTIONS = [
@@ -211,6 +214,22 @@ export function wrappingOf(ast, exportName) {
     return `${nameOf(init.callee)}(${init.arguments.length} arg${init.arguments.length === 1 ? "" : "s"}), handler ${
         exported.has(handlerName) ? "EXPORTED" : "not exported"
     }`;
+}
+
+/**
+ * The refusal a wrapped export passes before its handler (#614): the name it passes, the kind of
+ * expression when it is not a name, or `none` for an export wrapped round its handler alone or not
+ * wrapped at all.
+ */
+function refusalOf(ast, exportName) {
+    let init = null;
+    for (const node of ast.body) {
+        if (node.type !== "ExportNamedDeclaration") continue;
+        for (const d of node.declaration?.declarations ?? []) if (d.id.name === exportName) init = d.init;
+    }
+    if (init?.type !== "CallExpression" || init.arguments.length < 2) return "none";
+    const refusal = init.arguments[0];
+    return refusal.type === "Identifier" ? refusal.name : refusal.type;
 }
 
 /**
@@ -373,7 +392,7 @@ export function run({ check, assert, log }) {
         "  each withSiteManagerAction around a handler nobody can call round it, the office's withAdminAction, the list's reads neither",
         actions.map((e) => `${e.name}: ${wrappingOf(e.ast, e.name)}`).sort().join(" | "),
         [
-            ...ASSET_ACTIONS.map((key) => `${key.split("::")[1]}: withSiteManagerAction(1 arg), handler not exported`),
+            ...ASSET_ACTIONS.map((key) => `${key.split("::")[1]}: withSiteManagerAction(2 args), handler not exported`),
             ...CATALOG_ACTIONS.map((key) => `${key.split("::")[1]}: withAdminAction(2 args), handler not exported`),
             ...OFFICE_ACTIONS.map((key) => `${key.split("::")[1]}: withAdminAction(2 args), handler not exported`),
             ...READ_ACTIONS.map((key) => `${key.split("::")[1]}: not a wrapped export`),
@@ -381,21 +400,79 @@ export function run({ check, assert, log }) {
             .sort()
             .join(" | ")
     );
+    // WHICH REFUSAL EACH PASSES (#614). A refusal is a function the gate calls in the handler's
+    // place, so a call site choosing it is a call site choosing what runs for a reader the gate
+    // turned away: one of the two below, and nothing else.
+    check(
+        "  each passes its refusal: an item's page names whose item it is, the labels and the registration say nothing",
+        actions
+            .filter((e) => ASSET_ACTIONS.includes(`${e.file}::${e.name}`))
+            .map((e) => `${e.name}: ${refusalOf(e.ast, e.name)}`)
+            .sort()
+            .join(" | "),
+        ASSET_ACTIONS.map((key) => {
+            const [file, name] = key.split("::");
+            return `${name}: ${file === ITEM_ACTIONS ? "refuseNotASiteManager" : "refuseWithThePage"}`;
+        })
+            .sort()
+            .join(" | ")
+    );
     // ANTI-VACUITY: the classifier tells the right wrapper from another, a handler kept in from
     // one exported beside it, and a plain export from a wrapped one.
     const planted = parseSource(
-        "export const a = withSiteManagerAction(aHandler);\nasync function aHandler() {}\n" +
+        "export const a = withSiteManagerAction(refuseWithThePage, aHandler);\nasync function aHandler() {}\n" +
             "export const b = withAdminAction(() => null, bHandler);\nasync function bHandler() {}\n" +
-            "export const c = withSiteManagerAction(cHandler);\nexport async function cHandler() {}\n" +
+            "export const c = withSiteManagerAction(refuseWithThePage, cHandler);\nexport async function cHandler() {}\n" +
             "export async function d() {}\n",
         "<planted-actions>"
     ).ast;
     check(
         "  and a planted file's four shapes are told apart",
         ["a", "b", "c", "d"].map((name) => wrappingOf(planted, name)).join(" | "),
-        "withSiteManagerAction(1 arg), handler not exported | withAdminAction(2 args), handler not exported | " +
-            "withSiteManagerAction(1 arg), handler EXPORTED | not a wrapped export"
+        "withSiteManagerAction(2 args), handler not exported | withAdminAction(2 args), handler not exported | " +
+            "withSiteManagerAction(2 args), handler EXPORTED | not a wrapped export"
     );
+    check(
+        "  and a planted refusal is read as named, inline or missing",
+        ["a", "b", "d"].map((name) => refusalOf(planted, name)).join(" | ") +
+            " | " +
+            refusalOf(parseSource("export const e = withSiteManagerAction(eHandler);\n", "<planted-one>").ast, "e"),
+        "refuseWithThePage | ArrowFunctionExpression | none | none"
+    );
+
+    // THE ITEM'S REFUSAL READS THE ITEM AND THE JOBS, AND WRITES NOTHING (#614): every call it makes
+    // is one of these, its plan is of a reader who records on nothing — the gate's verdict — and it
+    // answers through the page's `refuse`, which draws the page again. Not exported, since an export
+    // of a `"use server"` file is an entry point.
+    {
+        const item = parseFile(ITEM_ACTIONS);
+        const fn = resolveFunction(item.ast, "refuseNotASiteManager");
+        const called = new Set();
+        let user = "none";
+        const returned = [];
+        walk(fn ?? {}, (n) => {
+            if (n.type === "CallExpression") called.add(n.callee?.type === "MemberExpression" ? n.callee.property?.name : n.callee?.name);
+            if (n.type === "CallExpression" && n.callee?.name === "planTransition") {
+                const prop = n.arguments[0]?.properties?.find((p) => p.key?.name === "user");
+                user = prop ? item.source.slice(prop.value.start, prop.value.end) : "absent";
+            }
+            if (n.type === "ReturnStatement") returned.push(n.argument?.callee?.name ?? n.argument?.type ?? "nothing");
+        });
+        check(
+            "the item's refusal calls only its reads, the plan, the refusal's sentence and the page's refuse",
+            [...called].sort().join(", "),
+            "String, get, getAllJobs, getAssetByAssetId, planTransition, recordingRefusal, refuse"
+        );
+        check("  plans for a reader who records on nothing, and answers through refuse", `${user}; ${returned.join(", ")}`, "null; refuse, refuse");
+        // THE FORM'S DRAWN JOB IS COMPARED, as the bodies compare it, so an item moved since the page
+        // was drawn says where it is now and one that did not says the reader may not (#614).
+        check(
+            "  and compares the job the form was drawn on, as the bodies do (#614)",
+            fn ? /recordingRefusal\(plan, \{ drawnJobId: String\(formData\.get\("drawnJobId"\) \?\? ""\) \}\)/.test(item.source.slice(fn.start, fn.end)) : false,
+            true
+        );
+        check("  and is no entry point", /export (async )?function refuseNotASiteManager|export const refuseNotASiteManager/.test(item.source), false);
+    }
 
     const authz = parseFile(AUTHZ);
     const declared = (name) => {
@@ -406,12 +483,7 @@ export function run({ check, assert, log }) {
         return found;
     };
     const text = (node) => (node ? authz.source.slice(node.start, node.end).replace(/\s+/g, " ") : "none");
-    check(
-        "lib/authz.js binds the wrapper to one guard and one refusal",
-        text(declared("withSiteManagerAction")),
-        "(handler) => siteManagerGuard(refuseWithThePage, handler)"
-    );
-    check("  the guard the flag factory makes of the site manager's gate", text(declared("siteManagerGuard")), "createFlagGuard(requireSiteManager)");
+    check("lib/authz.js makes the wrapper the flag factory's guard of the site manager's gate", text(declared("withSiteManagerAction")), "createFlagGuard(requireSiteManager)");
     const gate = resolveFunction(authz.ast, "requireSiteManager");
     let verdict = "none";
     walk(gate ?? {}, (n) => {
@@ -430,6 +502,7 @@ export function run({ check, assert, log }) {
         `${refusal ? callsTo(refusal, "refresh").length : 0} refresh, returns ${returned.join(", ")}`,
         "1 refresh, returns null"
     );
+    check("  exported, for the labels and the registration to pass (#614)", /\nexport function refuseWithThePage\(\)/.test(authz.source.replace(/\r\n/g, "\n")), true);
 
     // ── 3: the screens ───────────────────────────────────────────────────────
     log("");

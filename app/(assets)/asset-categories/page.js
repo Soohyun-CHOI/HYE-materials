@@ -180,7 +180,7 @@ async function renderCategoriesPage({ searchParams }) {
     const opener = recording.adds && <RegistrationDialog key="registration" {...registration} />;
     // The way to the catalog, the office's alone (#527) and in every state of the head.
     const catalog = office && (
-        <ButtonLink key="catalog" variant="faced" mark={<Icon name="book-open" className="size-icon shrink-0" />} href={ASSET_CATALOG_PATH}>
+        <ButtonLink key="catalog" variant="faced" mark={<Icon name="book-open" kind="words" className="size-icon shrink-0" />} href={ASSET_CATALOG_PATH}>
             {ASSET_CATALOG_COPY.heading}
         </ButtonLink>
     );
