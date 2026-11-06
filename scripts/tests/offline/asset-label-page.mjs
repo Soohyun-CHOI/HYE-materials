@@ -95,6 +95,7 @@ const SIDE_MODULES_TODAY = 33;
 
 /** The files several sections below read off the AST. */
 const COMPONENT_SOURCE = "app/(assets)/assets/LabelsDialog.js";
+const LIST_SOURCE = "app/(assets)/asset-categories/[categoryRecordId]/AssetList.js";
 const ACTION_SOURCE = "app/(assets)/assets/actions.js";
 const CSS_SOURCE = "app/(assets)/assets/labels.css";
 const MODULE_SOURCE = "lib/assetLabelPage.js";
@@ -225,7 +226,69 @@ function plantedRun(sides, missing = []) {
     };
 }
 
+/**
+ * A category's labels as #616 has them, read off the dialog's source and the list's: the press opens
+ * the dialog and reads the run once, the answer a run, the action's refusal or a failure, an earlier
+ * press's not answered over a later one's; the frame says a refusal or a failure over its actions,
+ * `Print` waiting while the run reads or the face is awaited, reading again after a failure and
+ * turned away after a refusal; and the list holding the dialog outside its selection bar, which a
+ * refusal draws the page again without.
+ */
+function readFacts(dialog, list) {
+    const one = (pattern, source) => pattern.test(source);
+    return {
+        press: [
+            one(/press: \(assetIds\) => \{\s*setOpening\(\(count\) => count \+ 1\);\s*setAsked\(assetIds\);\s*setOpen\(true\);\s*read\(assetIds\);\s*\}/, dialog),
+            (dialog.match(/readAssetLabelsAction\(/g) ?? []).length === 1,
+            one(/answered = run\?\.error \? \{ refusal: run\.error \} : \{ run \};\s*\} catch \{\s*answered = \{ failed: true \};/, dialog),
+            one(/if \(sent === latest\.current\) setAnswer\(answered\);/, dialog),
+            one(/retry: \(\) => read\(asked\)/, dialog),
+        ].join(" "),
+        frame: [
+            one(/const said = refusal \?\? \(answer\?\.failed \? COPY\.readFailed : null\);/, dialog),
+            one(/<DialogActions refusal=\{said\} refusalId=\{refusalId\}>/, dialog),
+            one(/unavailable=\{refusal !== null\}\s+describedBy=\{refusal !== null \? refusalId : undefined\}/, dialog),
+            one(/onClick=\{run \? print : onRetry\}/, dialog),
+            one(/const preview = !run \? null :/, dialog),
+            one(/<LabelsFrame key=\{labels\.opening\} /, dialog),
+        ].join(" "),
+        face: one(/setPreparing\(true\);\s*await document\.fonts\.ready;/, dialog),
+        list: [
+            one(/const labels = useLabelRun\(\);/, list),
+            one(/onClick=\{\(\) => labels\.press\(selection\)\}/, list),
+            one(/<\/ListFrame>\s*<LabelRunFrame labels=\{labels\} title=\{LABEL_COPY\.openFromCategory\} itemName=\{itemName\} \/>/, list),
+            !one(/<LabelsDialog\b/, list),
+        ].join(" "),
+    };
+}
+
 export function run({ check, assert, log }) {
+    // ── #616: a category's dialog opens on the press and reads while it stands ──
+    // First, so no older line that throws under a mutation can keep these from failing. Tools 54
+    // draws `Loading…` on the dialog's `Print` and nothing on the opener (1e, 1f); Soo's ruling of
+    // 2026-11-06 opens the dialog at once and says a failed or refused read in it.
+    {
+        log("a category's labels open at once and are read while the dialog stands (#616):");
+        const facts = readFacts(parseFile(COMPONENT_SOURCE).source, parseFile(LIST_SOURCE).source);
+        check("the press opens the dialog and reads once, a run, a refusal or a failure answering the latest press", facts.press, "true true true true true");
+        check("  the frame says a refusal or a failure, Print reading again after one and turned away after the other", facts.frame, "true true true true true true");
+        check("  Print waiting while the face is awaited too", facts.face, true);
+        check("  the list opening it and holding it outside the bar a refusal takes away", facts.list, "true true true true");
+        check("  the failure's words, by value", COPY.readFailed, "Couldn't load the labels. Try again.");
+        check("  and the refusal's", COPY.noPermission, "You no longer have permission to print these labels.");
+        const planted = readFacts(
+            "export default function LabelsDialog() { const press = async () => { const read = await readAssetLabelsAction(assetIds); if (!read) return; setRun(read); setOpen(true); }; return <><Button busy={pending}>{title}</Button><LabelsFrame run={run} /></>; }\n" +
+                "function LabelsFrame({ run }) { const print = async () => { await document.fonts.ready; window.print(); }; return <DialogActions><Button disabled={printing === 0} onClick={print}>{title}</Button></DialogActions>; }\n",
+            "overlay={<SelectionBar><LabelsDialog title={LABEL_COPY.openFromCategory} assetIds={selection} /></SelectionBar>}</ListFrame>"
+        );
+        check(
+            "  a dialog opening after its read, as until #616, is seen so",
+            [planted.press, planted.frame, planted.face, planted.list].join(" / "),
+            "false true false false false / false false false false false false / false / false false false false"
+        );
+        log("");
+    }
+
     // ── 1: the stock, which is two inputs and nothing else ──────────────────
     log("the label on the stock, as it reads:");
     // ACROSS THE TAPE AND ALONG IT SINCE #526: the label prints turned a quarter turn, so
@@ -391,7 +454,9 @@ export function run({ check, assert, log }) {
         walk(ast, (n) => {
             if (n.type === "VariableDeclarator" && n.init?.type === "CallExpression" && n.init.callee?.name === "labelBudget")
                 bound = n.id.name;
-            if (n.type === "VariableDeclarator" && n.init?.type === "CallExpression" && n.init.callee?.name === "describeLabelRun")
+            // Since #616 the dialog describes a run once one has come, `run ? describeLabelRun(run) : {}`.
+            const described = n.init?.type === "ConditionalExpression" ? n.init.consequent : n.init;
+            if (n.type === "VariableDeclarator" && described?.type === "CallExpression" && described.callee?.name === "describeLabelRun")
                 bound = n.id.type === "ObjectPattern" && n.id.properties.some((p) => p.key?.name === "budget") ? "budget" : "none";
             if (n.type === "CallExpression" && n.callee?.name === "symbolBox") {
                 const prop = n.arguments[0]?.properties?.find((p) => p.key?.name === "budget");
@@ -1198,10 +1263,13 @@ export function run({ check, assert, log }) {
         });
         return found.sort().join(" | ");
     };
+    // Since #616 the column's whole body stands under a run having come, `run`, as a category's
+    // page reads it while the dialog stands.
     check(
         "each part stands under its own test",
         guards(component),
-        "elsewhere.length > 0 -> notYours | missing.length > 0 -> notFound | printing > 0 -> hintHeading+hintSteps | printing > 0 ? pages+page : noLabels | tooLarge > 0 -> symbolTooLarge"
+        "elsewhere.length > 0 -> notYours | missing.length > 0 -> notFound | printing > 0 -> hintHeading+hintSteps | printing > 0 ? pages+page : noLabels | " +
+            "run -> count+size+notFound+notYours+symbolTooLarge+hintHeading+hintSteps | tooLarge > 0 -> symbolTooLarge"
     );
     const commitment = (parsed) => {
         let found = "none";
@@ -1217,7 +1285,7 @@ export function run({ check, assert, log }) {
     check(
         "  and the commitment is disabled with nothing to print, saying the title then",
         commitment(component),
-        "disabled printing === 0; printing > 0 ? COPY.print({ labels: printing }) : title"
+        "disabled run !== null && printing === 0; run && printing > 0 ? COPY.print({ labels: printing }) : title"
     );
     // ANTI-VACUITY: a frame drawing the steps whatever prints, and a commitment never
     // disabled, is seen doing both.
@@ -1275,9 +1343,12 @@ export function run({ check, assert, log }) {
             const body = parsed.source.slice(n.init.start, n.init.end);
             const ready = body.indexOf("await document.fonts.ready");
             const printed = body.indexOf("window.print()");
+            // Since #616 `Print` waits while the face is awaited, so the listener ends that wait first.
             found = [
                 ready >= 0 && printed > ready ? "waits for the face" : "does not wait",
-                /addEventListener\("afterprint", onClose, \{ once: true \}\)/.test(body) ? "closes after the print" : "stays open",
+                /addEventListener\(\s*"afterprint",\s*\(\) => \{\s*setPreparing\(false\);\s*onClose\(\);\s*\},\s*\{ once: true \}\s*\)/.test(body)
+                    ? "closes after the print"
+                    : "stays open",
             ].join(", ");
         });
         return found;
@@ -1299,22 +1370,31 @@ export function run({ check, assert, log }) {
     // the read is ignored instead, and the dialog's header says so. AND SINCE #612 ITS PAGE'S
     // REASON IS `unavailable`, `aria-disabled`, as 1e draws `Print labels` past a print's labels:
     // the keyboard still reaches it and hears why, where `disabled` took it out of the order.
-    const openerAttribute = (parsed, name) => {
+    // SINCE #616 A CATEGORY'S OPENER IS ITS LIST'S BUTTON, which opens the dialog at once and is
+    // busy for nothing — the read is the dialog's `Print`'s wait — and an asset's is the dialog's
+    // own, which nothing makes unable to act.
+    const openerAttribute = (parsed, name, within = "LabelsDialog") => {
         let found = "none";
         walk(parsed.ast, (n) => {
-            if (n.type !== "FunctionDeclaration" || n.id?.name !== "LabelsDialog") return;
+            if (n.type !== "FunctionDeclaration" || n.id?.name !== within) return;
             walk(n, (m) => {
-                if (m.type !== "JSXOpeningElement" || m.name?.name !== "Button") return;
-                const value = m.attributes.find((a) => a.name?.name === name)?.value?.expression;
+                if (m.type !== "JSXElement" || m.openingElement.name?.name !== "Button") return;
+                const words = m.children.find((c) => c.type === "JSXExpressionContainer")?.expression;
+                if (within !== "LabelsDialog" && readName(words ?? {}) !== "LABEL_COPY.openFromCategory") return;
+                const value = m.openingElement.attributes.find((a) => a.name?.name === name)?.value?.expression;
                 found = value ? parsed.source.slice(value.start, value.end) : "never";
             });
         });
         return found;
     };
+    const list = parseFile(LIST_SOURCE);
     check(
         "the opener is unavailable by what its page hands it, alone, and never disabled (#612)",
-        `${openerAttribute(component, "unavailable")} | ${openerAttribute(component, "disabled")}`,
-        "unavailable | never"
+        [
+            `${openerAttribute(list, "unavailable", "AssetList")} | ${openerAttribute(list, "disabled", "AssetList")} | busy ${openerAttribute(list, "busy", "AssetList")}`,
+            `${openerAttribute(component, "unavailable")} | ${openerAttribute(component, "disabled")} | busy ${openerAttribute(component, "busy")}`,
+        ].join("; "),
+        "!summary.printable | never | busy never; never | never | busy never"
     );
     check(
         "  where one disabled while the read is in flight is seen so",
@@ -1336,15 +1416,16 @@ export function run({ check, assert, log }) {
     check("the control on a category, and the dialog's title there", COPY.openFromCategory, "Print labels");
     // `Print label` SINCE #457, the design's, where it said `Print the label` from #352.
     check("the control on one asset, and the dialog's title there", COPY.openFromAsset, "Print label");
-    // WHAT AN OPENER SAYS WHILE A CATEGORY'S PAGE READS ITS LABELS (0f Working, #495), to assistive
-    // tech alone: the work being done, since the press opens the labels rather than printing.
-    check("  and what either says while its page reads the labels (#495)", COPY.working, "Loading…");
+    // WHAT THE DIALOG'S `Print` SAYS WHILE THE LABELS ARE PREPARED (0f Working, #495, #616), to
+    // assistive tech alone: the work being done. The opener said it while its page read the run
+    // until #616, when the dialog began opening at once and its `Print` took the wait, as 1e draws.
+    check("  and what Print says while the labels are prepared (#495, #616)", COPY.working, "Loading…");
     check(
-        "  busy for that read and not disabled, saying that word",
+        "  Print busy while a run reads or the face is awaited, and not disabled by it, saying that word (#616)",
         [
-            /busy=\{pending\}/.test(parseFile(COMPONENT_SOURCE).source),
+            /busy=\{answer === null \|\| preparing\}/.test(parseFile(COMPONENT_SOURCE).source),
             /busyLabel=\{COPY\.working\}/.test(parseFile(COMPONENT_SOURCE).source),
-            !/disabled=\{[^}]*pending/.test(parseFile(COMPONENT_SOURCE).source),
+            !/disabled=\{[^}]*(?:pending|answer|preparing)/.test(parseFile(COMPONENT_SOURCE).source),
         ].join(" "),
         "true true true"
     );

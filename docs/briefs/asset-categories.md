@@ -53,8 +53,8 @@ them (0i); until then the rows scrolled alone between the head and the pager.
 ## What it always carries
 
 **identity.** The heading `Equipment & Tools`, the axis's name on screen
-(#513; `Tools & Equipment` until #591, which the design's files still say —
-`design-copy-findings.md`): the office calls each thing it labels and tracks
+(#513; `Tools & Equipment` until #591, which took the design's files'
+word): the office calls each thing it labels and tracks
 an asset, and the site calls the same things tools and equipment, so the
 screen says the site's words.
 It was `Tools`, the table's name, the rule that makes the other list screens
@@ -256,8 +256,8 @@ count the row, and `Export` holds that row and every item under it.
 Found at another job, the same line stands over the rows naming that job, and
 Enter or a press opens the item; the rows stay the job's,
 emptied, and say `No item on 23-USA-09 has the ID` and the id typed, naming the
-job (Soo's words, `design-copy-findings.md`: `on`, where the files' 1a3 says
-`at`). Until the answer
+job (Soo's words, `on`, which 1a3 says too since the files of 2026-11-05, where
+it said `at`). Until the answer
 comes the sentence stands alone, so a reload draws the line a moment after the
 list. Found on no job, the list says 1a3's `No ID match`: `No item has the ID`
 and the id typed — which on all jobs, every job, it says at once for an id no

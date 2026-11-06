@@ -410,6 +410,15 @@ The files of 2026-11-05 — Tools 53, Sign in 29 and Invoices 50 — give 0a's I
 
 **WHAT MOVED ON SCREEN, AND WHAT DID NOT.** Applied to every mark the app draws, the rule moves four, each one the files moved too: the collapsed rail's rows, whose icons stood in Ink 3 while the expanded rows' words stood in Ink 2 — every row now rests at Ink 2, its icon with it, the current one Accent; a phone's serial number and note lines, whose marks are a value line's and so Ink 3 where they stood Ink 2; and the Notice's info mark, a message's, in its sentence's Ink where it stood Ink 2, on the asset page and the sign-in steps alike. Every other mark already drew its kind's ink: the job's pin, the sort's arrows, a field's chevron and search mark and the log's details in Ink 3, every button, × and rail item in its words' ink, the checks in a list in Accent. The account's chevron, a set chip's chevron and 1k-c's mark, which the rule's lists do not name, keep the Ink 3 the files draw them in, as qualifiers. `offline/icons.mjs` holds each call's kind by value and every call free of a color class, `offline/design-values.mjs` the two names, `offline/desk-states.mjs` the rail's rows and its current icon through Tailwind, and `offline/dialog-frame.mjs` the Notice's.
 
+## A commitment pressing again cannot change, and each spinner's track (#616)
+
+The files of 2026-11-06 — Tools 54, Sign in 30, which is Sign in 29 byte for byte, and Invoices 51 — give two rules a value each, and draw a spinner by its ink.
+
+**A REFUSAL PRESSING AGAIN CANNOT CHANGE HOLDS ITS COMMITMENT AS 0f's DISABLED.** Invoices 51's 0l: "A refusal that pressing again cannot change — the record moved, ended, or out of the reader's reach — keeps the dialog open and holds the commitment as Disabled ( 0f ) sets it", and its Details row says the same of `Save`; 0f's Disabled lost its `yet` with it. Tools 54 draws it as a veil, `[data-stopped]`: white at 60% over the button's fill and no pointer, which on white composites to the fill at 40% — what `--color-primary-disabled` already is for a filled action, so a blue commitment the app turns away (`unavailable`, #612, #614) needed nothing. A red one did: 1f's `Retire: retired first` and `Delete: recorded` hold `Retire item` and `Delete item` at 40% too, where the app kept the red whole. So `--color-danger-disabled` is the Red at 40% the way the Accent's is, and the `danger` kind reads it off `data-unavailable` as the filled kind does. **When a commitment is held is the app's, not the file's** (`Design's answers`): the item page's dialogs ask the page drawn again whether it still offers the act (#614) and, since Soo's ruling of 2026-11-06, whether the item is still on the job they were opened on, and the catalog's ask the same of the catalog and of whether the reader is still the office (#616, `tools.md`); where the files hold one the app keeps live, it is a row in `docs/briefs/design-copy-findings.md`, which holds none of the tools since #616.
+
+**A SPINNER'S TRACK IS ITS INK AT THE DRAWINGS' STRENGTH.** The files draw three: `jSpinner`, white on a fill, its track at 35%; `jSpinInk` and the list's export spinner, Ink on no fill, at 20%; and `pSpinA16`, Accent in a text button, at 25% — the last the resend control's (#473), the first the only one the app drew, so every spinner on no fill and in a text button stood on a track 15 or 10 points too strong. `Controls.js` keeps the three as `SPINNER_TRACK`, the spinner reading one off what it turns on (`on`), `Button` choosing by its kind — a filled or a red action's spinner turns on a fill, the rest on none — and the frame's `Done` asking a text button's, as does nothing else. `More actions`' spinner over its dots takes the one on no fill, which no drawing shows. **Two of the names are new and one keeps its own**: `--color-spinner-track` is a fill's, its comment now saying so, `--color-unfilled-spinner-track` is the 20%, named for the kind of action it sits in rather than the ink, which this file's words give `foreground`, and `--color-mobile-drawer-header-action-spinner-track` the 25% beside the 12 that names the same `Done`, rather than `--color-code-resend-spinner-track`, whose value it shares and whose container it is not (#459).
+
+**A TEXT BUTTON'S SPINNER IS 16 AT BOTH WIDTHS.** Tools 0a's Busy says "a text button such as Done holds a 16 spinner in Accent in its words' width", and 1j draws it so in every note and serial number sheet and the job change's, where the app had taken a sheet's commitment's 20 for its `Done` since #533. So a spinner `on` a text button takes no phone size.
 ## From the design's words to the names
 
 Every declaration, by the design's row and the figure the design draws, and after them the values read under Tailwind's own names. A length's rem is the design's px over 16, and the px is given beside it.
@@ -498,6 +507,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0d Face | `--color-danger-subtle` | #FFF4F5 |
 | 0d Accent | `--color-danger` | #DC0015 |
 | 0d Accent hover | `--color-danger-hover` | oklch(0.512 0.205 27) |
+| 0f Disabled, a filled red action (Invoices 0l, Tools 54's 1f) | `--color-danger-disabled` | the Red at 40% |
 | 0e Ink | `--color-foreground-default` | oklch(0.255 0.013 265) |
 | 0e Ink 2 | `--color-foreground-muted` | oklch(0.405 0.013 265) |
 | 0e Ink 3 | `--color-foreground-subtle` | oklch(0.505 0.012 265) |
@@ -520,7 +530,8 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0f Working, the wait before it shows | `--transition-delay-busy` | 300ms |
 | 0f Working, the spinner | `--size-spinner` | 1rem (16) |
 | The drawings' spinner, its turn — not the spec | `--animate-spinner` | Tailwind's `spin`, 0.7s, linear |
-| The drawings' spinner, its track — not the spec | `--color-spinner-track` | the label's ink at 35% |
+| The drawings' spinner, its track on a fill — not the spec | `--color-spinner-track` | the label's white at 35% |
+| The drawings' spinner, its track on no fill — 1a's Export, 1l's Discontinue and Restore — not the spec | `--color-unfilled-spinner-track` | its words' Ink at 20% |
 | 0g the mark | `--size-status-indicator` | 0.5625rem (9) |
 | 0g the ring | `--stroke-width-status-ring` | 1.5px |
 | 0h Page title | `--text-heading-lg` | 1.5rem at 2rem, −0.012em, 600 (24 at 32) |
@@ -795,6 +806,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 1j's drawing, the check on the row already chosen — not the spec | `--size-mobile-drawer-row-icon` | 1.0625rem (17) |
 | 1j's drawing, a list's heading to its first row — not the spec | `--spacing-mobile-drawer-heading-stack` | 0.25rem (4) |
 | 1j's drawing, either side of `Done`, pulled back out — not the spec | `--spacing-mobile-drawer-header-action-inset-x` | 0.75rem (12) |
+| Tools 0a Busy, the 16 spinner `Done` holds in its words' width, its track — not the spec | `--color-mobile-drawer-header-action-spinner-track` | its Accent at 25% |
 | Tools 0a Sheet that confirms, its title | `--spacing-mobile-confirm-inset-top` | 1.5rem (24) |
 | Tools 0a Sheet that confirms, its id | `--spacing-mobile-confirm-title-stack` | 0.25rem (4) |
 | Tools 0a Sheet that confirms, the sentence | `--spacing-mobile-confirm-id-stack` | 0.875rem (14) |

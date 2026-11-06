@@ -581,9 +581,10 @@ function refuse(error, moved = null, takenBy = null) {
  * Nothing was saved.` — the sentences a site manager off the item's job is told
  * (`recordingRefusal`, #597).
  *
- * SAID, WHERE THE CATEGORY'S PAGE AND THE LIST SAY NOTHING (`lib/authz.js:refuseWithThePage`),
- * BECAUSE THIS PAGE'S OPENINGS OUTLIVE THE PAGE DRAWN AGAIN (#614): a desk's dialog or question
- * stands with its commitment turned away, and would stand there with no word of why, and a phone's
+ * SAID, WHERE A REGISTRATION SAYS NOTHING (`lib/authz.js:refuseWithThePage`), BECAUSE THIS PAGE'S
+ * OPENINGS OUTLIVE THE PAGE DRAWN AGAIN (#614), as a category's labels' dialog does since #616: a
+ * desk's dialog or question stands with its commitment turned away, and would stand there with no
+ * word of why, and a phone's
  * sheet closes onto a page that does not say the press was the reader's and was lost. Soo's
  * decision; the files of 2026-11-05 draw neither.
  *

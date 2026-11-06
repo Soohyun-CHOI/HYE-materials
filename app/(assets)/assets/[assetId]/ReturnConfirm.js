@@ -18,9 +18,9 @@ import { ASSET_TRANSITION_COPY as COPY } from "@/lib/assetTransition";
  *
  * WHERE ITS ANSWER IS SAID IS THE PROVIDER'S (#614): at a desk above its actions, every refusal and a
  * press left half done alike, the question standing until the reader closes it, its commitment
- * `unavailable` and described by the sentence once the page drawn again no longer offers the act
- * (`available`), live while it does; on a phone any answer closes it and is said under the status,
- * as the files of 2026-11-05 draw both.
+ * `unavailable` and described by the sentence once the page drawn again no longer offers the act or
+ * the item moved off the job it was opened on (`available`, #616), live while neither; on a phone any
+ * answer closes it and is said under the status, as the files of 2026-11-05 draw both.
  *
  * THE TITLE ASKS AND NAMES THE ITEM AND THE JOB IT GOES BACK TO, AND THE LINE UNDER IT IS THE ID; the
  * one sentence says what becomes true — the item is on its owner's list again and this job no longer

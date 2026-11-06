@@ -26,15 +26,16 @@ const PROVIDER = `${DIR}AssetTransition.js`;
 const REFUSAL = `${DIR}TransitionRefusal.js`;
 
 /**
- * Each dialog the provider draws: its component, its file, its live condition, its held content, the
- * answer it says and how it sends.
+ * Each dialog the provider draws: its component, its file, its live condition, the job it holds while
+ * it stands where it records (#616), its held content, the answer it says and how it sends.
  */
 const DIALOGS = [
     {
         name: "TransitionForm",
         file: "TransitionForm.js",
         gate: "opening > 0",
-        available: "plan.records && plan.event === openedFor",
+        available: "plan.records && plan.event === openedFor && !checkOutOn.moved",
+        drawnOn: { binding: "checkOutOn", open: "open" },
         held: "heldPlan",
         said: "eventSaidInDialog ? transitionSentence : null",
         send: 'onSend={(formData) => send(formData, "dialog")}',
@@ -43,7 +44,8 @@ const DIALOGS = [
         name: "LendForm",
         file: "LendDialog.js",
         gate: "plan.mayLend || lending.count > 0",
-        available: "plan.mayLend",
+        available: "plan.mayLend && !lendOn.moved",
+        drawnOn: { binding: "lendOn", open: "lending.on !== null" },
         held: "heldLendPlan",
         said: "lending.said ? lendSentence : null",
         send: 'onSend={sendFrom(lending, "lend", lendFormAction)}',
@@ -61,7 +63,8 @@ const DIALOGS = [
         name: "RetirementConfirm",
         file: "RetirementConfirm.js",
         gate: "plan.mayRetire || retiring.count > 0",
-        available: "plan.mayRetire",
+        available: "plan.mayRetire && !retireOn.moved",
+        drawnOn: { binding: "retireOn", open: "retiring.on !== null" },
         held: null,
         said: "retiring.said ? retireSentence : null",
         send: 'send={sendFrom(retiring, "retire", retireFormAction)}',
@@ -70,7 +73,8 @@ const DIALOGS = [
         name: "ReturnConfirm",
         file: "ReturnConfirm.js",
         gate: "plan.mayReturn || returning.count > 0",
-        available: "plan.mayReturn",
+        available: "plan.mayReturn && !returnOn.moved",
+        drawnOn: { binding: "returnOn", open: "returning.on !== null" },
         held: "heldReturnPlan",
         said: "returning.said ? returnSentence : null",
         send: 'send={sendFrom(returning, "return", returnFormAction)}',
@@ -87,6 +91,25 @@ const DIALOGS = [
 ];
 
 const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * The provider's hold on the job an opening was drawn on (#616): `useDrawnOn`'s body — the job held
+ * while the opening stands and `moved` once the item is on another — every binding of it, and a
+ * detail's slot binding it on its own opening, posting it and handing `moved` on.
+ */
+function movedFacts(source) {
+    return {
+        hook: [
+            /function useDrawnOn\(open, jobId\) \{\s*const drawnJobId = useHeldWhileOpen\(open, jobId\);/.test(source),
+            /return \{ drawnJobId, moved: drawnJobId !== jobId \};/.test(source),
+        ].join(" "),
+        bound: [...source.matchAll(/const (\w+ = useDrawnOn\([^;]*\));/g)].map((match) => match[1]),
+        detail: [
+            /const drawnOn = useDrawnOn\(openOn !== null, drawnJobId\);/.test(source) && /formData\.set\("drawnJobId", drawnOn\.drawnJobId \?\? ""\);/.test(source),
+            /moved: drawnOn\.moved,/.test(source),
+        ].join(" "),
+    };
+}
 
 /** One element's attributes as the provider writes it, up to its own `/>` — never the next element's. */
 export function elementOf(source, name) {
@@ -151,6 +174,38 @@ export function run({ check, assert, log }) {
     const facts = providerFacts(provider.source);
     assert("the provider and its component were found", /export default function AssetTransition\(/.test(provider.source));
 
+    // ── #616: a moved item holds a desk's commitment, whoever records where it went ──
+    // First, so no older line that throws under a mutation can keep these from failing. Tools 54
+    // draws 1f `Check out: moved job` and the `Details` editor's `Note: moved` with the commitment at
+    // 40%, and Soo's ruling of 2026-11-06 holds it for a reader who records on the new job too: what
+    // the opening shows is no longer the page. Each opening that records holds the job it was drawn
+    // on, posts it, and is held once the item is on another.
+    {
+        log("a desk's opening holds the job it was drawn on, and its commitment once the item moved (#616):");
+        check("useDrawnOn holds the job while the opening stands and says whether the item is on another", movedFacts(provider.source).hook, "true true");
+        for (const d of DIALOGS.filter((each) => each.drawnOn)) {
+            const element = elementOf(provider.source, d.name);
+            check(
+                `  ${d.name} holds the job it was opened on, posts it, and is held once the item moved`,
+                [
+                    movedFacts(provider.source).bound.includes(`${d.drawnOn.binding} = useDrawnOn(${d.drawnOn.open}, assetJobRecordId)`),
+                    element.includes(`drawnJobId={${d.drawnOn.binding}.drawnJobId}`),
+                    element.includes(`available={${d.available}}`) && d.available.endsWith(`&& !${d.drawnOn.binding}.moved`),
+                ].join(" "),
+                "true true true"
+            );
+        }
+        check("  the lending's phone rows posting the same job", elementOf(provider.source, "LendRows").includes("drawnJobId={lendOn.drawnJobId}"), true);
+        check("  and each detail's slot holding its own, which its desk editor's Save is turned away by", movedFacts(provider.source).detail, "true true");
+        const planted = movedFacts(
+            "function useDetail() { return { send: () => formData.set(\"drawnJobId\", drawnJobId ?? \"\") }; }\n" +
+                "function useDrawnOn(open, jobId) { return { drawnJobId: jobId, moved: false }; }\n" +
+                "const checkOutOn = useDrawnOn(true, assetJobRecordId);\n"
+        );
+        check("  an opening posting the job it stands on now, as from #614, is seen so", [planted.hook, planted.bound.join(","), planted.detail].join(" / "), "false false / checkOutOn = useDrawnOn(true, assetJobRecordId) / false false");
+        log("");
+    }
+
     // A READER WHO IS NO LONGER A SITE MANAGER IS TOLD THE PRESS IS NOT THEIRS TO MAKE (#614). The gate
     // turns the press away before any body runs, and the item page's refusal answers with the plan of a
     // reader who records on nothing (`refuseNotASiteManager`), so it says what a site manager off the
@@ -178,7 +233,8 @@ export function run({ check, assert, log }) {
     log("an opening knows its width, whether it says its answer, and whether that answer has come:");
     check("  said while it stands and sent it; answered once its own answer is back; ended as a new one; sent marking both", facts.opening, "true true true true");
     check("  and holds what it was opened on while it stands", facts.held, true);
-    check("  each holding a value the page hands down, which keeps its identity between renders", facts.heldValues, "plan plan plan office");
+    // `jobId` is `useDrawnOn`'s (#616), the item's job as the page hands it, a string.
+    check("  each holding a value the page hands down, which keeps its identity between renders", facts.heldValues, "jobId plan plan plan office");
 
     log("");
     log("a desk's dialog stands and says its answer, its commitment asking the page as it is:");
@@ -252,7 +308,7 @@ export function run({ check, assert, log }) {
     const built = providerFacts(
         provider.source.replace("useHeldWhileOpen(returning.on !== null, plan)", "useHeldWhileOpen(returning.on !== null, { ownerJobCode: plan.ownerJobCode })")
     );
-    check("  a held value built in the render is seen", built.heldValues, "plan { ownerJobCode: plan.ownerJobCode } plan office");
+    check("  a held value built in the render is seen", built.heldValues, "jobId plan { ownerJobCode: plan.ownerJobCode } plan office");
     const unheld = provider.source.replace("plan={heldLendPlan}\n                        pending={lendPending}\n                        refusal=", "plan={plan}\n                        pending={lendPending}\n                        refusal=");
     check(
         "  a desk's dialog drawn on the page as it is, beside a sheet that still holds it, is seen",

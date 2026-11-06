@@ -14,11 +14,13 @@ import NameSheet from "./NameSheet";
  * IT SHOWS WHAT IT WAS OPENED ON AND ASKS THE PAGE AS IT IS. `plan` is the page the dialog was
  * opened from, held while it stands (`useHeldWhileOpen`), so its title, its event and its names do
  * not change under the reader; `available` is whether the page as it is still offers the event to
- * this reader. A refusal it did not offer — somebody got in front, the item retired, no longer the
- * reader's to record — leaves the commitment drawn, `unavailable` and described by the sentence over
- * the actions, as the files of 2026-11-05 draw the dialog in each (1f); one it still offers — the item
- * moved to another of the reader's jobs, the status left unwritten — leaves it live, and a second
- * press records on the page as it is now. Focus stays on the commitment the press left it on, and
+ * this reader on the job the dialog was opened on. A refusal it did not offer — somebody got in front,
+ * the item retired, no longer the reader's to record, or moved to another job, the reader's or not
+ * (#616) — leaves the commitment drawn, `unavailable` and described by the sentence over the actions,
+ * as the files of 2026-11-06 draw the dialog in each (1f); one it still offers — the status left
+ * unwritten — leaves it live, and a second press records on the page as it is now. From #614 until
+ * #616 an item moved to another of the reader's jobs left it live too, a second press recording
+ * there. Focus stays on the commitment the press left it on, and
  * whatever closes the dialog hands it back to the opener, or to the page's heading when the page drawn
  * again has taken the opener away (`DialogFrame.js`).
  */

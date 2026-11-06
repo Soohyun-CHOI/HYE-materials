@@ -78,6 +78,7 @@ const FRAME = "app/components/DialogFrame.js";
 const CONTROLS = "app/components/Controls.js";
 const MENU = "app/components/Menu.js";
 const ACCOUNT = "app/components/RailAccount.js";
+const MORE_ACTIONS = "app/(assets)/assets/[assetId]/MoreActions.js";
 
 /**
  * Whether a file draws a dialog on `modalStyles.js` — which no file under `app/(assets)/`
@@ -216,6 +217,43 @@ function markupCopy(ast) {
 }
 
 /**
+ * A red commitment that cannot act, and each spinner's track (#616), read off the controls, the
+ * frame's `Done` and `More actions`: the destructive kind's fill off `data-unavailable`; the track
+ * table by value; the spinner reading it off what it turns on, the fill's by default, and a text
+ * button's keeping its 16; `Button` choosing by its kind; and the two callers that are no `Button`.
+ */
+function spinnerFacts({ controls: { ast, source }, frame, more }) {
+    const constant = (name) => {
+        let text = "";
+        walk(ast, (n) => {
+            if (n.type === "VariableDeclarator" && n.id?.name === name && n.init) text = source.slice(n.init.start, n.init.end);
+        });
+        return text;
+    };
+    const fnSource = (name) => {
+        const fn = functionNamed(ast, name);
+        return fn ? source.slice(fn.start, fn.end) : "";
+    };
+    const tracks = constant("SPINNER_TRACK");
+    const spinner = fnSource("Spinner");
+    return {
+        danger: /danger: "[^"]*\bdata-unavailable:bg-danger-disabled"/.test(constant("BUTTON_VARIANT")),
+        tracks: ["fill", "unfilled", "text"].map((key) => tracks.match(new RegExp(`\\b${key}: "([^"]*)"`))?.[1] ?? "none").join(" "),
+        reads: [
+            /function Spinner\(\{ size, on = "fill" \}\)/.test(spinner),
+            /border-2 \$\{SPINNER_TRACK\[on\]\} border-t-current/.test(spinner),
+            /<Spinner size=\{size\} on=\{on\} \/>/.test(fnSource("ButtonLabel")),
+        ].join(" "),
+        textSize: /const phoneSize = on === "text" \? "" : size === "xl"/.test(spinner),
+        button: [
+            /^\["filled", "danger"\]$/.test(constant("FILLED")),
+            /<ButtonLabel size=\{size\} on=\{FILLED\.includes\(variant\) \? "fill" : "unfilled"\} busyLabel=\{busyLabel\}>/.test(fnSource("Button")),
+        ].join(" "),
+        callers: [/<ButtonLabel on="text" busyLabel=\{done\.busyLabel\}>/.test(frame), /<ButtonLabel size=\{phone \? "xl" : "lg"\} on="unfilled" busyLabel=/.test(more)].join(" "),
+    };
+}
+
+/**
  * Where a frame's opening puts focus (#531), read off its source: the caret in the first field
  * that takes typing, right after `showModal`, and — with none — a sheet laid out as one and not
  * a Confirm on its title, the branch after the field's and that one alone.
@@ -234,6 +272,42 @@ function openingFocus(source) {
 }
 
 export function run({ check, assert, log }) {
+    // ── #616: a red commitment that cannot act, and each spinner's track ───
+    // At the head, as #555's block below is, so nothing older that throws keeps these from failing.
+    // Tools 54 holds a dialog's commitment that pressing again cannot change at 40% — the red one
+    // too — and draws a spinner's track by the ink it turns in.
+    {
+        log("a red commitment that cannot act, and a spinner's track by its ink (#616):");
+        const facts = spinnerFacts({ controls: parseFile(CONTROLS), frame: parseFile(FRAME).source, more: parseFile(MORE_ACTIONS).source });
+        check("a destructive commitment that cannot act keeps its red at 40%, off the attribute a filled one's fill is", facts.danger, true);
+        check(
+            "  a spinner's track is its ink at the drawings' strength: on a fill, on no fill, in a text button",
+            facts.tracks,
+            "border-spinner-track border-unfilled-spinner-track border-mobile-drawer-header-action-spinner-track"
+        );
+        check("  the spinner reads it off what it turns on, the fill's by default, as the label hands it", facts.reads, "true true true");
+        check("  a text button's spinner keeps its 16 below the phone's edge", facts.textSize, true);
+        check("  a button's spinner turns on its fill for a filled or a red action, and on none otherwise", facts.button, "true true");
+        check("  a sheet's Done holds a text button's spinner, and More actions one on no fill", facts.callers, "true true");
+        const planted = spinnerFacts({
+            controls: parseSource(
+                'const BUTTON_VARIANT = { danger: "bg-danger text-white not-disabled:not-aria-disabled:hover:bg-danger-hover" };\n' +
+                    'function Spinner({ size }) { return <span className={`border-2 border-spinner-track border-t-current ${size === "xl" ? "max-sm:size-mobile-spinner" : "max-sm:in-data-[sheet]:size-mobile-spinner"}`} />; }\n' +
+                    "export function ButtonLabel({ size, busyLabel, children }) { return <Spinner size={size} />; }\n" +
+                    "export function Button({ variant, size, busyLabel }) { return <ButtonLabel size={size} busyLabel={busyLabel}>{x}</ButtonLabel>; }\n",
+                "<planted-spinner>"
+            ),
+            frame: "<ButtonLabel busyLabel={done.busyLabel}>{done.label}</ButtonLabel>",
+            more: '<ButtonLabel size={phone ? "xl" : "lg"} busyLabel={word}>',
+        });
+        check(
+            "  the controls as #614 left them, one track for every spinner and a red that keeps its fill, are seen",
+            [planted.danger, planted.tracks, planted.reads, planted.textSize, planted.button, planted.callers].join(" / "),
+            "false / none none none / false false false / false / false false / false false"
+        );
+        log("");
+    }
+
     // ── #555: a field that opens on everything it offers, and 0i's bar on every list ──
     // At the head, as #531's block below is, so nothing older that throws keeps these from failing.
     {
@@ -792,7 +866,7 @@ export function run({ check, assert, log }) {
             for (const [cls] of text.matchAll(/max-sm:(?!in-data-\[sheet\]:)[\w[\]-]+/g)) if (!cls.startsWith("max-sm:hidden")) phoneClasses.push(cls);
         });
         return {
-            danger: /danger: "bg-danger text-white not-disabled:not-aria-disabled:hover:bg-danger-hover"/.test(variants),
+            danger: /danger: "bg-danger text-white not-disabled:not-aria-disabled:hover:bg-danger-hover[ "]/.test(variants),
             busyQuiet: !/(?<!not-aria-disabled:)(?:hover|active):/.test(variants + sheetVariants),
             clearGate: /const clearable = size === "xl" &&/.test(source) && /\{clearable && <FieldClear look="phone" /.test(source),
             sheetButton: [
@@ -1523,7 +1597,7 @@ export function run({ check, assert, log }) {
                 /aria-busy=\{busy && done\.busyLabel \? true : undefined\}/.test(frameSource),
                 /aria-disabled=\{busy \? true : undefined\}/.test(frameSource),
                 /data-busy=\{\(busy && done\.busyLabel\) \|\| undefined\}/.test(frameSource),
-                /<ButtonLabel busyLabel=\{done\.busyLabel\}>\{done\.label\}<\/ButtonLabel>/.test(frameSource),
+                /<ButtonLabel on="text" busyLabel=\{done\.busyLabel\}>\s*\{done\.label\}\s*<\/ButtonLabel>/.test(frameSource),
             ].join(" "),
             removed: [
                 /queueMicrotask\(\(\) => \{\s*if \(!dialog\.isConnected\) focusAfterRemoval\(opener\);/.test(frameSource),
@@ -2068,7 +2142,9 @@ export function run({ check, assert, log }) {
             // The catalog entry's `Restore` and `Discontinue`, each working by its own `busy` while
             // the rest of the dialog locks (#527).
             'EntryDialog: button {pending && working === "restore"}, button {pending && working === "discontinue"} · named, named, named · 0 disabled by sending',
-            "LabelsDialog: button {pending} · named · 0 disabled by sending",
+            // The labels' `Print`, waiting while a category's run reads or the face is awaited (#616),
+            // where the opener waited on the read from #495.
+            "LabelsFrame: button {answer === null || preparing} · named · 0 disabled by sending",
             // 1a's `Export`, working while the file is made (#553).
             "ListExport: button {busy} · named · 0 disabled by sending",
             // An item's detail edited where it stands at a desk (1f, #601): its `Save` working while the

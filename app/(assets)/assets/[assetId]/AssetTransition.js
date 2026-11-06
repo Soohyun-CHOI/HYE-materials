@@ -36,8 +36,9 @@ import TransitionForm from "./TransitionForm";
  *   questions. A refusal and a press left half done are said in it, over its actions, whatever
  *   the page drawn again now offers — the item moved, somebody got in front, the press no longer
  *   offered — and its commitment stays drawn, `unavailable` and described by the sentence when
- *   the page no longer offers the act, live when it does. What an opening shows is what it was
- *   opened on (`useHeldWhileOpen`), so its title and its choices do not change under the reader.
+ *   the page no longer offers the act or the item is on another job than the one the opening was
+ *   drawn on (`useDrawnOn`, #616), live otherwise. What an opening shows is what it was opened
+ *   on (`useHeldWhileOpen`), so its title and its choices do not change under the reader.
  *   Until #614 the page drawn again ended every opening it no longer offered, and the sentence
  *   stood under the status.
  * - **A desk's press with no dialog says its answer in 0k's toast** — a check-in and a return
@@ -69,9 +70,12 @@ import TransitionForm from "./TransitionForm";
  * (0l), whatever the bar was left holding.
  *
  * EVERY FORM CARRIES THE ITEM'S JOB AS THE PAGE WAS DRAWN (#597), `drawnJobId`, which each action
- * compares and never writes (`lib/assetTransition.js:recordingRefusal`). A desk's opening that
- * stands across a page drawn again on another job posts the job it stands on now, so a press
- * after `This item moved to 26-USA-07.` records there, as the page now says.
+ * compares and never writes (`lib/assetTransition.js:recordingRefusal`). A desk's opening carries
+ * the job it was drawn on while it stands (`useDrawnOn`), and once the page is drawn again on
+ * another job — `This item moved to 26-USA-07.` — what it shows is no longer the page, so its
+ * commitment is held until the reader closes it and opens it on the page as it is, whether or
+ * not they record on the job it moved to (Soo, #616). From #614 until then it posted the job it
+ * stood on now, and a press after the sentence recorded there for a reader who did.
  */
 const TransitionContext = createContext(null);
 
@@ -96,10 +100,13 @@ function useDetail(action, { field, assetId, drawnJobId, onSent }) {
     const [sentValue, setSentValue] = useState(null);
     const sentence = answer?.error ? <>{answer.error}</> : null;
     const saidInOpening = sentFor === opening;
+    // The job the opening was drawn on, and whether the item is on another now (#616).
+    const drawnOn = useDrawnOn(openOn !== null, drawnJobId);
     return {
         openOn,
         opening,
         pending,
+        moved: drawnOn.moved,
         sentBy,
         sentValue,
         sentence,
@@ -118,7 +125,7 @@ function useDetail(action, { field, assetId, drawnJobId, onSent }) {
         send: ({ typed, previous, by }) => {
             const formData = new FormData();
             formData.set("assetId", assetId);
-            formData.set("drawnJobId", drawnJobId ?? "");
+            formData.set("drawnJobId", drawnOn.drawnJobId ?? "");
             formData.set(field, typed);
             formData.set("previous", previous);
             setSentFor(opening);
@@ -160,6 +167,19 @@ export function useHeldWhileOpen(open, value) {
     const [held, setHeld] = useState(value);
     if (!open && held !== value) setHeld(value);
     return open ? held : value;
+}
+
+/**
+ * The job an opening was drawn on, while it stands, and whether the item is on another now (#616).
+ * An opening that outlives a page drawn again on another job — `This item moved to 26-USA-07.` —
+ * shows what the page no longer holds, so its commitment is held at 40% until the reader closes it
+ * and opens it again on the page as it is, whether or not they record on the job it moved to, as
+ * Tools 54 draws 1f `Check out: moved job` and the `Details` editor's `Note: moved`. Its form posts
+ * the job it was drawn on, which the action compares (`recordingRefusal`).
+ */
+function useDrawnOn(open, jobId) {
+    const drawnJobId = useHeldWhileOpen(open, jobId);
+    return { drawnJobId, moved: drawnJobId !== jobId };
 }
 
 /**
@@ -345,6 +365,12 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetO
     const heldReturnPlan = useHeldWhileOpen(returning.on !== null, plan);
     const heldLendPlan = useHeldWhileOpen(lending.on !== null, plan);
     const heldOffice = useHeldWhileOpen(changing.on !== null, office);
+    // The job each opening that records was drawn on, which it posts, and whether the item has moved
+    // off it since (#616): a moved item holds the commitment, whoever records on the job it is on now.
+    const checkOutOn = useDrawnOn(open, assetJobRecordId);
+    const lendOn = useDrawnOn(lending.on !== null, assetJobRecordId);
+    const retireOn = useDrawnOn(retiring.on !== null, assetJobRecordId);
+    const returnOn = useDrawnOn(returning.on !== null, assetJobRecordId);
 
     return (
         <TransitionContext.Provider value={shared}>
@@ -355,9 +381,9 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetO
                     open={open}
                     onClose={() => setOpenedFor(null)}
                     plan={heldPlan}
-                    available={plan.records && plan.event === openedFor}
+                    available={plan.records && plan.event === openedFor && !checkOutOn.moved}
                     assetId={assetId}
-                    drawnJobId={assetJobRecordId}
+                    drawnJobId={checkOutOn.drawnJobId}
                     recentCheckOuts={recentCheckOuts}
                     pending={pending && !repairing}
                     refusal={eventSaidInDialog ? transitionSentence : null}
@@ -371,9 +397,9 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetO
                         key={`desk-${lending.count}`}
                         open={lending.on === "desk"}
                         onClose={lending.close}
-                        available={plan.mayLend}
+                        available={plan.mayLend && !lendOn.moved}
                         assetId={assetId}
-                        drawnJobId={assetJobRecordId}
+                        drawnJobId={lendOn.drawnJobId}
                         plan={heldLendPlan}
                         pending={lendPending}
                         refusal={lending.said ? lendSentence : null}
@@ -384,7 +410,7 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetO
                         open={lending.on === "phone"}
                         onClose={lending.close}
                         assetId={assetId}
-                        drawnJobId={assetJobRecordId}
+                        drawnJobId={lendOn.drawnJobId}
                         plan={heldLendPlan}
                         pending={lendPending}
                         onSend={sendFrom(lending, "lend", lendFormAction)}
@@ -423,9 +449,9 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetO
                 <RetirementConfirm
                     open={retiring.on !== null}
                     onClose={retiring.close}
-                    available={plan.mayRetire}
+                    available={plan.mayRetire && !retireOn.moved}
                     assetId={assetId}
-                    drawnJobId={assetJobRecordId}
+                    drawnJobId={retireOn.drawnJobId}
                     itemName={itemName}
                     busy={retirePending}
                     refusal={retiring.said ? retireSentence : null}
@@ -436,9 +462,9 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetO
                 <ReturnConfirm
                     open={returning.on !== null}
                     onClose={returning.close}
-                    available={plan.mayReturn}
+                    available={plan.mayReturn && !returnOn.moved}
                     assetId={assetId}
-                    drawnJobId={assetJobRecordId}
+                    drawnJobId={returnOn.drawnJobId}
                     itemName={itemName}
                     ownerJobCode={heldReturnPlan.ownerJobCode ?? ""}
                     jobCode={heldReturnPlan.jobCode ?? ""}

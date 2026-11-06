@@ -41,7 +41,7 @@ const NAME_SHEET = "app/(assets)/assets/[assetId]/NameSheet.js";
 /** The sentence a job with no recent names said in the space until #589. */
 const GONE_SENTENCE = "No items have gone out on this job yet.";
 
-/** The axis's name until #591, which the design's files still say. */
+/** The axis's name until #591, which took the design's files' `Equipment & Tools`. */
 const OLD_NAME = "Tools & Equipment";
 
 const isConditional = (n) => n.type === "ConditionalExpression" || n.type === "LogicalExpression";
