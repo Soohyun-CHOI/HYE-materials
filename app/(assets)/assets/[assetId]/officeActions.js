@@ -18,9 +18,9 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * and these are the office's, `withAdminAction` round a handler kept in, which
  * `offline/site-manager.mjs` holds file by file. #582's deletion is the second.
  *
- * A REFUSAL RE-RENDERS THE PAGE AS IT ANSWERS (#378), and its sentence is said where the page
- * says a refused press, under the status, or over the dialog's actions while the dialog stands
- * open; every call site binds the return (#185, `offline/action-refusal-shape.mjs`). The refusal
+ * A REFUSAL RE-RENDERS THE PAGE AS IT ANSWERS (#378), and its sentence is said where the press
+ * was (#614): over the dialog's or the question's actions at a desk, which stands until the reader
+ * closes it, and under the status on a phone; every call site binds the return (#185, `offline/action-refusal-shape.mjs`). The refusal
  * is written out in each place, as the catalog's are, because that check reads the wrapper's
  * off the thunk handed to it.
  */

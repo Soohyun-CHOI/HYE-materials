@@ -268,7 +268,7 @@ export async function run({ check, log }) {
     log("");
     log("the action, off its source:");
     const actions = parseFile(ACTIONS);
-    check("the note's wrapper around a handler nobody can call round it", /export const updateAssetSerialAction = withSiteManagerAction\(updateAssetSerialHandler\);/.test(actions.source) && !/export (async )?function updateAssetSerialHandler/.test(actions.source), true);
+    check("the note's wrapper around a handler nobody can call round it", /export const updateAssetSerialAction = withSiteManagerAction\(refuseNotASiteManager, updateAssetSerialHandler\);/.test(actions.source) && !/export (async )?function updateAssetSerialHandler/.test(actions.source), true);
     const facts = serialActionFacts(functionSource(actions, "updateAssetSerialHandler"));
     check(
         "  labeled, locked on the number, the note's plan and order, the kind asked, a cleared number asking nothing, no event, and a taken number refused naming its holder",
@@ -316,10 +316,10 @@ export async function run({ check, log }) {
     check("a category's rows carry it off the read they came from, and its list draws it", `${/serialNumber: asset\.serialNumber,/.test(parseFile(CATEGORY_PAGE).source)} ${/\{row\.serialNumber\}/.test(parseFile(ASSET_LIST).source)}`, "true true");
     const provider = parseFile(PROVIDER).source;
     check(
-        "the provider holds its answer as the note's, ending an opening the plan stops offering",
+        "the provider holds its answer as the note's, ending a phone's opening the plan stops offering (#614)",
         [
             /const serial = useDetail\(updateAssetSerialAction, \{ field: "serialNumber", assetId, drawnJobId: assetJobRecordId, onSent: \(\) => setLastSent\("serial"\) \}\);/.test(provider),
-            /if \(serial\.openOn !== null && !plan\.mayWriteSerial\) serial\.end\(\);/.test(provider),
+            /if \(serial\.openOn === "phone" && !plan\.mayWriteSerial\) serial\.end\(\);/.test(provider),
             /serial: serial\.saidInOpening \? null : serial\.sentence,/.test(provider),
             /takenBy: saidInOpening \? \(answer\?\.takenBy \?\? null\) : null,/.test(provider),
         ].join(" "),

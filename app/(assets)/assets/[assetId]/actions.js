@@ -47,7 +47,8 @@ import { withOpsLabel } from "@/lib/airtableOps";
  *
  * ONLY A SITE MANAGER RECORDS, AND THE WRAPPER DECIDES THAT BEFORE THIS BODY RUNS
  * (#506). `withSiteManagerAction` refuses anybody else — the page they pressed on,
- * rendered again without the controls, and nothing said. **What this body decides is the
+ * rendered again without the controls, and since #614 whose item it is
+ * (`refuseNotASiteManager`). **What this body decides is the
  * asset (#597)**: only a site manager on the job the item sits on records on it
  * (`lib/assetJob.js:recordsOn`, through `planTransition` on a fresh read), with no office
  * clause — recording is site work — and deliberately not `canAccessJobDeliveries`, which
@@ -59,9 +60,9 @@ import { withOpsLabel } from "@/lib/airtableOps";
  *
  * REFUSES BY RETURNING `{ error }` BECAUSE THE CALL SITE BINDS (#185).
  * `AssetTransition.js` reads this through `useActionState` for both of the page's
- * drawings (#463), so every refusal lands in the one place it has for them — above
- * the desk's dialog's actions while it stands open, and under the status otherwise,
- * where 1k says a refused press. **It goes through `refuse`, which re-renders the
+ * drawings (#463), so every refusal is said where its press was (#614) — above the
+ * desk's dialog's actions, which stands until the reader closes it, in 0k's toast for a
+ * desk's press with no dialog, and under the status on a phone, where 1k says it. **It goes through `refuse`, which re-renders the
  * page as it answers (#378)** — a returned sentence on a page nothing re-rendered is
  * true beside a screen that contradicts it.
  *
@@ -109,7 +110,7 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * same fresh page by the other mechanism and keeps its sentence**; `refuse`
  * carries why the two differ.
  */
-export const recordAssetEventAction = withSiteManagerAction(recordAssetEventHandler);
+export const recordAssetEventAction = withSiteManagerAction(refuseNotASiteManager, recordAssetEventHandler);
 
 async function recordAssetEventHandler(prevState, formData) {
     return withOpsLabel("recordAssetEventAction", async () => {
@@ -196,16 +197,17 @@ async function recordAssetEventHandler(prevState, formData) {
  * written (`recordingRefusal`, #597).
  *
  * WHICH LEAVES THE BODY'S QUESTION AS `planTransition`'s: whether the actor records on this
- * item. **A retirement somebody else got in front of says nothing (#378)**: the page drawn
- * again draws a status that allows nothing, and the question goes with its opener, so the
- * plan's terminal sentence is not returned — it would stand under the status the page already
- * shows is the end. One refused because the item is no longer the reader's to record is
- * returned, and said there (#597).
+ * item. **A retirement somebody else got in front of says `This item is retired.` (#614)**, the
+ * plan's terminal sentence: at a desk the question stands across the page drawn again and says it
+ * over its actions, as the files of 2026-11-05 draw a check-out refused so (1f), and on a phone the
+ * Notice under the status does (1k). Until #614 it said nothing, the question going with its opener
+ * and the page left to say the end. One refused because the item is no longer the reader's to
+ * record is returned too, and said in the same places (#597).
  *
  * EIGHT OPERATIONS, the same eight the action above spends, for the same
  * reasons and in the same order.
  */
-export const retireAssetAction = withSiteManagerAction(retireAssetHandler);
+export const retireAssetAction = withSiteManagerAction(refuseNotASiteManager, retireAssetHandler);
 
 async function retireAssetHandler(prevState, formData) {
     return withOpsLabel("retireAssetAction", async () => {
@@ -230,7 +232,6 @@ async function retireAssetHandler(prevState, formData) {
         const { jobRecordId, refusal } = readRetirement(plan, {
             drawnJobId: String(formData.get("drawnJobId") ?? ""),
         });
-        if (refusal === ASSET_TRANSITION_COPY.noTransition) return refuse(null);
         if (refusal) return refuse(refusal);
 
         const failed = await writeEvent({
@@ -278,7 +279,7 @@ async function retireAssetHandler(prevState, formData) {
  * ON SUCCESS IT REDIRECTS TO THE PAGE IT CAME FROM AND SAYS NOTHING (#321): the job under the title,
  * `On loan from` beside it or gone, and the entry at the history's head say it.
  */
-export const lendAssetAction = withSiteManagerAction(lendAssetHandler);
+export const lendAssetAction = withSiteManagerAction(refuseNotASiteManager, lendAssetHandler);
 
 async function lendAssetHandler(prevState, formData) {
     return withOpsLabel("lendAssetAction", async () => {
@@ -306,7 +307,7 @@ async function lendAssetHandler(prevState, formData) {
 }
 
 /** Return one asset to its owner job (#598) — see `lendAssetAction`. */
-export const returnAssetToOwnerAction = withSiteManagerAction(returnAssetToOwnerHandler);
+export const returnAssetToOwnerAction = withSiteManagerAction(refuseNotASiteManager, returnAssetToOwnerHandler);
 
 async function returnAssetToOwnerHandler(prevState, formData) {
     return withOpsLabel("returnAssetToOwnerAction", async () => {
@@ -408,7 +409,7 @@ async function writeLoan({ asset, event, answer, user, halfDone }) {
  * that sent it stands, and under the status once the page has ended it. A success redirects to the
  * page it came from and says nothing (#321).
  */
-export const updateAssetNoteAction = withSiteManagerAction(updateAssetNoteHandler);
+export const updateAssetNoteAction = withSiteManagerAction(refuseNotASiteManager, updateAssetNoteHandler);
 
 async function updateAssetNoteHandler(prevState, formData) {
     return withOpsLabel("updateAssetNoteAction", async () => {
@@ -470,7 +471,7 @@ async function updateAssetNoteHandler(prevState, formData) {
  * `useActionState` — and `{ error, takenBy }` for a number taken, the item's printed id beside the
  * sentence. A success redirects to the page it came from and says nothing (#321).
  */
-export const updateAssetSerialAction = withSiteManagerAction(updateAssetSerialHandler);
+export const updateAssetSerialAction = withSiteManagerAction(refuseNotASiteManager, updateAssetSerialHandler);
 
 async function updateAssetSerialHandler(prevState, formData) {
     return withOpsLabel("updateAssetSerialAction", async () => {
@@ -543,9 +544,8 @@ async function updateAssetSerialHandler(prevState, formData) {
  *
  * IT WORKS ONLY INSIDE A SERVER ACTION, since `refresh()` throws anywhere else.
  * That is a constraint on this function rather than a hazard: its callers are the
- * three actions' handlers and the writer two of them share. A press `withSiteManagerAction`
- * turns away never gets this far, and is answered the same way — a fresh render —
- * by the wrapper's own refusal (#506), with nothing said.
+ * actions' handlers, the writer two of them share, and the refusal `withSiteManagerAction`
+ * calls in a handler's place (`refuseNotASiteManager`, #614).
  *
  * NOT EXPORTED, for `writeEvent`'s reason — an export of a `"use server"` module
  * is an entry point callable from a browser.
@@ -559,16 +559,46 @@ async function updateAssetSerialHandler(prevState, formData) {
  * only `error` says less than it did.
  *
  * AND A REFUSAL THE PAGE SAYS ON ITS OWN IS `null`, the page and nothing beside it (#533): a
- * retirement somebody got in front of — and from #533 to #612 a note pressed on an item somebody
- * retired or sent for repair since — whose fresh page draws no control to write with — #378's terminal case,
- * which the wrapper's own refusal answers the same way (#506). A press by a reader the item is
- * no longer the reader's to record is not one of them since #597: the page drawn again shows
- * the item's job and no control, and nothing on it says the press was theirs and was lost.
+ * detail pressed on an item whose status no longer takes it, whose fresh page draws no control to
+ * write with — #378's terminal case, which from #533 to #612 a note on an item retired or sent for
+ * repair since met, and since #612 only a status no screen shows does. Three are not since: a
+ * press by a reader the item is no longer the reader's to record (#597), and from #614 a
+ * retirement somebody got in front of, `This item is retired.`, and a press by a reader who is
+ * no longer a site manager — the page drawn again shows the item's job and no control, and
+ * nothing on it says the press was theirs and was lost.
  */
 function refuse(error, moved = null, takenBy = null) {
     refresh();
     if (error === null) return null;
     return { error, ...(moved ? { moved } : {}), ...(takenBy ? { takenBy } : {}) };
+}
+
+/**
+ * What a press from a reader who is not a site manager answers on an item's page (#614), which
+ * `withSiteManagerAction` calls in the handler's place for all six of the page's acts: the page
+ * drawn again, and whose item it is — `Only 26-USA-07 can record this item. Nothing was saved.`,
+ * the sentence a site manager off the item's job is told (`recordingRefusal`, #597).
+ *
+ * SAID, WHERE THE CATEGORY'S PAGE AND THE LIST SAY NOTHING (`lib/authz.js:refuseWithThePage`),
+ * BECAUSE THIS PAGE'S OPENINGS OUTLIVE THE PAGE DRAWN AGAIN (#614): a desk's dialog or question
+ * stands with its commitment turned away, and would stand there with no word of why, and a phone's
+ * sheet closes onto a page that does not say the press was the reader's and was lost. Soo's
+ * decision; the files of 2026-11-05 draw neither.
+ *
+ * THE JOB IS THE ITEM'S AS JUST READ, the one under its title on the page drawn again, through the
+ * plan of a reader who records on nothing — the gate's verdict, so the reader is not read again:
+ * `planTransition` reads the code off the job list and `recordingRefusal` answers `notYours` of it,
+ * so this and the bodies cannot name the job two ways. An item no read hands back any more is
+ * answered in the page's own words, as the bodies answer it.
+ *
+ * TWO OPERATIONS BESIDE THE GATE'S, attributed to `authz refusal` (`lib/authzWrap.js`): the item
+ * and the job list. It writes nothing, which `offline/site-manager.mjs` holds of its calls.
+ */
+async function refuseNotASiteManager(prevState, formData) {
+    const asset = await getAssetByAssetId(String(formData.get("assetId") ?? ""));
+    if (!asset) return refuse(ASSET_COPY.notFoundHeading);
+    const plan = planTransition({ user: null, jobs: await getAllJobs(), status: asset.status, assetJobId: asset.job?.[0], ownerJobId: asset.ownerJob?.[0] });
+    return refuse(recordingRefusal(plan, { drawnJobId: String(formData.get("drawnJobId") ?? ""), attempted: null }));
 }
 
 /**

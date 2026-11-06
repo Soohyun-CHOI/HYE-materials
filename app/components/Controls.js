@@ -226,9 +226,10 @@ export function Notice({ children }) {
  * the reader reads rather than an answer to a press, so it is heard when it changes and not as
  * an alert. `DialogActions`' `note` is its one caller.
  */
-export function Refusal({ centered = false, role = "alert", children }) {
+export function Refusal({ centered = false, role = "alert", id, children }) {
     return (
         <p
+            id={id}
             role={role}
             className={`flex items-start gap-refusal-gap text-body-sm text-foreground-muted ${
                 centered

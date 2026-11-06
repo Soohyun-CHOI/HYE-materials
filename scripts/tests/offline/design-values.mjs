@@ -381,6 +381,8 @@ const VALUES = [
     // A date, on every screen (#463), and the one name group a file the screens above the
     // assets axis reach may read — `APP_WIDE` below. From the drawings, not the spec.
     ["--opacity-date-separator", "45%", null],
+    // 1f's toast draws a moment's slashes at 60% on its Ink ground (#614).
+    ["--opacity-toast-date-separator", "60%", null],
     ["--spacing-date-separator-inline", "1.5px", null],
     ["--spacing-date-time-inline", "0.5625rem", null],
     ["--spacing-mobile-date-time-inline", "0.5rem", null],

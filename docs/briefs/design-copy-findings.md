@@ -25,8 +25,10 @@ drawing in #614. The first entry, the purchase request screen's (#333), waits
 on no sending, since the files draw no such screen: the app decides it when the
 materials screens open again. **What the files draw nothing of is no entry**:
 the export file's columns — the serial number's (#601), and a loan's `On loan`
-and `Owner job` (#598) — and the sign-in mail's plain-text part are the app's,
-in `docs/notes/tools.md` and `docs/notes/authorization.md`.
+and `Owner job` (#598) — the sign-in mail's plain-text part, a job change's
+`Choose a job.`, which no screen can send, and where a deletion lands, a list
+the app already draws, are the app's, in `docs/notes/tools.md` and
+`docs/notes/authorization.md`.
 
 ---
 
@@ -118,46 +120,28 @@ screen is closed (#542); the word is chosen, and swept with everything under
 ## What the files of 2026-11-05 draw otherwise, or not at all (#614)
 
 Tools 53 and Sign in 29 draw every other word and state #612 sent, and every
-sign-in one. These they draw in another place, in other words, or not at all.
-The app keeps its own until Soo decides each; a row decided goes from here in
-the commit that makes the app say it.
-
-**Where a press's refusal stands is the first difference.** The app says a
-refusal in the dialog or question that sent it while that dialog still stands,
-and under the status once the page drawn again has closed it — the item moved,
-somebody got in front, the press no longer offered (`AssetTransition.js`). The
-files draw them in the dialog at a desk whatever closed it, a press with no
-dialog as 0k's toast, and on a phone always as 0a's Notice under the status with
-the sheet or question closed — Tools 0a's Notice row says so: "A save from a
-record's page that the server refused, or did only in part, shows the page as it
-now stands with the Notice 16 under the status".
+sign-in one, and #614 says each where they draw it: a refused press in the
+dialog or question that sent it at a desk, a press with no dialog as 0k's toast,
+and on a phone as 0a's Notice under the status with the sheet or question
+closed. These they draw otherwise or not at all, the four after the busy words
+being ones #614 decided where the files draw nothing. The app keeps its own
+until Soo decides each; a row decided goes from here in the commit that makes
+the app say it.
 
 | String or state | The app | The files | Key |
 |---|---|---|---|
-| `This item is on 26-USA-07 now. Your check-out wasn't saved.` | under the status at a desk, the page drawn on the item's job having closed the check-out | in the check-out dialog over its actions (1f `Check out: moved job`) | `ASSET_TRANSITION_COPY.movedTo` (#597) |
-| `Only 26-USA-07 can record this item. Your check-out wasn't saved.` | under the status at both widths | `Only 26-USA-07 can record this item. Nothing was saved.`, in the check-out dialog at a desk (1f `Check out: lent away`, 1k-d) | `.notYours` (#597) |
-| `This item is retired.` for a check-out somebody's retirement got in front of | under the status at a desk | in the check-out dialog (1f `Check out: retired`) | `.noTransition` (#612) |
-| `Jisoo Park already lent this to another job on …` and `… already returned this to its owner on …` | under the status at a desk | in the lending dialog and the return's question (1f `Lend: lent first`, `Return: returned first`) | `.someoneFirst` (#598) |
-| `… already sent this for repair on …`, `… already returned this from repair on …` | under the status at a desk | a toast (1f `Repair: sent first`, `Repair return: returned first`) | `.someoneFirst` (#531) |
-| `This wasn't fully recorded. Do it again to finish.` after a sending or a check-in | under the status at a desk | a toast (1f `Repair: half done`, 1g `Check in: half done`) | `.statusNotUpdated` (#612) |
-| `Something has been recorded on this item, so its job can't be changed.`, `Changing an item's job is for Admins.` | under the status at a desk, the dialog closed | in the dialog (1f `Job: recorded`, `Job: not Admin`) | `ASSET_OFFICE_COPY.recordedSince`, `.noAccess` (#583) |
-| `Something has been recorded on this item, so it can't be deleted.`, `Deleting an item is for Admins.` | under the status at a desk, the question closed | in the question (1f `Delete: recorded`, `Delete: not Admin`) | `.deleteRecordedSince`, `.deleteNoAccess` (#582) |
-| a lending or a job change left half done on a phone | under the sheet's rows while it stands | the sheet closed, the Notice under the status (1k-f `Lend`, `Change job`) | `ASSET_TRANSITION_COPY.lendHalfDone`, `ASSET_OFFICE_COPY.halfDone` (#598, #583) |
-| a return or a deletion left half done on a phone | over the question's actions while it stands | the question closed, the Notice under the status (1k-f `Return to owner`, `Delete`) | `ASSET_TRANSITION_COPY.returnHalfDone`, `ASSET_OFFICE_COPY.deleteHalfDone` (#598, #582) |
-| `Couldn't save the item. Try again.` | 1l's dialog, an add or an edit that wrote nothing | `Couldn't save the changes. Try again.` for an edit, `Couldn't add it to the catalog. Try again.` for an add (1l `Save failed`, `Add failed`) | `ASSET_CATALOG_COPY.notSaved` (#612) |
-| `Couldn't remove the item. Try again.` | 1l's removal that wrote nothing | `Couldn't remove it from the catalog. Try again.` (1l `Remove failed`) | `.notRemoved` (#612) |
 | `Someone else recorded this first. Nothing was saved.` | a refused repair press with no entry read (#531) | draw none | `.someoneFirst` |
 | `No item in these filters has the serial number` | 1a, a number the band leaves off | draw the ID's sentence alone (1a3 `ID hidden by filters`) | `ASSET_LIST_COPY.noSerialMatchFiltered` (#601) |
 | `Adding…`, `Removing…` for the note and the serial number, and a phone sheet's `Done` and the job change's `Save` busy | heard while a press is on its way | draw the desk row's `Saving…` alone | `ASSET_NOTE_COPY.working`, `ASSET_SERIAL_COPY.working`, `ASSET_OFFICE_COPY.saving` (#533, #601, #583) |
 | `Retiring…`, `Deleting…`, `Loading…`; 1l's `Saving…`, `Adding…`, `Creating…`, `Discontinuing…`, `Restoring…` | heard while a press is on its way | draw none; 1l's `Removing…` they draw | `ASSET_TRANSITION_COPY.retireWorking`, `ASSET_OFFICE_COPY.deleteWorking`, `ASSET_LABEL_PAGE_COPY.working`, `ASSET_CATALOG_COPY.working` (#612, #582) |
-| `Choose a job.` | the job change, a job no list offers, which no screen sends | draw none | `ASSET_OFFICE_COPY.jobNoneChosen` (#583) |
-| the item's kind's list on the job it was on, without the item | where a deletion lands | draw no landing; the file's script moves to 1d, which is behavior and not a drawing | `deletedLanding` (#582) |
+| `This item is retired.` in the retirement's question, `Retire` turned away | a desk's retirement somebody got in front of (#614) | draw none | `ASSET_TRANSITION_COPY.noTransition` |
+| `Only 26-USA-07 can record this item. Nothing was saved.` or `This item is on 26-USA-07 now. Nothing was saved.` under the field, `Save` turned away for the first | a desk's `Details` editor, which stands, refused because the item is no longer the reader's or moved to another of their jobs (#614) | draw a value changed first, too much typed and a number another item holds there, not these | `.notYours`, `.movedTo` |
+| `This wasn't fully recorded. Do it again to finish.` in the Notice, the question closed | a phone's retirement left half done (#614) | draw a half-done lending in the Notice (1k-f), not a retirement | `.statusNotUpdated` |
+| `Only 26-USA-07 can record this item. Nothing was saved.`, naming the item's job | a press from a reader who stopped being a site manager while the page was open: in the dialog or question at a desk, its commitment turned away, in the toast for a press with no dialog, and in the Notice on a phone, the sheet closed (#614) | draw the sentence for a reader off the item's job (1f `Check out: lent away`, 1k-d), not this | `.notYours`, `refuseNotASiteManager` |
 | `The category was added, but the item wasn't. Try again.`, `Couldn't create the category. Try again.`, `This item isn't in the catalog any more.`, `Items use it now, so it stays in the catalog.`, `You don't have access to this page. Keeping the catalog is for Admins.` | 1l | draw none | `ASSET_CATALOG_COPY.categoryOnly`, `.categoryNotCreated`, `.gone`, `.hasItems`, `.noAccess` (#612) |
 
-**The words of the rows the files draw are the app's own but for three**:
-`Nothing was saved.` after `Only 26-USA-07 can record this item.`, where the
-app ends a check-out's refusal on `Your check-out wasn't saved.` as 1k's
-sentence does (#597), and 1l's two failures, which the files split by what the
-press was where the app says one sentence for an add and an edit. The base's
-fields are the ones each issue names: `Assets."Job"` and `."Owner Job"`, the
-`Asset Log` rows' `Event`, and `Asset Categories`.
+**The busy words are heard and not seen**: a button busy on the item's page
+or the catalog draws the spinner in its word's place and says the word to a
+screen reader alone (`Controls.js`, `ButtonLabel`). The base's fields are the
+ones each issue names: `Assets."Job"`, the `Asset Log` rows' `Event`, and
+`Asset Categories`.

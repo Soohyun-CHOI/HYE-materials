@@ -230,8 +230,9 @@ button beside the transition, named by its tooltip, and on a phone the 48
 button at the top bar's right end (1f, 1j). It is in 0f's destructive red, and
 opens a dialog. **From `In stock` alone, `Send for repair` stands above it
 (#531; 1f, 1j-a)**, in Ink: it asks nothing and sends at once, as the return
-that undoes it does, so its answer stands under the status as a press's does,
-and `More actions` is busy while it is on its way. An item that is out is
+that undoes it does, so its answer is said where a press's with no dialog is —
+in a toast at a desk, under the status on a phone (#614) — and `More actions`
+is busy while it is on its way. An item that is out is
 checked in before it is sent; one in repair offers its return, and its menu the
 retirement alone. **On a phone the menu ends on
 the reader's account** — `Sign out` over their email, under a rule — since a
@@ -303,13 +304,15 @@ retirement is not a move.
 open, the press is refused and said (#597).** The office may change an item's
 job (#583), and the office assigns jobs; either can happen between drawing the
 page and pressing. Every press carries the job the page was drawn on, and the
-action, reading the item and the reader again, refuses it under the status of the
-page drawn again: `Only 26-USA-07 can record this item. Your check-out wasn't
-saved.` when the item is no longer the reader's to record, and `This item is on
-26-USA-07 now. Your check-out wasn't saved.` when it moved to another of their
-jobs — the press is refused rather than recorded somewhere they did not see. The
-retirement's and the two details' are refused the same way, ending on `Nothing was
-saved.`, and the dialog, the question, or the row or the sheet that sent it goes.
+action, reading the item and the reader again, refuses it on the page drawn
+again: `Only 26-USA-07 can record this item. Nothing was saved.` whatever was
+pressed when the item is no longer the reader's to record (#614), and `This item
+is on 26-USA-07 now. Your check-out wasn't saved.` when it moved to another of
+their jobs — the press is refused rather than recorded somewhere they did not
+see. The retirement's and the two details' are refused the same way, ending on
+`Nothing was saved.`, and each is said where its press was (below). A reader
+who stops being a site manager while the page is open is told the first,
+naming the job the item stands on, whatever they pressed (#614).
 
 **The transition has no heading.** The two blocks below it name things —
 `History`, `Label` — and a heading over the act would have to name it in the
@@ -408,13 +411,18 @@ not assume the facts arrive together.
 
 ## What it carries only sometimes
 
-**A refusal of the press, under the status in the title block** — a phone's
-notice and a desk's refusal line (1k) — or above the dialog's actions while a
-dialog stands open for it (#458). Those that reach it: someone else has
+**A refusal of the press, said where the press was (#614).** At a desk, in the
+dialog or question that sent it, over its actions: it stands until the reader
+closes it, showing what it was opened on, and its commitment is turned away and
+names the sentence when the page drawn again no longer offers the act. A desk's
+press with no dialog — a check-in, a return from repair, `Send for repair` —
+says it in a toast at the foot of the page, which stays until it is dismissed or
+the next press. On a phone, the notice under the status in the title block
+(1k), the sheet or question that sent it closed. Those that reach it: someone else has
 already recorded something, so the press was not saved; the item is no longer
 the reader's to record, or moved to another of their jobs, since the page was
-drawn (#597, above) — said there whatever control sent the press, the
-retirement's question and the two details' included; the asset carries no such id; and
+drawn (#597, above), the retirement's question and the two details' included;
+the reader is no longer a site manager (#614); the asset carries no such id; and
 the event was recorded but the asset's own status was not updated. A line
 saying a check-in would move the item to another job stood under the dialog's
 job until #597, when no press moved an item any more. The last is the only
@@ -423,7 +431,7 @@ fully recorded. Do it again to finish.` since #612, where until then it named th
 event, the item and the status the lists still read — and pressing again fixes
 it. A loan left half done says the same in its own act: `The item wasn't fully
 lent to 26-USA-12. Lend it again to finish.` and `The item wasn't fully
-returned. Return it again to finish.` Ordinarily nothing stands there.
+returned. Return it again to finish.` Ordinarily nothing is said.
 
 **EVERY REFUSAL ARRIVES ON A FRESHLY RENDERED PAGE, AND THAT IS WHAT THE FIRST
 SENTENCE IS WRITTEN AGAINST.** The status, the control's direction and the
@@ -449,12 +457,11 @@ to `More actions`; the confirm takes it away with the page's offer, and focus
 goes to the page's heading (#458). It does not close while a confirmation is in
 flight, and while it is, the commitment keeps its red and its width, a spinner
 in place of its words and `Retiring…` said to assistive tech (#495), and
-nothing else in it takes a press (#469). It carries a refusal slot of its own, in
-case a refusal ever lands while it is open. **What happens today when somebody
-else retires the asset first is that the dialog goes** — the refusal
-re-renders the page, the page has nothing to offer a retired asset, and the
-dialog disappears with its menu; what the reader is left looking at is the
-status saying it is the end.
+nothing else in it takes a press (#469). It says a refusal over its actions. **When
+somebody else retires the asset first, the question stays at a desk and says
+`This item is retired.`**, `Retire` turned away, the page behind it drawn
+again as the end; on a phone it closes and the notice says it (#614). Until
+#614 the question went with its menu and nothing was said.
 
 **For a site manager on the item's job (#597), in every status the app shows — in
 stock, out, in repair and retired (#612) — a way to write its serial number and its
@@ -491,7 +498,10 @@ either, though 1g drew both at a desk. **A value somebody else changed while thi
 one was being written** is refused with `Someone else changed this note first.
 Nothing was saved.`, or `this serial number`, the page drawn again with theirs
 and what was typed still in the field, so a second press writes over it
-knowingly.
+knowingly. **One no longer the reader's to write** — taken off the item's job —
+says `Only 26-USA-07 can record this item. Nothing was saved.` in the field's
+line at a desk, the field standing and `Save` turned away, and on a phone the
+sheet closes and the notice says it (#614).
 
 **For the office, while the item's history holds its `Created` entry alone, a
 way to change its job (#583; 1f, 1j-f).** `Change job` stands in `More actions`
@@ -508,13 +518,14 @@ checked, and `Save` at its head's end: a press on a row moves the check and
 saves nothing. **Saving moves the item and its `Created` entry to the job
 together**, and its number, label, status and the entry's moment and recorder
 stay as they were; a Save of the job both already hold closes and writes
-nothing. **Something recorded since the page was drawn** takes the line and its
-dialog away, and the page drawn again says `Something has been recorded on this
-item, so its job can't be changed.` under the status; a reader who is no longer
-the office reads `Changing an item's job is for Admins.` there. **A change left
-half done** — the entry moved and the item not — says, where the press was,
-`The job wasn't fully changed. Save again to finish.`, and the next Save writes
-the half that is left. An item with any other entry offers no `Change job`, and nothing
+nothing. **Something recorded since the page was drawn** is
+refused with `Something has been recorded on this item, so its job can't be
+changed.`, and a reader who is no longer the office reads `Changing an item's
+job is for Admins.` **A change left half done** — the entry moved and the item
+not — says `The job wasn't fully changed. Save again to finish.`, and the next
+Save writes the half that is left. Each is said where the press was (#614): in
+the dialog at a desk, its `Save` turned away when the change is no longer
+offered, and under the status on a phone, the sheet closed. An item with any other entry offers no `Change job`, and nothing
 is drawn in its place.
 
 **For the office, on the same item, a way to delete it (#582; 1f, 1j).**
@@ -529,13 +540,13 @@ was on, without the item**, and says nothing more. A deleted item is shown
 nowhere again, to anybody: no list, count, search, export or label run holds
 it, and its address and a scan of its label read `Item not found`, as a code no
 item carries does. Its number is never given to another item. **Something
-recorded since the page was drawn** takes the line and its question away, and
-the page drawn again says `Something has been recorded on this item, so it
-can't be deleted.` under the status; a reader who is no longer the office reads
-`Deleting an item is for Admins.` there. **A deletion left half done** — its
-entry recorded and the item still on the lists — shows the `Deleted` entry in
-its history and says, where the press was, `The item wasn't fully deleted.
-Delete it again to finish.`; `Delete this item`
+recorded since the page was drawn** is refused with `Something has been
+recorded on this item, so it can't be deleted.`, and a reader who is no longer
+the office reads `Deleting an item is for Admins.` **A deletion left half
+done** — its entry recorded and the item still on the lists — shows the
+`Deleted` entry in its history and says `The item wasn't fully deleted. Delete
+it again to finish.` Each is said where the press was, as the job change's
+(#614); `Delete this item`
 stays on that page, alone of the office's two, and finishes it.
 
 **A site manager on another job, or on none, reads the item as anybody does

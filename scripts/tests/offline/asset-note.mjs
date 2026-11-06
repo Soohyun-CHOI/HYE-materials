@@ -183,7 +183,7 @@ export function run({ check, assert, log }) {
     const actions = parseFile(ACTIONS);
     const handler = functionSource(actions, "updateAssetNoteHandler");
     assert("the handler was found", handler !== "");
-    assert("  behind the site manager's gate", /export const updateAssetNoteAction = withSiteManagerAction\(updateAssetNoteHandler\);/.test(actions.source));
+    assert("  behind the site manager's gate", /export const updateAssetNoteAction = withSiteManagerAction\(refuseNotASiteManager, updateAssetNoteHandler\);/.test(actions.source));
     const facts = actionFacts(handler);
     check(
         "its scope, its lock keyed by the printed id folded, the read, the plan and the rule inside it",
@@ -281,28 +281,30 @@ export function run({ check, assert, log }) {
         "true true true true true true"
     );
     check(
-        "  a reader who may not write meets nothing where there is no note",
+        "  a reader who may not write meets nothing where there is no note, but a desk's editor still standing (#614)",
         [
-            /\]\.filter\(\(row\) => row\.value \|\| row\.writable\);\s*if \(rows\.length === 0\) return null;/.test(functionSource(component, "DetailsBlock")),
+            /\]\.filter\(\(row\) => row\.value \|\| row\.writable \|\| transition\?\.\[row\.kind\]\?\.openOn === "desk"\);\s*if \(rows\.length === 0\) return null;/.test(functionSource(component, "DetailsBlock")),
             /\{\(note \|\| mayWriteNote\) && <PhoneDetail kind="note"/.test(functionSource(component, "PhoneDetails")),
         ].join(" "),
         "true true"
     );
     check(
-        "  the answer said only to the opening that sent it, and under the status once the page ended it",
+        "  the answer said only to the opening that sent it, and under the status once the page ended a phone's (#614)",
         [
             /const saidInOpening = sentFor === opening;/.test(slot),
             /refusal: saidInOpening \? sentence : null,/.test(slot),
             /note: note\.saidInOpening \? null : note\.sentence,/.test(provider),
-            /if \(note\.openOn !== null && !plan\.mayWriteNote\) note\.end\(\);/.test(provider),
+            /if \(note\.openOn === "phone" && !plan\.mayWriteNote\) note\.end\(\);/.test(provider) && !/if \(note\.openOn !== null && !plan\.mayWriteNote\)/.test(provider),
         ].join(" "),
         "true true true true"
     );
     check(
-        "  each width's opener is drawn for a writer alone, and opens its own",
+        "  each width's opener is drawn for a writer alone, and opens its own, a desk's editor standing once opened, its Save turned away when the page no longer lets the reader write (#614)",
         [
             /\{writable && \(\s*<button\s+ref=\{openerRef\}\s+type="button"\s+aria-label=\{detail\.editName\}\s+onClick=\{\(\) => control\.start\("desk"\)\}/.test(functionSource(component, "DetailsRow")),
-            /const open = writable && control\.openOn === "desk";/.test(functionSource(component, "DetailsRow")),
+            /const open = control\.openOn === "desk";/.test(functionSource(component, "DetailsRow")) &&
+                /<RowEditor key=\{control\.opening\} kind=\{kind\} value=\{value\} available=\{writable\} control=\{control\} onClose=\{close\} \/>/.test(functionSource(component, "DetailsRow")) &&
+                /<Button type="submit" size="md" unavailable=\{!available\}/.test(functionSource(component, "RowEditor")),
             /\{writable && <DetailSheet key=\{control\.opening\} kind=\{kind\} value=\{value\} open=\{control\.openOn === "phone"\} control=\{control\} \/>\}/.test(functionSource(component, "PhoneDetail")),
             /\) : \(\s*<p className="flex items-start gap-gap text-mobile-body-sm">\{content\}<\/p>\s*\)\}/.test(functionSource(component, "PhoneDetail")),
         ].join(" "),

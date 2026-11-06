@@ -1,7 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
-import { requireUser, withSiteManagerAction } from "@/lib/authz";
+import { refuseWithThePage, requireUser, withSiteManagerAction } from "@/lib/authz";
 import { getAssetsByAssetIds } from "@/lib/airtable/assets";
 import { recordsOn } from "@/lib/assetJob";
 import { QR_SIDE_MODULES, buildAssetLabel } from "@/lib/assetLabelQR";
@@ -57,7 +57,7 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * behind Vercel's proxy, the source the asset's page reads its own from — so the
  * symbol it shows and the label printed for it encode one string.
  */
-export const readAssetLabelsAction = withSiteManagerAction(readAssetLabelsHandler);
+export const readAssetLabelsAction = withSiteManagerAction(refuseWithThePage, readAssetLabelsHandler);
 
 async function readAssetLabelsHandler(assetIds) {
     return withOpsLabel("readAssetLabelsAction", async () => {

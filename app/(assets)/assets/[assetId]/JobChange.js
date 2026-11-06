@@ -1,15 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Button, Choice, Field, Refusal, useRefusalFocus } from "@/app/components/Controls";
 import { DialogActions, DialogBody, DialogFrame, SheetRows } from "@/app/components/DialogFrame";
 import { ASSET_OFFICE_COPY as COPY, readJobChange, startingJob } from "@/lib/assetOfficeActs";
-import { useAssetTransition } from "./AssetTransition";
 
 /**
  * The office's `Change job` (#583) — 0l's Compact dialog at a desk (1f) and Tools 0a's sheet of
- * rows on a phone (1j-f), each opened from its own width's `More actions` and drawn inside it, so
- * the frame closes one left open as the window crosses the phone's edge (#495).
+ * rows on a phone (1j-f), each opened from its own width's `More actions` and drawn by the page's
+ * provider (`AssetTransition.js`), which holds which width's stands.
  *
  * IT OPENS ON THE JOB ITS `Created` ENTRY HOLDS (`startingJob`), which is the asset's own until a
  * change is half done, and offers the jobs a list's job choice offers, in its order
@@ -21,10 +20,12 @@ import { useAssetTransition } from "./AssetTransition";
  * A job that is the one both halves hold closes and sends nothing; anything else is sent. A job
  * the list does not offer, which no screen sends, is refused under the field.
  *
- * THE ANSWER IS THE PAGE'S PROVIDER'S (`AssetTransition.js`): said here while this opening, which
- * sent it, stays open — a half-done change, above the actions or under the rows — and under the
- * status otherwise. A change refused because something was recorded since takes the line and this
- * dialog away with it, so it is said there.
+ * THE ANSWER IS THE PAGE'S PROVIDER'S (`AssetTransition.js`). At a desk every answer is said above
+ * the dialog's actions, which stands until the reader closes it — `Save` `unavailable` once the page
+ * no longer offers the change (`available`), something recorded since or the reader no longer the
+ * office, and live for a change left half done; on a phone any answer closes the sheet and is said
+ * under the status, as the files of 2026-11-05 draw both (#614). What the dialog offers is the office
+ * it was opened from (`plan`, held while it stands).
  *
  * A SENDING IS SAID IN WHAT SENT IT (0f Working, #469): the frame is busy, `Save` says `Saving…`
  * — the phone's spinner alone — and everything else locks. A change that lands redirects, the
@@ -32,45 +33,8 @@ import { useAssetTransition } from "./AssetTransition";
  *
  * EVERY STRING COMES FROM `ASSET_OFFICE_COPY`.
  */
-export function JobChangeDialog() {
-    const { assetId, office, jobChange } = useAssetTransition();
-    return (
-        <JobChangeForm
-            key={jobChange.opening}
-            open={jobChange.openOn === "desk"}
-            onClose={jobChange.close}
-            assetId={assetId}
-            plan={office}
-            assetJobRecordId={jobChange.assetJobRecordId}
-            assetOwnerJobRecordId={jobChange.assetOwnerJobRecordId}
-            pending={jobChange.pending}
-            refusal={jobChange.refusal}
-            onSend={jobChange.send}
-        />
-    );
-}
-
-/** The phone's sheet (1j-f), the desk's dialog's other drawing. */
-export function JobChangeSheet() {
-    const { assetId, office, jobChange } = useAssetTransition();
-    return (
-        <JobChangeRows
-            key={jobChange.opening}
-            open={jobChange.openOn === "phone"}
-            onClose={jobChange.close}
-            assetId={assetId}
-            plan={office}
-            assetJobRecordId={jobChange.assetJobRecordId}
-            assetOwnerJobRecordId={jobChange.assetOwnerJobRecordId}
-            pending={jobChange.pending}
-            refusal={jobChange.refusal}
-            onSend={jobChange.send}
-        />
-    );
-}
-
-/** The desk's dialog (1f): `Job` and its choice, `Cancel` and `Save`. */
-function JobChangeForm({ open, onClose, assetId, plan, assetJobRecordId, assetOwnerJobRecordId, pending, refusal, onSend }) {
+export function JobChangeForm({ open, onClose, available, assetId, plan, assetJobRecordId, assetOwnerJobRecordId, pending, refusal, onSend }) {
+    const refusalId = useId();
     const [jobId, setJobId] = useState(() => startingJob(plan, assetJobRecordId));
     const [pressed, setPressed] = useState(false);
     const focusRefused = useRefusalFocus();
@@ -99,11 +63,11 @@ function JobChangeForm({ open, onClose, assetId, plan, assetJobRecordId, assetOw
                     <Choice name="jobId" options={options} value={jobId} onChange={setJobId} placeholder={COPY.jobUnchosen} />
                 </Field>
             </DialogBody>
-            <DialogActions refusal={refusal}>
+            <DialogActions refusal={refusal} refusalId={refusalId}>
                 <Button variant="bordered" onClick={onClose}>
                     {COPY.cancel}
                 </Button>
-                <Button type="submit" busyLabel={COPY.saving}>
+                <Button type="submit" unavailable={!available} describedBy={!available && refusal ? refusalId : undefined} busyLabel={COPY.saving}>
                     {COPY.save}
                 </Button>
             </DialogActions>
@@ -116,11 +80,11 @@ function JobChangeForm({ open, onClose, assetId, plan, assetJobRecordId, assetOw
  * the head's end. A press behind it, on its handle or a drag down puts it away and saves nothing,
  * as the note's sheet does, and none of them while it saves (the frame's `busy`).
  */
-function JobChangeRows({ open, onClose, assetId, plan, assetJobRecordId, assetOwnerJobRecordId, pending, refusal, onSend }) {
+export function JobChangeRows({ open, onClose, assetId, plan, assetJobRecordId, assetOwnerJobRecordId, pending, onSend }) {
     const [jobId, setJobId] = useState(() => startingJob(plan, assetJobRecordId));
     const [pressed, setPressed] = useState(false);
     const answer = readJobChange(plan, { jobId, assetJobRecordId, assetOwnerJobRecordId });
-    const said = refusal ?? (pressed ? answer.refusal : null);
+    const said = pressed ? answer.refusal : null;
 
     const save = () => {
         if (answer.refusal) {

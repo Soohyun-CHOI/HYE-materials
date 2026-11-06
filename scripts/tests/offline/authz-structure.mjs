@@ -68,9 +68,9 @@ const WRAPPERS = {
     withAdminApi: 1,
     withAdminAction: 2,
     withPresidentAction: 1,
-    // #506 — the handler alone: its refusal is bound in lib/authz.js, one answer for all
-    // four of the axis's actions, so a call site has no position to supply one in either.
-    withSiteManagerAction: 1,
+    // #506 — the refusal and the handler since #614, when an item's page began naming whose item
+    // it is; which refusal each call site passes is held by site-manager.mjs.
+    withSiteManagerAction: 2,
 };
 
 // The method set and the scan roots moved to _entrypoints.mjs with the

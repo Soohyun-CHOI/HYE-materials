@@ -321,7 +321,7 @@ async function exportAndRest({ check, assert, log, jobs, kinds, kept }) {
         ["returnAssetToOwnerAction", "returnAssetToOwnerHandler", "RETURNED_TO_OWNER", "readReturn"],
     ]) {
         const { source } = handlerOf(handler);
-        assert(`${action} is a site manager's, round a handler nobody can call`, new RegExp(`export const ${action} = withSiteManagerAction\\(${handler}\\);`).test(actions.source) && !new RegExp(`export async function ${handler}\\b`).test(actions.source));
+        assert(`${action} is a site manager's, round a handler nobody can call`, new RegExp(`export const ${action} = withSiteManagerAction\\(refuseNotASiteManager, ${handler}\\);`).test(actions.source) && !new RegExp(`export async function ${handler}\\b`).test(actions.source));
         assert(`  ${action}'s scope its own name, the asset read by its printed id`, new RegExp(`withOpsLabel\\("${action}",`).test(source) && /const asset = await getAssetByAssetId\(String\(formData\.get\("assetId"\) \?\? ""\)\);/.test(source));
         assert(`  planned on a fresh read with its latest entry, then asked ${read}`, /const plan = await planLoan\(\{ user, asset \}\);/.test(source) && new RegExp(`const answer = ${read}\\(plan,`).test(source));
         assert(
@@ -355,30 +355,34 @@ async function exportAndRest({ check, assert, log, jobs, kinds, kept }) {
     );
     check("  writeLoan is no entry point", /export (async )?function writeLoan|export const writeLoan/.test(actions.source), false);
     // The three older actions plan with the owner job too, which a retirement on loan writes, and so
-    // does the serial number's (#601), the note's twin.
+    // does the serial number's (#601), the note's twin, and the refusal of a reader who is not a site
+    // manager (#614), whose plan names the item's job.
     check(
         "every plan an action makes names the item's owner job",
         `${(actions.source.match(/ownerJobId: asset\.ownerJob\?\.\[0\]/g) ?? []).length} ${callsTo(actions.ast, "planTransition").length}`,
-        "5 5"
+        "6 6"
     );
     assert("the retirement writes the job readRetirement answers, the owner job on loan", /const \{ jobRecordId, refusal \} = readRetirement\(plan,/.test(actions.source) && /event: ASSET_EVENT\.RETIRED,\s*jobRecordId,/.test(actions.source));
 
     // The provider, the menu and the two openings.
     const provider = parseFile(PROVIDER).source;
     assert(
-        "the provider holds both answers and draws the return's question while the plan offers it",
+        "the provider holds both answers and draws the return's question while the plan offers it or once it opened, on the jobs it opened on (#614)",
         /useActionState\(lendAssetAction, null\)/.test(provider) &&
             /useActionState\(returnAssetToOwnerAction, null\)/.test(provider) &&
-            /\{plan\.mayReturn && \(\s*<ReturnConfirm/.test(provider) &&
-            /ownerJobCode=\{plan\.ownerJobCode \?\? ""\}\s*jobCode=\{plan\.jobCode \?\? ""\}/.test(provider)
+            /\{\(plan\.mayReturn \|\| returning\.count > 0\) && \(\s*<ReturnConfirm/.test(provider) &&
+            /const heldReturnPlan = useHeldWhileOpen\(returning\.on !== null, plan\);/.test(provider) &&
+            /ownerJobCode=\{heldReturnPlan\.ownerJobCode \?\? ""\}\s*jobCode=\{heldReturnPlan\.jobCode \?\? ""\}/.test(provider)
     );
     assert(
-        "  ending a lending and a return the plan no longer offers",
-        /if \(lendingOn !== null && !plan\.mayLend\) endLending\(\);/.test(provider) && /if \(returning && !plan\.mayReturn\) endReturning\(\);/.test(provider)
+        "  ending a phone's lending and return the plan no longer offers or its answer closes, a desk's standing (#614)",
+        /if \(phone\(lending\) && \(!plan\.mayLend \|\| lending\.answered\)\) lending\.end\(\);/.test(provider) &&
+            /if \(phone\(returning\) && \(!plan\.mayReturn \|\| returning\.answered\)\) returning\.end\(\);/.test(provider) &&
+            !/if \(lending\.on !== null && !plan\.mayLend\)|if \(returning\.on !== null && !plan\.mayReturn\)/.test(provider)
     );
     assert(
         "  and saying each where its opening stands or under the status",
-        /lend: lendSaidInDialog \? null : lendSentence,/.test(provider) && /return: returnSaidInDialog \? null : returnSentence,/.test(provider) && /refusal: lendSaidInDialog \? lendSentence : null,/.test(provider)
+        /lend: lending\.said \? null : lendSentence,/.test(provider) && /return: returning\.said \? null : returnSentence,/.test(provider) && /refusal=\{lending\.said \? lendSentence : null\}/.test(provider)
     );
     const menu = parseFile(MENU).source;
     assert(
@@ -397,7 +401,7 @@ async function exportAndRest({ check, assert, log, jobs, kinds, kept }) {
     );
     assert(
         "  the lending opening this width's own, the return its question",
-        /transition\.lend\.start\(phone \? "phone" : "desk"\);/.test(menu) && /transition\.openReturn\(\);/.test(menu) && /\{mayLend && \(phone \? <LendSheet \/> : <LendDialog \/>\)\}/.test(menu)
+        /transition\.lend\.start\(phone \? "phone" : "desk"\);/.test(menu) && /transition\.openReturn\(phone \? "phone" : "desk"\);/.test(menu) && !/<LendSheet|<LendDialog|<LendForm|<LendRows/.test(menu) && /\{\(plan\.mayLend \|\| lending\.count > 0\) && \(/.test(provider)
     );
     check("  and a desk's rule over the retirement under a loan's line, a phone's none", /const ruled = mayChangeJob \|\| \(!phone && \(mayLend \|\| mayReturn\)\);/.test(menu), true);
     const lend = parseFile(LEND);
@@ -405,7 +409,7 @@ async function exportAndRest({ check, assert, log, jobs, kinds, kept }) {
         const node = resolveFunction(lend.ast, name);
         const body = node ? lend.source.slice(node.start, node.end) : "";
         assert(`${name} opens where lendStart says and asks readLend of the job chosen and the page's job`, /useState\(\(\) => lendStart\(plan\)\)/.test(body) && /const answer = readLend\(plan, \{ drawnJobId, jobId \}\);/.test(body));
-        assert(`  ${name} sends nothing on a refusal, and sends the job chosen through the provider`, /if \(answer\.refusal\) \{\s*setPressed\(true\);[\s\S]*?return;\s*\}\s*lend\.send\(lendForm\(\{ assetId, drawnJobId, jobId \}\)\);/.test(body));
+        assert(`  ${name} sends nothing on a refusal, and sends the job chosen through the provider`, /if \(answer\.refusal\) \{\s*setPressed\(true\);[\s\S]*?return;\s*\}\s*onSend\(lendForm\(\{ assetId, drawnJobId, jobId \}\)\);/.test(body));
         assert(`  ${name} offers the plan's lendJobs and says whose it stays`, /plan\.lendJobs\.map/.test(body) && /COPY\.lendHelp\(\{ ownerJobCode: plan\.ownerJobCode \?\? "" \}\)/.test(body));
     }
     assert("  the phone's a sheet with its commitment at its foot, no Done at its head", /sheet\s+closesOnBackdrop/.test(lend.source) && !/done=\{/.test(lend.source));

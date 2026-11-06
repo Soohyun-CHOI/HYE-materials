@@ -167,8 +167,8 @@ export function run({ check, assert, log }) {
     );
     const retire = handlerSource(record, "retireAssetHandler");
     assert(
-        "the retirement a status got in front of says nothing, and one whose item is not the reader's is said",
-        /if \(refusal === ASSET_TRANSITION_COPY\.noTransition\) return refuse\(null\);\s*if \(refusal\) return refuse\(refusal\);/.test(retire)
+        "the retirement a status got in front of says the item is retired, and one whose item is not the reader's is said (#614)",
+        /if \(refusal\) return refuse\(refusal\);/.test(retire) && !/refuse\(null\)/.test(retire)
     );
     check(
         "the two readers the event and the retirement ask compare the drawn job first",
@@ -182,7 +182,7 @@ export function run({ check, assert, log }) {
             ASSET_TRANSITION_COPY.movedTo({ jobCode: B.jobCode, attempted: "Checked in" }),
             ASSET_TRANSITION_COPY.notYours({ jobCode: B.jobCode, attempted: null }),
         ].join(" | "),
-        "Only 25-USA-13 can record this item. Your check-out wasn't saved. | This item is on 25-USA-13 now. Your check-in wasn't saved. | Only 25-USA-13 can record this item. Nothing was saved."
+        "Only 25-USA-13 can record this item. Nothing was saved. | This item is on 25-USA-13 now. Your check-in wasn't saved. | Only 25-USA-13 can record this item. Nothing was saved."
     );
 
     // ── 4: the label read ────────────────────────────────────────────────────

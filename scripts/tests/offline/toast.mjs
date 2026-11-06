@@ -38,23 +38,30 @@ export function toastFacts({ ast, source }) {
     const attr = (element, name) => element?.openingElement.attributes.find((a) => a.name?.name === name)?.value;
     const button = source.match(/const TOAST_BUTTON = "([^"]*)";/)?.[1] ?? null;
     const escape = source.slice(source.indexOf("const onKeyDown"), source.indexOf("document.addEventListener(\"keydown\", onKeyDown)"));
+    // The root's classes: a string, or a template's fixed parts (#614, its `desk` part read apart).
+    const rootClass = attr(root, "className");
+    const rootClasses =
+        rootClass?.type === "JSXExpressionContainer" && rootClass.expression.type === "TemplateLiteral"
+            ? rootClass.expression.quasis.map((q) => q.value.cooked).join(" ")
+            : rootClass?.value;
     return {
-        root: tokens(attr(root, "className")?.value),
+        root: tokens(rootClasses),
+        desk: /\$\{desk \? "max-sm:open:hidden" : ""\}/.test(source) && /export default function Toast\(\{[^}]*\bdesk = false \}\)/.test(source),
         popover: attr(root, "popover")?.value ?? null,
         layer: [
             /useLayoutEffect\(\(\) => \{[\s\S]*?place\(\);\s*if \(!toast\.matches\(":popover-open"\)\) toast\.showPopover\(\);/.test(source),
             /const column = toast\.closest\("\[data-content-area\]"\);\s*const box = column \? column\.getBoundingClientRect\(\) : \{ left: 0, width: window\.innerWidth \};\s*toast\.style\.left = `\$\{box\.left \+ box\.width \/ 2\}px`;/.test(source),
             /const observer = new ResizeObserver\(place\);\s*if \(column\) observer\.observe\(column\);/.test(source),
         ].join(" "),
-        line: /<span className="flex items-center gap-gap text-body">\s*<Icon name="circle-alert" kind="words" className="size-icon shrink-0" \/>\s*\{line\}\s*<\/span>/.test(source),
+        line: /<span className="flex items-center gap-gap text-body \[--opacity-date-separator:var\(--opacity-toast-date-separator\)\]">\s*<Icon name="circle-alert" kind="words" className="size-icon shrink-0" \/>\s*\{line\}\s*<\/span>/.test(source),
         button: tokens(button),
         actions: [
             /<div className="flex items-center gap-toast-action-gap">/.test(source),
-            /<button type="button" onClick=\{\(\) => closeToast\(toastRef\.current, opener, onAction\)\} className=\{`\$\{TOAST_BUTTON\} px-ghost-inset-x text-body font-semibold`\}>\s*\{action\}\s*<\/button>/.test(source),
+            /\{action && \(\s*<button type="button" onClick=\{\(\) => closeToast\(toastRef\.current, opener, onAction\)\} className=\{`\$\{TOAST_BUTTON\} px-ghost-inset-x text-body font-semibold`\}>\s*\{action\}\s*<\/button>\s*\)\}/.test(source),
             /<button type="button" aria-label=\{dismissLabel\} onClick=\{\(\) => closeToast\(toastRef\.current, opener, onDismiss\)\} className=\{`\$\{TOAST_BUTTON\} aspect-square`\}>\s*<Icon name="x" kind="words" className="size-icon-sm" \/>\s*<\/button>/.test(source),
         ].join(" "),
         escape: /if \(event\.key !== "Escape" \|\| event\.defaultPrevented \|\| document\.querySelector\("dialog\[open\]"\)\) return;\s*closeToast\(toastRef\.current, opener, onDismiss\);/.test(escape),
-        handsBack: /function closeToast\(toast, opener, then\) \{\s*if \(toast\?\.contains\(document\.activeElement\)\) opener\?\.current\?\.focus\(\);\s*then\(\);\s*\}/.test(source),
+        handsBack: /function closeToast\(toast, opener, then\) \{\s*if \(opener && toast\?\.contains\(document\.activeElement\)\) \{\s*if \(opener\.current\?\.isConnected\) opener\.current\.focus\(\);\s*else focusPageHeading\(\);\s*\}\s*then\(\);\s*\}/.test(source),
         staysUp: /if \(!shown\) return null;/.test(source) && !/setTimeout|setInterval/.test(source),
         texts: texts.join(" | "),
     };
@@ -79,9 +86,18 @@ export function run({ check, assert, log }) {
             "inset-auto bottom-0 mx-0 mt-0 mb-toast-offset h-toast -translate-x-1/2 items-center gap-toast-inline overflow-visible rounded-card bg-foreground-default pr-toast-inset-right pl-toast-inset-left font-ui whitespace-nowrap text-white shadow-toast open:flex"
         )
     );
+    // A DESK'S TOAST IS NOT A PHONE'S (#614): an item's page says a refused press with no dialog here at a
+    // desk and under the status on a phone, so a toast its caller marks `desk` hides below the edge.
+    check("  a toast marked for a desk hides below the phone's edge (#614)", facts.desk, true);
     check("  its line led by a 16 alert mark 8 before it, at 14", facts.line, true);
     check("  its action and its dismiss faceless 32s in white at the Control radius, filling at Toast's hover", facts.button, tokens("flex h-control shrink-0 items-center justify-center rounded-control text-white hover:bg-toast-hover"));
     check("  the action at 14 and 600 with a ghost's 10 either side, then the dismiss's 14 ×, 2 apart", facts.actions, "true true true");
+    // 1f's toast holds its line and its dismiss alone, and a moment in its line takes the toast's slashes (#614).
+    check(
+        "  the action drawn only when the caller gives one, and a moment's slashes at the toast's 60% (#614)",
+        [/\{action && \(/.test(real.source), /\[--opacity-date-separator:var\(--opacity-toast-date-separator\)\]/.test(real.source)].join(" "),
+        "true true"
+    );
 
     log("");
     log("it opens in the top layer, on the content area:");
@@ -110,7 +126,9 @@ export function run({ check, assert, log }) {
     const planted = (from, to) => toastFacts(parseSource(real.source.replace(from, to), "<planted>"));
     assert("  one that times itself out is seen", planted("if (!shown) return null;", "if (!shown) return null;\n    setTimeout(onDismiss, 4000);").staysUp === false);
     assert("  one that closes on Escape over an open dialog is seen", planted(' || document.querySelector("dialog[open]")', "").escape === false);
-    assert("  one that leaves focus to fall is seen", planted("opener?.current?.focus();", "").handsBack === false);
+    assert("  one that leaves focus to fall is seen", planted("opener.current.focus();", "{}").handsBack === false);
+    assert("  one that leaves focus to fall where the opener went is seen (#614)", planted("else focusPageHeading();", "").handsBack === false);
+    assert("  one drawn on a phone too is seen (#614)", planted(' ${desk ? "max-sm:open:hidden" : ""}', "").desk === false);
     assert("  one that says a word of its own is seen", planted("{action}", "{action} now").texts === "now");
     // The `place` callback's lookup, the one followed by `const box`, matched over either line ending:
     // a checkout made with `core.autocrlf` holds CRLF, where a planted `\n` matched nothing.

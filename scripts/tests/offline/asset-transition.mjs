@@ -76,6 +76,7 @@ export const title = "What a person may record against an asset (#362, #363, #45
 
 const ACTION = "app/(assets)/assets/[assetId]/actions.js";
 const DIALOG = "app/(assets)/assets/[assetId]/TransitionDialog.js";
+const FORM = "app/(assets)/assets/[assetId]/TransitionForm.js";
 const PROVIDER = "app/(assets)/assets/[assetId]/AssetTransition.js";
 const BAR = "app/(assets)/assets/[assetId]/TransitionBar.js";
 const REFUSAL = "app/(assets)/assets/[assetId]/TransitionRefusal.js";
@@ -389,18 +390,18 @@ export function run({ check, assert, log }) {
         const provider = parseFile(PROVIDER).source;
         assert(
             "the provider holds which event is on its way, set by every send, which is then the one sent last (#583)",
-            /const send = \(formData\) => \{\s*setSending\(String\(formData\.get\("event"\) \?\? ""\)\);\s*setLastSent\("event"\);\s*startTransition\(\(\) => formAction\(formData\)\);\s*\};/.test(provider)
+            /const send = \(formData, via\) => \{\s*setSending\(String\(formData\.get\("event"\) \?\? ""\)\);\s*setLastSent\("event"\);\s*setEventVia\(via\);\s*if \(via === "dialog"\) setEventSentFor\(opening\);\s*if \(via === "desk"\) pressedOn\.current = document\.activeElement instanceof HTMLElement \? document\.activeElement : null;\s*startTransition\(\(\) => formAction\(formData\)\);\s*\};/.test(provider)
         );
         assert("  and splits the wait: the press's, and the menu's sending", /pending: pending && !repairing,\s*repairPending: pending && repairing,/.test(provider) && /const repairing = sending === ASSET_EVENT\.SENT_FOR_REPAIR;/.test(provider));
         assert(
             "  the menu's sending posts the asset, the job the page was drawn on and the event (#597)",
-            /sendForRepair: \(\) => \{\s*const formData = new FormData\(\);\s*formData\.set\("assetId", assetId\);\s*formData\.set\("drawnJobId", assetJobRecordId \?\? ""\);\s*formData\.set\("event", ASSET_EVENT\.SENT_FOR_REPAIR\);\s*send\(formData\);\s*\},/.test(provider)
+            /sendForRepair: \(via\) => \{\s*const formData = new FormData\(\);\s*formData\.set\("assetId", assetId\);\s*formData\.set\("drawnJobId", assetJobRecordId \?\? ""\);\s*formData\.set\("event", ASSET_EVENT\.SENT_FOR_REPAIR\);\s*send\(formData, via\);\s*\},/.test(provider)
         );
         const opener = parseFile(OPENER).source;
         assert("More actions offers it only where the plan does", /const maySendForRepair = Boolean\(transition\?\.plan\.maySendForRepair\);/.test(opener) && /\.\.\.\(maySendForRepair\s*\?/.test(opener));
         assert(
             "  above the retirement, in the control's words, handing focus to its button and sending",
-            /key: "repair",\s*label: ASSET_TRANSITION_COPY\.control\[ASSET_EVENT\.SENT_FOR_REPAIR\],\s*onSelect: \(\) => \{\s*buttonRef\.current\?\.focus\(\);\s*setOpen\(false\);\s*transition\.sendForRepair\(\);/.test(opener) &&
+            /key: "repair",\s*label: ASSET_TRANSITION_COPY\.control\[ASSET_EVENT\.SENT_FOR_REPAIR\],\s*onSelect: \(\) => \{\s*buttonRef\.current\?\.focus\(\);\s*setOpen\(false\);\s*transition\.sendForRepair\(phone \? "phone" : "desk"\);/.test(opener) &&
                 opener.indexOf('key: "repair"') < opener.indexOf('key: "retire"')
         );
         // The office's deletion is the second Destructive line since #582, an end as the retirement is.
@@ -421,7 +422,7 @@ export function run({ check, assert, log }) {
             /\{!asks && \(\s*<>\s*<input type="hidden" name="assetId" value=\{assetId\} \/>\s*<input type="hidden" name="drawnJobId" value=\{drawnJobId \?\? ""\} \/>\s*<input type="hidden" name="event" value=\{plan\.event\} \/>\s*<\/>\s*\)\}/.test(dialogSource) &&
                 !/name="jobId"/.test(dialogSource)
         );
-        assert("  says which event it sends", /if \(!asks\) \{\s*sends\(plan\.event\);\s*return;\s*\}/.test(dialogSource));
+        assert("  says which event it sends", /if \(!asks\) \{\s*sends\(plan\.event, "desk"\);\s*return;\s*\}/.test(dialogSource));
         assert("  and locks while the menu's sending is on its way", /<FormBusy busy=\{repairPending \? "action" : false\}>/.test(dialogSource));
         const barSource = parseFile(BAR).source;
         assert(
@@ -579,13 +580,13 @@ export function run({ check, assert, log }) {
     check(
         "a reader the item's job is not one of is refused, naming whose it is",
         readSubmission(takenOff, { ...CHECKING_OUT, drawnJobId: JOB_A.id }).refusal,
-        "Only 26-DEMO-02 can record this item. Your check-out wasn't saved."
+        "Only 26-DEMO-02 can record this item. Nothing was saved."
     );
-    check("  drawn on its job or not", readSubmission(takenOff, { ...CHECKING_OUT, drawnJobId: JOB_B.id }).refusal, "Only 26-DEMO-02 can record this item. Your check-out wasn't saved.");
+    check("  drawn on its job or not", readSubmission(takenOff, { ...CHECKING_OUT, drawnJobId: JOB_B.id }).refusal, "Only 26-DEMO-02 can record this item. Nothing was saved.");
     check(
         "  before a status that allows nothing",
         readSubmission(planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: ASSET_STATUS.RETIRED, assetJobId: JOB_B.id }), { ...CHECKING_OUT, drawnJobId: JOB_A.id }).refusal,
-        "Only 26-DEMO-02 can record this item. Your check-out wasn't saved."
+        "Only 26-DEMO-02 can record this item. Nothing was saved."
     );
     check(
         "  and a move before a stale page",
@@ -597,7 +598,20 @@ export function run({ check, assert, log }) {
         `${recordingRefusal(inStock, { drawnJobId: JOB_A.id, attempted: ASSET_EVENT.CHECKED_OUT })} | ${recordingRefusal(movedOn, { drawnJobId: JOB_A.id, attempted: ASSET_EVENT.RETIRED })}`,
         "null | This item is on 26-DEMO-02 now. Nothing was saved."
     );
-    check("  and the sentence for an item on no job says only what was not saved", ASSET_TRANSITION_COPY.notYours({ jobCode: null, attempted: ASSET_EVENT.CHECKED_OUT }), "Your check-out wasn't saved.");
+    check("  and the sentence for an item on no job says only what was not saved", ASSET_TRANSITION_COPY.notYours({ jobCode: null }), "Nothing was saved.");
+    // WHOSE IT IS NOW ENDS ON `Nothing was saved.` WHATEVER WAS PRESSED (#614): the files of 2026-11-05
+    // draw it so for a check-out (1f `Check out: lent away`, 1k-d), where the item moved to another
+    // of the reader's jobs still ends on the press's own noun.
+    check(
+        "  a check-out, a check-in and a sending refused for whose it is all end on Nothing was saved., and a move keeps its noun (#614)",
+        [
+            ASSET_TRANSITION_COPY.notYours({ jobCode: "26-DEMO-02", attempted: ASSET_EVENT.CHECKED_OUT }),
+            ASSET_TRANSITION_COPY.notYours({ jobCode: "26-DEMO-02", attempted: ASSET_EVENT.CHECKED_IN }),
+            ASSET_TRANSITION_COPY.notYours({ jobCode: "26-DEMO-02", attempted: ASSET_EVENT.SENT_FOR_REPAIR }),
+            ASSET_TRANSITION_COPY.movedTo({ jobCode: "26-DEMO-02", attempted: ASSET_EVENT.CHECKED_OUT }),
+        ].join(" | "),
+        "Only 26-DEMO-02 can record this item. Nothing was saved. | Only 26-DEMO-02 can record this item. Nothing was saved. | Only 26-DEMO-02 can record this item. Nothing was saved. | This item is on 26-DEMO-02 now. Your check-out wasn't saved."
+    );
 
     // ── 3b: a check-out cannot be recorded without a name (#376) ───────────
     log("");
@@ -661,7 +675,7 @@ export function run({ check, assert, log }) {
     check(
         "  and so is an item no longer the reader's (#597)",
         readSubmission(takenOff, { ...CHECKING_OUT, checkedOutTo: "", drawnJobId: JOB_B.id }).refusal,
-        "Only 26-DEMO-02 can record this item. Your check-out wasn't saved."
+        "Only 26-DEMO-02 can record this item. Nothing was saved."
     );
 
     // ── 3b': the one field a press can leave empty (#463, #597) ───────────
@@ -849,7 +863,7 @@ export function run({ check, assert, log }) {
     check(
         "  an item no longer the reader's",
         ASSET_TRANSITION_COPY.notYours({ jobCode: "26-DEMO-02", attempted: ASSET_EVENT.CHECKED_IN }),
-        "Only 26-DEMO-02 can record this item. Your check-in wasn't saved."
+        "Only 26-DEMO-02 can record this item. Nothing was saved."
     );
     check(
         "  and one moved since the page was drawn",
@@ -1103,12 +1117,12 @@ export function run({ check, assert, log }) {
         argumentSource({ ast: retireFn, source: action.source }, "readRetirement", "drawnJobId"),
         'String(formData.get("drawnJobId") ?? "")'
     );
-    // A RETIREMENT SOMEBODY GOT IN FRONT OF SAYS NOTHING (#378), as it did while its question
-    // held its answer and went with it: the provider holds it since #597, and the page drawn
-    // again says the status is the end.
+    // A RETIREMENT SOMEBODY GOT IN FRONT OF SAYS `This item is retired.` SINCE #614, the plan's terminal
+    // sentence: at a desk its question stands across the page drawn again and says it, on a phone the
+    // Notice does. Until #614 it said nothing (#378), the question going with its opener.
     assert(
-        "  a terminal refusal answered with the page alone, before any other refusal is said",
-        /if \(refusal === ASSET_TRANSITION_COPY\.noTransition\) return refuse\(null\);\s*if \(refusal\) return refuse\(refusal\);/.test(retireSource)
+        "  a terminal refusal said as any other refusal is, the question's or the status's (#614)",
+        /if \(refusal\) return refuse\(refusal\);/.test(retireSource) && !/refuse\(null\)/.test(retireSource)
     );
 
     // ── 6d: a refusal refreshes as it refuses (#378) ───────────────────────
@@ -1347,11 +1361,12 @@ export function run({ check, assert, log }) {
     check("  and on several too, since #597", asksBeforeRecording(out), false);
 
     const dialog = parseFile(DIALOG);
+    const form = parseFile(FORM);
     const dialogFn = functionNamed(dialog.ast, "TransitionDialog");
-    const formFn = functionNamed(dialog.ast, "TransitionForm");
+    const formFn = functionNamed(form.ast, "TransitionForm");
     assert("the transition and its dialog were found", Boolean(dialogFn && formFn));
     const dialogSource = dialog.source.slice(dialogFn.start, dialogFn.end);
-    const formSource = dialog.source.slice(formFn.start, formFn.end);
+    const formSource = form.source.slice(formFn.start, formFn.end);
     check("it asks that of the plan it was handed", callArguments(dialogFn, dialog.source, "asksBeforeRecording").join(" | "), "plan");
     // THE PRESS POSTS NO JOB TO WRITE SINCE #597, where it posted the one job a person on one
     // held: the item's job as the page was drawn, which the action compares and never writes.
@@ -1375,7 +1390,7 @@ export function run({ check, assert, log }) {
     // would send, and its commitment acts only when that answer refuses nothing.
     log("");
     log("the dialog asks readSubmission before it sends, and the action asks again:");
-    const submitSource = initSource(formFn, dialog.source, "submit") ?? "";
+    const submitSource = initSource(formFn, form.source, "submit") ?? "";
     assert("its submit prevents the default", /event\.preventDefault\(\)/.test(submitSource));
     assert(
         "  reads what it would send with readSubmission, the drawn job among it and no job to write (#597)",
@@ -1391,30 +1406,32 @@ export function run({ check, assert, log }) {
         "  a refused press marks the event pressed and hands its form to the refusal focus, before it returns (#522)",
         /if \(answer\.refusal\) \{\s*setPressedFor\(plan\.event\);\s*focusRefused\(event\.currentTarget\);\s*return;\s*\}/.test(submitSource)
     );
-    check("  the focus is the controls' one rule for it (#522)", initSource(formFn, dialog.source, "focusRefused"), "useRefusalFocus()");
-    check("the frame submits through it", attributeSources(formFn, dialog.source, "DialogFrame", "onSubmit").join(), "{submit}");
+    check("  the focus is the controls' one rule for it (#522)", initSource(formFn, form.source, "focusRefused"), "useRefusalFocus()");
+    check("the frame submits through it", attributeSources(formFn, form.source, "DialogFrame", "onSubmit").join(), "{submit}");
     // NOTHING IN IT IS DISABLED (#469, #522): the frame's `busy` draws the commitment's Working
     // and locks `Cancel`, and since #522 the commitment acts whatever is chosen — 1i draws it
     // live and 0l says a commitment stays live while the form is incomplete — where it was held
     // at 0f's 40% until `readSubmission` took what was chosen.
-    check("the commitment is never disabled, as 1i and 0l draw it (#522)", attributeSources(formFn, dialog.source, "Button", "disabled").length, 0);
+    check("the commitment is never disabled, as 1i and 0l draw it (#522)", attributeSources(formFn, form.source, "Button", "disabled").length, 0);
     check(
         "  and gives way to its event's working word while it sends",
-        attributeSources(formFn, dialog.source, "Button", "busyLabel").join(" | "),
+        attributeSources(formFn, form.source, "Button", "busyLabel").join(" | "),
         "{COPY.working[plan.event]}"
     );
-    check("its field refusal is fieldRefusals of its name, as the foot bar's is (#522, #597)", initSource(formFn, dialog.source, "refusals"), "fieldRefusals(plan, { checkedOutTo: name })");
+    check("its field refusal is fieldRefusals of its name, as the foot bar's is (#522, #597)", initSource(formFn, form.source, "refusals"), "fieldRefusals(plan, { checkedOutTo: name })");
     check(
         "  said under its field once a press asked for this event (#522)",
-        attributeSources(formFn, dialog.source, "Field", "refusal").join(" | "),
+        attributeSources(formFn, form.source, "Field", "refusal").join(" | "),
         "{pressed ? refusals.nameRefusal : null}"
     );
-    check("  where pressed is a press for the event offered now (#522)", initSource(formFn, dialog.source, "pressed"), "pressedFor === plan.event");
+    check("  where pressed is a press for the event offered now (#522)", initSource(formFn, form.source, "pressed"), "pressedFor === plan.event");
     let trims = 0;
-    walk(dialog.ast, (n) => {
-        if (n.type === "CallExpression" && n.callee?.type === "MemberExpression" && n.callee.object?.name === "name" && n.callee.property?.name === "trim") trims++;
-    });
-    check("no rule of the dialog's own, and no required attribute either", `${trims} ${attributeCount(dialog.ast, "required")}`, "0 0");
+    for (const each of [dialog, form]) {
+        walk(each.ast, (n) => {
+            if (n.type === "CallExpression" && n.callee?.type === "MemberExpression" && n.callee.object?.name === "name" && n.callee.property?.name === "trim") trims++;
+        });
+    }
+    check("no rule of the dialog's own, and no required attribute either", `${trims} ${attributeCount(dialog.ast, "required") + attributeCount(form.ast, "required")}`, "0 0");
     // THE DIALOG IS A CHECK-OUT'S ALONE SINCE #597 — a check-in asks nothing — so its one field,
     // the name, stands in it whatever else, and nothing about a job does: no choice, no sheet to
     // choose from, no start for one, no move notice under it.
@@ -1422,8 +1439,8 @@ export function run({ check, assert, log }) {
         "the name's two controls stand in the dialog",
         /<Field label=\{COPY\.checkedOutToLabel\}[^>]*>/.test(formSource) && /<NameSheet\b/.test(formSource)
     );
-    check("  and nothing of a job (#597)", /\bChoice\b|JobSheet|chosenJobId|onlyJob|jobMoveNotice|jobLabel|plan\.jobs/.test(dialog.source), false);
-    check("  the recent names are the item's job's", callArguments(formFn, dialog.source, "recentNamesFor").join(), "recentCheckOuts, { jobCode: plan.jobCode }");
+    check("  and nothing of a job (#597)", /\bChoice\b|JobSheet|chosenJobId|onlyJob|jobMoveNotice|jobLabel|plan\.jobs/.test(dialog.source + form.source), false);
+    check("  the recent names are the item's job's", callArguments(formFn, form.source, "recentNamesFor").join(), "recentCheckOuts, { jobCode: plan.jobCode }");
 
     // ── 7d: open while it is what the page offers, and where a refusal stands ─
     log("");
@@ -1433,13 +1450,15 @@ export function run({ check, assert, log }) {
     const providerFn = functionNamed(provider.ast, "AssetTransition");
     assert("the provider was found", providerFn !== null);
     const providerSource = providerFn ? provider.source.slice(providerFn.start, providerFn.end) : "";
-    check("open while the offered event is the one it was opened for", initSource(providerFn ?? {}, provider.source, "open"), "openedFor !== null && openedFor === plan.event");
-    // THE OPENING ENDS WITH ITS EVENT, so the same event offered again does not open it. A
-    // landing's redirect throws the page's state away, the opening with it; a refusal
-    // re-renders in place (#378), and two that flip the status out and back would find
-    // `openedFor` still naming the event and open the dialog with nobody asking.
-    const endsAt = providerSource.indexOf("if (openedFor !== null && openedFor !== plan.event) setOpenedFor(null);");
-    assert("  and the opening ends with that event, before open is read", endsAt > -1 && endsAt < providerSource.indexOf("const open ="));
+    // THE DIALOG STANDS UNTIL THE READER CLOSES IT (#614), whatever the page drawn again offers: a
+    // landing's redirect throws the page's state away, the opening with it, and a refusal re-renders
+    // in place (#378) under a dialog that says it. Until #614 the opening ended with the event it was
+    // opened for, and its sentence moved under the status.
+    check("open while the opening stands, whatever the page drawn again offers (#614)", initSource(providerFn ?? {}, provider.source, "open"), "openedFor !== null");
+    assert(
+        "  and only the reader's close ends it (#614)",
+        (providerSource.match(/setOpenedFor\(null\)/g) ?? []).length === 1 && /onClose=\{\(\) => setOpenedFor\(null\)\}/.test(providerSource)
+    );
     assert("  holding the one answer both drawings read", providerSource.includes("const [answer, formAction, pending] = useActionState(recordAssetEventAction, null);"));
     // A REFUSAL IS THE ACTION'S LAST ANSWER, read as it is: a press that lands leaves no
     // answer behind it to hide, since its redirect throws the state away. A stale one is
@@ -1452,36 +1471,37 @@ export function run({ check, assert, log }) {
             sentenceSource
         ) && /return answer\.error \?\? null;/.test(sentenceSource)
     );
-    check("  which the dialog reads", initSource(dialogFn, dialog.source, "refusal"), "useRefusalSentence(answer)");
+    check("  which the provider reads for the dialog, the toast and the status (#614)", initSource(providerFn, provider.source, "transitionSentence"), "useRefusalSentence(answer)");
     const refusalFile = parseFile(REFUSAL);
     // WHAT STANDS UNDER THE STATUS IS THE PROVIDER'S TO SAY SINCE #583, which holds both answers:
     // the one sent last, unless a dialog of its own says it.
     assert(
-        "a refusal stands under the status only while the dialog is closed",
-        /event: open \? null : transitionSentence,/.test(provider.source) &&
+        "a refusal stands under the status unless the desk's dialog that sent it or its toast says it (#614)",
+        /event: eventSaidInDialog \|\| eventVia === "desk" \? null : transitionSentence,/.test(provider.source) &&
+            /const eventSaidInDialog = open && eventVia === "dialog" && eventSentFor === opening;/.test(provider.source) &&
             /statusSentence: said\[lastSent \?\? "event"\],/.test(provider.source) &&
             /const transitionSentence = useRefusalSentence\(answer\);/.test(provider.source) &&
             /const \{ statusSentence: sentence \} = useAssetTransition\(\);\s*if \(!sentence\) return null;/.test(refusalFile.source)
     );
     check(
-        "  as a desk's refusal line and a phone's notice, one at each width",
-        `${/<div className="max-sm:hidden">\s*<Refusal>\{sentence\}<\/Refusal>/.test(refusalFile.source)} ${/sm:hidden">\s*<Notice>\{sentence\}<\/Notice>/.test(refusalFile.source)}`,
+        "  as a phone's notice alone, a desk saying it in the dialog or the toast (#614)",
+        `${!/<Refusal\b/.test(refusalFile.source)} ${/<div className="mt-mobile-title-alert-stack sm:hidden">\s*<Notice>\{sentence\}<\/Notice>/.test(refusalFile.source)}`,
         "true true"
     );
-    check("  and above the dialog's actions while it is open", attributeSources(dialogFn, dialog.source, "TransitionForm", "refusal").join(), "{open ? refusal : null}");
-    check("  which the frame says there", attributeSources(formFn, dialog.source, "DialogActions", "refusal").join(), "{refusal}");
+    check("  and above the dialog's actions while the opening that sent it stands (#614)", attributeSources(providerFn, provider.source, "TransitionForm", "refusal").join(), "{eventSaidInDialog ? transitionSentence : null}");
+    check("  which the frame says there", attributeSources(formFn, form.source, "DialogActions", "refusal").join(), "{refusal}");
     check(
         "the dialog is a sheet below the phone's edge and busy while it sends",
-        `${attributeSources(formFn, dialog.source, "DialogFrame", "sheet").join()} ${attributeSources(formFn, dialog.source, "DialogFrame", "busy").join()}`,
+        `${attributeSources(formFn, form.source, "DialogFrame", "sheet").join()} ${attributeSources(formFn, form.source, "DialogFrame", "busy").join()}`,
         "true {pending}"
     );
-    check("  and nothing behind it closes it, since it holds what was typed", attributeSources(formFn, dialog.source, "DialogFrame", "closesOnBackdrop").length, 0);
-    check("each opening starts from what the plan hands it", attributeSources(dialogFn, dialog.source, "TransitionForm", "key").join(), "{opening}");
+    check("  and nothing behind it closes it, since it holds what was typed", attributeSources(formFn, form.source, "DialogFrame", "closesOnBackdrop").length, 0);
+    check("each opening starts from what the plan hands it", attributeSources(providerFn, provider.source, "TransitionForm", "key").join(), "{opening}");
     // A PAGE DRAWN AGAIN ON ANOTHER JOB ENDS EVERY OPENING A READER RECORDS FROM (#597), so a press
     // refused because the item moved is said under the status whichever control sent it.
     assert(
-        "a page drawn on another job ends the dialog's opening, the retirement's, the note's, the serial number's and a loan's two (#597, #598, #601)",
-        /if \(drawnOn !== assetJobRecordId\) \{\s*setDrawnOn\(assetJobRecordId\);\s*setOpenedFor\(null\);\s*if \(retiring\) endRetiring\(\);\s*if \(note\.openOn !== null\) note\.end\(\);\s*if \(serial\.openOn !== null\) serial\.end\(\);\s*if \(lendingOn !== null\) endLending\(\);\s*if \(returning\) endReturning\(\);\s*\}/.test(providerSource)
+        "a page drawn on another job ends a phone's openings alone — the retirement's, a loan's two, the note's and the serial number's — and a desk's stand (#597, #598, #601, #614)",
+        /if \(drawnOn !== assetJobRecordId\) \{\s*setDrawnOn\(assetJobRecordId\);\s*for \(const each of \[retiring, lending, returning\]\) if \(phone\(each\)\) each\.end\(\);\s*if \(note\.openOn === "phone"\) note\.end\(\);\s*if \(serial\.openOn === "phone"\) serial\.end\(\);\s*\}/.test(providerSource)
     );
 
     // ── 7e: each width asks in its own drawing (#458) ──────────────────────
@@ -1495,19 +1515,19 @@ export function run({ check, assert, log }) {
     assert("at a desk the name is the registration's combobox, drawn only from the phone's edge up", /<div className="max-sm:hidden">\s*<Combobox\s+name="checkedOutTo"/.test(formSource));
     check(
         "  headed with the name sheet's own words while nothing is typed (#495)",
-        attributeSources(formFn, dialog.source, "Combobox", "heading").join(),
+        attributeSources(formFn, form.source, "Combobox", "heading").join(),
         "{namesAreRecent(name) ? COPY.recentHeading : undefined}"
     );
-    check("below it the field opens 1j's name sheet", attributeSources(formFn, dialog.source, "SheetField", "onOpen").join(" | "), "{() => setNaming(true)}");
-    check("  open only while the dialog is", attributeSources(formFn, dialog.source, "NameSheet", "open").join(" | "), "{open && naming}");
+    check("below it the field opens 1j's name sheet", attributeSources(formFn, form.source, "SheetField", "onOpen").join(" | "), "{() => setNaming(true)}");
+    check("  open only while the dialog is", attributeSources(formFn, form.source, "NameSheet", "open").join(" | "), "{open && naming}");
     check(
         "the names offered are one list on both widths, each with what is typed marked (#495)",
-        `${attributeSources(formFn, dialog.source, "Combobox", "suggestions").join()} | ${attributeSources(formFn, dialog.source, "NameSheet", "names").join()}`,
+        `${attributeSources(formFn, form.source, "Combobox", "suggestions").join()} | ${attributeSources(formFn, form.source, "NameSheet", "names").join()}`,
         "{offered.map((person) => ({ label: person, match: matchedPart(person, name) }))} | {offered}"
     );
-    check("  narrowed and cut by offeredNames", initSource(formFn, dialog.source, "offered"), "offeredNames(recent, name)");
-    check("  out of the item's job's recent names (#597)", initSource(formFn, dialog.source, "recent"), "recentNamesFor(recentCheckOuts, { jobCode: plan.jobCode })");
-    check("one value behind the field and its sheet", `${attributeSources(formFn, dialog.source, "Combobox", "onChange").join()} ${attributeSources(formFn, dialog.source, "NameSheet", "onChange").join()}`, "{setName} {setName}");
+    check("  narrowed and cut by offeredNames", initSource(formFn, form.source, "offered"), "offeredNames(recent, name)");
+    check("  out of the item's job's recent names (#597)", initSource(formFn, form.source, "recent"), "recentNamesFor(recentCheckOuts, { jobCode: plan.jobCode })");
+    check("one value behind the field and its sheet", `${attributeSources(formFn, form.source, "Combobox", "onChange").join()} ${attributeSources(formFn, form.source, "NameSheet", "onChange").join()}`, "{setName} {setName}");
 
     // ── 7f: the phone's foot bar, which asks the same reader (#463) ───────
     // 1j's FOOT BAR KEEPS ITS PRESS AND ANSWERS UNDER ITS FIELD (1k): what a submission may be
@@ -1527,7 +1547,7 @@ export function run({ check, assert, log }) {
             !/formData\.get\("jobId"\)/.test(barSubmit)
     );
     const barRefusesAt = barSubmit.indexOf("if (answer.refusal) {");
-    assert("  and sends only after that refuses nothing", barRefusesAt > -1 && barRefusesAt < barSubmit.indexOf("send(formData)"));
+    assert("  and sends only after that refuses nothing, said to be a phone's (#614)", barRefusesAt > -1 && barRefusesAt < barSubmit.indexOf('send(formData, "phone")'));
     assert(
         "  a refused press hands its form to the refusal focus, so the first refused field takes it (1k-b, #522)",
         /if \(answer\.refusal\) \{\s*setPressedFor\(plan\.event\);\s*focusRefused\(event\.currentTarget\);\s*return;\s*\}/.test(barSubmit)
@@ -1555,10 +1575,10 @@ export function run({ check, assert, log }) {
     // until #597.
     check(
         "a desk's dialog the frame closes undrawn carries its name (#495, #597)",
-        `${attributeSources(formFn, dialog.source, "DialogFrame", "onHidden").join()} | ${attributeSources(dialogFn, dialog.source, "TransitionForm", "onCarry").join()}`,
-        "{() => onCarry({ name })} | {carry}"
+        `${attributeSources(formFn, form.source, "DialogFrame", "onHidden").join()} | ${attributeSources(providerFn, provider.source, "TransitionForm", "onCarry").join()}`,
+        "{() => onCarry({ name })} | {({ name }) => setCarried({ name })}"
     );
-    check("  which the provider keeps, a new object each time", /carry: \(\{ name \}\) => setCarried\(\{ name \}\),/.test(provider.source), true);
+    check("  which the provider keeps, a new object each time", /onCarry=\{\(\{ name \}\) => setCarried\(\{ name \}\)\}/.test(provider.source), true);
     assert(
         "  and the bar takes each handing-over once, as its own name",
         /if \(carried !== taken\) \{\s*setTaken\(carried\);\s*if \(carried\) setName\(carried\.name\);\s*\}/.test(barSource)
@@ -1731,23 +1751,23 @@ export function run({ check, assert, log }) {
     assert(
         "  the provider holding it, said in the question while the opening that sent it stands",
         /const \[retireAnswer, retireFormAction, retirePending\] = useActionState\(retireAssetAction, null\);/.test(provider.source) &&
-            /const retireSaidInDialog = retireSentFor === retireOpening;/.test(provider.source) &&
-            /refusal=\{retireSaidInDialog \? retireSentence : null\}/.test(provider.source) &&
-            /retire: retireSaidInDialog \? null : retireSentence,/.test(provider.source)
+            /const retiring = useOpening\(retireAnswer, retirePending\);/.test(provider.source) &&
+            /refusal=\{retiring\.said \? retireSentence : null\}/.test(provider.source) &&
+            /retire: retiring\.said \? null : retireSentence,/.test(provider.source)
     );
     assert(
-        "  and an opening the plan ends counts as a new one, so its answer moves under the status",
-        /if \(retiring && !plan\.mayRetire\) endRetiring\(\);/.test(provider.source) &&
-            /const endRetiring = \(\) => \{\s*setRetiring\(false\);\s*setRetireOpening\(\(count\) => count \+ 1\);\s*\};/.test(provider.source)
+        "  and a phone's opening the plan or its answer ends counts as a new one, so its answer moves under the status (#614)",
+        /if \(phone\(retiring\) && \(!plan\.mayRetire \|\| retiring\.answered\)\) retiring\.end\(\);/.test(provider.source) &&
+            /end: \(\) => \{\s*setOn\(null\);\s*setCount\(\(n\) => n \+ 1\);\s*\},/.test(provider.source)
     );
     check("neither file draws on the old frame", [confirm, opener].filter((f) => /modalStyles/.test(f.source)).length, 0);
-    check("the question is the provider's, opened from either More actions", `${attributeSources(provider.ast, provider.source, "RetirementConfirm", "open").join()} ${attributeSources(provider.ast, provider.source, "RetirementConfirm", "onClose").join()}`, "{retiring} {() => setRetiring(false)}");
+    check("the question is the provider's, opened from either More actions", `${attributeSources(provider.ast, provider.source, "RetirementConfirm", "open").join()} ${attributeSources(provider.ast, provider.source, "RetirementConfirm", "onClose").join()}`, "{retiring.on !== null} {retiring.close}");
     // THE WAY OUT IS ONE WORD ON ALL THREE DIALOGS — the check-out's and the check-in's,
     // which are one component, and the retirement's — read off the button that says it,
     // since the value alone holds whatever the screens print in its place.
     check(
         "the way out says it on all three dialogs",
-        [dialog, confirm].map((f) => /<Button variant="bordered"[^>]*>\s*\{COPY\.cancel\}\s*<\/Button>/.test(f.source)).join(" "),
+        [form, confirm].map((f) => /<Button variant="bordered"[^>]*>\s*\{COPY\.cancel\}\s*<\/Button>/.test(f.source)).join(" "),
         "true true"
     );
     // IT TAKES NO INPUT AT ALL, which is two decisions rather than one. No reason
@@ -1768,7 +1788,7 @@ export function run({ check, assert, log }) {
     assert("  its retirement item the opener's words, a destructive one", /label: ASSET_TRANSITION_COPY\.retireOpener,\s*tone: "danger",/.test(opener.source));
     assert(
         "  which hands focus to its button before the question opens",
-        /buttonRef\.current\?\.focus\(\);\s*setOpen\(false\);\s*transition\.openRetirement\(\);/.test(opener.source)
+        /buttonRef\.current\?\.focus\(\);\s*setOpen\(false\);\s*transition\.openRetirement\(phone \? "phone" : "desk"\);/.test(opener.source)
     );
     // ON A PHONE THE MENU ENDS ON THE ACCOUNT (#495), under a rule when the retirement stands
     // above it and alone when the record takes no action, and the retirement is offered only
@@ -1785,7 +1805,7 @@ export function run({ check, assert, log }) {
     );
     // AND THE TRANSITION'S DIALOG ASKS FOR NO JOB SINCE #597, where it kept its job choice because
     // a scan was the actor handling the asset: an item records on the job it sits on now.
-    assert("the transition's dialog keeps no job choice (#597)", !/<Choice\b|name="jobId"/.test(dialog.source));
+    assert("the transition's dialog keeps no job choice (#597)", !/<Choice\b|name="jobId"/.test(dialog.source + form.source));
 
     // ── 10b: 1j's name sheet, the part a foot bar opens (#458) ─────────────
     // DRAWN AS 1j DRAWS IT AND OPENED BY WHATEVER ASKS FOR A NAME — the check-out's dialog and

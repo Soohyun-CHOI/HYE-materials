@@ -228,6 +228,7 @@
        drawings, not the spec: the Tools and Invoices files draw every date this way and
        no row states it. `app/components/Instant.js` is its one reader, on every screen. */
     --opacity-date-separator: 45%; /* 1f, 1j: a date's slashes */
+    --opacity-toast-date-separator: 60%; /* 1f's toast: a date's slashes on its Ink ground, which the toast hands its line in place of the page's 45% (#614) — from the drawings, not the spec */
     --spacing-date-separator-inline: 1.5px; /* 1f, 1j: either side of a slash, a fraction of a pixel kept in px */
     --spacing-date-time-inline: 0.5625rem; /* 1f, 9: from a date to its time */
     --spacing-mobile-date-time-inline: 0.5rem; /* 1j, 8: from a date to its time on a phone */

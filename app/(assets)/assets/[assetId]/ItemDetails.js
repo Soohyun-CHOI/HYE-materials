@@ -44,7 +44,11 @@ import { useAssetTransition } from "./AssetTransition";
  * goes once the field no longer holds the number refused, since it is about that number alone.
  *
  * THE ANSWER IS THE PROVIDER'S (`AssetTransition.js:useDetail`), said where the press was while the
- * opening that sent it stands, and under the status once the page has ended it (#597).
+ * opening that sent it stands. A desk's editor stands until the reader closes it, so every answer it
+ * gets is said in its field's line — the item moved, or no longer the reader's to write, too — its
+ * `Save` `unavailable` once the page drawn again no longer lets the reader write the detail (#614); a
+ * phone's sheet keeps its own answers and the page ends it for one about whose the item is, said
+ * under the status (#597).
  *
  * EVERY STRING COMES FROM `ASSET_SERIAL_COPY`, `ASSET_NOTE_COPY` OR `ASSET_COPY`, which
  * `offline/asset-list-view.mjs` holds by failing on any JSX text under app/(assets)/.
@@ -125,10 +129,12 @@ const VALUE_FACE = { figures: "tabular-nums [overflow-wrap:anywhere]", text: "te
  * the reader may write, the serial number first — 40 over the label's block, at the rail's head.
  */
 export function DetailsBlock({ serialNumber, note, mayWriteSerial, mayWriteNote }) {
+    const transition = useAssetTransition();
+    // A row whose editor stands across a page that no longer lets the reader write it keeps its place (#614).
     const rows = [
         { kind: "serial", value: serialNumber, writable: mayWriteSerial },
         { kind: "note", value: note, writable: mayWriteNote },
-    ].filter((row) => row.value || row.writable);
+    ].filter((row) => row.value || row.writable || transition?.[row.kind]?.openOn === "desk");
     if (rows.length === 0) return null;
     return (
         <section className="pb-details-block-stack">
@@ -146,7 +152,7 @@ export function DetailsBlock({ serialNumber, note, mayWriteSerial, mayWriteNote 
 function DetailsRow({ kind, value, writable }) {
     const detail = DETAILS[kind];
     const control = useAssetTransition()[kind];
-    const open = writable && control.openOn === "desk";
+    const open = control.openOn === "desk";
     const openerRef = useRef(null);
     // Focus goes back to what opened the field once it has closed and the opener is drawn again.
     const returning = useRef(false);
@@ -167,7 +173,7 @@ function DetailsRow({ kind, value, writable }) {
                 which a 26 control set inline in one drew 22. */}
             <dd className="flex min-w-0 flex-col items-start text-body">
                 {open ? (
-                    <RowEditor key={control.opening} kind={kind} value={value} control={control} onClose={close} />
+                    <RowEditor key={control.opening} kind={kind} value={value} available={writable} control={control} onClose={close} />
                 ) : value ? (
                     <div className="flex items-start justify-between gap-details-edit-inline self-stretch">
                         <span className={`min-w-0 text-foreground-default ${VALUE_FACE[detail.face]}`}>{value}</span>
@@ -195,7 +201,7 @@ function DetailsRow({ kind, value, writable }) {
  * A row edited where it stands (1f): the field, 32 and centered on the row's line, the value in it
  * and the caret at its end; the note's line and count under it; `Cancel` and `Save` 12 under that.
  */
-function RowEditor({ kind, value, control, onClose }) {
+function RowEditor({ kind, value, available, control, onClose }) {
     const detail = DETAILS[kind];
     const [draft, setDraft] = useState(value);
     const [pressed, setPressed] = useState(false);
@@ -250,7 +256,7 @@ function RowEditor({ kind, value, control, onClose }) {
                     <Button variant="bordered" size="md" onClick={onClose}>
                         {detail.copy.cancel}
                     </Button>
-                    <Button type="submit" size="md" busyLabel={detail.copy.working[workingOf(detail, answer, value)]}>
+                    <Button type="submit" size="md" unavailable={!available} busyLabel={detail.copy.working[workingOf(detail, answer, value)]}>
                         {detail.copy.save}
                     </Button>
                 </div>

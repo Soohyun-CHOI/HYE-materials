@@ -98,7 +98,7 @@ export default function TransitionBar({ recentCheckOuts }) {
             focusRefused(event.currentTarget);
             return;
         }
-        send(formData);
+        send(formData, "phone");
     };
 
     return (

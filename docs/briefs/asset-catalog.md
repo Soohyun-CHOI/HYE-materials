@@ -124,7 +124,10 @@ whose one item, `Remove from catalog`, asks `Remove … from catalog?` — `It
 comes out of the catalog. No items use it.` — before the row goes. A row items
 came to stand under since stays, and the question says why.
 
-**When a press wrote nothing:** its reason over the dialog's actions. A category
+**When a press wrote nothing:** its reason over the dialog's actions, saying what
+the press was — `Couldn't add it to the catalog. Try again.` for an add,
+`Couldn't save the changes. Try again.` for an edit, and `Couldn't remove it from
+the catalog. Try again.` for a removal, as 1l draws them (#614). A category
 written before the row that failed after it stands, and the dialog says so.
 
 **When the band leaves no row:** under the column head, `Nothing in the catalog

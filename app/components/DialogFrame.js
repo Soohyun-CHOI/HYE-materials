@@ -947,11 +947,14 @@ export function SheetRows({ rows }) {
  * A `note` IS WHAT A PRESS WILL DO, SET ON THE REFUSAL'S LINE BEFORE ANY PRESS (1l, #527): an
  * edit's `10 items will show the new name.`, the same mark and words, heard as a status rather
  * than an alert since it answers nothing. A refusal takes the line from it while there is one.
+ *
+ * `refusalId` NAMES THE REFUSAL FOR A COMMITMENT IT TURNS AWAY (#614): a desk's dialog that stands
+ * across a page no longer offering its act keeps its commitment `unavailable`, described by why.
  */
-export function DialogActions({ refusal, note, secondary, children }) {
+export function DialogActions({ refusal, refusalId, note, secondary, children }) {
     return (
         <div className="flex shrink-0 flex-col gap-gap-lg pt-dialog-inset in-data-preview:px-dialog-inset in-data-fixed:px-dialog-inset in-data-fixed:pb-dialog-inset max-sm:in-data-[sheet]:px-mobile-gutter max-sm:in-data-[sheet]:pt-mobile-drawer-body-stack">
-            {refusal ? <Refusal>{refusal}</Refusal> : note && <Refusal role="status">{note}</Refusal>}
+            {refusal ? <Refusal id={refusalId}>{refusal}</Refusal> : note && <Refusal role="status">{note}</Refusal>}
             <div className="flex flex-wrap items-center justify-end gap-gap max-sm:in-data-[sheet]:flex-col-reverse max-sm:in-data-[sheet]:gap-mobile-drawer-action-stack">
                 {secondary && <div className="mr-auto -ml-ghost-inset-x flex">{secondary}</div>}
                 {children}

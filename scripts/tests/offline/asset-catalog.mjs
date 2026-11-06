@@ -642,10 +642,23 @@ export function run({ check, assert, log }) {
         "  the group written first, the item after it, and an item that fails after its group said so",
         [
             Boolean(groupWrite) && rowWrites.length === 2 && rowWrites.every((call) => call.start > groupWrite.start),
-            /return \{ error: addedCategory \? COPY\.categoryOnly : COPY\.notSaved \};/.test(saveBody),
+            /return \{ error: addedCategory \? COPY\.categoryOnly : COPY\.notSaved\[editing \? "edit" : "add"\] \};/.test(saveBody),
             !/destroy|remove/i.test(saveBody),
         ].join(" "),
         "true true true"
+    );
+    // A FAILED PRESS SAYS WHAT IT WAS (1l `Save failed`, `Add failed`; #614): an add its own sentence,
+    // an edit — a discontinuing and a restoring among them — the edit's, and a group that fails before
+    // the row says the press's too.
+    const discontinueBody = actions.source.slice(actions.source.indexOf("async function setAssetCategoryDiscontinuedHandler"));
+    check(
+        "  a failed add says the add's sentence and a failed edit, discontinuing or restoring the edit's (#614)",
+        [
+            (saveBody.match(/COPY\.notSaved\[editing \? "edit" : "add"\]/g) ?? []).length,
+            /\} catch \{\s*return \{ error: COPY\.notSaved\.edit \};/.test(discontinueBody),
+            /COPY\.notSaved\b(?!\[|\.edit)/.test(actions.source),
+        ].join(" "),
+        "2 true false"
     );
 
     // ── 10: the dialogs' words ──────────────────────────────────────────────
@@ -699,10 +712,10 @@ export function run({ check, assert, log }) {
             "Leave it empty.",
             "This item already exists in Wrench.",
             "This category already exists.",
-            "Couldn't save the item. Try again.",
+            { add: "Couldn't add it to the catalog. Try again.", edit: "Couldn't save the changes. Try again." },
             "The category was added, but the item wasn't. Try again.",
             "Couldn't create the category. Try again.",
-            "Couldn't remove the item. Try again.",
+            "Couldn't remove it from the catalog. Try again.",
             "This item isn't in the catalog any more.",
             "Items use it now, so it stays in the catalog.",
         ])

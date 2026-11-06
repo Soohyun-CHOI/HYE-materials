@@ -330,6 +330,7 @@ async function renderAssetPage({ params }) {
             assetOwnerJobRecordId={asset.ownerJob?.[0] ?? null}
             assetId={asset.assetId}
             itemName={category?.itemName}
+            recentCheckOuts={recentCheckOuts}
         >
             <div className="font-ui text-foreground-default max-sm:flex max-sm:flex-1 max-sm:flex-col">
                 {/* THE PHONE'S HEAD (1j): `More actions`, which holds the retirement when there
@@ -454,7 +455,7 @@ async function renderAssetPage({ params }) {
                             them alone too. */}
                         {!transition.refusal && (transition.event || menuActs) && (
                             <div className="-mt-record-header-actions-bleed flex shrink-0 items-center gap-gap max-sm:hidden">
-                                {transition.event && <TransitionDialog recentCheckOuts={recentCheckOuts} />}
+                                {transition.event && <TransitionDialog />}
                                 {menuActs && <MoreActions />}
                             </div>
                         )}

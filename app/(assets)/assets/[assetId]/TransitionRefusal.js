@@ -1,36 +1,29 @@
 "use client";
 
-import { Notice, Refusal } from "@/app/components/Controls";
+import { Notice } from "@/app/components/Controls";
 import { useAssetTransition } from "./AssetTransition";
 
 /**
- * A refused press, said in the title block under the status (#463) — 1k's Notice on a phone,
- * 16 under the status line, and a desk's refusal line in the same place, which 1f leaves for
- * it. One of the two is drawn at any width, so assistive tech hears it once.
+ * A refused press on a phone, said in the title block under the status (#463) — 1k's Notice, 16
+ * under the status line. Below the phone's edge alone since #614: a desk says a refusal in the
+ * dialog or the question that sent it, which stands until the reader closes it, and a desk's press
+ * with no dialog says its own in 0k's toast (`AssetTransition.js`), as the files of 2026-11-05 draw
+ * both; until then a desk said here every refusal its dialog was not saying.
  *
  * WHERE THE STATUS IS, BECAUSE THAT IS WHAT THE REFUSAL IS ABOUT. The action re-renders the
  * page as it refuses (#378), so the status above this is already the one somebody else's scan
- * left, and the sentence says who scanned and when (`moved`). Every other refusal of the
- * press stands here too — the status left unwritten, the item no longer the reader's to record or
- * moved to another job since the page was drawn (#597) — except while a desk's dialog is open,
- * which says it above its actions instead; a page drawn on another job closes it, so that one is
- * always said here, whichever control sent it, the retirement's question and the note's
- * included. **And the office's job change says
- * its refusals here once its dialog or sheet is closed (#583)** — one refused because something
- * was recorded since lands on a page holding neither — so what this says is the answer of
- * whichever was sent last, which the provider decides (`statusSentence`).
+ * left, and the sentence says who scanned and when (`moved`). Every answer a phone's press gets
+ * stands here — the foot bar's, the menu's sending, and the sheet's or the question's, which the
+ * answer closes, a press left half done among them (Tools 0a Notice, 1k-f) — but a detail's sheet's
+ * own, which it keeps (1j-b2, 1j-b3). So what this says is the answer of whichever was sent last,
+ * which the provider decides (`statusSentence`).
  */
 export default function TransitionRefusal() {
     const { statusSentence: sentence } = useAssetTransition();
     if (!sentence) return null;
     return (
-        <>
-            <div className="max-sm:hidden">
-                <Refusal>{sentence}</Refusal>
-            </div>
-            <div className="mt-mobile-title-alert-stack sm:hidden">
-                <Notice>{sentence}</Notice>
-            </div>
-        </>
+        <div className="mt-mobile-title-alert-stack sm:hidden">
+            <Notice>{sentence}</Notice>
+        </div>
     );
 }

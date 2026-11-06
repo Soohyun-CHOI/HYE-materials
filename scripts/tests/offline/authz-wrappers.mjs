@@ -134,6 +134,39 @@ export async function run({ check, assert }) {
     // would report as `authz gate`. That is the failure this pair rules out.
     assert("the gate scope did not swallow the handler's label", snap.byLabel["authz gate"] !== 2);
     resetOps();
+
+    // ── a refusal is handed the press, and its reads are attributed (#614) ──
+    // An item's page names whose item it is when the gate turns a press away, so its refusal reads
+    // the item the press names: the arguments reach it as they would the handler, and what it reads
+    // lands under `authz refusal` — outside the gate's scope, and never in `unlabeled`.
+    let refusedWith = null;
+    const refusing = createFlagGuard(async () => {
+        recordOperation("get", "/Users/recABCDEFGHIJKLMN");
+        return { authorized: false };
+    })(
+        async (...args) => {
+            refusedWith = args;
+            recordOperation("get", "/Assets");
+            recordOperation("get", "/Jobs");
+            return { error: "Only 26-USA-07 can record this item. Nothing was saved." };
+        },
+        async () => ({ ok: true })
+    );
+    const pressed = new FormData();
+    pressed.set("assetId", "HYE-AST-261019-104");
+    const refusedAnswer = await refusing("before", pressed);
+    const refusedSnap = snapshot();
+    check(
+        "a refusal is handed the press's arguments, and its answer is the action's",
+        `${refusedWith?.length} ${refusedWith?.[0]} ${refusedWith?.[1]?.get?.("assetId")} ${refusedAnswer?.error}`,
+        "2 before HYE-AST-261019-104 Only 26-USA-07 can record this item. Nothing was saved."
+    );
+    check(
+        "  its reads are attributed to `authz refusal`, the gate's to `authz gate`, and none unlabeled",
+        `${refusedSnap.byLabel["authz refusal"]} ${refusedSnap.byLabel["authz gate"]} ${refusedSnap.byLabel[UNLABELED] ?? 0}`,
+        "2 1 0"
+    );
+    resetOps();
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

@@ -807,7 +807,7 @@ export function run({ check, assert, log }) {
             label: /const FIELD_LABEL = "[^"]*max-sm:in-data-\[sheet\]:text-mobile-body-sm"/.test(source),
             // An alert unless its caller says it answers nothing (#527, `DialogActions`' note).
             refusal:
-                /export function Refusal\(\{ centered = false, role = "alert", children \}\)/.test(source) &&
+                /export function Refusal\(\{ centered = false, role = "alert", id, children \}\)/.test(source) &&
                 /role=\{role\}[\s\S]*max-sm:in-data-\[sheet\]:text-mobile-body-sm/.test(functionSource("Refusal")),
             // A refusal of the whole dialog is a message in Ink 2 behind the 16 info mark, 6 from
             // it, since 0l's final drawing (#495): Red is a field's refusal, and none is here.
@@ -1411,7 +1411,7 @@ export function run({ check, assert, log }) {
     // a refusal taking the line from it.
     check(
         "  and the line over the actions carries a note before any press, heard as a status, a refusal taking its place",
-        /\{refusal \? <Refusal>\{refusal\}<\/Refusal> : note && <Refusal role="status">\{note\}<\/Refusal>\}/.test(actionsPart),
+        /\{refusal \? <Refusal id=\{refusalId\}>\{refusal\}<\/Refusal> : note && <Refusal role="status">\{note\}<\/Refusal>\}/.test(actionsPart),
         true
     );
     // 0l's CHIPS (#520), 1b's size and model: a radio group named by its label, one stop for Tab on
@@ -1630,7 +1630,7 @@ export function run({ check, assert, log }) {
             "app/(assets)/assets/LabelsDialog.js",
             "app/(assets)/assets/[assetId]/NameSheet.js",
             "app/(assets)/assets/[assetId]/RetirementConfirm.js",
-            "app/(assets)/assets/[assetId]/TransitionDialog.js",
+            "app/(assets)/assets/[assetId]/TransitionForm.js",
             "app/(assets)/asset-categories/RegistrationDialog.js",
             "app/(assets)/asset-categories/[categoryRecordId]/RegistrationShortfall.js",
             "app/(assets)/asset-categories/[categoryRecordId]/RegistrationUnlogged.js",
@@ -1995,8 +1995,8 @@ export function run({ check, assert, log }) {
             // The office's job change at a desk (#583).
             "JobChangeForm: submits · busy {pending} · named · 0 disabled by sending",
             // A lending at a desk and on a phone, whose sheet submits by its foot's `Lend` (#598).
-            "LendForm: submits · busy {lend.pending} · named · 0 disabled by sending",
-            "LendRows: submits · busy {lend.pending} · named · 0 disabled by sending",
+            "LendForm: submits · busy {pending} · named · 0 disabled by sending",
+            "LendRows: submits · busy {pending} · named · 0 disabled by sending",
             "RegistrationForm: submits · busy {pending} · named · 0 disabled by sending",
             "RemoveDialog: submits · busy {pending} · named · 0 disabled by sending",
             // The retirement's question, handed the provider's wait since #597, as the deletion's is.
