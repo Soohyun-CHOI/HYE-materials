@@ -122,8 +122,9 @@ export async function generateMetadata() {
  * `Equipment & Tools`, as 1d draws it, wherever there are two jobs to choose between — every
  * reader since #593, where a reader on one job of their own was drawn none; it stood in the
  * head beside the opener until #519. A category
- * with assets, none of them on the job, draws its head and nothing under it: `Nothing added
- * yet` would be false there, and Design is drawing what it says. An asset off the job still
+ * with assets, none of them on the job, says `No items on` the job under its head since #612
+ * (`kindEmptyState`), where `Nothing added yet` would be false; from #509 it drew the head
+ * alone. An asset off the job still
  * opens from its label. **On all jobs (#548)** the array is cut to the assets
  * on any of them, and each row says its job in a column after its id (1d), which the breadcrumb
  * says for all of them on one job.
