@@ -35,9 +35,9 @@
 // description — with these three names as written, so a rename that moved anything else fails.
 //
 // Usage (from the repo root) — the test base unless the run names the live one (#534):
-//   node --env-file=.env.local scripts/import/rename_role_links_622.mjs                      (dry run)
-//   node --env-file=.env.local scripts/import/rename_role_links_622.mjs --apply
-//   AIRTABLE_BASE=live node --env-file=.env.local scripts/import/rename_role_links_622.mjs   (dry run, live)
+//   node --env-file=.env.local scripts/import/ran/rename_role_links_622.mjs                      (dry run)
+//   node --env-file=.env.local scripts/import/ran/rename_role_links_622.mjs --apply
+//   AIRTABLE_BASE=live node --env-file=.env.local scripts/import/ran/rename_role_links_622.mjs   (dry run, live)
 //
 // No loader flag: this file imports only built-ins and the base's module.
 //
@@ -49,7 +49,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describeAirtableBase, resolveAirtableBase } from "../../lib/airtableBase.js";
+import { describeAirtableBase, resolveAirtableBase } from "../../../lib/airtableBase.js";
 
 /** The base this run reaches (#534), resolved at the top of main(): the test base unless the run names the live one. */
 let airtable = null;
@@ -58,7 +58,7 @@ const SCRIPT = "rename_role_links_622";
 
 const META_ROOT = "https://api.airtable.com/v0/meta";
 
-const LEDGER_DIR = join(dirname(fileURLToPath(import.meta.url)), "ledgers");
+const LEDGER_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "ledgers");
 
 /** The three fields, by the ids both bases share, each with the far side its link must reach. */
 const RENAMES = [

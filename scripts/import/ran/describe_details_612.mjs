@@ -28,9 +28,9 @@
 // description — and these two must read as written.
 //
 // Usage (from the repo root) — the test base unless the run names the live one (#534):
-//   node --env-file=.env.local scripts/import/describe_details_612.mjs                      (dry run)
-//   node --env-file=.env.local scripts/import/describe_details_612.mjs --apply
-//   AIRTABLE_BASE=live node --env-file=.env.local scripts/import/describe_details_612.mjs   (dry run, live)
+//   node --env-file=.env.local scripts/import/ran/describe_details_612.mjs                      (dry run)
+//   node --env-file=.env.local scripts/import/ran/describe_details_612.mjs --apply
+//   AIRTABLE_BASE=live node --env-file=.env.local scripts/import/ran/describe_details_612.mjs   (dry run, live)
 //
 // No loader flag: this file imports only built-ins, the guard's module and the base's.
 //
@@ -42,8 +42,8 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { refusesBeyondDescriptions } from "../protectedTables.mjs";
-import { describeAirtableBase, resolveAirtableBase } from "../../lib/airtableBase.js";
+import { refusesBeyondDescriptions } from "../../protectedTables.mjs";
+import { describeAirtableBase, resolveAirtableBase } from "../../../lib/airtableBase.js";
 
 /** The base this run reaches (#534), resolved at the top of main(): the test base unless the run names the live one. */
 let airtable = null;
@@ -52,7 +52,7 @@ const SCRIPT = "describe_details_612";
 
 const META_ROOT = "https://api.airtable.com/v0/meta";
 
-const LEDGER_DIR = join(dirname(fileURLToPath(import.meta.url)), "ledgers");
+const LEDGER_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "ledgers");
 
 /** `Assets`, by the id both bases share (the test base was made by duplicating the live one, #534). */
 const TABLE = { name: "Assets", id: "tblXtmDonSyOyOvV3" };
