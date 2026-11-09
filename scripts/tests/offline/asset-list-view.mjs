@@ -1031,7 +1031,7 @@ export function run({ check, assert, log }) {
     // number under fifty. Every length in the loop was derived from the constant,
     // and the one thing that tied the size down was a twelve-row fixture, by the
     // accident of twelve rows being two pages at ten. Twenty-five from #442, fifty from
-    // #538 and twenty-five again since #617 (docs/briefs/asset-categories-categoryRecordId.md);
+    // #538 and twenty-five again since #617 (docs/notes/tools.md);
     // moving it is an edit to these literals in the same commit.
     check("a page holds this many assets", ASSET_PAGE_SIZE, 25);
     // Above 50 a page whose items were all out would read their holders' rows in two queries

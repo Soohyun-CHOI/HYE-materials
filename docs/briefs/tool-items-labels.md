@@ -1,375 +1,123 @@
 # Print labels
 
-Opens from: `/asset-categories/[categoryRecordId]` and `/assets/[assetId]`, as a dialog
-over the page that opens it — it was the page `/tool-items/labels` until #457.
-Who reaches it: a site manager on either page (#506), and since #597 only for
-items on a job of their own — an asset's page on such an item, and a category's
-list on such a job, which alone draws the boxes — nobody else is drawn a control
-that opens it, and the read behind a category's page refuses anybody else and
-names the items off the reader's jobs rather than printing them. Everyone else
-still reads an asset's label on its own screen.
-Which width comes first: **desktop**. This dialog is used at whatever machine the
-printer is attached to, which `docs/notes/tools.md` settled for the whole label
-step, and it does not support a phone's width (`_shared.md`).
+Opens from: `/asset-categories/[categoryRecordId]` and `/assets/[assetId]`, as a dialog over the page that opens it.
+Design: Tools 1e, 1d and 1f, on Invoices 0l and 0p.
+Who reaches it: a site manager on the job of the items it prints — a category's list on
+their own job, which alone draws the boxes, and an asset's page on such an item. Nobody
+else is drawn a control that opens it, and the read behind a category's run refuses
+anybody else and names the items off the reader's jobs rather than printing them.
+At a desk everyone reads an asset's label on its own screen.
+Which width comes first: **desktop**, and it is the only one: it is used at whatever
+machine the printer is attached to.
 
 ## What it answers
 
-We added some items and now they need stickers. Print their QR labels on the
-label printer's tape, one label to a page.
+We added some items and they need stickers. Print their QR labels on the label
+printer's tape, one label to a page.
 
-**An asset with no label is a row nothing can reach.** The QR symbol is the
-only way a phone gets from a physical drill to its record, so this dialog is the
-last step of registration rather than a convenience — and it is why a
-registration lands on its category's own screen with what it wrote selected, one
-press of that screen's print control from here (#449). Until then the
-registration's own answer linked straight here.
+**An asset with no label is a row nothing can reach.** The symbol is the only way a
+phone gets from an object to its record, so this dialog is the last step of a
+registration rather than a convenience — which is why a registration lands on its
+category's screen with what it wrote selected, one press from here.
 
-**The dialog exists because paper is not a screen.** What it prints is each
-label at its true size, a page each — it draws them at twice that (#457) — and
-the whole point of every dimension on it is that the ink lands inside the length
-of tape the printer cuts off. That makes it the one surface in this app whose
-correctness is physical.
+**It is the one surface in this app whose correctness is physical.** What prints is
+each label at its true size, a page each, and every dimension exists so the ink lands
+inside the length of tape the printer cuts.
 
 ## What it always carries
 
-**identity.** The title — `Print labels` from a category's page and `Print label`
-from an asset's, the word each page's control says — and under it the category's
-name. It was the heading `Print tool labels` until #457.
+**The run is what the opening page names**: a category's selection, in ascending id,
+or an asset's one label. **It is at most `MAX_LABELS_PER_REQUEST`, 100** — the largest
+registration's cap, one number — and the read behind it throws on a longer run, which
+nothing the app draws can send.
 
-**evidence.** Two facts about the run on one line, both screen-only and never
-printed:
+**How many labels print, and on which stock**, both screen-only and never printed:
+the count is the page count the print dialog has to agree with, and the stock is the
+label's size, `ASSET_LABEL_PAGE_COPY.size`, since the tape is what a person loading the
+printer has to get right. While anything prints, the two steps the browser's print
+dialog needs (`ASSET_LABEL_PAGE_COPY.hintSteps`).
 
-- **How many labels**, one to a page — `4 labels`, or `3 of 5 labels` when some
-  of what was named does not print — which is the page count the print dialog
-  has to agree with. It was `4 labels, one to a page.` until #457, and it counted
-  the sheets they took until #467.
-- **Which stock**, by the label's size: `11 × 12 mm`. The length of tape a label
-  takes is the page's, so the tape is the one thing a person loading the printer
-  has to get right (#467). It was `Stock: 12 mm tape` until #457, and it named a
-  die-cut's two dimensions while the stock was a sheet no product matched (#412).
+**Each label carries the symbol and, under it, the printed code**, and nothing else —
+not the item's name. **Nothing may be drawn inside the symbol's box**, which includes
+the four modules of quiet zone a camera needs. **The code is the fallback for a symbol
+scratched or painted over**, so it is never truncated, and it is the end of the asset's
+id (`l-labelCode.md`); **a design must not put the family token back**.
 
-The two are parted by the dot every caption draws, whose room either side is a
-space the text holds, so they copy and are read as two facts (#495). Until then
-padding round a dot nobody reads ran them together: `4 labels11 × 12 mm`.
+**Each label is drawn at twice its printed size** (`LABEL_PREVIEW_SCALE`) by a zoom the
+print takes back to 1, so nothing inside a label moves between the two, and the dialog
+draws it the right way up while **the print turns it a quarter turn clockwise**: the
+page that comes off the tape is 12 mm along it and 11 mm across.
 
-**The host each symbol will encode is not stated (#454).** It was the first of
-three facts here. A symbol carries the host it was printed from, so a run
-printed on a preview domain is every sticker in it pointing somewhere that will
-stop resolving, and the screen spelled the host out with a warning saying so.
-**The warning was not conditional** — nothing in the app knows which host is the
-permanent one — so on the host the app keeps it would be false above every
-sheet, and #454 took it off with the host above it. What the two guarded is a
-rule kept outside this dialog.
-
-**THE WARNING WAS THE ONLY DEFENSE LEFT AFTER #411, AND IT WAS WRITTEN TO BE READ
-AT THE MOMENT OF PRESSING PRINT.** Until that issue a symbol built on a dev host
-came out a version larger than a real one, so a wrong host was visible in the
-picture itself; the shortened address put both at version 2, and nothing about
-a label looks different when the host is wrong. Measured at 1440x900 with three
-labels, the warning sat 240px above the print control and both were on screen at
-once, but the picker grows one row per label between them, so a run of thirty put
-the control below the fold and a run of a hundred put it 2,600px down. #412's
-smaller label left those figures unchanged, since the picker's rows are text and
-a smaller sticker needs fewer sheets rather than fewer rows. So this said a design
-had to keep the host and the warning legible from wherever Print is pressed, and
-never treat them as a preamble read once on the way in, until #454 took both off.
-**#453 put a refusal back for the long hosts**: the label holds no room for a
-symbol larger than today's, so a Vercel domain's symbols do not fit and no label
-is drawn there at all. A host short enough to stay at today's size — a local
-server's is one — still looks exactly like the real one, and nothing on the
-screen says which host it is.
-
-**action.** Two controls, `Cancel` and the commitment — `Print 4 labels`,
-counting what prints, and the title's words drawn disabled when nothing does
-(0f). Above them, while anything prints, the two steps the browser's own print
-dialog needs: `Choose your label printer.` and `Keep scale at 100%.` The screen
-had three controls until #467, and two until #457:
-
-- **A per-label include went with the screen (#457).** It was one for every tool
-  item the address named, all included to begin with, and excluding one took its
-  page out of the run rather than printing it blank. There was no select-all and
-  no select-none, since every label started included. The run is now what a
-  tool's page has selected (#443), so that page's boxes are where a label is left
-  out, and the one place the whole run is listed before the tape is spent is the
-  dialog's pane.
-- **The first label position on the sheet went with the sheet (#467).** It took
-  1 to however many a sheet held, for a part-used sheet, which was the ordinary
-  case rather than an edge: a registration is usually a handful of tools, so
-  printing always from the top would have thrown away most of a sheet every time.
-  A label printer cuts after every page, so no run is ever printed into one
-  somebody has already peeled from.
-
-**the labels.** One page per label, each the label's own size — one page-sized
-box per sheet, with each label placed at its stock's own corner, until #467. Each
-label carries two things, the symbol and the code under it, and the reasons are
-not the same:
-
-- **The QR symbol**, in a box that is its full size including the four modules of
-  quiet zone the SVG carries. **Nothing may be drawn inside that box.** The margin
-  is what lets a camera separate the symbol from everything printed beside it.
-- **The printed code, in characters a person can read, under the symbol.** This
-  is the fallback for a symbol that has been scratched or painted over, so it is
-  not decoration and it may not be truncated. Its size has a floor and its face
-  is part of the label's arithmetic; see below.
-
-**The category's name is not on the label (#431).** The design dropped it. The
-picker above the labels named each asset by its tool until #457, because that
-was a screen naming a record and the person choosing labels chose by it; the
-dialog names the opening page's category under its title, and the sticker carries the
-code alone.
-
-**The printed code is not the whole `Asset ID`, and the difference is the
-point (#411).** An asset is `HYE-AST-260909-004` in the base and on every
-screen; the sticker carries `260909-004`. The seven characters dropped are on
-every asset and separate none of them, so they cost the symbol its headroom
-and the label its width while confirming nothing. **A design must not put them
-back.** The picker named each asset by the whole id until #457, a screen
-naming a record above a sticker a person reads in order to type; the dialog has
-no picker, and it names a code it did not find in the sticker's form,
-`260909-098`, as 1e draws it.
+**What it reads:** an asset's one label nothing — the page built it; a category's run
+the gate's 1 operation and the action's 2 — the session and the run's assets, one
+query per fifty ids — so 3 for a run past fifty (`docs/notes/tools.md`). The opening
+asks nothing.
 
 ## What it carries only sometimes
 
-**While the labels are prepared, the dialog's `Print` waits (#616).** A press
-of either opener opens the dialog at once; while a category's page reads the
-labels, the pane is empty, the column holds its actions alone, and `Print` —
-the title's words until the run comes — keeps its width and, after 300ms, draws
-a spinner in place of its words, saying `Loading…` to assistive tech, as 1e and
-1f draw it. It waits the same way in either dialog while the code's face is
-loaded before the browser's print dialog. From #495 until #616 the opener waited
-and the dialog opened when the read answered.
+**While a category's run is read**, and while the code's face loads before the
+browser's print dialog, the print is busy (`ASSET_LABEL_PAGE_COPY.working`); the dialog
+opens at once.
 
-**When the read fails or is refused (#616):** the dialog says so over its
-actions with the info mark — `Couldn't load the labels. Try again.`, `Print`
-reading again, or for a reader who is no longer a site manager
-`You no longer have permission to print.`, on one line, `Print` at 40% and
-turned away, the page behind drawn again without its boxes — as 1e draws
-`Labels failed` and `No permission`. Either is 0l's dialog whose content could
-not be prepared or may no longer be shown: its head, the line and its actions
-alone, the pane kept empty at its width so the dialog keeps its size, and
-`Print labels` with no count. A read again keeps the failure's line while
-`Print` waits, and the run takes its place: the pages, the count and
-`Print 5 labels`. An asset's page reads nothing for its one label, so neither
-state can arise there.
+**When the read fails** (`ASSET_LABEL_PAGE_COPY.readFailed`): the print reads again.
+**When the reader is no longer a site manager** (`ASSET_LABEL_PAGE_COPY.noPermission`):
+the print is turned away and the page behind is drawn again without its boxes. Neither
+can arise from an asset's page, which reads nothing.
 
-**When nothing is selected, the dialog does not open:** a category's page draws no
-selection bar and so no control to press (0b, #463). It drew its control disabled
-with the reason beside it, `Nothing is selected, so there is nothing to print.`,
-from #457 to #463; this said it still did, corrected per #181 by #519. Until #457
-the screen said `Nothing was named to print. Open
-this from a tool's own page.` to an address that named no asset, pointing at
-the page where a run is selected. It named a registration's answer as well until
-#449, which stopped a registration opening this screen. It said `No asset was
-named` until #455; the design's noun is `tool`, and a first `tool` meaning one of
-a tool's tools would stand for two things in a sentence that goes on to name the
-tool.
+**When some codes name no item the app shows** — none on the base, or a deleted one
+(`ASSET_LABEL_PAGE_COPY.notFound`) — **or items off the reader's jobs**
+(`ASSET_LABEL_PAGE_COPY.notYours`): those codes are listed
+apart under how many, and no label is drawn for them. **They are not folded into the
+run** — a label that cannot print is a different state from one that can, and a short
+run printed in silence leaves somebody counting stickers. Only a selection made before
+an item moved or the reader left its job, or a copied address, carries an item off the
+reader's jobs.
 
-**When none of the named ids is on the base:** `No labels to print.` in the pane,
-`0 of 3 labels`, the codes under `3 codes not found`, no steps, and the commitment
-drawn disabled. This is reachable by hand-typing a category's address. It was the
-heading and `None of those tools exists.` until #457.
+**When none of them prints** — every code not found or off the reader's jobs
+(`ASSET_LABEL_PAGE_COPY.noLabels`): no steps, and the print does not act. A
+hand-typed address reaches it.
 
-**When some of them are not on the base:** those codes are listed under how many
-— `2 codes not found` — and no label is drawn for them. **They are not folded
-into the run** — a label that cannot be printed is a different state from one
-that can, and printing a short run in silence would leave somebody counting
-stickers to find out.
+**When the host is too long for the symbols** (`ASSET_LABEL_PAGE_COPY.symbolTooLarge`):
+the run's shape with nothing to print and that sentence where the codes not found
+stand. **A design must keep it where Print is pressed.**
 
-**When some are on items off the reader's jobs (#597):** those codes are listed
-the same way, under `1 item not on your jobs` or `2 items not on your jobs`, beside
-the codes not found, and no label is drawn for them. Only a selection made before
-the office moved an item, or before the reader left its job, or an address
-somebody copied, carries one: a category's list draws boxes on its own job's rows
-alone. The files draw this run since 2026-11-05 (1e's `Not on your jobs`), in these words.
-
-**When the host is too long for the symbols (#453):** the shape of a run with
-nothing on record, with one sentence about the host where the codes not found
-stand. 1e draws no such state.
-
-**When more ids are selected than one print takes, the dialog does not open:** a
-category's page keeps the selection, `101 selected`, and draws its print control not
-acting with `Up to 100 labels per print.` before it (#443), where it said
-`One print takes at most 100.` until #495; and the read behind the dialog
-throws on a longer run, which nothing the app draws can send. The screen printed the first 100 of a longer
-address and said so until #457. The cap is the largest registration's cap and the
-two are one number.
-
-**When the run did not fit one sheet**, until #467: more than one sheet was
-drawn, each on its own page, and blanks held open by the start position appeared
-only on the first. That state went with the sheet — every label is a page of its
-own, so a run of any size is that many pages and nothing on the screen changes
-with its length.
+**When nothing is selected, or more than one print takes**, the dialog does not open:
+a category's page draws no print control, or draws it not acting and says why
+(`asset-categories-categoryRecordId.md`).
 
 ## What must agree elsewhere
 
-**The stock's dimensions live in one place, and since #467 they are two.** The
-labels print on a label printer that takes 12 mm tape and cuts after every page,
-so the stock is the label's width and its height, and every other dimension is
-derived from those and the floors. Until then no printer had been confirmed at
-the site and the stock was a sheet nobody had bought. **A design must not assume
-a particular label size** — it should take the label's dimensions from where
-they live, as it took the grid's.
+**The label's figures live in `lib/assetLabelPage.js`, and a design must take them
+from there** rather than assume a size. The label is 11 mm wide and 12 mm tall as it
+reads, on 12 mm tape cut after every page. The symbol and the code are at floors a
+print on this printer proved and a phone read — `MIN_MODULE_MM`, 0.29 mm a module, and
+`MIN_ID_FONT_PT`, 5 pt — and what the label leaves is margin. **A design adding
+anything to the label takes it from the margins**; it may not take it from the quiet
+zone or the code's floor.
 
-**The label is 11 mm wide by 12 mm tall as it reads, and it prints turned a
-quarter turn clockwise (#526):** its 12 mm runs along the tape, the length one
-label takes, and its 11 mm across the 12 mm tape, so it reads the right way up
-with the tape held crosswise, the way it is held to stick it on. From #467 until
-then the page ran the other way — the 11 mm along the tape and the 12 mm the
-tape's width — and the label read the right way up only with the tape held
-lengthwise. The symbol and the code are at their floors, and what the label
-leaves is margin — 0.6488 mm above and below, 0.715 mm either side. **The label a print proved was 10.87 mm across with 0.65 mm on all
-four sides**; 11 mm is a round length for the cut, and the extra went to the
-side margins alone. Before it, the label was sized from the symbol to fit a
-sheet — 15.2 by 17.32 mm and 143 to a Letter sheet by #453 — and before #412 it
-was 66.7 by 25.4 mm, a real adhesive sheet picked when nothing had been printed.
+**The symbol is sized in modules, never in millimeters.** A longer address is a bigger
+symbol rather than a denser one, and the label keeps no room for a version above
+today's (`VERSION_HEADROOM`): **the host's length decides whether a label prints**. A
+host of up to seventeen characters gives today's symbol; the permanent host,
+`app.hyeusa.com`, is fourteen, and a Vercel domain is past it. A design pinning the
+symbol to a box in millimeters fails invisibly: a symbol a phone cannot read.
 
-**The narrow side is 11 mm and it is the dimension that decides whether the
-sticker goes on.** A label wraps along a handle, so the narrow side has to clear
-the handle's width and the long side runs down a tool that is far longer than
-12 mm. **A wrench handle is roughly 15 to 20 mm**, so this label goes on all of
-that range (#467). On a sheet it did not: the narrow side was 15.2 mm from #453
-and about 17 mm before, so a handle narrower than that had no label, and the
-three things that could have been smaller were fixed from outside — the symbol's
-four-module quiet zone, the specification's; a 1 mm safe inset for a die-cut not
-perfectly placed; and a 0.4 mm module quoted rather than measured. On tape the
-inset went with the die-cut and the module is the 0.29 mm a print proved.
+**The code sits under the symbol, and the order is part of the geometry**: they stack
+along the tape, and their height and the margins are the label's 12 mm. The code
+above the symbol or beside it is a different label, with different dimensions.
 
-**The code sits under the symbol (#431), and the order is part of the
-geometry.** On tape the two stack along the tape since #526, and across it from
-#467: the symbol, the code's ink and the margins above and below them are the
-label's 12 mm. On a sheet,
-beside the symbol, the long side was the symbol and ten characters, 30.3 mm, and
-a sheet held 78; under it, the symbol and one line of code, 17.32 mm, and a
-sheet held 143. What kept the code beside the symbol was the tool's name, which
-sat in height the symbol had already paid for — and the label no longer carries
-the name. **So the code above the symbol, or beside it again, is a different
-label rather than a restyling of this one**, with different dimensions.
+**The code's face is the design's, Inconsolata (`LABEL_CODE_TYPEFACE`), and it is part
+of the arithmetic**: the label's width budget is that face's measured advance, so a
+different face reopens the figure (`labelBudget`). Above its floor the code's size is
+the design's, and the cost of going up is known: its height comes out of the margins,
+and past about 5.4 pt ten characters outgrow the symbol's width.
 
-**Nothing separates the symbol from the code but the quiet zone the symbol
-already carries (#453).** That margin is the one the QR specification asks for,
-and the symbol's box includes it, so the code's ink starts 1.16 mm below the
-nearest dark module, which is what the specification asks for at 0.29 mm a
-module (#467). The 1.5 mm gap the label used to carry on top of it had no
-source, and this design drew none. **A gap is the design's to add**, and on tape
-it takes its height out of the margins above and below, which no print has had
-thinner than 0.65 mm. On a sheet it made the label taller by its own height.
+**The label in an asset's rail and the label this dialog prints are one object**, built
+once for both, so a replacement is the same physical label by construction.
 
-**The symbol is sized in modules, never in millimeters.** A QR symbol's side grows
-four modules per version as the address it encodes gets longer. So the printed
-size is a fixed millimeters PER MODULE, which makes a longer address a bigger
-symbol rather than a denser one — and since #453 a bigger symbol is one the
-label has no room for, so the dialog says so instead of drawing it thinner.
-**A design that pins the symbol to a box in millimeters would undo this**, and
-the failure is invisible on screen: it only shows up as a symbol a phone cannot
-read.
-
-**The readable code has a floor and no ceiling.** Its minimum size is a functional
-constraint — it is the fallback path when the symbol is unreadable — and it is
-set in code, at 5 pt (#467). **Everything above that floor is the design's**,
-and the cost of going above it is known: at this label's size a larger code
-takes its height out of the margins above and below — or, since the height runs
-along the tape (#526), out of a longer label — and past about 5.4 pt ten
-characters outgrow the symbol and take from the side margins too, which the
-tape's 12 mm bounds. It renders at the floor, which is the size the print proved.
-
-**The code is set in Inconsolata, and the face is part of the label's
-arithmetic (#431).** The design chose it. The label's width budget is that
-face's measured advance — half its size per character — so a different face is
-a different number. **Changing the face is the design's to do and it reopens
-that figure**; what the label has room for without changing size is a face up
-to about 0.54 of its size per character, ten characters under the widest symbol.
-The face reaches the printed code and nothing else in this dialog.
-
-**Both floors are measured since #467, where they were quoted figures (#412).**
-The module's 0.29 mm and the code's 5 pt are a label this printer printed and a
-phone read, 10.87 mm across with 0.65 mm on every side; on the office printer a
-0.273 mm module and a 5.1 pt code read as well, and are recorded rather than
-used. The code's is a font size, stated in points. They were 0.4 mm — the
-practical minimum published for a phone camera resolving a printed module — and
-6 pt, the size print convention holds as the smallest legible, which was 2.0 mm
-until #431; and 0.57 mm and 2.5 mm before #412, set for a label read at arm's
-length where this one is read in the hand. **A label printed from a local server
-is today's label at the same geometry**, so a phone decoding it is a reading of
-both floors though it cannot open the address, and that a Vercel domain draws no
-label does not mean the measurement has become impossible.
-
-**What is left over is margin (#467).** The widest symbol the label takes is
-today's, 9.57 mm, and with the code's ink, 1.13 mm, it takes all of the label's
-12 mm but 0.6488 mm above and below; 11 mm leaves 0.715 mm either side of the
-symbol, and ten characters at the floor take 8.82 mm of the 9.57 mm under it.
-On a sheet nothing was left over for the symbol and next to nothing under the
-code (#412, #431, #453). **A design adding anything to the label has to take it
-from something already there**, and the two things it may not take it from are
-the symbol's quiet zone and the code's floor.
-
-**The label absorbs no symbol version above today's (#453).** A QR symbol grows
-four modules a side as the address it encodes gets longer; the module cannot
-shrink to absorb that, because it is already at its floor, and the label no
-longer keeps room for a bigger one. **So the host's length decides whether a
-label prints**: a host of up to seventeen characters gives today's symbol — at
-exactly seventeen, only while a day's assets stay under a thousand — and a
-longer one, which a Vercel domain is, gives a symbol the dialog draws no page for,
-saying so in a sentence that points at the host. A design must keep that sentence
-where Print is pressed. **It is also why the host a label carries is settled
-before the first label is printed**: it is `app.hyeusa.com`, fourteen characters,
-which leaves three, and a permanent host past seventeen would build a symbol the
-tape has no room for.
-
-**The screen words are the design's (#455, #519).** An `Asset Categories` row — a
-category, in this brief — and an `Assets` row — which this brief calls an asset —
-are each an `item` on screen since #519, and never a `tool item`. Both were a `tool`
-in a sentence from #455 to #519, the assets counted as `items` on their category's own
-screen. The dialog's sentences name labels and codes; `None of those tools exists.`
-was this screen's until #457. The same words govern `/asset-categories`, the
-registration dialog over it, the category's own screen and the asset's. This said
-the pair was `tool` and `tool item` and never a bare `item`, which the design
-reversed.
-
-**Two pages open this dialog and their words come from here** — `Print labels`
-and `Print label` — so the controls on a category's own page and on an asset's own
-page cannot drift from the dialog they open. That is the arrangement the registration dialog has with the controls that
-open it, which was `/asset-categories`' control on `/tools/new` until #456. This
-said two until #443, which counted the asset's, added in #352; it said three
-until #449, which moved a registration's run onto the category's own page — the
-registration lands there with what it wrote selected, and that page's control is
-how its labels are printed.
-
-**A category's page opens this on what its list has selected (#443)**, in ascending
-id, the list's order until the list turned newest first (#463), and its control
-says only `Print labels`, because the boxes on that page show the range. The selection went on this screen's address as its own parameter
-until #457, and the page it was showing went there before #443. Its page box
-still selects a page at a time, so a page fits inside the hundred one print
-takes, and that page refuses a selection larger than that rather than opening a
-run whose tail would not print. **A design offering "select all of this category"
-there would be asking for a read that page divided on purpose.**
-
-**Each label is drawn at twice its printed size and printed at its own
-(#457)** — 1e's 22 × 24 mm on screen, by a zoom the print takes back to 1, so
-nothing inside a label moves between the two. **The dialog draws a label the
-right way up, and the print turns it a quarter turn clockwise (#526)**: what a
-reader sees in the pane is the label as it reads stuck on the asset, and the page
-that comes off the tape is that label turned, 12 mm along the tape and 11 mm
-across. The size beside the count, `11 × 12 mm`, is the drawing's. At a 375px width the dialog stacks
-— the head, the pane, then the rest — and two labels fit across the pane with
-nothing scrolling sideways, measured. Until then each was drawn at its true size,
-11 mm across, about 42 px, which fitted a phone as well. While a sheet was drawn
-the page scrolled sideways, since a US Letter sheet is 215.9 mm across and
-drawing it smaller would have stopped it being a preview of what comes out; how
-that narrow case read was left open, and no dimension forces the question now.
-
-**Nothing on the paper is a screen affordance.** The dialog's head, everything
-beside the pane — the count, the codes, the steps and the controls — its backdrop
-and the page behind it are hidden at print (#457), as the screen's heading,
-picker, print button and every sentence about the run were. What a reader sees
-on screen and what comes out of the printer are deliberately not the same thing,
-which is the one place in this app where that is true.
-
-**And what prints has to be the pages and nothing else, because a label is
-exactly one page** — a sheet was, until #467. The page box has no margin, so any
-ink above the first label takes a page of its own and pushes every label down by
-one. **This is not a
-hypothetical**: the heading was left out of the screen's print rule and the first
-print put it alone on page one. Since #457 the rule keeps the pages and hides
-everything else, so what can still reach the paper is something added inside the
-pane beside a label. A design adding a caption, a page number or a count there
-has to put it on the screen side of that line.
+**Nothing on the paper is a screen affordance.** Everything but the pages — the head,
+the count, the codes, the steps, the controls, the backdrop and the page behind — is
+hidden at print (`labels.css`). **What prints has to be the pages and nothing else**,
+because a label is exactly one page and the page has no margin: any ink outside a
+label takes a page of its own and pushes every label down by one. Something added
+inside the pane beside a label has to stay on the screen side of that rule.

@@ -22,6 +22,13 @@ carries, which distinctions it must make visible, and which words are fixed — 
 the whole of what carries over. Everything else is open, and a design that
 resembles what is there now has taken a resemblance for a requirement.
 
+**The Equipment & Tools screens and the sign-in steps are the exception: they were
+designed, and they match their drawings.** Each follows its Claude Design file —
+`Tools - new direction` or `Sign in - new direction`, on the shared frames of
+`Invoices - new direction` — and its brief keeps only what the drawing does not
+show (`README.md`, #620). What this section says is about the screens no design has
+drawn yet.
+
 **Three visual decisions are real, and they are the only three.** The app is
 light-only, and modal chrome had a single source — until #456 brought the
 design's own frame to the assets axis. Both were decided on their own
@@ -595,23 +602,15 @@ was sweeping the word one of them carried.
 
 `HYE USA Portal` is the product name and lives in exactly one module; the
 company's legal name is a different constant and belongs on the purchase order
-PDF, not on a screen. The sign-in steps carry it as their wordmark, and the
-email's subject is `Sign in to HYE USA Portal`. The words are the design's since
-#473. The confirmation's five token states: `Sign in` with `You're signing in as`
-and the button `Sign in` / `This link has expired` and `This link no longer
-works`, each with `Get a new link sent to` and `Send new email` / `This link isn't
-valid` (twice, deliberately — a missing token and an unknown one say the same
-thing) with `Go to sign in`.
+PDF, not on a screen. The sign-in steps carry it as their wordmark and the email
+as its subject.
 
-The first step: `Sign in`, `Enter your work email.`, the placeholder `name`,
-`Continue`, and `Use your @hanyangengusa.com address.` for an address at another
-domain. The code step: `Check your email`, `Enter the code we sent to`, `Change`,
-`Sign in`, `Didn't get it?`, `Resend email` and `Email sent`. A code that can
-still work is refused under the boxes — `Enter the 6-digit code from the email.` /
-`Incorrect code. 4 attempts left.` (#612) — and one that cannot is the step's title: `Too many
-tries` / `This code has expired` / `This code no longer works`, with `Get a new code
-sent to` and `Send new email`. A request that did not happen, on any step, is
-`Something went wrong. Try again.` The figures come from the constants that decide
+**The words are the Sign in file's, and this section no longer lists them.** They
+live in `CONFIRM_COPY`, `CODE_COPY`, `SIGN_IN_COPY`, `USER_NAME_COPY`,
+`USER_JOBS_COPY` and `COMPANY_EMAIL_COPY`, and the four sign-in briefs name each
+case by its key (#620). What stays locked is the shape the words carry: a missing
+token and an unknown one say the same thing, deliberately, and a ceiling's refusal
+reads the same for every address. The figures come from the constants that decide
 them.
 
 ### Uploaded files (tier 1, `lib/fileLinks.js`)
@@ -916,7 +915,9 @@ them; until #542 a root screen of links was the way in.
 One file per page, named after its route. Each carries two header lines and four
 sections, always in this order:
 
-- `Route:` the URL template, and `Who reaches it:` one line from the table above.
+- `Route:` the URL template, and `Who reaches it:` one line from the table above. A
+  screen a design file draws carries a `Design:` line between them, naming the
+  frames it follows, and its brief is the shorter kind `README.md` describes.
 - **What it answers** — the question the reader arrived with.
 - **What it always carries** — every fact on the screen, each tagged
   identity / verdict / evidence / action.

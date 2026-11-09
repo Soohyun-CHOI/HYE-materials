@@ -1,382 +1,165 @@
 # Equipment & Tools
 
 Route: `/asset-categories`
-Who reaches it: anyone signed in, with no Role and no Job gate (#337).
-Adding items from it is a site manager's (#506), from their own job's list or
-from all jobs (#597); everyone else reads the same list without that control —
-a site manager on another job's list among them. The list stands on one job (#509, #520) — any job,
-for every reader (#593) — starting on the first of the reader's own by its code,
-or on all of them at once, when a reader chooses it (#548) and from the start
-for a reader assigned to none (#593).
-Which width comes first: **desktop**, and it is the only one: this screen is
-used at a desk and does not support a phone's width (`_shared.md`).
+Design: Tools 1a, 1a2 and 1a3, on Invoices 0b, 0i and 0k.
+Who reaches it: anyone signed in, with no Role and no Job gate. Every reader may
+stand the list on any job or on all of them. Adding items from it is a site
+manager's, on their own job's list and on all jobs; the catalog's way in and its
+screen are the office's (`asset-catalog.md`).
+Which width comes first: **desktop**, and it is the only one: items are added and
+their labels printed at a desk, so this screen does not support a phone's width.
 
 ## What it answers
 
 How many of each item does the company have, and how many of them are out?
 
-**An `Asset Categories` row is a category — the kind of tool or equipment, a row of
-the catalog the office keeps (#507) — and an `Assets` row is an asset, one physical
-object carrying a printed id.** Those are the base's words and this brief's. **The
-screens say `item` for both, the design's word since #519**: a row of this list is
-an item, and so is each labeled one — `Add items`, `Retire this item`, `Item ID`.
-The design had said `tool` for both from #455, and `item` where a category's own
-screen counted what is under it. So six of one drill is one row here, six items on
-its own screen, and an item in every sentence about any one of them. This brief said
-"tool kinds" before #338, which would have invited `Kind` as a word on the screen;
-the word is `item`.
+**A row is an `Asset Categories` row** — a kind of tool or equipment, a row of the
+catalog the office keeps — **counted over its `Assets` rows**, one per physical
+object with a printed id. The screens say `item` for both; this brief says
+category and asset where the two must be told apart. Six of one drill is one row
+here and six assets on its own screen.
 
-**The question is about the fleet rather than about any one item**, which
-is why a row carries a count per status, and since #569 the total of what the
-company still holds of it. A reader looking for one
-particular unit is looking for its printed id, and that is the asset's
-own screen, reached by scanning it, from its category's page one level down,
-or since #541 by typing the id into this screen's search, which finds the
-unit on the list and opens it from there.
-
-**The asset's screen is the only one on this axis used at a phone
-width**, with the sign-in a scan can arrive through, and what that means
-for the whole design is the fifth constraint in the shared brief. An item is
-added and its labels printed at a desk, so this screen is a desk's; an
-asset is scanned on site, on a phone, possibly by someone wearing
-gloves. The phone is this axis's problem and no other's.
-
-**The width container for every asset screen lives in the layout, not on
-the page**, and no width, no padding, no type, no color was chosen for it,
-deliberately (#336). Since #460 it holds the design's rail and still nothing
-of a screen's own; **since #463 this screen is drawn as 1a** — the list's head
-over a table's column head, and a pager pinned at the foot. **Since #519 the
-list is one scroll from the top of the column**, its bar the column's height,
-the head and the column head held at the top while only the rows pass under
-them (0i); until then the rows scrolled alone between the head and the pager.
+**The question is about the fleet, not one unit.** A reader after one unit is after
+its printed id, which is the asset's own screen — reached by a scan, from its
+category's page, or by typing the id or a serial number into this screen's search.
 
 ## What it always carries
 
-**identity.** The heading `Equipment & Tools`, the axis's name on screen
-(#513; `Tools & Equipment` until #591, which took the design's files'
-word): the office calls each thing it labels and tracks
-an asset, and the site calls the same things tools and equipment, so the
-screen says the site's words.
-It was `Tools`, the table's name, the rule that makes the other list screens
-`Purchase Requests`, `Purchase Orders`, `Invoices` and `Deliveries`, until the
-axis began holding equipment as well. The rail's section for this screen says
-the heading's own string, read from it (#460). Beside it on its
-line, how many items there are, the figure alone — `17`, with `items` said to
-assistive tech after it (1a, #505; `tools` until #519) — a count of the list,
-which says nothing about what any row holds.
+**Which job the list stands on** (`lib/assetListView.js:assetListScope`): the first
+of the reader's own jobs by its code, or all jobs for a reader assigned to none, or
+whatever job the reader chooses — any job, or all of them. A job the address asks
+for that the list does not offer is answered where the list starts, as an address
+naming no job is, so a list never says whether such a job exists; so is all jobs
+where there is one job or none. The rail's link carries no job, and every step
+the list writes keeps it.
 
-**action.** The control that opens the registration dialog over this screen
-(#456), carrying that dialog's own heading as its word so the two cannot drift
-(#338) — `Add items` (#519), `Add tools` from #485 and the design's `New tools`
-from #455 — `add` because most registrations add to a kind the company already
-has, and since #507 every one adds to a row of the catalog. Every other list screen in the
-app opens its create form the same way, as a screen of its own. It is above
-the list rather than inside it, because the reader with no items at all is the
-one who needs it most. It is a site manager's on their own job's list and on
-all jobs, since what they add goes on a job of their own (#597; 1a), and on
-another job's list it is drawn for nobody (1a `Another job`) — it stood on every
-job's list from #593 to #597. **A site manager assigned to no job is drawn none,
-on this screen and on every other, with no sentence saying why (#610)**: sign-in
-asks a reader with no job to choose one (#554), all but the office and the
-President, so the request the sentence pointed at is that step's. #509 drew it
-disabled here with `Ask the office to assign you to a job` before it, 1a2 drew
-the head alone from #522, and a category's screen drew it disabled with that
-sentence until #610. **A reader who is not a site manager is drawn none (#506)** — being
-one is not something the office assigns on request the way a job is, so a
-disabled control with a reason would send them nowhere. **It carries the job the
-list stands on (#565)**, which the dialog's job starts on when it is one of the
-reader's own; on `All jobs`, or on a job the reader views and is not assigned
-to, the job starts unchosen (`tools-new.md`).
+**One row per category with an asset on what the list stands on.** A category with
+nothing there is on no list — on all jobs, one nobody has bought yet — and still
+opens from its address. An asset off the job still opens from its label or a link:
+the scope is what a reader is shown, not what they may see.
 
-**action.** For every reader, wherever there is more than one job, a choice of
-job at the start of the band (#509; 1a's head from #519, its band since #566): a
-chip saying the job the list stands on behind a pin, opening on `All jobs` and
-then every job by its code, a job with nothing on it included (#548, #593).
-Choosing one moves the list to that job, from the first page, keeping what the
-band holds; choosing `All jobs` moves it to all of them, and the chip then says
-`All jobs`. Until #593 it offered the office every job and anybody else their
-own, and a reader on one job of their own was drawn no choice.
+**Four counts on every row, a zero included** — `In stock`, `Out`, `In repair` and
+`Retired`, the four of `Assets."Status"`'s five that a screen shows, `Deleted` being
+shown nowhere — **and a total**, the first three
+added up, a retired asset not counted: what the company still holds of the kind.
+**A design may not drop a count**: a zero is a measurement, and an absent column
+would read as "not known". Both readings a single figure could have stay
+available, since what was ever bought is the total and `Retired` together. A
+deleted asset is counted nowhere.
 
-**action.** For the office, `Catalog` before `Export` (1a, #527), led by a book
-and with no outline since #566, bordered until then: the way to the catalog's
-own screen, `/asset-catalog`, where the office keeps what a registration picks
-from. It is drawn in every
-state the head takes and for nobody else — a reader who is not the office is
-drawn none, since keeping the catalog is a role and not something asked for.
+**On one job's list, a fifth count, `On loan`** (`ASSET_LIST_COPY.onLoanLabel`): the
+job's own assets standing on another job, lent, outside the total — the job they
+stand on counts them in its own status and total. A kind whose every asset is on
+loan stands with that count alone. On all jobs there is no such column: every asset
+is counted once, where it stands.
 
-**action.** `Export`, bordered, between `Catalog` and `Add items`, for every
-reader of the list (1a, #553), drawn over a list with rows and in neither empty
-state: the list as an Excel file. Its first sheet is the list as it stands —
-the job it stands on, or all of them, and whatever the band holds — every row
-the band leaves rather than the page shown, with the same four counts and the
-same total, headed as the list heads them (#569); its
-second is every item those counts are made of, one row each, with its id, the
-catalog's six levels, its status, its job, who has one that is out, its note and
-the day it last changed, as an item's own list says them. The file is named for
-the job, or `All jobs`, and the day. Nothing is read until it is pressed. To
-assistive tech it is `Export to Excel`, and while the file is made it is busy,
-`Exporting…`. What a reader may export is what their list holds: a job the list
-does not offer is answered as the list answers it.
+**The rows are ordered by name**, a run of digits read as a number, or by **the
+latest event among the kind's assets** on what the list stands on — a registration,
+a check-out or check-in, a sending for or return from repair, a lending or a return
+to the owner, or a retirement.
+A note and a serial number are no events and move nothing. The order rides the
+address and every step keeps it; a list opened afresh starts by name.
 
-**The list starts on one job (#520), and a design may not make it start on
-several** — but for a reader assigned to no job, who starts on all of them
-(#593). It starts on the first of the reader's own jobs by its code, the office's
-as anybody's — the office started on the first of every job until #593 — and
-holds the items with an asset on that job, counted over those assets alone.
-**From #509 it started from all of the reader's jobs at once**, with `All jobs`
-first in the choice, which the design never drew: a site reads its list for what
-is on the job it stands on. **Since #548 all of them is a choice rather than the
-start**: a reader asking how many of a kind there are across the sites chooses
-`All jobs`, and the list holds every item with an asset on any job — every job
-for every reader since #593 — each counted over those assets added up. **Every
-reader sees every job's items since #593**, where a site's equipment was hidden
-from everybody not assigned to that site; who may add to a job is unchanged. **An item with nothing on the job is on no
-list (#507)**, nor on all of them with nothing on any: a row of the catalog nobody
-has bought yet for it. An asset off the job still opens from its label or a link;
-the list is what a reader is shown, not what they may see.
+**A band narrows the rows already in the browser** — a search, a type and a
+category chosen several at a time, and on all jobs the jobs — so it waits on the base
+for nothing but the lookups below, and what it holds rides the address: a reload, a
+copied link and a step to another page keep it. The head's figure counts every row
+on what the list stands on, and `N of M` while the band narrows.
 
-**action.** Under the head, a band of controls held at the top with it (1a,
-0i): the job's chip (above), then a search, `Search items, IDs or serials`, over each row's name, its category
-and its type — every word typed must be in one of them — or, when what is typed
-is an item's id, for that item (#541; `Search items` until then, `Search items or
-item IDs` until #601), or, whole, an item's serial number (#601), and two chips, `Type` and
-`Category`, each listing the values the job's rows hold with how many rows
-each would leave, several taken at once. A third, `Class`, went with the class
-in #552, and an address still naming one reads as naming nothing. A chip holding one value says it,
-`Category Power tools`, and one holding several says how many, `2 selected`,
-each with a × that empties it. The categories offered are those under the
-types taken. **On `All jobs` a third chip, `Job`, follows them (1a, #548)**:
-the jobs the rows have an asset on, by their codes, each with how many rows it
-would leave, several taken at once; it leaves the rows with an asset on a job
-taken and counts their assets on those jobs alone, and empties with `Clear job
-filter`. The band narrows rows already in the browser, so nothing it does
-waits on the base — but for who holds an item its search found that is out
-(#541) — and what it holds rides the address: a reload, a copied
-link and a step to another page all keep it.
+**The search** (`readCategoryList`, `filterAssetCategoryRows`):
+- **words** keep a row whose name, category or type carries every word typed;
+- **an item's id** — whole, or the code its label prints, in any case, with spaces
+  round it — finds that item: its row is the one left, with its counts whole, and a
+  line over the rows is the way to the item's own screen, naming its job, its status
+  and, while it is out, who holds it — the one fact read from the base for it. Enter
+  opens it too. **The line narrows nothing**: the head, the pager and the export
+  count the row and every asset under it;
+- **a serial number**, whole, in any case: each kind holding it is a row and each
+  asset holding it a line, since one number may stand on assets of different kinds;
+- **a piece of an id or a number** is searched for as a word, since it stands in
+  many.
 
-**action.** At the band's end, the order the rows stand in (1a, 1a3, #540):
-`Name`, where the list starts, or `Recently updated` — each kind by the latest
-event among its items on what the list stands on, one job, all of them, or the
-jobs the `Job` chip takes — a scan, a check-in, a sending for repair, a
-retirement or a registration. A note is no event and moves nothing. The order
-rides the address with the band, so a chip, the search, the job's choice, `Clear
-all` and a step to another page keep it, and a list opened afresh starts by name.
-The export's first sheet stands in the same order.
+**An id the rows do not show is asked of every job at once, and a number no row's
+assets hold and no row's name answers once the typing rests half a second**
+(`SERIAL_ASK_REST_MS`) or on Enter — whatever kept it out: another job, or the band. Found, its line stands over rows
+that stay what the band holds and say, by the job they stand on or the filters, that
+none of them holds it (`ASSET_LIST_COPY.noIdMatchOn`,
+`ASSET_LIST_COPY.noIdMatchFiltered`, `ASSET_LIST_COPY.noSerialMatchOn`,
+`ASSET_LIST_COPY.noSerialMatchFiltered`). Found nowhere, an id says
+`ASSET_LIST_COPY.noIdMatch`, and on all jobs at once; a number says what words
+finding nothing say, since it may be a name. A deleted asset is found on none.
 
-**evidence.** One row per item, ordered by name — a run of digits read as a
-number, so `DEMO Circular Saw 7-1/4"` comes before `DEMO Circular Saw 10"`
-(#507) — twenty-five to a page
-(#617; 0b's page of rows from #463, fifty from #538) with the pager under
-them: which rows the page shows of how many, `1–25 of 76` — the one figure where a
-page shows a single
-row, `1 of 1` — and past one page which page of how many and a step each way
-that a page at its end draws and does not act (0b, #519). The name is the row's
-identity and the whole row is the way into that item's own screen. An item's
-name is its name and its size, then a comma and its maker, then its part
-number in parentheses — `DEMO Jigsaw T-Shank`, `DEMO Cordless Drill 18V, DEMO
-DeWalt (DCD791)` (#507, #514) — so the name is what tells two rows of one name
-and size apart, and a design must give it the room.
+**For a site manager on the list's job, or on all jobs while holding a job, the way
+to add items** (`listRecording`): it opens the registration over this screen
+(`tools-new.md`), carrying the job the list stands on, which the dialog's job starts
+on when it is one of the reader's own. **It is drawn for nobody else, and nothing
+says why** — not on another job's list, where a site manager reads as anybody does,
+not for a reader who is not a site manager, since being one is not asked for, and
+not for a site manager on no job, whom sign-in already asked for a job.
 
-**evidence.** Beside each name, its category, the catalog's (#507, #514) —
-`Power tools`, in a lighter ink, giving its room up before the name does (1a,
-#519). The type and the class stood beside it as columns of their own from #507
-and #514; the band's chips filter by the type since #520, and a category's own
-screen says the type and the category under its name. The class is no longer
-the catalog's (#552).
+**For the office, the way to the catalog's screen**, in every state the head takes,
+and for nobody else.
 
-**verdict.** Four counts on every row: how many of that item are
-`In stock`, how many are `Out`, how many are `In repair` — away at their
-maker (#531) — and how many are `Retired`. This is what the reader came for.
-An item in repair is counted there and not in stock: an item holds one status
-at a time.
+**For every reader, `Export`**, over a list with rows: the list as an Excel file
+(`lib/assetListExport.js`). Its first sheet is the list as it stands — the job or
+all jobs, whatever the band holds, every row it leaves rather than the page shown,
+in the list's order, with the same counts and total; its second is every asset those
+counts are made of, one row each, with its id, its serial number, the catalog's
+levels, its status, its job and its owner job, who has one that is out, its note and
+the day it last changed. It is named for the job, or all jobs, and the day. Nothing is
+read until the press, and a reader may export what their list holds and nothing
+else.
 
-**All four are always there, a zero included, and a design may not drop
-one.** A count of nothing is a measurement — "none out" — and an absent
-row would read as "not known", which is the distinction between nothing
-and no comparison the shared brief already draws. It also means the four
-words appear on every row whatever the base holds.
-
-**verdict.** After them, `Total`: how many of that item the company still
-holds — `In stock`, `Out` and `In repair` added up, a retired one not
-counted (1a, #569). It is the row's last figure, as wide as the counts and
-set heavier than them, a zero in the lighter ink theirs takes. On all jobs it
-adds up the jobs the `Job` chip takes, as the counts do,
-and a row found by an item's id keeps it whole. **It is the one reading of
-the two a single figure could be, and the counts stay so the other is
-there**: what the company has ever bought is the total and `Retired`
-together. There was no total from #339 until the design drew one, on the
-ground that one figure would have to choose between those readings.
+**What it reads:** 4 operations a view — the session, every `Asset Categories` row,
+the job list and one question of which assets' statuses changed since the server's
+last view — and one more per hundred assets the server has not met or last read ten
+minutes ago, read again whole; a server's first view asks no question and reads them
+all, 10 for 643 (`lib/assetStatusMemory.js`, `docs/notes/tools.md`). A search the rows
+cannot answer asks the base, an action of 2 or 3 operations per question
+(`app/(assets)/asset-categories/actions.js`).
 
 ## What it carries only sometimes
 
-**When the job holds no items:** in place of the rows, a heading and a
-sentence, `No items yet` and `Each item shows here with how many are in
-stock, out, in repair and retired.` — `in repair` since #531, as 1a2 draws it,
-where the files of 2026-10-15 named three — and under them a second, bordered `Add items`
-(1a, #463, #519). The control in the head is still there, and both are the way to
-make one; so is the job's choice, to move to another job, alone in the band where
-the list with rows puts it (#566). No search, chip or pager stands over or under
-an empty list. **For a reader who is not a site manager, and since #597 for a
-site manager on another job's list, `No items yet` and who fills it, `Items show
-here once a site manager adds them.` (1a2, #519)**, and no opener: both are the
-list's job's site managers'.
+**When the job holds no items** (`ASSET_LIST_COPY.noItemsHeading`): in place of the
+rows, the heading and, for whoever adds there, `ASSET_LIST_COPY.noItems` over a second
+way to add; for anybody else, `ASSET_LIST_COPY.untilASiteManagerAdds` and no opener.
+The job's choice stays, to move to another job; no search, chip, sort or pager
+stands with it, and `Export` is not drawn.
 
-**A reader on no job had a state of their own until #593** — the head the
-heading alone, and in place of the rows a heading saying they had no job and a
-sentence saying the office assigns one (1a2, #519). They stand on all jobs now,
-where every site's items are, and the state is gone.
+**When the band leaves no row:** `ASSET_LIST_COPY.noneMatch` with what was typed, or
+`ASSET_LIST_COPY.noneMatchFilters` when only chips narrow, and one control that clears
+the search when the search is all that narrows and everything otherwise
+(`emptiedListWords`). No pager stands under it.
 
-**Two of the shared brief's three empty states have a producer here.** "Nothing
-exists yet" is a job with no items; "nothing you can see" had a reader on no job
-until #593, and has none now; "nothing matching your filters" a band that leaves
-no row (#520): under the
-column head and a Rule, `No items match` and what was typed, set in the id's
-face — or `No items match these filters` when only chips narrow — and one
-bordered control, `Clear search` when the search is all that narrows and
-`Clear all` otherwise (1a). No pager stands under it. It was a job chosen with
-nothing on it from #509, which the design did not draw.
-
-**When the search names an item's id (#541):** the id whole, `HYE-AST-261019-430`,
-or the code its label prints, `261019-430`, in any case and with spaces round
-it; a piece of one — `430`, a day's `261019` — is searched for in the names as
-any word is, since it stands in many ids. The item is looked for in the rows on
-the job the list stands on, or on all jobs and among those the `Job` chip takes.
-Found, its row is the
-one row left, with the counts it always has, and under the band, held with it,
-one line is the way to the item's own screen: its id in the id's face, its
-name, the job it stands on by its code in Ink 2 (#612, as 1a3 draws it), its
-status with the mark an item's list draws it with and, while it is out, who
-holds it — the one fact read from the base for it — a dot between each, and a
-chevron at its end (1a). Until #612 a line named the job only for an item off
-the table. Enter in the search opens it too. **The
-line is a way there and narrows nothing**: the list's head, chips and pager
-count the row, and `Export` holds that row and every item under it.
-
-**On one job, an id no item there carries is looked up at every job (#599).**
-Found at another job, the same line stands over the rows naming that job, and
-Enter or a press opens the item; the rows stay the job's,
-emptied, and say `No item on 23-USA-09 has the ID` and the id typed, naming the
-job (Soo's words, `on`, which 1a3 says too since the files of 2026-11-05, where
-it said `at`). Until the answer
-comes the sentence stands alone, so a reload draws the line a moment after the
-list. Found on no job, the list says 1a3's `No ID match`: `No item has the ID`
-and the id typed — which on all jobs, every job, it says at once for an id no
-row carries. **An item the band leaves off is looked up the same way (#599)**:
-on `All jobs` a `Job` chip taking the item's job off, or on either a type or a
-category leaving its row off, draws the same line over the rows with the item's
-job, and the rows, still as the band holds them, say
-`No item in these filters has the ID` and the id typed — `No item has the ID`
-is said only where no job holds the id. Either way `Clear search`, or
-`Clear all` when a chip narrows too, and an item at another job stands over the
-rows whatever the chips hold. A name is searched on the chosen job alone, and a
-deleted item is found on none.
-
-**When the search names an item's serial number (#601):** the number whole, in
-any case and with spaces round it, the hyphens and every other character as
-typed; a piece of one finds nothing by it and is searched for in the names as
-any word is. Found on the job the list stands on, or on all jobs and among those
-the chips take, each kind holding it is a row and each item holding it a line
-over the rows naming its job, 8 apart in the rows' order — the line of an id with `Serial`
-in Ink 3 and the number with even figures after the id (0h, #607), behind the
-same dot; the line says the short word the desk's `Details` row says, as the
-files of 2026-11-05 draw it (#614), and 1d's column keeps `Serial number`. One
-number may stand on items of more than one kind, since it is one item's within
-its kind. Anywhere else it is asked of every job once the typing rests half a
-second, or at once on Enter, which opens the item where only one holds it: found,
-the lines stand over the rows with each item's job, and the rows, emptied, say
-`No item on 23-USA-09 has the serial number`, or `No item in these filters has
-the serial number` where the band leaves the item off, and the number typed.
-Before the answer, and where no item holds it, the list says what any word
-finding nothing says, since what was typed may be a name.
-
-**When a press of `Export` makes no file (#553, #566):** 0k's failure toast,
-centered at the foot of the content area — `Couldn't export.` led by the alert
-mark, then `Try again`, which presses `Export` again, and `Dismiss`, a ×, as 1a
-draws it. It stays until one of the two is pressed, `Escape` is, or `Export` is
-pressed again, and a press that fails again puts it up again; whatever closes
-it hands focus back to `Export`. From #553 until the files of 2026-10-23 drew
-the failure, the press said `Couldn't export the list. Try again.` before the
-button, on its line.
-
-**When the band narrows the list (#520):** the head's figure reads `N of M`, the
-document lists' words for the same thing, `M` being every item on the job — the
-job is where the list stands rather than a narrowing of it — or on all of them,
-which the `Job` chip narrows like any chip (#548). The pager counts
-what the band leaves. The pager's steps, the band's own writes, the job's choice
-and every row's way into an item keep the job, `All jobs` included; the rail's
-`Equipment & Tools` does not, and a row's way in carries none of the band, which
-is the list's — so an item's own list opened from `All jobs` stands on all of
-them whatever the `Job` chip held. A job in the address the list does not offer
-is answered where the list starts, as no job asked is — their whole list from
-#509 — and so is `All jobs` where there is one job or none.
-
-**An item with nothing under it is on no list (#507)**: a row of the catalog
-nobody has bought yet, whose own screen answers by address. It read as a row of
-three zeros on the office's list until then, left standing by a registration
-that had stopped between its two writes — which no registration can do since
-it stopped creating the kind.
-
-**On one job's list, `On loan` (1a, #598)**: a count between `In repair` and
-`Retired` of the job's own items standing on another job, lent — outside
-`Total`, since the job they stand on counts them in their status and its
-total, as its own. A kind whose every item is on loan stands with that count
-alone. On all jobs there is no such column: every item is counted once, where
-it stands. The export's first sheet holds the same column on one job's file,
-and its second names each item's `Owner job` after its `Job`.
+**When an `Export` press makes no file:** `ASSET_EXPORT_COPY.failed` with a way to
+press again and a way to dismiss it. It stays until one is pressed, `Escape` is, or
+`Export` is pressed again; a press that fails again says it again, and whatever
+closes it while focus is inside it hands focus back to `Export`. While the file is
+made the press is busy
+(`ASSET_EXPORT_COPY.working`).
 
 ## What must agree elsewhere
 
-**The heading and the link that leads here are the same word.** The root
-screen carries `Equipment & Tools` as its fifth link and this screen's heading
-is `Equipment & Tools`. That agreement is worth keeping — `Purchase orders` and
-`Purchase Orders` are the pair on the same screen that does not have it,
-and the shared brief records the disagreement.
+**The counts read the status the asset's own screen shows.** `Assets."Status"` is
+written by the app on every event, not computed on either screen; this list reads it
+through a memory each server keeps between views, which asks the base on every view
+what changed and holds nothing longer than ten minutes (`lib/assetStatusMemory.js`,
+whose header says how current that makes it). The four statuses are
+this axis's own words and not the shared brief's status tones, and each is printed
+as itself, so a count is never carried by color alone.
 
-**The counts read the same status the asset's own screen
-shows.** `Assets."Status"` is maintained by the app, not computed on
-either screen, so this list and `/assets/[assetId]` cannot disagree
-about where an asset is.
+**A category's own screen is `/asset-categories/[categoryRecordId]`**, keyed on
+Airtable's record id, since `Asset Categories` mints none and a name is not a path.
+An asset's screen is `/assets/[assetId]`, and the label prints a third address
+(`l-labelCode.md`). None of these is a word a reader is asked to read.
 
-**`In stock`, `Out`, `In repair` and `Retired` are the four statuses this
-axis draws (`In repair` since #531; an item the office deleted holds a fifth,
-`Deleted`, and no screen counts or draws it, #582), and they are not status
-tones.** The tones in the shared brief are one
-closed vocabulary for how far something has got on an axis; reusing one
-here would make a word mean a stage on one screen and a location on
-another. The words appear as themselves on this screen, so the count is
-never carried by color alone.
+**A row's way into its kind carries the job and none of the band**, which is the
+list's: a kind's list opened from all jobs stands on all of them, whatever the job
+chip held.
 
-**Every count can carry a figure.** A check-out, a check-in, a sending for
-repair and a retirement each write the status they show (#362, #363, #531),
-so a row can read any mix of them and a design draws for all of them. No item
-was in repair when #531 merged, so `In repair` read zero on every row then. This said `Out`
-and `Retired` would read zero on every row until a later phase, which
-stopped being true when those issues wrote the other two events; corrected
-by #449.
+**The band's chips are the catalog screen's too** (`asset-catalog.md`): one reading
+over rows of the same shape (`filterAssetCategoryRows`), with the same chip words;
+the search's label and the sentence for an emptied list are each screen's own.
 
-**One item's own screen is `/asset-categories/[categoryRecordId]`, one level under this
-one.** It held the tool ITEM until #348, because a QR code encodes the
-whole address and its length decides the symbol's version; a route of its
-own carries that now, so the flat slot came free and one tool took it.
-**An item's name never appears as a path segment** — the segment is
-Airtable's record id, since `Asset Categories` mints none and a name is not a
-path — which is also what kept a row somebody names `new` from
-colliding with the registration form's route, until #456 made the form a
-dialog.
-
-**An asset's screen is `/assets/[assetId]`, off this axis's own
-collection**, and the label prints a third address again. None of this
-reaches a reader: what they see is a name on this list and a printed id on
-the next screen.
-
-**A physical tool or piece of equipment is an `item` on every screen since #519,
-as a row of this list is, and never a `tool item` (#455).** It was an `item` on its
-category's own screen and a `tool` in a sentence from #455 to #519. This brief said
-it was never a bare `item`, because four other tables on this base have
-items of their own — a request's, an order's, an invoice's, a delivery's.
-That was stricter than the app's own rule for item rows: the modifier
-drops where nothing on the screen offers a second kind of item row, and no
-asset screen shows any of those four. No string on these screens says
-`tool item` since #463, which rewrote the asset screen's not-found heading, the
-last one that did; this said the design still had it to rewrite, corrected per
-#181 by #519.
+**The heading and the rail's link are one string**, `ASSET_LIST_COPY.heading`, read
+by `lib/navigation.js`.

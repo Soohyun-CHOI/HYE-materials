@@ -24,6 +24,33 @@ This is also why the briefs are not in `docs/notes/`. Those files record *why
 something became what it is*; these record *what is there*. Different question,
 different audience, different lifetime.
 
+## A screen a design file draws (#620)
+
+The Equipment & Tools screens and the sign-in steps were designed, and the app
+matches the drawings. **For those, the design file is what says how the screen looks
+and what it says**, and the brief keeps only what the drawing does not show: who may
+do what, what each press does and which case says what, what the screen reads and
+how many Airtable operations that costs, and what the app decided where the drawing
+has nothing to say. A brief that restates the drawing has to be edited with every
+new sending, and a sentence it leaves behind reads as a difference that is not there.
+
+- **A `Design:` line names the frames the screen follows**, by a file's short name
+  and a frame's id: `Tools 1d`. `Tools` is the Claude Design file
+  `Tools - new direction`, `Sign in` is `Sign in - new direction`, and `Invoices` is
+  `Invoices - new direction`, whose 0a to 0p frames every screen shares. No sending's
+  number is given: the files are not in this repository, and each sending replaces
+  the one before.
+- **A sentence is named by its constant's key, never quoted** — `CODE_COPY.wrong`,
+  `ASSET_TRANSITION_COPY.movedTo`. The words live in the constant and in the drawing,
+  and a third copy here is the one that goes stale. A control is named by what it
+  does, in the base's and the code's words, rather than by its label.
+- **No issue number and no date.** How a rule came to be is the area's notes —
+  `docs/notes/tools.md`, `docs/notes/authorization.md` — and a brief says what is
+  true now.
+
+The rest of the structure is every brief's: the two header lines, the four sections
+in their order.
+
 ## Handing one over
 
 The design work runs in Claude Design. Paste `_shared.md` once, at the start of the
@@ -92,7 +119,10 @@ the set of briefs matches the app's actual pages both ways — and that a dialog
 brief names the pages that open it, every one (#456) — that each brief has its
 required structure, that the tone names `_shared.md` lists are exactly the ones the
 code can produce, and that the words it quotes are still the words the constants
-hold. Its header says what it cannot check, which is most of what a brief asserts.
+hold. **For a brief with a `Design:` line it checks the other way round**: every
+constant key it names exists, every case of the closed sets it covers is named, and
+it quotes no sentence a tools or sign-in constant holds and cites no issue. Its
+header says what it cannot check, which is most of what a brief asserts.
 
 **A change to what a screen carries updates its brief in the same commit**, the same
 obligation a schema change has. Adding or removing a page fails the build until its

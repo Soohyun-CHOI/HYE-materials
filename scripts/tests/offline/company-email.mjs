@@ -120,7 +120,7 @@ export function run({ check, assert, log }) {
 
     log("");
     log("the field's one refusal names the domain it is handed:");
-    check("  at the domain the briefs show", COMPANY_EMAIL_COPY.otherDomain(DOMAIN), `Use your @${DOMAIN} address.`);
+    check("  at the company's domain", COMPANY_EMAIL_COPY.otherDomain(DOMAIN), `Use your @${DOMAIN} address.`);
     check("  and at any other", COMPANY_EMAIL_COPY.otherDomain("example.org"), "Use your @example.org address.");
 
     // ── 2: one domain, read once ────────────────────────────────────────────
