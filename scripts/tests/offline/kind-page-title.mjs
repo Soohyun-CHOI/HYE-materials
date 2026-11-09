@@ -62,7 +62,8 @@ export function titleFacts(ast, source) {
     const renderSource = render ? source.slice(render.start, render.end) : "";
     const readAt = renderSource.indexOf("getAssetCategoriesByRecordIds([categoryRecordId])");
     const settleAt = renderSource.indexOf("kindTitle().settle(category ? category.itemName : COPY.pageNotFound);");
-    const notFoundAt = renderSource.indexOf("if (!category) {");
+    // The not-found branch, a block until #617 and a return of 1h's view since.
+    const notFoundAt = renderSource.search(/if \(!category\) (\{|return <PageNotFound \/>;)/);
     const defaultExport = ast.body.find((n) => n.type === "ExportDefaultDeclaration")?.declaration;
     const defaultSource = defaultExport ? source.slice(defaultExport.start, defaultExport.end) : "";
     return {

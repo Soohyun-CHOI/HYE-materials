@@ -160,15 +160,19 @@ export async function run({ check, assert, log }) {
     // ── 1: the routes the module names are the routes the app serves ────────
     log("the builders and the page files name the same routes:");
 
-    const served = appFiles()
+    // The catch-all (#617) answers an address no route takes, so no builder writes it and no
+    // section owns it; it is held apart, once, rather than among the axis's addresses.
+    const pages = appFiles()
         .filter((rel) => rel.startsWith(`${GROUP_DIR}/`))
         .filter(isPageFile)
         .map(routeTemplate)
         .sort();
+    const served = pages.filter((route) => !route.includes("[..."));
     const declared = [...ASSET_ROUTES].sort();
 
     check(`${served.length} pages under ${GROUP_DIR}/`, served.join(" | "), declared.join(" | "));
     assert("and the axis has more than one", served.length > 1);
+    check("  and one catch-all beside them, for an address no route answers (#617)", pages.filter((route) => route.includes("[...")).join(" "), "/[...address]");
 
     // Nothing in the group's own path reaches the URL, which is the property the
     // group was added for: one layout over three collections, no segment.

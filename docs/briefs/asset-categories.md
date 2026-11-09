@@ -165,9 +165,9 @@ The export's first sheet stands in the same order.
 
 **evidence.** One row per item, ordered by name — a run of digits read as a
 number, so `DEMO Circular Saw 7-1/4"` comes before `DEMO Circular Saw 10"`
-(#507) — fifty to a page
-(#538; twenty-five, 0b's page of rows, from #463) with the pager under them:
-which rows the page shows of how many, `1–50 of 76` — the one figure where a
+(#507) — twenty-five to a page
+(#617; 0b's page of rows from #463, fifty from #538) with the pager under
+them: which rows the page shows of how many, `1–25 of 76` — the one figure where a
 page shows a single
 row, `1 of 1` — and past one page which page of how many and a step each way
 that a page at its end draws and does not act (0b, #519). The name is the row's

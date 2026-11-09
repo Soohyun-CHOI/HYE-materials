@@ -104,7 +104,9 @@ export const metadata = { title: COPY.heading };
  * list being that job's. **It starts the band since #566**, so a job with nothing on it draws a
  * band holding the chip alone: the files of 2026-10-23 draw no empty list for a reader on several
  * jobs, and the chip stays where the list with rows puts it rather than standing in the head on
- * one job and in the band on another.
+ * one job and in the band on another. **The sentence stands where it would with no band (#617)**,
+ * 194 under the band where it is 240 under the head, as Tools 56 draws 1a2 for every reader: from
+ * #566 until #617 it stood the band's 46 lower.
  *
  * THE OFFICE IS OFFERED THE CATALOG (1a, #527): `Catalog`, a faced action led by a book since #566
  * where it was bordered, in the head 12 before `Export` or `Add items`, in every state the list
@@ -199,7 +201,7 @@ async function renderCategoriesPage({ searchParams }) {
                 }
                 band={choosable && <JobChoice jobs={choosable} job={job} />}
             >
-                <div className="flex flex-col items-center pt-list-empty-state-inset-top text-center">
+                <div className={`flex flex-col items-center ${choosable ? "pt-list-empty-state-band-inset-top" : "pt-list-empty-state-inset-top"} text-center`}>
                     <h2 className="text-heading font-semibold">{COPY.noItemsHeading}</h2>
                     <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">
                         {recording.adds ? COPY.noItems : COPY.untilASiteManagerAdds}

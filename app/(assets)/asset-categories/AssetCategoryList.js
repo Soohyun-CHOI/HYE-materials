@@ -273,7 +273,7 @@ export default function AssetCategoryList({ rows, job, jobCode = null, allJobs =
                         {emptied.typed && (
                             <>
                                 {" "}
-                                <span className="font-id text-body-sm tracking-id">{emptied.typed}</span>
+                                <span className="mx-list-emptied-id-inline font-id text-body-sm tracking-id">{emptied.typed}</span>
                             </>
                         )}
                     </p>

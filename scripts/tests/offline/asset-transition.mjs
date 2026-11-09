@@ -410,11 +410,13 @@ export function run({ check, assert, log }) {
             (opener.match(/tone: "danger"/g) ?? []).length === 2 && /key: "retire",[^}]*tone: "danger"/.test(opener) && /key: "delete",[^}]*tone: "danger"/.test(opener) && !/key: "repair",[^}]*tone:/.test(opener)
         );
         assert(
-            "  and the button busy while it is on its way: said, turned away, and the spinner over its dots",
+            "  and the button busy while it is on its way: turned away, its look kept, and its word announced, with no spinner (#617)",
             /const busy = Boolean\(transition\?\.repairPending\);/.test(opener) &&
-                /aria-busy=\{busy \|\| undefined\}\s*aria-disabled=\{busy \|\| undefined\}\s*data-busy=\{busy \|\| undefined\}/.test(opener) &&
+                /aria-busy=\{busy \|\| undefined\}\s*aria-disabled=\{busy \|\| undefined\}/.test(opener) &&
+                !/data-busy=/.test(opener) &&
                 /if \(busy\) return;/.test(opener) &&
-                /<ButtonLabel size=\{phone \? "xl" : "lg"\} on="unfilled" busyLabel=\{ASSET_TRANSITION_COPY\.working\[ASSET_EVENT\.SENT_FOR_REPAIR\]\}>/.test(opener)
+                !/<ButtonLabel\b/.test(opener) &&
+                /<span role="status" className="sr-only">\s*\{busy \? ASSET_TRANSITION_COPY\.working\[ASSET_EVENT\.SENT_FOR_REPAIR\] : ""\}\s*<\/span>/.test(opener)
         );
         const dialogSource = parseFile(DIALOG).source;
         assert(

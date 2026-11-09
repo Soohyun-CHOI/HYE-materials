@@ -311,6 +311,13 @@ export function run({ check, assert, log }) {
     assert("  a row id taken from the form is seen", !forgedShape.ownRow);
     assert("  and a write before the question", !forgedShape.asksFirst);
     check("  and a form read by a literal name", forgedShape.formReads.join(" "), '"user"');
+
+    // #617 — at a desk the job list takes the column's rest however short the window, the
+    // three-row floor #554 gave it taken away: it stood against a short window, not a keyboard.
+    const floor = (source) => /function JobList\b[\s\S]*?\bsm:min-h-\[/.test(source);
+    log("");
+    check("the job list at a desk stands on no floor (#617)", floor(parseFile("app/login/jobs/JobsForm.js").source), false);
+    check("  a list held to three rows is seen", floor("function JobList() { return <div className=\"sm:min-h-[calc(3*var(--height-control-lg))] sm:flex-1\" />; }"), true);
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

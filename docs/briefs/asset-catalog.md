@@ -70,7 +70,7 @@ the group's edit and not the row's. A save that changes nothing is no edit. The
 order rides the address with the band, and a search still puts the name typed in
 full first, the order holding among the rest.
 
-**evidence.** One row per catalog row, fifty to a page with the category
+**evidence.** One row per catalog row, twenty-five to a page with the category
 list's pager under them, in the order the band's control names — by name, then
 size, maker and part number, a run of digits read as a number, where the page
 starts. Each row says its name, size, maker, part

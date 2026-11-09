@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, startTransition, useActionState, useState } from "react";
+import { Fragment, startTransition, useActionState, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button, ChipChoice, Choice, Field, FilterChip, NumberField, useRefusalFocus } from "@/app/components/Controls";
 import { DialogActions, DialogBody, DialogFrame, DialogSearch } from "@/app/components/DialogFrame";
@@ -16,11 +16,25 @@ import {
     openingCount,
     readQuantity,
     readRegistration,
+    REGISTRATION_SENT_KEY,
     searchedIn,
 } from "@/lib/assetRegistration";
 import { matchedPart } from "@/lib/assetTransition";
 import { normalizeItemText } from "@/lib/itemNaming";
 import { registerAssetsAction } from "./actions";
+
+/**
+ * The mark a landing takes to say what was added (`RegistrationAdded`, #617): left in the tab's own
+ * storage as a registration sends, and taken away if the dialog answers instead. No storage, as in
+ * a private window, leaves none, and the landing says nothing, which is all that costs.
+ */
+function markSent() {
+    try {
+        window.sessionStorage.setItem(REGISTRATION_SENT_KEY, String(Date.now()));
+    } catch {
+        // No mark.
+    }
+}
 
 /**
  * The registration — adding assets to stock (#485) — as a dialog over the page that opens it
@@ -227,6 +241,15 @@ export function RegistrationForm({ open, onClose, jobs, listJobId, category, cat
     const [edited, setEdited] = useState(() => new Set());
 
     const said = pending ? null : (guarded ?? state);
+    // An answer here is a send that did not land, so its mark goes with it (#617).
+    useEffect(() => {
+        if (!state?.error) return;
+        try {
+            window.sessionStorage.removeItem(REGISTRATION_SENT_KEY);
+        } catch {
+            // No storage, so no mark.
+        }
+    }, [state]);
     const refusalFor = (field) => (edited.has(field) ? undefined : said?.fields?.[field]);
     const edit = (field, set) => (value) => {
         set(value);
@@ -287,6 +310,7 @@ export function RegistrationForm({ open, onClose, jobs, listJobId, category, cat
             return;
         }
         setGuarded(null);
+        markSent();
         startTransition(() => formAction(formData));
     };
 

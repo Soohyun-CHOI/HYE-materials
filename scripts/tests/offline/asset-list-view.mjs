@@ -653,6 +653,23 @@ function total569({ check, log }) {
         `${sumsItself(list)} ${sumsItself(parseFile("lib/assetListExport.js").source)} ${sumsItself("const total = row.counts.reduce((sum, c) => sum + c.count, 0);")}`,
         "false false true"
     );
+    // #617 — the typed id after an emptied list's sentence stands 0.12em off either side of
+    // itself, as 1a and 1a3 set it; with none it stood 1.55 closer than drawn (#541).
+    const echoRoom = (source) => source.match(/<span className="([^"]*)">\{emptied\.typed\}<\/span>/)?.[1].split(" ").includes("mx-list-emptied-id-inline") ?? null;
+    check("the typed id is set off from the sentence by the drawing's room (#617)", echoRoom(list), true);
+    check("  an echo set flush is seen", echoRoom('<span className="font-id text-body-sm tracking-id">{emptied.typed}</span>'), false);
+    // #617 — 1l's last step stands 12 past its rows and 1d's 13, each on its own table's text
+    // (Design); and an empty list's sentence stands under the job's band where it stands with none.
+    const stepPull = (source) => source.match(/<div className=\{`\$\{fill \? "([^"]+)" : "([^"]+)"\} flex`\}>/)?.slice(1).join(" | ") ?? "one";
+    check("1l's pager pulls its steps 12, 1d's 13 (#617)", stepPull(parseFile("app/components/ListTable.js").source), "-mr-fill-pager-step-bleed | -mr-pager-step-bleed");
+    check("  one pull for both is seen", stepPull('<div className="-mr-pager-step-bleed flex">'), "one");
+    const emptyInset = (source) => source.match(/<div className=\{`flex flex-col items-center \$\{choosable \? "([^"]+)" : "([^"]+)"\} text-center`\}>/)?.slice(1).join(" | ") ?? "one";
+    check(
+        "1a2's sentence stands 194 under the band, where it stands 240 under the head (#617)",
+        emptyInset(parseFile("app/(assets)/asset-categories/page.js").source),
+        "pt-list-empty-state-band-inset-top | pt-list-empty-state-inset-top"
+    );
+    check("  one inset under the band and the head alike is seen", emptyInset('<div className="flex flex-col items-center pt-list-empty-state-inset-top text-center">'), "one");
     log("");
 }
 
@@ -677,7 +694,8 @@ function sortWiring540({ band, catalog, kindPage, kindSort, kindJob, jobChoice, 
         // stacked head while the list has rows, pulled out by its own room and 14 over the column head.
         /const sort = readSort\(sp\.sort, LIST_SORTS\.items\);/.test(kindPage) &&
             /pageOfAssets\(await getAssetsByRecordIds\(idsInScope\(category\.assets, scope\.shown\)\), sp\.page, sort\)/.test(kindPage),
-        /underBreadcrumb\s*stacked\s*>\s*\{recording\.adds && <RegistrationDialog \{\.\.\.registration\} \/>\}\s*\{page\.total > 0 && \(\s*<div className="-mr-sort-inset-right -mb-\[calc\(var\(--spacing-list-header-inset-bottom\)-var\(--spacing-gap-lg\)\)\]">\s*<CategorySort categoryRecordId=\{category\.id\} job=\{job\} sort=\{sort\} selects=\{recording\.selects\} \/>/.test(kindPage),
+        // Since #617 the opener or, for a reader who adds nothing, room of its height (1d, Tools 59).
+        /underBreadcrumb\s*stacked\s*>\s*\{recording\.adds \? \(\s*<RegistrationDialog \{\.\.\.registration\} \/>\s*\) : \(\s*(?:\/\/[^\n]*\n\s*)*<div aria-hidden="true" className="h-control-lg flex-none" \/>\s*\)\}\s*\{page\.total > 0 && \(\s*<div className="-mr-sort-inset-right -mb-\[calc\(var\(--spacing-list-header-inset-bottom\)-var\(--spacing-gap-lg\)\)\]">\s*<CategorySort categoryRecordId=\{category\.id\} job=\{job\} sort=\{sort\} selects=\{recording\.selects\} \/>/.test(kindPage),
         /selects=\{recording\.selects\}\s*sort=\{sort\}\s*\/>/.test(kindPage) && /job=\{job\}\s*sort=\{sort\}\s*top=\{top\}/.test(kindPage),
         // A change of order is a navigation to the first page, keeping the job and, for a site
         // manager alone, the run.
@@ -820,6 +838,12 @@ function sort540({ check, log }) {
     check("  a catalog writing its band without the order is seen", planted("catalog", "write({ ...reading.held, sort })", "write({ sort })").split(" ")[1], "false");
     check("  a kind's page cutting a page in no order is seen", planted("kindPage", "sp.page, sort)", "sp.page)").split(" ")[2], "false");
     check("  a head drawing the sort over an empty list is seen", planted("kindPage", "{page.total > 0 && (", "{true && (").split(" ")[3], "false");
+    check(
+        "  a head that lets the rows rise for a reader who adds nothing is seen (#617)",
+        // #540's head, the opener alone, which let the rows rise 10 for anybody else.
+        planted("kindPage", /\{recording\.adds \? \([^]*?\)\}(?=\s*\{page\.total > 0)/, "{recording.adds && <RegistrationDialog {...registration} />}").split(" ")[3],
+        "false"
+    );
     check("  a sort that drops the run is seen", planted("kindSort", "{ job, sort: next }", "{ sort: next }").split(" ")[5], "false");
     check("  a job's choice leaving the order behind is seen", planted("jobChoice", "{ job: next, sort }", "{ job: next }").split(" ")[6], "false");
     check("  a box leaving it behind is seen", planted("itemList", "page.page, next, { job, sort }", "page.page, next, { job }").split(" ")[7], "false");
@@ -1001,15 +1025,15 @@ export function run({ check, assert, log }) {
 
     // ── 2: the paging ───────────────────────────────────────────────────────
     log("");
-    log("a page holds fifty assets, and the pages are the whole list:");
+    log("a page holds twenty-five assets, and the pages are the whole list:");
 
     // PINNED BY VALUE SINCE #442, where this held only that the size was a whole
     // number under fifty. Every length in the loop was derived from the constant,
     // and the one thing that tied the size down was a twelve-row fixture, by the
-    // accident of twelve rows being two pages at ten. Twenty-five from #442 and fifty
-    // since #538 (docs/briefs/asset-categories-categoryRecordId.md); moving it is an
-    // edit to these literals in the same commit.
-    check("a page holds this many assets", ASSET_PAGE_SIZE, 50);
+    // accident of twelve rows being two pages at ten. Twenty-five from #442, fifty from
+    // #538 and twenty-five again since #617 (docs/briefs/asset-categories-categoryRecordId.md);
+    // moving it is an edit to these literals in the same commit.
+    check("a page holds this many assets", ASSET_PAGE_SIZE, 25);
     // Above 50 a page whose items were all out would read their holders' rows in two queries
     // instead of one, which is a boundary on this number that is not the design's. It bound the
     // page's own asset read until #540, which reads every item of the kind on the scope.
@@ -1033,17 +1057,18 @@ export function run({ check, assert, log }) {
             lastEventAt: new Date(from + i * 60_000).toISOString(),
         }));
     const pageIds = (page) => page.assets.map((asset) => asset.id);
-    // Literal lengths and literal page counts, on both sides of both edges a page of
-    // fifty has inside two hundred.
+    // Literal lengths and literal page counts, on both sides of the edges a page of
+    // twenty-five has inside a hundred.
     for (const [n, pages] of [
         [0, 1],
         [1, 1],
-        [49, 1],
-        [50, 1],
-        [51, 2],
-        [100, 2],
-        [101, 3],
-        [200, 4],
+        [24, 1],
+        [25, 1],
+        [26, 2],
+        [50, 2],
+        [51, 3],
+        [100, 4],
+        [101, 5],
     ]) {
         const all = assetsOfLength(n);
         const first = pageOfAssets(all, 1);
@@ -1065,19 +1090,19 @@ export function run({ check, assert, log }) {
 
     // A LIST THAT REALLY SPANS PAGES AT THIS SIZE (#442). This was twelve, which was
     // two pages at ten and one at twenty-five, and fifty-two from #442 to #538, which is
-    // two pages at fifty with no middle one. A hundred and two is three pages — two full
-    // and two left over, which puts a middle page between the two ends. Its page count is
+    // two pages at fifty with no middle one. A hundred and two is five pages at twenty-five
+    // since #617 — four full and two left over, which puts middle pages between the two ends. Its page count is
     // pinned first, so a fixture that stopped spanning pages fails here rather than
     // quietly asking about page 1 three times.
     const hundredTwo = assetsOfLength(102);
-    check("a hundred and two assets make three pages", pageOfAssets(hundredTwo, 1).pageCount, 3);
+    check("a hundred and two assets make five pages", pageOfAssets(hundredTwo, 1).pageCount, 5);
     // NEWEST FIRST (#463): the latest change opens page 1, and the oldest closes the list.
-    check("  page 1 holds the newest fifty", pageIds(pageOfAssets(hundredTwo, 1)).length, 50);
+    check("  page 1 holds the newest twenty-five", pageIds(pageOfAssets(hundredTwo, 1)).length, 25);
     check("  opening on the newest of all", pageIds(pageOfAssets(hundredTwo, 1))[0], "rec101");
-    check("  page 2 opens on the fifty-first newest", pageIds(pageOfAssets(hundredTwo, 2))[0], "rec051");
-    check("  and closes on the hundredth", pageIds(pageOfAssets(hundredTwo, 2)).at(-1), "rec002");
-    check("  and page 3 holds the remaining two", pageIds(pageOfAssets(hundredTwo, 3)).length, 2);
-    check("  which are the oldest two, newest first", pageIds(pageOfAssets(hundredTwo, 3)).join(), "rec001,rec000");
+    check("  page 2 opens on the twenty-sixth newest", pageIds(pageOfAssets(hundredTwo, 2))[0], "rec076");
+    check("  and closes on the fiftieth", pageIds(pageOfAssets(hundredTwo, 2)).at(-1), "rec052");
+    check("  and page 5 holds the remaining two", pageIds(pageOfAssets(hundredTwo, 5)).length, 2);
+    check("  which are the oldest two, newest first", pageIds(pageOfAssets(hundredTwo, 5)).join(), "rec001,rec000");
     check("  and the assets it was handed are left in their order", hundredTwo[0].id, "rec000");
 
     log("");
@@ -1090,8 +1115,8 @@ export function run({ check, assert, log }) {
         ["0", 1, "a zero"],
         ["1.5", 1, "a fraction"],
         ["2", 2, "one in the middle"],
-        ["3", 3, "the last one"],
-        ["999", 3, "one past the end"],
+        ["5", 5, "the last one"],
+        ["999", 5, "one past the end"],
     ])
         check(`  ${why} lands on page ${want}`, pageOfAssets(hundredTwo, raw).page, want);
     check("an empty category has one page, not none", pageOfAssets([], 1).pageCount, 1);
@@ -1106,7 +1131,7 @@ export function run({ check, assert, log }) {
     // reads that 1 off its redirect. Until #463 the landing was `pageHolding`'s page.
     log("");
     log("what a registration wrote opens the first page, newest first:");
-    const before = assetsOfLength(60);
+    const before = assetsOfLength(30);
     const atOnce = (n, prefix) =>
         assetsOfLength(n, prefix, "261023").map((asset) => ({ ...asset, lastEventAt: "2026-10-23T15:00:00.000Z" }));
     const written = atOnce(14, "new");
@@ -1116,8 +1141,8 @@ export function run({ check, assert, log }) {
         pageIds(pageOfAssets([...before, ...written], 1)).slice(0, 14).join(),
         written.map((a) => a.id).reverse().join()
     );
-    check("  and the category's newest before them follows", pageIds(pageOfAssets([...before, ...written], 1))[14], "rec059");
-    const run = atOnce(55, "run");
+    check("  and the category's newest before them follows", pageIds(pageOfAssets([...before, ...written], 1))[14], "rec029");
+    const run = atOnce(30, "run");
     check(
         "  a run longer than a page fills page 1 and goes on to page 2",
         `${pageIds(pageOfAssets([...before, ...run], 1)).every((id) => id.startsWith("run"))} ${pageIds(pageOfAssets([...before, ...run], 2)).slice(0, 5).join()}`,
@@ -1906,7 +1931,8 @@ export function run({ check, assert, log }) {
     log("");
     log("the asset lists' page size and the document lists' are two numbers, not one:");
     // FROM #442 BOTH WERE 25, AND #538 IS WHAT THIS CHECK KEPT ONE EDIT: it moved this one
-    // to fifty and left the document lists' at 25. They are set for different lists —
+    // to fifty and left the document lists' at 25, and #617 moved it back the same way, so
+    // they agree again as two. They are set for different lists —
     // three short facts a press of the page box selects for printing, against six columns
     // a gate admitted (this said a phone against a monitor, which stopped being true when
     // the asset lists' briefs made them a desk's; corrected per #181). Folding them into
@@ -2072,18 +2098,18 @@ export function run({ check, assert, log }) {
     // THE CATEGORY LIST PAGES AT THE SAME SIZE BY THE SAME CLAMP, over rows the page already built:
     // reassembly over the lengths around both edges, and the window both lists share.
     const rowsOf = (n) => Array.from({ length: n }, (_, at) => ({ id: `rec${at}` }));
-    const listLengths = [0, 1, 49, 50, 51, 99, 100, 101];
+    const listLengths = [0, 1, 24, 25, 26, 49, 50, 51, 101];
     const reassembled = listLengths.filter((n) => {
         const first = pageOfAssetCategories(rowsOf(n), 1);
         const pages = Array.from({ length: first.pageCount }, (_, at) => pageOfAssetCategories(rowsOf(n), at + 1).rows.map((row) => row.id));
-        return pages.flat().join() === rowsOf(n).map((row) => row.id).join() && first.pageCount === Math.max(1, Math.ceil(n / 50));
+        return pages.flat().join() === rowsOf(n).map((row) => row.id).join() && first.pageCount === Math.max(1, Math.ceil(n / 25));
     });
     check("the category list's pages are the whole list, at every length around the edges", reassembled.join(), listLengths.join());
     const second = pageOfAssetCategories(rowsOf(80), "2");
-    check("  page 2 of 80 shows the 51st to the 80th", `${second.page}/${second.pageCount} ${second.from}–${second.to} of ${second.total}`, "2/2 50–80 of 80");
-    check("  a page past the end is the last, and an unreadable one the first", `${pageOfAssetCategories(rowsOf(51), "9").page} ${pageOfAssetCategories(rowsOf(51), "x").page}`, "2 1");
+    check("  page 2 of 80 shows the 26th to the 50th", `${second.page}/${second.pageCount} ${second.from}–${second.to} of ${second.total}`, "2/4 25–50 of 80");
+    check("  a page past the end is the last, and an unreadable one the first", `${pageOfAssetCategories(rowsOf(51), "9").page} ${pageOfAssetCategories(rowsOf(51), "x").page}`, "3 1");
     const disagreements = [];
-    for (const n of [0, 1, 50, 51, 101])
+    for (const n of [0, 1, 25, 26, 101])
         for (const asked of ["1", "2", "3", "x"]) {
             const categories = pageOfAssetCategories(rowsOf(n), asked);
             const items = pageOfAssets(rowsOf(n).map((row) => row.id), asked);

@@ -211,7 +211,7 @@ of order goes to the first page; a box, a step and the job's choice keep it, and
 a visit afresh starts newest first. The day each entry says is the moment it is
 ordered by, so the two cannot part.
 
-**evidence.** Which rows the page shows of how many, `1–50 of 76`, stated
+**evidence.** Which rows the page shows of how many, `1–25 of 76`, stated
 whether or not there is a second page, because a count that appears only once a
 list is long leaves the short case saying nothing — the one figure where a page
 shows a single row, `1 of 1` — and past one page which page of how many, `Page 1
@@ -277,7 +277,7 @@ shortfall follows, and a reload between them opens whichever is left.
 **A step to the previous page** and **a step to the next**, past one page, each
 acting when there is a page that way and drawn without acting at its own end —
 1d's, where until #463 each was absent at its end.
-**A second page exists only for a category with more than fifty assets**,
+**A second page exists only for a category with more than twenty-five assets**,
 and that number counts every registration under the category rather than
 one: registering more of a kind adds to the same list, and one registration
 can make up to a hundred. Both steps carry the selection, so what was
@@ -286,10 +286,13 @@ stands on (#509).
 
 **When the job holds none of this category's items and another job does (#509,
 #520, #612):** the head, `0`, and in place of the entries the heading `No items
-on 25-USA-13`, the job by its code, with no sentence under it — the head still
-offers `Add items` to whoever may add (Soo's words, which 1d draws since the files
-of 2026-11-05; it drew `Nothing added yet` there until then, which would have been
-false). From #509 to #612 the head stood alone. The rows, the pager and the page
+on 25-USA-13`, the job by its code, and under it the choice that shows the
+items, `Choose All jobs to see items on other jobs.` (1d, #617, Soo's words, with
+`All jobs` the job choice's own) — the head still offers
+`Add items` to whoever may add (Soo's words, which 1d draws since the files of
+2026-11-05; it drew `Nothing added yet` there until then, which would have been
+false). From #509 to #612 the head stood alone, and from #612 to #617 the
+heading had no sentence under it. The rows, the pager and the page
 box are always the job's alone, and the breadcrumb's `Equipment & Tools` keeps the
 job. An asset off the job is left off this list and still opens from its label or a
 link. A job in the address the list does not offer is answered where the list
@@ -347,7 +350,8 @@ site manager's.
 
 **When the reader is not a site manager (#506):** the same screen, every fact
 on it, and none of the controls a site manager uses here — no `Add items` in
-the head or under an empty list, no box on an entry or for the page, no
+the head, where its room stays so the entries start where a site manager's do
+(1d, Tools 59, #617), or under an empty list, no box on an entry or for the page, no
 selection bar and so nothing to print, and neither dialog a registration's
 landing tells, which speak to whoever added. The column of boxes goes with
 the boxes, so the table is `Item ID`, `Serial number`, `Status`, the note's mark and `Updated`, the status taking
@@ -384,19 +388,25 @@ is the job it stands on's to print. The job that borrowed it lists it as its
 own, in its own status. On all jobs nothing is on loan from the page's job,
 so every row says its own status.
 
+**A registration that wrote everything says so for a moment (#617).** On
+landing, `5 items added.` — `1 item added.` for one — stands 12 over the
+selection bar on the toast's ground for 4 s and fades, with no action, as
+Tools 57 draws 1c's `All written`. It is said once, to whoever sent it: a
+reload, a copied link or another tab shows none, since nothing on the address
+says it. A landing that fell short says its account in a dialog instead.
+
 ## What must agree elsewhere
 
-**A page holds fifty assets (#538), and the design settled how the position
-is expressed (#463):** which rows the page shows of how many, which page of
-how many, and one step in each direction (1d). This is the first paged list in
-the app. **Fifty is #538's figure, not the drawing's**: the drawings
-still page every list at twenty-five, the figure the design set for the list
-as it drew it (#442), which replaced ten, an estimate of a screenful made
-before any screen was drawn. Neither is a measurement — nobody has yet read
-this list with a real warehouse in it. **Two ceilings on it are not a
-choice.** Anything up to fifty costs the app exactly the same to fetch, and a
-fifty-first row is a second read, so fifty is the largest page one read
-holds; and a page is how many one press of the page box selects, where the
+**A page holds twenty-five assets (#617), and the design settled how the
+position is expressed (#463):** which rows the page shows of how many, which
+page of how many, and one step in each direction (1d). This is the first paged
+list in the app. **Twenty-five is the drawing's figure**, which the design set
+for the list as it drew it (#442) in place of ten, an estimate of a screenful
+made before any screen was drawn; #538 set fifty, and #617 took the drawing's
+back, Soo's ruling. Neither is a measurement — nobody has yet read this list
+with a real warehouse in it. **Two ceilings on it are not a choice.** A page
+of more than fifty items out would read their holders in two queries rather
+than one, and a page is how many one press of the page box selects, where the
 print control acts on at most a hundred — what one print takes.
 
 **The selection rides in the address (#443), which is what lets it survive a

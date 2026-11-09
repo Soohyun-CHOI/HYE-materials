@@ -202,8 +202,9 @@ function PagerStep({ href, onPress, label, back }) {
  *
  * `fill` IS A LIST ON FILL'S PAGER (1l, #538): its count on the Margin, 32 in, and its steps on
  * the rows' text edge, 36 in from the window's — where the measure's stands on its rows' text 12
- * past the measure's edge. 1l draws the last step 12 past that edge where 1d draws it 13; the
- * bleed is one value, 1d's.
+ * past the measure's edge. 1l draws the last step 12 past that edge where 1d draws it 13, each
+ * putting the last chevron's ink on its own table's text, so the two are two values (Design, #617):
+ * from #538 until #617 the bleed was one, 1d's.
  */
 export function Pager({ range, position, previous, next, fill = false }) {
     return (
@@ -220,7 +221,7 @@ export function Pager({ range, position, previous, next, fill = false }) {
                     <p className="text-body-sm text-foreground-subtle">
                         <Figures className="text-foreground-default">{position}</Figures>
                     </p>
-                    <div className="-mr-pager-step-bleed flex">
+                    <div className={`${fill ? "-mr-fill-pager-step-bleed" : "-mr-pager-step-bleed"} flex`}>
                         <PagerStep {...previous} back />
                         <PagerStep {...next} />
                     </div>

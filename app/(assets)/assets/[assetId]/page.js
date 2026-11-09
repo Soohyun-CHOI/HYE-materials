@@ -493,7 +493,9 @@ async function renderAssetPage({ params }) {
                                             <div className="flex items-center justify-center rounded-card bg-background-muted px-label-preview-inset-x py-label-preview-inset-y">
                                                 <LabelPreview label={label} budget={budget} name={COPY.symbolAlt} />
                                             </div>
-                                            <p className="-mt-[calc(var(--spacing-label-block-stack)-var(--spacing-label-caption-stack))] text-body-sm text-foreground-subtle tabular-nums">
+                                            {/* Its figures as the sentence's, as 1f and 1g set them: a tabular `11 × 12
+                                                mm` stood 13.25 wider than drawn (#617). */}
+                                            <p className="-mt-[calc(var(--spacing-label-block-stack)-var(--spacing-label-caption-stack))] text-body-sm text-foreground-subtle">
                                                 {COPY.printsAt(LABEL_COPY.size)}
                                             </p>
                                         </>
@@ -609,8 +611,9 @@ function History({ rows, nameById, jobCodeById }) {
                                     </span>
                                 </p>
                             )}
+                            {/* Who has it, in Ink 2 as the route above it is (1j); in Ink until #617. */}
                             {handedTo && (
-                                <p className="flex items-center gap-gap text-mobile-body-xs sm:hidden">
+                                <p className="flex items-center gap-gap text-mobile-body-xs text-foreground-muted sm:hidden">
                                     <Icon name="user" kind="qualifier" className="size-mobile-log-icon shrink-0" />
                                     <span className="min-w-0 text-pretty">{facts.checkedOutTo}</span>
                                 </p>

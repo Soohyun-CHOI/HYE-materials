@@ -18,19 +18,25 @@ import {
 } from "@/lib/assetListView";
 import { itemCountOf, registrationCatalog } from "@/lib/assetCategory";
 import { ASSET_REGISTRATION_COPY, readRegistrationAccount } from "@/lib/assetRegistration";
-import { ASSET_CATEGORIES_PATH, LIST_SORTS, assetCategoriesPath, readSort } from "@/lib/assetRoutes";
+import { LIST_SORTS, assetCategoriesPath, readSort } from "@/lib/assetRoutes";
+import { FILTERED_LISTS, axesFor } from "@/lib/listFilters";
 import { withOpsLabel } from "@/lib/airtableOps";
 import Breadcrumb from "@/app/components/Breadcrumb";
-import { ButtonLink } from "@/app/components/Controls";
 import ListFrame from "@/app/components/ListFrame";
 import { ListHeader } from "@/app/components/ListTable";
 import RegistrationDialog from "../RegistrationDialog";
 import CategoryCaption from "../../CategoryCaption";
+import PageNotFound from "../../PageNotFound";
 import RegistrationShortfall from "./RegistrationShortfall";
 import RegistrationUnlogged from "./RegistrationUnlogged";
 import CategoryJobChoice from "./CategoryJobChoice";
 import CategorySort from "./CategorySort";
 import AssetList from "./AssetList";
+
+// `All jobs` is the document lists' job picker's own word, read where it is built, as the job
+// choice beside this page reads it (`JobChoice.js`): the sentence under a job's own empty points
+// the reader at that choice by its word (1d, #617).
+const ALL_JOBS_LABEL = axesFor(FILTERED_LISTS[0]).find((axis) => axis.param === "job").words.all;
 
 /*
  * THE TAB NAMES THE KIND, AND NAMING IT READS NOTHING (#612). The segment is a record id,
@@ -122,8 +128,9 @@ export async function generateMetadata() {
  * `Equipment & Tools`, as 1d draws it, wherever there are two jobs to choose between — every
  * reader since #593, where a reader on one job of their own was drawn none; it stood in the
  * head beside the opener until #519. A category
- * with assets, none of them on the job, draws its head and nothing under it: `Nothing added
- * yet` would be false there, and Design is drawing what it says. An asset off the job still
+ * with assets, none of them on the job, says `No items on` the job under its head since #612
+ * (`kindEmptyState`), where `Nothing added yet` would be false; from #509 it drew the head
+ * alone. An asset off the job still
  * opens from its label. **On all jobs (#548)** the array is cut to the assets
  * on any of them, and each row says its job in a column after its id (1d), which the breadcrumb
  * says for all of them on one job.
@@ -174,7 +181,8 @@ export async function generateMetadata() {
  * fills it, `Items show here once a site manager adds them.`, where a site manager is told it
  * fills when they add, over the opener (1d, #519) — when nothing anywhere stands under the kind;
  * one with items on other jobs and none on this one says `No items on 25-USA-13` since #612
- * (`kindEmptyState`). **So does a site manager on another job's
+ * (`kindEmptyState`), and `Choose All jobs to see items on other jobs.` under it since #617.
+ * **So does a site manager on another job's
  * list since #597** (1d `Another job`, `No items · another job`), and **on all jobs one meets
  * the opener and no box** (1d `All jobs`) — **one on no job reads what anybody does, there too,
  * since #610**: every question is `listRecording`, asked once here —
@@ -223,22 +231,8 @@ async function renderCategoryPage({ params, searchParams }) {
     const [[category], jobs] = await Promise.all([getAssetCategoriesByRecordIds([categoryRecordId]), getAllJobs()]);
     // The tab's name, off the row just read and the heading's own words (see `kindTitle`).
     kindTitle().settle(category ? category.itemName : COPY.pageNotFound);
-    if (!category) {
-        // 1h's shape, which the asset page draws for a code no asset carries: the
-        // heading centered in the column and the way back under it. An address carries a
-        // record id here, which says nothing to a reader, so there is no sentence naming it,
-        // and the heading names the page rather than an item (#612).
-        return (
-            <div className="flex min-h-full flex-col items-center justify-center px-page-gutter text-center font-ui text-foreground-default">
-                <h1 className="text-heading font-semibold">{COPY.pageNotFound}</h1>
-                <div className="mt-gap-lg">
-                    <ButtonLink variant="bordered" href={ASSET_CATEGORIES_PATH}>
-                        {COPY.backToTools}
-                    </ButtonLink>
-                </div>
-            </div>
-        );
-    }
+    // 1h's `Page not found`, the one view an address naming nothing takes (#612, #617).
+    if (!category) return <PageNotFound />;
 
     // The kind's items on the scope, read whole and sorted, and the page cut from them (#540).
     // `pageOfAssets` orders, clamps and slices, so a typed or copied `?page=` never lands on an
@@ -314,7 +308,7 @@ async function renderCategoryPage({ params, searchParams }) {
     const catalog = registrationCatalog([category]);
     const registration = { opener: ASSET_REGISTRATION_COPY.heading, jobs: assignedJobs, listJobId, category: opened, catalog };
     // The head's controls stand in a column at its foot (1d, #540): `Add items` for a site manager,
-    // and under it, while the list has rows to order, the sort — pulled out past the content's edge by
+    // or its room for anybody else since #617, and under it, while the list has rows to order, the sort — pulled out past the content's edge by
     // its own room, so its chevron meets it, and 14 over the column head where the head's foot is 18.
     const header = (
         <ListHeader
@@ -325,7 +319,13 @@ async function renderCategoryPage({ params, searchParams }) {
             underBreadcrumb
             stacked
         >
-            {recording.adds && <RegistrationDialog {...registration} />}
+            {recording.adds ? (
+                <RegistrationDialog {...registration} />
+            ) : (
+                // For a reader who adds nothing, room of the opener's height in its place, so the head
+                // stands as tall and the rows start where a site manager's do (1d, Tools 59, #617).
+                <div aria-hidden="true" className="h-control-lg flex-none" />
+            )}
             {page.total > 0 && (
                 <div className="-mr-sort-inset-right -mb-[calc(var(--spacing-list-header-inset-bottom)-var(--spacing-gap-lg))]">
                     <CategorySort categoryRecordId={category.id} job={job} sort={sort} selects={recording.selects} />
@@ -335,7 +335,8 @@ async function renderCategoryPage({ params, searchParams }) {
     );
 
     // The two empties (1d, #612): items under the kind on other jobs and none in the scope, the
-    // job's own empty, its heading alone under the head that counts none and offers the opener; or
+    // job's own empty, its heading and where the items are under the head that counts none and offers
+    // the opener — the heading alone from #612 to #617; or
     // nothing under the kind anywhere, the empty category's words. A deleted item stands under
     // nothing (#582), so a kind whose every item was deleted reads as the second: `itemCountOf`
     // counts its link less what the app does not show, off the row already read.
@@ -346,6 +347,10 @@ async function renderCategoryPage({ params, searchParams }) {
                 {empty.heading && (
                     <div className="flex flex-col items-center pt-list-empty-state-inset-top text-center">
                         <h2 className="text-heading font-semibold">{empty.heading}</h2>
+                        {/* The choice that shows the kind's items (1d, #617), in the job choice's own words. */}
+                        <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">
+                            {COPY.chooseAllJobs(ALL_JOBS_LABEL)}
+                        </p>
                     </div>
                 )}
             </ListFrame>
@@ -413,6 +418,7 @@ async function renderCategoryPage({ params, searchParams }) {
             sort={sort}
             top={top}
             header={header}
+            landing={recording.adds ? { unwritten: account.unwritten, unlogged: account.unlogged } : null}
         >
             {/* A registration's account, which only a list with rows in it can carry: one
                 that wrote nothing stays in the dialog (#449, #456). The fork asks a question

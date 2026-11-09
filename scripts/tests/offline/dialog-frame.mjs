@@ -95,9 +95,10 @@ const key = (name, mods = {}) => ({ key: name, altKey: false, ctrlKey: false, me
 
 /**
  * What a field's list draws as it scrolls, off `Menu.js` (#555): 0i's bar on every list and its
- * Chain, the bar's 8 reserved by none (Soo's ruling) and a lane's height only where a caller hands
- * one, the height the less of the lane's and the room under the field, and the option it checks
- * scrolled to while no key has moved visual focus.
+ * Chain, the bar's 8 reserved by a list handed `gutter` alone — 1l's, as Tools 56 draws them (#617),
+ * where #555 reserved it on none — a lane's height only where a caller hands one, the height the less
+ * of the lane's and the room under the field, and the option it checks scrolled to while no key has
+ * moved visual focus.
  */
 function laneFacts({ ast, source }) {
     const menu = functionNamed(ast, "Menu");
@@ -106,17 +107,17 @@ function laneFacts({ ast, source }) {
     const region = body.match(/<div className=\{`(flex min-h-0 flex-col overflow-y-auto[^`]*)`\}>/)?.[1] ?? "";
     return [
         /import \{ SCROLL_LANE \} from "\.\/scrollLane";/.test(source),
-        /\boverflow-y-auto overscroll-contain px-menu-inset \$\{SCROLL_LANE\}/.test(region),
-        region !== "" && /\$\{lane \?\? ""\}/.test(body) && !/scrollbar-gutter/.test(body),
+        /\boverflow-y-auto overscroll-contain \$\{gutter \? "p-menu-inset \[scrollbar-gutter:stable\]" : "px-menu-inset"\} \$\{SCROLL_LANE\}/.test(region),
+        region !== "" && /\$\{lane \?\? ""\}/.test(body) && (body.match(/scrollbar-gutter/g) ?? []).length === 1,
         /list\.style\.maxHeight = "";\s*const own = parseFloat\(getComputedStyle\(list\)\.maxHeight\);\s*list\.style\.maxHeight = `\$\{Number\.isNaN\(own\) \? room : Math\.min\(own, room\)\}px`;/.test(body),
         /const index = active >= 0 \? active : checkedIndex;/.test(body) && /\}, \[shown, active, checkedIndex\]\);/.test(body),
     ].join(" ");
 }
 
 /**
- * Whether what scrolls stands 5 inside the Edge above and below while it scrolls (Soo, #555): the
- * frame holds the Menu's 5 above and below and scrolls nothing, and the region inside it, which
- * scrolls, holds the 5 either side.
+ * Where the Menu's 5 stands (#555, #617): the frame scrolls nothing, and holds the 5 above and below
+ * but on a list handed `gutter`, whose scrolling region holds it on every side, as 1l pads it; any
+ * other region holds the 5 either side, as 1a's band draws it.
  */
 function insetFacts({ ast, source }) {
     const menu = functionNamed(ast, "Menu");
@@ -124,9 +125,9 @@ function insetFacts({ ast, source }) {
     const frame = body.match(/popover="manual"\s+className=\{`([^`]*)`\}/)?.[1] ?? "";
     const region = body.match(/<div className=\{`(flex min-h-0 flex-col overflow-y-auto[^`]*)`\}>/)?.[1] ?? "";
     return [
-        /\bpy-menu-inset\b/.test(frame) && !/\bp-menu-inset\b/.test(frame),
+        /\$\{gutter \? "" : "py-menu-inset"\}/.test(frame) && !/\bp-menu-inset\b/.test(frame),
         frame !== "" && !/\boverflow-/.test(frame),
-        /\bpx-menu-inset\b/.test(region) && /\bmin-h-0\b/.test(region),
+        /\$\{gutter \? "p-menu-inset \[scrollbar-gutter:stable\]" : "px-menu-inset"\}/.test(region) && /\bmin-h-0\b/.test(region),
     ].join(" ");
 }
 
@@ -147,7 +148,7 @@ function everyFacts({ ast, source }) {
             /if \(answer\.shown && !shown\) setNarrowing\(false\);/.test(body),
         /onChange\(event\.target\.value\);\s*setNarrowing\(true\);/.test(body),
         /if \(onPick\) onPick\(list\[index\]\);\s*else onChange\(list\[index\]\.label\);/.test(body),
-        /lane=\{lane\}\s+options=\{list\.map\(/.test(body) && /checked: suggestion\.chosen === true,/.test(body),
+        /lane=\{lane\}\s+gutter=\{gutter\}\s+options=\{list\.map\(/.test(body) && /checked: suggestion\.chosen === true,/.test(body),
         chip ? /lane=\{lane\}/.test(source.slice(chip.start, chip.end)) : false,
     ].join(" ");
 }
@@ -249,7 +250,9 @@ function spinnerFacts({ controls: { ast, source }, frame, more }) {
             /^\["filled", "danger"\]$/.test(constant("FILLED")),
             /<ButtonLabel size=\{size\} on=\{FILLED\.includes\(variant\) \? "fill" : "unfilled"\} busyLabel=\{busyLabel\}>/.test(fnSource("Button")),
         ].join(" "),
-        callers: [/<ButtonLabel on="text" busyLabel=\{done\.busyLabel\}>/.test(frame), /<ButtonLabel size=\{phone \? "xl" : "lg"\} on="unfilled" busyLabel=/.test(more)].join(" "),
+        callers: [/<ButtonLabel on="text" busyLabel=\{done\.busyLabel\}>/.test(frame), /<ButtonLabel\b/.test(more)].join(" "),
+        // More actions holds no spinner since #617: the menu row's word is announced in a status.
+        announced: /<span role="status" className="sr-only">\s*\{busy \? ASSET_TRANSITION_COPY\.working\[ASSET_EVENT\.SENT_FOR_REPAIR\] : ""\}\s*<\/span>/.test(more),
     };
 }
 
@@ -288,7 +291,8 @@ export function run({ check, assert, log }) {
         check("  the spinner reads it off what it turns on, the fill's by default, as the label hands it", facts.reads, "true true true");
         check("  a text button's spinner keeps its 16 below the phone's edge", facts.textSize, true);
         check("  a button's spinner turns on its fill for a filled or a red action, and on none otherwise", facts.button, "true true");
-        check("  a sheet's Done holds a text button's spinner, and More actions one on no fill", facts.callers, "true true");
+        check("  a sheet's Done holds a text button's spinner, and More actions none (#617)", facts.callers, "true false");
+        check("  More actions announces its menu row's word to assistive tech alone (#617)", facts.announced, true);
         const planted = spinnerFacts({
             controls: parseSource(
                 'const BUTTON_VARIANT = { danger: "bg-danger text-white not-disabled:not-aria-disabled:hover:bg-danger-hover" };\n' +
@@ -303,7 +307,8 @@ export function run({ check, assert, log }) {
         check(
             "  the controls as #614 left them, one track for every spinner and a red that keeps its fill, are seen",
             [planted.danger, planted.tracks, planted.reads, planted.textSize, planted.button, planted.callers].join(" / "),
-            "false / none none none / false false false / false / false false / false false"
+            // More actions held a spinner then, which it holds no longer (#617).
+            "false / none none none / false false false / false / false false / false true"
         );
         log("");
     }
@@ -332,12 +337,22 @@ export function run({ check, assert, log }) {
             everyFacts(parseSource("export function Combobox() { const shown = listOpen && suggestions.length > 0; return <input />; }\nexport function FilterChip() { return <Menu />; }\n", "<planted-every>")),
             "false false false false false false false"
         );
-        check("  every field list scrolls in 0i's bar, taking its 8 only while it shows and stopping at its height where handed one", laneFacts(parseFile(MENU)), "true true true true true");
-        check("  and what scrolls stands 5 inside the Edge above and below, the frame holding the 5 and scrolling nothing", insetFacts(parseFile(MENU)), "true true true");
+        check("  every field list scrolls in 0i's bar, 1l's reserving its 8 always and a lane stopping at its height", laneFacts(parseFile(MENU)), "true true true true true");
+        check("  and 1l's region holds the Menu's 5 on every side, any other's frame above and below, no frame scrolling", insetFacts(parseFile(MENU)), "true true true");
         check(
-            "  a list padded where it scrolls, so a row scrolled past touches the Edge, is seen",
+            "  a frame padded and scrolling itself is seen",
             insetFacts(parseSource('export default function Menu() { return <div popover="manual" className={`inset-auto overflow-y-auto p-menu-inset`} />; }\n', "<planted-inset>")),
             "false false false"
+        );
+        check(
+            "  and a frame holding the 5 for every list, 1l's too, is seen",
+            insetFacts(
+                parseSource(
+                    'export default function Menu() { return <div popover="manual" className={`inset-auto py-menu-inset`}><div className={`flex min-h-0 flex-col overflow-y-auto overscroll-contain px-menu-inset ${SCROLL_LANE}`}></div></div>; }\n',
+                    "<planted-inset-555>"
+                )
+            ),
+            "false true false"
         );
         check(
             "  a list scrolling in the browser's own bar, as it did until #555, is seen",
@@ -350,15 +365,54 @@ export function run({ check, assert, log }) {
             "false false false false false"
         );
         check(
-            "  a lane holding the bar's 8 with nothing to scroll, as 1l's do, is seen",
+            "  a list reserving the bar's 8 for every list, 1a's too, is seen",
             laneFacts(
                 parseSource(
-                    'export default function Menu() { return <div popover="manual" className={`inset-auto ${lane ?? ""}`}><div className={`flex min-h-0 flex-col overflow-y-auto overscroll-contain px-menu-inset ${SCROLL_LANE} [scrollbar-gutter:stable]`}></div></div>; }\n',
+                    'export default function Menu() { return <div popover="manual" className={`inset-auto ${lane ?? ""}`}><div className={`flex min-h-0 flex-col overflow-y-auto overscroll-contain p-menu-inset [scrollbar-gutter:stable] ${SCROLL_LANE}`}></div></div>; }\n',
                     "<planted-reserved>"
                 )
-            ).split(" ")[2],
+            ).split(" ")[1],
             "false"
         );
+        check(
+            "  and 1l's lists taking the 8 only while the bar shows, as #555 ruled, are seen",
+            laneFacts(
+                parseSource(
+                    'export default function Menu() { return <div popover="manual" className={`inset-auto ${lane ?? ""}`}><div className={`flex min-h-0 flex-col overflow-y-auto overscroll-contain p-menu-inset ${SCROLL_LANE}`}></div></div>; }\n',
+                    "<planted-unreserved>"
+                )
+            ).split(" ")[1],
+            "false"
+        );
+        // #617 — exactly 1l's three lists are handed `gutter`: its band chips and its dialog's two
+        // fields, and not 1a's band, which Tools 56 draws as #555 left every list.
+        const gutterCallers = (file) => (parseFile(file).source.match(/^\s+gutter\s*$/gm) ?? []).length;
+        check(
+            "1l's lists alone reserve the 8 and scroll their 5 away (#617)",
+            ["app/(assets)/asset-catalog/CatalogDialogs.js", "app/(assets)/asset-catalog/CatalogList.js", "app/(assets)/asset-categories/AssetCategoryList.js"].map(gutterCallers).join(" "),
+            "2 1 0"
+        );
+        check(
+            "  and the chip and the field hand it on to the list",
+            (parseFile("app/components/Controls.js").source.match(/lane=\{lane\}\s*gutter=\{gutter\}/g) ?? []).length,
+            2
+        );
+        // #617 — a row a finger holds takes 0a's hover fill once the finger has rested, in a field's
+        // list and the registration's results alike, and nothing more under a mouse.
+        const menuFile = parseFile(MENU);
+        let heldRow = "";
+        walk(menuFile.ast, (n) => {
+            if (n.type === "VariableDeclarator" && n.id?.name === "HELD_ROW" && n.init?.type === "Literal") heldRow = n.init.value;
+        });
+        check(
+            "a held row's face waits under a finger and leaves at once (#617)",
+            heldRow.split(" ").sort().join(" "),
+            "duration-0 pointer-coarse:active:bg-hover pointer-coarse:active:delay-held transition-[background-color]"
+        );
+        const optionRows = (source) => (source.match(/role="option"[\s\S]*?className=\{`[^`]*`\}/g) ?? []).map((row) => /\$\{HELD_ROW\}/.test(row));
+        check("  every option a field's list draws carries it", optionRows(menuFile.source).join(" "), "true");
+        check("  and every result the registration's search lists", optionRows(parseFile(FRAME).source).join(" "), "true");
+        check("  a row carrying no held face is seen", optionRows('<div role="option" className={`flex hover:bg-hover`} />').join(" "), "false");
         const frame = parseFile(FRAME);
         const body = functionNamed(frame.ast, "DialogBody");
         const bodySource = body ? frame.source.slice(body.start, body.end) : "";
@@ -1027,7 +1081,7 @@ export function run({ check, assert, log }) {
     check(
         "a field's list sets its options at 13 and a typed fragment's match at 600 (#495)",
         [
-            /className=\{?[`"][^`"]*\bpy-menu-inset font-ui text-body-sm\b/.test(fieldListSource),
+            /className=\{?[`"][^`"]*\bbg-white \$\{gutter \? "" : "py-menu-inset"\} font-ui text-body-sm\b/.test(fieldListSource),
             /\{option\.match \? \(\s*<>\s*\{option\.match\.before\}\s*<span className="font-semibold">\{option\.match\.match\}<\/span>/.test(fieldListSource),
         ].join(" "),
         "true true"
@@ -1543,6 +1597,11 @@ export function run({ check, assert, log }) {
             /\{hidden\.above && <div aria-hidden="true" className=\{`absolute inset-x-0 h-px bg-divider \$\{lane \? "-top-px" : "top-0"\}`\} \/>\}/.test(bodyPart),
         ].join(" "),
         "true true true true"
+    );
+    check(
+        "  and its Rule below in the foot's first row, as 1b's Long list draws it (#617)",
+        /\{hidden\.below && <div aria-hidden="true" className=\{`absolute inset-x-0 h-px bg-divider \$\{lane \? "-bottom-px" : "bottom-0"\}`\} \/>\}/.test(bodyPart),
+        true
     );
 
     // THE PHONE'S SHEET, 0l's CONFIRM, AND A DIALOG TAKEN AWAY OPEN (#458). Below the phone's

@@ -466,7 +466,10 @@ function routeOfPath(text, routes) {
     const path = String(text).split("?")[0];
     if (!path.startsWith("/") && !path.includes("/")) return null;
     const segs = path.split("/").filter(Boolean);
-    for (const route of routes) {
+    // A catch-all (`/[...address]`, #617) answers only what no other route takes, as Next
+    // resolves it, so it is tried last; first it took `/invoices/*?paired`.
+    const catchAll = (route) => route.includes("[...");
+    for (const route of [...routes.filter((r) => !catchAll(r)), ...routes.filter(catchAll)]) {
         if (route === "/") {
             if (path === "/") return route;
             continue;

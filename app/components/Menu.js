@@ -93,19 +93,24 @@ const MENU_HEADING = "shrink-0 truncate px-control-inset-x py-menu-heading-inset
  * the room under its control, whichever is less — 1l's band chips at 340 and its dialog's two
  * fields at 228.
  *
- * THE BAR TAKES ITS 8 ONLY WHILE IT SHOWS, IN EVERY LIST (Soo, #555). 1l reserves the 8 on its
- * lanes whether or not the bar shows (0i Gutter), so its two-option `Type` and `Class` stood 8
- * wider on the right than on the left with nothing to scroll; none reserves it here. A list as wide
- * as its options grows by the 8 while its bar shows, and one as wide as its field gives its options
- * the 8 then, so a list that scrolls draws as 1l's does and one that does not as 1a's.
+ * THE FILES DRAW TWO KINDS OF LIST, AND `gutter` IS 1l's (#617). 1a's band chips and every list
+ * 1b and 1i open hold the Menu's 5 above and below in the frame and scroll in a region holding the
+ * 5 either side, reserving nothing for the bar, so a row passing the top or the foot is cut 5 inside
+ * the Edge — what Soo ruled for every list on #555, and what Tools 56 draws there. 1l's band chips
+ * and its dialog's two fields scroll the padded box itself with `scrollbar-gutter: stable` (0i
+ * Gutter): the 5 scroll away with the rows, a row scrolled to the middle runs to the Edge, and the
+ * rows stand 6 from the list's left and 14 from its right however short the list. Those three hand
+ * `gutter`; #555 had drawn them as 1a's are until #617 took 1l's drawing back. At rest the two
+ * draw alike but for the 8.
  *
- * WHAT SCROLLS STANDS 5 INSIDE THE EDGE ABOVE AND BELOW, AT REST AND WHILE IT SCROLLS (Soo, #555).
- * The frame holds the Menu's 5 above and below, and the options scroll in a region inside it, so a
- * row passing the top or the foot is cut 5 inside the Edge rather than at it; the region holds the 5
- * either side, and the bar runs its height. 1l pads the scrolling box itself, which leaves a row
- * scrolled to the middle touching the Edge; at rest the two draw alike.
+ * A ROW TAKES ITS FACE WHILE A FINGER HOLDS IT, AFTER A REST (#617). 0a gives every control but a
+ * text button its hover fill while held, and these rows took none under a finger from #578. A
+ * finger that starts a scroll on a row touches it too, so the face waits `--transition-delay-held`
+ * before it shows and leaves at once (`HELD_ROW`); a scroll ends the press before the wait does.
  */
-export default function Menu({ id, anchorRef, shown, labelId, heading, options, active, shade = true, onPick, fit = "field", minWidth, rows = "lg", multiselectable = false, checkSlot = false, lane }) {
+export const HELD_ROW = "transition-[background-color] duration-0 pointer-coarse:active:bg-hover pointer-coarse:active:delay-held";
+
+export default function Menu({ id, anchorRef, shown, labelId, heading, options, active, shade = true, onPick, fit = "field", minWidth, rows = "lg", multiselectable = false, checkSlot = false, lane, gutter = false }) {
     const listRef = useRef(null);
     const checkedIndex = options.findIndex((option) => option.checked);
 
@@ -166,11 +171,11 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
             aria-labelledby={labelId}
             aria-multiselectable={multiselectable || undefined}
             popover="manual"
-            className={`inset-auto mx-0 mt-menu-offset mb-0 flex-col rounded-card border border-border bg-white py-menu-inset font-ui text-body-sm text-foreground-default tabular-nums shadow-popover open:flex ${
+            className={`inset-auto mx-0 mt-menu-offset mb-0 flex-col rounded-card border border-border bg-white ${gutter ? "" : "py-menu-inset"} font-ui text-body-sm text-foreground-default tabular-nums shadow-popover open:flex ${
                 fit === "field" ? "" : "w-max min-w-menu max-w-menu"
             } ${lane ?? ""}`}
         >
-            <div className={`flex min-h-0 flex-col overflow-y-auto overscroll-contain px-menu-inset ${SCROLL_LANE}`}>
+            <div className={`flex min-h-0 flex-col overflow-y-auto overscroll-contain ${gutter ? "p-menu-inset [scrollbar-gutter:stable]" : "px-menu-inset"} ${SCROLL_LANE}`}>
                 {heading && (
                     <div aria-hidden="true" className={MENU_HEADING}>
                         {heading}
@@ -187,7 +192,7 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
                         onClick={() => onPick(index)}
                         className={`flex ${rows === "sm" ? "h-control" : "h-control-lg"} shrink-0 cursor-pointer items-center justify-between ${
                             checkSlot ? "gap-sort-check-gap" : "gap-gap"
-                        } rounded-control px-control-inset-x hover:bg-hover ${index === active && shade ? "bg-hover" : ""}`}
+                        } rounded-control px-control-inset-x hover:bg-hover ${HELD_ROW} ${index === active && shade ? "bg-hover" : ""}`}
                     >
                         {multiselectable && (
                             <span

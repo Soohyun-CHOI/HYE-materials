@@ -40,10 +40,15 @@ export function toastFacts({ ast, source }) {
     const escape = source.slice(source.indexOf("const onKeyDown"), source.indexOf("document.addEventListener(\"keydown\", onKeyDown)"));
     // The root's classes: a string, or a template's fixed parts (#614, its `desk` part read apart).
     const rootClass = attr(root, "className");
+    // The ground both toasts share is read where it is declared and counted as the root's (#617).
+    const ground = source.match(/const TOAST_GROUND = "([^"]*)";/)?.[1] ?? "";
     const rootClasses =
         rootClass?.type === "JSXExpressionContainer" && rootClass.expression.type === "TemplateLiteral"
-            ? rootClass.expression.quasis.map((q) => q.value.cooked).join(" ")
+            ? rootClass.expression.quasis.map((q) => q.value.cooked).join(" ") +
+              (rootClass.expression.expressions.some((e) => e.type === "Identifier" && e.name === "TOAST_GROUND") ? ` ${ground}` : "")
             : rootClass?.value;
+    // The toast that stays, apart from the one that passes (#617), which times itself by design.
+    const staying = source.slice(source.indexOf("export default function Toast"), source.includes("export function PassingToast") ? source.indexOf("export function PassingToast") : undefined);
     return {
         root: tokens(rootClasses),
         desk: /\$\{desk \? "max-sm:open:hidden" : ""\}/.test(source) && /export default function Toast\(\{[^}]*\bdesk = false \}\)/.test(source),
@@ -62,7 +67,19 @@ export function toastFacts({ ast, source }) {
         ].join(" "),
         escape: /if \(event\.key !== "Escape" \|\| event\.defaultPrevented \|\| document\.querySelector\("dialog\[open\]"\)\) return;\s*closeToast\(toastRef\.current, opener, onDismiss\);/.test(escape),
         handsBack: /function closeToast\(toast, opener, then\) \{\s*if \(opener && toast\?\.contains\(document\.activeElement\)\) \{\s*if \(opener\.current\?\.isConnected\) opener\.current\.focus\(\);\s*else focusPageHeading\(\);\s*\}\s*then\(\);\s*\}/.test(source),
-        staysUp: /if \(!shown\) return null;/.test(source) && !/setTimeout|setInterval/.test(source),
+        staysUp: /if \(!shown\) return null;/.test(staying) && !/setTimeout|setInterval/.test(staying),
+        // A success passes by itself (Tools 57's 1c, #617): a status, its line alone 14 either side
+        // on the shared ground, standing 4 s and fading over the toast's duration, no button.
+        passing: (() => {
+            const at = source.indexOf("export function PassingToast");
+            const body = at < 0 ? "" : source.slice(at);
+            return [
+                /const PASSING_TOAST_MS = 4000;/.test(source),
+                /setTimeout\(\(\) => setPhase\("fading"\), PASSING_TOAST_MS\)/.test(body),
+                /role="status"/.test(body) && !/<button/.test(body),
+                /className=\{`flex px-toast-inset-left text-body tabular-nums transition-opacity duration-toast \$\{TOAST_GROUND\} \$\{phase === "fading" \? "opacity-0" : "opacity-100"\} \$\{className\}`\}/.test(body),
+            ].join(" ");
+        })(),
         texts: texts.join(" | "),
     };
 }
@@ -125,6 +142,8 @@ export function run({ check, assert, log }) {
     log("anti-vacuity — the readings fail on a planted toast:");
     const planted = (from, to) => toastFacts(parseSource(real.source.replace(from, to), "<planted>"));
     assert("  one that times itself out is seen", planted("if (!shown) return null;", "if (!shown) return null;\n    setTimeout(onDismiss, 4000);").staysUp === false);
+    check("a toast that passes, as 1c's `All written` (#617): its 4 s, its fade, a status with no button, its look", facts.passing, "true true true true");
+    check("  one that stays is seen", planted("setTimeout(() => setPhase(\"fading\"), PASSING_TOAST_MS)", "null").passing, "true false true true");
     assert("  one that closes on Escape over an open dialog is seen", planted(' || document.querySelector("dialog[open]")', "").escape === false);
     assert("  one that leaves focus to fall is seen", planted("opener.current.focus();", "{}").handsBack === false);
     assert("  one that leaves focus to fall where the opener went is seen (#614)", planted("else focusPageHeading();", "").handsBack === false);

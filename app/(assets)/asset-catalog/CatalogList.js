@@ -179,6 +179,7 @@ export default function CatalogList({ rows, groups }) {
                                     clearLabel={ASSET_LIST_COPY.clearFacet[facet]}
                                     several={ASSET_LIST_COPY.selectedCount}
                                     lane="max-h-catalog-filter-list"
+                                    gutter
                                 />
                             ))}
                             <ToggleChip
