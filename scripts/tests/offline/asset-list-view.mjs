@@ -694,7 +694,8 @@ function sortWiring540({ band, catalog, kindPage, kindSort, kindJob, jobChoice, 
         // stacked head while the list has rows, pulled out by its own room and 14 over the column head.
         /const sort = readSort\(sp\.sort, LIST_SORTS\.items\);/.test(kindPage) &&
             /pageOfAssets\(await getAssetsByRecordIds\(idsInScope\(category\.assets, scope\.shown\)\), sp\.page, sort\)/.test(kindPage),
-        /underBreadcrumb\s*stacked\s*>\s*\{recording\.adds && <RegistrationDialog \{\.\.\.registration\} \/>\}\s*\{page\.total > 0 && \(\s*<div className="-mr-sort-inset-right -mb-\[calc\(var\(--spacing-list-header-inset-bottom\)-var\(--spacing-gap-lg\)\)\]">\s*<CategorySort categoryRecordId=\{category\.id\} job=\{job\} sort=\{sort\} selects=\{recording\.selects\} \/>/.test(kindPage),
+        // Since #617 the opener or, for a reader who adds nothing, room of its height (1d, Tools 59).
+        /underBreadcrumb\s*stacked\s*>\s*\{recording\.adds \? \(\s*<RegistrationDialog \{\.\.\.registration\} \/>\s*\) : \(\s*(?:\/\/[^\n]*\n\s*)*<div aria-hidden="true" className="h-control-lg flex-none" \/>\s*\)\}\s*\{page\.total > 0 && \(\s*<div className="-mr-sort-inset-right -mb-\[calc\(var\(--spacing-list-header-inset-bottom\)-var\(--spacing-gap-lg\)\)\]">\s*<CategorySort categoryRecordId=\{category\.id\} job=\{job\} sort=\{sort\} selects=\{recording\.selects\} \/>/.test(kindPage),
         /selects=\{recording\.selects\}\s*sort=\{sort\}\s*\/>/.test(kindPage) && /job=\{job\}\s*sort=\{sort\}\s*top=\{top\}/.test(kindPage),
         // A change of order is a navigation to the first page, keeping the job and, for a site
         // manager alone, the run.
@@ -837,6 +838,12 @@ function sort540({ check, log }) {
     check("  a catalog writing its band without the order is seen", planted("catalog", "write({ ...reading.held, sort })", "write({ sort })").split(" ")[1], "false");
     check("  a kind's page cutting a page in no order is seen", planted("kindPage", "sp.page, sort)", "sp.page)").split(" ")[2], "false");
     check("  a head drawing the sort over an empty list is seen", planted("kindPage", "{page.total > 0 && (", "{true && (").split(" ")[3], "false");
+    check(
+        "  a head that lets the rows rise for a reader who adds nothing is seen (#617)",
+        // #540's head, the opener alone, which let the rows rise 10 for anybody else.
+        planted("kindPage", /\{recording\.adds \? \([^]*?\)\}(?=\s*\{page\.total > 0)/, "{recording.adds && <RegistrationDialog {...registration} />}").split(" ")[3],
+        "false"
+    );
     check("  a sort that drops the run is seen", planted("kindSort", "{ job, sort: next }", "{ sort: next }").split(" ")[5], "false");
     check("  a job's choice leaving the order behind is seen", planted("jobChoice", "{ job: next, sort }", "{ job: next }").split(" ")[6], "false");
     check("  a box leaving it behind is seen", planted("itemList", "page.page, next, { job, sort }", "page.page, next, { job }").split(" ")[7], "false");

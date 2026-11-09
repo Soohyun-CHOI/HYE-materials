@@ -6,12 +6,15 @@
 // fills it and the opener. Which one a page draws is `lib/assetListView.js:kindEmptyState`, asked of
 // what the page already read — how many it read on its scope, and how many the kind holds at all off
 // the row in hand — so telling them apart reads nothing. An address no kind carries says `Page not
-// found` since #612, where an item's own page keeps `Item not found`. This tier holds:
+// found` since #612, where an item's own page keeps `Item not found`. Since #617 the first says
+// where the items are under its heading, `Items on other jobs show under All jobs.`, as Tools 59
+// draws 1d's job empty. This tier holds:
 //
 //   1. BY VALUE, THE JUDGMENT AND ITS WORDS: each of the two empties, the page with items, a kind on
 //      no job, and every word either draws, with the not-found's two headings.
 //   2. OFF THE SOURCE, THE PAGE: it asks the judgment of those three facts, draws the first empty's
-//      heading alone and the second's with who fills it and the opener, the first before the second,
+//      heading and where the items are, by the job choice's own `All jobs`, and the second's with who
+//      fills it and the opener, the first before the second,
 //      and the not-found's heading and way back.
 //   3. NO READ ADDED: what the page imports from the base is what it imported before #612, and the
 //      judgment awaits nothing.
@@ -24,6 +27,7 @@
 
 import { ASSET_LIST_COPY, kindEmptyState } from "../../../lib/assetListView.js";
 import { ASSET_COPY } from "../../../lib/assetView.js";
+import { FILTERED_LISTS, axesFor } from "../../../lib/listFilters.js";
 import { parseFile, parseSource, resolveFunction, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
@@ -47,12 +51,16 @@ function blockAfter(source, test) {
 /** What a kind's page source draws for each empty and for an unknown kind. */
 export function emptyFacts(source) {
     const elsewhere = blockAfter(source, "empty?.elsewhere");
-    const none = blockAfter(source, "empty");
+    const none = blockAfter(source, "empty");
     return {
         asks: /const empty = kindEmptyState\(\{ total: page\.total, itemCount: itemCountOf\(category\), jobCode: scope\.job\?\.jobCode \?\? null \}\);/.test(source),
         elsewhere: [
             /<h2 className="text-heading font-semibold">\{empty\.heading\}<\/h2>/.test(elsewhere),
             /untilYouAdd|untilASiteManagerAdds|RegistrationDialog|noAssetsHeading/.test(elsewhere),
+            // Where the items are (#617), in the other empty's sentence's look, by the word the page
+            // reads where `lib/listFilters.js` builds it.
+            /<\/h2>\s*(?:\{\/\*[^]*?\*\/\}\s*)?<p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">\s*\{COPY\.otherJobsUnder\(ALL_JOBS_LABEL\)\}\s*<\/p>/.test(elsewhere) &&
+                /const ALL_JOBS_LABEL = axesFor\(FILTERED_LISTS\[0\]\)\.find\(\(axis\) => axis\.param === "job"\)\.words\.all;/.test(source),
         ].join(" "),
         none: [
             /<h2 className="text-heading font-semibold">\{empty\.heading\}<\/h2>/.test(none),
@@ -104,6 +112,7 @@ export function run({ check, log }) {
         "every word the two empties and the two not-founds say",
         [
             ASSET_LIST_COPY.noItemsOn("25-USA-13"),
+            ASSET_LIST_COPY.otherJobsUnder(axesFor(FILTERED_LISTS[0]).find((axis) => axis.param === "job").words.all),
             ASSET_LIST_COPY.noAssetsHeading,
             ASSET_LIST_COPY.untilYouAdd,
             ASSET_LIST_COPY.untilASiteManagerAdds,
@@ -111,7 +120,7 @@ export function run({ check, log }) {
             ASSET_COPY.notFoundHeading,
             ASSET_COPY.backToTools,
         ].join(" | "),
-        "No items on 25-USA-13 | Nothing added yet | Items show here once you add them. | Items show here once a site manager adds them. | Page not found | Item not found | Back to Equipment & Tools"
+        "No items on 25-USA-13 | Items on other jobs show under All jobs. | Nothing added yet | Items show here once you add them. | Items show here once a site manager adds them. | Page not found | Item not found | Back to Equipment & Tools"
     );
     check("  and the list's copy holds no second not-found heading", "notFoundHeading" in ASSET_LIST_COPY, false);
 
@@ -121,7 +130,7 @@ export function run({ check, log }) {
     const page = parseFile(KIND_PAGE);
     const facts = emptyFacts(page.source);
     check("the page asks it of the count it read, the row's count and the job's code", facts.asks, true);
-    check("  the job's own empty: its heading, and no sentence, opener or other heading", facts.elsewhere, "true false");
+    check("  the job's own empty: its heading, no opener or other heading, and where the items are (#617)", facts.elsewhere, "true false true");
     check("  the other empty: its heading, who fills it, and the bordered opener", facts.none, "true true true");
     check("  the job's own empty is asked first", facts.order, true);
     check("an unknown kind: Page not found and the way back", facts.missing, "true true");
@@ -152,7 +161,20 @@ export function run({ check, log }) {
             "<planted-509>"
         ).source
     );
-    check("  no judgment asked, no empty of either kind, and the old not-found", `${planted.asks} | ${planted.elsewhere} | ${planted.none} | ${planted.missing}`, "false | false false | false false false | false false");
+    check("  no judgment asked, no empty of either kind, and the old not-found", `${planted.asks} | ${planted.elsewhere} | ${planted.none} | ${planted.missing}`, "false | false false false | false false false | false false");
+    // #612's job empty, its heading alone, with the word read as the page reads it.
+    const planted612 = emptyFacts(
+        parseSource(
+            'const ALL_JOBS_LABEL = axesFor(FILTERED_LISTS[0]).find((axis) => axis.param === "job").words.all;\n' +
+                "async function renderCategoryPage() {\n" +
+                "  if (empty?.elsewhere) {\n    return (\n      <ListFrame top={top} header={header}>\n        {empty.heading && (\n" +
+                '          <div className="flex flex-col items-center pt-list-empty-state-inset-top text-center">\n' +
+                '            <h2 className="text-heading font-semibold">{empty.heading}</h2>\n          </div>\n        )}\n      </ListFrame>\n    );\n  }\n' +
+                "}\n",
+            "<planted-612>"
+        ).source
+    );
+    check("  a job empty in #612's shape, its heading alone, is seen saying nothing under it (#617)", planted612.elsewhere, "true false false");
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

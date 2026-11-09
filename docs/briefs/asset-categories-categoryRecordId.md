@@ -286,10 +286,12 @@ stands on (#509).
 
 **When the job holds none of this category's items and another job does (#509,
 #520, #612):** the head, `0`, and in place of the entries the heading `No items
-on 25-USA-13`, the job by its code, with no sentence under it — the head still
-offers `Add items` to whoever may add (Soo's words, which 1d draws since the files
-of 2026-11-05; it drew `Nothing added yet` there until then, which would have been
-false). From #509 to #612 the head stood alone. The rows, the pager and the page
+on 25-USA-13`, the job by its code, and under it where the items are, `Items on
+other jobs show under All jobs.` (1d, Tools 59, #617) — the head still offers
+`Add items` to whoever may add (Soo's words, which 1d draws since the files of
+2026-11-05; it drew `Nothing added yet` there until then, which would have been
+false). From #509 to #612 the head stood alone, and from #612 to #617 the
+heading had no sentence under it. The rows, the pager and the page
 box are always the job's alone, and the breadcrumb's `Equipment & Tools` keeps the
 job. An asset off the job is left off this list and still opens from its label or a
 link. A job in the address the list does not offer is answered where the list
@@ -347,7 +349,8 @@ site manager's.
 
 **When the reader is not a site manager (#506):** the same screen, every fact
 on it, and none of the controls a site manager uses here — no `Add items` in
-the head or under an empty list, no box on an entry or for the page, no
+the head, where its room stays so the entries start where a site manager's do
+(1d, Tools 59, #617), or under an empty list, no box on an entry or for the page, no
 selection bar and so nothing to print, and neither dialog a registration's
 landing tells, which speak to whoever added. The column of boxes goes with
 the boxes, so the table is `Item ID`, `Serial number`, `Status`, the note's mark and `Updated`, the status taking
