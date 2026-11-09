@@ -3,9 +3,11 @@
 Route: `/asset-categories/[categoryRecordId]`
 Design: Tools 1d and 1c, on Invoices 0b and 0i.
 Who reaches it: anyone signed in, with no Role and no Job gate. What a reader DOES
-here is a site manager's: adding items, on the list's own job or on all jobs, and
-selecting and printing labels, on the list's own job alone. Everyone else reads the
-same screen without those controls — a site manager on another job's list among them.
+here is a site manager's: adding items, on the list's own job or on all jobs, to a
+kind neither discontinued nor set aside for a level, and selecting and printing
+labels, on the list's own job
+alone. Everyone else reads the same screen without those controls — a site manager on
+another job's list among them.
 Which width comes first: **desktop**, and it is the only one: labels are printed at
 a desk, so this screen does not support a phone's width.
 
@@ -87,7 +89,14 @@ to add more of this kind** (`listRecording`): the registration dialog opened on 
 step, with no count, since nothing here knows how many were bought, and with the
 list's job, which the dialog's job starts on when it is one of the reader's own. It
 carries neither the selection nor the page. Drawn for nobody else, and nothing says
-why.
+why. **Drawn on no kind discontinued or set aside for a level** — one the office
+discontinued, or a row the catalog sets aside for a level missing or holding a
+placeholder — which the same answer asks of the row the page read, so the screen is
+the one a reader who may not add sees: the opener's room in the head and, on an
+empty kind, the words for anybody else. The boxes stay, since what already stands
+under the kind still takes labels. The catalog's one other reason, a second row on a
+path, needs every row to see, so such a row's page draws the way to add and its press
+is refused.
 
 **What it reads:** 4 operations a view with rows — the session, the category, the
 job list and the kind's assets on the scope, a hundred to a query, read whole so
@@ -128,8 +137,8 @@ registration's account, so the notice is read before it is answered.
 what is still on it; each answer takes its part off the address. Every address the
 list writes carries the page, the selection, the job and the order alone, and while
 either dialog stands the list behind it cannot be pressed. A copied address carrying
-an account shows it to a reader who may add on that list (`listRecording`), and to
-anybody else neither.
+an account shows it to a reader who may add on that list and to that kind
+(`listRecording`), and to anybody else neither.
 
 **When more are selected than one print takes:** the bar counts them and the print
 control does not act — it still takes focus and says why
@@ -142,10 +151,11 @@ jobs. The head counts none and still offers the way to add to whoever may add.
 
 **When the kind has no assets anywhere:** `ASSET_LIST_COPY.noAssetsHeading`, and who
 fills it — `ASSET_LIST_COPY.untilYouAdd` over a second way to add for whoever may add,
-`ASSET_LIST_COPY.untilASiteManagerAdds` for anybody else. It is a catalog row nobody
-has bought yet, which no list shows; the screen is reached by its address. No
-boxes, bar or pager stand with it, and **the way to add stays**: it is how the kind's
-first assets are added.
+`ASSET_LIST_COPY.untilASiteManagerAdds` for anybody else, a site manager on a kind
+discontinued or set aside for a level among them. It is a catalog row nobody has
+bought yet, which no list shows; the screen is reached by its address. No boxes, bar
+or pager stand with it, and **the way to add stays on any other kind**: it is how the
+kind's first assets are added.
 
 **When no category carries the record id:** `ASSET_LIST_COPY.pageNotFound` and the
 way back to the list (`ASSET_LIST_COPY.backToTools`), answering one state — no screen

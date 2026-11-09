@@ -78,8 +78,9 @@ typed new in an item's dialog is added with the row, first.
 (`ASSET_CATALOG_COPY.renames`), said before the press.
 
 **When a row is edited**, it can be discontinued or restored, each writing that alone.
-A registration's search no longer offers a discontinued row, and the items already
-under it stay on every other screen.
+A registration's search no longer offers a discontinued row, and its own page draws
+no way to add to it; the items already under it stay on every screen, that page
+included, their labels still printed.
 
 **When nothing stands under the edited row**, it can be removed from the catalog, after
 a question (`ASSET_CATALOG_COPY.removeTitle`, `ASSET_CATALOG_COPY.removeSays`). A row
@@ -104,8 +105,8 @@ empties the search, the chips and the toggle at once; no pager under it.
 
 **The registration's search offers what this screen lists, less the discontinued rows
 and the ones it sets aside**, by the same reading (`lib/assetCategory.js:readCatalog`),
-and a registration opened on such a row from its own page is refused at the press
-(`tools-new.md`).
+and the own page of a row discontinued, or set aside for a level, draws no way to add
+to it (`asset-categories-categoryRecordId.md`).
 
 **The band is the category list's**: its chips, counts and address are one reading,
 so a chip's word changed on one changes on both; the search's label and the emptied

@@ -161,15 +161,18 @@ export async function generateMetadata() {
  * AND IT IS WHERE A SITE MANAGER ADDS MORE UNDER THIS CATEGORY (#451). One control opens the
  * registration dialog on this kind and with no count — nothing here knows how many
  * were bought — and costs nothing: the kind is the row already read, and the reader
- * and the job list are what this page reads anyway. It is drawn for every kind this page
- * finds, the one with nothing under it included, and for a site manager on no job not at all,
+ * and the job list are what this page reads anyway. It is drawn for every kind the catalog
+ * offers, the one with nothing under it included, and for a site manager on no job not at all,
  * with no sentence saying why, as `/asset-categories` draws them none (#522, #610): until #610
  * this page drew it and the offer below disabled, with `Ask the office to assign you to a job`
- * before each (#456).
+ * before each (#456). **Nor for a kind the catalog no longer offers (#620)** — discontinued, or
+ * set aside for a level — which the page draws as for a reader who may not add, since
+ * `listRecording` is handed the row and asks the catalog's own reading of it; until #620 the
+ * dialog opened on such a row with nothing to pick, and its press was refused.
  * The dialog starts at its second step on this kind (#507): the kind is submitted by its
  * record id, and the dialog is handed the kind as the catalog it may pick from — so the
- * levels it asks start on this kind's values (#514) — which is none at all for a row the
- * catalog no longer offers: its refusal is then the action's.
+ * levels it asks start on this kind's values (#514). A row discontinued while it is open is
+ * the action's refusal.
  *
  * WHAT THE KIND IS, IN THE CAPTION UNDER ITS NAME (#507): its type and its category since #519,
  * and its class until #552, off the row already read (`CategoryCaption`).
@@ -258,9 +261,11 @@ async function renderCategoryPage({ params, searchParams }) {
     const account = readRegistrationAccount({ asked: sp.asked, unwritten: sp.unwritten, unlogged: sp.unlogged });
     // Whether this reader adds assets here and prints their labels here (#506, #597): a site
     // manager on the job the list stands on does both, one on all jobs adds alone while they
-    // hold a job (#610), and on another job's list neither. Every control below that does
-    // either is drawn under it, and nothing else on the page is.
-    const recording = listRecording(user, scope);
+    // hold a job (#610), and on another job's list neither — and nobody adds to a kind the
+    // catalog no longer offers, which is the row's own answer, asked of the row read above
+    // (#620). Every control below that does either is drawn under it, and nothing else on the
+    // page is.
+    const recording = listRecording(user, scope, category);
     // What both openers on this page hand the registration dialog (#456): the jobs its choice
     // offers, and the job this list stands on, which that choice starts on when it is one of
     // them (#565) — none on all jobs, and the scope's answer rather than the address's, so it
@@ -274,7 +279,8 @@ async function renderCategoryPage({ params, searchParams }) {
     // the list stands on, which the reader changes there (#519). The category's name is the
     // heading and there is no heading word, which is the shape the asset's page takes.
     // Registering more under this category (#451) is the head's one control, so a category with
-    // nothing under it keeps it — there it is the way to write what a registration did not. It
+    // nothing under it keeps it while the catalog offers it — there it is the way to write what a
+    // registration did not. It
     // opens the dialog on this category (#456). The way back keeps the job the list stands on
     // (#509). The bar names the category once its heading has scrolled under it (1d, #519).
     const top = (
@@ -302,13 +308,15 @@ async function renderCategoryPage({ params, searchParams }) {
         />
     );
     // The dialog on this kind (#507): the row as the page read it, and the catalog it may pick
-    // from, which is this row alone — none when the catalog no longer offers it — so each
-    // level its second step asks has this row's value already chosen (#514).
+    // from, which is this row alone — a row the catalog no longer offers draws no opener and no
+    // offer at all (`listRecording`, #620) — so each level its second step asks has this row's
+    // value already chosen (#514).
     const opened = { id: category.id, itemName: category.itemName };
     const catalog = registrationCatalog([category]);
     const registration = { opener: ASSET_REGISTRATION_COPY.heading, jobs: assignedJobs, listJobId, category: opened, catalog };
     // The head's controls stand in a column at its foot (1d, #540): `Add items` for a site manager,
-    // or its room for anybody else since #617, and under it, while the list has rows to order, the sort — pulled out past the content's edge by
+    // or its room for anybody else since #617 and on a kind the catalog no longer offers since
+    // #620, and under it, while the list has rows to order, the sort — pulled out past the content's edge by
     // its own room, so its chevron meets it, and 14 over the column head where the head's foot is 18.
     const header = (
         <ListHeader
@@ -363,7 +371,8 @@ async function renderCategoryPage({ params, searchParams }) {
                 <div className="flex flex-col items-center pt-list-empty-state-inset-top text-center">
                     <h2 className="text-heading font-semibold">{empty.heading}</h2>
                     {/* Who fills it (1d, #519): the site manager, with the opener under it (#506),
-                        or a site manager, for anybody else. */}
+                        or a site manager, for anybody else and on a kind the catalog no longer
+                        offers (#620). */}
                     <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">
                         {recording.adds ? COPY.untilYouAdd : COPY.untilASiteManagerAdds}
                     </p>

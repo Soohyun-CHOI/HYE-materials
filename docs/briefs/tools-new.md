@@ -4,8 +4,8 @@ Opens from: `/asset-categories` and `/asset-categories/[categoryRecordId]`, as a
 Design: Tools 1b and 1c, on Invoices 0l.
 Who reaches it: a site manager holding a job, from a list standing on one of their
 own jobs or on all jobs (`lib/assetListView.js:listRecording`); nobody else is drawn
-a control that opens it — not on another job's list, and not a site manager on no
-job.
+a control that opens it — not on another job's list, not a site manager on no job,
+and not on the page of a kind discontinued or set aside for a level.
 Which width comes first: **desktop**, and it is the only one: items are added at a
 desk, so this dialog does not support a phone's width.
 
@@ -19,8 +19,12 @@ with its own minted id. The catalog — the office's, on its own screen
 name, then a size, a maker and a part number where those apply. **This dialog never
 adds to it**: a kind missing from it is the office's to add, and **a kind the office
 has marked discontinued, or a row the catalog sets aside, is not offered by the
-search**, and the dialog opened on one from its own page refuses the press with
-`ASSET_REGISTRATION_COPY.itemGone` — the items already under it stay where they are.
+search**. The page of one discontinued, or set aside for a level missing or holding a
+placeholder, draws no way to add to it. A row discontinued while the dialog is open,
+and a second row on a path — set aside too, but only the whole catalog shows it, so
+its page still opens the dialog — are refused at the press with
+`ASSET_REGISTRATION_COPY.itemGone`. The items already under such a row stay where
+they are.
 The type changes nothing an asset does.
 
 Picking a kind the company already has is the ordinary case, and so is one nobody has

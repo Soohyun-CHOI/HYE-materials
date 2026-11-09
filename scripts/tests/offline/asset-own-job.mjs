@@ -16,7 +16,8 @@
 //      as and as not a site manager — and `planTransition`'s `records` being that answer for each.
 //   2. A LIST BY VALUE (`listRecording`): on the reader's own job's list the opener and the boxes,
 //      on another's neither, and on all jobs the opener alone — and since #610 only for a site
-//      manager holding a job the list holds, so one on no job is offered nothing on any list.
+//      manager holding a job the list holds, so one on no job is offered nothing on any list —
+//      and since #620, on a kind's page, the opener only for a kind the catalog still offers.
 //   3. THE THREE ACTIONS OFF THEIR SOURCE: each plans on the item's job as read, compares the job
 //      the page was drawn on and writes none the form names, and a refusal about whose item it is
 //      is said; the retirement a status got in front of says nothing, as it did.
@@ -143,6 +144,50 @@ export function run({ check, assert, log }) {
     );
     check("  a list on no job at all offers nothing", JSON.stringify(listRecording(READERS["site manager on 23-USA-09"], { job: null, allJobs: false })), '{"adds":false,"selects":false}');
     check("  and a list with no scope nothing either", JSON.stringify(listRecording(READERS["site manager on 23-USA-09"], undefined)), '{"adds":false,"selects":false}');
+    // ON A KIND'S PAGE THE ROW IT READ IS ASKED AS WELL (#620): `readCatalog`'s own reading of it,
+    // so a kind discontinued or set aside for a level is drawn as for a reader who may not add —
+    // no opener, the boxes as they were — where until #620 the opener stood and its press was
+    // refused. A mark is only the checkbox's `true`, as the catalog reads it; and the list of
+    // kinds, which names none, answers as it did.
+    const KIND = { id: "recK1", level1: "Tool", level2: "Grinding", level3: "Angle Grinder", size: "", maker: "", partNumber: "" };
+    const KINDS = {
+        offered: KIND,
+        discontinued: { ...KIND, discontinued: true },
+        "a level missing": { ...KIND, level3: "" },
+        "a placeholder": { ...KIND, maker: "N/A" },
+        "marked otherwise than true": { ...KIND, discontinued: "true" },
+    };
+    const offersOn = (user, job, kind) => {
+        const r = listRecording(user, assetListScope(user, JOBS, job), kind);
+        return `${r.adds ? "add" : "-"}/${r.selects ? "boxes" : "-"}`;
+    };
+    check(
+        "on a kind's page, by the kind: a site manager on 23-USA-09 on its list, and on all jobs",
+        Object.entries(KINDS)
+            .map(([name, kind]) => `${name}: ${[A.id, ALL_JOBS].map((job) => offersOn(READERS["site manager on 23-USA-09"], job, kind)).join(" ")}`)
+            .join(" | "),
+        "offered: add/boxes add/- | discontinued: -/boxes -/- | a level missing: -/boxes -/- | a placeholder: -/boxes -/- | marked otherwise than true: add/boxes add/-"
+    );
+    check(
+        "  for every reader and list, an offered kind is the list's own answer, any other the opener taken off it alone",
+        Object.entries(READERS)
+            .flatMap(([name, user]) =>
+                [A.id, C.id, ALL_JOBS].flatMap((job) => {
+                    const scope = assetListScope(user, JOBS, job);
+                    const own = listRecording(user, scope);
+                    const offered = listRecording(user, scope, KINDS.offered);
+                    const discontinued = listRecording(user, scope, KINDS.discontinued);
+                    return JSON.stringify(offered) === JSON.stringify(own) && !discontinued.adds && discontinued.selects === own.selects ? [] : [`${name} on ${job}`];
+                })
+            )
+            .join(" | "),
+        ""
+    );
+    check(
+        "  and the list of kinds, naming none, answers as before",
+        [undefined, null].map((none) => JSON.stringify(listRecording(READERS["site manager on 23-USA-09"], assetListScope(READERS["site manager on 23-USA-09"], JOBS, A.id), none))).join(" "),
+        '{"adds":true,"selects":true} {"adds":true,"selects":true}'
+    );
 
     // ── 3: the three actions, off their source ───────────────────────────────
     log("");
