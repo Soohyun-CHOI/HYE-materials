@@ -283,10 +283,11 @@ export function run({ check, log }) {
     );
     // AND WHOLE, AS THE LIST'S ANSWER (#597): `listRecording` asks the reader's own jobs whether
     // the job the list stands on is one of them, so the scope reaches a control only through that.
+    // A kind's page hands it the row it read too, which asks no job (#620).
     check(
         "  and whole on the two lists, as what the list offers to record (#597)",
         `${bound(list, "recording")} | ${bound(category, "recording")} | ${bound(item, "recording")}`,
-        "listRecording(user, scope) | listRecording(user, scope) | not bound"
+        "listRecording(user, scope) | listRecording(user, scope, category) | not bound"
     );
     check(
         "  no recording control on the three pages is drawn under anything the scope answered",

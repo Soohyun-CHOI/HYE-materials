@@ -1,100 +1,71 @@
 # Your name
 
 Route: `/login/name`
-Who reaches it: anybody whose `Users` row has no first name, on the first page
-they try to open after signing in. In practice that is every new colleague once,
-and — for one transition — every existing account once. Nobody sees it twice.
-
-It is the **last step of the sign-in flow** — after the confirm screen's button,
-or after the code on the sign-in screen (#471) — so it is used at a phone width as
-well as at a monitor, for the same reason the screens before it are: a QR label
-scanned on site can arrive signed out, and a first-time scanner comes through
-them.
+Design: Sign in 1c and 1g, on Invoices 0o.
+Who reaches it: anybody signed in whose `Users` row has no first name, on any page
+they open (`lib/authz.js:requireUser`) — in practice every new colleague once, after
+their first sign-in. A reader with a name never sees it.
+Which width comes first: both, as the two sign-in screens before it: a first-time
+scanner comes through all three on a phone.
 
 ## What it answers
 
 What should the app call you? Every screen that names a person reads one stored
-name, and until this screen existed that name was whatever came before the at
-sign in the person's email address — so a request was waiting on `bsws9803` and
-an edit log said `hkahn` changed something.
+name (`lib/userName.js`).
 
 **It is deliberately after the token rather than before it.** Asking on the
-sign-in screen would take a name from somebody who has not yet shown they
-control the address, and the answer would then have to survive a mail round
-trip. Here the address is proven and the row already exists, so the question is
-being asked of a person the app can be sure of.
-
-**Two fields, both required.** Screens name a person by their first name; the full
-name goes where a person is chosen from a list and onto what a vendor reads. **The
-screen does not say so since #473**: the design titles the step for what it asks
-and draws no sentence under it, where until then two lines said why the step was in
-front of the reader and why a last name was asked at all.
+sign-in screen would take a name from somebody who has not yet shown they control
+the address, and the answer would have to survive a mail round trip. Here the
+address is proven and the row exists.
 
 ## What it always carries
 
-**identity.** The product's name as the wordmark, the same as on the two screens
-before it, and the title `Add your name`.
+**Two fields, both required, a first name and a last name.** What is typed is
+trimmed and its runs of spaces made one; its case is left as typed. Screens name a
+person by the first name, and the full name in the four kinds of place below.
 
-**action.** Two labelled text fields, `First name` and `Last name` — side by side at
-a desk, one above the other on a phone — each showing an example, `e.g. Jane` and
-`e.g. Doe` (#554), and one full-width filled button, `Continue`. What is typed is
-kept as typed; nothing changes its case.
+**Where the reader was going travels through it** in the address and a hidden
+field, never in a sentence, so a person who scanned a label lands on that item.
 
-That is the whole screen. Like the two before it, it carries no navigation of any
-kind — there is nowhere else to go from here.
-
-**It also carries one thing it never shows.** Where the reader was going travels
-with them into this screen and out the other side, so a person who scanned a
-tool label lands on that asset. It is in the URL and in a hidden field,
-never in a sentence — the same silence the two screens before it keep.
+**What it reads:** 1 operation, the session; a save 2 (`docs/notes/authorization.md`).
+The gate that sends a reader here costs nothing — it is a property of the row the
+session already read.
 
 ## What it carries only sometimes
 
-**While saving:** the button keeps its fill and takes no press, and if the wait
-passes a moment it shows a spinner before `Saving…` — on a phone, the spinner
-alone. The fields keep their look and take no typing.
+**While saving:** the press is busy and the fields take no typing
+(`USER_NAME_COPY.working`).
 
-**When a name is missing:** one sentence stands under that field,
-`Enter your first name.` or `Enter your last name.` — under both, when both are
-empty.
+**When a name is missing:** `USER_NAME_COPY.refusal.first` or
+`USER_NAME_COPY.refusal.last`, under that field — under both when both are empty.
 
-**When a name is too long:** `Max 60 characters.`, under that name. The field takes
-the longer name and refuses it, rather than cutting a paste short.
+**When a name is too long:** `USER_NAME_COPY.refusal.tooLong`, under that name. The
+field takes the longer name and refuses it rather than cutting a paste short; the
+ceiling is the module's own, 60 characters.
 
-**When the write fails:** `Couldn't save your name. Try again.`, where the sign-in
-screens say a request did not happen. The fields keep what was typed — a person
-should never be made to type their own name twice to find out why it was refused.
+**When the write fails:** `USER_NAME_COPY.refusal.failed`. The fields keep what was
+typed — a person should never type their own name twice to find out why it was
+refused.
 
-There is no success state on this screen. Saving lands the reader on the page
-they were going to, which is what says the save happened.
+**There is no success state.** Saving lands the reader on the page they were going
+to, or on the job step first when that applies.
 
 ## What must agree elsewhere
 
-**The wordmark is the sign-in screen's and the confirm screen's**, all three under
-one frame, so they read as one flow.
+**Nothing else in the app asks a reader for their own name, and no screen edits
+one.** A reader who already has a name and opens this address is sent away rather
+than shown the form:
+this is a step, not a profile screen. Correcting a typo is an Airtable edit.
 
-**Nothing else in the app asks for a name, and no screen edits one.** A reader
-who already has a name and opens this address is sent away rather than shown the
-form: this is a step, not a profile screen. Correcting a typo is an Airtable
-edit until an issue decides who may change whose name.
-
-**The first name is what every screen naming a person then shows** — the
-request list's Requester column, the signing chain, the history timeline,
-`Recorded by`. The full name appears in four kinds of place: where a person is
-chosen from a list (the signer pickers), where somebody outside this company reads
-it (the purchase order PDF and the order email), where a person is named as the one
-who did something (an asset's history, #463), and where the reader is named to
-themselves (the account at the rail's foot, #554).
+**The first name is what every screen naming a person shows**; the full name
+appears where a person is chosen from a list (the signer pickers), where somebody
+outside the company reads it (the purchase order PDF and the order email), where
+a person is named as the one who did something (an asset's history), and where the
+reader is named to themselves (the rail's account).
 
 **While a name is blank the app prints the local part of the person's email**,
-which is what every screen printed before this screen existed. So an account
-that has not signed in since is not blank on screen — it reads exactly as it
-always did, and improves the moment its owner comes through here.
+which is what every screen printed before this step existed, so an account that has
+not signed in since reads as it always did.
 
 **The job step comes after it** for a reader with no job who is neither the office
-nor the President (#554, `login-jobs.md`): the name first, then the jobs, then the
-page the reader was going to.
-
-**This screen is used at a phone width as well as at a monitor**, along with the
-two sign-in screens before it, because a scan that arrives signed out comes
-through all three.
+nor the President (`login-jobs.md`): the name, then the jobs, then the page.

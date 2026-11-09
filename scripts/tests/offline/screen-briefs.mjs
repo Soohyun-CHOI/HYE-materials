@@ -6,6 +6,13 @@
 // different failure from the ones the rest of this tier watches: nothing breaks, no
 // screen misrenders, and the wrong document is simply believed.
 //
+// A DRAWN SCREEN'S BRIEF IS HELD THE OTHER WAY ROUND (#620). The Equipment & Tools
+// screens and the sign-in steps match their design files, which say how they look and
+// what they say; their briefs keep what the drawing does not, and name a sentence by
+// its constant's key. So for those this check asks that every key named is one the
+// code holds, that every case of the sets a brief covers is named, and that no brief
+// quotes its screen's words or cites an issue — `DESIGNED` below.
+//
 // WHAT IT CANNOT SEE, said here rather than in a footnote, because it is most of
 // what a brief asserts:
 //
@@ -29,6 +36,11 @@
 //      to the weaker question — does the literal still appear under app/ — which
 //      proves the string is somewhere rather than that it is still the constant's
 //      value.
+//
+//   5. Whether a drawn brief's frames exist, and whether its drawing says what the
+//      brief leaves to it (#620). The design files are not in this repository, so a
+//      `Design:` line is read for its shape alone — a file and a frame id, and no
+//      sending's number.
 //
 // A word written straight into JSX gets that same weaker treatment, and #227's
 // sweep does not reach it either — recorded in docs/notes against the phrase
@@ -59,9 +71,22 @@ import { AWAITING_PO_COPY, AWAITING_SEND_COPY } from "../../../lib/poListView.js
 // three document lists became callers. `LIST_EMPTY_COPY` is twelve sentences rather
 // than three, and all four briefs quote their own.
 import { FILTER_BAR_COPY, LIST_AXES, LIST_EMPTY_COPY } from "../../../lib/listFilters.js";
-import { CODE_COPY, CODE_STATES, CONFIRM_COPY, SIGN_IN_COPY } from "../../../lib/authTokenState.js";
+import { CODE_COPY, CODE_STATES, CONFIRM_COPY, SIGN_IN_COPY, TOKEN_STATES } from "../../../lib/authTokenState.js";
 import { COMPANY_EMAIL_COPY } from "../../../lib/companyEmail.js";
 import { USER_NAME_COPY } from "../../../lib/userName.js";
+import { USER_JOBS_COPY } from "../../../lib/userJobs.js";
+import { ASSET_LIST_COPY } from "../../../lib/assetListView.js";
+import { ASSET_REGISTRATION_COPY } from "../../../lib/assetRegistration.js";
+import { ASSET_TRANSITION_COPY } from "../../../lib/assetTransition.js";
+import { ASSET_NOTE_COPY } from "../../../lib/assetNote.js";
+import { ASSET_SERIAL_COPY } from "../../../lib/assetSerial.js";
+import { ASSET_CATALOG_COPY } from "../../../lib/assetCatalog.js";
+import { ASSET_OFFICE_COPY } from "../../../lib/assetOfficeActs.js";
+import { ASSET_JOB_COPY } from "../../../lib/assetJob.js";
+import { ASSET_CATEGORY_COPY } from "../../../lib/assetCategory.js";
+import { ASSET_EXPORT_COPY } from "../../../lib/assetListExport.js";
+import { ASSET_LABEL_PAGE_COPY } from "../../../lib/assetLabelPage.js";
+import { ASSET_EVENT_VALUES } from "../../../lib/assetStatus.js";
 import { PO_DOCUMENTS_COPY } from "../../../lib/poDocuments.js";
 import { LINK_COPY } from "../../../lib/deliveryInvoiceLink.js";
 import { ALLOCATION_COPY } from "../../../lib/deliveryAllocation.js";
@@ -332,39 +357,10 @@ const PINNED = [
     // that has to survive a rewording: it is why the state matters, and #281 is the
     // only place a reader learns that sending IS placing the order.
     "received these, and sending one to the vendor is what places the order.",
-    // #473 — THE SIGN-IN STEPS IN THE DESIGN'S WORDS, which replaced #471's: the
-    // confirmation's states, the code step's and the name step's. Pinned on the
-    // distinctive ones — `Sign in` and `Continue` are words other constants say, which
-    // is the matcher's `Paid` objection below — and the refusal with a figure at the
-    // figure the brief shows, which the loadable list renders explicitly.
-    "You're signing in as",
-    "This link no longer works",
-    "This link has expired",
-    "This link isn't valid",
-    "Get a new link sent to",
-    "Go to sign in",
-    "Enter your work email.",
-    "Check your email",
-    "Enter the code we sent to",
-    "Didn't get it?",
-    "Resend email",
-    "Email sent",
-    "Enter the 6-digit code from the email.",
-    "Incorrect code. 4 attempts left.",
-    "Too many tries",
-    "This code has expired",
-    "This code no longer works",
-    "Get a new code sent to",
-    "Send new email",
-    "Something went wrong. Try again.",
-    // #148 — what every control that asks for an email says when a ceiling holds it back,
-    // and `Resend email` while its wait runs, at the figure the brief shows.
-    "Too many requests. Try again later.",
-    "Resend in 0:57",
-    "Add your name",
-    "Use your @hanyangengusa.com address.",
-    "Max 60 characters.",
-    "Couldn't save your name. Try again.",
+    // #620 — THE SIGN-IN STEPS' TWENTY-EIGHT AND THE ASSET PAGE'S TWO LEFT THIS LIST. Their
+    // screens are drawn, the briefs quote none of their words, and `DESIGNED` below holds those
+    // briefs to the constants' keys instead — the same two halves, a key the code holds and a
+    // brief that names it, with the sentence's wording left to the constant and the drawing.
     "That invoice no longer exists.",
     "No invoice from this vendor has been entered yet, so there is nothing to attach.",
     "One invoice belongs to one delivery, so one already attached elsewhere is",
@@ -478,19 +474,6 @@ const PINNED = [
     "Do not approve again",
     "Do not send it back again",
     "Ask for these to be corrected in Airtable",
-    // #340 — the two sentences the asset's own page owns, and neither is a word
-    // this app uses elsewhere, so a pin on either fails on a rewording. The first
-    // is the state #338 can leave behind — an asset written whose first log row
-    // was not — and its brief quotes it as reachable rather than as an error, which
-    // is the reading a redesign is most likely to lose. Both are the design's since
-    // #463, which replaced `Nothing has been recorded against this tool, …` and
-    // `Tool item not found`; the second is pinned on the phone's sentence, since the
-    // heading it stands under is the category page's heading too.
-    // Pinned on a clause that fits inside a brief's own 72-character wrap, which
-    // is the constraint the #272 note above records the hard way, and on a clause
-    // unique to THIS constant.
-    "No history yet",
-    "No item has this code.",
     // #146 — the one refusal five screens share, pinned WITHOUT either figure for the
     // reason the threshold sentence above is: the briefs write where the sizes go, and
     // both of them are meant to move. The file's size moves per file; the limit moves
@@ -514,6 +497,258 @@ const PINNED = [
     // sentence telling a reader how to recover from a word that matched too much.
     "Add another word to narrow the search",
 ];
+
+/**
+ * The constants a drawn screen's words live in (#620), by the name a brief cites them under.
+ *
+ * A DRAWN SCREEN'S BRIEF QUOTES NONE OF ITS WORDS AND NAMES ITS CASES BY KEY. The Equipment &
+ * Tools screens and the sign-in steps match their Claude Design files, so the words are in two
+ * places already — the constant and the drawing — and a third copy in the brief is the one that
+ * went stale with each sending. What the brief keeps is which case says what, by the constant's
+ * key, and that is what the section below holds: a key it names is one the code holds, and every
+ * case of the sets it covers is named. Every module here loads offline.
+ */
+const DESIGN_COPY = {
+    CONFIRM_COPY,
+    CODE_COPY,
+    SIGN_IN_COPY,
+    COMPANY_EMAIL_COPY,
+    USER_NAME_COPY,
+    USER_JOBS_COPY,
+    ASSET_COPY,
+    ASSET_LIST_COPY,
+    ASSET_REGISTRATION_COPY,
+    ASSET_TRANSITION_COPY,
+    ASSET_NOTE_COPY,
+    ASSET_SERIAL_COPY,
+    ASSET_CATALOG_COPY,
+    ASSET_OFFICE_COPY,
+    ASSET_JOB_COPY,
+    ASSET_CATEGORY_COPY,
+    ASSET_EXPORT_COPY,
+    ASSET_LABEL_PAGE_COPY,
+};
+
+/**
+ * The drawn screens' briefs (#620), each with the cases it has to name every one of.
+ *
+ * THE SET IS NAMED, AS `PINNED` IS, AND EVERY BRIEF CARRYING A `Design:` LINE HAS TO BE IN IT, so a
+ * line added or taken away cannot move a brief in or out of the rules without this list moving
+ * too. A case is a constant's key, which the brief names itself or by a key under it — naming an
+ * ancestor covers nothing, or citing the whole constant would cover every case — or, for a value
+ * the base stores and the screen prints as it is, the value in backticks.
+ *
+ * WHERE A STATE MACHINE DECLARES THE SET, THE SET IS DERIVED FROM IT RATHER THAN TYPED: the
+ * token's states, the code's, the name step's and the job step's refusals, and the asset log's
+ * events. A state added there fails here until a brief names it, which is the second path a
+ * typed list would not be. The rest are named, and a case added to a constant and not here is
+ * uncovered rather than wrongly passed — the count logged below says how much is covered.
+ */
+const DESIGNED = new Map([
+    [
+        "login.md",
+        [
+            ...Object.values(CODE_STATES)
+                .filter((state) => state !== CODE_STATES.VALID)
+                .map((state) => `CODE_COPY.${state}`),
+            "SIGN_IN_COPY.failed",
+            "SIGN_IN_COPY.limited",
+            "COMPANY_EMAIL_COPY.otherDomain",
+        ],
+    ],
+    ["login-confirm.md", Object.values(TOKEN_STATES).map((state) => `CONFIRM_COPY.${state}`)],
+    ["login-name.md", Object.keys(USER_NAME_COPY.refusal).map((key) => `USER_NAME_COPY.refusal.${key}`)],
+    ["login-jobs.md", Object.keys(USER_JOBS_COPY.refusal).map((key) => `USER_JOBS_COPY.refusal.${key}`)],
+    [
+        "asset-categories.md",
+        [
+            "ASSET_LIST_COPY.noItemsHeading",
+            "ASSET_LIST_COPY.noItems",
+            "ASSET_LIST_COPY.untilASiteManagerAdds",
+            "ASSET_LIST_COPY.noneMatch",
+            "ASSET_LIST_COPY.noneMatchFilters",
+            "ASSET_LIST_COPY.noIdMatch",
+            "ASSET_LIST_COPY.noIdMatchOn",
+            "ASSET_LIST_COPY.noIdMatchFiltered",
+            "ASSET_LIST_COPY.noSerialMatchOn",
+            "ASSET_LIST_COPY.noSerialMatchFiltered",
+            "ASSET_EXPORT_COPY.failed",
+        ],
+    ],
+    [
+        "asset-categories-categoryRecordId.md",
+        [
+            "ASSET_LIST_COPY.noItemsOn",
+            "ASSET_LIST_COPY.chooseAllJobs",
+            "ASSET_LIST_COPY.noAssetsHeading",
+            "ASSET_LIST_COPY.untilYouAdd",
+            "ASSET_LIST_COPY.untilASiteManagerAdds",
+            "ASSET_LIST_COPY.pageNotFound",
+            "ASSET_LIST_COPY.printCap",
+            "ASSET_REGISTRATION_COPY.added",
+            "ASSET_REGISTRATION_COPY.shortfall",
+            "ASSET_REGISTRATION_COPY.unlogged",
+        ],
+    ],
+    [
+        "assets-assetId.md",
+        [
+            ...ASSET_EVENT_VALUES,
+            "ASSET_TRANSITION_COPY.moved",
+            "ASSET_TRANSITION_COPY.someoneFirst",
+            "ASSET_TRANSITION_COPY.movedTo",
+            "ASSET_TRANSITION_COPY.noPermission",
+            "ASSET_TRANSITION_COPY.noTransition",
+            "ASSET_TRANSITION_COPY.statusNotUpdated",
+            "ASSET_TRANSITION_COPY.lendHalfDone",
+            "ASSET_TRANSITION_COPY.returnHalfDone",
+            "ASSET_TRANSITION_COPY.lendNoneChosen",
+            "ASSET_TRANSITION_COPY.nameRequired",
+            "ASSET_OFFICE_COPY.recordedSince",
+            "ASSET_OFFICE_COPY.deleteRecordedSince",
+            "ASSET_OFFICE_COPY.noAccess",
+            "ASSET_OFFICE_COPY.deleteNoAccess",
+            "ASSET_OFFICE_COPY.jobNoneChosen",
+            "ASSET_OFFICE_COPY.halfDone",
+            "ASSET_OFFICE_COPY.deleteHalfDone",
+            "ASSET_NOTE_COPY.tooLong",
+            "ASSET_NOTE_COPY.changedFirst",
+            "ASSET_SERIAL_COPY.tooLong",
+            "ASSET_SERIAL_COPY.takenBy",
+            "ASSET_SERIAL_COPY.changedFirst",
+            "ASSET_COPY.noHistory",
+            "ASSET_COPY.notFoundHeading",
+            "ASSET_COPY.notFoundScanned",
+            "ASSET_COPY.symbolTooLargeNote",
+        ],
+    ],
+    [
+        "tools-new.md",
+        [
+            "ASSET_REGISTRATION_COPY.levelNoneChosen",
+            "ASSET_REGISTRATION_COPY.quantityInvalid",
+            "ASSET_REGISTRATION_COPY.quantityTooMany",
+            "ASSET_REGISTRATION_COPY.jobNoneChosen",
+            "ASSET_REGISTRATION_COPY.jobNotYours",
+            "ASSET_REGISTRATION_COPY.noJob",
+            "ASSET_REGISTRATION_COPY.itemGone",
+            "ASSET_REGISTRATION_COPY.noneWritten",
+            "ASSET_REGISTRATION_COPY.noneMatches",
+        ],
+    ],
+    [
+        "tool-items-labels.md",
+        [
+            "ASSET_LABEL_PAGE_COPY.readFailed",
+            "ASSET_LABEL_PAGE_COPY.noPermission",
+            "ASSET_LABEL_PAGE_COPY.notFound",
+            "ASSET_LABEL_PAGE_COPY.notYours",
+            "ASSET_LABEL_PAGE_COPY.noLabels",
+            "ASSET_LABEL_PAGE_COPY.symbolTooLarge",
+        ],
+    ],
+    [
+        "asset-catalog.md",
+        [
+            "ASSET_CATALOG_COPY.noAccess",
+            "ASSET_CATALOG_COPY.refusal",
+            "ASSET_CATALOG_COPY.renames",
+            "ASSET_CATALOG_COPY.hasItems",
+            "ASSET_CATALOG_COPY.gone",
+            "ASSET_CATALOG_COPY.notSaved",
+            "ASSET_CATALOG_COPY.categoryOnly",
+            "ASSET_CATALOG_COPY.categoryNotCreated",
+            "ASSET_CATALOG_COPY.notRemoved",
+            "ASSET_CATALOG_COPY.noneMatch",
+        ],
+    ],
+]);
+
+/** A key a brief cites: a constant's name, then a dotted path into it. */
+const COPY_KEY = /^([A-Z][A-Z0-9_]*_COPY)((?:\.[A-Za-z0-9_]+)*)$/;
+
+/** Every key a text cites, in backticks, as written. */
+export function citedKeys(text) {
+    return [...text.matchAll(/`([^`\n]+)`/g)].map((m) => m[1]).filter((span) => COPY_KEY.test(span));
+}
+
+/** Whether a cited key is one the code holds: its constant is a drawn screen's, and the path is in it. */
+export function keyHeld(key, constants = DESIGN_COPY) {
+    const [, name, path] = key.match(COPY_KEY) ?? [];
+    if (!name || !Object.prototype.hasOwnProperty.call(constants, name)) return false;
+    let node = constants[name];
+    for (const segment of path.split(".").slice(1)) {
+        // A sentence or a builder is a leaf: a function's `length` is no key of the constant.
+        if (node === null || typeof node !== "object") return false;
+        if (!Object.prototype.hasOwnProperty.call(node, segment)) return false;
+        node = node[segment];
+    }
+    return true;
+}
+
+/**
+ * The frames a `Design:` line names, and anything on it that is not a file, a frame or a joining
+ * word (#620). A frame is a file's short name and an id, `Tools 1d`; a file named with no frame
+ * after it is stray, and so is a sending's number, which the line never carries.
+ */
+export function readDesignLine(text) {
+    const line = text.match(/^Design:(.*)$/m)?.[1];
+    if (line === undefined) return null;
+    const frames = [];
+    const stray = [];
+    let file = null;
+    let framed = true;
+    for (const word of line.replace(/[,.]/g, " ").replace(/\bSign in\b/g, "Sign_in").split(/\s+/).filter(Boolean)) {
+        if (["Sign_in", "Tools", "Invoices"].includes(word)) {
+            if (!framed) stray.push(file);
+            file = word.replace("_", " ");
+            framed = false;
+        } else if (file && /^[01][a-z]\d?$/.test(word)) {
+            frames.push(`${file} ${word}`);
+            framed = true;
+        } else if (word !== "and" && word !== "on") stray.push(word);
+    }
+    if (!framed) stray.push(file);
+    return { frames, stray };
+}
+
+/**
+ * Every string a drawn screen's constants can say: each literal, each builder probed as
+ * `stringsFrom` probes, and the builders a brief would quote at a figure, rendered at it.
+ */
+function designedStrings() {
+    // Each called only while it is a builder, so a key renamed is reported by the section below
+    // as a key the code no longer holds rather than ending the run here.
+    const at = (builder, ...args) => (typeof builder === "function" ? [builder(...args)] : []);
+    return [
+        ...stringsFrom(DESIGN_COPY),
+        ...at(CODE_COPY[CODE_STATES.WRONG], 4),
+        ...at(CODE_COPY[CODE_STATES.WRONG], 1),
+        ...at(SIGN_IN_COPY.code?.resendIn, 57_000),
+        ...at(COMPANY_EMAIL_COPY.otherDomain, "hanyangengusa.com"),
+    ].filter((s) => typeof s === "string");
+}
+
+/**
+ * The spans of a text that quote what a drawn screen says (#620): a span with a space in it that
+ * IS one of those strings, or a longer one standing inside one. A key, a field name, an id and a
+ * base value a screen prints as stored are none of these, and a word too short to be a sentence
+ * is left alone — `Checked out` is the event's stored value, a fact about the base.
+ */
+export function quotedWords(text, strings) {
+    return [...text.matchAll(/`([^`\n]+)`/g)]
+        .map((m) => m[1])
+        .filter((span) => /\s/.test(span) && !COPY_KEY.test(span))
+        .filter((span) => (span.length >= 8 && strings.includes(span)) || (span.length >= 16 && strings.some((s) => s.includes(span))));
+}
+
+/** The cases of `cases` a brief's text does not name (#620): a key not cited at or under it, a value not in backticks. */
+export function casesMissing(text, cases) {
+    const cited = citedKeys(text);
+    return cases.filter((each) =>
+        COPY_KEY.test(each) ? !cited.some((key) => key === each || key.startsWith(`${each}.`)) : !text.includes(`\`${each}\``)
+    );
+}
 
 export function run({ check, assert, log }) {
     const dir = repoPath(BRIEFS_DIR);
@@ -686,20 +921,8 @@ export function run({ check, assert, log }) {
         // copy of the words it is checking.
         ...stringsFrom(FILTER_BAR_COPY),
         ...stringsFrom(LIST_AXES),
-        ...stringsFrom(CONFIRM_COPY),
-        // #471 — the code step's words. `CODE_COPY`'s one builder takes a count of
-        // tries left, and `stringsFrom` probes a builder with the status sample
-        // first, so the sentence a brief quotes is rendered here at its own figure.
-        ...stringsFrom(SIGN_IN_COPY),
-        ...stringsFrom(CODE_COPY),
-        CODE_COPY[CODE_STATES.WRONG](4),
-        // #148 — the wait's count takes a length, rendered at the figure the brief shows.
-        SIGN_IN_COPY.code.resendIn(57_000),
-        // #473 — the name step's words, and the email field's one refusal at the domain
-        // the briefs show, which is the one the environment holds: its builder takes the
-        // domain, so it is rendered here with it rather than probed.
-        ...stringsFrom(USER_NAME_COPY),
-        COMPANY_EMAIL_COPY.otherDomain("hanyangengusa.com"),
+        // #620 — the sign-in steps' and the asset axis's constants left this list with their
+        // pins; `designedStrings()` walks them for the drawn briefs' check below.
         ...stringsFrom(PO_DOCUMENTS_COPY),
         ...stringsFrom(LINK_COPY),
         ...stringsFrom(STATUS_COPY),
@@ -716,9 +939,6 @@ export function run({ check, assert, log }) {
         // values, so `stringsFrom` needs no help with them.
         ...stringsFrom(FILE_AXIS_LABEL),
         ...stringsFrom(FILE_VIEWER_COPY),
-        // #340 — plain values, and the only two of them a pin can hold: the rest
-        // are single words this app says in other constants.
-        ...stringsFrom(ASSET_COPY),
         // #357 — the search box's words and its two misses. `truncated` is a
         // builder that takes a count, which `stringsFrom`'s `[1]` probe supplies.
         ...stringsFrom(MATERIAL_SEARCH_COPY),
@@ -805,6 +1025,50 @@ export function run({ check, assert, log }) {
     const absent = TIER_TWO.filter((s) => !appSources.some((src) => src.includes(s)));
     check("no tier-2 phrase missing from the tree", absent.length === 0 ? "none" : absent.join(" | "), "none");
 
+    // --- a drawn screen's brief names its cases by key (#620) --------------
+    log("");
+    log("every drawn screen's brief names its cases by key, quotes none of its words and cites no issue:");
+    const withLine = [...briefText].filter(([f, t]) => !NON_SCREEN.has(f) && readDesignLine(t) !== null).map(([f]) => f);
+    const notDesigned = withLine.filter((f) => !DESIGNED.has(f)).sort();
+    const lineless = [...DESIGNED.keys()].filter((f) => !withLine.includes(f)).sort();
+    check(
+        "the briefs carrying a Design line are exactly the drawn screens'",
+        [...notDesigned.map((f) => `${f}: not in DESIGNED`), ...lineless.map((f) => `${f}: no Design line`)].join("; ") || "none",
+        "none"
+    );
+    const lineFaults = [];
+    for (const file of withLine) {
+        const { frames, stray } = readDesignLine(briefText.get(file));
+        if (frames.length === 0) lineFaults.push(`${file}: names no frame`);
+        if (stray.length > 0) lineFaults.push(`${file}: ${stray.join(", ")}`);
+    }
+    check("no Design line naming no frame, or a word that is neither a file, a frame nor a joining word", lineFaults.join("; ") || "none", "none");
+
+    const strings = designedStrings();
+    const unheld = [];
+    const unnamed = [];
+    const quoting = [];
+    const citing = [];
+    let citedCount = 0;
+    for (const [file, cases] of DESIGNED) {
+        const text = briefText.get(file) ?? "";
+        const cited = citedKeys(text);
+        citedCount += cited.length;
+        unheld.push(...cited.filter((key) => !keyHeld(key)).map((key) => `${file}: ${key}`));
+        unheld.push(...cases.filter((each) => COPY_KEY.test(each) && !keyHeld(each)).map((each) => `DESIGNED's ${file}: ${each}`));
+        unnamed.push(...casesMissing(text, cases).map((each) => `${file}: ${each}`));
+        quoting.push(...quotedWords(text, strings).map((span) => `${file}: ${span}`));
+        citing.push(...[...text.matchAll(/#\d{2,}/g)].map((m) => `${file}: ${m[0]}`));
+    }
+    check("no key a drawn brief names, or a case it has to, that the code does not hold", unheld.join("; ") || "none", "none");
+    check("no case a drawn brief leaves unnamed", unnamed.join("; ") || "none", "none");
+    check("no drawn brief quoting what its screen says", quoting.join(" | ") || "none", "none");
+    check("no drawn brief citing an issue, which is the notes' history", citing.join("; ") || "none", "none");
+    const cases = [...DESIGNED.values()].reduce((n, each) => n + each.length, 0);
+    const leaves = stringsFrom(DESIGN_COPY).length;
+    log(`  ${DESIGNED.size} drawn briefs, ${citedCount} keys cited, ${cases} cases required of them`);
+    log(`  of ${leaves} strings the drawn screens' constants hold — a case not listed in DESIGNED is uncovered`);
+
     // --- anti-vacuity -----------------------------------------------------
     log("");
     log("anti-vacuity — this check is seen to be able to fail:");
@@ -867,6 +1131,27 @@ export function run({ check, assert, log }) {
     );
     check("the Opens from line is read route by route", (opensFrom("Opens from: `/a` and `/b/[c]`.") ?? []).join(" "), "/a /b/[c]");
     assert("  and a brief with none reads as none", opensFrom("Route: `/a`") === null);
+    // THE DRAWN BRIEFS' SECTION IS SEEN TO BE ABLE TO FAIL (#620), on built texts whose answers are
+    // known: each reader finds what it is for and refuses what it is not, so a section reporting
+    // "none" above is a reading and not a walk that saw nothing.
+    check("the Design line reader takes frames across files", (readDesignLine("Design: Tools 1d and 1c, on Invoices 0b.")?.frames ?? []).join(" | "), "Tools 1d | Tools 1c | Invoices 0b");
+    check("  and refuses a sending's number", (readDesignLine("Design: Tools 60 1d.")?.stray ?? []).join(" "), "60");
+    check("  and a file with no frame", (readDesignLine("Design: Sign in 1a, on Tools.")?.stray ?? []).join(" "), "Tools");
+    assert("  and a brief with none reads as none", readDesignLine("Route: `/a`") === null);
+    assert("a key the code holds is held", keyHeld("CODE_COPY.wrong") && keyHeld("ASSET_TRANSITION_COPY.control"));
+    assert("  and one it does not is not", !keyHeld("CODE_COPY.wrongCode") && !keyHeld("NO_SUCH_COPY.wrong") && !keyHeld("CODE_COPY.wrong.length"));
+    check(
+        "a quoted sentence is found, and its key is not",
+        quotedWords(`says \`${CODE_COPY[CODE_STATES.MALFORMED]}\`, which is \`CODE_COPY.malformed\``, designedStrings()).join(" | "),
+        CODE_COPY[CODE_STATES.MALFORMED]
+    );
+    check(
+        "a case unnamed is found, a deeper key covers its own, and an ancestor covers none",
+        casesMissing("`CODE_COPY.wrong` and `ASSET_CATALOG_COPY.refusal.level1` and `CONFIRM_COPY`", ["CODE_COPY.wrong", "ASSET_CATALOG_COPY.refusal", "CONFIRM_COPY.used", "Lent"]).join(" "),
+        "CONFIRM_COPY.used Lent"
+    );
+    assert("every drawn brief is on disk", [...DESIGNED.keys()].every((f) => onDisk.includes(f)));
+    assert("the derived sets are not empty", DESIGNED.get("login.md").length > 3 && DESIGNED.get("login-confirm.md").length === Object.keys(TOKEN_STATES).length);
     // The repo walk is real: this file is under scripts/ and so must NOT be in it.
     assert("the app/lib walk excludes this tier", !toPosix(REPO_ROOT + "/scripts").includes("/app/"));
 }

@@ -116,7 +116,8 @@ function markSent() {
  *
  * EVERY OPENER IS DRAWN WHERE THE READER MAY USE IT AND NOWHERE ELSE, SO NONE IS EVER DISABLED
  * (#610). Each page draws this under `lib/assetListView.js:listRecording`'s `adds`: a site
- * manager on the list's job, or on all jobs one holding a job (`canRegisterAssets`). **A reader
+ * manager on the list's job, or on all jobs one holding a job (`canRegisterAssets`) — and on a
+ * kind's page, of a kind the catalog still offers (#620). **A reader
  * who is not a site manager meets no opener at all (#506)**, `/invoices`' `New invoice` rule
  * read for a role, and **neither does a site manager on no job**, with no sentence saying why:
  * sign-in asks a reader with no job for one (#554), which is the request the sentence pointed

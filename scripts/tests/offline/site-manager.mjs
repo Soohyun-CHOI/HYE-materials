@@ -530,14 +530,14 @@ export function run({ check, assert, log }) {
     log("every control a site manager alone uses is drawn under the one answer:");
     // SINCE #597 THE ANSWER HOLDS THE ITEM'S JOB, so no page asks the mark itself: a list asks
     // `listRecording` of its scope, an item's page `planTransition` of the item, and both ask
-    // `recordsOn`, which asks `isSiteManager` first.
-    for (const file of [LIST, CATEGORY]) {
+    // `recordsOn`, which asks `isSiteManager` first. A kind's page hands it the row it read as well,
+    // whether the catalog still offers the kind being part of the one answer (#620).
+    for (const [file, call] of [
+        [LIST, "listRecording(user, scope)"],
+        [CATEGORY, "listRecording(user, scope, category)"],
+    ]) {
         const page = parseFile(file);
-        check(
-            `  ${file} asks it once, into recording`,
-            recorderOf(page, { binding: "recording", asks: "listRecording" }),
-            "listRecording(user, scope), asked 1 time(s), isSiteManager 0"
-        );
+        check(`  ${file} asks it once, into recording`, recorderOf(page, { binding: "recording", asks: "listRecording" }), `${call}, asked 1 time(s), isSiteManager 0`);
         assert(`    reading it from lib/assetListView.js`, importsFrom(page.ast, "listRecording", "/lib/assetListView"));
     }
     {
