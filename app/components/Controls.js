@@ -1376,7 +1376,7 @@ export function SegmentedChoice({ name, options, value, onChange }) {
  * nothing is left to narrow by. The keys are the same either way. `lane` is the most the list
  * stands at before it scrolls in 0i's lane (`Menu.js`), its drawing's.
  */
-export function Combobox({ name, value, onChange, onPick, onBlur, suggestions, every, lane, heading, placeholder, listOpen, onListOpenChange, mark }) {
+export function Combobox({ name, value, onChange, onPick, onBlur, suggestions, every, lane, gutter = false, heading, placeholder, listOpen, onListOpenChange, mark }) {
     const field = useField();
     const formBusy = Boolean(useContext(FormBusyContext));
     const listId = `${field.control}list`;
@@ -1481,6 +1481,7 @@ export function Combobox({ name, value, onChange, onPick, onBlur, suggestions, e
                 labelId={field.labelId}
                 heading={heading}
                 lane={lane}
+                gutter={gutter}
                 options={list.map((suggestion, index) => ({
                     key: suggestion.key ?? suggestion.label,
                     label: suggestion.label,
@@ -1577,7 +1578,7 @@ const FILTER_CHIP_HELD =
  * chip at the end of its row; and `lane` the height a list drawn as a lane of its own stops at
  * (`Menu`'s, #555), 1l's band.
  */
-export function FilterChip({ label, options, values, onChange, clearLabel, several, single = false, fit = "start", lane }) {
+export function FilterChip({ label, options, values, onChange, clearLabel, several, single = false, fit = "start", lane, gutter = false }) {
     const id = useId();
     const labelId = `${id}label`;
     const listId = `${id}list`;
@@ -1717,6 +1718,7 @@ export function FilterChip({ label, options, values, onChange, clearLabel, sever
                 labelId={labelId}
                 fit={fit}
                 lane={lane}
+                gutter={gutter}
                 rows="sm"
                 multiselectable={!single}
                 options={options.map((option, index) => ({

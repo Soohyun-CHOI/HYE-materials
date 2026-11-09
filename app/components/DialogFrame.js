@@ -5,6 +5,7 @@ import { keepFocus, searchResultsKey } from "@/lib/controls";
 import { DIALOG_FRAME_COPY as COPY, focusLost } from "@/lib/dialogFrame";
 import { ButtonLabel, FieldClear, FormBusy, Refusal, useFormBusy } from "./Controls";
 import Icon from "./Icon";
+import { HELD_ROW } from "./Menu";
 import { moveFocus, pressedControl } from "./movedFocus";
 import { SCROLL_LANE } from "./scrollLane";
 import { liesBehind, watchDrag } from "./sheetDrag";
@@ -714,7 +715,9 @@ export function DialogBody({ lane = false, foot, children }) {
                     {children}
                 </div>
                 {hidden.above && <div aria-hidden="true" className={`absolute inset-x-0 h-px bg-divider ${lane ? "-top-px" : "top-0"}`} />}
-                {hidden.below && <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-px bg-divider" />}
+                {/* In the lane each Rule stands outside what scrolls: in the head's last row and the
+                    foot's first, as 1b's `Long list` draws them (Tools 57, #617). */}
+                {hidden.below && <div aria-hidden="true" className={`absolute inset-x-0 h-px bg-divider ${lane ? "-bottom-px" : "bottom-0"}`} />}
             </div>
             {foot && <div className="shrink-0 pt-gap-lg in-data-fixed:px-dialog-inset">{foot}</div>}
         </div>
@@ -816,7 +819,7 @@ export function DialogSearch({ label, value, onChange, clearLabel, filters, resu
                             aria-selected={index === active ? "true" : "false"}
                             onMouseDown={keepFocus}
                             onClick={() => onPick(result)}
-                            className={`flex h-control-lg shrink-0 cursor-pointer items-center gap-dialog-result-inline rounded-control px-dialog-result-bleed hover:bg-hover ${
+                            className={`flex h-control-lg shrink-0 cursor-pointer items-center gap-dialog-result-inline rounded-control px-dialog-result-bleed hover:bg-hover ${HELD_ROW} ${
                                 index === active ? "bg-hover" : ""
                             }`}
                         >

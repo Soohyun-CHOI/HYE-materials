@@ -47,8 +47,7 @@ function blockAfter(source, test) {
 /** What a kind's page source draws for each empty and for an unknown kind. */
 export function emptyFacts(source) {
     const elsewhere = blockAfter(source, "empty?.elsewhere");
-    const none = blockAfter(source, "empty");
-    const missing = blockAfter(source, "!category");
+    const none = blockAfter(source, "empty");
     return {
         asks: /const empty = kindEmptyState\(\{ total: page\.total, itemCount: itemCountOf\(category\), jobCode: scope\.job\?\.jobCode \?\? null \}\);/.test(source),
         elsewhere: [
@@ -61,7 +60,16 @@ export function emptyFacts(source) {
             /\{recording\.adds && \(\s*<div className="mt-gap-lg">\s*<RegistrationDialog \{\.\.\.registration\} variant="bordered" \/>/.test(none),
         ].join(" "),
         order: elsewhere !== "" && none !== "" && source.indexOf(elsewhere) < source.indexOf(none),
-        missing: [/<h1 className="text-heading font-semibold">\{COPY\.pageNotFound\}<\/h1>/.test(missing), /\{COPY\.backToTools\}/.test(missing)].join(" "),
+        // 1h's view, which the page has drawn from `PageNotFound` since #617, one component with
+        // an address no route answers.
+        missing: (() => {
+            const returnsView = /if \(!category\) return <PageNotFound \/>;/.test(source);
+            const view = parseFile("app/(assets)/PageNotFound.js").source;
+            return [
+                returnsView && /<h1 className="text-heading font-semibold">\{COPY\.pageNotFound\}<\/h1>/.test(view),
+                returnsView && /\{COPY\.backToTools\}/.test(view),
+            ].join(" ");
+        })(),
     };
 }
 

@@ -106,8 +106,15 @@ const SECTION_ICONS = {
 // away. So a column holding one scrolls nothing and reserves no lane — the list's is the one
 // at the window's edge. It is the column's to decide because only the column scrolls itself;
 // the list marks its root, and this reads the mark.
+//
+// WHAT IT SCROLLS STAYS IN IT, SO IT IS WHERE AN ABSOLUTE BOX STANDS (#617). A box placed
+// `absolute` with no placed box above it stands against the window's, and the window's
+// overflow is not the column's: on an item whose history ran past the window, each history
+// entry's `to` for assistive tech (`sr-only`) stood at its row's place below the fold, out of
+// the column's reach, so the document grew to 1774 at 900 and took the browser's own 15 bar,
+// moving the screen 7.5 left, which 1f does not draw. Placed, the column holds them.
 const COLUMN = [
-    "min-w-0 flex-1 sm:overflow-y-auto sm:overscroll-y-contain sm:[scrollbar-gutter:stable] print:overflow-visible max-sm:flex max-sm:min-h-dvh max-sm:flex-col",
+    "min-w-0 flex-1 sm:relative sm:overflow-y-auto sm:overscroll-y-contain sm:[scrollbar-gutter:stable] print:overflow-visible max-sm:flex max-sm:min-h-dvh max-sm:flex-col",
     "sm:has-[>[data-list-frame]]:overflow-y-hidden sm:has-[>[data-list-frame]]:[scrollbar-gutter:auto]",
     SCROLL_LANE,
 ].join(" ");

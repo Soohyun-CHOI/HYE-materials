@@ -77,6 +77,7 @@ import {
     MAX_ASSETS_PER_REGISTRATION,
     ASSET_REGISTRATION_COPY,
     accountToTell,
+    addedToTell,
     canRegisterAssets,
     detailRefusals,
     nameOffers,
@@ -84,6 +85,7 @@ import {
     readQuantity,
     readRegistration,
     readRegistrationAccount,
+    REGISTRATION_SENT_KEY,
     searchedIn,
 } from "../../../lib/assetRegistration.js";
 import { ASSET_JOB_COPY, assignedJobsFor, chosenJobId } from "../../../lib/assetJob.js";
@@ -1548,6 +1550,49 @@ export async function run({ check, assert, log }) {
         !TOOL_ITEM_NOUN.test("Say how many tools to create.") && !TOOL_ITEM_NOUN.test("13 items")
     );
     assert("the ceiling is a positive whole number", Number.isInteger(MAX_ASSETS_PER_REGISTRATION) && MAX_ASSETS_PER_REGISTRATION > 0);
+
+    // ── #617: a landing that added everything says so for a moment ─────────
+    log("");
+    log("a registration that wrote everything says so on landing, once (#617):");
+    const now = Date.UTC(2026, 10, 9, 15);
+    const told = (over) => addedToTell({ sentAt: now - 2000, now, selected: 5, unwritten: 0, unlogged: [], ...over });
+    check("a fresh send whose landing wrote everything is told, by how many it selects", told({}), 5);
+    check(
+        "  and not one that fell short, left one unlogged, selects nothing, waited past its minute, or has no mark",
+        [told({ unwritten: 2 }), told({ unlogged: ["HYE-AST-261109-001"] }), told({ selected: 0 }), told({ sentAt: now - 61_000 }), told({ sentAt: Number.NaN }), told({ sentAt: now + 1000 })].join(" "),
+        "0 0 0 0 0 0"
+    );
+    check("  its words, Tools 57's", `${ASSET_REGISTRATION_COPY.added(5)} | ${ASSET_REGISTRATION_COPY.added(1)}`, "5 items added. | 1 item added.");
+    check("  and the mark's key, in the tab's own storage and on no address", REGISTRATION_SENT_KEY, "hye:items-sent");
+    const sendingSource = parseFile("app/(assets)/asset-categories/RegistrationDialog.js").source;
+    check(
+        "the dialog leaves the mark as it sends, and takes it away when it answers instead",
+        [
+            /window\.sessionStorage\.setItem\(REGISTRATION_SENT_KEY, String\(Date\.now\(\)\)\);/.test(sendingSource),
+            /markSent\(\);\s*startTransition\(\(\) => formAction\(formData\)\);/.test(sendingSource),
+            /if \(!state\?\.error\) return;\s*try \{\s*window\.sessionStorage\.removeItem\(REGISTRATION_SENT_KEY\);/.test(sendingSource),
+        ].join(" "),
+        "true true true"
+    );
+    const addedSource = parseFile("app/(assets)/asset-categories/[categoryRecordId]/RegistrationAdded.js").source;
+    const takesMark = (source) =>
+        [
+            /useEffect\(\(\) => \{[\s\S]*?window\.sessionStorage\.getItem\(REGISTRATION_SENT_KEY\)[\s\S]*?window\.sessionStorage\.removeItem\(REGISTRATION_SENT_KEY\)[\s\S]*?addedToTell\(/.test(source),
+            /\}, \[selection\]\);/.test(source),
+            /<PassingToast key=\{selection\} line=\{COPY\.added\(told\.count\)\} className="absolute bottom-full left-1\/2 mb-added-toast-offset -translate-x-1\/2" \/>/.test(source),
+        ].join(" ");
+    check("the landing takes the mark once per selection and draws the toast 12 over the bar", takesMark(addedSource), "true true true");
+    check("  one reading the mark and leaving it is seen", takesMark(addedSource.replace("window.sessionStorage.removeItem(REGISTRATION_SENT_KEY);", "")), "false true true");
+    const listSource = parseFile("app/(assets)/asset-categories/[categoryRecordId]/AssetList.js").source;
+    const kindSource = parseFile("app/(assets)/asset-categories/[categoryRecordId]/page.js").source;
+    check(
+        "  over the selection bar, for whoever adds",
+        [
+            /\{landing && <RegistrationAdded selected=\{selection\} unwritten=\{landing\.unwritten\} unlogged=\{landing\.unlogged\} \/>\}\s*<SelectionBar/.test(listSource),
+            /landing=\{recording\.adds \? \{ unwritten: account\.unwritten, unlogged: account\.unlogged \} : null\}/.test(kindSource),
+        ].join(" "),
+        "true true"
+    );
 }
 
 if (isMain(import.meta.url)) await standalone(title, run);

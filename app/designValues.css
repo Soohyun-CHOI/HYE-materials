@@ -143,9 +143,12 @@
     --spacing-pager-inline: 1.5rem; /* 1a and 1d, 24: the least room between the rows a pager counts and its page — from the drawings, not the spec */
     --spacing-pager-step-gap: 0.625rem; /* 1a and 1d, 10: from the page to its two steps — from the drawings, not the spec */
     --spacing-pager-step-bleed: 0.8125rem; /* 1a and 1d, 13: how far the steps pull out so the last chevron's ink meets the text's edge — from the drawings, not the spec */
+    --spacing-fill-pager-step-bleed: 0.75rem; /* 1l, 12: the same pull on Fill, where the last chevron's ink meets 1l's own rows' text — from the drawings, not the spec (#617) */
     --spacing-list-empty-state-inset-top: 15rem; /* 1a and 1d, 240: above a list's empty state — from the drawings, not the spec */
+    --spacing-list-empty-state-band-inset-top: 12.125rem; /* 1a2, 194: above that state under the band holding the job's chip, so the sentence stands where it does with none — from the drawings, not the spec (#617) */
     --spacing-list-emptied-inset-y: 3.75rem; /* 1a, 60: above and below what a list says once its band has emptied it — from the drawings, not the spec */
     --spacing-list-emptied-stack: 0.75rem; /* 1a, 12: from that sentence to the control under it — from the drawings, not the spec */
+    --spacing-list-emptied-id-inline: 0.12em; /* 1a, 1a3: the typed id set off either side of itself, 1.56 at 13 — from the drawings, in their em (#617) */
     --spacing-closed-page-inset-bottom: 3rem; /* 1l Not Admin closed, 48: under the one sentence of a page the reader may no longer use (0b Row), which sets it above the middle — from the drawings, not the spec */
     --height-found-item: 2.5rem; /* 1a, 40: the way to the item a search found by its id, on the Face under the band — from the drawings, not the spec */
     --spacing-found-item-inset-x: 0.75rem; /* 1a, 12: inside that way's Edge, either side — from the drawings, not the spec */
@@ -192,6 +195,7 @@
     --width-number-input: 7.5rem; /* Field, 120: a number field */
     --spacing-stepper-inset-x: 0.1875rem; /* Field, 3: its − and + from its ends */
     --transition-delay-busy: 300ms; /* 0f, 300ms: how long an action that has started waits before it shows it is busy */
+    --transition-delay-held: 100ms; /* 0a "takes its hover fill while held": how long a finger rests on a list's row before it does, so a scroll's touch never lights one — this repository's, not the design's (#617) */
     --size-spinner: 1rem; /* 0f, 16: the spinner a busy action shows before its -ing label */
     --animate-spinner: spin 0.7s linear infinite; /* 0f: the spinner's turn — from the drawings' stylesheet, not the spec */
     --color-spinner-track: color-mix(in oklab, currentColor 35%, transparent); /* 0f: the spinner's track on a filled action, its label's white at 35% — from the drawings' stylesheet, not the spec */
@@ -274,6 +278,8 @@
     --spacing-toast-inline: 1rem; /* Toast, 16: its line to its action */
     --spacing-toast-action-gap: 0.125rem; /* 1a, 2: its action to its dismiss — from the drawings, not the spec */
     --spacing-toast-offset: 1.5rem; /* Toast, 24: above the content area's end */
+    --spacing-added-toast-offset: 4.875rem; /* 1c, 78: a passing toast over the selection bar, from the pager's top, 12 above the bar — from the drawings, not the spec (#617) */
+    --transition-duration-toast: 200ms; /* 1c: a passing toast's fade once its 4 s are up — from the drawings' script, not the spec (#617) */
     --color-toast-hover: oklch(1 0 0 / 0.12); /* Toast: its action and its dismiss under the pointer */
 
     /* 0l · Modal — the frame every dialog shares, in the Compact build and, since #457,

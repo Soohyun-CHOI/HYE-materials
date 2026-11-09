@@ -8,6 +8,7 @@ import Dot from "@/app/components/Dot";
 import Icon from "@/app/components/Icon";
 import Instant from "@/app/components/Instant";
 import ListFrame, { SelectionBar } from "@/app/components/ListFrame";
+import RegistrationAdded from "./RegistrationAdded";
 import { Pager, TABLE_HEAD, TABLE_ROW, TABLE_ROW_LINK, TABLE_ROW_SELECTED } from "@/app/components/ListTable";
 import { useTooltip } from "@/app/components/Tooltip";
 import { ASSET_LABEL_PAGE_COPY as LABEL_COPY } from "@/lib/assetLabelPage";
@@ -122,7 +123,7 @@ const COLUMNS_WITH_JOB_WITHOUT_BOX =
 // came from. **It may be all jobs (#548)**, and then `showsJob` draws each row's
 // job in a column of its own, as 1d draws it on `All jobs` — with no box since #597, where a
 // selection there held items on several jobs and one print took them together.
-export default function AssetList({ categoryRecordId, itemName, selects, showsJob = false, rows, page, job = null, sort = null, top, header, children }) {
+export default function AssetList({ categoryRecordId, itemName, selects, showsJob = false, rows, page, job = null, sort = null, top, header, landing = null, children }) {
     const params = useSearchParams();
     const selection = selects ? readAssetIds(params.getAll("id")) : [];
     const columns = showsJob ? (selects ? COLUMNS_WITH_JOB : COLUMNS_WITH_JOB_WITHOUT_BOX) : selects ? COLUMNS : COLUMNS_WITHOUT_BOX;
@@ -166,8 +167,11 @@ export default function AssetList({ categoryRecordId, itemName, selects, showsJo
                 // labels' dialog on the selection as it stands, in ascending id, under this
                 // category's name (#457) — and says why it does not act on more than one print takes,
                 // in a column of the bar's own that the control points at (#495).
+                // A registration that wrote everything says so over the bar for a moment (1c, #617).
                 overlay={
                     selects ? (
+                        <>
+                        {landing && <RegistrationAdded selected={selection} unwritten={landing.unwritten} unlogged={landing.unlogged} />}
                         <SelectionBar
                             shown={selecting}
                             label={COPY.selectionBar}
@@ -183,6 +187,7 @@ export default function AssetList({ categoryRecordId, itemName, selects, showsJo
                                 {LABEL_COPY.openFromCategory}
                             </Button>
                         </SelectionBar>
+                        </>
                     ) : null
                 }
                 overlayShown={selecting}

@@ -1,7 +1,6 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { ButtonLabel } from "@/app/components/Controls";
 import Icon from "@/app/components/Icon";
 import { ActionMenu, useOpenerPress } from "@/app/components/Menu";
 import { useTooltip } from "@/app/components/Tooltip";
@@ -29,10 +28,10 @@ function Dots({ phone }) {
  * to its maker, in Ink at both widths, where the retirement is 0f's Destructive. It asks
  * nothing — the return undoes it — so choosing it hands focus to this button, as the
  * retirement does, and sends at once through the page's one answer; a refusal stands under
- * the status as a press's does (1k). While it is on its way this button is 0f's Working: busy
- * to assistive tech, its press turned away, the spinner laid over its dots after the wait,
- * and its `-ing` word heard and not seen. The design draws no wait for it; that is 0f's rule
- * that a wait is said in what sent it, and the menu has closed.
+ * the status as a press's does (1k). While it is on its way this button keeps its look and takes
+ * no press, busy to assistive tech, and its `-ing` word is announced: Tools 56's rule for an action a
+ * menu row starts, since no button holds a spinner for it (0f). From #616 until #617 a spinner
+ * stood over the dots after the wait.
  *
  * WAI-ARIA'S MENU BUTTON, AS THE ACCOUNT AT THE RAIL'S FOOT IS (#478). The button says it opens
  * a menu and whether the menu is open; Enter, Space and Down open it on its first item and Up
@@ -223,7 +222,6 @@ export default function MoreActions({ phone = false, account = null }) {
                 aria-label={word}
                 aria-busy={busy || undefined}
                 aria-disabled={busy || undefined}
-                data-busy={busy || undefined}
                 onPointerDown={press.onPointerDown}
                 onClick={(event) => {
                     if (busy) return;
@@ -243,10 +241,12 @@ export default function MoreActions({ phone = false, account = null }) {
                         : "group/button relative flex aspect-square h-control shrink-0 items-center justify-center rounded-control text-foreground-default not-aria-disabled:hover:bg-hover aria-expanded:bg-hover"
                 }
             >
-                <ButtonLabel size={phone ? "xl" : "lg"} on="unfilled" busyLabel={ASSET_TRANSITION_COPY.working[ASSET_EVENT.SENT_FOR_REPAIR]}>
-                    <Dots phone={phone} />
-                </ButtonLabel>
+                <Dots phone={phone} />
             </button>
+            {/* The menu row's `-ing` word, heard and not seen (#617). */}
+            <span role="status" className="sr-only">
+                {busy ? ASSET_TRANSITION_COPY.working[ASSET_EVENT.SENT_FOR_REPAIR] : ""}
+            </span>
             <ActionMenu
                 id={menuId}
                 anchorRef={buttonRef}

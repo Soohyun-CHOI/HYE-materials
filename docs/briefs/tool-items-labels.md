@@ -180,7 +180,7 @@ the same way, under `1 item not on your jobs` or `2 items not on your jobs`, bes
 the codes not found, and no label is drawn for them. Only a selection made before
 the office moved an item, or before the reader left its job, or an address
 somebody copied, carries one: a category's list draws boxes on its own job's rows
-alone. The files draw no such run; the words are the app's.
+alone. The files draw this run since 2026-11-05 (1e's `Not on your jobs`), in these words.
 
 **When the host is too long for the symbols (#453):** the shape of a run with
 nothing on record, with one sentence about the host where the codes not found

@@ -1,10 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { focusPageHeading } from "./DialogFrame";
 import Icon from "./Icon";
 
 // Its action and its dismiss: faceless 32s in white, filling at Toast's own hover (0k Toast).
+// 0k's ground, line and shadow, which a toast that stays and one that passes share (#617).
+const TOAST_GROUND = "h-toast items-center rounded-card bg-foreground-default font-ui whitespace-nowrap text-white shadow-toast";
+
 const TOAST_BUTTON = "flex h-control shrink-0 items-center justify-center rounded-control text-white hover:bg-toast-hover";
 
 // Whatever closes a toast hands focus back to its opener first, if focus is inside it — or, where the
@@ -91,7 +94,7 @@ export default function Toast({ shown, line, action, onAction, dismissLabel, onD
             ref={toastRef}
             popover="manual"
             role="alert"
-            className={`inset-auto bottom-0 mx-0 mt-0 mb-toast-offset h-toast -translate-x-1/2 items-center gap-toast-inline overflow-visible rounded-card bg-foreground-default pr-toast-inset-right pl-toast-inset-left font-ui whitespace-nowrap text-white shadow-toast open:flex ${desk ? "max-sm:open:hidden" : ""}`}
+            className={`inset-auto bottom-0 mx-0 mt-0 mb-toast-offset -translate-x-1/2 gap-toast-inline overflow-visible pr-toast-inset-right pl-toast-inset-left ${TOAST_GROUND} open:flex ${desk ? "max-sm:open:hidden" : ""}`}
         >
             <span className="flex items-center gap-gap text-body [--opacity-date-separator:var(--opacity-toast-date-separator)]">
                 <Icon name="circle-alert" kind="words" className="size-icon shrink-0" />
@@ -107,6 +110,34 @@ export default function Toast({ shown, line, action, onAction, dismissLabel, onD
                     <Icon name="x" kind="words" className="size-icon-sm" />
                 </button>
             </div>
+        </div>
+    );
+}
+
+/** How long a passing toast stands before it fades: the drawings' 4 s (Tools 57, 1c). */
+const PASSING_TOAST_MS = 4000;
+
+/**
+ * 0k's Toast reporting a success, which goes by itself (#617): its line alone on the toast's ground,
+ * 14 either side, with no mark, action or dismiss, standing for the drawings' 4 s and fading over
+ * `--transition-duration-toast`, as Tools 57 draws 1c's `All written`. A status rather than an alert,
+ * since it reports and asks nothing. Its caller places it — 1c's stands over the selection bar —
+ * so it is drawn where it is put rather than in the top layer, and gone once it has faded.
+ */
+export function PassingToast({ line, className = "" }) {
+    const [phase, setPhase] = useState("shown");
+    useEffect(() => {
+        const fade = setTimeout(() => setPhase("fading"), PASSING_TOAST_MS);
+        return () => clearTimeout(fade);
+    }, []);
+    if (phase === "gone") return null;
+    return (
+        <div
+            role="status"
+            onTransitionEnd={() => setPhase((now) => (now === "fading" ? "gone" : now))}
+            className={`flex px-toast-inset-left text-body tabular-nums transition-opacity duration-toast ${TOAST_GROUND} ${phase === "fading" ? "opacity-0" : "opacity-100"} ${className}`}
+        >
+            {line}
         </div>
     );
 }

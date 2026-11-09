@@ -245,8 +245,9 @@ function useHiddenEdges(scrollerRef) {
  * phone. While the step saves, a press changes nothing.
  *
  * AT A DESK THE LIST TAKES THE COLUMN'S REST and scrolls in 0i's lane, its rows' text on the
- * column's edge with the hover face 12 past it; it never stands shorter than three rows, and
- * below that the column scrolls in the page's lane instead. A row's box, code and name stand
+ * column's edge with the hover face 12 past it, however short the window: #554 held it to three
+ * rows at least, the column scrolling below that, against a short window rather than a keyboard,
+ * which a desk has none of, and Soo took the floor away (#617). A row's box, code and name stand
  * 10 apart and the name 8 further (1l). A search that finds nothing says so under any row it
  * keeps at the top.
  */
@@ -258,7 +259,7 @@ function JobList({ rows, noMatch, query, onToggle, locked }) {
             ref={scrollerRef}
             role="group"
             aria-label={COPY.list}
-            className={`flex flex-col max-sm:-mx-mobile-gutter max-sm:mt-mobile-sign-in-search-inset-y max-sm:mb-mobile-bottom-bar-bleed sm:mt-sign-in-list-stack sm:-mr-[calc(var(--spacing-input-inset-x)+var(--spacing-scrollbar-gutter))] sm:-ml-input-inset-x sm:min-h-[calc(3*var(--height-control-lg)+2*var(--spacing-sign-in-list-inset-y)+2px)] sm:flex-1 sm:basis-0 sm:overflow-y-auto sm:overscroll-contain sm:border-y sm:py-sign-in-list-inset-y sm:[scrollbar-gutter:stable] ${
+            className={`flex flex-col max-sm:-mx-mobile-gutter max-sm:mt-mobile-sign-in-search-inset-y max-sm:mb-mobile-bottom-bar-bleed sm:mt-sign-in-list-stack sm:-mr-[calc(var(--spacing-input-inset-x)+var(--spacing-scrollbar-gutter))] sm:-ml-input-inset-x sm:flex-1 sm:basis-0 sm:overflow-y-auto sm:overscroll-contain sm:border-y sm:py-sign-in-list-inset-y sm:[scrollbar-gutter:stable] ${
                 above ? "sm:border-t-divider" : "sm:border-t-transparent"
             } ${below ? "sm:border-b-divider" : "sm:border-b-transparent"} ${SCROLL_LANE}`}
         >

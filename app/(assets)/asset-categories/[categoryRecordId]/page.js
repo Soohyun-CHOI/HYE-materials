@@ -18,14 +18,14 @@ import {
 } from "@/lib/assetListView";
 import { itemCountOf, registrationCatalog } from "@/lib/assetCategory";
 import { ASSET_REGISTRATION_COPY, readRegistrationAccount } from "@/lib/assetRegistration";
-import { ASSET_CATEGORIES_PATH, LIST_SORTS, assetCategoriesPath, readSort } from "@/lib/assetRoutes";
+import { LIST_SORTS, assetCategoriesPath, readSort } from "@/lib/assetRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
 import Breadcrumb from "@/app/components/Breadcrumb";
-import { ButtonLink } from "@/app/components/Controls";
 import ListFrame from "@/app/components/ListFrame";
 import { ListHeader } from "@/app/components/ListTable";
 import RegistrationDialog from "../RegistrationDialog";
 import CategoryCaption from "../../CategoryCaption";
+import PageNotFound from "../../PageNotFound";
 import RegistrationShortfall from "./RegistrationShortfall";
 import RegistrationUnlogged from "./RegistrationUnlogged";
 import CategoryJobChoice from "./CategoryJobChoice";
@@ -223,22 +223,8 @@ async function renderCategoryPage({ params, searchParams }) {
     const [[category], jobs] = await Promise.all([getAssetCategoriesByRecordIds([categoryRecordId]), getAllJobs()]);
     // The tab's name, off the row just read and the heading's own words (see `kindTitle`).
     kindTitle().settle(category ? category.itemName : COPY.pageNotFound);
-    if (!category) {
-        // 1h's shape, which the asset page draws for a code no asset carries: the
-        // heading centered in the column and the way back under it. An address carries a
-        // record id here, which says nothing to a reader, so there is no sentence naming it,
-        // and the heading names the page rather than an item (#612).
-        return (
-            <div className="flex min-h-full flex-col items-center justify-center px-page-gutter text-center font-ui text-foreground-default">
-                <h1 className="text-heading font-semibold">{COPY.pageNotFound}</h1>
-                <div className="mt-gap-lg">
-                    <ButtonLink variant="bordered" href={ASSET_CATEGORIES_PATH}>
-                        {COPY.backToTools}
-                    </ButtonLink>
-                </div>
-            </div>
-        );
-    }
+    // 1h's `Page not found`, the one view an address naming nothing takes (#612, #617).
+    if (!category) return <PageNotFound />;
 
     // The kind's items on the scope, read whole and sorted, and the page cut from them (#540).
     // `pageOfAssets` orders, clamps and slices, so a typed or copied `?page=` never lands on an
@@ -413,6 +399,7 @@ async function renderCategoryPage({ params, searchParams }) {
             sort={sort}
             top={top}
             header={header}
+            landing={recording.adds ? { unwritten: account.unwritten, unlogged: account.unlogged } : null}
         >
             {/* A registration's account, which only a list with rows in it can carry: one
                 that wrote nothing stays in the dialog (#449, #456). The fork asks a question

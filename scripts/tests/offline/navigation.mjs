@@ -78,6 +78,9 @@ const ON_RAIL = SECTIONS.filter(([, , , axis]) => MATERIALS_SCREENS_OPEN || axis
 
 /** Every route the app serves, and the section it is in — `null` for none. */
 const SECTION_OF_ROUTE = {
+    // An address no route answers (#617): 1h's view in the assets layout, in no section, since
+    // no section owns an address that names nothing.
+    "/[...address]": null,
     "/addresses/new": null,
     "/admin/categories/new": null,
     "/admin/disciplines/new": null,

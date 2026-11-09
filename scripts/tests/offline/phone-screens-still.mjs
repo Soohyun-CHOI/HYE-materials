@@ -287,7 +287,8 @@ export async function run({ check, assert, log }) {
     check(
         "  and the axes' screens that do not, whose root stays auto",
         pages.filter((p) => AXES.some((dir) => p.startsWith(dir)) && !drawsBar(p)).join(" | "),
-        ["app/(assets)/asset-catalog/page.js", "app/(assets)/asset-categories/[categoryRecordId]/page.js", "app/(assets)/asset-categories/page.js"].join(" | ")
+        // An address no route answers draws 1h's view with no bar (#617).
+        ["app/(assets)/[...address]/page.js", "app/(assets)/asset-catalog/page.js", "app/(assets)/asset-categories/[categoryRecordId]/page.js", "app/(assets)/asset-categories/page.js"].join(" | ")
     );
 
     // ── 2. a phone's screen is the dynamic viewport ──────────────────────────

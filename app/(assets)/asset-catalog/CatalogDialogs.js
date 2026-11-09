@@ -214,6 +214,7 @@ export function EntryDialog({ entry, open, onClose, onRemove, rows, groups, offi
                         suggestions={categorySuggestions(values, groups).map((label) => ({ label }))}
                         every={everyCategory(values, groups)}
                         lane="max-h-catalog-field-list"
+                        gutter
                         placeholder={COPY.placeholders.level2}
                         {...list("level2")}
                         mark={newCategory ? { word: COPY.newMark, said: category ? COPY.newCategoryAlone : COPY.newCategory } : null}
@@ -229,6 +230,7 @@ export function EntryDialog({ entry, open, onClose, onRemove, rows, groups, offi
                                 suggestions={nameSuggestions(values, rows).map((label) => ({ label }))}
                                 every={everyName(values, rows)}
                                 lane="max-h-catalog-field-list"
+                                gutter
                                 placeholder={COPY.placeholders.level3}
                                 {...list("level3")}
                                 mark={newName ? { word: COPY.newMark, said: COPY.newName } : null}

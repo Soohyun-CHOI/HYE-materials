@@ -306,10 +306,13 @@ const VALUES = [
     ["--spacing-pager-inline", "1.5rem", null],
     ["--spacing-pager-step-gap", "0.625rem", null],
     ["--spacing-pager-step-bleed", "0.8125rem", null],
+    ["--spacing-fill-pager-step-bleed", "0.75rem", null],
     ["--spacing-list-empty-state-inset-top", "15rem", null],
+    ["--spacing-list-empty-state-band-inset-top", "12.125rem", null],
     // What a list says once its band has emptied it (1a, #520).
     ["--spacing-list-emptied-inset-y", "3.75rem", null],
     ["--spacing-list-emptied-stack", "0.75rem", null],
+    ["--spacing-list-emptied-id-inline", "0.12em", null],
     // Under the sentence of a page the reader may no longer use (0b Row, 1l `Not Admin, closed`, #616).
     ["--spacing-closed-page-inset-bottom", "3rem", null],
     // The way to the item a search found by its id, under the band (1a, #541).
@@ -353,6 +356,7 @@ const VALUES = [
     ["--spacing-stepper-inset-x", "0.1875rem", null],
     // A busy action (#473); its turn and its track are the drawings', not the spec's.
     ["--transition-delay-busy", "300ms", null],
+    ["--transition-delay-held", "100ms", null],
     ["--size-spinner", "1rem", null],
     ["--animate-spinner", "spin 0.7s linear infinite", null],
     ["--color-spinner-track", "color-mix(in oklab, currentColor 35%, transparent)", null],
@@ -442,6 +446,8 @@ const VALUES = [
     ["--spacing-toast-inline", "1rem", null],
     ["--spacing-toast-action-gap", "0.125rem", null],
     ["--spacing-toast-offset", "1.5rem", null],
+    ["--spacing-added-toast-offset", "4.875rem", null],
+    ["--transition-duration-toast", "200ms", null],
     ["--color-toast-hover", "oklch(1 0 0 / 0.12)", null],
     // 0l · Modal
     ["--container-dialog", "26.25rem", null],

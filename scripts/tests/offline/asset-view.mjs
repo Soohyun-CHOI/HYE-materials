@@ -641,6 +641,34 @@ export function run({ check, assert, log }) {
     assert("  and passes the design's `tool`", !TOOL_ITEM_NOUN.test(ASSET_COPY.notFoundHeading));
     // The order and the holder are seen to read the rows, not a constant.
     assert("the order and the holder follow the rows", newestFirst(oldestFirst)[0] !== newestFirst(oldestFirst.slice(0, 3))[0] && currentHolder(history, ASSET_STATUS.OUT) !== currentHolder(newestFirst(oldestFirst.slice(0, 2)), ASSET_STATUS.OUT));
+
+    // ── #617: three places the page drew otherwise than Tools 56 ────────────
+    log("");
+    log("the page as Tools 56 draws it (#617):");
+    // The column a desk screen scrolls in is where an absolute box stands, so a history's `to`
+    // for assistive tech below the fold stays in it rather than growing the document.
+    const railSource = parseFile("app/components/Rail.js").source;
+    const columnHolds = (source) => /const COLUMN = \[\s*"[^"]*\bsm:relative sm:overflow-y-auto\b[^"]*"/.test(source);
+    check("the desk's column places what it scrolls", columnHolds(railSource), true);
+    check("  a column scrolling with nothing placed is seen", columnHolds('const COLUMN = [\n    "min-w-0 flex-1 sm:overflow-y-auto sm:overscroll-y-contain",\n];\n'), false);
+    const pageSource = parseFile(PAGE).source;
+    const holderInk = (source) => source.match(/\{handedTo && \(\s*<p className="([^"]*)"/)?.[1] ?? "";
+    check("  who has it is in Ink 2 on a phone, as the route above it", holderInk(pageSource).split(" ").includes("text-foreground-muted"), true);
+    check("  a holder's line left in Ink is seen", holderInk('{handedTo && (\n <p className="flex items-center gap-gap text-mobile-body-xs sm:hidden">').split(" ").includes("text-foreground-muted"), false);
+    const captionFigures = (source) => source.match(/<p className="([^"]*)">\s*\{COPY\.printsAt\(/)?.[1] ?? "none";
+    check("  the label's size is set in the sentence's own figures", /\btabular-nums\b/.test(captionFigures(pageSource)) || captionFigures(pageSource) === "none", false);
+    check("  a tabular caption is seen", /\btabular-nums\b/.test(captionFigures('<p className="text-body-sm tabular-nums">\n {COPY.printsAt(')), true);
+    // An address that names nothing is 1h's `Page not found` in the app's frame, one view for
+    // a kind no row carries and for an address no route answers, which met Next's own 404.
+    const drawsTheView = (source) => /import PageNotFound from "[./]+PageNotFound";/.test(source) && /<PageNotFound \/>/.test(source);
+    const view = parseFile("app/(assets)/PageNotFound.js").source;
+    check(
+        "an address naming nothing draws 1h's view, a kind's and any other's (#617)",
+        `${drawsTheView(parseFile("app/(assets)/asset-categories/[categoryRecordId]/page.js").source)} ${drawsTheView(parseFile("app/(assets)/[...address]/page.js").source)}`,
+        "true true"
+    );
+    check("  which says `Page not found` and leads back to the list", /\{COPY\.pageNotFound\}/.test(view) && /href=\{ASSET_CATEGORIES_PATH\}>\s*\{COPY\.backToTools\}/.test(view), true);
+    check("  a page drawing its own heading is seen", drawsTheView('return <h1 className="text-heading">{COPY.pageNotFound}</h1>;'), false);
 }
 
 if (isMain(import.meta.url)) await standalone(title, run);
