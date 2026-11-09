@@ -18,6 +18,11 @@
 // rewrites, or this one, which is a target written and rewritten by nobody; anything else is somebody
 // else's edit, and nothing is written to either field.
 //
+// ONE PATH IN THE SERIAL NUMBER'S HAS MOVED SINCE ITS RUN. This wrote that the field was made by
+// `scripts/import/add_serial_number_601.mjs`, which #602 had already moved into `ran/`, and its
+// ledgers keep that sentence. `describe_serial_path_612.mjs` put the `ran/` path in its place on both
+// bases, every other character as this wrote it, and `now` here is the corrected sentence.
+//
 // A LEDGER BEFORE THE PATCHES. `--apply` writes the base — `live` or `test`, as the run named it —
 // each field and its description before and after to
 // `scripts/import/ledgers/describe_details_612-<base>-<instant>.jsonl` first, the shape the other
@@ -98,7 +103,7 @@ const FIELDS = [
             "the base again as it saves and refuses, naming the asset that holds it (lib/assetSerial.js). Written, changed and cleared on the asset's page " +
             "by a site manager on the asset's Job in any status the app shows, as Note is (#612, lib/assetStatus.js:mayWriteDetailsIn); read by everyone " +
             "else. NOT AN EVENT: changing it appends no Asset Log row and moves neither Status nor Job. The Equipment & Tools list's search finds an asset " +
-            "by it at any job, and its export carries it. Made by scripts/import/add_serial_number_601.mjs on both bases.",
+            "by it at any job, and its export carries it. Made by scripts/import/ran/add_serial_number_601.mjs on both bases.",
     },
 ];
 

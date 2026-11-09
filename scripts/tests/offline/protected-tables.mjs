@@ -145,6 +145,9 @@ const CLASSIFIED = {
     // `Assets."Note"` and `."Serial Number"`'s descriptions, which #612 made false: who writes them, in
     // every status the app shows. Descriptions alone, on either base.
     "scripts/import/ran/describe_details_612.mjs": { describes: true },
+    // `Assets."Serial Number"`'s description again, one path in it: the #601 script's, which #602 had
+    // moved into `ran/` before #612 named it. A description alone, on either base.
+    "scripts/import/ran/describe_serial_path_612.mjs": { describes: true },
     // `Asset Log."Event"`'s two loan options (#598), made by a row written with typecast and deleted at
     // once on the test base, and refused on the live base, where they are a hand step.
     "scripts/import/ran/add_loan_events_598.mjs": { writes: ["rowRequest"] },
