@@ -13,6 +13,9 @@
 // refusesBeyondDescriptions` first, which lets this script alone (`SERIAL_NUMBER_SCHEMA`) make that one
 // field, beyond a schema read and descriptions. No row is read or written.
 //
+// NOT TO BE RUN AGAIN WITH `--apply`. Both bases' `Serial Number` and `Note` descriptions are #612's
+// sentences since, the first with its path corrected after, so `--apply` would put #601's back on both.
+//
 // IT MUST STAND ON THE LIVE BASE BEFORE THE CODE READING IT IS DEPLOYED. The Equipment & Tools list's
 // memory (`lib/airtable/assets.js`) names the field in the `fields` it reads and in the formula asking
 // what changed, and Airtable refuses a read naming a field the table lacks whole (422

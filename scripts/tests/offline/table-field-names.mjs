@@ -207,7 +207,7 @@ const RETIRED = {
     // #622 — THREE REVERSE LINKS RENAMED SO THEIR ROLE READS `(as …)`, the shape every
     // other second relation between two tables on the base has (`Jobs (as PIC)`,
     // `Purchase Orders (as Sender)`, `Assets (as Owner)`). Renamed by id on both bases
-    // by `scripts/import/rename_role_links_622.mjs`; type, link and values unchanged.
+    // by `scripts/import/ran/rename_role_links_622.mjs`; type, link and values unchanged.
     // `(as Recipient)` is the one the app reads, the #333 entry's quiet symptom again:
     // `record.get()` of the old name returns `undefined`, the mapper makes it `[]`, and
     // `canViewPR` clause 6 stops admitting a recipient with nothing thrown. These three
@@ -234,7 +234,7 @@ const RETIRED_EVERYWHERE = Object.freeze([
  * script is a change to this list.
  */
 const RETIRED_EVERYWHERE_KEPT_BY = Object.freeze([
-    "scripts/import/rename_role_links_622.mjs",
+    "scripts/import/ran/rename_role_links_622.mjs",
     "scripts/tests/offline/table-field-names.mjs",
 ]);
 

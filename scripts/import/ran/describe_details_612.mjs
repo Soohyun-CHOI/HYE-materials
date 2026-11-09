@@ -18,6 +18,11 @@
 // rewrites, or this one, which is a target written and rewritten by nobody; anything else is somebody
 // else's edit, and nothing is written to either field.
 //
+// ONE PATH IN THE SERIAL NUMBER'S HAS MOVED SINCE ITS RUN. This wrote that the field was made by
+// `scripts/import/add_serial_number_601.mjs`, which #602 had already moved into `ran/`, and its
+// ledgers keep that sentence. `describe_serial_path_612.mjs` put the `ran/` path in its place on both
+// bases, every other character as this wrote it, and `now` here is the corrected sentence.
+//
 // A LEDGER BEFORE THE PATCHES. `--apply` writes the base — `live` or `test`, as the run named it —
 // each field and its description before and after to
 // `scripts/import/ledgers/describe_details_612-<base>-<instant>.jsonl` first, the shape the other
@@ -28,9 +33,9 @@
 // description — and these two must read as written.
 //
 // Usage (from the repo root) — the test base unless the run names the live one (#534):
-//   node --env-file=.env.local scripts/import/describe_details_612.mjs                      (dry run)
-//   node --env-file=.env.local scripts/import/describe_details_612.mjs --apply
-//   AIRTABLE_BASE=live node --env-file=.env.local scripts/import/describe_details_612.mjs   (dry run, live)
+//   node --env-file=.env.local scripts/import/ran/describe_details_612.mjs                      (dry run)
+//   node --env-file=.env.local scripts/import/ran/describe_details_612.mjs --apply
+//   AIRTABLE_BASE=live node --env-file=.env.local scripts/import/ran/describe_details_612.mjs   (dry run, live)
 //
 // No loader flag: this file imports only built-ins, the guard's module and the base's.
 //
@@ -42,8 +47,8 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { refusesBeyondDescriptions } from "../protectedTables.mjs";
-import { describeAirtableBase, resolveAirtableBase } from "../../lib/airtableBase.js";
+import { refusesBeyondDescriptions } from "../../protectedTables.mjs";
+import { describeAirtableBase, resolveAirtableBase } from "../../../lib/airtableBase.js";
 
 /** The base this run reaches (#534), resolved at the top of main(): the test base unless the run names the live one. */
 let airtable = null;
@@ -52,7 +57,7 @@ const SCRIPT = "describe_details_612";
 
 const META_ROOT = "https://api.airtable.com/v0/meta";
 
-const LEDGER_DIR = join(dirname(fileURLToPath(import.meta.url)), "ledgers");
+const LEDGER_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "ledgers");
 
 /** `Assets`, by the id both bases share (the test base was made by duplicating the live one, #534). */
 const TABLE = { name: "Assets", id: "tblXtmDonSyOyOvV3" };
@@ -98,7 +103,7 @@ const FIELDS = [
             "the base again as it saves and refuses, naming the asset that holds it (lib/assetSerial.js). Written, changed and cleared on the asset's page " +
             "by a site manager on the asset's Job in any status the app shows, as Note is (#612, lib/assetStatus.js:mayWriteDetailsIn); read by everyone " +
             "else. NOT AN EVENT: changing it appends no Asset Log row and moves neither Status nor Job. The Equipment & Tools list's search finds an asset " +
-            "by it at any job, and its export carries it. Made by scripts/import/add_serial_number_601.mjs on both bases.",
+            "by it at any job, and its export carries it. Made by scripts/import/ran/add_serial_number_601.mjs on both bases.",
     },
 ];
 
