@@ -45,12 +45,24 @@
 // It cannot ask the thing #333 actually decided — that a child table is named for
 // its parent — because nothing in the tree says which table is whose child.
 //
+// #622 ADDED A THIRD, AND IT READS `scripts/` AS WELL. The rule above reads five
+// positions under `app/` and `lib/`, which is where the app reaches the base; a
+// script reaches it too, and `remove_demo_data_537_plan.mjs` read
+// `Jobs (Delivery Address)` through a helper's argument, a position the collector has
+// no name for. So the three names #622 retired are held over every literal in
+// `app/`, `lib/` and `scripts/` — `.py` included — which is affordable for them
+// alone: each is a link's whole name with its role in parentheses, so a literal equal
+// to one is an address wherever it stands. Most older entries are not: `Tool` and
+// `Paid` are screen words a check holds by value, and `Tool Items` is the name the
+// script that retired it renames from.
+//
 // EXIT CODES, per `docs/notes/verification.md`: 0 all clear, 1 something failed.
 
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { listJsFiles, parseFile, parseSource, repoPath, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "No reference names a retired table or field (#280, #333, #513)";
+export const title = "No reference names a retired table or field (#280, #333, #513, #622)";
 
 /** Where a string reaches Airtable, and nothing else, over `app/` + `lib/`. */
 const SCANNED_DIRS = ["app", "lib"];
@@ -81,8 +93,9 @@ const RETIRED = {
     // every reverse link naming it, and those live on OTHER tables — two on
     // `Purchase Requests`, three on `Users` — which is exactly the set a sweep that
     // greps only the renamed table's own file would miss. One of the five, `Users."PR
-    // Edit Requests (Sent To)"`, is read by `recordToUser` and feeds `canViewPR`
-    // clause 6, so missing it would have refused a signer their own request.
+    // Edit Requests (Sent To)"` — `(as Recipient)` since #622 — is read by
+    // `recordToUser` and feeds `canViewPR` clause 6, so missing it would have refused
+    // a signer their own request.
     //
     // `PR Edit Requests`, `PR Edit Log` and their `… ID` fields are NOT here and must
     // never be: they are the live successors, and `Edit Log` is the substring trap
@@ -90,8 +103,8 @@ const RETIRED = {
     // is why every entry here is matched whole rather than by prefix.
     "Correction Requests": "#333 — the table is `PR Edit Requests`",
     "Correction Request ID": "#333 — the field is `PR Edit Request ID`",
-    "Correction Requests (Sent To)": "#333 — the `Users` link is `PR Edit Requests (Sent To)`",
-    "Correction Requests (Initiated)": "#333 — the `Users` link is `PR Edit Requests (Initiated)`",
+    "Correction Requests (Sent To)": "#333 — the `Users` link is `PR Edit Requests (as Recipient)` since #622",
+    "Correction Requests (Initiated)": "#333 — the `Users` link is `PR Edit Requests (as Initiator)` since #622",
     "Edit Log": "#333 — the table is `PR Edit Log`",
     "Edit Log ID": "#333 — the field is `PR Edit Log ID`",
     // #334 — THE FIRST ENTRIES WITH NO SUCCESSOR NAME AT ALL, which is a third kind
@@ -191,7 +204,76 @@ const RETIRED = {
     // this file does not read. Under `app/` and `lib/` the name addresses nothing, whether the
     // hand step has taken it off a base yet or not.
     Class: "#552 — the class is off the catalog; its values are kept in keep_asset_class_552's ledgers",
+    // #622 — THREE REVERSE LINKS RENAMED SO THEIR ROLE READS `(as …)`, the shape every
+    // other second relation between two tables on the base has (`Jobs (as PIC)`,
+    // `Purchase Orders (as Sender)`, `Assets (as Owner)`). Renamed by id on both bases
+    // by `scripts/import/rename_role_links_622.mjs`; type, link and values unchanged.
+    // `(as Recipient)` is the one the app reads, the #333 entry's quiet symptom again:
+    // `record.get()` of the old name returns `undefined`, the mapper makes it `[]`, and
+    // `canViewPR` clause 6 stops admitting a recipient with nothing thrown. These three
+    // are held over `scripts/` as well, by `RETIRED_EVERYWHERE` below.
+    "PR Edit Requests (Initiated)": "#622 — the `Users` link is `PR Edit Requests (as Initiator)`",
+    "PR Edit Requests (Sent To)": "#622 — the `Users` link is `PR Edit Requests (as Recipient)`",
+    "Jobs (Delivery Address)": "#622 — the `Addresses` link is `Jobs (as Delivery Address)`",
 };
+
+/**
+ * #622 — the retired names held over every literal in `app/`, `lib/` and `scripts/`, not
+ * only the five positions above. A name belongs here only if a literal equal to it can be
+ * nothing but an address: a link's whole name, its role in parentheses.
+ */
+const RETIRED_EVERYWHERE = Object.freeze([
+    "PR Edit Requests (Initiated)",
+    "PR Edit Requests (Sent To)",
+    "Jobs (Delivery Address)",
+]);
+
+/**
+ * The files that name them on purpose: the script that renames them from these names, and
+ * this check, which lists them. A path here that no longer exists fails, so moving the
+ * script is a change to this list.
+ */
+const RETIRED_EVERYWHERE_KEPT_BY = Object.freeze([
+    "scripts/import/rename_role_links_622.mjs",
+    "scripts/tests/offline/table-field-names.mjs",
+]);
+
+/** What `RETIRED_EVERYWHERE` is held over. */
+const EVERYWHERE_DIRS = ["app", "lib", "scripts"];
+
+/** Every `.js`, `.mjs` and `.py` file under a directory, as repo-relative posix paths. */
+function sourceFiles(dir, out = []) {
+    for (const entry of readdirSync(repoPath(dir), { withFileTypes: true })) {
+        if (entry.name === "node_modules" || entry.name.startsWith(".") || entry.name === "__pycache__") continue;
+        const rel = `${dir}/${entry.name}`;
+        if (entry.isDirectory()) sourceFiles(rel, out);
+        else if (/\.(m?js|py)$/.test(entry.name)) out.push(rel);
+    }
+    return out;
+}
+
+/**
+ * Every literal in a source equal to one of `names`, with its line. A JavaScript file is
+ * parsed and its string literals and template parts read whole, so prose citing a name —
+ * a comment, a sentence in a template — is not one; a Python file has no parser here, so a
+ * quoted string on one line equal to a name is what is read.
+ */
+function literalsFromSource(source, relPath, names) {
+    const out = [];
+    const lineOf = (offset) => source.slice(0, offset).split("\n").length;
+    if (relPath.endsWith(".py")) {
+        for (const m of source.matchAll(/"([^"\n]*)"|'([^'\n]*)'/g)) {
+            const value = m[1] ?? m[2];
+            if (names.includes(value)) out.push({ value, line: lineOf(m.index) });
+        }
+        return out;
+    }
+    walk(parseSource(source, relPath).ast, (node) => {
+        const value = node.type === "Literal" ? node.value : node.type === "TemplateElement" ? node.value.cooked : undefined;
+        if (typeof value === "string" && names.includes(value)) out.push({ value, line: lineOf(node.start) });
+    });
+    return out;
+}
 
 /**
  * The names a reference may use, parsed out of `TABLES` rather than imported.
@@ -488,21 +570,24 @@ export function run({ check, assert, log }) {
     // repository — it was renamed so the pair on `Users` says one word, not to keep
     // anything working — so requiring it here would be requiring a reference that
     // should not exist. Naming that rather than quietly dropping it is the point.
-    for (const successor of [
-        "PR Edit Request ID",
-        "PR Edit Log ID",
-        "PR Edit Requests",
-        "PR Edit Requests (Sent To)",
-        "PR Edit Log",
-    ]) {
+    // #622 renamed two of the five again, and their successors are asked below.
+    for (const successor of ["PR Edit Request ID", "PR Edit Log ID", "PR Edit Requests", "PR Edit Log"]) {
         assert(
             `  and #333's successor ${JSON.stringify(successor)} is addressed in the tree`,
             collected.some((c) => c.value === successor)
         );
     }
+    // #622's two on `Users`, the same split: `(as Recipient)` is read by `recordToUser` and
+    // required, and `(as Initiator)` is read by nothing, as its old name was. The third,
+    // `Jobs (as Delivery Address)`, is read by no file under `app/` or `lib/` — a script
+    // reads it, and the rule over `scripts/` below asks that.
+    assert(
+        `  and #622's successor "PR Edit Requests (as Recipient)" is addressed in the tree`,
+        collected.some((c) => c.value === "PR Edit Requests (as Recipient)")
+    );
     assert(
         "  while the one nothing reads is deliberately not required",
-        !collected.some((c) => c.value === "PR Edit Requests (Initiated)")
+        !collected.some((c) => c.value === "PR Edit Requests (as Initiator)")
     );
     // #381's two successors, and BOTH are required — unlike #333's fifth, which is
     // read by nothing. These are read by `recordToUser` and written by
@@ -528,6 +613,58 @@ export function run({ check, assert, log }) {
         `retired names still in TABLES${stillPresent.length ? ` (${stillPresent.join(", ")})` : ""}`,
         stillPresent.length,
         0
+    );
+
+    // ── #622's three, over every literal in app/, lib/ and scripts/ ─────────
+    // The five positions above cannot see a script, and a script reads the base by name
+    // as the app does. Read whole files, failing closed: a file that cannot be parsed is
+    // a file this rule did not read.
+    log("");
+    log("no literal under app/, lib/ or scripts/ names a link #622 renamed, but the files that rename it:");
+    const SUCCESSORS_622 = ["PR Edit Requests (as Initiator)", "PR Edit Requests (as Recipient)", "Jobs (as Delivery Address)"];
+    const everywhere = EVERYWHERE_DIRS.flatMap((dir) => sourceFiles(dir));
+    const unread = [];
+    const literals = everywhere.flatMap((file) => {
+        try {
+            return literalsFromSource(readFileSync(repoPath(file), "utf8"), file, [...RETIRED_EVERYWHERE, ...SUCCESSORS_622]).map((l) => ({ ...l, file }));
+        } catch {
+            unread.push(file);
+            return [];
+        }
+    });
+    assert(`walked ${everywhere.length} files under app + lib + scripts`, everywhere.length > 300);
+    assert(
+        "  .mjs and .py files among them, which the collector above does not list",
+        everywhere.some((f) => f.endsWith(".mjs")) && everywhere.some((f) => f.endsWith(".py"))
+    );
+    for (const file of unread) log(`  could not parse ${file}`);
+    check("files this rule could not read", unread.length, 0);
+    const outside = literals.filter((l) => RETIRED_EVERYWHERE.includes(l.value) && !RETIRED_EVERYWHERE_KEPT_BY.includes(l.file));
+    for (const h of outside) log(`  ${h.file}:${h.line}  ${JSON.stringify(h.value)}  — ${RETIRED[h.value]}`);
+    check("literals of a name #622 retired, outside the files that rename it", outside.length, 0);
+    // The matcher has to be seen to say YES on the real tree, and the script that renames
+    // the three is where it must: it names each as the name it renames from.
+    assert(
+        "  the script that renames them names all three, so the rule reads the real tree",
+        RETIRED_EVERYWHERE.every((n) => literals.some((l) => l.file === RETIRED_EVERYWHERE_KEPT_BY[0] && l.value === n))
+    );
+    assert("  every file kept by name exists", RETIRED_EVERYWHERE_KEPT_BY.every((f) => existsSync(repoPath(f))));
+    assert(
+        "  a planted helper argument naming one is caught",
+        literalsFromSource('mark("Addresses", allGone("Jobs", "Jobs (Delivery Address)"));', "planted.mjs", RETIRED_EVERYWHERE).length === 1
+    );
+    assert(
+        "  and so is a planted Python string",
+        literalsFromSource("FIELD = 'PR Edit Requests (Sent To)'\n", "planted.py", RETIRED_EVERYWHERE).length === 1
+    );
+    assert(
+        "  while prose citing one is not",
+        literalsFromSource('// `Jobs (Delivery Address)` until #622\nlog(`"PR Edit Requests (Sent To)" was renamed`);', "planted.mjs", RETIRED_EVERYWHERE)
+            .length === 0
+    );
+    assert(
+        `  and #622's successor "Jobs (as Delivery Address)" is named outside the files that rename it`,
+        literals.some((l) => l.value === "Jobs (as Delivery Address)" && !RETIRED_EVERYWHERE_KEPT_BY.includes(l.file))
     );
 
     // ── the TABLES key spells its own value ─────────────────────────────────

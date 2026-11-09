@@ -2703,7 +2703,7 @@ The direction of the delegation is forced rather than chosen: `offline/id-sequen
 
 Five link fields, five auto-created inverses, and all five are the name we would have chosen, so none was renamed: `Tools."Tool Items"`, `Jobs."Tool Items"`, `Tool Items."Tool Log"`, `Jobs."Tool Log"`, `Users."Tool Log"`.
 
-Two links land on `Jobs`, which looks like the case `Users."PR Edit Requests (Initiated)"` and `"(Sent To)"` exist for. It is not. **Every disambiguated inverse on this base is two or more links from ONE source table** — `Purchase Orders (as PIC / as Manager / as Sender)`, `Jobs (as PIC / as Manager)`, the `PR Edit Requests` pair. Airtable names an inverse after the SOURCE TABLE, so two links from two different tables land already distinct.
+Two links land on `Jobs`, which looks like the case `Users."PR Edit Requests (as Initiator)"` and `"(as Recipient)"` exist for (`(Initiated)` and `(Sent To)` until #622). It is not. **Every disambiguated inverse on this base is a second relation between the same two tables** — two or more links from ONE source table, as `Purchase Orders (as PIC / as Manager / as Sender)`, `Jobs (as PIC / as Manager)`, the `PR Edit Requests` pair and since #598 `Assets (as Owner)` are, or a link back beside a table's own link to the far table, as `Addresses."Jobs (as Delivery Address)"` is beside `Addresses."Jobs"` since #384. Airtable names an inverse after the SOURCE TABLE, so two links from two different tables land already distinct. The naming rule is `naming.md`'s.
 
 ## The ninth child relation, registered before anything writes a row
 
