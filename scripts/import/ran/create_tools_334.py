@@ -97,9 +97,10 @@ CHOSEN, so none is renamed. Creating a link auto-creates the inverse on
 the far table named after the SOURCE TABLE, which is why no `(as X)`
 suffix is needed anywhere here: the two links into `Jobs` come from two
 different tables, so they land as `Jobs."Tool Items"` and
-`Jobs."Tool Log"` already distinct. The `(Initiated)`/`(Sent To)` shape on
-`Users` exists for the other case -- two links from ONE table onto one far
-table -- and this schema has none.
+`Jobs."Tool Log"` already distinct. The `(as Initiator)`/`(as Recipient)`
+shape on `Users` (`(Initiated)`/`(Sent To)` until #622) exists for the other
+case -- two links from ONE table onto one far table -- and this schema has
+none.
 
 Usage (reads the key and the base from .env.local at the repo root, through
 airtable_base.py -- the test base unless AIRTABLE_BASE=live names the live one

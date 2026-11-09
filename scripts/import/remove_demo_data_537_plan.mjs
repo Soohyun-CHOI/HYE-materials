@@ -249,7 +249,7 @@ export function planRemoval(rows) {
     mark("Invoice Items", anyGone("Invoice"), "a row of a demo invoice");
     mark("Materials", allGone("PO Items", "Delivery Items"), "ordered and delivered on demo documents alone");
     mark("Material Prices", (r) => anyGone("Material")(r) || anyGone("Vendor")(r), "the price of a demo material or from a demo vendor");
-    mark("Addresses", allGone("Jobs", "Jobs (Delivery Address)", "Vendors", "Purchase Requests", "Purchase Orders", "Deliveries"), "used by demo rows alone");
+    mark("Addresses", allGone("Jobs", "Jobs (as Delivery Address)", "Vendors", "Purchase Requests", "Purchase Orders", "Deliveries"), "used by demo rows alone");
     mark("Users", (r) => DEMO_ACCOUNTS.includes(String(r.fields?.Email ?? "").toLowerCase()), "an account the demo or the checks signed in as");
     mark("Auth Tokens", (r) => DEMO_MAILBOXES.includes(String(r.fields?.Email ?? "").toLowerCase()), "a sign-in row of a demo mailbox");
 

@@ -92,8 +92,9 @@ has stopped saying, which is the same defect one layer down.
 
 A row of `PR Edit Requests`: an **edit request**. `Initiated By`, `Sent To`,
 `Requested At`, `Resolved At`, `Status` (Pending/Resolved). The reverse links are
-`Purchase Requests."PR Edit Requests"` and, on `Users`, `PR Edit Requests
-(Initiated)` and `PR Edit Requests (Sent To)`.
+`Purchase Requests."PR Edit Requests"` and, on `Users`,
+`PR Edit Requests (as Initiator)` and `PR Edit Requests (as Recipient)` —
+`(Initiated)` and `(Sent To)` until #622.
 
 **One reason to prefer `edit`:** the same
 screen already says `Edit and continue` for the other thing a signer can do to a
