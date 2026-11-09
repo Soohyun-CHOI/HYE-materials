@@ -286,8 +286,9 @@ stands on (#509).
 
 **When the job holds none of this category's items and another job does (#509,
 #520, #612):** the head, `0`, and in place of the entries the heading `No items
-on 25-USA-13`, the job by its code, and under it where the items are, `Items on
-other jobs show under All jobs.` (1d, Tools 59, #617) — the head still offers
+on 25-USA-13`, the job by its code, and under it the choice that shows the
+items, `Choose All jobs to see items on other jobs.` (1d, #617, Soo's words, with
+`All jobs` the job choice's own) — the head still offers
 `Add items` to whoever may add (Soo's words, which 1d draws since the files of
 2026-11-05; it drew `Nothing added yet` there until then, which would have been
 false). From #509 to #612 the head stood alone, and from #612 to #617 the

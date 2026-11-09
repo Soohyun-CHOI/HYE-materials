@@ -35,7 +35,7 @@ import AssetList from "./AssetList";
 
 // `All jobs` is the document lists' job picker's own word, read where it is built, as the job
 // choice beside this page reads it (`JobChoice.js`): the sentence under a job's own empty points
-// the reader at that choice by its word (1d, Tools 59, #617).
+// the reader at that choice by its word (1d, #617).
 const ALL_JOBS_LABEL = axesFor(FILTERED_LISTS[0]).find((axis) => axis.param === "job").words.all;
 
 /*
@@ -181,7 +181,8 @@ export async function generateMetadata() {
  * fills it, `Items show here once a site manager adds them.`, where a site manager is told it
  * fills when they add, over the opener (1d, #519) — when nothing anywhere stands under the kind;
  * one with items on other jobs and none on this one says `No items on 25-USA-13` since #612
- * (`kindEmptyState`), and `Items on other jobs show under All jobs.` under it since #617. **So does a site manager on another job's
+ * (`kindEmptyState`), and `Choose All jobs to see items on other jobs.` under it since #617.
+ * **So does a site manager on another job's
  * list since #597** (1d `Another job`, `No items · another job`), and **on all jobs one meets
  * the opener and no box** (1d `All jobs`) — **one on no job reads what anybody does, there too,
  * since #610**: every question is `listRecording`, asked once here —
@@ -346,9 +347,9 @@ async function renderCategoryPage({ params, searchParams }) {
                 {empty.heading && (
                     <div className="flex flex-col items-center pt-list-empty-state-inset-top text-center">
                         <h2 className="text-heading font-semibold">{empty.heading}</h2>
-                        {/* Where the kind's items are (1d, Tools 59, #617), in the job choice's own words. */}
+                        {/* The choice that shows the kind's items (1d, #617), in the job choice's own words. */}
                         <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">
-                            {COPY.otherJobsUnder(ALL_JOBS_LABEL)}
+                            {COPY.chooseAllJobs(ALL_JOBS_LABEL)}
                         </p>
                     </div>
                 )}
