@@ -266,7 +266,9 @@ export function run({ check, assert, log }) {
     // until it does — and the landing's own gate is one that reaches the question.
     log("");
     log("every page that resolves a session asks for a name, and the landing asks:");
-    const SESSION_RESOLVERS = ["getCurrentUser", "getActiveUser"];
+    // `readSessionUser` is the gate's own since #491: the one read, kept whether or not the
+    // row may hold a session, so `requireUser` can end a session whose row is off.
+    const SESSION_RESOLVERS = ["getCurrentUser", "getActiveUser", "readSessionUser"];
     const pages = files.filter((rel) => isPageFile(rel));
     assert(`${pages.length} pages are enumerated`, pages.length > 15);
     const outsideTheGate = [];

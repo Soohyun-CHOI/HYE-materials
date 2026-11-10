@@ -1,10 +1,11 @@
 # Sign in
 
 Route: `/login`
-Design: Sign in 1a, 1d, 1e, 1j and 1h, on Invoices 0o.
+Design: Sign in 1a, 1d, 1e, 1j, 1m and 1h, on Invoices 0o.
 Who reaches it: anyone. It is also where a page's gate sends a reader with no
 session, handed the address that reader was trying to reach when the request
-carried one; a Route Handler answers such a request with a 401 instead.
+carried one, and a reader whose account the office has turned off, whose session
+ends on the way; a Route Handler answers such a request with a 401 instead.
 Which width comes first: both. A label scanned while signed out lands here on a
 phone, and a desk signs in here too.
 
@@ -44,7 +45,9 @@ was going.
 (`docs/notes/authorization.md`): `/login` 0 operations, an email asked for 2, a
 refusal by the ceiling 1, a wrong code 3, a refusal about a used, expired or locked
 row 2, a code that signs in 4, and 5 for a first sign-in, which creates the `Users`
-row.
+row. A sign-in for an account that is off costs what one that works costs and
+lands here at 0; a page or a press that finds a session's account off reads what
+it always read, 1, and ends the session at 0.
 
 ## What it carries only sometimes
 
@@ -107,6 +110,27 @@ on a resend, the code already sent still works.
 **A code that works says nothing.** The reader lands where they were going, or
 first on the name step and the job step when those apply, exactly as after the
 link.
+
+**When the account is off — the deactivated step**, which replaces every other
+step, the code step included (`SIGN_IN_COPY.deactivated.heading`,
+`SIGN_IN_COPY.deactivated.sentence`). Off is a `Users` row whose `Status` is not
+`Active`, set by the office. Only a browser that has proven the address reaches
+it: one whose link or code finished a sign-in for such an account, which then
+gets no session, and one holding the session of an account turned off since,
+from the next page it opens or the next press it makes, where that session
+ends. It names no address. Its press (`SIGN_IN_COPY.deactivated.action`)
+forgets the step and any email the browser was waiting on, and opens the first
+step empty. It survives a reload for as long as an email's row lives, and a
+sign-in that works ends it, so an account turned on again signs in as before.
+
+- **Nothing before the proof says it.** The first step answers an account that is
+  off exactly as any company address, emails it, and counts it toward the
+  ceilings as any other; the confirm screen offers its button as for anybody. So
+  nobody learns from this screen whether an address has an account or whether it
+  is off without the address's own email or session.
+- **No address shows it.** The step is drawn from what the server wrote to the
+  browser that proved the address, never from the URL, so a link cannot put it in
+  front of anybody else.
 
 ## What must agree elsewhere
 

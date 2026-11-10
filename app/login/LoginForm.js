@@ -31,6 +31,10 @@ import { AddressChip, PageRefusal, ResendRefusal, SignInHeader } from "./SignInP
 // when the browser is still waiting on an email (`pendingEmail`, read from the
 // binding by the page), so a reload lands back on it.
 //
+// AND A BROWSER TOLD ITS ACCOUNT IS OFF OPENS ON THE DEACTIVATED STEP (#491), ahead of
+// both, from a notice the page reads (`deactivated`). Its one press forgets the notice
+// and the binding together, as `Change` forgets the binding, and opens the first step.
+//
 // THE FIRST STEP TAKES ONLY THE PART BEFORE THE COMPANY'S DOMAIN (#473), which it shows
 // fixed beside the field: `domain` is `ALLOWED_EMAIL_DOMAIN`, handed down by the page, and
 // what the field keeps, what it refuses and the sentence it refuses with are
@@ -53,8 +57,8 @@ import { AddressChip, PageRefusal, ResendRefusal, SignInHeader } from "./SignInP
 //
 // EVERY WORD COMES FROM `lib/authTokenState.js` and `lib/companyEmail.js`, not from this
 // file, which is `NameForm.js`'s arrangement: a string written into JSX cannot be pinned.
-export default function LoginForm({ destination = "", pendingEmail = "", resendWaitMs = 0, domain }) {
-    const [step, setStep] = useState(pendingEmail ? "code" : "email");
+export default function LoginForm({ destination = "", pendingEmail = "", resendWaitMs = 0, domain, deactivated = false }) {
+    const [step, setStep] = useState(deactivated ? "deactivated" : pendingEmail ? "code" : "email");
     const [email, setEmail] = useState(pendingEmail);
     // The wait the code step opens on: when it was asked for, in this page's clock, and what
     // is left of it. A page the server drew knows only the second until it is live.
@@ -74,6 +78,18 @@ export default function LoginForm({ destination = "", pendingEmail = "", resendW
         setStep("email");
     }
 
+    // The same press forgets the notice with the binding, and the field opens empty: the
+    // address that brought the reader here is the one that cannot sign in.
+    if (step === "deactivated") {
+        return (
+            <DeactivatedStep
+                onUseDifferentEmail={async () => {
+                    setEmail("");
+                    await changeEmail();
+                }}
+            />
+        );
+    }
     if (step === "code") {
         return (
             <CodeStep
@@ -96,6 +112,26 @@ export default function LoginForm({ destination = "", pendingEmail = "", resendW
                 setStep("code");
             }}
         />
+    );
+}
+
+/**
+ * The step a browser that proved an address lands on when its account is off (#491, Sign in 1m):
+ * a heading, the sentence under it, and one way on, back to the first step for another address.
+ * It names no address, as the drawing names none, and draws the confirmation's arrangement — the
+ * header, and the action 32 under it at a desk and in the foot bar on a phone.
+ */
+function DeactivatedStep({ onUseDifferentEmail }) {
+    const copy = SIGN_IN_COPY.deactivated;
+    return (
+        <div className="flex flex-1 flex-col">
+            <SignInHeader heading={copy.heading} sentence={copy.sentence} />
+            <BottomBar stack="header">
+                <Button size="xl" onClick={onUseDifferentEmail}>
+                    {copy.action}
+                </Button>
+            </BottomBar>
+        </div>
     );
 }
 

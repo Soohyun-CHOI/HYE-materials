@@ -6,6 +6,7 @@ import {
     DEFAULT_DESTINATION,
     DESTINATION_PARAM,
     safeDestination,
+    SIGN_IN_PATH,
 } from "@/lib/loginDestination";
 import { withOpsLabel } from "@/lib/airtableOps";
 
@@ -60,12 +61,17 @@ export async function POST(request) {
             return seeOther(confirmPath({ destination }));
         }
 
+        let started;
         try {
-            await verifyMagicLink(token);
+            started = await verifyMagicLink(token);
         } catch {
             return seeOther(confirmPath({ token, destination }));
         }
 
+        // AN ACCOUNT THAT IS OFF STARTED NO SESSION (#491), and lands on the sign-in screen,
+        // which says why — the link proved the address, so this browser may be told. The
+        // destination is dropped: the screen's one way on is a different address.
+        if (started.deactivated) return seeOther(SIGN_IN_PATH);
         return seeOther(destination ?? DEFAULT_DESTINATION);
     });
 }

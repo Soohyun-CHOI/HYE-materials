@@ -392,15 +392,24 @@ export function run({ check, assert, log }) {
         callsTo(post, "redirect").length === 1 &&
             callsTo(localInit(post, "seeOther") ?? {}, "redirect").length === 1
     );
+    // #491 ADDED A THIRD KIND, AND IT IS NO DESTINATION. An account that is off lands on the
+    // sign-in screen whatever it was going to, which is the shared constant this module owns
+    // and imports here — never a value the submission carried.
+    const isSignInPath = (owned, arg) => arg?.type === "Identifier" && arg.name === "SIGN_IN_PATH" && owned.has("SIGN_IN_PATH");
     const unjudged = seeOthers.filter((call) => {
         const arg = call.arguments[0];
         const built = arg?.type === "CallExpression" && arg.callee?.name === "confirmPath";
-        return !built && !reaches(post, arg, "safeDestination");
+        return !built && !isSignInPath(verifyOwned, arg) && !reaches(post, arg, "safeDestination");
     });
     check(
-        `every redirect is built by confirmPath or is the judged destination${unjudged.length ? ` (${unjudged.length} not)` : ""}`,
+        `every redirect is built by confirmPath, is the sign-in screen, or is the judged destination${unjudged.length ? ` (${unjudged.length} not)` : ""}`,
         unjudged.length,
         0
+    );
+    check(
+        "  and the sign-in screen is where an account that is off lands",
+        seeOthers.filter((call) => isSignInPath(verifyOwned, call.arguments[0])).length,
+        1
     );
 
     // ── 5b: the code's endpoint hands the destination back (#471) ───────────
@@ -434,9 +443,14 @@ export function run({ check, assert, log }) {
     });
     assert(`it hands a destination back (${handedBack.length})`, handedBack.length > 0);
     check(
-        "  and every one it hands back is the judged one",
-        handedBack.filter((value) => !reaches(codePost, value, "safeDestination")).length,
+        "  and every one it hands back is the judged one, or the sign-in screen",
+        handedBack.filter((value) => !isSignInPath(codeOwned, value) && !reaches(codePost, value, "safeDestination")).length,
         0
+    );
+    check(
+        "  the sign-in screen is handed back once, for an account that is off",
+        handedBack.filter((value) => isSignInPath(codeOwned, value)).length,
+        1
     );
 
     // ── 6: the hop that leaves the app ──────────────────────────────────────

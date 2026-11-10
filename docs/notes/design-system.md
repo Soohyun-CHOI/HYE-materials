@@ -429,6 +429,10 @@ The files of 2026-11-06 — Tools 54, Sign in 30, which is Sign in 29 byte for b
 
 **WHAT WAS ASKED OF DESIGN, AND THE NAMES TOOLS 57 BROUGHT.** The id's 20 line and `book-open` are drawn since; 1l's last step stays 12, Design's per-table figure, `--spacing-fill-pager-step-bleed`, beside 1d's 13. 1a2's sentence takes `--spacing-list-empty-state-band-inset-top`, 194 under the band. 1c's passing toast takes `--spacing-added-toast-offset`, 78 from the pager's top, and `--transition-duration-toast`, its 200ms fade, the 4 s it stands being `Toast.js`'s; it shares 0k's ground (`TOAST_GROUND`). **Tools 59 brought no name**: 1d's room for `Add items` is the opener's own `--height-control-lg`, its job empty's sentence the other empty's look, and 1h's `Page not found` drawing no section is the rail's rule, which Invoices 56's 0m now states. `tools.md`, `The tools and sign-in screens settled against Tools 56 and Sign in 32`, has the rest of #617's ledger.
 
+## The deactivated step, Sign in 1m (#491)
+
+**Drawn from the steps' own parts, and naming no value.** The heading and the sentence under it are `SignInHeader`'s, with no chip, and the one action stands where the confirmation's does: 32 under the header at a desk, in the foot bar on a phone. Measured against 1m-a and 1m-b in `authorization.md`, and every box stood where they put it. **The files set every step's heading `text-wrap: pretty`, and the app sets none.** 1m's is the first heading to wrap at all, and at 360 and at 341 it breaks where `pretty` breaks it, after `has been`; a heading that came to break differently is where the class would be added, to every step at once.
+
 ## From the design's words to the names
 
 Every declaration, by the design's row and the figure the design draws, and after them the values read under Tailwind's own names. A length's rem is the design's px over 16, and the px is given beside it.

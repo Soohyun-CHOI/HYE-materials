@@ -106,7 +106,7 @@ export async function run({ check, log }) {
         .flatMap(([rel, count]) => Array(count).fill(rel))
         .sort();
     check("  every bar is found by its JSX, as by its text", found.map((f) => f.relPath).join(" | "), byText.join(" | "));
-    check("  ten bars are drawn", String(found.length), "10");
+    check("  eleven bars are drawn, the deactivated step's among them (#491)", String(found.length), "11");
     check("  and none passes a prop the bar does not take", setApart(found).join(" | "), "");
 
     // Anti-vacuity: a ground drawn on a condition, a bar taking a prop more, a caller passing one and

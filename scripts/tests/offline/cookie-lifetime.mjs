@@ -32,7 +32,7 @@
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
 import { getIronSession, unsealData } from "iron-session";
-import { PENDING_SIGN_IN_COOKIE, SESSION_COOKIE, SESSION_DAYS } from "../../../lib/cookieLifetime.js";
+import { DEACTIVATED_NOTICE_COOKIE, PENDING_SIGN_IN_COOKIE, SESSION_COOKIE, SESSION_DAYS } from "../../../lib/cookieLifetime.js";
 import {
     callsTo,
     listJsFiles,
@@ -104,8 +104,11 @@ export async function run({ check, assert, log }) {
     check("  and its cookie lives", SESSION_COOKIE.cookieOptions.maxAge, 2592000);
     check("the pending sign-in seals for", PENDING_SIGN_IN_COOKIE.ttl, 900);
     check("  and its cookie lives", PENDING_SIGN_IN_COOKIE.cookieOptions.maxAge, 900);
+    check("the deactivated notice seals for", DEACTIVATED_NOTICE_COOKIE.ttl, 900);
+    check("  and its cookie lives", DEACTIVATED_NOTICE_COOKIE.cookieOptions.maxAge, 900);
     check("the session cookie is", SESSION_COOKIE.cookieName, "hye_session");
     check("the pending sign-in cookie is", PENDING_SIGN_IN_COOKIE.cookieName, "hye_sign_in");
+    check("the deactivated notice's cookie is", DEACTIVATED_NOTICE_COOKIE.cookieName, "hye_deactivated");
     assert("neither can be changed from outside", Object.isFrozen(SESSION_COOKIE) && Object.isFrozen(SESSION_COOKIE.cookieOptions));
 
     // ── 2: what iron-session would set and seal ─────────────────────────────
@@ -114,6 +117,7 @@ export async function run({ check, assert, log }) {
     for (const [label, options, seconds] of [
         ["the session", SESSION_COOKIE, 2592000],
         ["the pending sign-in", PENDING_SIGN_IN_COOKIE, 900],
+        ["the deactivated notice", DEACTIVATED_NOTICE_COOKIE, 900],
     ]) {
         const before = Date.now();
         const cookie = await saveThrough(options, { userId: "recOFFLINECHECK00" });
@@ -154,13 +158,13 @@ export async function run({ check, assert, log }) {
         }
     });
     assert(
-        "  it imports both cookies from lib/cookieLifetime.js",
-        imported.has("SESSION_COOKIE") && imported.has("PENDING_SIGN_IN_COOKIE")
+        "  it imports all three cookies from lib/cookieLifetime.js",
+        imported.has("SESSION_COOKIE") && imported.has("PENDING_SIGN_IN_COOKIE") && imported.has("DEACTIVATED_NOTICE_COOKIE")
     );
     const ironCalls = callsTo(session.ast, "getIronSession");
-    check("  and opens a sealed cookie in exactly two places", ironCalls.length, 2);
+    check("  and opens a sealed cookie in exactly three places", ironCalls.length, 3);
     const builtFrom = ironCalls.map((call) => call.arguments[1]?.name).sort().join(",");
-    check("  with the two option sets built from them", builtFrom, "pendingSignInOptions,sessionOptions");
+    check("  with the three option sets built from them", builtFrom, "deactivatedNoticeOptions,pendingSignInOptions,sessionOptions");
 
     // ── 4: a session is sealed at sign-in and never again ───────────────────
     // THIS IS THE "NEVER EXTENDED" HALF. A `.save()` re-seals with a fresh expiry,
@@ -168,7 +172,7 @@ export async function run({ check, assert, log }) {
     // is walked; only `lib/session.js` may open a sealed cookie, and there only the
     // two writers may save.
     log("");
-    log("a seal is written at sign-in and when a browser asks for an email, and nowhere else:");
+    log("a seal is written at sign-in, when a browser asks for an email, and when an account is found off, and nowhere else:");
     const openers = sourceFiles().filter((rel) => callsTo(parseFile(rel).ast, "getIronSession").length > 0);
     check("files that open a sealed cookie", openers.join(","), "lib/session.js");
     const savers = [];
@@ -176,7 +180,13 @@ export async function run({ check, assert, log }) {
         if (n.type !== "FunctionDeclaration") return;
         if (callsTo(n, "save").length > 0) savers.push(n.id.name);
     });
-    check("functions in lib/session.js that save one", savers.sort().join(","), "createSession,writePendingSignIn");
+    check("functions in lib/session.js that save one", savers.sort().join(","), "createSession,writeDeactivatedNotice,writePendingSignIn");
+    // #491's saver seals the notice and nothing else, so it cannot become a second way a session is sealed.
+    check(
+        "  and the notice's saver opens the notice's cookie alone",
+        callsTo(resolveFunction(session.ast, "getDeactivatedNotice"), "getIronSession").map((call) => call.arguments[1]?.name).join(","),
+        "deactivatedNoticeOptions"
+    );
     check("getCurrentUser saves nothing", callsTo(resolveFunction(session.ast, "getCurrentUser"), "save").length, 0);
     const createSession = resolveFunction(session.ast, "createSession");
     check("createSession saves once", callsTo(createSession, "save").length, 1);

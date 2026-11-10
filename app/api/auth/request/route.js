@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requestMagicLink } from "@/lib/auth";
 import { CROSS_ORIGIN_REFUSAL, isCrossOrigin } from "@/lib/crossOrigin";
-import { clearPendingSignIn } from "@/lib/session";
+import { clearDeactivatedNotice, clearPendingSignIn } from "@/lib/session";
 import { retryAfterSeconds } from "@/lib/signInLimit";
 import { withOpsLabel } from "@/lib/airtableOps";
 
@@ -63,11 +63,16 @@ export async function POST(request) {
 }
 
 /**
- * Forgets which email this browser is waiting on — the code step's
- * `Use a different email` (#471). The binding outlives a reload by design, so the
+ * Forgets which email this browser is waiting on — the code step's `Change`
+ * (`Use a different email` until #473; #471). The binding outlives a reload by design, so the
  * screen draws the code step again after one; without this there would be no way
  * back to the address short of waiting out the fifteen minutes. Having nothing to
  * forget is not an error, and the email already sent is left as it is.
+ *
+ * AND THAT THIS BROWSER'S ACCOUNT IS OFF (#491), for the deactivated step's
+ * `Use a different email`: that notice outlives a reload too, and the step is the way back
+ * to the address. Forgetting both is one press's answer, since either left behind would draw
+ * its step again on the next reload.
  */
 export async function DELETE(request) {
     return withOpsLabel("DELETE /api/auth/request", async () => {
@@ -76,6 +81,7 @@ export async function DELETE(request) {
         }
 
         await clearPendingSignIn();
+        await clearDeactivatedNotice();
         return NextResponse.json({ ok: true });
     });
 }
