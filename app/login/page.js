@@ -1,6 +1,6 @@
 import { ALLOWED_EMAIL_DOMAIN } from "@/lib/auth";
 import { safeDestination } from "@/lib/loginDestination";
-import { readPendingSignIn } from "@/lib/session";
+import { readDeactivatedNotice, readPendingSignIn } from "@/lib/session";
 import { resendWaitLeft } from "@/lib/signInLimit";
 import { withOpsLabel } from "@/lib/airtableOps";
 import LoginForm from "./LoginForm";
@@ -49,6 +49,12 @@ import LoginForm from "./LoginForm";
  * so a code step drawn again mid-wait counts on rather than starting over or offering
  * the control early. Measured here and handed on as a length, not an instant, so the
  * form's first render and the server's draw the same figure.
+ *
+ * AND IT OPENS ON THE DEACTIVATED STEP WHEN THIS BROWSER WAS TOLD ITS ACCOUNT IS OFF (#491),
+ * ahead of the code step, since a binding left by the email it asked for is for an address
+ * that cannot sign in. It reads a sealed cookie the sign-in or the session's ending wrote, and
+ * never anything in the URL, so no address shows the step to anybody who has not proven the
+ * account's address — and it still makes no Airtable call.
  */
 export default async function LoginPage(props) {
     return withOpsLabel("/login", () => renderLoginPage(props));
@@ -57,6 +63,7 @@ export default async function LoginPage(props) {
 async function renderLoginPage({ searchParams }) {
     const { destination } = await searchParams;
     const pending = await readPendingSignIn();
+    const deactivated = await readDeactivatedNotice();
 
     return (
         <LoginForm
@@ -64,6 +71,7 @@ async function renderLoginPage({ searchParams }) {
             pendingEmail={pending?.email ?? ""}
             resendWaitMs={resendWaitLeft(pending?.requestedAt)}
             domain={ALLOWED_EMAIL_DOMAIN}
+            deactivated={deactivated}
         />
     );
 }

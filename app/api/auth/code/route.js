@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { signInWithCode } from "@/lib/auth";
 import { CODE_STATES } from "@/lib/authTokenState";
 import { CROSS_ORIGIN_REFUSAL, isCrossOrigin } from "@/lib/crossOrigin";
-import { DEFAULT_DESTINATION, DESTINATION_PARAM, safeDestination } from "@/lib/loginDestination";
+import { DEFAULT_DESTINATION, DESTINATION_PARAM, safeDestination, SIGN_IN_PATH } from "@/lib/loginDestination";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 /**
@@ -49,6 +49,9 @@ export async function POST(request) {
         if (result.state !== CODE_STATES.VALID) {
             return NextResponse.json({ state: result.state, remaining: result.remaining }, { status: 400 });
         }
+        // AN ACCOUNT THAT IS OFF STARTED NO SESSION (#491): the screen goes to the sign-in
+        // screen instead, which says why, as the link's does.
+        if (result.deactivated) return NextResponse.json({ state: result.state, destination: SIGN_IN_PATH });
         return NextResponse.json({ state: result.state, destination: destination ?? DEFAULT_DESTINATION });
     });
 }

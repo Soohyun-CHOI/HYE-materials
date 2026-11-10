@@ -103,6 +103,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `app/login/askForEmail.js` — the one request all four sign-in controls ask for an email with (#148), and its three answers.
 - `lib/crossOrigin.js` — the login-CSRF refusal every sign-in POST makes.
 - `lib/cookieLifetime.js` — each sealed cookie's lifetime, one value for its seal and its cookie. A session lasts 30 days from sign-in and is never extended.
+- `lib/accountStatus.js` — whether a `Users` row may hold a session (#491), and the sealed finding a page hands `GET /api/auth/deactivated` to end one.
 - `lib/loginDestination.js` — where a signed-out reader was headed (#373), and where a reader with nowhere to go lands (#542).
 - `lib/openScreens.js` — whether the materials screens are open (#542): the one switch the rail and `next.config.mjs` read. **No page, link or action asks it.**
 - `lib/units.js` — `CANONICAL_UNITS`, the JS source of truth for the Unit select list.
@@ -262,7 +263,7 @@ Read `docs/notes/uploads-and-drafts.md` before changing an upload path or `persi
 
 - A magic link, or the code beside it in the same email, restricted to the company email domain. `requestMagicLink()` domain-checks, holds the mailbox and the IP to their ceilings (#148), then emails both; **a code works only in the browser that asked (#471)**, and `consumeAuthToken` and `consumeAuthCode` spend the one row under one `withKeyLock` key. New signups always land as plain Employee (`Is Admin: false`) and **with no name** — `requireUser()` sends a nameless reader to `/login/name` (#381), then one with no job who is neither Admin nor President to `/login/jobs` (#554); promotion is a manual Airtable edit.
 - **Every sign-in POST refuses a cross-origin submission** — `Origin` against `Host`, and absence fails open.
-- `lib/session.js`: iron-session, payload `{ userId }`. `getCurrentUser()` treats a missing Users record as logged-out and re-throws real Airtable errors. `getActiveUser()` also treats `Status: Inactive` as logged-out.
+- `lib/session.js`: iron-session, payload `{ userId }`. `getCurrentUser()` treats a missing Users record as logged-out and re-throws real Airtable errors. `getActiveUser()` also treats `Status: Inactive` as logged-out; `requireUser()` ends such a session, and `/login` says why once the address is proven (#491).
 - Env vars: `SESSION_SECRET`, `RESEND_API_KEY`, `ALLOWED_EMAIL_DOMAIN`, `EMAIL_FROM` (optional). Fail-fast at module load; set in Vercel too. **`lib/auth.js` alone reads `ALLOWED_EMAIL_DOMAIN`**; a screen showing the domain is handed its export (#473).
 - **There is no user-creation screen.** A Users record appears as a side effect of a first magic-link sign-in and in no other way. `Assigned Jobs` has two writers, `lib/airtable/users.js`'s additive `addAssignedJob` and `assignFirstJobs`, which writes only a row holding none (#554).
 - The product is named in one place, `lib/productName.js`. `offline/product-name.mjs` fails on any superseded name under `app/` or `lib/`, and on `PRODUCT_NAME`'s value appearing as a literal outside its own module.

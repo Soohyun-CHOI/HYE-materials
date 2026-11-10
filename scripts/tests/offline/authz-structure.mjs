@@ -196,6 +196,16 @@ const EXEMPTIONS = [
             "verify route's reason: a code authenticates a request but not the submitter's intent.",
     },
     {
+        file: "app/api/auth/deactivated/route.js",
+        name: "GET",
+        mustCall: "endHandedOffSession",
+        reason:
+            "Public by design (#491): where a page's gate sends a session whose row is turned off, since a page " +
+            "cannot write a cookie. It authorizes by the seal it carries rather than by a role — it ends the " +
+            "browser's session only when a seal this server made a minute ago names the user that session is, " +
+            "and otherwise changes nothing — so there is no caller to gate and no reader a role would describe.",
+    },
+    {
         file: "app/api/auth/logout/route.js",
         name: "POST",
         reason: "Public by design: destroys whatever session is present, and having none is not an error.",
