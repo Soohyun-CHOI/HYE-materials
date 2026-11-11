@@ -52,7 +52,7 @@ import {
     NO_DIVISION_NAME,
     categoryNameKey,
     planCategory,
-} from "../../lib/categoryCreation.js";
+} from "../../lib/materialCategoryCreation.js";
 import {
     CATEGORY_ITEM_NAME,
     CATEGORY_LEAF_CODE,

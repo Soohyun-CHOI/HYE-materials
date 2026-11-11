@@ -11,27 +11,28 @@ import {
     itemOptionLabel,
     planDelivery,
 } from "@/lib/deliveryAllocation";
-import { availableInvoiceOptions } from "@/lib/deliveryInvoiceLink";
 import { ADDRESS_CHOICE_COPY, addressOptions } from "@/lib/addressChoice";
 import { DELIVERY_ADDRESS_COPY, deliveryAddressDefault } from "@/lib/deliveryAddress";
 import {
     PAIRING,
+    availableInvoiceOptions,
     invoiceFromOption,
     describeDeliveryPairings,
     describePairing,
     describeTieBreak,
     planPairings,
-} from "@/lib/deliveryInvoiceMatch";
+} from "@/lib/deliveryInvoicePairing";
 
 // EVERY IMPORT HERE MUST BE CLIENT-SAFE. lib/deliveryAllocation.js imports only
-// lib/materialPriceView.js -> lib/itemNaming.js, none of which reach
-// lib/airtable/. That is load-bearing rather than incidental: this file used to
-// import itemOptionLabel from lib/deliveryCandidates.js, which pulls in
-// lib/airtable/client.js, and client.js throws `Missing AIRTABLE_TEST_API_KEY` at
-// module load — so selecting a job blew up in the browser. Importing a module
-// EXECUTES it; "the readers are never called on this side" was not a defense.
+// lib/poItemQty.js, which imports nothing, so neither reaches lib/airtable/. That
+// is load-bearing rather than incidental: this file used to import
+// itemOptionLabel from lib/deliveryCandidates.js (lib/deliveryAllocation.server.js
+// since #184), which pulls in lib/airtable/client.js, and client.js throws
+// `Missing AIRTABLE_TEST_API_KEY` at module load — so selecting a job blew up in
+// the browser. Importing a module EXECUTES it; "the readers are never called on
+// this side" was not a defense.
 // scripts/tests/offline/client-import-safety.mjs now fails on any such import.
-// lib/deliveryInvoiceLink.js (#210) is pure for the same reason and has its
+// lib/deliveryInvoicePairing.js (#210) is pure for the same reason and has its
 // credentialed half in a separate file.
 
 const EMPTY_ROW = { materialRecordId: "", qty: "" };

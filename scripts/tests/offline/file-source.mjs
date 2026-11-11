@@ -131,14 +131,14 @@ const FILE_SOURCES = [
         what: "a replacement packing list photo",
     },
     {
-        file: "lib/overagePR.js",
+        file: "lib/overage.server.js",
         fn: "createOverageDraft",
         writer: "createQuotation",
         source: "server",
         what: "the invoice's own file, re-uploaded as the overage request's quotation (#167)",
     },
     {
-        file: "lib/directPurchaseClaim.js",
+        file: "lib/directPurchase.server.js",
         fn: "claimDirectPurchase",
         writer: "createQuotation",
         source: "server",

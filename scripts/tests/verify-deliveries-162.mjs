@@ -57,7 +57,7 @@ import { updatePO, PO_WITHDRAWN_STATUS } from "../../lib/airtable/purchaseOrders
 import { getPOItemsByRecordIds, getDeliveredQtyForPOItem } from "../../lib/airtable/poItems.js";
 import { createDelivery, getDeliveryById, replaceDeliveryPhoto, updateDelivery } from "../../lib/airtable/deliveries.js";
 import { createDeliveryItem, getItemsByDelivery } from "../../lib/airtable/deliveryItems.js";
-import { getDeliveryCandidates } from "../../lib/deliveryCandidates.js";
+import { getDeliveryCandidates } from "../../lib/deliveryAllocation.server.js";
 import {
     BLOCKED,
     buildItemOptions,

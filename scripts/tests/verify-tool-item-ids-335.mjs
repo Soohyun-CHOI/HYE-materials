@@ -231,7 +231,7 @@ try {
             log("  mint re-issues it. For an invoice that is the documented, accepted");
             log("  behavior of MAX + 1. For a tool item it means a printed label can");
             log("  be duplicated by a hand deletion in Airtable — see the hazard note");
-            log("  in lib/ids.js and docs/notes/tools.md.");
+            log("  in lib/idSequence.server.js and docs/notes/tools.md.");
         } else {
             log("  MEASURED: the deleted number was NOT re-issued. Whatever prevents");
             log("  it is not nextSequence, which is MAX + 1 over live rows — find out");

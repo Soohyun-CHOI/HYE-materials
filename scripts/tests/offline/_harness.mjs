@@ -12,7 +12,7 @@
 // The boundary is not a preference, it is measurable: lib/airtable/client.js
 // throws "Missing AIRTABLE_TEST_API_KEY" at module load, so any module that
 // imports it transitively cannot be used here. That currently excludes
-// lib/poWithdraw.js, lib/blobIngest.js and lib/ids.js. Two of them have since
+// lib/poWithdraw.js, lib/blobIngest.js and lib/idSequence.server.js. Two of them have since
 // moved their pure half into a module of its own — lib/idSequence.js (#164) and
 // lib/fileSource.js (#438) — and what is still kept out of this tier is
 // docs/notes/backlog.md's follow-up, which this said was CLAUDE.md's.

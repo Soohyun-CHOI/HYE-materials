@@ -16,7 +16,7 @@ import Link from "next/link";
 // `app/components/ListFilterBar.js`, which is where that measurement lives.
 //
 // EVERY IMPORT HERE MUST BE CLIENT-SAFE. lib/deliveryStatus.js and lib/listFilters.js
-// are pure; lib/deliveryReconciliation.js reaches lib/airtable/ and must never be
+// are pure; lib/deliveryStatus.server.js reaches lib/airtable/ and must never be
 // imported here — an import executes the module and it throws
 // `Missing AIRTABLE_TEST_API_KEY` in the browser (#162).
 import {

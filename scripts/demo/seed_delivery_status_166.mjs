@@ -46,7 +46,7 @@ import { createDelivery } from "../../lib/airtable/deliveries.js";
 import { createDeliveryItem } from "../../lib/airtable/deliveryItems.js";
 import { createInvoice } from "../../lib/airtable/invoices.js";
 import { createInvoiceItem } from "../../lib/airtable/invoiceItems.js";
-import { getDeliveryCandidates } from "../../lib/deliveryCandidates.js";
+import { getDeliveryCandidates } from "../../lib/deliveryAllocation.server.js";
 import { planDelivery } from "../../lib/deliveryAllocation.js";
 import { getMaterialByKey } from "../../lib/airtable/materials.js";
 import { getAllJobs, getJobByRecordId } from "../../lib/airtable/jobs.js";

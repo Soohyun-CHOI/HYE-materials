@@ -219,7 +219,7 @@ export function run({ check, assert, log }) {
     check(
         "the predicate's module imports pure modules alone",
         owner.ast.body.filter((n) => n.type === "ImportDeclaration").map((n) => n.source.value).sort().join(" "),
-        "./assetCategory.js ./loginDestination.js ./searchTokens.js ./userName.js"
+        "./assetCategory.js ./loginDestination.js ./typedText.js ./userName.js"
     );
 
     // ── 3: the page sends on anybody the step is not for ────────────────────

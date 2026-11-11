@@ -5,7 +5,7 @@ import DirectPurchaseButton from "./DirectPurchaseButton";
 
 // Direct purchases waiting for a request, above the list of requests (#272). One
 // of the strips built to the shape #176 set; the selection rule, the ordering and
-// every word are lib/directPurchase.js's and lib/directPurchaseClaim.js's, so this
+// every word are lib/directPurchase.js's and lib/directPurchase.server.js's, so this
 // file is the rendering and nothing else.
 //
 // IT STANDS BESIDE THE OVER-DELIVERY STRIP RATHER THAN MERGING WITH IT, and the

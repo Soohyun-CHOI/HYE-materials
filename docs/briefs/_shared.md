@@ -581,14 +581,14 @@ N EA delivered beyond what {order} ordered.`), its unattributable twin, the
 `(N over)` table mark, and the refusal `Nothing on this job orders this item
 from this vendor, so there is no order to record it against.`
 
-`lib/deliveryInvoiceLink.js` carries `One invoice belongs to one delivery, so
+`lib/deliveryInvoicePairing.js` carries `One invoice belongs to one delivery, so
 one already attached elsewhere is listed but cannot be picked. A delivery can
 carry more than one invoice.` and four refusals, two of which are deliberately
 the same sentence — `That invoice no longer exists.` answers both "not found"
 and "outside your scope", because telling the two apart would confirm that a
 record exists outside someone's scope.
 
-`lib/deliveryInvoiceMatch.js` carries the seven pairing sentences, including the
+`lib/deliveryInvoicePairing.js` carries the seven pairing sentences, including the
 tie-break. `lib/overage.js` carries the overage request's preview, its eight
 refusals, its five short strip reasons (`no invoice yet`, `invoice and delivery
 disagree`, `spans two invoices`, `invoices differ on price`, `invoice has no

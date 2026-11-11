@@ -123,7 +123,7 @@ const CARRIED = [
     // `q` WAS THE RESERVATION `lib/listFilters.js` HELD FOR THIS ISSUE, and the note
     // beside it said these lines were deliberately absent because "an entry here must
     // be read by its screen, and nothing reads these yet". Four screens read it now.
-    { route: "/prs", param: "q", note: "#325 — the search term; matched against the PR ID, the vendor's name and the job's code or name, tokenized by lib/searchTokens.js. A request carries no second name: `Purchase Requests` holds none, and a quotation's code is on the `Quotations` row rather than this one" },
+    { route: "/prs", param: "q", note: "#325 — the search term; matched against the PR ID, the vendor's name and the job's code or name, tokenized by lib/typedText.js. A request carries no second name: `Purchase Requests` holds none, and a quotation's code is on the `Quotations` row rather than this one" },
     { route: "/pos", param: "q", note: "#325 — the search term; the PO ID, the vendor and the job. An order has no second name either — what the vendor receives is the PDF we send, with our own PO ID on it" },
     { route: "/deliveries", param: "q", note: "#325 — the search term; the Delivery ID, the vendor and the job. `Packing List PO` is deliberately not searched: it is a LINK, so what a delivery holds is another document's name rather than one of its own" },
     { route: "/invoices", param: "q", note: "#325 — the search term, and the only one of the four that reaches a second name: `Invoices.\"Vendor Invoice Code\"`, beside the Invoice ID, the vendor and the job. The vendor rings up quoting their own number, which is the case the whole issue is named for" },
@@ -169,7 +169,7 @@ const CARRIED = [
     {
         route: "/asset-categories",
         param: "q",
-        note: "#520 — the text searched, `/materials`' and the document lists' name for it; matched against a row's name, category and type through `lib/searchTokens.js`. Free text with nothing to intersect against, as #325's is",
+        note: "#520 — the text searched, `/materials`' and the document lists' name for it; matched against a row's name, category and type through `lib/typedText.js`. Free text with nothing to intersect against, as #325's is",
     },
     {
         route: "/asset-categories",
@@ -189,7 +189,7 @@ const CARRIED = [
     {
         route: "/asset-catalog",
         param: "q",
-        note: "#527 — the text searched, the category list's; matched against a row's whole name, category and type through `lib/searchTokens.js`, the name typed in full ranked first",
+        note: "#527 — the text searched, the category list's; matched against a row's whole name, category and type through `lib/typedText.js`, the name typed in full ranked first",
     },
     {
         route: "/asset-catalog",

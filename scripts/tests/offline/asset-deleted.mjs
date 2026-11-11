@@ -2,7 +2,7 @@
 // nothing counts one.
 //
 // WHY ONE JUDGMENT AND NOT ONE PER SCREEN. The office deletes an item by giving it the status
-// `Deleted`, and its row stays so that its printed number stays taken (`lib/ids.js` mints the day's
+// `Deleted`, and its row stays so that its printed number stays taken (`lib/idSequence.server.js` mints the day's
 // highest plus one). So every read of the table meets it, and a screen that forgot to leave it out
 // would draw an item the app says never existed. `lib/airtable/assets.js` is the one module that
 // reads the table for a screen, and each of its readers asks `isShownAsset` (`lib/assetStatus.js`)
@@ -31,7 +31,7 @@ import { isMain, standalone } from "./_harness.mjs";
 export const title = "A deleted asset is shown nowhere: one judgment, every read, every count (#582)";
 
 const ASSETS = "lib/airtable/assets.js";
-const IDS = "lib/ids.js";
+const IDS = "lib/idSequence.server.js";
 const LOG = "lib/airtable/assetLog.js";
 const CATEGORIES = "lib/airtable/assetCategories.js";
 const KIND_PAGE = "app/(assets)/asset-categories/[categoryRecordId]/page.js";

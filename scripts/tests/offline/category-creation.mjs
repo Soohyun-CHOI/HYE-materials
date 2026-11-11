@@ -73,7 +73,7 @@ import {
     narrowParent,
     nextBranchCode,
     planCategory,
-} from "../../../lib/categoryCreation.js";
+} from "../../../lib/materialCategoryCreation.js";
 
 export const title = "Adding a path to the catalog from the app (#368)";
 

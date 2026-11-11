@@ -182,7 +182,7 @@ export async function run({ check, log, assert }) {
     // the recipient of an edit request, none of whom need a Job assignment.
     log("");
     log("#210's invoice dropdown gates through the same walk, not a copy of it:");
-    const candidates = parseFile("lib/deliveryInvoiceCandidates.js");
+    const candidates = parseFile("lib/deliveryInvoicePairing.server.js");
     const candidateImports = new Set();
     let importsVisibility = false;
     walk(candidates.ast, (node) => {
@@ -191,7 +191,7 @@ export async function run({ check, log, assert }) {
         importsVisibility = true;
         for (const spec of node.specifiers) candidateImports.add(spec.imported?.name ?? spec.local.name);
     });
-    assert("lib/deliveryInvoiceCandidates.js imports ./invoiceVisibility", importsVisibility);
+    assert("lib/deliveryInvoicePairing.server.js imports ./invoiceVisibility", importsVisibility);
     assert("  and takes the walk from it", candidateImports.has("getVisibleInvoiceIds"));
 
     const candidateCalls = new Set();
@@ -225,7 +225,7 @@ export async function run({ check, log, assert }) {
     // Reaching for the candidate ORDERED ITEMS here is what a second answer looks like.
     let reachesCandidateOrderedItems = false;
     walk(candidates.ast, (node) => {
-        if (node.type === "ImportDeclaration" && node.source.value === "./deliveryCandidates") {
+        if (node.type === "ImportDeclaration" && node.source.value === "./deliveryAllocation.server") {
             reachesCandidateOrderedItems = true;
         }
     });
@@ -582,7 +582,7 @@ export async function run({ check, log, assert }) {
 
     // The file #211 took OFF this surface. Named rather than merely absent, because
     // "absent" is also what a broken scan reports.
-    assert("lib/overagePR.js reads no payment field", !found.includes("lib/overagePR.js"));
+    assert("lib/overage.server.js reads no payment field", !found.includes("lib/overage.server.js"));
 
     // ITS PAIR WAS `lib/deliveryStatus.js` AND #311 PUT THAT FILE BACK ON, so the
     // named absence is replaced rather than dropped — see PAYMENT_CONTAINERS.

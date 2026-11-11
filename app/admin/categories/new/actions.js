@@ -2,7 +2,7 @@
 
 import { withAdminAction } from "@/lib/authz";
 import { createCategoryUnderLevel2 } from "@/lib/airtable/materialCategories";
-import { CATEGORY_CREATION_COPY, planCategory } from "@/lib/categoryCreation";
+import { CATEGORY_CREATION_COPY, planCategory } from "@/lib/materialCategoryCreation";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 /**

@@ -5,7 +5,7 @@ import { getDeliveriesByRecordIds } from "@/lib/airtable/deliveries";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { accessibleJobs as jobsFor } from "@/lib/deliveryAccess";
 import { summarizeDelivery } from "@/lib/deliveryAllocation";
-import { getDeliveryInvoicing } from "@/lib/deliveryReconciliation";
+import { getDeliveryInvoicing } from "@/lib/deliveryStatus.server";
 import { describeDeliveryColumn } from "@/lib/deliveryStatus";
 import { jobOptionLabel, parseFilters, pickerOptions } from "@/lib/listFilters";
 import { withOpsLabel } from "@/lib/airtableOps";

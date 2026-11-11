@@ -30,7 +30,7 @@ import { formatUSD } from "@/lib/format";
 // #179 — the two variance kinds, named where the predicates that set them live.
 import { VARIANCE_COPY } from "@/lib/variance";
 import { describeOverageBanner } from "@/lib/overage";
-import { getOverageBannerFactsForPO } from "@/lib/overagePR";
+import { getOverageBannerFactsForPO } from "@/lib/overage.server";
 // #266 — `overPortion` is the `(N over)` the delivery detail's folded row already
 // prints; this page appends that same word to its own folded row rather than
 // coining a second one.

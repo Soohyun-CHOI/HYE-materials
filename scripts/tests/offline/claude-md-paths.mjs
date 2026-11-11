@@ -104,15 +104,15 @@ export function run({ check, assert, log }) {
     log("anti-vacuity — the predicates on planted spans:");
     check("  a check by its short name is under scripts/tests/", pathOf("offline/x.mjs")?.path, "scripts/tests/offline/x.mjs");
     check("  a notes file by its name is under docs/notes/", pathOf("naming.md")?.path, "docs/notes/naming.md");
-    check("  a binding is split off its path", JSON.stringify(pathOf("lib/ids.js:mintDailyIds")), JSON.stringify({ span: "lib/ids.js:mintDailyIds", path: "lib/ids.js", binding: "mintDailyIds" }));
+    check("  a binding is split off its path", JSON.stringify(pathOf("lib/idSequence.server.js:mintDailyIds")), JSON.stringify({ span: "lib/idSequence.server.js:mintDailyIds", path: "lib/idSequence.server.js", binding: "mintDailyIds" }));
     check("  a pattern is no path", pathOf("lib/airtable/{table}.js"), null);
     check("  a glob is no path", pathOf("scripts/tests/verify-*.mjs"), null);
     check("  a bare file name is no path", pathOf("Menu.js"), null);
-    check("  a sentence is no path", pathOf("lib/ids.js and more"), null);
+    check("  a sentence is no path", pathOf("lib/idSequence.server.js and more"), null);
     check("  a path that is not there is found", findingsOf([pathOf("lib/airtable/tools.js")]).join("; "), "lib/airtable/tools.js: no lib/airtable/tools.js");
-    check("  a binding that is not in its file is found", findingsOf([pathOf("lib/ids.js:upsertTool")]).join("; "), "lib/ids.js:upsertTool: lib/ids.js has no upsertTool");
-    check("  a binding met only inside a longer word is found", findingsOf([pathOf("lib/ids.js:mintDaily")]).join("; "), "lib/ids.js:mintDaily: lib/ids.js has no mintDaily");
-    check("  a binding in its file passes", findingsOf([pathOf("lib/ids.js:mintDailyIds")]).join("; "), "");
+    check("  a binding that is not in its file is found", findingsOf([pathOf("lib/idSequence.server.js:upsertTool")]).join("; "), "lib/idSequence.server.js:upsertTool: lib/idSequence.server.js has no upsertTool");
+    check("  a binding met only inside a longer word is found", findingsOf([pathOf("lib/idSequence.server.js:mintDaily")]).join("; "), "lib/idSequence.server.js:mintDaily: lib/idSequence.server.js has no mintDaily");
+    check("  a binding in its file passes", findingsOf([pathOf("lib/idSequence.server.js:mintDailyIds")]).join("; "), "");
     check("  a directory passes", findingsOf([pathOf("app/(assets)/")]).join("; "), "");
 }
 

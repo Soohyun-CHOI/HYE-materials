@@ -19,7 +19,7 @@
 //      Server Action is reachable directly (CLAUDE.md's re-authorization rule
 //      applies to validity as much as to permission).
 //   2. `createInvoiceItem` throws. The last line of defence, and the one that
-//      catches a caller inside `lib/` — `lib/overagePR.js` is the other one, and a
+//      catches a caller inside `lib/` — `lib/overage.server.js` is the other one, and a
 //      future third would fail here rather than write a null link.
 //
 // THE FLAG IS CHECKED AS AN ABSENCE, WHICH IS WEAKER AND IS SAID SO. A constant that
@@ -196,7 +196,7 @@ export function run({ check, assert, log }) {
     log("");
     log("nothing calls the judgment that was removed:");
     const callers = [];
-    for (const relPath of [ACTION, WRITER, FORM, "lib/deliveryReconciliation.js", "lib/invoiceDeliveryEntries.js"]) {
+    for (const relPath of [ACTION, WRITER, FORM, "lib/deliveryStatus.server.js", "lib/invoiceDeliveryEntries.js"]) {
         const { ast } = parseFile(relPath);
         if (callsTo(ast, "countsTowardStatus").length > 0) callers.push(relPath);
     }
@@ -208,7 +208,7 @@ export function run({ check, assert, log }) {
     // ANTI-VACUITY: `callsTo` has to be able to find a call in one of those files.
     assert(
         "the call matcher works on a function those files really do call",
-        callsTo(parseFile("lib/deliveryReconciliation.js").ast, "invoiceShareStatus").length > 0
+        callsTo(parseFile("lib/deliveryStatus.server.js").ast, "invoiceShareStatus").length > 0
     );
 }
 

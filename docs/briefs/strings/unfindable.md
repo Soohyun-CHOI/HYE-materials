@@ -56,10 +56,10 @@ chunks, so a concatenated sentence counts more than once.
 |---|---|---|---|---|
 | `STATUS_COPY` | `lib/deliveryStatus.js` | `describeInvoiceColumn`, `describeDeliveryColumn`, `describePOColumn`, `describePOInvoicingColumn`, `describePOPaymentColumn`, `describeInvoiceOverdue` | `/invoices`, `/deliveries`, `/pos`, `/pos/[poId]` | 28 |
 | `OVERAGE_COPY` | `lib/overage.js` | `describeOveragePreview`, `describeOverageBanner`, `tieBreakLabel` | `/deliveries/[deliveryId]`, `/deliveries/[deliveryId]/edit`, `/pos/[poId]`, `/prs/[prId]` | 94 |
-| `PAIRING_COPY` | `lib/deliveryInvoiceMatch.js` | `describePairing`, `describeTieBreak`, `planPairings` | `/invoices/[invoiceId]`, `/deliveries/new` | 31 |
+| `PAIRING_COPY` | `lib/deliveryInvoicePairing.js` | `describePairing`, `describeTieBreak`, `planPairings` | `/invoices/[invoiceId]`, `/deliveries/new` | 31 |
 | `ALLOCATION_COPY` | `lib/deliveryAllocation.js` | `describePlan`, `itemOptionLabel` | `/deliveries/new` | 38 |
 | `DELETE_COPY` | `lib/deliveryDelete.js` | `resolveDeleteCopy` | `/deliveries/[deliveryId]` | 22 |
-| `LINK_COPY` | `lib/deliveryInvoiceLink.js` | `availableInvoiceOptions` | `/deliveries/new` | 11 |
+| `LINK_COPY` | `lib/deliveryInvoicePairing.js` | `availableInvoiceOptions` | `/deliveries/new` | 11 |
 | `WITHDRAW_COPY` | `lib/poWithdraw.js` | `getWithdrawCopy` | `/pos/[poId]` | 5 |
 | `AWAITING_PO_COPY` | `lib/poListView.js` | `awaitingPOCopy` | `/pos`, `/prs/[prId]` | 4 |
 | `ROLLBACK_COPY` | `lib/rollbackReport.js` | `rollbackMessage` | `/prs/[prId]` | 15 |

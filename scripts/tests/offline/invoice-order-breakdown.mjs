@@ -192,7 +192,7 @@ const ONE_ORDERED_ITEM_TWICE = invoice([
  * What each ordered item was ordered for (#408).
  *
  * Keyed on the `PO Items` record id, which is what a charge row names through
- * `PO Item` — the map `lib/deliveryReconciliation.js` hands over from rows the page
+ * `PO Item` — the map `lib/deliveryStatus.server.js` hands over from rows the page
  * has already read. The figures differ from one another on purpose: a denominator
  * built by summing the wrong set lands on a different number rather than on the
  * right one by luck.

@@ -42,7 +42,7 @@ import {
 import { readCatalogEntry } from "../../lib/assetCatalog.js";
 import { assignedJobsFor } from "../../lib/assetJob.js";
 import { ID_KINDS, nextSequence } from "../../lib/idSequence.js";
-import { normalizeItemText, textMatchKey } from "../../lib/itemNaming.js";
+import { normalizeItemText, textMatchKey } from "../../lib/typedText.js";
 
 export const SCRIPT = "import_site_assets_544";
 export const SOURCE = join(dirname(fileURLToPath(import.meta.url)), "sources", "asset_import_544.csv");
@@ -218,7 +218,7 @@ export function ledgered(ledgers) {
  *
  * `read` is what the script read: `catalog` and `groups` as their readers map them, `jobs` as
  * `getAllJobs` maps them, `recorder` as `getUserByEmail`, `standing` the ledgers' assets the base
- * still holds, `dayIds` the ids on `prefix` — the day `lib/ids.js` mints under — and `list` the
+ * still holds, `dayIds` the ids on `prefix` — the day `lib/idSequence.server.js` mints under — and `list` the
  * list's rows. `done` is `ledgered`'s answer.
  */
 export function plan(read, done) {

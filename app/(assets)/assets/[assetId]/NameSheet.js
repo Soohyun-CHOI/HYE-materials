@@ -2,7 +2,7 @@
 
 import { SheetInput } from "@/app/components/Controls";
 import { DialogFrame, SheetRows } from "@/app/components/DialogFrame";
-import { textMatchKey } from "@/lib/itemNaming";
+import { textMatchKey } from "@/lib/typedText";
 import { ASSET_TRANSITION_COPY as COPY, matchedPart, nameListHead } from "@/lib/assetTransition";
 
 /**

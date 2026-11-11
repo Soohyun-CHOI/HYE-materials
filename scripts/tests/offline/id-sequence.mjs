@@ -5,7 +5,7 @@
 // the VENDOR's date off their document — so the count was almost always 0 and
 // every invoice entered on one day got `-01`. Nothing in the repo could see that,
 // because the rule was four inline formulas inside a module the offline tier
-// cannot import (lib/ids.js reaches lib/airtable/client.js, which throws at module
+// cannot import (lib/idSequence.server.js reaches lib/airtable/client.js, which throws at module
 // load). The rule now lives in lib/idSequence.js, which imports nothing, and this
 // is what pins it.
 //
@@ -21,7 +21,7 @@
 //   1. BEHAVIOR of the pure rule — prefixes, the population membership test, the
 //      max-not-count sequence for both shapes, and the predicate prefixMatch
 //      builds.
-//   2. SOURCE SHAPE of lib/ids.js — that no daily counter reads a date field any
+//   2. SOURCE SHAPE of lib/idSequence.server.js — that no daily counter reads a date field any
 //      more, that generateChildId reads its siblings' IDs rather than the
 //      array's length, and, since #470, that generateFirstChildIds reads nothing
 //      and takes no lock. Parsed, not text-matched.
@@ -39,7 +39,7 @@
 // reader sees both halves of what "the sequence is the highest one taken" means.
 //
 // WHAT A PASS DOES NOT PROVE. Parts 2 and 3 are source shape, so they prove
-// lib/ids.js does not NAME a date field in a formula and does not TEXTUALLY count
+// lib/idSequence.server.js does not NAME a date field in a formula and does not TEXTUALLY count
 // an array length — not that the query Airtable ran counted the right rows.
 // Whether FIND(...) = 1 selects the day's siblings, and whether a parent's link
 // array is populated in time to be counted, are Airtable's properties: both are
@@ -497,11 +497,11 @@ export function run({ check, log, assert }) {
         dupes.length === 0
     );
 
-    // --- Part 2: lib/ids.js's shape --------------------------------------
+    // --- Part 2: lib/idSequence.server.js's shape --------------------------------------
     log("");
-    log("lib/ids.js — no daily counter reads a date field (parsed, fail-closed):");
+    log("lib/idSequence.server.js — no daily counter reads a date field (parsed, fail-closed):");
 
-    const ids = parseFile("lib/ids.js");
+    const ids = parseFile("lib/idSequence.server.js");
 
     // Every filterByFormula in the file, and every string literal in it. A
     // reintroduced `IS_SAME({Issue Date}, TODAY(), 'day')` is caught by both.
@@ -629,7 +629,7 @@ export function run({ check, log, assert }) {
         };
     };
     const first = firstChildFacts(ids);
-    assert("lib/ids.js declares generateFirstChildIds", first.found);
+    assert("lib/idSequence.server.js declares generateFirstChildIds", first.found);
     check("  it mints with nextChildId over an empty sibling list", first.siblings, "[]");
     check("  asking CHILD_KINDS for the shape", first.kind, 1);
     check("  takes no lock", first.locks, false);
@@ -694,7 +694,7 @@ export function run({ check, log, assert }) {
     const firstCallSites = [];
     const problems = [];
     for (const rel of listJsFiles(repoPath("lib")).map((f) => toPosix(f.slice(REPO_ROOT.length + 1)))) {
-        if (rel === "lib/ids.js") continue;
+        if (rel === "lib/idSequence.server.js") continue;
         let parsed;
         try {
             parsed = parseFile(rel);

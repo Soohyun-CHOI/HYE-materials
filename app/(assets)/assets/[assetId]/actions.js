@@ -23,7 +23,7 @@ import {
 import { readNoteSubmission } from "@/lib/assetNote";
 import { ASSET_SERIAL_COPY, readSerialSubmission, serialHolder, serialKey } from "@/lib/assetSerial";
 import { assetPath } from "@/lib/assetRoutes";
-import { normalizeItemText } from "@/lib/itemNaming";
+import { normalizeItemText } from "@/lib/typedText";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 /**

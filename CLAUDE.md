@@ -20,7 +20,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 | `app/designValues.css`, `app/globals.css`, `app/components/Icon.js` | `docs/notes/design-system.md` |
 | `lib/airtable/**`, `lib/airtableBase.js`, `lib/airtableFormula.js`, `lib/airtableOps.js`, `lib/airtableBatch.js`, `lib/airtablePace.js` | `docs/notes/airtable-access.md` **and** `docs/notes/naming.md` |
 | `lib/airtable/**`, `scripts/import/**`, `scripts/demo/**`, `scripts/tests/verify-*.mjs`, adding or changing a field or a table | `docs/notes/data-model.md` |
-| `lib/ids.js`, `lib/idSequence.js` | `docs/notes/id-generation.md` |
+| `lib/idSequence*.js` | `docs/notes/id-generation.md` |
 | `lib/auth.js`, `lib/authz*.js`, `lib/signInLimit.js`, `lib/prVisibility.js`, `lib/invoiceVisibility.js`, `lib/siteManager.js`, `app/login/**`, `app/api/**` | `docs/notes/authorization.md` |
 | `lib/blobIngest.js`, `lib/prDraft.js`, `app/prs/new/**`, `lib/file*.js`, `app/components/File*.js`, `app/components/PdfPages.js` | `docs/notes/uploads-and-drafts.md` |
 | `scripts/**`, `eslint.config.mjs` | `docs/notes/verification.md` |
@@ -92,8 +92,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/airtableFormula.js` — `formulaString`, the one escape for an interpolated value, and the whole-formula builders.
 - `lib/airtableBatch.js` — rows created ten to a request, one request at a time, a failed request read back by its minted ids before it is counted (#470). Pure; `client.js:createRecords` gives it the base.
 - `lib/airtablePace.js` — five Airtable requests a second at most, for a caller sending many (#553).
-- `lib/ids.js` — all ID generation: the lock, the query and the create.
-- `lib/idSequence.js` — the pure half: the daily ID families and the child relations.
+- `lib/idSequence.js` — the daily ID families and the child relations; `lib/idSequence.server.js`, all ID generation: the lock, the query and the create.
 - `lib/productName.js` — the product's name. Not the company's legal name, which is `lib/poPdf.js:HYE_BUYER_NAME`.
 - `lib/userName.js` — the name a screen prints for a user (#381). **A name field is read nowhere else.**
 - `lib/userJobs.js` — who is asked for their jobs at sign-in (#554), the step's address, what a choice keeps, and its words.
@@ -109,13 +108,12 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/units.js` — `CANONICAL_UNITS`, the JS source of truth for the Unit select list.
 - `lib/editLogFields.js` — the labels a `PR Edit Log` row can be about. No call site may pass `createEditLogEntry` a string literal.
 - `lib/variance.js` — invoice/PO variance checks and `VARIANCE_COPY` (#179), plus the cent rule (#254, #308, #405). **Nothing writes a quantity or a currency figure into an item, a document total, or either side of the invoice header comparison without asking them.**
-- `lib/itemNaming.js` — `normalizeItemText`: trim, collapse internal whitespace, case untouched; and `capitalizeWords`, how the catalog spells a word it does not hold (#538).
-- `lib/searchTokens.js` — how a typed query becomes match tokens (#325), for both of the app's search boxes.
+- `lib/typedText.js` — typed text: `normalizeItemText` (trim, collapse internal whitespace, case untouched), the key two are compared by, `capitalizeWords` (#538), and a query's match tokens (#325).
 - `lib/prItemMerge.js` — identical PR item rows are one item on save (#170), and `PR_ITEM_MERGE_COPY`.
 - `lib/rollbackReport.js` — what a failed rollback in the signing chain reports (#188).
 - `lib/materialCategory.js` — a category's composed label and the walk that narrows to one (#354, #355, #367), plus the `Category`+`Item Name` pair no call site may spell apart. **Nothing here writes a label.**
 - `lib/airtable/materialCategories.js` — the catalog's three reads (#355, #356) and its one write (#368). **A duplicate leaf code throws rather than letting a row win.**
-- `lib/categoryCreation.js` — adding a path to the catalog (#368): the 900 block, the resolve-or-mint, the drafted name and every word the screen says.
+- `lib/materialCategoryCreation.js` — adding a path to the catalog (#368): the 900 block, the resolve-or-mint, the drafted name and every word the screen says.
 - `lib/addressCreation.js` — creating an address (#384): the label key, the addresses a job uses, the refusals and every word the screen says.
 - `lib/addressChoice.js` — how a form asks where material goes, on both screens that ask (#385, #387). **A request stores an ADDRESS and not a choice.**
 - `lib/materialIdentity.js` — what makes two ordered items the same material (#356). The lock key, the cache's grouping key and `getMaterialByKey`'s values all come from here.
@@ -138,8 +136,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/assetListExport.js` — the list as an Excel file (#553): the press, handed its reads, its sheets and its words. It narrows nothing itself.
 - `lib/xlsxWorkbook.js` — an `.xlsx` written whole (#553): text cells are words, a formula's first character `quotePrefix`'d. Server-only.
 - `lib/assetCatalog.js` — the office's catalog page (#527): every row, that band with a toggle, what an add or an edit may save, its order (#540), and its words.
-- `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
-- `lib/materialPriceView.js` — the view rules for those screens: row ordering, the lowest-price mark, the quantity caveat, and `MATERIAL_SEARCH_COPY` (#357).
+- `lib/materialPriceView.js` — the view rules for `/materials` and `/materials/[materialId]`: row ordering, the lowest-price mark, the quantity caveat, and `MATERIAL_SEARCH_COPY` (#357); `lib/materialPriceView.server.js`, their two queries and the per-row identifier gate.
 - `lib/poItemQty.js` — what leaves an order open: `uninvoicedQty`, `hasUninvoicedQty`, `countsAsOrdered`, and `hasUninvoicedItems` per order.
 - `lib/poListView.js` — the PO list's Status text, its empty states, and both strips above it (#176, #295).
 - `lib/listFilters.js` — what the four document lists filter by (#324), search by (#325) and page by (#326), and every word the bar and the foot say. **`LIST_PAGE_SIZE` is the one place a page size lives and no screen reads it** — the cut is after the gate and after the bar, so the read stays whole. **A closed set a list renders is a filter when the document or its item rows hold it, and a strip's subject when it lies along a wait.** **A box searches the names ON THE ROW — the id, a second name the row itself carries, the vendor and the job — never another document's.**
@@ -156,22 +153,16 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/fileView.js` — how a drawn file is sized, turned and sharpened (#433).
 - `lib/uploadLimit.js` — the one ceiling every user upload is held to (#146): `MAX_UPLOAD_BYTES`, the refusal's words, and the guard every upload form opens its try with.
 - `lib/quotationReuse.js` — `shouldReuseQuotation`: when a re-saved Draft keeps its existing Quotation record, and `planQuotationEntry`, what a save does with each entry (#438), and `detachQuotations`, what a form keeps once its draft is gone (#440).
-- `lib/directPurchase.js` — the way out of an invoice with no order (#272): the one predicate the modal and the action share, and `DIRECT_PURCHASE_COPY`.
-- `lib/directPurchaseClaim.js` — the strip's rows and the Draft a site raises from one. Credentialed.
+- `lib/directPurchase.js` — the way out of an invoice with no order (#272): the one predicate the modal and the action share, and `DIRECT_PURCHASE_COPY`; `lib/directPurchase.server.js`, the strip's rows and the Draft a site raises from one.
 - `lib/prKind.js` — which of three kinds a request is (#272), the mark for each and the signer's sentence.
 - `lib/prWait.js` — a record waiting for a request: `WAIT_STAGE`, and the listed-against-offered split both strips above `/prs` obey (#272).
-- `lib/deliveryAllocation.js` — the allocation rule (`planDelivery`), its replay (`recomputeOverDelivery`), `ALLOCATION_COPY`, and the dropdown helpers the form imports.
+- `lib/deliveryAllocation.js` — the allocation rule (`planDelivery`), its replay (`recomputeOverDelivery`), `ALLOCATION_COPY`, and the dropdown helpers the form imports; `lib/deliveryAllocation.server.js`, the Job → Disciplines → PRs → POs → PO Items walk that finds ordered items.
 - `lib/deliveryAddress.js` — where a delivery arrived (#387): the default taken from the orders it attaches to. **A job's address defaults `/prs/new` and nothing else, and a recorded delivery's is never rewritten — stock is counted by it.**
-- `lib/deliveryCandidates.js` — the Job → Disciplines → PRs → POs → PO Items walk that finds ordered items. Credentialed.
-- `lib/deliveryStatus.js` — delivered against invoiced against ordered: the judgment, `STATUS_COPY`, the list filters, the worklist order. All three order-scope summaries live here (#311), and `AWAITING_DELIVERY_DAYS` (#263). **A screen showing an invoice never compares `Due Date` to today (#316)** — `invoicePayment` hands back the verdict and its day count.
-- `lib/deliveryReconciliation.js` — the two batched walks joining invoices to deliveries through `Invoice Items` → `PO Item` ← `Delivery Items`. Credentialed.
-- `lib/deliveryInvoiceLink.js` — the invoice/delivery pairing rule, its dropdown options and every refusal.
-- `lib/deliveryInvoiceMatch.js` — the COMPUTED pairing (#231): containment, the price gate, a delivery's remaining capacity, the rival clause and its tie-break, `PAIRING_COPY`. One predicate serves both directions.
-- `lib/deliveryInvoiceCandidates.js` — which invoices a delivery may name, which deliveries an invoice may name, and the guarded write. Credentialed.
+- `lib/deliveryStatus.js` — delivered against invoiced against ordered: the judgment, `STATUS_COPY`, the list filters, the worklist order. All three order-scope summaries live here (#311), and `AWAITING_DELIVERY_DAYS` (#263). **A screen showing an invoice never compares `Due Date` to today (#316)** — `invoicePayment` hands back the verdict and its day count. `lib/deliveryStatus.server.js` holds the two batched walks joining invoices to deliveries through `Invoice Items` → `PO Item` ← `Delivery Items`.
+- `lib/deliveryInvoicePairing.js` — the invoice/delivery pairing: a chosen one's rule, dropdown options and refusals (#210), and the COMPUTED one (#231) — containment, the price gate, a delivery's remaining capacity, the rival clause and its tie-break, `PAIRING_COPY`, one predicate for both directions; `lib/deliveryInvoicePairing.server.js`, which invoices a delivery may name and which deliveries an invoice may, and the guarded write.
 - `lib/deliveryAccess.js` — `canAccessJobDeliveries`, the one Job-scope rule for deliveries.
 - `lib/deliveryDelete.js` — the delete predicate, the three voices of the confirmation, and the guarded write.
-- `lib/overage.js` — the overage request's judgment, the quotation-supplying invoice, and `OVERAGE_COPY` (#217, #219, #265).
-- `lib/overagePR.js` — the read and write sides of the correction: the facts, the Draft it creates, and the apply step (#217). Credentialed.
+- `lib/overage.js` — the overage request's judgment, the quotation-supplying invoice, and `OVERAGE_COPY` (#217, #219, #265); `lib/overage.server.js`, its reads and writes: the facts, the Draft it creates, and the apply step (#217).
 - `lib/invoiceJob.js` — the job an invoice charges for (#314): one judgment, walked from the orders it charges, **taking no reader** so two readers cannot see two values on one row.
 - `lib/invoiceItemFold.js` — `foldInvoiceItems`: a split invoice item reads as one row again.
 - `lib/invoiceItemsMissing.js` — an invoice holding no item rows (#330): the predicate and the one sentence its screen and `updateInvoiceAction` share. **The create path's refusal is a DIFFERENT fact and keeps its own words.**
@@ -225,15 +216,15 @@ Read `docs/notes/data-model.md` before touching `lib/airtable/**` or a field or 
 - **EACH ITEM TABLE'S ROW TAKES ITS OWN TABLE'S NAME IN THE SINGULAR (#303)**; the modifier drops where no second kind of item row is in the string, and **a sentence naming two carries both**. A label takes its screen's subject, so every items table stays headed `Items`. Held by `offline/item-row-nouns.mjs`.
 - **AN ACTION SAYS WHAT IT DID BY ARRIVING, AND NO SCREEN READS A CONFIRMATION OFF THE URL (#321)** — a parameter saying so outlives the sentence and shows a stranger a confirmation for an act they did not take. Four screens keep a line because their action lands on no document. `offline/url-parameters.mjs` inventories every parameter and holds both directions. A registration that wrote everything also says so in a passing toast, read off a tab-storage mark and never the URL (#617).
 
-## ID generation (lib/ids.js)
+## ID generation (lib/idSequence*.js)
 
-Read `docs/notes/id-generation.md` before touching `lib/ids.js` or `lib/idSequence.js` — it holds the counter rule, the six daily families and the nine child relations.
+`docs/notes/id-generation.md` holds the counter rule, the six daily families and the nine child relations.
 
 ## Querying parent/child data
 
 `filterByFormula` cannot match a link field against a record ID. Read the parent's reverse-link field via `.find(parentRecordId)` (`getLinkedRecords()`), never filter the child table directly. **The children themselves are read in one query per 50 ids, never one `find()` per child (#193)** — `findChildRecords`, which keeps the link array's order and throws on an id that does not resolve. Exception: `materialPrices.js:getMaterialPrice` uses the `Material Record ID` / `Vendor Record ID` lookups, because a price row is keyed by two links and has no parent whose reverse-link would do.
 
-**Client bundle safety — an import is an execution.** No `"use client"` file may import anything that reaches `lib/airtable/` or `lib/airtableOps.js`, at any depth. Nothing tree-shakes away a dependency whose evaluation has side effects, so a pure helper in a credentialed module has to MOVE rather than be imported selectively. `next build` does not catch this. A `"use server"` file is a boundary, not a dependency. Enforced by `offline/client-import-safety.mjs`.
+**Client bundle safety — an import is an execution.** No `"use client"` file may import anything that reaches `lib/airtable/`, `lib/airtableOps.js` or a module that throws at load, at any depth. **A rule split across this line is a pair (#184): `x.js` holds its judgment and words, `x.server.js` every read and write it makes, a write's fresh re-read too.** Nothing tree-shakes away a dependency whose evaluation has side effects, so a pure helper in a credentialed module has to MOVE rather than be imported selectively. `next build` catches it only for `lib/email.js`, which imports `server-only`. A `"use server"` file is a boundary, not a dependency. Enforced by `offline/client-import-safety.mjs`.
 
 **Formula injection — every interpolation escapes.** The one escape is `lib/airtableFormula.js:formulaString`, and every interpolation in `lib/` and `app/` goes through it or through a whole-formula builder from that module. Enforced by `offline/formula-escaping.mjs`, which fails closed.
 

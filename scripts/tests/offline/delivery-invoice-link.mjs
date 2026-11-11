@@ -1,9 +1,9 @@
 // The invoice-to-delivery pairing (#210) — the pure rule, the dropdown's own
 // narrowing and ordering, and every refusal.
 //
-// WHAT THIS TIER CAN AND CANNOT SEE. lib/deliveryInvoiceLink.js is pure and
+// WHAT THIS TIER CAN AND CANNOT SEE. lib/deliveryInvoicePairing.js is pure and
 // dependency-free, so every clause below is exercised rather than inspected. Its
-// credentialed half (lib/deliveryInvoiceCandidates.js) reaches lib/airtable/*, so
+// credentialed half (lib/deliveryInvoicePairing.server.js) reaches lib/airtable/*, so
 // this file cannot call it — what THAT module has to get right is the row gate, and
 // that claim is asserted on the source in offline/invoice-visibility.mjs, beside the
 // same claim about the module it defers to.
@@ -21,7 +21,7 @@ import {
     invoiceLinkRefusal,
     invoiceOptionLabel,
     linkedDelivery,
-} from "../../../lib/deliveryInvoiceLink.js";
+} from "../../../lib/deliveryInvoicePairing.js";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "Invoice-to-delivery pairing — the rule and its refusals (#210)";

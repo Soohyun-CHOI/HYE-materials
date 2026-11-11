@@ -26,7 +26,7 @@
 // asserted, since a later pass "tidying" one into the other is the plausible edit.
 
 import { callsFunction, parseFile, resolveFunction } from "./_ast.mjs";
-import { normalizeItemText } from "../../../lib/itemNaming.js";
+import { normalizeItemText } from "../../../lib/typedText.js";
 import {
     PR_ITEM_MERGE_COPY,
     describeMerge,

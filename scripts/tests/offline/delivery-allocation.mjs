@@ -43,7 +43,7 @@ const OTHER_VENDOR = "recVendorB";
 const MATERIAL = "recMatPipe";
 const OTHER_MATERIAL = "recMatValve";
 
-/** An ordered item in the shape lib/deliveryCandidates.js hands over. */
+/** An ordered item in the shape lib/deliveryAllocation.server.js hands over. */
 function orderedItem(over) {
     return {
         id: "recPOI-" + (over.poItemId || "x"),
@@ -980,7 +980,7 @@ export function run({ check, assert, log }) {
 
     log("");
     log("the candidate shape is the shape its three readers use (#227):");
-    const candidatesSrc = readFileSync(repoPath("lib/deliveryCandidates.js"), "utf8");
+    const candidatesSrc = readFileSync(repoPath("lib/deliveryAllocation.server.js"), "utf8");
     // The returned key, off the writer: `return { <name>, vendorNameById }`.
     const returned = candidatesSrc.match(/return \{\s*(\w+),\s*\n\s*vendorNameById/);
     assert("getDeliveryCandidates' returned key is readable from its source", Boolean(returned));

@@ -54,7 +54,7 @@
 // failed or was refused, 2 nothing failed but something is still to do (a dry run).
 
 import { ASSET_CATEGORY_FIELDS, composeItemName, readCatalog } from "../../lib/assetCategory.js";
-import { textMatchKey } from "../../lib/itemNaming.js";
+import { textMatchKey } from "../../lib/typedText.js";
 import { resolveAirtableBase } from "../../lib/airtableBase.js";
 import { FILED_BY_LINK_REFUSAL, filedByLink } from "../import/link_category_groups_539_plan.mjs";
 import { refusesLiveBase } from "./_testBaseOnly.mjs";

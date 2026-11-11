@@ -101,7 +101,7 @@ import {
     readCatalog,
     readCategoryGroups,
 } from "../../../lib/assetCategory.js";
-import { textMatchKey } from "../../../lib/itemNaming.js";
+import { textMatchKey } from "../../../lib/typedText.js";
 import { refusesProtectedWrite } from "../../protectedTables.mjs";
 import { FILED_BY_LINK_REFUSAL, filedByLink } from "../link_category_groups_539_plan.mjs";
 import { resolveAirtableBase } from "../../../lib/airtableBase.js";

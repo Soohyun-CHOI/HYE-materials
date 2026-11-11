@@ -20,7 +20,7 @@ import {
     searchedIn,
 } from "@/lib/assetRegistration";
 import { matchedPart } from "@/lib/assetTransition";
-import { normalizeItemText } from "@/lib/itemNaming";
+import { normalizeItemText } from "@/lib/typedText";
 import { registerAssetsAction } from "./actions";
 
 /**

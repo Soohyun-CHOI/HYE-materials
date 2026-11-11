@@ -45,7 +45,7 @@
 // is how a hand-written state comes to read as ordinary. Both are gone with #278 and
 // the count is now what the list holds.
 //
-// NOTHING IS BACKDATED, and that is a decision rather than an omission. `lib/ids.js`
+// NOTHING IS BACKDATED, and that is a decision rather than an omission. `lib/idSequence.server.js`
 // numbers a purchase order by counting the orders whose `Created Date` is today, so
 // backdating one mid-run hides it from the next generation — the trap
 // seed_material_prices.mjs works around by generating everything first and backdating
@@ -989,7 +989,7 @@ await scenario("INV_WAIT_B", "delivered but unmatched — strip 2, second word",
 // The live segment records a delivery of 3 against this. The set of ordered items
 // matches, so `fitRefusal` admits it and `roomOnOrderedItem` is 3 — positive — so the
 // pairing is computed and the invoice turns `Mismatch`. Quantity is deliberately not
-// part of the containment test (lib/deliveryInvoiceMatch.js), which is the whole
+// part of the containment test (lib/deliveryInvoicePairing.js), which is the whole
 // reason the marker can ever appear.
 await scenario("MISMATCH_START", "an invoice of 10 waiting for the live delivery of 3", async () => {
     const order = await makeOrder({

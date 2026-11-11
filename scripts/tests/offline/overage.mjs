@@ -19,7 +19,7 @@
 //
 // What a pass does NOT prove: that the invoices handed in were really every invoice on the
 // ordered item, that the two rollups are what Airtable holds, or that the flag and
-// the attachment moved in one write. Those are lib/overagePR.js's and Airtable's
+// the attachment moved in one write. Those are lib/overage.server.js's and Airtable's
 // properties and live in scripts/tests/verify-overage-167.mjs.
 
 import {
@@ -487,7 +487,7 @@ export function run({ check, log, assert }) {
     // same invoice the preview quoted.
     log("");
     log("every selectOverageInvoice call site names a delivery (AST):");
-    const { ast: prAst } = parseFile("lib/overagePR.js");
+    const { ast: prAst } = parseFile("lib/overage.server.js");
     // BOTH NAMES, BECAUSE THE APPLY PATH HAS A HOP. `applyOverageToPO` hands the
     // delivery to `splitInvoiceItemForOverage`, which passes it on as a shorthand
     // property — so asserting only the inner call would have been satisfied by a
@@ -555,10 +555,10 @@ export function run({ check, log, assert }) {
             prImports.set(spec.imported?.name ?? spec.local.name, node.source.value);
         }
     });
-    check("the flattening comes from #210's own module", prImports.get("linkedDelivery"), "./deliveryInvoiceLink");
+    check("the flattening comes from #210's own module", prImports.get("linkedDelivery"), "./deliveryInvoicePairing");
     check("and the judgment from this one", prImports.get("selectOverageInvoice"), "./overage");
     // THE NAME BELOW IS A LITERAL, SO SOMETHING HAS TO ANCHOR IT (#427). If
-    // lib/overage.js renamed the accessor and lib/overagePR.js were not updated,
+    // lib/overage.js renamed the accessor and lib/overage.server.js were not updated,
     // the check below would go on finding the old name in overagePR's import list
     // and go on passing. This is the half that notices, in the same `in overage`
     // shape this file already uses to assert a name is ABSENT.

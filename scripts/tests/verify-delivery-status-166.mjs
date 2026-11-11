@@ -74,14 +74,14 @@ import {
     getDeliveryInvoicing,
     getInvoiceDeliveryStatus,
     getInvoiceReconciliation,
-} from "../../lib/deliveryReconciliation.js";
+} from "../../lib/deliveryStatus.server.js";
 import {
     describeDeliveryColumn,
     describeInvoiceColumn,
     describeInvoiceItem,
     isNotFullyInvoiced,
 } from "../../lib/deliveryStatus.js";
-import { linkedDelivery } from "../../lib/deliveryInvoiceLink.js";
+import { linkedDelivery } from "../../lib/deliveryInvoicePairing.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { printProvenance } from "./_provenance.mjs";
 
