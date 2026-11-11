@@ -1,5 +1,6 @@
 // `Assets."Owner Job"` for the assets that stood before #598: each takes the job it stands on now,
-// since nothing had lent one, and a ledger says what was written so a revert can take it back.
+// since nothing had lent one, and a ledger says what was written so a revert can take it back — on
+// the test base. ON THE LIVE BASE IT CAN NO LONGER BE TAKEN BACK (#621): its run there is a record.
 //
 // WHY. From #598 an asset belongs to the job it was registered on, `Owner Job`, and stands on
 // `Job`, which a loan moves; the registration writes both. An asset registered before then has no
@@ -22,19 +23,22 @@
 //
 // `--revert <ledger>` TAKES BACK WHAT ONE LEDGER WROTE, AND NOTHING ELSE: each row it filled that
 // still holds the one job it wrote is given `[]`; a row since given another owner job, or gone, is
-// left and named. A revert writes its own ledger the same way.
+// left and named. A revert writes its own ledger the same way. On the test base alone since #621.
 //
-// ON THE LIVE BASE BY SOO'S LEAVE, FENCED AT THE FUNNEL. `Assets` is the site's there (#531): every
-// request the SDK sends is asked of `scripts/protectedTables.mjs:refusesBeyondLedger` as it leaves,
-// which lets this script (`OWNER_JOB_FILL`) read `Assets` and update `Owner Job` alone — on the rows
+// FENCED AT THE FUNNEL, AND REFUSED THERE ON THE LIVE BASE SINCE #621. `Assets` is the site's there
+// (#531): every request the SDK sends is asked of `scripts/protectedTables.mjs:refusesBeyondLedger` as
+// it leaves. Until #621 that let this script read `Assets` and update `Owner Job` alone — on the rows
 // this run read with none, to the job it read each on, or in a revert to `[]` on the rows its ledger
-// filled. Until the plan fills the fence, every write is refused; nothing reaches `Asset Log`.
+// filled — which is how the live run of 2026-11-03 went. Once the site had used the owner jobs, Soo
+// settled that the fill would not be taken back and #621 ended the exception: on the live base the
+// fence now refuses every request this script sends, a read, the fill and a revert alike, so its live
+// ledger is a record of what was written and no longer a way back. On the test base it runs as before.
 //
 // Usage (from the repo root):
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/import/ran/fill_owner_job_598.mjs            (dry run)
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/import/ran/fill_owner_job_598.mjs --apply
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/import/ran/fill_owner_job_598.mjs --revert <ledger.jsonl> [--apply]
-//   AIRTABLE_BASE=live ...   (the live base, once Soo has approved what the dry run printed)
+//   AIRTABLE_BASE=live ...   (refused before its first request to Assets since #621)
 //
 // Airtable PAT scopes: data.records:read, data.records:write.
 //
@@ -66,9 +70,9 @@ function log(message = "") {
 }
 
 /**
- * What `refusesBeyondLedger` lets this run update on the live base: `fills`, the rows the plan
- * fills and the job each takes, and in a revert `clears`, the rows it clears. Empty until a step
- * fills it, so a write sent before then is refused.
+ * What `refusesBeyondLedger` let this run update on the live base until #621: `fills`, the rows the
+ * plan fills and the job each takes, and in a revert `clears`, the rows it clears, empty until a step
+ * filled it. The guard reads none of it since, refusing every request of this script's there.
  */
 const ledgerFence = { fills: new Map(), clears: new Set() };
 

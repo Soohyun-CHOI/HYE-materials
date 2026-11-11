@@ -62,11 +62,8 @@ import {
     LEDGERED_IMPORT,
     LEDGERED_ROW_FIELDS,
     OWNER_JOB_FIELD,
-    OWNER_JOB_FILL,
     OWNER_JOB_SCHEMA,
     PROTECTED_LINK_TARGETS,
-    SERIAL_FROM_NOTES,
-    SERIAL_FROM_NOTES_FIELDS,
     SERIAL_NUMBER_FIELD,
     SERIAL_NUMBER_SCHEMA,
     PROTECTED_TABLES,
@@ -74,6 +71,8 @@ import {
     refusesBeyondLedger,
     refusesProtectedWrite,
 } from "../../protectedTables.mjs";
+import { SCRIPT as FILL_SCRIPT } from "../../import/fill_owner_job_598_plan.mjs";
+import { SCRIPT as MOVE_SCRIPT } from "../../import/serial_from_notes_602_plan.mjs";
 import { LIVE_BASE_ID } from "../../../lib/airtableBase.js";
 import { isMain, standalone } from "./_harness.mjs";
 
@@ -151,12 +150,12 @@ const CLASSIFIED = {
     // `Asset Log."Event"`'s two loan options (#598), made by a row written with typecast and deleted at
     // once on the test base, and refused on the live base, where they are a hand step.
     "scripts/import/ran/add_loan_events_598.mjs": { writes: ["rowRequest"] },
-    // `Owner Job` filled from `Job` for the assets standing before #598, on both bases: fenced at the
-    // SDK's funnel, which lets this script update that one field and nothing else.
-    "scripts/import/ran/fill_owner_job_598.mjs": { fills: true },
-    // A serial number moved out of each asset's note into `Serial Number` (#602), on both bases: fenced at
-    // the SDK's funnel, which lets this script update that field and the note and nothing else.
-    "scripts/import/ran/serial_from_notes_602.mjs": { moves: true },
+    // `Owner Job` filled from `Job` for the assets standing before #598, and a serial number moved out of
+    // each asset's note (#602), on both bases: fenced at the SDK's funnel, which let each update its named
+    // fields on the live base until #621 and refuses it every request there since. Each asks with its
+    // plan's `SCRIPT`, the name the guard is held to refuse below.
+    "scripts/import/ran/fill_owner_job_598.mjs": { fenced: { plan: "scripts/import/fill_owner_job_598_plan.mjs", script: FILL_SCRIPT } },
+    "scripts/import/ran/serial_from_notes_602.mjs": { fenced: { plan: "scripts/import/serial_from_notes_602_plan.mjs", script: MOVE_SCRIPT } },
     "scripts/import/ran/import_site_assets_544.mjs": {
         writes: [
             "createAssetCategoryGroup",
@@ -405,6 +404,28 @@ export function fenceFindings(ast) {
     return findings;
 }
 
+/**
+ * Where the name a fence asks `refusesBeyondLedger` with comes from (#621): the module its `script`
+ * identifier is imported from, resolved from the file — or what stands there instead, so a literal, a
+ * second question or a name declared in the file is a finding rather than a name the check never held.
+ */
+function fenceScriptSource(ast, fromPath) {
+    const values = [];
+    walk(ast, (node) => {
+        if (calleeName(node) !== LEDGER_GUARD) return;
+        values.push((node.arguments[0]?.properties ?? []).find((prop) => prop.key?.name === "script")?.value ?? null);
+    });
+    if (values.length !== 1) return `${values.length} questions`;
+    const [value] = values;
+    if (value?.type !== "Identifier") return value ? `a ${value.type}` : "no script";
+    let source = null;
+    walk(ast, (node) => {
+        if (node.type !== "ImportDeclaration" || !node.specifiers.some((specifier) => specifier.local?.name === value.name)) return;
+        source = toPosix(join(fromPath, "..", node.source.value)).replace(/^\.\//, "");
+    });
+    return source ?? `${value.name}, imported from nowhere`;
+}
+
 /** What is wrong with a Python script's stop: it must name both tables and stop before it writes. */
 export function pythonStopFindings(source) {
     const findings = [];
@@ -566,7 +587,10 @@ export function run({ check, assert, log }) {
     check("  ten in one request go", judge({ body: { records: Array.from({ length: 10 }, () => ({ fields: ASSET() })) } }).refused, false);
     check("  eleven do not", judge({ body: { records: Array.from({ length: 11 }, () => ({ fields: ASSET() })) } }).refused, true);
     check("  another script's asset does not", judge({ ...create(ASSET()), script: "replace_asset_catalog_528" }).refused, true);
-    check("  and says which scripts may", judge({ ...create(ASSET()), script: "x" }).lines[0], "REFUSED, before sending: x would write Assets, and only import_site_assets_544, fill_owner_job_598 and serial_from_notes_602 write rows there on the live base.");
+    check("  and says which script may", judge({ ...create(ASSET()), script: "x" }).lines[0], "REFUSED, before sending: x would send POST /Assets/, and only import_site_assets_544 sends one to Assets on the live base.");
+    check("  another script's update of a row is refused, the owner job alone among them", judge({ script: "x", method: "patch", path: "/Assets/", body: { records: [{ id: "recA1", fields: { "Owner Job": ["recJob1"] } }] } }).refused, true);
+    check("  another script's Asset Log row is refused", judge({ ...create(LOG_ROW(), "/Asset%20Log/"), script: "x" }).refused, true);
+    check("  another script's read is refused too", judge({ script: "x", method: "get", path: "/Asset%20Log" }).refused, true);
     check("  an asset whose owner job is not its job does not (#598)", judge(create(ASSET({ "Owner Job": ["recJob2"] }))).refused, true);
     check("  nor one with no owner job (#598)", judge(create(ASSET({ "Owner Job": [] }))).refused, true);
     check("  an asset with a field more does not", judge(create(ASSET({ Notes: "x" }))).refused, true);
@@ -606,84 +630,46 @@ export function run({ check, assert, log }) {
     assert("  the second says nothing was sent", /Nothing was sent\.$/.test(judge({ method: "patch", path: "/Assets/" }).lines[1] ?? ""));
     check("  and the old question still refuses the import on the two", ask({ script: LEDGERED_IMPORT, writes: ["Assets", "Asset Log"] }).refused, true);
 
-    // ── the one script that fills a field of rows there, by value (#598) ────
+    // ── the fill and the move, refused on the live base since #621 ──────────
     log("");
-    log("refusesBeyondLedger for the owner job's fill, by value (#598):");
-    check("  the module names the fill", OWNER_JOB_FILL, "fill_owner_job_598");
-    const fills = new Map([["recA1", "recJob1"], ["recA2", "recJob2"]]);
-    const filling = { fills, clears: new Set() };
-    const fill = (records, over = {}) => judge({ script: OWNER_JOB_FILL, method: "patch", path: "/Assets/", body: { records }, allowed: filling, ...over });
-    const owner = (id, value) => ({ id, fields: { "Owner Job": value } });
-    check("  a read of Assets goes", judge({ script: OWNER_JOB_FILL, method: "get", path: "/Assets", allowed: filling }).refused, false);
-    check("  and a long one", judge({ script: OWNER_JOB_FILL, method: "post", path: "/Assets/listRecords", body: {}, allowed: filling }).refused, false);
-    check("  the owner job of a row read with none, the job it was read on, goes", fill([owner("recA1", ["recJob1"])]).refused, false);
-    check("  two in one request go", fill([owner("recA1", ["recJob1"]), owner("recA2", ["recJob2"])]).refused, false);
-    check("  another job does not", fill([owner("recA1", ["recJob2"])]).refused, true);
-    check("  and names the row", fill([owner("recA1", ["recJob2"])]).lines[0], 'REFUSED, before sending: fill_owner_job_598 would write ["recJob2"] to recA1, not the job the run read it on on the live base.');
-    check("  two jobs do not", fill([owner("recA1", ["recJob1", "recJob2"])]).refused, true);
-    check("  a row the run did not read with none does not", fill([owner("recOther", ["recJob1"])]).refused, true);
-    check("  a field more does not", fill([{ id: "recA1", fields: { "Owner Job": ["recJob1"], Job: ["recJob1"] } }]).refused, true);
-    check("  another field alone does not, the job itself among them", fill([{ id: "recA1", fields: { Job: ["recJob1"] } }]).refused, true);
-    check("  a key beside the records does not, typecast among them", judge({ script: OWNER_JOB_FILL, method: "patch", path: "/Assets/", body: { records: [owner("recA1", ["recJob1"])], typecast: true }, allowed: filling }).refused, true);
-    check("  eleven in one request do not", fill(Array.from({ length: 11 }, () => owner("recA1", ["recJob1"]))).refused, true);
-    check("  none in one request does not", fill([]).refused, true);
-    check("  a clearing during a fill does not", fill([owner("recA1", [])]).refused, true);
-    check("  a create does not", judge({ script: OWNER_JOB_FILL, ...create(ASSET()), allowed: filling }).refused, true);
-    check("  a delete does not", judge({ script: OWNER_JOB_FILL, method: "delete", path: "/Assets", queryParams: { records: ["recA1"] }, allowed: filling }).refused, true);
-    check("  an update of one row by its address does not", judge({ script: OWNER_JOB_FILL, method: "patch", path: "/Assets/recA1", body: { fields: { "Owner Job": ["recJob1"] } }, allowed: filling }).refused, true);
-    check("  a replace of the rows does not", judge({ script: OWNER_JOB_FILL, method: "put", path: "/Assets/", body: { records: [owner("recA1", ["recJob1"])] }, allowed: filling }).refused, true);
-    check("  Asset Log is no table of its, not even a read", judge({ script: OWNER_JOB_FILL, method: "get", path: "/Asset%20Log", allowed: filling }).refused, true);
-    check("  a write before the plan fills the fence does not", fill([owner("recA1", ["recJob1"])], { allowed: { fills: new Map(), clears: new Set() } }).refused, true);
+    log("refusesBeyondLedger for #598's fill and #602's move, every request refused on the live base (#621):");
+    check("  the fill's plan names the script it asks for", FILL_SCRIPT, "fill_owner_job_598");
+    check("  and the move's", MOVE_SCRIPT, "serial_from_notes_602");
+    // Each fence as its script fills it (#598, #602) — what the guard let through until #621.
+    const filling = { fills: new Map([["recA1", "recJob1"], ["recA2", "recJob2"]]), clears: new Set() };
     const clearing = { fills: new Map(), clears: new Set(["recA1"]) };
-    check("  a revert's clearing of a row its ledger filled goes", fill([owner("recA1", [])], { allowed: clearing }).refused, false);
-    check("  a revert's write of a job does not", fill([owner("recA1", ["recJob1"])], { allowed: clearing }).refused, true);
-    check("  a revert reaching one more does not", fill([owner("recA1", []), owner("recA2", [])], { allowed: clearing }).refused, true);
-    check("  the import may not fill, nor the fill create", `${judge({ method: "patch", path: "/Assets/", body: { records: [owner("recA1", ["recJob1"])] }, allowed: { ...fence(), fills } }).refused} ${judge({ script: OWNER_JOB_FILL, ...create(ASSET()), allowed: { ...filling, ...fence() } }).refused}`, "true true");
-    check("  the test base is not the fill's question", fill([owner("recOther", ["recJobX"])], { baseId: OTHER_BASE_ID }).refused, false);
-
-    // ── the one script that moves a number out of a note, by value (#602) ───
-    log("");
-    log("refusesBeyondLedger for the serial numbers out of notes, by value (#602):");
-    check("  the module names the move", SERIAL_FROM_NOTES, "serial_from_notes_602");
-    check("  and its two fields, the number's the field #601 made", SERIAL_FROM_NOTES_FIELDS.join(" | "), `${SERIAL_NUMBER_FIELD.name} | Note`);
-    const planned = new Map([
-        ["recS1", { "Serial Number": "AB-1", Note: null }],
-        ["recS2", { "Serial Number": "AB-2", Note: "spare" }],
-        ["recS3", { Note: null }],
-    ]);
-    const moving = { read: new Set(["recS1", "recS2", "recS3", "recS4"]), writes: planned };
-    const move = (records, over = {}) => judge({ script: SERIAL_FROM_NOTES, method: "patch", path: "/Assets/", body: { records }, allowed: moving, ...over });
+    const owner = (id, value) => ({ id, fields: { "Owner Job": value } });
+    const moving = { read: new Set(["recS1", "recS3"]), writes: new Map([["recS1", { "Serial Number": "AB-1", Note: null }], ["recS3", { Note: null }]]) };
+    const restoring = { read: new Set(["recS1"]), writes: new Map([["recS1", { "Serial Number": null, Note: "S/N AB-1" }]]) };
     const row = (id, fields) => ({ id, fields });
-    check("  the move's read of Assets goes", judge({ script: SERIAL_FROM_NOTES, method: "get", path: "/Assets", allowed: moving }).refused, false);
-    check("  and its long read", judge({ script: SERIAL_FROM_NOTES, method: "post", path: "/Assets/listRecords", body: {}, allowed: moving }).refused, false);
-    check("  the planned number and note of a row it read go", move([row("recS1", { "Serial Number": "AB-1", Note: null })]).refused, false);
-    check("  two in one request go, a kept note among them", move([row("recS1", { "Serial Number": "AB-1", Note: null }), row("recS2", { "Serial Number": "AB-2", Note: "spare" })]).refused, false);
-    check("  a planned note alone goes", move([row("recS3", { Note: null })]).refused, false);
-    check("  another number does not", move([row("recS1", { "Serial Number": "AB-9", Note: null })]).refused, true);
-    check("  and names the row and the values", move([row("recS1", { "Serial Number": "AB-9", Note: null })]).lines[0], 'REFUSED, before sending: serial_from_notes_602 would write {"Serial Number":"AB-9","Note":null} to recS1, not what the run planned on the live base.');
-    check("  another note does not, an empty string for a planned null among them", move([row("recS1", { "Serial Number": "AB-1", Note: "" })]).refused, true);
-    check("  a planned field left out does not", move([row("recS1", { "Serial Number": "AB-1" })]).refused, true);
-    check("  a field the plan did not write does not", move([row("recS3", { "Serial Number": "AB-3", Note: null })]).refused, true);
-    check("  a field beyond the two does not, the status among them", move([row("recS3", { Note: null, Status: "Retired" })]).refused, true);
-    check("  and names the field", move([row("recS3", { Note: null, Status: "Retired" })]).lines[0], "REFUSED, before sending: serial_from_notes_602 would update recS3's Status, not its Serial Number or Note on the live base.");
-    check("  no field does not", move([row("recS3", {})]).refused, true);
-    check("  nor no field planned so", move([row("recS4", {})], { allowed: { ...moving, writes: new Map([["recS4", {}]]) } }).refused, true);
-    check("  a row the run did not read does not, though planned", move([row("recS1", { "Serial Number": "AB-1", Note: null })], { allowed: { ...moving, read: new Set(["recS2"]) } }).refused, true);
-    check("  and names the row it did not read", move([row("recS1", { "Serial Number": "AB-1", Note: null })], { allowed: { ...moving, read: new Set(["recS2"]) } }).lines[0], "REFUSED, before sending: serial_from_notes_602 would update recS1, which this run did not read on the live base.");
-    check("  a row it read and did not plan does not", move([row("recS4", { Note: null })]).refused, true);
-    check("  a write before a read does not", move([row("recS1", { "Serial Number": "AB-1", Note: null })], { allowed: { writes: planned } }).refused, true);
-    check("  a write before the plan does not", move([row("recS1", { "Serial Number": "AB-1", Note: null })], { allowed: { read: moving.read } }).refused, true);
-    check("  a key beside the move's records does not, typecast among them", judge({ script: SERIAL_FROM_NOTES, method: "patch", path: "/Assets/", body: { records: [row("recS3", { Note: null })], typecast: true }, allowed: moving }).refused, true);
-    check("  a key beside a row's id and fields does not", move([{ id: "recS3", fields: { Note: null }, createdTime: "x" }]).refused, true);
-    check("  eleven rows moved in one request do not", move(Array.from({ length: 11 }, () => row("recS3", { Note: null }))).refused, true);
-    check("  no row moved in one request does not", move([]).refused, true);
-    check("  a create by the move does not, though shaped as its update", judge({ script: SERIAL_FROM_NOTES, method: "post", path: "/Assets/", body: { records: [row("recS3", { Note: null })] }, allowed: moving }).refused, true);
-    check("  a delete by the move does not, though carrying its update", judge({ script: SERIAL_FROM_NOTES, method: "delete", path: "/Assets/", queryParams: { records: ["recS3"] }, body: { records: [row("recS3", { Note: null })] }, allowed: moving }).refused, true);
-    check("  nor a batch sent to a row's address", judge({ script: SERIAL_FROM_NOTES, method: "patch", path: "/Assets/recS3", body: { records: [row("recS3", { Note: null })] }, allowed: moving }).refused, true);
-    check("  a replace of the moved rows does not", judge({ script: SERIAL_FROM_NOTES, method: "put", path: "/Assets/", body: { records: [row("recS3", { Note: null })] }, allowed: moving }).refused, true);
-    check("  Asset Log is no table of the move's, not even a read", judge({ script: SERIAL_FROM_NOTES, method: "get", path: "/Asset%20Log", allowed: moving }).refused, true);
-    check("  the fill may not move, nor the move fill", `${judge({ script: OWNER_JOB_FILL, method: "patch", path: "/Assets/", body: { records: [row("recS3", { Note: null })] }, allowed: { ...filling, ...moving } }).refused} ${move([owner("recA1", ["recJob1"])], { allowed: { ...moving, ...filling, read: new Set(["recA1"]) } }).refused}`, "true true");
-    check("  the test base is not the move's question", move([row("recOther", { Status: "Retired" })], { baseId: OTHER_BASE_ID }).refused, false);
+    const fill = (records, allowed = filling, over = {}) => judge({ script: FILL_SCRIPT, method: "patch", path: "/Assets/", body: { records }, allowed, ...over });
+    const move = (records, allowed = moving, over = {}) => judge({ script: MOVE_SCRIPT, method: "patch", path: "/Assets/", body: { records }, allowed, ...over });
+    check("  the fill's read of Assets is refused", judge({ script: FILL_SCRIPT, method: "get", path: "/Assets", allowed: filling }).refused, true);
+    check("  and its long read", judge({ script: FILL_SCRIPT, method: "post", path: "/Assets/listRecords", body: {}, allowed: filling }).refused, true);
+    check("  the owner job of a row its run read with none, the job it was read on, is refused", fill([owner("recA1", ["recJob1"])]).refused, true);
+    check("  two in one request are", fill([owner("recA1", ["recJob1"]), owner("recA2", ["recJob2"])]).refused, true);
+    check(
+        "  and the refusal names the script and what it would send",
+        fill([owner("recA1", ["recJob1"])]).lines[0],
+        "REFUSED, before sending: fill_owner_job_598 would send PATCH /Assets/, and only import_site_assets_544 sends one to Assets on the live base."
+    );
+    check("  a revert's clearing of a row its ledger filled is refused", fill([owner("recA1", [])], clearing).refused, true);
+    check("  the move's read of Assets is refused", judge({ script: MOVE_SCRIPT, method: "get", path: "/Assets", allowed: moving }).refused, true);
+    check("  and its long read", judge({ script: MOVE_SCRIPT, method: "post", path: "/Assets/listRecords", body: {}, allowed: moving }).refused, true);
+    check("  the planned number and note of a row its run read are refused", move([row("recS1", { "Serial Number": "AB-1", Note: null })]).refused, true);
+    check("  a planned note alone is refused", move([row("recS3", { Note: null })]).refused, true);
+    check(
+        "  and the refusal names the script and what it would send",
+        move([row("recS3", { Note: null })]).lines[0],
+        "REFUSED, before sending: serial_from_notes_602 would send PATCH /Assets/, and only import_site_assets_544 sends one to Assets on the live base."
+    );
+    check("  a revert's giving back what its ledger read before is refused", move([row("recS1", { "Serial Number": null, Note: "S/N AB-1" })], restoring).refused, true);
+    check("  an Asset Log request of either is refused", `${judge({ script: FILL_SCRIPT, method: "get", path: "/Asset%20Log", allowed: filling }).refused} ${judge({ script: MOVE_SCRIPT, method: "get", path: "/Asset%20Log", allowed: moving }).refused}`, "true true");
+    check("  and on no named base each write is", `${fill([owner("recA1", ["recJob1"])], filling, { baseId: "" }).refused} ${move([row("recS3", { Note: null })], moving, { baseId: "" }).refused}`, "true true");
+    check("  on the test base the fill's write is no question of the guard's", fill([owner("recA1", ["recJob1"])], filling, { baseId: OTHER_BASE_ID }).refused, false);
+    check("  nor the move's", move([row("recS3", { Note: null })], moving, { baseId: OTHER_BASE_ID }).refused, false);
+    check("  nor either revert", `${fill([owner("recA1", [])], clearing, { baseId: OTHER_BASE_ID }).refused} ${move([row("recS1", { "Serial Number": null, Note: "S/N AB-1" })], restoring, { baseId: OTHER_BASE_ID }).refused}`, "false false");
+    check("  and it says nothing there", fill([owner("recA1", ["recJob1"])], filling, { baseId: OTHER_BASE_ID }).lines.length, 0);
 
     // ── the one script that makes a field there, by value (#598) ────────────
     log("");
@@ -789,22 +775,19 @@ export function run({ check, assert, log }) {
             check(`  ${path} only lists them: it imports the client alone and calls nothing`, listerFindings(ast, path).join("; "), "");
             continue;
         }
-        if (entry.moves) {
-            // Fenced at the funnel alone (#602), as the fill is: every request it sends is judged as it
-            // leaves, and the rows it may write are those its own reads answered with.
-            check(`  ${path} is the one script the move's exception names`, path.replace(/^.*\//, "").replace(/\.mjs$/, ""), SERIAL_FROM_NOTES);
-            assert(`    and imports ${LEDGER_GUARD} from ${GUARD_MODULE}`, importsGuard(ast, path, LEDGER_GUARD));
-            check("    and fences the funnel as the fill does, judging each request before it is sent", fenceFindings(ast).join("; "), "");
-            check("    and imports no writer of the two tables, as the fill imports none", PROTECTED_MODULES.filter((module) => new RegExp(module.replace(/\.js$/, "").replace(/\//g, "\\/")).test(source)).join(", "), "");
-            continue;
-        }
-        if (entry.fills) {
-            // Fenced at the funnel alone (#598): every request it sends is judged as it leaves, so it
-            // asks no question of its own before a write — `refusesProtectedWrite` would stop it on
-            // the live base, where Soo allowed it — and names no writer of the app's.
-            check(`  ${path} is the one script the fill's exception names`, path.replace(/^.*\//, "").replace(/\.mjs$/, ""), OWNER_JOB_FILL);
+        if (entry.fenced) {
+            // Fenced at the funnel alone (#598, #602): every request it sends is judged as it leaves, so
+            // it asks no question of its own before a write, and names no writer of the app's. Since
+            // #621 the guard refuses it every request on the live base, by the name it asks with.
+            check(`  ${path} asks with its own name`, entry.fenced.script, path.replace(/^.*\//, "").replace(/\.mjs$/, ""));
             assert(`    and imports ${LEDGER_GUARD} from ${GUARD_MODULE}`, importsGuard(ast, path, LEDGER_GUARD));
             check("    and fences the funnel, judging each request before it is sent", fenceFindings(ast).join("; "), "");
+            check("    and the name its fence asks with is its plan's", fenceScriptSource(ast, path), entry.fenced.plan);
+            check(
+                "    which the guard refuses on the live base, a read among its requests",
+                refusesBeyondLedger({ script: entry.fenced.script, baseId: LIVE_BASE_ID, request: { method: "get", path: "/Assets" }, log: () => {} }),
+                true
+            );
             check("    and imports no writer of the two tables", PROTECTED_MODULES.filter((module) => new RegExp(module.replace(/\.js$/, "").replace(/\//g, "\\/")).test(source)).join(", "), "");
             continue;
         }
@@ -823,12 +806,12 @@ export function run({ check, assert, log }) {
         if (path.endsWith(".py")) return false;
         let names = false;
         walk(parseSource(readFileSync(join(REPO_ROOT, path), "utf8"), path).ast, (node) => {
-            if (node.type === "Identifier" && (node.name === LEDGER_GUARD || node.name === "LEDGERED_IMPORT" || node.name === "OWNER_JOB_FILL" || node.name === "SERIAL_FROM_NOTES")) names = true;
+            if (node.type === "Identifier" && (node.name === LEDGER_GUARD || node.name === "LEDGERED_IMPORT")) names = true;
             if (node.type === "Literal" && node.value === LEDGERED_IMPORT && !path.endsWith(`${LEDGERED_IMPORT}.mjs`) && !path.endsWith(`${LEDGERED_IMPORT}_plan.mjs`)) names = true;
         });
         return names;
     });
-    check("  the scripts naming refusesBeyondLedger, the import, the fill or the move", namers.join(" | "), Object.keys(CLASSIFIED).filter((path) => CLASSIFIED[path].ledgered || CLASSIFIED[path].fills || CLASSIFIED[path].moves).sort().join(" | "));
+    check("  the scripts naming refusesBeyondLedger or the import", namers.join(" | "), Object.keys(CLASSIFIED).filter((path) => CLASSIFIED[path].ledgered || CLASSIFIED[path].fenced).sort().join(" | "));
     // The wipe and the reset that runs it (#575) each ask with the ORDER a wipe empties.
     for (const script of ["wipe_base", "reset_demo"]) {
         const ast = parseSource(readFileSync(join(REPO_ROOT, `scripts/demo/${script}.mjs`), "utf8"), script).ast;
@@ -956,6 +939,12 @@ function main() { fenceRequests(base); return load(); }`;
     check("  a question naming no base is found", fenceFindings(planted(fenceGood.replace("baseId: baseFunctor.getId(), ", ""))).join("; "), "the fence's question names no baseId");
     check("  a load before the fence is found", fenceFindings(planted(fenceGood.replace("fenceRequests(base); return load();", "load(); fenceRequests(base);"))).join("; "), "load is called before the fence is installed");
     check("  no fence installed is found", fenceFindings(planted(fenceGood.replace("fenceRequests(base); ", ""))).join("; "), "the script never installs the fence");
+    const fencedAt = "scripts/import/ran/x.mjs";
+    const fenceNamed = `import { SCRIPT } from "../x_plan.mjs";\n${fenceGood.replace('script: "x"', "script: SCRIPT")}`;
+    check("  a fence asking with an imported name reads its module (#621)", fenceScriptSource(planted(fenceNamed), fencedAt), "scripts/import/x_plan.mjs");
+    check("  a fence asking with a literal name is found", fenceScriptSource(planted(fenceGood), fencedAt), "a Literal");
+    check("  a name declared in the file is found", fenceScriptSource(planted(`${fenceGood.replace('script: "x"', "script: SCRIPT")}\nconst SCRIPT = "x";`), fencedAt), "SCRIPT, imported from nowhere");
+    check("  a second question is found", fenceScriptSource(planted(`${fenceNamed}\nrefusesBeyondLedger({ script: "y" });`), fencedAt), "2 questions");
 
     const pyGood =`RENAMED_BY_513 = ("Asset Categories", "Assets", "Asset Log")\ndef main():\n    renamed = [name for name in RENAMED_BY_513 if find_table(tables, name)]\n    if renamed:\n        return 1\n    client.create_table(TOOLS)\n`;
     check("  a Python stop before its write passes", pythonStopFindings(pyGood).join("; "), "");
