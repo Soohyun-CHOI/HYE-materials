@@ -18,7 +18,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 | `app/addresses/**`, `lib/address*.js` | `docs/notes/addresses.md` |
 | `app/(assets)/**`, `lib/asset*.js` | `docs/notes/tools.md` |
 | `app/designValues.css`, `app/globals.css`, `app/components/Icon.js` | `docs/notes/design-system.md` |
-| `lib/airtable/**`, `lib/airtableBase.js`, `lib/airtableFormula.js`, `lib/airtableOps.js`, `lib/airtableBatch.js`, `lib/airtablePace.js` | `docs/notes/airtable-access.md` **and** `docs/notes/naming.md` |
+| `lib/airtable/**`, `lib/airtableBase.js`, `lib/deployment.js`, `lib/airtableFormula.js`, `lib/airtableOps.js`, `lib/airtableBatch.js`, `lib/airtablePace.js` | `docs/notes/airtable-access.md` **and** `docs/notes/naming.md` |
 | `lib/airtable/**`, `scripts/import/**`, `scripts/demo/**`, `scripts/tests/verify-*.mjs`, adding or changing a field or a table | `docs/notes/data-model.md` |
 | `lib/idSequence*.js` | `docs/notes/id-generation.md` |
 | `lib/auth.js`, `lib/authz*.js`, `lib/signInLimit.js`, `lib/prVisibility.js`, `lib/invoiceVisibility.js`, `lib/siteManager.js`, `app/login/**`, `app/api/**` | `docs/notes/authorization.md` |
@@ -87,6 +87,8 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 
 - `lib/airtable/client.js` — the shared connection, the table names, the batched readers, the batched create and `withKeyLock()`. Throws at module load without its base's key.
 - `lib/airtableBase.js` — which base a run reaches (#534), and the live base's id, written nowhere else.
+- `lib/deployment.js` — whether a run is the production deployment (#633), the one reading of `VERCEL_ENV`.
+- `lib/mailRedirect.js` — where a mail goes outside production (#633): all but a sign-in to `EMAIL_REDIRECT_TO`, or nowhere. **`lib/email.js:deliver` is the one send and asks it first.**
 - `lib/airtable/{table}.js` — one file per table, plain async functions.
 - `lib/airtableOps.js` — the Airtable operation counter and its attribution scope. Server-only; a forbidden root for client bundles.
 - `lib/airtableFormula.js` — `formulaString`, the one escape for an interpolated value, and the whole-formula builders.
