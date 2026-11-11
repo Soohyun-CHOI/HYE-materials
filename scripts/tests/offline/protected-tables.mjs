@@ -147,8 +147,9 @@ const CLASSIFIED = {
     // `Assets."Serial Number"`'s description again, one path in it: the #601 script's, which #602 had
     // moved into `ran/` before #612 named it. A description alone, on either base.
     "scripts/import/ran/describe_serial_path_612.mjs": { describes: true },
-    // Six fields' descriptions again, the paths of the scripts each names: every one moved into `ran/`
-    // after its field's description named it (#621). Descriptions alone, on either base.
+    // Six fields' descriptions and `Asset Category Groups`' own again, the paths of the scripts each
+    // names: every one moved into `ran/` after its description named it (#621). Descriptions alone, on
+    // either base.
     "scripts/import/ran/describe_ran_paths_621.mjs": { describes: true },
     // `Asset Log."Event"`'s two loan options (#598), made by a row written with typecast and deleted at
     // once on the test base, and refused on the live base, where they are a hand step.

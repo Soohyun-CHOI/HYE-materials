@@ -1,16 +1,21 @@
-// Corrects the paths six field descriptions name on the base this run reaches — the paths alone
-// (#621).
+// Corrects the paths seven descriptions name on the base this run reaches — six fields' and one
+// table's — the paths alone (#621).
 //
-// WHY. Each description names the script that made or filled its field by the path it had then, and
-// each script has since moved into `scripts/import/ran/`, so each sentence names a path that is gone:
-// `Assets."Owner Job"` names `fill_owner_job_598.mjs` and `add_owner_job_598.mjs`, `Assets."Last Event
-// At"` names `add_last_event_at_540.mjs`, `Asset Categories."Category Group"`, `."Edited At"` and
-// `."Asset Statuses"` name `link_category_groups_539.mjs`, `add_edited_at_540.mjs` and
-// `add_asset_statuses_582.mjs`, and `Material Categories."Item Name"` names
-// `add_category_item_name_415.mjs`. This puts `scripts/import/ran/` in place of `scripts/import/` in
-// those seven paths and leaves every other character as it stands, as
-// `describe_serial_path_612.mjs` did for `Assets."Serial Number"`; the script or plan holding each
-// sentence as the description it writes holds the corrected one.
+// WHY. Each description names the script that made, filled or loaded what it describes by the path it
+// had then, and each script has since moved into `scripts/import/ran/` (#572, #602), so each sentence
+// names a path that is gone: `Assets."Owner Job"` names `fill_owner_job_598.mjs` and
+// `add_owner_job_598.mjs`, `Assets."Last Event At"` names `add_last_event_at_540.mjs`,
+// `Asset Categories."Category Group"`, `."Edited At"` and `."Asset Statuses"` name
+// `link_category_groups_539.mjs`, `add_edited_at_540.mjs` and `add_asset_statuses_582.mjs`,
+// `Material Categories."Item Name"` names `add_category_item_name_415.mjs`, and
+// `Asset Category Groups`' own description names `replace_asset_catalog_528.mjs`. This puts
+// `scripts/import/ran/` in place of `scripts/import/` in those eight paths and leaves every other
+// character as it stands, as `describe_serial_path_612.mjs` did for `Assets."Serial Number"`; the
+// script or plan holding each sentence as the description it writes holds the corrected one.
+//
+// THE TABLE'S CAME SECOND. The first run on each base wrote the six fields' alone, before the table's
+// was added here; the second found those right and wrote the table's. Each run's ledger holds what it
+// wrote.
 //
 // THE PATHS AND NOTHING ELSE, BY CONSTRUCTION. The description written is the one read with each old
 // path replaced, so no other character can move, and the run checks it again character by character:
@@ -19,21 +24,22 @@
 // nowhere is already right; any other stops the run before anything is written.
 //
 // AND IT SAYS WHAT IS LEFT. Every description on the base, a table's as well as a field's, is searched
-// for a path in `scripts/import/` naming a file that stands in `ran/` alone, and one outside the six
+// for a path in `scripts/import/` naming a file that stands in `ran/` alone, and one outside the seven
 // is listed and not written.
 //
 // DESCRIPTIONS ALONE, BECAUSE `Assets` HOLDS THE SITE'S RECORDS (#531). Every request asks
 // `refusesBeyondDescriptions` first, so a body carrying a name, a type or options, or any request to a
-// row, is refused before it leaves. It sends one GET of the schema before, one PATCH for each field
-// that needs it, and one GET after.
+// row, is refused before it leaves. It sends one GET of the schema before, one PATCH for each
+// description that needs it, and one GET after.
 //
 // A LEDGER BEFORE THE PATCHES. `--apply` writes the base — `live` or `test`, as the run named it — and
-// each field with its description before and after to
-// `scripts/import/ledgers/describe_ran_paths_621-<base>-<instant>.jsonl` first, a line a field.
+// each description before and after, its field's id or `null` for a table's own, to
+// `scripts/import/ledgers/describe_ran_paths_621-<base>-<instant>.jsonl` first, a line a description.
 //
 // AND IT LOOKS AFTERWARDS. The re-read compares every table whole against the read before — every
-// field's id, name, type, options and description but these six's, every view's id, name and type,
-// and each table's name, primary field and description — and the six must read as written.
+// field's id, name, type, options and description, every view's id, name and type, and each table's
+// name, primary field and description, the seven descriptions aside — and the seven must read as
+// written.
 //
 // Usage (from the repo root) — the test base unless the run names the live one (#534):
 //   node --env-file=.env.local scripts/import/ran/describe_ran_paths_621.mjs                      (dry run)
@@ -70,12 +76,13 @@ const NEW_DIR = "scripts/import/ran/";
 const INSERTED = "ran/";
 
 /**
- * The six fields, each by its table's id — both bases share them, the test base made by duplicating
- * the live one (#534) — and by its name, since a field's id differs from base to base; and the scripts
- * its description names, in the order it names them.
+ * The seven descriptions, each by its table's id — both bases share them, the test base made by
+ * duplicating the live one (#534) — and by its field's name, since a field's id differs from base to
+ * base, or `null` for the table's own; and the scripts it names, in the order it names them.
  */
 const ASSETS = { name: "Assets", id: "tblXtmDonSyOyOvV3" };
 const ASSET_CATEGORIES = { name: "Asset Categories", id: "tblry47UEqLx86yaU" };
+const ASSET_CATEGORY_GROUPS = { name: "Asset Category Groups", id: "tblmAiXzltjLuJcw4" };
 const MATERIAL_CATEGORIES = { name: "Material Categories", id: "tblnFLgVVhdeIvEgV" };
 const TARGETS = [
     { table: ASSETS, field: "Owner Job", scripts: ["fill_owner_job_598.mjs", "add_owner_job_598.mjs"] },
@@ -84,6 +91,7 @@ const TARGETS = [
     { table: ASSET_CATEGORIES, field: "Edited At", scripts: ["add_edited_at_540.mjs"] },
     { table: ASSET_CATEGORIES, field: "Asset Statuses", scripts: ["add_asset_statuses_582.mjs"] },
     { table: MATERIAL_CATEGORIES, field: "Item Name", scripts: ["add_category_item_name_415.mjs"] },
+    { table: ASSET_CATEGORY_GROUPS, field: null, scripts: ["replace_asset_catalog_528.mjs"] },
 ];
 
 let calls = 0;
@@ -123,20 +131,25 @@ function count(text, part) {
     return text.split(part).length - 1;
 }
 
-/** Every fact of every table but the named fields' descriptions, for the before-and-after. */
-function shape(tables, fieldIds) {
+/** How a description is named in what this prints: a field's by its table and name, a table's own as such. */
+function labelOf(tableName, fieldName) {
+    return fieldName === null ? `${tableName} (the table's own)` : `${tableName}."${fieldName}"`;
+}
+
+/** Every fact of every table but the descriptions of the named fields and tables, for the before-and-after. */
+function shape(tables, ids) {
     return JSON.stringify(
         tables.map((table) => ({
             id: table.id,
             name: table.name,
             primaryFieldId: table.primaryFieldId,
-            description: table.description ?? "",
+            description: ids.has(table.id) ? null : table.description ?? "",
             fields: table.fields.map((f) => ({
                 id: f.id,
                 name: f.name,
                 type: f.type,
                 options: f.options ?? null,
-                description: fieldIds.has(f.id) ? null : f.description ?? "",
+                description: ids.has(f.id) ? null : f.description ?? "",
             })),
             views: (table.views ?? []).map((v) => ({ id: v.id, name: v.name, type: v.type })),
         }))
@@ -167,7 +180,7 @@ function insertions(said, written) {
     return at;
 }
 
-/** What one field's description needs: nothing, the paths corrected, or a stop. */
+/** What one description needs: nothing, the paths corrected, or a stop. */
 function planFor(target, said) {
     const olds = target.scripts.map((file) => count(said, OLD_DIR + file));
     const news = target.scripts.map((file) => count(said, NEW_DIR + file));
@@ -185,8 +198,8 @@ function oldPaths(tables) {
     const found = [];
     for (const table of tables) {
         const described = [
-            [`${table.name} (the table's own)`, table.description ?? ""],
-            ...table.fields.map((f) => [`${table.name}."${f.name}"`, f.description ?? ""]),
+            [labelOf(table.name, null), table.description ?? ""],
+            ...table.fields.map((f) => [labelOf(table.name, f.name), f.description ?? ""]),
         ];
         for (const [where, text] of described) {
             for (const [path, file] of text.matchAll(/scripts\/import\/([A-Za-z0-9_-]+\.(?:mjs|py|js))/g)) {
@@ -197,16 +210,16 @@ function oldPaths(tables) {
     return found;
 }
 
-/** The old paths outside the six fields, listed. */
+/** The old paths outside the seven descriptions, listed. */
 function listOthers(tables) {
-    const mine = new Set(TARGETS.map((t) => `${t.table.name}."${t.field}"`));
+    const mine = new Set(TARGETS.map((t) => labelOf(t.table.name, t.field)));
     const others = oldPaths(tables).filter((p) => !mine.has(p.where));
     log("");
     if (others.length === 0) {
         log("  no other description on the base names a moved script's old path");
         return;
     }
-    log(`  ${others.length} old path(s) in description(s) outside the six, listed and not written:`);
+    log(`  ${others.length} old path(s) in description(s) outside the seven, listed and not written:`);
     for (const p of others) log(`    ${p.where}: ${p.path}`);
 }
 
@@ -221,7 +234,7 @@ async function main() {
     const baseId = airtable.baseId;
 
     log("=".repeat(72));
-    log("Six field descriptions — the paths of the scripts they name, now in ran/ (#621)");
+    log("Seven descriptions — the paths of the scripts they name, now in ran/ (#621)");
     log(`${describeAirtableBase(airtable)}${apply ? "" : "   [DRY RUN — nothing is written]"}`);
     log("=".repeat(72));
 
@@ -229,19 +242,30 @@ async function main() {
     const plans = [];
     let stopped = false;
     for (const target of TARGETS) {
-        const label = `${target.table.name}."${target.field}"`;
+        const label = labelOf(target.table.name, target.field);
         const table = before.find((t) => t.id === target.table.id);
-        const named = table ? table.fields.filter((f) => f.name === target.field) : [];
-        if (!table || table.name !== target.table.name || named.length !== 1) {
-            log(`  STOPPED: ${target.table.id} is ${table ? `"${table.name}"` : "on no table"} with ${named.length} field(s) named ${target.field}.`);
+        if (!table || table.name !== target.table.name) {
+            log(`  STOPPED: ${target.table.id} is ${table ? `"${table.name}"` : "on no table"}, not ${target.table.name}.`);
             stopped = true;
             continue;
         }
-        const [field] = named;
-        const said = field.description ?? "";
+        let id = table.id;
+        let path = `/bases/${baseId}/tables/${table.id}`;
+        let said = table.description ?? "";
+        if (target.field !== null) {
+            const named = table.fields.filter((f) => f.name === target.field);
+            if (named.length !== 1) {
+                log(`  STOPPED: ${target.table.name} holds ${named.length} field(s) named ${target.field}.`);
+                stopped = true;
+                continue;
+            }
+            id = named[0].id;
+            path += `/fields/${id}`;
+            said = named[0].description ?? "";
+        }
         const plan = planFor(target, said);
         log("");
-        log(`  ${label} is ${field.id}, ${said.length} characters:`);
+        log(`  ${label} is ${id}, ${said.length} characters:`);
         target.scripts.forEach((file, n) => log(`    ${file}: the old path ${plan.olds[n]} time(s), the new path ${plan.news[n]} time(s)`));
         if (plan.state === "right") {
             log("    already names the new paths");
@@ -263,7 +287,7 @@ async function main() {
             log(`    at character ${at[n]}: ${JSON.stringify(OLD_DIR + file)} -> ${JSON.stringify(NEW_DIR + file)}`);
         }
         log(`    "${INSERTED}" inserted ${at.length} time(s), every other character unchanged: ${said.length} before, ${plan.written.length} after`);
-        plans.push({ target, field, said, written: plan.written });
+        plans.push({ target, label, id, path, said, written: plan.written });
     }
     listOthers(before);
     if (stopped) {
@@ -290,25 +314,37 @@ async function main() {
     writeFileSync(
         ledger,
         plans
-            .map((p) => JSON.stringify({ kind: "description", base: where, table: p.target.table.id, field: p.field.id, at, before: p.said, after: p.written }) + "\n")
+            .map(
+                (p) =>
+                    JSON.stringify({
+                        kind: "description",
+                        base: where,
+                        table: p.target.table.id,
+                        field: p.target.field === null ? null : p.id,
+                        at,
+                        before: p.said,
+                        after: p.written,
+                    }) + "\n"
+            )
             .join("")
     );
     log("");
     log(`ledger: ${ledger}`);
 
     for (const p of plans) {
-        await request("PATCH", `/bases/${baseId}/tables/${p.target.table.id}/fields/${p.field.id}`, { description: p.written });
-        log(`  written: ${p.target.table.name}."${p.target.field}"`);
+        await request("PATCH", p.path, { description: p.written });
+        log(`  written: ${p.label}`);
     }
 
     const after = await readTables(baseId);
-    const ids = new Set(plans.map((p) => p.field.id));
+    const ids = new Set(plans.map((p) => p.id));
     const wrong = [];
     if (shape(after, ids) !== shape(before, ids)) wrong.push("the base changed beyond these descriptions");
     for (const p of plans) {
-        const reread = after.find((t) => t.id === p.target.table.id)?.fields.find((f) => f.id === p.field.id);
-        if (!reread || reread.name !== p.target.field) wrong.push(`${p.field.id} is no longer ${p.target.field}`);
-        if ((reread?.description ?? "") !== p.written) wrong.push(`${p.target.table.name}."${p.target.field}" does not read as written`);
+        const table = after.find((t) => t.id === p.target.table.id);
+        const reread = p.target.field === null ? table : table?.fields.find((f) => f.id === p.id);
+        if (!reread || reread.name !== (p.target.field ?? p.target.table.name)) wrong.push(`${p.id} is no longer ${p.label}`);
+        if ((reread?.description ?? "") !== p.written) wrong.push(`${p.label} does not read as written`);
     }
     log("");
     log("re-read from the base:");
@@ -316,8 +352,8 @@ async function main() {
         for (const problem of wrong) log(`  WRONG: ${problem}`);
         return finish(1, `${wrong.length} problem(s)`);
     }
-    for (const p of plans) log(`  ${p.target.table.name}."${p.target.field}": the description as written, the new paths in place of the old`);
-    log("  every other field and view of every table, and each table itself: unchanged");
+    for (const p of plans) log(`  ${p.label}: the description as written, the new paths in place of the old`);
+    log("  every other description, field and view of every table, and each table's name and primary field: unchanged");
     listOthers(after);
     return finish(0, "every description names the new paths");
 }
