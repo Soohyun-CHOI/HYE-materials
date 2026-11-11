@@ -237,7 +237,7 @@ export function run({ check, assert, log }) {
     // like it should skip the wait — something arrived and only the pairing is missing —
     // but the flag means "some slice against SOME ordered item, any quantity, any
     // delivery, possibly another invoice's". The measured pair is in
-    // lib/deliveryReconciliation.js:getOrderedItemsWithDelivery.
+    // lib/deliveryStatus.server.js:getOrderedItemsWithDelivery.
     const bothKindsShort = select({
         invoices: [shortOfIt, inv("HYE-INV-260813-02", "2026-08-13")],
         status: {},

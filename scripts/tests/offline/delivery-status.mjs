@@ -17,7 +17,7 @@
 // really came from the ordered item's rollup rather than one invoice's own invoice
 // items, whether the two delivered figures were split on `Over Delivered`, and
 // whether `arrived` really came from the delivery the invoice NAMES, are
-// properties of lib/deliveryReconciliation.js and are measured credentialed.
+// properties of lib/deliveryStatus.server.js and are measured credentialed.
 
 import {
     AWAITING_INVOICE_COPY,

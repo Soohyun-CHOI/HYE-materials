@@ -40,7 +40,7 @@ import {
     matchExistingAddress,
     readAddressFields,
 } from "../../../lib/addressCreation.js";
-import { textMatchKey } from "../../../lib/itemNaming.js";
+import { textMatchKey } from "../../../lib/typedText.js";
 import { parseFile, parseSource, walk, callsBefore, callsFunction, insideCallTo, resolveFunction } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
@@ -251,7 +251,7 @@ export function run({ check, assert, log }) {
     walk(parseFile("lib/addressCreation.js").ast, (n) => {
         if (n.type === "ImportDeclaration") imported.push(n.source.value);
     });
-    check("lib/addressCreation.js imports", imported.join(), "./itemNaming.js");
+    check("lib/addressCreation.js imports", imported.join(), "./typedText.js");
     // The extension is spelled out because this tier runs under plain `node` with
     // no loader — the lib/materialPriceView.js precedent (#19).
     assert("  with the extension spelled out", imported.every((s) => s.endsWith(".js")));

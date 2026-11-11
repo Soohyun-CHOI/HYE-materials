@@ -66,7 +66,7 @@ without one**: the press always acts, and a press with nothing but spaces in the
 field is refused under it (`ASSET_TRANSITION_COPY.nameRequired`), focus going to the
 field. **The names offered are the item's job's recent ones**, not the reader's —
 from its hundred latest check-outs with a name — one per person, compared by
-`lib/itemNaming.js:textMatchKey` (trimmed, each run of spaces one, case folded) and
+`lib/typedText.js:textMatchKey` (trimmed, each run of spaces one, case folded) and
 shown in the most recent spelling, newest first; typing narrows them to every name
 holding what is typed anywhere, by the same key. How many show before anything is
 typed (`RECENT_NAMES_SHOWN`) is a display choice over that list.

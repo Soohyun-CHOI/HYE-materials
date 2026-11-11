@@ -95,10 +95,9 @@ import {
     setInvoiceDelivery,
 } from "../../lib/airtable/invoices.js";
 import { createInvoiceItem, getItemsByInvoice } from "../../lib/airtable/invoiceItems.js";
-import { createOverageDraft, getOverageContext } from "../../lib/overagePR.js";
-import { getDeliveriesForInvoice } from "../../lib/deliveryInvoiceCandidates.js";
-import { PAIRING, matchDeliveryToInvoice } from "../../lib/deliveryInvoiceMatch.js";
-import { linkedDelivery } from "../../lib/deliveryInvoiceLink.js";
+import { createOverageDraft, getOverageContext } from "../../lib/overage.server.js";
+import { getDeliveriesForInvoice } from "../../lib/deliveryInvoicePairing.server.js";
+import { PAIRING, linkedDelivery, matchDeliveryToInvoice } from "../../lib/deliveryInvoicePairing.js";
 import { getMaterialByKey } from "../../lib/airtable/materials.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
@@ -481,7 +480,7 @@ console.log(`  ${bInvoice.invoiceId}: 5 on ${ids.bPo1}, 7 on ${ids.bPo2}`);
 // THE CORRECTIVE REQUEST IS NOT IN THIS SET, and that is the honest scope rather
 // than an oversight. Scenario A's correction is created by `createOverageDraft`,
 // which raises a request of its own and copies the ordered item's name without a
-// category — `lib/overagePR.js` gains one in #356, which owns that path. Only
+// category — `lib/overage.server.js` gains one in #356, which owns that path. Only
 // the requests `makeOrder` raises are collected here, so this assertion says
 // what it can prove and no more.
 await assertItemsHaveCategories({ prRecordIds: seededPRRecordIds, allowMissing: 0 });

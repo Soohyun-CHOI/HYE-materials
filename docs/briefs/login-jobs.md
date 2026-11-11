@@ -25,7 +25,7 @@ work, and a reader of either kind with no job starts the asset list on all jobs.
 
 **Every job there is, by its code and name**, several of which may be chosen, and a
 search over them: a job stays while its code and name carry every word typed
-(`lib/searchTokens.js`). **While searching, a job chosen before the search began
+(`lib/typedText.js`). **While searching, a job chosen before the search began
 that the search does not match stays, above the matches** (`jobRows`), so a choice
 is never hidden by what was typed.
 

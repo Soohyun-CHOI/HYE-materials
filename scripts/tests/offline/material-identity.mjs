@@ -16,7 +16,7 @@
 // `verify-materials-cache-18.mjs`'s, per `docs/notes/verification.md`'s rule
 // that a judgment living on the Airtable side needs a credentialed comparison.
 //
-// lib/materialIdentity.js imports only lib/itemNaming.js, with the extension
+// lib/materialIdentity.js imports only lib/typedText.js, with the extension
 // spelled out, which is what lets this be offline.
 
 import { materialIdentityKey, materialIdentityParts } from "../../../lib/materialIdentity.js";

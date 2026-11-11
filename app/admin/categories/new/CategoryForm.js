@@ -12,12 +12,12 @@ import {
     narrowParent,
     planCategory,
     resolveCategoryNames,
-} from "@/lib/categoryCreation";
+} from "@/lib/materialCategoryCreation";
 
 /**
  * The form that adds a path to the catalog (#368).
  *
- * IT IMPORTS `lib/categoryCreation.js` AND `lib/materialCategory.js` AND NOTHING
+ * IT IMPORTS `lib/materialCategoryCreation.js` AND `lib/materialCategory.js` AND NOTHING
  * ELSE FROM `lib/`, which is #162's rule: an import is an execution, so a
  * `"use client"` file that reaches `lib/airtable/` at any depth crashes in the
  * browser rather than failing a lint rule. Both modules are pure by construction

@@ -19,8 +19,8 @@ import { createDirectPurchase } from "@/lib/airtable/directPurchases";
 import { DIRECT_PURCHASE_COPY, directPurchaseBlocked } from "@/lib/directPurchase";
 import { isPOWithdrawn } from "@/lib/poWithdraw";
 import { withOpsLabel } from "@/lib/airtableOps";
-import { getDeliveriesForInvoice } from "@/lib/deliveryInvoiceCandidates";
-import { PAIRING, matchDeliveryToInvoice } from "@/lib/deliveryInvoiceMatch";
+import { getDeliveriesForInvoice } from "@/lib/deliveryInvoicePairing.server";
+import { PAIRING, matchDeliveryToInvoice } from "@/lib/deliveryInvoicePairing";
 import {
     ITEM_PRECISION_COPY,
     checkHeaderVariance,
@@ -379,7 +379,7 @@ async function createInvoiceHandler(prevState, formData) {
         // straight after creation.
         //
         // #231 — the pairing outcome rides along as a KEY, never a sentence: the copy
-        // is lib/deliveryInvoiceMatch.js's, so a query string carrying words would be a
+        // is lib/deliveryInvoicePairing.js's, so a query string carrying words would be a
         // second place to reword one. `none` is omitted rather than sent, because the
         // banner has no `none` voice and a parameter meaning "say nothing" would invite
         // one.

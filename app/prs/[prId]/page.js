@@ -20,7 +20,7 @@ import { getCurrentTurn, getReturnTargets } from "@/lib/prSigning";
 import { describeOverageBanner } from "@/lib/overage";
 import { PR_KIND, PR_KIND_COPY, prKind } from "@/lib/prKind";
 import { awaitingPOCopy } from "@/lib/poListView";
-import { getOverageBannerFacts } from "@/lib/overagePR";
+import { getOverageBannerFacts } from "@/lib/overage.server";
 import { formatUSD } from "@/lib/format";
 import { withOpsLabel } from "@/lib/airtableOps";
 import ItemsSummaryRows from "@/app/components/ItemsSummaryRows";

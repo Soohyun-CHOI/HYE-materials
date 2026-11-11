@@ -347,7 +347,7 @@ const EXEMPTIONS = [
             "invoice it is about is then gated per record through " +
             "lib/invoiceVisibility.js, so a caller cannot pair an invoice they may not " +
             "read. Both re-run from a fresh read inside " +
-            "lib/deliveryInvoiceCandidates.js, because an invoice can be paired with " +
+            "lib/deliveryInvoicePairing.server.js, because an invoice can be paired with " +
             "another delivery while the form sits open.",
     },
     {

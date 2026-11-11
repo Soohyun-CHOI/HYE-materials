@@ -59,7 +59,7 @@ checked and scrolled to; typing offers a few names holding what is typed, the cl
 first (`lib/assetCatalog.js`). Before the press, **what will be saved is spelled
 out**: a category the type already holds, or a name its category already holds, is
 saved as it is already spelled; one it does not hold, with each word's first
-letter in capitals and the rest as typed (`lib/itemNaming.js:capitalizeWords`); the
+letter in capitals and the rest as typed (`lib/typedText.js:capitalizeWords`); the
 size, the maker and the part number as typed.
 
 **What it reads:** 3 operations — the session, every `Asset Categories` row and every

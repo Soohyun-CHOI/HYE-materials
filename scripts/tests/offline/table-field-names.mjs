@@ -119,7 +119,7 @@ const RETIRED = {
     // WHY THEY WENT: the lookups existed only to support filtering a child table by
     // its parent's record id, which this repository forbids — the lookup is computed
     // asynchronously and undercounts siblings created right after the parent,
-    // reproduced for PO Items (`lib/ids.js:generateChildId`). No code read any of the
+    // reproduced for PO Items (`lib/idSequence.server.js:generateChildId`). No code read any of the
     // seven, and `PO Items."PO Record ID"` was additionally MISCONFIGURED for as long
     // as it existed (see docs/notes/purchase-orders.md). Deleting them makes the
     // banned query unwritable rather than merely forbidden.

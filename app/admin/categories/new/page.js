@@ -1,6 +1,6 @@
 import { requireAdmin } from "@/lib/authz";
 import { getCategoryTree } from "@/lib/airtable/materialCategories";
-import { CATEGORY_CREATION_COPY as COPY } from "@/lib/categoryCreation";
+import { CATEGORY_CREATION_COPY as COPY } from "@/lib/materialCategoryCreation";
 import { withOpsLabel } from "@/lib/airtableOps";
 import CategoryForm from "./CategoryForm";
 

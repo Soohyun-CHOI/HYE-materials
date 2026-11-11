@@ -29,7 +29,7 @@
 // Exit codes: 0 all clear, 1 something failed OR this run left rows on the base,
 // 2 clean but incomplete.
 
-import { searchMaterialPrices, getMaterialPurchaseHistory } from "../../lib/materialHistory.js";
+import { searchMaterialPrices, getMaterialPurchaseHistory } from "../../lib/materialPriceView.server.js";
 import { countsAsOrdered, lowestPriceRowIds, qtyDiffersAcross } from "../../lib/materialPriceView.js";
 import { getMaterialByKey } from "../../lib/airtable/materials.js";
 import { createPR, updatePR, getPRByRecordId } from "../../lib/airtable/purchaseRequests.js";

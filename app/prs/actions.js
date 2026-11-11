@@ -5,7 +5,7 @@ import { after } from "next/server";
 import { requireUser } from "@/lib/authz";
 import { getDirectPurchasesByRecordIds } from "@/lib/airtable/directPurchases";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
-import { claimDirectPurchase, describeClaimRefusal } from "@/lib/directPurchaseClaim";
+import { claimDirectPurchase, describeClaimRefusal } from "@/lib/directPurchase.server";
 import { DIRECT_PURCHASE_COPY } from "@/lib/directPurchase";
 import { confirmIngestThenDelete } from "@/lib/blobIngest";
 import { withOpsLabel } from "@/lib/airtableOps";

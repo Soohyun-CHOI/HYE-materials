@@ -79,16 +79,16 @@
 //      other four could not be. See `SURVIVING_IDENTIFIERS`.
 //
 // `order lines?` IS IN THE LIST NOW, AND WHAT KEPT IT OUT WAS A MISPLACED CITATION.
-// This header said the phrase was left off because `lib/deliveryReconciliation.js`
-// cited a former heading containing it — "recorded against the same order lines" —
-// and that a check whose first act is to excuse a citation is the shape #171 records
-// rotting. The reasoning was sound and the FILE was wrong: that module has said
-// `recorded against the same ordered item` since #228, and the citation lives in
-// `docs/notes/deliveries-and-invoices.md`, which this check does not scan. So the
-// phrase costs no exemption and goes on the list — the scope boundary was already
-// doing the work the omission was invented for. Two lessons, both #227's: a premise
-// naming a file has to name the right one, and the reason to keep `docs/notes/` out
-// is now load-bearing rather than merely measured.
+// This header said the phrase was left off because lib/deliveryReconciliation.js
+// (`lib/deliveryStatus.server.js` since #184) cited a former heading containing it —
+// "recorded against the same order lines" — and that a check whose first act is to
+// excuse a citation is the shape #171 records rotting. The reasoning was sound and the
+// FILE was wrong: that module has said `recorded against the same ordered item` since
+// #228, and the citation lives in `docs/notes/deliveries-and-invoices.md`, which this
+// check does not scan. So the phrase costs no exemption and goes on the list — the
+// scope boundary was already doing the work the omission was invented for. Two lessons,
+// both #227's: a premise naming a file has to name the right one, and the reason to
+// keep `docs/notes/` out is now load-bearing rather than merely measured.
 //
 // WHAT ASSERTION 2 CANNOT SEE: a bare `line` in a comment. `every line of an
 // unpaired invoice` would pass, and #228 swept ~590 sites of exactly that kind by

@@ -4,7 +4,8 @@
 // MODULE LOAD. In a Server Component that is a deliberate fail-fast; in a browser
 // bundle it is an unconditional crash, because the variable is server-only by
 // design. #162 shipped exactly that bug: app/deliveries/new/DeliveryForm.js
-// imported one pure helper from lib/deliveryCandidates.js, which imports
+// imported one pure helper from lib/deliveryCandidates.js — named
+// lib/deliveryAllocation.server.js since #184 — which imports
 // lib/airtable/client.js, and selecting a job threw in the browser.
 //
 // The reasoning that produced it is the part worth pinning against. The import was
@@ -22,7 +23,7 @@
 // entry point. Neither exists in this app today.
 
 import { dirname, join, relative, resolve } from "path";
-import { existsSync, statSync } from "fs";
+import { existsSync, readdirSync, statSync } from "fs";
 import { listJsFiles, parseFile, REPO_ROOT, toPosix, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
@@ -39,7 +40,27 @@ export const title = "Client bundle safety — no 'use client' file reaches lib/
 // call AsyncLocalStorage for the bundle to break. The two pure helpers a form
 // might want from it — there are none today — would have to move rather than be
 // imported, exactly as buildItemOptions had to.
-const FORBIDDEN_ROOTS = ["lib/airtable/client.js", "lib/airtableOps.js"];
+const NAMED_ROOTS = ["lib/airtable/client.js", "lib/airtableOps.js"];
+
+// AND EVERY MODULE THAT THROWS AT LOAD ON A MISSING VARIABLE, FOUND RATHER THAN NAMED
+// (#184). `lib/email.js` throws `Missing RESEND_API_KEY` at module load as client.js
+// throws for its key, a browser holds neither, and it reaches neither root above — so a
+// Client Component importing it was #162's crash with a different message, and nothing
+// here could see it. `lib/session.js`, `lib/auth.js` and `lib/airtable/authTokens.js`
+// take the same shape and reach client.js anyway. The shape is a top-level `if` that
+// reads `process.env` and throws, so the next module written that way is a root the day
+// it is written rather than the day somebody adds it to a list.
+export function throwsAtLoad(ast) {
+    return (ast.body || []).some((node) => {
+        if (node.type !== "IfStatement") return false;
+        let readsEnv = false;
+        walk(node.test, (n) => {
+            if (n.type === "MemberExpression" && n.object?.name === "process" && n.property?.name === "env") readsEnv = true;
+        });
+        const body = node.consequent.type === "BlockStatement" ? node.consequent.body : [node.consequent];
+        return readsEnv && body.some((s) => s.type === "ThrowStatement");
+    });
+}
 
 const SCAN_ROOTS = ["app", "lib"];
 
@@ -120,9 +141,17 @@ export function run({ assert, log }) {
     }
 
     assert("found files to check", importsByFile.size > 0);
-    for (const root of FORBIDDEN_ROOTS) {
+    for (const root of NAMED_ROOTS) {
         assert(`the forbidden root ${root} is itself in the graph`, importsByFile.has(root));
     }
+    const foundRoots = [...importsByFile.keys()].filter(
+        (rel) => rel.startsWith("lib/") && throwsAtLoad(importsByFile.get(rel).ast)
+    );
+    const FORBIDDEN_ROOTS = [...NAMED_ROOTS, ...foundRoots.filter((rel) => !NAMED_ROOTS.includes(rel))];
+    log(`${foundRoots.length} module(s) throw at load on a missing variable: ${foundRoots.join(", ")}`);
+    // The shape has to be seen finding the module it was written for, or a parser
+    // change could leave it finding nothing while every client file still passed.
+    assert("the load-time shape finds lib/email.js, which no named root covers", foundRoots.includes("lib/email.js"));
 
     /**
      * Shortest import path from `start` to any forbidden root, or null — stopping
@@ -162,13 +191,15 @@ export function run({ assert, log }) {
     // The check would pass vacuously if the traversal could not find a path that
     // genuinely exists, so prove it can: a server module that really does import
     // the client must be reported as reaching it.
-    const knownReacher = "lib/deliveryCandidates.js";
-    if (importsByFile.has(knownReacher)) {
-        assert(
-            `the traversal really works — ${knownReacher} is seen to reach a forbidden root`,
-            pathToForbidden(knownReacher) !== null
-        );
-    }
+    //
+    // NOT GUARDED BY WHETHER THE FILE EXISTS, AS IT WAS UNTIL #184: that issue renamed
+    // the file this named, and under the guard a rename would have skipped the proof
+    // without a word.
+    const knownReacher = "lib/deliveryAllocation.server.js";
+    assert(
+        `the traversal really works — ${knownReacher} is seen to reach a forbidden root`,
+        pathToForbidden(knownReacher) !== null
+    );
     // The same proof for the SECOND root, which would otherwise be a name in a
     // list that nothing demonstrates the traversal can find (#190). client.js is
     // what imports lib/airtableOps.js, so it must be seen to reach it.
@@ -178,8 +209,80 @@ export function run({ assert, log }) {
     );
     assert(
         "and a module that imports nothing is not falsely reported",
-        pathToForbidden("lib/itemNaming.js") === null
+        pathToForbidden("lib/typedText.js") === null
     );
+
+    // THE NAME SAYS WHICH SIDE A MODULE IS ON (#184). A rule split across this line is
+    // a pair — its judgment and its words in `x.js`, every read and write it makes
+    // against the base in `x.server.js` — so whoever writes a Client Component reads
+    // what it may import off the file name. That holds only while the names are true,
+    // so both halves are held here: an `x.server.js` reaches a root, and the `x.js`
+    // beside it reaches none and exists.
+    const serverHalves = [...importsByFile.keys()].filter((rel) => rel.startsWith("lib/") && rel.endsWith(".server.js"));
+    log(`${serverHalves.length} pair(s) named for the line: ${serverHalves.map((rel) => rel.slice(4, -10)).join(", ")}`);
+    assert("there is at least one pair to hold", serverHalves.length > 0);
+    for (const rel of serverHalves) {
+        const pure = rel.replace(/\.server\.js$/, ".js");
+        assert(`${rel} reaches a forbidden root, as its name says`, pathToForbidden(rel) !== null);
+        assert(`  and ${pure} beside it exists`, importsByFile.has(pure));
+        const chain = importsByFile.has(pure) ? pathToForbidden(pure) : null;
+        assert(
+            chain ? `  and ${pure} must not reach ${chain[chain.length - 1]} — via ${chain.slice(1).join(" -> ")}` : `  and ${pure} reaches none`,
+            chain === null
+        );
+    }
+
+    // `server-only` GOES ON A MODULE NO PLAIN-NODE SCRIPT LOADS, AND THIS HOLDS IT THERE
+    // (#184). The marker makes `next build` refuse a Client Component that reaches it,
+    // which nothing above does at build time — but plain `node` cannot load it: the
+    // package is not installed, Next's bundler resolves the bare name itself, and an
+    // installed copy throws under `node`'s `default` condition. Every credentialed
+    // module is reached by a `verify-*`, `demo` or `import` script, so the marker stays
+    // off them; a module carrying it fails here the day a script reaches it, with the
+    // chain, rather than a script failing at load with a bare resolution error.
+    const marked = [...importsByFile.keys()].filter((rel) =>
+        (importsByFile.get(rel).ast.body || []).some((n) => n.type === "ImportDeclaration" && n.source?.value === "server-only")
+    );
+    log(`${marked.length} module(s) carry server-only: ${marked.join(", ")}`);
+    assert("lib/email.js carries the marker, which is what the scripts below are held against", marked.includes("lib/email.js"));
+    const scripts = listMjsFiles(join(REPO_ROOT, "scripts")).map((f) => toPosix(relative(REPO_ROOT, f)));
+    const scriptImports = new Map(
+        scripts.map((rel) => [rel, localImportsOf(parseFile(rel).ast).map((s) => resolveSpecifier(rel, s)).filter(Boolean)])
+    );
+    const importsOf = (rel) => scriptImports.get(rel) || importsByFile.get(rel)?.imports || [];
+    function pathToMarked(start) {
+        const queue = [[start]];
+        const seen = new Set([start]);
+        while (queue.length > 0) {
+            const chain = queue.shift();
+            for (const next of importsOf(chain[chain.length - 1])) {
+                if (marked.includes(next)) return [...chain, next];
+                if (seen.has(next)) continue;
+                seen.add(next);
+                queue.push([...chain, next]);
+            }
+        }
+        return null;
+    }
+    log(`${scripts.length} script(s) under scripts/ checked for a server-only module`);
+    assert("there are scripts to check", scripts.length > 0);
+    for (const rel of scripts) {
+        const chain = pathToMarked(rel);
+        if (chain) assert(`${rel} must not reach ${chain[chain.length - 1]} under plain node — via ${chain.slice(1).join(" -> ")}`, false);
+    }
+    // And the walk is seen reaching one: lib/auth.js imports lib/email.js.
+    assert("the script walk really works — lib/auth.js is seen to reach lib/email.js", pathToMarked("lib/auth.js") !== null);
+}
+
+/** Every `.mjs` file under `dir`, skipping what `listJsFiles` skips. */
+function listMjsFiles(dir, out = []) {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) listMjsFiles(full, out);
+        else if (entry.name.endsWith(".mjs")) out.push(full);
+    }
+    return out;
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

@@ -193,7 +193,7 @@ export async function run({ check, log, assert }) {
     // Each assertion above is of the form "no X". A broken parse, a wrong
     // directory or a bad glob compiler reports exactly that, so each mechanism
     // is proved to work on a case where the answer is known.
-    assert("the glob compiler matches a path that exists", globToRegExp("lib/**").test("lib/ids.js"));
+    assert("the glob compiler matches a path that exists", globToRegExp("lib/**").test("lib/idSequence.server.js"));
     assert("  and rejects one that does not", !globToRegExp("lib/**").test("app/page.js"));
     assert("the notes directory listing found files", onDisk.length >= 5);
     assert("the index table references at least one file per notes file bar the backlog", inTable.size >= onDisk.length - 1);

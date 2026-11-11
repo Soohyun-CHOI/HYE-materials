@@ -9,16 +9,16 @@
 // offline check reads with `readFileSync`, which is indifferent to NULs.
 //
 // IT HAPPENED TWICE, WHICH IS WHY THE COST IS KNOWN RATHER THAN IMAGINED.
-// `lib/deliveryInvoiceMatch.js` carried one inside a template literal — a sort
-// key's separator, where a NUL is functionally the BETTER character, since it
-// orders below every printable one. The module was then missing from a
-// repository-wide count of a word it uses thirty-two times, and the count came
-// back looking complete. The separator is a space now and says why in its own
-// comment. `lib/airtableOps.js` was the first: one commit with its store's key
-// separator written as a literal byte. It is an escape sequence there now, and
-// `docs/notes/airtable-access.md` carries that incident rather than this file,
-// because what it threatens is the field-rename procedure — "rename, then grep
-// the old name and fix every hit" holds only if grep can see every file.
+// lib/deliveryInvoiceMatch.js (`lib/deliveryInvoicePairing.js` since #184) carried
+// one inside a template literal — a sort key's separator, where a NUL is
+// functionally the BETTER character, since it orders below every printable one. The
+// module was then missing from a repository-wide count of a word it uses thirty-two
+// times, and the count came back looking complete. The separator is a space now and
+// says why in its own comment. `lib/airtableOps.js` was the first: one commit with
+// its store's key separator written as a literal byte. It is an escape sequence
+// there now, and `docs/notes/airtable-access.md` carries that incident rather than
+// this file, because what it threatens is the field-rename procedure — "rename,
+// then grep the old name and fix every hit" holds only if grep can see every file.
 //
 // ---------------------------------------------------------------------------
 // #195 REPLACED THE SCOPE WITH A PROPERTY, AND THE SCOPE WAS HIDING LIVE SOURCE
@@ -282,7 +282,7 @@ export function run({ check, assert, log }) {
     // would have passed on the day the byte went in.
     assert(
         "the file that carried one is in scope",
-        tracked.some((f) => f.endsWith("deliveryInvoiceMatch.js"))
+        tracked.some((f) => f.endsWith("deliveryInvoicePairing.js"))
     );
     // And so are the three the old extension scope could not see, named because
     // losing them again would be silent — a scope narrowing is not a failure.

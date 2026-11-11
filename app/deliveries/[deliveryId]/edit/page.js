@@ -6,7 +6,7 @@ import { getDeliveryById } from "@/lib/airtable/deliveries";
 import { getJobByRecordId } from "@/lib/airtable/jobs";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
-import { getInvoiceLinkCandidates } from "@/lib/deliveryInvoiceCandidates";
+import { getInvoiceLinkCandidates } from "@/lib/deliveryInvoicePairing.server";
 import { getInvoicesByRecordIds } from "@/lib/airtable/invoices";
 import DeliveryEditForm from "./DeliveryEditForm";
 import { withOpsLabel } from "@/lib/airtableOps";
@@ -70,7 +70,7 @@ async function renderEditDeliveryPage({ params }) {
         delivery.vendor?.[0] ? getVendorByRecordId(delivery.vendor[0]) : null,
         getInvoicesByRecordIds(delivery.invoices || []),
         // #210 — narrowed to THIS delivery's vendor, which is the whole narrowing
-        // (see lib/deliveryInvoiceLink.js on why not the job), and gated per record
+        // (see lib/deliveryInvoicePairing.js on why not the job), and gated per record
         // through lib/invoiceVisibility.js so the dropdown cannot name an invoice
         // this viewer may not read. Measured budget is in that module's header.
         getInvoiceLinkCandidates(user, { vendorRecordIds: delivery.vendor || [] }),

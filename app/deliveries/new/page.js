@@ -2,8 +2,8 @@ import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllAddresses } from "@/lib/airtable/addresses";
-import { getDeliveryCandidates } from "@/lib/deliveryCandidates";
-import { getInvoiceLinkCandidates } from "@/lib/deliveryInvoiceCandidates";
+import { getDeliveryCandidates } from "@/lib/deliveryAllocation.server";
+import { getInvoiceLinkCandidates } from "@/lib/deliveryInvoicePairing.server";
 import { accessibleJobs as jobsFor } from "@/lib/deliveryAccess";
 import { withOpsLabel } from "@/lib/airtableOps";
 import DeliveryForm from "./DeliveryForm";
@@ -31,7 +31,7 @@ export const metadata = { title: "Record a delivery" };
  * is privileged: it is the ordered items of jobs the viewer is already scoped to.
  */
 // Labeled for #190 — see the note in app/prs/page.js. Measured because
-// lib/deliveryCandidates.js's header makes a specific claim about it (~5 queries
+// lib/deliveryAllocation.server.js's header makes a specific claim about it (~5 queries
 // for all 36 jobs, batched across jobs rather than per job), and confirming or
 // falsifying a written claim is worth more than a fresh number.
 export default async function NewDeliveryPage() {
@@ -67,7 +67,7 @@ async function renderNewDeliveryPage() {
     // bounded by its sites and its suppliers, four rows today — and it is what
     // `/prs/new` already pays for the same control. The DEFAULT itself costs
     // nothing: each candidate ordered item carries its order's address id already
-    // (lib/deliveryCandidates.js), so what this buys is the words, not the answer.
+    // (lib/deliveryAllocation.server.js), so what this buys is the words, not the answer.
     const [{ orderedItems, vendorNameById }, addresses] = await Promise.all([
         getDeliveryCandidates(jobs),
         getAllAddresses(),

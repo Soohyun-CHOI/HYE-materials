@@ -7,8 +7,8 @@
 //   - marking every tied row rather than picking one.
 // Each has a case below so reversing it has to break a named test.
 //
-// lib/materialPriceView.js imports only lib/itemNaming.js, both pure, which is
-// what lets this be offline.
+// lib/materialPriceView.js imports lib/poUnsigned.js, lib/materialCategory.js and
+// lib/typedText.js, all pure, which is what lets this be offline.
 
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";

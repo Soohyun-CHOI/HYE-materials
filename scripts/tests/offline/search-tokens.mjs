@@ -4,7 +4,7 @@
 // document lists got a box of their own in #325, and the second one was very nearly a
 // second tokenizer — the duplication CLAUDE.md's own "one rule, one implementation"
 // section forbids, and the kind that diverges quietly because both halves keep working.
-// So the rule moved to `lib/searchTokens.js` and what is pinned here is that it is ONE
+// So the rule moved to `lib/typedText.js` and what is pinned here is that it is ONE
 // rule with two arguments rather than two rules that currently agree.
 //
 // THE MATCH SIDE IS NECESSARILY TWO AND THAT IS NOT A DEFECT. `/materials` asks
@@ -22,7 +22,7 @@
 // EXIT CODES, per `docs/notes/verification.md`: 0 all clear, 1 something failed.
 
 import { isMain, standalone } from "./_harness.mjs";
-import { matchesTokens, searchTokens } from "../../../lib/searchTokens.js";
+import { matchesTokens, searchTokens } from "../../../lib/typedText.js";
 import { buildSearchTokens, MAX_SEARCH_TOKENS } from "../../../lib/materialPriceView.js";
 import { andSearchAll } from "../../../lib/airtableFormula.js";
 import { axesFor } from "../../../lib/listFilters.js";

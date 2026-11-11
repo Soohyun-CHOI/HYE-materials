@@ -175,7 +175,7 @@ async function main() {
 
     // --- pass 1: the real flow, once per order -----------------------------
     // ALL POs are generated before ANY of them is backdated, and that order
-    // matters. lib/ids.js numbers a PO by counting the POs whose Created Date is
+    // matters. lib/idSequence.server.js numbers a PO by counting the POs whose Created Date is
     // today, so backdating one inside this loop would hide it from the next
     // call's count and every PO would come out as -01. Which is exactly what the
     // first version of this script produced: five POs sharing one PO ID.

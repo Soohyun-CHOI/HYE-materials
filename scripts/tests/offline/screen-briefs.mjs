@@ -88,7 +88,7 @@ import { ASSET_EXPORT_COPY } from "../../../lib/assetListExport.js";
 import { ASSET_LABEL_PAGE_COPY } from "../../../lib/assetLabelPage.js";
 import { ASSET_EVENT_VALUES } from "../../../lib/assetStatus.js";
 import { PO_DOCUMENTS_COPY } from "../../../lib/poDocuments.js";
-import { LINK_COPY } from "../../../lib/deliveryInvoiceLink.js";
+import { LINK_COPY } from "../../../lib/deliveryInvoicePairing.js";
 import { ALLOCATION_COPY } from "../../../lib/deliveryAllocation.js";
 import { OVERAGE_COPY } from "../../../lib/overage.js";
 import { DIRECT_PURCHASE_COPY } from "../../../lib/directPurchase.js";

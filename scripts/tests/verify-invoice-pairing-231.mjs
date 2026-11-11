@@ -22,7 +22,7 @@
 //   B — a minimal PDF into Vercel Blob, since the file is a required argument and
 //       the action refuses without one.
 //   C — the POST. The redirect must carry `paired=matched`, which is the outcome
-//       key lib/deliveryInvoiceMatch.js computed inside the action.
+//       key lib/deliveryInvoicePairing.js computed inside the action.
 //   D — the link on BOTH sides: `Invoices."Delivery"` names the delivery, and the
 //       delivery's own `Invoices` reverse-link names the invoice.
 //   E — cleanup, then the residue check the pairing makes necessary: after the
@@ -54,7 +54,7 @@ import { createAuthToken } from "../../lib/airtable/authTokens.js";
 import { getInvoiceById, setInvoiceDelivery } from "../../lib/airtable/invoices.js";
 import { getDeliveryByRecordId } from "../../lib/airtable/deliveries.js";
 import { getPOItemByRecordId } from "../../lib/airtable/poItems.js";
-import { linkedDelivery } from "../../lib/deliveryInvoiceLink.js";
+import { linkedDelivery } from "../../lib/deliveryInvoicePairing.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { printProvenance } from "./_provenance.mjs";
 

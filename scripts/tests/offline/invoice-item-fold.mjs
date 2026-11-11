@@ -2,7 +2,7 @@
 //
 // What a pass does NOT prove: that the `materialRecordId` handed to the fold really
 // came from the row's ordered item rather than from somewhere else. That is
-// lib/deliveryReconciliation.js's property and is measured credentialed.
+// lib/deliveryStatus.server.js's property and is measured credentialed.
 
 import { foldInvoiceItems, foldKey } from "../../../lib/invoiceItemFold.js";
 import { isMain, standalone } from "./_harness.mjs";

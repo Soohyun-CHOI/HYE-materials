@@ -16,7 +16,7 @@ import { MATERIAL_SEARCH_COPY } from "@/lib/materialPriceView";
  * guard; nothing here touches Airtable.
  *
  * ITS WORDS ARE IN A CONSTANT SINCE #357, and the import is safe at every depth:
- * lib/materialPriceView.js -> lib/itemNaming.js, lib/poUnsigned.js ->
+ * lib/materialPriceView.js -> lib/typedText.js, lib/poUnsigned.js ->
  * lib/poSend.js -> lib/format.js and lib/materialCategory.js, none of which
  * reach lib/airtable/ or lib/airtableOps.js. Text written straight into JSX is
  * invisible to the vocabulary and brief checks, which is how the box went on

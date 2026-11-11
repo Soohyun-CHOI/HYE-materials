@@ -1,7 +1,7 @@
 // Generated ID sequences — credentialed (#164).
 //
 // The offline tier pins the rules themselves (scripts/tests/offline/id-sequence.mjs:
-// the prefixes, max-not-count for both shapes, the membership test, that lib/ids.js
+// the prefixes, max-not-count for both shapes, the membership test, that lib/idSequence.server.js
 // names no date field in a formula, and every generateChildId call site). What only
 // real records can answer is here:
 //

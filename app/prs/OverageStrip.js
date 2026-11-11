@@ -4,7 +4,7 @@ import OverageButton from "@/app/deliveries/[deliveryId]/OverageButton";
 
 // Over-deliveries nobody has raised a request for, above the list of requests
 // (#217). One of the strips built to the shape #176 set; the selection rule,
-// the ordering and every word are lib/overage.js's and lib/overagePR.js's, so this
+// the ordering and every word are lib/overage.js's and lib/overage.server.js's, so this
 // file is the rendering and nothing else.
 //
 // THE WORD IS `overage`, NOT `correction` (#272), AND #333 CHANGED THE GROUND

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/authz";
-import { getMaterialPurchaseHistory } from "@/lib/materialHistory";
+import { getMaterialPurchaseHistory } from "@/lib/materialPriceView.server";
 import { statusTag } from "@/lib/materialPriceView";
 import { countsAsOrdered } from "@/lib/poItemQty";
 import { formatUSD } from "@/lib/format";

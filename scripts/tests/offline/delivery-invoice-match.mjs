@@ -66,7 +66,7 @@ import {
     orderedItemsDelivered,
     pairingRefusal,
     tiedRivals,
-} from "../../../lib/deliveryInvoiceMatch.js";
+} from "../../../lib/deliveryInvoicePairing.js";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "The computed invoice-to-delivery pairing (#231)";
@@ -79,7 +79,7 @@ const PRICES = new Map([
 ]);
 
 /**
- * An invoice, as lib/deliveryInvoiceMatch.js reads one. `charges` entries are
+ * An invoice, as lib/deliveryInvoicePairing.js reads one. `charges` entries are
  * `[orderedItem, unitPrice]` or `[orderedItem, unitPrice, qty]`; the quantity only
  * matters where the invoice is one ALREADY on a delivery, since that is the only
  * thing it is ever read for.

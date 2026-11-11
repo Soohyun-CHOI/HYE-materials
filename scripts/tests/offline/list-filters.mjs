@@ -68,7 +68,7 @@ import {
 } from "../../../lib/listFilters.js";
 // #325 — imported to BUILD the rejected alternative below, not to re-test the
 // tokenizer. `offline/search-tokens.mjs` is where the rule itself is pinned.
-import { matchesTokens, searchTokens } from "../../../lib/searchTokens.js";
+import { matchesTokens, searchTokens } from "../../../lib/typedText.js";
 import { PR_KIND, PR_KIND_CHOICES, PR_KIND_COPY } from "../../../lib/prKind.js";
 import { INVOICE_PAYMENT_WORDS } from "../../../lib/deliveryStatus.js";
 

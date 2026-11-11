@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { countMaterials } from "@/lib/airtable/materials";
 import { anyCategoryMatches } from "@/lib/airtable/materialCategories";
-import { searchMaterialPrices } from "@/lib/materialHistory";
+import { searchMaterialPrices } from "@/lib/materialPriceView.server";
 import {
     MATERIAL_SEARCH_COPY,
     lowestPriceRowIds,
@@ -20,7 +20,7 @@ export const metadata = { title: "Material prices" };
 // Every active user, no Job scoping (#19): what a material costs is not a
 // per-Job secret, and site staff pricing a job need it as much as the office.
 // Document identifiers are the exception and are gated per row inside
-// lib/materialHistory.js, on the same canViewPR rule app/pos/[poId] uses.
+// lib/materialPriceView.server.js, on the same canViewPR rule app/pos/[poId] uses.
 export const dynamic = "force-dynamic";
 
 /**

@@ -894,8 +894,8 @@ export function run(reporter) {
 
     // Every producer sets it, or a site receives `undefined` and the default
     // silently applies. Three, because getOverageBannerFactsForPO has two paths.
-    const overageReads = parseFile("lib/overagePR.js");
-    assert("lib/overagePR.js parses", overageReads !== null);
+    const overageReads = parseFile("lib/overage.server.js");
+    assert("lib/overage.server.js parses", overageReads !== null);
     if (overageReads) {
         let setters = 0;
         walk(overageReads.ast, (n) => {

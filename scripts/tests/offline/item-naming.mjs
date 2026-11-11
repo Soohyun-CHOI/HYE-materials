@@ -7,13 +7,13 @@
 // list of bugs — it is the limit of this approach, written down so the next
 // person reads it here instead of assuming the normalizer is smarter than it is.
 //
-// lib/itemNaming.js imports nothing, which is what lets this be offline.
+// lib/typedText.js imports nothing, which is what lets this be offline.
 //
 // `capitalizeWords` (#538) is pinned here too, beside the function whose case it
 // does not share: the one rule in the module that changes case, which only the
 // asset catalog's page asks.
 
-import { capitalizeWords, normalizeItemText } from "../../../lib/itemNaming.js";
+import { capitalizeWords, normalizeItemText } from "../../../lib/typedText.js";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "Item text normalization — normalizeItemText (#18), capitalizeWords (#538)";

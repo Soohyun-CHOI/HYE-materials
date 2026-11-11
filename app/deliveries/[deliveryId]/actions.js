@@ -14,10 +14,10 @@ import { getDeliveriesByRecordIds } from "@/lib/airtable/deliveries";
 import { confirmIngestThenDelete } from "@/lib/blobIngest";
 import { isOurBlobUrl } from "@/lib/fileSource";
 import { describeOveragePreview } from "@/lib/overage";
-import { createOverageDraft, getOverageContext } from "@/lib/overagePR";
+import { createOverageDraft, getOverageContext } from "@/lib/overage.server";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
 import { deleteDeliveryAsUser } from "@/lib/deliveryDelete";
-import { setDeliveryInvoiceAsUser } from "@/lib/deliveryInvoiceCandidates";
+import { setDeliveryInvoiceAsUser } from "@/lib/deliveryInvoicePairing.server";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 // Every export below gates on requireUser() and then compares per record, so none
@@ -153,7 +153,7 @@ export async function replaceDeliveryPhotoAction(prevState, formData) {
  * cannot be picked from a dropdown. Leaving it blank at entry is a normal answer,
  * which makes this the path that finishes the pairing.
  *
- * Every decision is in lib/deliveryInvoiceCandidates.js, which re-runs the row gate
+ * Every decision is in lib/deliveryInvoicePairing.server.js, which re-runs the row gate
  * from a fresh read; this contributes the session gate, the Job comparison and the
  * redirect.
  */
