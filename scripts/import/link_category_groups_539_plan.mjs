@@ -56,7 +56,7 @@ export const LINK_DESCRIPTION =
     "The category group this item is filed under (#539): its type and its category, a row of Asset Category " +
     "Groups. Pick one group: Level 1 and Level 2 look their values up through this field, so a category renamed " +
     "in Asset Category Groups is renamed on every item filed under it. The app's Catalog page sets it when an " +
-    "item is added or edited; scripts/import/link_category_groups_539.mjs filled it from the typed Level 1 and Level 2.";
+    "item is added or edited; scripts/import/ran/link_category_groups_539.mjs filled it from the typed Level 1 and Level 2.";
 
 export const INVERSE_DESCRIPTION =
     "The items of Asset Categories filed under this group (#539), through their Category Group link. A group with " +

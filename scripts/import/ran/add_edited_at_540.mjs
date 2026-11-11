@@ -47,7 +47,7 @@ const DESCRIPTION =
     "changing its size, maker or part number, moving it to another category and discontinuing or restoring it move it; an item " +
     "registered under it does not, since the reverse link is not watched, and neither does its category renamed in Asset Category " +
     "Groups, since Level 1 and Level 2 are lookups. The Catalog page sorts by it (Recently updated). Made by " +
-    "scripts/import/add_edited_at_540.mjs.";
+    "scripts/import/ran/add_edited_at_540.mjs.";
 
 let calls = 0;
 

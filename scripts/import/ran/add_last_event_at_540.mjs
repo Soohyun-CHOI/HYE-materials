@@ -67,7 +67,7 @@ const DESCRIPTION =
     "and a kind's page sorts its items by it and draws each one's Updated day from it. The list's status memory reads it with Status and " +
     "Asset ID (lib/assetStatusMemory.js), and asks for an asset whose moment is past its last question, so the sort reads nothing more " +
     "than the counts did. Empty only for an asset whose registration wrote no first log row (#449), which the lists order as the newest. " +
-    "Made by scripts/import/add_last_event_at_540.mjs on the test base and by hand on the live base, where no script reshapes this table (#531); " +
+    "Made by scripts/import/ran/add_last_event_at_540.mjs on the test base and by hand on the live base, where no script reshapes this table (#531); " +
     "its time is turned on by hand on both, since the API makes a rollup of a moment a day and cannot change its format.";
 
 // The format `Event At` itself has, which the rollup takes so the two read alike in the grid.
