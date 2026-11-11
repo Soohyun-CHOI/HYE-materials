@@ -1,6 +1,7 @@
 // The serial numbers site managers wrote into items' notes, moved into `Assets."Serial Number"` (#602):
 // each item's note gives its number, keeps what is left, and a ledger says what was written so a
-// revert can take it back.
+// revert can take it back — on the test base. ON THE LIVE BASE IT CAN NO LONGER BE TAKEN BACK (#621):
+// its run there is a record.
 //
 // WHY. Until #601 an item had nowhere to keep its serial number but its note, so the numbers recorded
 // so far stand there, each in the form its site manager chose. `Serial Number` is where the app reads,
@@ -30,19 +31,23 @@
 // `--revert <ledger>` TAKES BACK WHAT ONE LEDGER WROTE, AND NOTHING ELSE: each row whose every field
 // the ledger wrote still holds what it wrote is given back what it held before; a row changed since,
 // or gone, is left and named. A revert writes its own ledger the same way, and reads every row back.
+// On the test base alone since #621.
 //
-// ON THE LIVE BASE BY SOO'S LEAVE, FENCED AT THE FUNNEL. `Assets` is the site's there (#531): every
-// request the SDK sends is asked of `scripts/protectedTables.mjs:refusesBeyondLedger` as it leaves,
-// which lets this script (`SERIAL_FROM_NOTES`) read `Assets` and update `Serial Number` and `Note`
-// alone, on the rows this run's own reads answered with — gathered at the funnel as each answer
-// arrives (`collectingReads`) — to exactly the values the plan or the ledger put in the fence. Until
-// then every write is refused; nothing reaches `Asset Log`.
+// FENCED AT THE FUNNEL, AND REFUSED THERE ON THE LIVE BASE SINCE #621. `Assets` is the site's there
+// (#531): every request the SDK sends is asked of `scripts/protectedTables.mjs:refusesBeyondLedger` as
+// it leaves. Until #621 that let this script read `Assets` and update `Serial Number` and `Note` alone,
+// on the rows this run's own reads answered with — gathered at the funnel as each answer arrives
+// (`collectingReads`) — to exactly the values the plan or the ledger put in the fence, which is how the
+// live run of 2026-11-04 went. Once the site had used the numbers, Soo settled that the move would not
+// be taken back and #621 ended the exception: on the live base the fence now refuses every request this
+// script sends, a read, the move and a revert alike, so its live ledger is a record of what was written
+// and no longer a way back. On the test base it runs as before.
 //
 // Usage (from the repo root):
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/import/ran/serial_from_notes_602.mjs --skip-note <note> ...            (preview)
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/import/ran/serial_from_notes_602.mjs --skip-note <note> ... --apply <preview.json>
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/import/ran/serial_from_notes_602.mjs --revert <ledger.jsonl> [--apply]
-//   AIRTABLE_BASE=live ...   (the live base)
+//   AIRTABLE_BASE=live ...   (refused before its first request to Assets since #621)
 //
 // Airtable PAT scopes: data.records:read, data.records:write.
 //
@@ -74,9 +79,10 @@ function log(message = "") {
 }
 
 /**
- * What `refusesBeyondLedger` lets this run update on the live base: `read`, the rows its reads of
- * `Assets` answered with, gathered at the funnel; `writes`, each row's fields as the plan or the
- * ledger has them. Both empty until a read and a step fill them, so a write sent before is refused.
+ * What `refusesBeyondLedger` let this run update on the live base until #621: `read`, the rows its
+ * reads of `Assets` answered with, gathered at the funnel; `writes`, each row's fields as the plan or
+ * the ledger has them, both empty until a read and a step filled them. The guard reads neither since,
+ * refusing every request of this script's there.
  */
 const ledgerFence = { read: new Set(), writes: new Map() };
 

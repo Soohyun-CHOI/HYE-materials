@@ -4,8 +4,8 @@
 //
 // THE SUBJECT IS `scripts/import/serial_from_notes_602_plan.mjs`, the run's judgments apart from the
 // base. The script talks to the base, so it is never run here; what is held of it is what it hands
-// the fence and where it writes, off its source. The fence itself — what `refusesBeyondLedger` lets
-// the script send on the live base — is `offline/protected-tables.mjs`'s.
+// the fence and where it writes, off its source. The fence itself — `refusesBeyondLedger`, which refuses
+// the script every request on the live base since #621 — is `offline/protected-tables.mjs`'s.
 //
 // NO VALUE A RUN SKIPS IS NAMED HERE OR IN THE SCRIPT. Which notes are left as they are is the run's
 // argument, so the fixtures below skip notes of their own making.
@@ -19,7 +19,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { REPO_ROOT, calleeName, parseFile, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
-import { SERIAL_FROM_NOTES, SERIAL_FROM_NOTES_FIELDS, SERIAL_NUMBER_FIELD } from "../../protectedTables.mjs";
+import { SERIAL_NUMBER_FIELD } from "../../protectedTables.mjs";
 import {
     FIELDS,
     ROWS_PER_REQUEST,
@@ -151,7 +151,6 @@ export function run({ check, assert, log }) {
     check("  marks ride with the move", `${byId("rec005").marks.join()} | ${byId("rec020").marks.join()} | ${byId("rec001").marks.join()}`, "beside words | part number | ");
     check("  and the skipped pair, unskipped, repeat in their kind", planMove(rows, { partNumbersOf }).held.filter((each) => ["rec003", "rec004"].includes(each.id)).map((each) => each.why).join(), "repeats in kind,repeats in kind");
     check("  the fields are the base's two", `${FIELDS.serialNumber} | ${FIELDS.note}`, "Serial Number | Note");
-    check("  and the fence's", Object.values(FIELDS).join(" | "), SERIAL_FROM_NOTES_FIELDS.join(" | "));
     check("  and the number's is the field #601 made", FIELDS.serialNumber, SERIAL_NUMBER_FIELD.name);
 
     // ── what a preview counts ────────────────────────────────────────────────
@@ -242,7 +241,7 @@ export function run({ check, assert, log }) {
     // ── the script, off its source ───────────────────────────────────────────
     log("");
     log("the script, off its source:");
-    check("  the plan names the script the fence lets through", SCRIPT, SERIAL_FROM_NOTES);
+    check("  the plan names the script by its file", SCRIPT, SCRIPT_PATH.replace(/^.*\//, "").replace(/\.mjs$/, ""));
     const { ast, source } = parseFile(SCRIPT_PATH);
     let gathers = false;
     let fenceFills = 0;

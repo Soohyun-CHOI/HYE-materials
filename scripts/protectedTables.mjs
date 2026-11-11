@@ -16,7 +16,7 @@
 // `Asset Log` row is an event somebody performed — a check-out on a job, a check-in, a
 // retirement. Nothing in this repository rebuilds them: a label printed for an asset points at
 // its row, and an event is true of a moment that is gone. So the app's own screens are their
-// one writer but for the three scripts below (#544, #598, #602), and a script — a credentialed check, an import, a demo seed, a revert — that would
+// one writer but for the one script below (#544), and a script — a credentialed check, an import, a demo seed, a revert — that would
 // create, update or delete a row of either, or rename or redescribe either table or its fields,
 // asks this module first and stops before its first write — a description alone excepted, below.
 // The check for a run's own fixtures
@@ -62,23 +62,14 @@
 // of any row of either table goes through. Ending the exception is deleting `LEDGERED_IMPORT` and
 // the function, in a commit of its own.
 //
-// ONE SCRIPT MAY FILL ONE FIELD OF THE ROWS THERE (#598). `fill_owner_job_598.mjs` gives every asset
-// standing before #598 the job it stands on as its `Owner Job`, and Soo allowed it on the live base
-// once its read-only plan and its ledger were shown. It is fenced at the same funnel: `refusesBeyondLedger`
-// lets `OWNER_JOB_FILL` read `Assets` and send a batch update of `Owner Job` alone, on the rows it read
-// with none and with the job it read each on — or in a revert `[]` on the rows its ledger filled — and
-// nothing else: no create, no delete, no other field, nothing to `Asset Log`. Ending the exception is
-// deleting `OWNER_JOB_FILL` and `beyondOwnerJobFill`, in a commit of its own.
-//
-// ONE SCRIPT MAY MOVE A NUMBER OUT OF A NOTE (#602). `serial_from_notes_602.mjs` writes an item's
-// `Serial Number` from its note, and the note what it keeps without it, and Soo allowed it on the live
-// base on the counts its read-only preview printed. It is fenced at the same funnel: `refusesBeyondLedger`
-// lets `SERIAL_FROM_NOTES` read `Assets` and send a batch update of `Serial Number` and `Note` alone, on a
-// row this run's own reads answered with — gathered at the funnel as each answer arrives
-// (`allowed.read`), not handed in by the plan — carrying exactly the values `allowed.writes` holds for it:
-// what the plan wrote, or in a revert what the ledger read before. No create, no delete, no other field,
-// nothing to `Asset Log`. The exception outlives the run, since a revert is its only way back; ending it
-// is deleting `SERIAL_FROM_NOTES` and `beyondSerialFromNotes`, in a commit of its own, once Soo wants none.
+// TWO MORE SCRIPTS WERE LET UPDATE ROWS THERE, AND ARE NOT SINCE #621. `fill_owner_job_598.mjs` (#598)
+// filled `Owner Job` and `serial_from_notes_602.mjs` (#602) moved numbers out of notes into `Serial
+// Number`, each fenced at the same funnel to its named fields on rows its own run had read, and each
+// exception kept past its run so the run could be taken back from its ledger. Once the site had used
+// both values and Soo settled that neither run would be taken back, #621 deleted both: the two scripts
+// still ask `refusesBeyondLedger` of every request, and on the live base it refuses each of them as it
+// refuses any script but the import — a read, a write and a revert alike — while on the test base they
+// run as before.
 //
 // ONE SCRIPT MAY ADD ONE FIELD THERE (#598). `add_owner_job_598.mjs` makes `Assets."Owner Job"`, a
 // link to `Jobs`, on both bases by one script so the two hold their fields in one order, and Soo
@@ -184,80 +175,6 @@ function rowBeyond(table, fields, created) {
     return null;
 }
 
-/** The one script `refusesBeyondLedger` lets update rows of `Assets` on the live base (#598). */
-export const OWNER_JOB_FILL = "fill_owner_job_598";
-
-/**
- * What a request of `OWNER_JOB_FILL`'s would do beyond filling `Owner Job`, or null when nothing
- * (#598): a read of `Assets`, or a batch update of one to ten of its rows, each `{ id, fields: {
- * "Owner Job": [...] } }` exactly — the job `fills` holds for the row, which the run read with no
- * owner job, or in a revert `[]` for a row `clears` holds. No create, no delete, no other field or
- * key, and nothing to `Asset Log`.
- */
-function beyondOwnerJobFill({ method, path, body }, { fills, clears }) {
-    const [, segment = "", rest = ""] = String(path ?? "").split("/");
-    const table = decodeURIComponent(segment);
-    const verb = String(method ?? "").toLowerCase();
-    if (table !== "Assets") return `send ${verb.toUpperCase()} ${path}, and this run reaches Assets alone`;
-    if (verb === "get") return null;
-    if (verb === "post" && rest === "listRecords") return null;
-    if (verb !== "patch" || rest !== "") return `send ${verb.toUpperCase()} ${path}`;
-    if (!keyedExactly(body, ["records"])) return "update Assets rows with more than their records";
-    const records = body.records;
-    if (!Array.isArray(records) || records.length === 0 || records.length > ROWS_PER_REQUEST) return `update Assets rows other than one to ${ROWS_PER_REQUEST} in a batch`;
-    for (const record of records) {
-        if (!keyedExactly(record, ["id", "fields"]) || !keyedExactly(record.fields, [OWNER_JOB_FIELD.name])) return `update an Assets row with more than its ${OWNER_JOB_FIELD.name}`;
-        const value = record.fields[OWNER_JOB_FIELD.name];
-        if (!Array.isArray(value)) return `write ${JSON.stringify(value)} to ${OWNER_JOB_FIELD.name}`;
-        if (fills.has(record.id)) {
-            if (value.length !== 1 || value[0] !== fills.get(record.id)) return `write ${JSON.stringify(value)} to ${record.id}, not the job the run read it on`;
-        } else if (clears.has(record.id)) {
-            if (value.length !== 0) return `write ${JSON.stringify(value)} to ${record.id}, which a revert clears`;
-        } else return `update ${record.id}, which this run did not read with no owner job`;
-    }
-    return null;
-}
-
-/** The one script `refusesBeyondLedger` lets write a row's serial number and note on the live base (#602). */
-export const SERIAL_FROM_NOTES = "serial_from_notes_602";
-
-/** The two fields it may write, by the base's names: the number a note held, and what the note keeps. */
-export const SERIAL_FROM_NOTES_FIELDS = Object.freeze(["Serial Number", "Note"]);
-
-/**
- * What a request of `SERIAL_FROM_NOTES`'s would do beyond moving a number out of a note, or null when
- * nothing (#602): a read of `Assets`, or a batch update of one to ten of its rows, each `{ id, fields }`
- * exactly, `fields` one or both of `SERIAL_FROM_NOTES_FIELDS` and nothing else, on a row in `read` —
- * the rows this run's reads answered with — and equal, key for key and value for value, to what
- * `writes` holds for that row. No create, no delete, no other key, and nothing to `Asset Log`.
- */
-function beyondSerialFromNotes({ method, path, body }, { read, writes }) {
-    const [, segment = "", rest = ""] = String(path ?? "").split("/");
-    const table = decodeURIComponent(segment);
-    const verb = String(method ?? "").toLowerCase();
-    if (table !== "Assets") return `send ${verb.toUpperCase()} ${path}, and this run reaches Assets alone`;
-    if (verb === "get") return null;
-    if (verb === "post" && rest === "listRecords") return null;
-    if (verb !== "patch" || rest !== "") return `send ${verb.toUpperCase()} ${path}`;
-    if (!keyedExactly(body, ["records"])) return "update Assets rows with more than their records";
-    const records = body.records;
-    if (!Array.isArray(records) || records.length === 0 || records.length > ROWS_PER_REQUEST) return `update Assets rows other than one to ${ROWS_PER_REQUEST} in a batch`;
-    for (const record of records) {
-        if (!keyedExactly(record, ["id", "fields"]) || record.fields === null || typeof record.fields !== "object" || Array.isArray(record.fields)) {
-            return "update an Assets row with more than its id and fields";
-        }
-        const keys = Object.keys(record.fields);
-        const others = keys.filter((key) => !SERIAL_FROM_NOTES_FIELDS.includes(key));
-        if (keys.length === 0 || others.length > 0) return `update ${record.id}'s ${others.join(", ") || "nothing"}, not its ${SERIAL_FROM_NOTES_FIELDS.join(" or ")}`;
-        if (!read.has(record.id)) return `update ${record.id}, which this run did not read`;
-        const planned = writes.get(record.id);
-        if (!planned || !keyedExactly(planned, keys) || keys.some((key) => record.fields[key] !== planned[key])) {
-            return `write ${JSON.stringify(record.fields)} to ${record.id}, not what the run planned`;
-        }
-    }
-    return null;
-}
-
 /** What a request to one of the two tables would do beyond the import's ledger, or null when nothing. */
 function beyondLedger({ method, path, queryParams, body }, { creates, created, deletes }) {
     const [, segment = "", rest = ""] = String(path ?? "").split("/");
@@ -290,18 +207,13 @@ function beyondLedger({ method, path, queryParams, body }, { creates, created, d
 /**
  * Whether a request to `Assets` or `Asset Log` must not be sent, saying so (#544): false, saying
  * nothing, for a request to another table or on a base other than the live one; on the live base,
- * true for every script but `LEDGERED_IMPORT` and `OWNER_JOB_FILL`. For the import, true but for a
- * read, a create of rows shaped exactly as a registration's — `allowed.creates` true, each `Created`
- * row on a record in `allowed.created`, a map of the assets this run created to their printed ids —
- * and a batch delete of ids in `allowed.deletes`, and an update always refused. For the fill (#598),
- * true but for a read of `Assets` and a batch update of `Owner Job` alone — `allowed.fills`, a map of
- * the rows it read with none to the job each stood on, or in a revert `allowed.clears`, a set of the
- * rows its ledger filled (`beyondOwnerJobFill`). For the move (#602), true but for a read of `Assets` and
- * a batch update of `Serial Number` and `Note` alone on a row in `allowed.read`, a set of the rows this
- * run's reads answered with, carrying exactly what `allowed.writes`, a map of rows to fields, holds for
- * it (`beyondSerialFromNotes`). `request` is the SDK's funnel's arguments: `method`, `path`
- * (`/Assets/`, `/Asset%20Log/listRecords`), `queryParams` and `body`. The caller stops on true, before
- * the request leaves.
+ * true for every request of every script but `LEDGERED_IMPORT` — a read among them, and since #621
+ * every request of #598's fill and #602's move. For the import, true but for a read, a create of rows
+ * shaped exactly as a registration's — `allowed.creates` true, each `Created` row on a record in
+ * `allowed.created`, a map of the assets this run created to their printed ids — and a batch delete
+ * of ids in `allowed.deletes`, and an update always refused. `request` is the SDK's funnel's
+ * arguments: `method`, `path` (`/Assets/`, `/Asset%20Log/listRecords`), `queryParams` and `body`. The
+ * caller stops on true, before the request leaves.
  */
 export function refusesBeyondLedger({ script, baseId, request, allowed = {}, log = console.log }) {
     const table = decodeURIComponent(String(request?.path ?? "").split("/")[1] ?? "");
@@ -309,21 +221,17 @@ export function refusesBeyondLedger({ script, baseId, request, allowed = {}, log
     const named = typeof baseId === "string" && baseId !== "";
     if (named && baseId !== LIVE_BASE_ID) return false;
     const where = named ? "on the live base" : "on a base it does not name";
+    const verb = String(request?.method ?? "").toUpperCase();
     const beyond =
         script === LEDGERED_IMPORT
             ? beyondLedger(request, { creates: allowed.creates === true, created: allowed.created ?? new Map(), deletes: allowed.deletes ?? new Set() })
-            : script === OWNER_JOB_FILL
-              ? beyondOwnerJobFill(request, { fills: allowed.fills ?? new Map(), clears: allowed.clears ?? new Set() })
-              : script === SERIAL_FROM_NOTES
-                ? beyondSerialFromNotes(request, { read: allowed.read ?? new Set(), writes: allowed.writes ?? new Map() })
-                : `write ${table}, and only ${LEDGERED_IMPORT}, ${OWNER_JOB_FILL} and ${SERIAL_FROM_NOTES} write rows there`;
+            : `send ${verb} ${request?.path}, and only ${LEDGERED_IMPORT} sends one to ${table}`;
     if (beyond === null) return false;
     log(`REFUSED, before sending: ${script} would ${beyond} ${where}.`);
     log(
-        `Assets and Asset Log on the live base hold the site's records since #531; ${LEDGERED_IMPORT} alone adds rows to them, ` +
-            `shaped as a registration writes them, and takes back only the rows its ledger names, ${OWNER_JOB_FILL} alone fills ` +
-            `an asset's ${OWNER_JOB_FIELD.name} with the job it stands on (#598), and ${SERIAL_FROM_NOTES} alone moves the number ` +
-            `an asset's note holds into its ${SERIAL_NUMBER_FIELD.name} (#602). Nothing was sent.`
+        `Assets and Asset Log on the live base hold the site's records since #531; of the scripts asking this, ${LEDGERED_IMPORT} ` +
+            "alone reaches them, adding rows shaped as a registration writes them and taking back only the rows its ledger names. " +
+            "Nothing was sent."
     );
     return true;
 }

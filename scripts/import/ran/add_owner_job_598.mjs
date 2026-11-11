@@ -62,7 +62,7 @@ const OWNER_JOB_DESCRIPTION =
     "Job is where the asset is now; while the two differ the asset is on loan from this job to that one -- lent by a site manager on this job (Lent), " +
     "returned by a site manager on the job it went to (Returned to owner) -- and a retirement takes this job, so an asset retired on loan goes back " +
     "to its owner as it ends. Single-record, app-enforced: the API refuses prefersSingleRecordLink. Filled from Job for the assets standing before #598 " +
-    "by scripts/import/fill_owner_job_598.mjs; made by scripts/import/add_owner_job_598.mjs on both bases.";
+    "by scripts/import/ran/fill_owner_job_598.mjs; made by scripts/import/ran/add_owner_job_598.mjs on both bases.";
 
 const INVERSE_DESCRIPTION =
     "Issue #598 -- the assets this job owns: the reverse link of Assets.\"Owner Job\". Beside Assets, the assets on this job now, it is what the " +

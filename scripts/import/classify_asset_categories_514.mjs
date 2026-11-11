@@ -227,7 +227,7 @@ const GROUPS_DESCRIPTION =
     "Category Group and reads its Level 1 and Level 2 from it (#539), so a category renamed here is renamed on " +
     "every item filed under it; a group with items under it is renamed, never deleted, since deleting it leaves " +
     "them with no type and no category. Loaded from " +
-    "scripts/import/sources/asset_category_groups_528.csv by scripts/import/replace_asset_catalog_528.mjs; the app's " +
+    "scripts/import/sources/asset_category_groups_528.csv by scripts/import/ran/replace_asset_catalog_528.mjs; the app's " +
     "Catalog page adds a row for a category typed new and renames or removes none (#527).";
 
 /**

@@ -58,7 +58,7 @@ const DESCRIPTION =
     "Assets, ARRAYJOIN(values, \",\"), kept by Airtable as each status is written. The catalog's page counts a row's items as its Assets " +
     "link less the statuses the app does not show, Deleted among them (lib/assetCategory.js:itemCountOf, lib/assetStatus.js:shownIn), " +
     "and takes a row out only when that count is 0; a kind's page reads it for whether any item stands under the kind at all. Airtable " +
-    "judges nothing here: which statuses count is the app's. Made by scripts/import/add_asset_statuses_582.mjs on the test base and by " +
+    "judges nothing here: which statuses count is the app's. Made by scripts/import/ran/add_asset_statuses_582.mjs on the test base and by " +
     "hand on the live base.";
 
 /** The result types a joined text comes back as. */

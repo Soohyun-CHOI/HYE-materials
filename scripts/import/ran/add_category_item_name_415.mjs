@@ -101,7 +101,7 @@ const FIELD_DESCRIPTION =
     "them and scripts/import/sources/material_categories.csv is the source. A path added " +
     "by hand therefore gets a Category Label for free and does NOT get one of " +
     "these — fill it from the row's own CSV line, or leave it and read the label. " +
-    "Filled by scripts/import/add_category_item_name_415.mjs, which matches on " +
+    "Filled by scripts/import/ran/add_category_item_name_415.mjs, which matches on " +
     "Level 4 Code and refuses to write unless the base and the CSV hold the same " +
     "777 leaves.";
 
