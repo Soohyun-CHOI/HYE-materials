@@ -281,8 +281,11 @@ function stringsFrom(value, out = []) {
  * below is what makes that coverage visible instead of assumed.
  */
 const PINNED = [
-    "⚠ Order variance",
-    "⚠ Check the total",
+    // #623 — the three-way match's names for an item and for the invoice's own totals.
+    "⚠ Price variance",
+    "⚠ Quantity variance",
+    "⚠ Totals differ",
+    "Totals agree",
     // #254 — the third string in the same constant, and the one whose whole reason
     // for existing separately is a tense. `invoices-new.md` quotes it with `N` where
     // the builder puts a figure, so it is pinned without them, as the sentences
@@ -1105,7 +1108,7 @@ export function run({ check, assert, log }) {
     assert("  and a verdict tone", tonesInStatusCopy().has("exception"));
     assert("  and rejects one nobody defines", !tonesInStatusCopy().has("catastrophe"));
     assert("a fabricated sentence is in no constant", !loadable.some((s) => s.includes("Everything is fine here")));
-    assert("  and a pinned one is", loadable.some((s) => s.includes("⚠ Check the total")));
+    assert("  and a pinned one is", loadable.some((s) => s.includes("⚠ Totals differ")));
     assert("the page briefs are as many as the app's pages", pageBriefs.length === byName.page);
     assert("every non-screen file is present", NON_SCREEN.size === onDisk.length - screenFiles.length);
     // THE DIALOG SECTION IS SEEN TO BE ABLE TO FAIL (#456): its reader reaches a dialog

@@ -25,13 +25,14 @@ const TONE_CLASS = {
     partial: "bg-amber-100 text-amber-800",
     // #232 — ITS OWN TONE RATHER THAN `partial`'s AMBER, and the reason is the
     // property this file exists to hold: a tone means the same thing on both lists.
-    // `partial` is `Partly invoiced`, a stage; `mismatch` is an error, and an error
+    // `partial` is `Partly invoiced`, a stage; `variance` is an error, and an error
     // wearing the stage color would make the palette say two things. Red is the color
-    // this page already gives a discrepancy between two figures — `⚠ Header Variance`
+    // this page already gives a discrepancy between two figures — `⚠ Totals differ`
     // on the invoice detail — while amber there is the PROMPT that asks a person to
     // look. So the chip states the discrepancy in red and the box below asks in amber,
     // which is the split those two already had before this chip existed.
-    mismatch: "bg-red-100 text-red-800",
+    // `mismatch` until #623, when the chip it colors became `Delivery variance`.
+    variance: "bg-red-100 text-red-800",
     none: "bg-zinc-100 text-zinc-600",
 };
 

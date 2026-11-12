@@ -9,7 +9,7 @@ What is narrower is the WRITING: editing, deleting and recording payment are Adm
 ## What it answers
 
 Should this invoice be paid? That decomposes into three questions the screen
-answers in order — does the vendor's stated total match what the items add up
+answers in order — does the vendor's Invoice Total match what the items add up
 to, does any single item differ from what its order agreed, and was the material
 it charges for actually delivered. A reader who can answer all three
 without scrolling twice has what they came for.
@@ -17,7 +17,7 @@ without scrolling twice has what they came for.
 This is the densest screen in the app and the one where a redesign can do the
 most damage, because three of the four things it says are silent in the normal
 case. An invoice with nothing wrong shows no variance badge, no variance box, no
-mismatch box, and an empty delivery list. If those are drawn as always present,
+delivery variance box, and an empty delivery list. If those are drawn as always present,
 every clean invoice looks like a problem and the screen stops working.
 
 ## What it always carries
@@ -31,31 +31,33 @@ block, by filename, as a control that opens it over this page in the shared view
 `Invoice file · {filename}`.
 
 **`Recorded by` is the last line before the file, and it is the same word in the
-same position the delivery detail gives it (#382).** It names the person who typed
-the invoice in, by first name, so a reader looking at a figure that seems wrong has
-somebody to ask. It is audit only — nothing on this screen is gated on it, unlike a
+same position the delivery detail gives it (#382).** It reads
+`Recorded by {name} · {day}`, the design's words: the person who typed the invoice
+in, by first name, and the day they did, in the reader's own zone. The name is
+there so a reader looking at a figure that seems wrong has somebody to ask. It is audit only — nothing on this screen is gated on it, unlike a
 delivery, where the recorder is also the one person besides an Admin who may delete.
 
-**It carries no time beside the name, where the delivery's does.** That is a fact
-about the table rather than a shorter sentence: `Invoices` has no creation
-timestamp. The day is not missing from the screen — an Invoice ID is
-`HYE-INV-YYMMDD-##`, so the heading above already dates the record — and a redesign
-that wants the moment stated in words is asking for a field that does not exist yet.
+**The day is `Invoices."Created At"`, the day alone, as the design draws it.** The
+delivery's undesigned line keeps `Recorded by:` with `on {date and time}`; the
+invoice's follows its design, where the colon and the time are not drawn. An
+invoice standing before the field took its record's own creation time, so the day
+stands on every invoice; a row made by hand in Airtable since has none and draws
+the name alone.
 
-**The line is always drawn, and today it is an em dash on every invoice.** The field
-was added after every existing record, and nothing backfills them because the base
-holds no fact that would say who. Hiding the line when empty would leave that reader
+**The line is always drawn, and the name is an em dash on every invoice entered
+before the recorder was stored.** Nothing backfills them because the base holds no
+fact that would say who. Hiding the line when empty would leave that reader
 unaware the app records this at all, which is the opposite of what it is for.
 
-**evidence — `Amount Due (vendor's stated total)`.** The figure everything else
-on the screen judges, and the one number a reader must be able to find without
-reading anything else. It is the vendor's claim, never recomputed by the app.
-The gloss in parentheses is part of the label and is on screen because this
-document carries two totals that only convention tells apart. The app currently
+**evidence — `Invoice total`.** The figure everything else on the screen judges,
+and the one number a reader must be able to find without reading anything else.
+It is the vendor's claim, never recomputed by the app. Its name is what tells it
+from the `Calculated Total` under the items, since this document carries two
+totals; `Amount due` is said on no screen, being the same figure. The app currently
 gives it the largest type on the page and a bordered block of its own.
 
 **verdict — the delivery chip.** One word beside the `Delivery` heading, from
-the closed set `Delivered` / `Mismatch` / `Awaiting delivery`. It is the same
+the closed set `Matched` / `Delivery variance` / `Awaiting delivery`. It is the same
 chip the invoice list shows for this row, from the same function, so the row a
 reader clicked and the page they land on cannot describe the invoice
 differently.
@@ -81,7 +83,7 @@ shape.** An invoice whose rows were removed in Airtable renders the sentence
 the table would be — no column heads, no totals footer, and no red header-variance
 box, since that box is a reading of a total there is nothing to compute. The
 orders section is not drawn at all: it derives from the items, so it would be a
-heading over nothing. `Amount Due` at the top is untouched, and it is what makes
+heading over nothing. `Invoice total` at the top is untouched, and it is what makes
 the state legible — a vendor's claim with nothing behind it.
 
 **The app cannot produce that invoice and cannot repair one.** Creating refuses a
@@ -280,13 +282,14 @@ only on the way in from creation, so reaching this page any other way shows
 nothing — but a reload does repeat it, and so does the link copied to somebody
 else. This brief said the box never appeared on a reload, which was wrong.
 
-**When an individual charge differs from what its order agreed:** a small
-`⚠ Order variance` badge inside that item's name cell, and **no sentence beside
-it**. The stored flag fires on either a price difference or a quantity invoiced
-beyond the order, so any explanation naming a cause would be false whenever the
-other one fired. What it was compared against lives on the order's own page.
+**When an individual charge differs from what its order agreed:** a small badge
+inside that item's name cell for each way it differs — `⚠ Price variance` for a
+unit price other than the order's, `⚠ Quantity variance` for an ordered item
+invoiced past what it ordered, across every invoice — and **no sentence beside
+them**. Each is its own stored flag, so the badge names the cause; what it was
+compared against lives on the order's own page.
 
-**When at least one item carries that flag:** an amber prompt near the foot of
+**When at least one item carries either flag:** an amber prompt near the foot of
 the page asking someone to check the item against the order, or take it up
 with the vendor, before the invoice is paid. It sits outside the `Payment` section
 deliberately — the reader here to catch a wrong item is not the reader who records
@@ -296,12 +299,12 @@ discloses nothing about this vendor.
 **When the invoice's own total does not match its computed total** — past half a
 cent, which is the same rule the new-invoice form warns by (#254), so the two say
 the same thing about the same invoice: a red box under the items table, carrying
-`⚠ Check the total` and both figures. This is a
-different fact from the badge above and the two can be on one invoice at once.
+`⚠ Totals differ` and both figures. This is a
+different fact from the badges above and the two can be on one invoice at once.
 Red states a discrepancy; amber asks a person to look. That split is the page's
 own and both colors appear on it.
 
-**When the verdict is `Mismatch`:** an amber box, below the named delivery
+**When the verdict is `Delivery variance`:** an amber box, below the named delivery
 rather than above it, saying the invoice charges more than the matched delivery
 delivered and who to take it up with. It sits after the delivery because the
 sentence is about that document — putting the accusation above the document it
@@ -365,10 +368,10 @@ is named in the words.
 from the same summary. If a redesign gives the list a different vocabulary for
 this axis, the two screens describe one invoice two ways.
 
-**`⚠ Order variance` is one word for one flag at both places it is shown** —
-here, and on the purchase order detail's list of invoices charging that order.
-`⚠ Check the total` is the other kind, and the purchase order detail is the one
-screen in the app that shows both at once. They change together or not at all.
+**`⚠ Price variance` and `⚠ Quantity variance` are one word for one flag each at
+both places they are shown** — here, and on the purchase order detail's list of
+invoices charging that order. `⚠ Totals differ` is the invoice's own, and the
+purchase order detail is the one screen in the app that shows all three at once. They change together or not at all.
 
 **The nesting grammar is shared with `/pos/[poId]`.** A parent row is a
 document's identity and its own facts; a child list under it, indented and in
@@ -376,8 +379,9 @@ smaller gray text, is the facts about the pairing. That screen puts an invoice's
 charges under the invoice the same way, so a reader crossing between the two
 meets one grammar rather than two.
 
-**`Mismatch` belongs to the delivery axis and may not be borrowed for a
-variance**, which is the mirror of the rule above.
+**`Delivery variance` is the delivery axis's, and each variance's qualifier is its
+own.** `Total`, `Order` and `Delivery` say what each is compared against, so a
+second fact borrowing one of them would put one word on two facts of one page.
 
 **An ordered quantity appears on this screen as a denominator and nowhere
 else.** The `Purchase Orders` list carries one because that line's subject is an

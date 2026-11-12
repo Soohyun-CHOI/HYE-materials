@@ -30,9 +30,10 @@ import { getUserByRecordId } from "@/lib/airtable/users";
 // #382 — the first name, which is what a screen REPORTING a person prints. The
 // delivery detail's `Recorded by` line takes it from here for the same reason.
 import { userName } from "@/lib/userName";
-import { formatUSD } from "@/lib/format";
-// #179 — the two variance kinds are named in one place, beside the predicates
-// that set them.
+import { DAY_FORMAT, formatUSD } from "@/lib/format";
+import Instant from "@/app/components/Instant";
+// #179 — the variance kinds are named in one place, beside the predicates that set
+// them; #623 gave them the design's names.
 import { VARIANCE_COPY } from "@/lib/variance";
 import { withOpsLabel } from "@/lib/airtableOps";
 import PaymentSection from "./PaymentSection";
@@ -196,10 +197,11 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
     });
 
     // Issue #16 — surfaced but never blocking: a variance is a review prompt, not a
-    // gate on marking something paid. #179 — the ITEM kind only. The header kind is
-    // stated once, in the red box under the totals, and the two used to be one
-    // condition here, which printed the header fact twice on one page.
-    const hasItemVariance = items.some((it) => it.varianceFlag);
+    // gate on marking something paid. #179 — the ITEMS only, a price variance or a
+    // quantity variance (#623). Totals differ is stated once, in the red box under the
+    // totals, and the two used to be one condition here, which printed that fact twice
+    // on one page.
+    const hasItemVariance = items.some((it) => it.hasPriceVariance || it.hasQuantityVariance);
     const file = invoice.file?.[0];
 
     // #316 — the server's day, for the one judgment on this page that needs one.
@@ -300,9 +302,9 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
 
             <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3">
                 <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                    Amount Due (vendor&apos;s stated total)
+                    Invoice total
                 </p>
-                <p className="text-3xl font-semibold">{formatUSD(invoice.amountDue)}</p>
+                <p className="text-3xl font-semibold">{formatUSD(invoice.invoiceTotal)}</p>
             </div>
 
             <div className="mt-4 space-y-1 text-sm">
@@ -314,18 +316,29 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                     word and the same position the delivery detail gives it, one line
                     above the document itself.
 
-                    NO INSTANT BESIDE IT, unlike the delivery's, and that is a fact
-                    about this table rather than a shorter sentence: `Invoices` has no
-                    `Created At`. The day is not missing from the screen either — an
-                    Invoice ID is HYE-INV-YYMMDD-##, which is why `getAllInvoices`
-                    sorts by it, so the heading above already carries it.
+                    AND WHEN, SINCE #623, IN THE DESIGN'S WORDS: `Recorded by {name} ·
+                    {day}`, the day the invoice was entered as the reader's own zone
+                    has it. No colon, as the design writes it, where the delivery's
+                    undesigned line keeps `Recorded by:` and `on {instant}`. The day
+                    alone, as the design draws it: an Invoice ID already dates the
+                    record, and a time would be a precision the design did not ask for.
 
-                    ALWAYS DRAWN, WITH AN EM DASH WHEN EMPTY, like the three lines
-                    over it. Every invoice entered before this field existed has none,
-                    and "nobody is recorded" is the thing such a reader needs told —
-                    hiding the line would leave them unaware the app holds it at
-                    all. */}
-                <p>Recorded by: {userName(recorder) || "—"}</p>
+                    ALWAYS DRAWN, WITH AN EM DASH WHEN NOBODY IS RECORDED, like the
+                    three lines over it. Every invoice entered before #382 has none, and
+                    "nobody is recorded" is the thing such a reader needs told — hiding
+                    the line would leave them unaware the app holds it at all. A row
+                    with no `Created At` — one made by hand in Airtable — draws the name
+                    alone, since a day the base does not hold has nothing to stand for. */}
+                <p>
+                    Recorded by {userName(recorder) || "—"}
+                    {invoice.createdAt && (
+                        <>
+                            {" "}
+                            <span aria-hidden="true">·</span>{" "}
+                            <Instant at={invoice.createdAt} format={DAY_FORMAT} />
+                        </>
+                    )}
+                </p>
                 {file && (
                     <p>
                         {/* Issue #331 — the vendor's document opens over this page
@@ -446,7 +459,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                     refusal `updateInvoiceAction` gives, because the two say the same
                     thing about the same record.
 
-                    `Amount Due` ABOVE IS UNTOUCHED. It is the vendor's stated total,
+                    `Invoice Total` ABOVE IS UNTOUCHED. It is the vendor's stated total,
                     the one figure here that is still true, and it is what makes this
                     state legible at all — a claim with nothing behind it. */}
                 {invoiceItemsMissing(invoice) ? (
@@ -471,18 +484,23 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                             <tr key={it.key} className="border-t border-zinc-200">
                                 <td className="py-1 pr-2">
                                     {it.itemName}
-                                    {/* #179 — `Order variance`, which says which of
-                                        the two kinds this is: an item against what
-                                        the order agreed. NO SENTENCE BESIDE IT: the
-                                        stored flag is one checkbox set by a price
-                                        difference OR a quantity invoiced beyond the
-                                        order, so any explanation naming a cause would
-                                        be false whenever the other one fired. What it
-                                        was compared against is on the order's own
-                                        page, beside the quantity and the price (#233). */}
-                                    {it.varianceFlag && (
+                                    {/* #623 — `Price variance` and `Quantity variance`,
+                                        one badge each, since the two are stored apart:
+                                        the unit price against the order's, and what
+                                        every invoice has charged against this ordered
+                                        item against what it ordered. Each badge names
+                                        its cause now, which the one `Order variance`
+                                        flag #179 drew could not. What each was compared
+                                        against is on the order's own page, beside the
+                                        quantity and the price (#233). */}
+                                    {it.hasPriceVariance && (
                                         <span className="ml-1 rounded bg-red-100 px-1 text-xs text-red-700">
-                                            {VARIANCE_COPY.item}
+                                            {VARIANCE_COPY.price}
+                                        </span>
+                                    )}
+                                    {it.hasQuantityVariance && (
+                                        <span className="ml-1 rounded bg-red-100 px-1 text-xs text-red-700">
+                                            {VARIANCE_COPY.quantity}
                                         </span>
                                     )}
                                 </td>
@@ -538,10 +556,10 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                     they add up to, and the stored flag was computed when there were —
                     so it would print a red disagreement about the vendor's arithmetic
                     on a record whose own contents are missing. */}
-                {invoice.varianceFlag && (
+                {invoice.totalsDiffer && (
                     <p className="mt-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
-                        {VARIANCE_COPY.headerDetail(
-                            formatUSD(invoice.amountDue),
+                        {VARIANCE_COPY.totalsDetail(
+                            formatUSD(invoice.invoiceTotal),
                             formatUSD(invoice.calculatedTotal ?? invoice.itemsSubtotal)
                         )}
                     </p>
@@ -579,9 +597,9 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 agrees. Matched and short: the amber box, then one entry per material
                 that disagrees, carrying its figures.
 
-                THE CHIP AND THE BOX BELOW IT ARE THE FACT AND THE ASK. `Mismatch` is
-                a chip value since #232's third pass, so the discrepancy is a word a
-                reader meets without hovering; a `!` marker stood beside `Delivered`
+                THE CHIP AND THE BOX BELOW IT ARE THE FACT AND THE ASK. `Delivery
+                variance` (`Mismatch` until #623) is a chip value since #232's third
+                pass, so the discrepancy is a word a reader meets without hovering; a `!` marker stood beside `Delivered`
                 and qualified a word that had already been read, with its sentence in
                 a tooltip that reaches neither touch nor a keyboard. The sentence is
                 the amber box, shaped like the variance prompt further down this same
@@ -665,11 +683,11 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
 
                     Its own sentence rather than the chip's, at detail density: the
                     chip is one word and this is what does not match plus who has to
-                    act. See STATUS_COPY.detail.mismatch for why it carries no figure
+                    act. See STATUS_COPY.detail.deliveryVariance for why it carries no figure
                     and why it wears the variance prompt's shape. */}
-                {reconciliation.summary.key === "mismatch" && (
+                {reconciliation.summary.key === "delivery-variance" && (
                     <p className="mt-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                        {STATUS_COPY.detail.mismatch().text}
+                        {STATUS_COPY.detail.deliveryVariance().text}
                     </p>
                 )}
 

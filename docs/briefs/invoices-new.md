@@ -104,8 +104,8 @@ same thing.
 taken from the ordered item, shown for reference. A mismatch there means the wrong
 ordered item was picked, not that the value needs correcting.
 
-**action — the money row:** `Shipping Fee` and `Amount Due` side by side.
-`Amount Due` is the vendor's stated total and the app never overwrites it.
+**action — the money row:** `Shipping Fee` and `Invoice Total` side by side.
+`Invoice Total` is the vendor's own figure and the app never overwrites it.
 
 **evidence — a calculated total,** stated under the money row as
 `Calculated total:` and nothing more. It is a **sanity check rather than
@@ -119,20 +119,22 @@ members has only two states, both wrong: fixed, it omits a term that is in the
 sum; complete, it grows a word per term, and two optional terms already make four
 spellings of one label. So the terms are named where their figures are, which is
 the money row's own labels plus the reveal controls for the terms that are absent.
-What the list was really keeping out was `Vendor's Stated Total`, which sits in
-that same row and is the one figure the sum must exclude; what carries that now is
-`Calculated` against `Stated`, and the warning below that puts the two figures on
+What the list was really keeping out was `Invoice Total`, which sits in that
+same row and is the one figure the sum must exclude; what carries that now is
+`Calculated` against `Invoice`, and the line below that puts the two figures on
 opposite sides of one comparison. A redesign that wants to say more here should
-say it on the stated-total field, not by putting a term list back on this one.
+say it on the Invoice Total field, not by putting a term list back on this one.
 
 **When the two totals disagree:** a warning under the calculated total, reading
-`Vendor's Stated Total (N) doesn't match the calculated total (N) — double-check
-before submitting.` **The threshold is half a cent, which is the same rule the
-saved record's own red box uses** — so a reader warned here finds the mark on the
-invoice afterwards, and silence here means the two figures agree as currency
-rather than that the app decided the gap was small enough to ignore. The form
-carried its own looser threshold until #254 and the two could disagree. It does
-not block: the vendor's stated total is what gets stored either way.
+`⚠ Totals differ — Invoice Total (N) doesn't match the calculated total (N);
+double-check before submitting.` **The threshold is half a cent, which is the same
+rule the saved record's own red box uses** — so a reader warned here finds the mark
+on the invoice afterwards. **When they agree, the same place says
+`Totals agree`**, in gray, once an Invoice Total is typed: the comparison has two
+answers and the form gives either, rather than leaving silence to mean the app
+decided the gap was small enough to ignore. The form carried its own looser
+threshold until #254 and the two could disagree. It does not block: the vendor's
+figure is what gets stored either way.
 
 **action — the submit button,** full width, and its label is the form's validation
 state: `Attach the invoice file to continue` until a file is attached,
@@ -337,13 +339,12 @@ same treatment, in a sentence naming the figure —
 `Shipping Fee has to be a whole number of cents.`,
 `Tariff has to be a whole number of cents.`,
 `Sales Tax has to be a whole number of cents.` or
-`Amount Due has to be a whole number of cents.` One at a time, in the order
-`Calculated Total` sums them and then the stated total they are compared against,
+`Invoice Total has to be a whole number of cents.` One at a time, in the order
+`Calculated Total` sums them and then the Invoice Total they are compared against,
 so a form with two bad figures names the first and the reader meets the second on
-the next press. The stated total's sentence says `Amount Due` although this
-screen's control is labelled `Vendor's Stated Total`, because the refusal directly
-above it already says `Amount Due is required.` — a design that renames either has
-to rename both.
+the next press. The control, the field, this sentence and the refusal above it,
+`Invoice Total is required.`, all say `Invoice Total` — a design that renames one
+has to rename them all.
 
 **Nothing about these four controls stops it either**, although all four carry
 `step="0.01"`. They are bound to React state and carry no `min`, and with no
@@ -367,12 +368,12 @@ likely next act is the next invoice.
 
 ## What must agree elsewhere
 
-**`Amount Due` carries the gloss `(vendor's stated total)` on the invoice
-detail**, and it is the same field. This form does not repeat the gloss, because
-the reader is looking at the vendor's document while they type it.
+**`Invoice Total` is `Invoice total` at the top of the invoice detail**, the same
+field and the same word, and the list's column says it too. `Amount due` is said
+on no screen: it is the same figure.
 
 **`Calculated Total` is the invoice detail's word** for the same computation, and
-the two must not diverge — the detail's red `⚠ Check the total` box is what fires
+the two must not diverge — the detail's red `⚠ Totals differ` box is what fires
 when the two figures disagree after saving. This form shows the same comparison
 before saving, **at the same threshold since #254**, and does not block on it. The
 two sentences differ in tense on purpose and only in tense: this one addresses the

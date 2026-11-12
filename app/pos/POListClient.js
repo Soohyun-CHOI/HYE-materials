@@ -264,7 +264,7 @@ export default function POListClient({ rows, options, initialFilters, initialPag
                                             compose with, so this renders what it was
                                             given rather than deciding when lateness
                                             applies. The red span is the one
-                                            `⚠ Check the total` already wears at its
+                                            `⚠ Totals differ` already wears at its
                                             three sites; it is not a chip and must not
                                             look like one, since a chip is a value
                                             from a closed set and this composes with

@@ -93,7 +93,7 @@ const SENDERS = {
 const MONEY_NAMES = [
     "totalAmount",
     "amount",
-    "amountDue",
+    "invoiceTotal",
     "subtotal",
     "itemsSubtotal",
     "total",
@@ -149,7 +149,7 @@ export function run({ check, assert, log }) {
     const planted = senderNames(
         parseSource(
             "export async function sendMagicLinkEmail({ to }) {}\n" +
-                "export async function sendOverdueInvoiceEmail({ to, amountDue }) {}\n"
+                "export async function sendOverdueInvoiceEmail({ to, invoiceTotal }) {}\n"
         ).ast
     );
     assert("the walker finds a sender that is not in the table", planted.includes("sendOverdueInvoiceEmail"));

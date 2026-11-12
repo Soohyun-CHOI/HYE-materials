@@ -81,7 +81,7 @@ const FIGURES = [
     ["shippingFee", "Shipping Fee"],
     ["tariff", "Tariff"],
     ["salesTax", "Sales Tax"],
-    ["amountDue", "Amount Due"],
+    ["invoiceTotal", "Invoice Total"],
 ];
 
 let pass = true;
@@ -239,7 +239,7 @@ try {
         body.set("vendorId", VENDOR_RECORD_ID);
         body.set("vendorInvoiceCode", TAG);
         body.set("issueDate", "2026-09-18");
-        body.set("amountDue", "8.11");
+        body.set("invoiceTotal", "8.11");
         body.set("shippingFee", "0");
         body.set("invoiceFileUrl", blobUrl || "");
         body.set("invoiceFileFilename", `${TAG}-invoice.pdf`);
@@ -308,8 +308,8 @@ try {
     if (mine.length) {
         ok(
             "  and holds exactly the figure it was given",
-            mine[0].get("Amount Due") === 8.11,
-            `Amount Due ${mine[0].get("Amount Due")}`
+            mine[0].get("Invoice Total") === 8.11,
+            `Invoice Total ${mine[0].get("Invoice Total")}`
         );
     }
 
@@ -339,7 +339,7 @@ try {
         body.set("vendorInvoiceCode", TAG);
         body.set("issueDate", "2026-09-18");
         body.set("dueDate", "");
-        body.set("amountDue", "8.11");
+        body.set("invoiceTotal", "8.11");
         body.set("shippingFee", "0");
         body.set("tariff", "");
         body.set("salesTax", "");
@@ -409,7 +409,7 @@ try {
         ok("the vendor-only edit is refused", text.includes(HEADER_PRECISION_COPY.tariff), HEADER_PRECISION_COPY.tariff);
         ok(
             "  naming Tariff rather than the box the reader was changing",
-            !text.includes(HEADER_PRECISION_COPY.shippingFee) && !text.includes(HEADER_PRECISION_COPY.amountDue)
+            !text.includes(HEADER_PRECISION_COPY.shippingFee) && !text.includes(HEADER_PRECISION_COPY.invoiceTotal)
         );
         const unchanged = await getInvoiceById(invoiceId);
         ok(
@@ -445,7 +445,7 @@ try {
                 vendorId: VENDOR_RECORD_ID,
                 vendorInvoiceCode: TAG,
                 issueDate: "2026-09-18",
-                amountDue: 10,
+                invoiceTotal: 10,
                 shippingFee: 0,
                 [key]: 1.005,
             })
@@ -461,7 +461,7 @@ try {
         }
         // The partial callers this guard must not touch: payment and the variance
         // flag pass none of the four, so they are asking about nothing.
-        const paidErr = await threw(() => updateInvoice(mine[0].id, { varianceFlag: false }));
+        const paidErr = await threw(() => updateInvoice(mine[0].id, { totalsDiffer: false }));
         ok("updateInvoice still accepts a call carrying none of the four", paidErr === null, paidErr?.message || "");
         const wholeErr = await threw(() => updateInvoice(mine[0].id, { tariff: 8.11, salesTax: null }));
         ok("  and a whole-cent figure beside a cleared one", wholeErr === null, wholeErr?.message || "");

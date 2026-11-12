@@ -70,8 +70,9 @@ by their own rule — these are deliveries where the table is invoices — and i
 heading carries a count of what is waiting, which filtering would falsify.
 
 **evidence — the table, eight columns, the same eight for every reader.**
-Invoice ID, Vendor, `Job`, Issue Date, Due Date, Amount Due, Delivery, Status. Amount
-Due is right-aligned currency and is the vendor's stated total, never a computed one.
+Invoice ID, Vendor, `Job`, Issue Date, Due Date, Invoice Total, Delivery, Status.
+Invoice Total is right-aligned currency and is the vendor's own figure, never a
+computed one.
 
 **`Job` arrived in #314 and this list had carried nothing like it.** The other three
 document lists all did — `/prs` and `/pos` headed `Job / Discipline` and
@@ -114,12 +115,12 @@ third surface would have made three, so they converged on the negation of `Paid`
 which is the participle the field is named for. The same word now reads at three
 places, about one invoice here and about a set of them on the order list.
 
-**verdict — the Delivery chip.** One of `Delivered` / `Mismatch` /
+**verdict — the Delivery chip.** One of `Matched` / `Delivery variance` /
 `Awaiting delivery`. This is the same chip the invoice detail shows beside its own
 `Delivery` heading, from the same function, so the row a reader clicks and the
 page they land on cannot describe the invoice differently.
 
-`Mismatch` is red and is the only red chip in the app. It is deliberately not
+`Delivery variance` is red and is the only red chip in the app. It is deliberately not
 `partial`'s amber: amber on this axis would put a stage color on an error, and
 under the app's one-delivery premise a shortfall here is not a stage — nothing
 further is coming.
@@ -183,18 +184,18 @@ on both write paths. Both render the payment word alone, with the `Due Date` col
 showing the date or an em dash.
 
 **The badge fits the column as it stands.** Measured at 832px: the `Status` column is
-106px, `⚠ Overdue · 10d` is 98px and `⚠ Overdue · 1d` is 92px, against
-`⚠ Check the total` at 102px — so the new mark is narrower than the widest thing the
-cell already held and no other column gave anything up. Each extra digit is about 7px,
+106px, `⚠ Overdue · 10d` is 98px, `⚠ Overdue · 1d` is 92px and `⚠ Totals differ`
+is 83px, so the widest mark the cell holds fits with 8px to spare and no other column
+gave anything up. Each extra digit is about 7px,
 so a three-digit count is the last that fits. **It also costs no row height today**,
 and only because Vendor is already wrapping every row to two lines; give that column
 its width back and this cell becomes the tallest thing in the row.
 
-**When the invoice fails its own arithmetic:** a red `⚠ Check the total` badge
+**When the invoice fails its own arithmetic:** a red `⚠ Totals differ` badge
 **stacked underneath** the payment word rather than beside it, in the same cell.
 
 This badge is **not** the kind of variance an employee is on this screen to
-catch. It is the header flag — the vendor's stated total against what its items
+catch. It is the totals flag — the vendor's Invoice Total against what its items
 add up to — which means the entry missed something, and it is the office's to
 check and the office's to fix since only an Admin can edit an invoice. **It is
 readable by every reader anyway**, and the reason is worth carrying into a redesign:
@@ -221,8 +222,9 @@ Every column here needs `max(its content, its own header) + 8px` of cell padding
 on that basis: Vendor at 8rem is **33px short** of this base's longest name,
 `Lone Star Pipe & Supply`, so that column has been wrapping to two lines on every row
 — the old claim that it held the longest name "at 16 characters with nothing to
-spare" described a shorter vendor than the base now has. And `Amount Due` is bound by
-its own header at 84px against 88px declared, 4px short. Neither is made worse and
+spare" described a shorter vendor than the base now has. And `Invoice Total` is bound
+by its own header at 85px against 88px declared, 5px short, so its head wraps to two
+lines, as `Amount Due` at 84px did. Neither is made worse and
 neither is fixed: giving Vendor the 161px it wants is a re-cut this page cannot
 afford and the design pass can. **Vendor is where to give width back first.**
 
@@ -321,12 +323,13 @@ now.
 **The Delivery chip is the invoice detail's chip.** If the two vocabularies drift,
 the list and the page describe one invoice two ways.
 
-**`Mismatch` belongs to this axis and nowhere else.** It must never be borrowed
-for a variance, which is the mirror of #179's rule that the two variance kinds
-keep two words.
+**`Delivery variance` belongs to this axis and nowhere else.** It is one of the
+three-way match's variances, and its qualifier is its own: no other fact may say
+`Delivery`, as no other may say `Price` or `Quantity`.
 
-**`⚠ Check the total` is one of a pair.** The other is `⚠ Order variance`, which
-appears on the invoice detail and on the purchase order detail. The purchase order
+**`⚠ Totals differ` is one of three badges.** The others are `⚠ Price variance`
+and `⚠ Quantity variance`, which appear on the invoice detail and on the
+purchase order detail. The purchase order
 detail is the one screen showing both at once. They change together or not at all.
 
 **`⚠ Overdue` is one word at three places** — this cell, the order list's payment

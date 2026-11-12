@@ -41,7 +41,7 @@ import { DIRECT_PURCHASE_COPY, directPurchaseBlocked } from "@/lib/directPurchas
 // rather than avoiding one: `lib/variance.js` imports nothing at all, so the
 // predicate the saved flag is set by is reachable from here. The form used to
 // carry its own threshold for the same comparison.
-import { VARIANCE_COPY, checkHeaderVariance } from "@/lib/variance";
+import { VARIANCE_COPY, checkTotalsDiffer } from "@/lib/variance";
 
 // poItemTouched: false until the user (or #57's auto-default below) makes an
 // explicit choice in the PO Item dropdown. It distinguished "still unset" from
@@ -280,14 +280,14 @@ export default function InvoiceForm({ vendors, pos }) {
     // PO genuinely has zero items" — an "error" entry is retried the next
     // time that PO is assigned to a slot again.
     const [poItemsCache, setPoItemsCache] = useState({});
-    // Issue #57 — Shipping Fee/Amount Due were plain uncontrolled inputs
+    // Issue #57 — Shipping Fee/Invoice Total were plain uncontrolled inputs
     // (read only via FormData at submit) until now; they need to be
     // controlled state so the calculated-total preview can react to them
-    // live. `amountDue` is renamed `vendorStatedTotal` here to match its
-    // real role (the ground-truth figure from the vendor's own document,
-    // still submitted under the `amountDue` form field/Airtable column —
-    // only the label and local variable name change).
-    const [vendorStatedTotal, setVendorStatedTotal] = useState("");
+    // live. #623 named the field, the form field, this state and its label
+    // `Invoice Total` alike: the ground-truth figure from the vendor's own
+    // document. It was `amountDue` here, `vendorStatedTotal` in this state and
+    // `Vendor's Stated Total` on the label until then.
+    const [invoiceTotal, setInvoiceTotal] = useState("");
     // Issue #187 — what the user TYPED, which is not what the field shows.
     // The displayed `shippingFee` is derived below from this and the flag
     // underneath it, and this half is read only once that flag is true —
@@ -1105,8 +1105,8 @@ export default function InvoiceForm({ vendors, pos }) {
         return sum + qty * unitPrice;
     }, 0);
 
-    // Issue #57 — sanity-check preview only, never what's stored (Amount
-    // Due/vendorStatedTotal is). Tariff only counts once the optional
+    // Issue #57 — sanity-check preview only, never what's stored (Invoice
+    // Total is). Tariff only counts once the optional
     // field is actually shown, matching what's actually submitted.
     //
     // #283 — THIS IS THE CLIENT-SIDE TWIN OF THE ISSUE'S OWN BUG, which is why
@@ -1132,10 +1132,10 @@ export default function InvoiceForm({ vendors, pos }) {
     // this form's own two figures to the shared predicate is the whole of what
     // one rule can mean here — `calculatedTotal` above is the same binding the
     // label renders, so the warning and the preview cannot come apart.
-    const totalsMismatch =
-        vendorStatedTotal !== "" &&
-        !Number.isNaN(parseFloat(vendorStatedTotal)) &&
-        checkHeaderVariance(parseFloat(vendorStatedTotal), calculatedTotal);
+    // #623 — the comparison is made only once a figure is typed, and then it has one
+    // of two answers: Totals differ, or Totals agree.
+    const totalsCompared = invoiceTotal !== "" && !Number.isNaN(parseFloat(invoiceTotal));
+    const totalsMismatch = totalsCompared && checkTotalsDiffer(parseFloat(invoiceTotal), calculatedTotal);
     // Issue #91 — same sanity-check idea as totalsMismatch, scoped to
     // Shipping Fee vs. the single selected PO's own figure: the field
     // stays freely editable (prefilled, not locked), so this is what
@@ -2014,17 +2014,17 @@ export default function InvoiceForm({ vendors, pos }) {
                         </div>
                     )}
                     <div className="flex-1">
-                        <label htmlFor="amountDue" className="block text-sm font-medium">
-                            Vendor&apos;s Stated Total
+                        <label htmlFor="invoiceTotal" className="block text-sm font-medium">
+                            Invoice Total
                         </label>
                         <input
                             type="number"
                             step="0.01"
-                            id="amountDue"
-                            name="amountDue"
+                            id="invoiceTotal"
+                            name="invoiceTotal"
                             required
-                            value={vendorStatedTotal}
-                            onChange={(e) => setVendorStatedTotal(e.target.value)}
+                            value={invoiceTotal}
+                            onChange={(e) => setInvoiceTotal(e.target.value)}
                             className={fieldClass}
                         />
                     </div>
@@ -2057,8 +2057,8 @@ export default function InvoiceForm({ vendors, pos }) {
                     </div>
                 )}
 
-                {/* Issue #57 — sanity check, not enforcement: Amount Due
-                    (Vendor's Stated Total) is still what gets stored and
+                {/* Issue #57 — sanity check, not enforcement: Invoice Total
+                    (Invoice Total) is still what gets stored and
                     submitted regardless of whether it agrees with this
                     preview. Catches a vendor's own arithmetic error or a
                     missed item — the calculation alone can't.
@@ -2074,7 +2074,7 @@ export default function InvoiceForm({ vendors, pos }) {
                     an absent one.
 
                     WHAT THIS GIVES UP, stated because it was the list's real work:
-                    `Vendor's Stated Total` sits in the same row as the three terms
+                    `Invoice Total` sits in the same row as the three terms
                     and is not one of them, and the parenthetical was the only thing
                     saying so. What carries it now is the two words themselves —
                     `Calculated` against `Stated` — and, at the moment the question
@@ -2085,18 +2085,26 @@ export default function InvoiceForm({ vendors, pos }) {
                 <p className="mt-2 text-xs text-zinc-500">
                     Calculated total: {calculatedTotal.toFixed(2)}
                 </p>
-                {/* #254 — the sentence is `lib/variance.js`'s now, unchanged in
-                    wording. Written here as element text it was invisible to the
-                    vocabulary check, which reads `*_COPY` strings and nothing
-                    else, and it belongs beside the predicate that decides when it
-                    appears. */}
-                {totalsMismatch && (
+                {/* #254 — the sentence is `lib/variance.js`'s. Written here as
+                    element text it was invisible to the vocabulary check, which
+                    reads `*_COPY` strings and nothing else, and it belongs beside
+                    the predicate that decides when it appears.
+
+                    #623 — AND THE COMPARISON SAYS SO WHEN IT PASSES, as the design's
+                    form draws it: `Totals agree` where the warning would stand, once
+                    an Invoice Total is typed. Neutral, because nothing is asked of
+                    the reader; a stored invoice whose totals agree carries no mark. */}
+                {totalsMismatch ? (
                     <p className="mt-1 text-xs text-amber-700">
-                        {VARIANCE_COPY.headerBeforeSaving(
-                            (parseFloat(vendorStatedTotal) || 0).toFixed(2),
+                        {VARIANCE_COPY.totalsBeforeSaving(
+                            (parseFloat(invoiceTotal) || 0).toFixed(2),
                             calculatedTotal.toFixed(2)
                         )}
                     </p>
+                ) : (
+                    totalsCompared && (
+                        <p className="mt-1 text-xs text-zinc-500">{VARIANCE_COPY.totalsAgree}</p>
+                    )
                 )}
             </div>
         );

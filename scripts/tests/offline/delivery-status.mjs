@@ -227,7 +227,7 @@ export function run({ check, log, assert }) {
 
     const paired = summarizeInvoiceStatus({ itemStatuses: [covered], hasDelivery: true });
     const unpaired = summarizeInvoiceStatus({ itemStatuses: [shortShare], hasDelivery: false });
-    check("a delivery matched and it covered the invoice", paired.key, "delivered");
+    check("a delivery matched and it covered the invoice", paired.key, "matched");
     check("none matched", unpaired.key, "awaiting-delivery");
     check("  which is the correct reading, not a gap", describeInvoiceColumn(unpaired).text, "Awaiting delivery");
 
@@ -236,19 +236,20 @@ export function run({ check, log, assert }) {
     // It was a MARKER for two issues, composing with `Delivered`. It composed with
     // exactly one value and its sentence sat in a tooltip, so it is a chip value now.
     const shortSummary = summarizeInvoiceStatus({ itemStatuses: [partShare], hasDelivery: true });
-    check("the matched delivery brought less than the invoice", shortSummary.key, "mismatch");
-    check("  and the chip says so in a word", describeInvoiceColumn(shortSummary).text, "Mismatch");
+    check("the matched delivery brought less than the invoice", shortSummary.key, "delivery-variance");
+    // The design's word since #623, one of its three variances; `Mismatch` until then.
+    check("  and the chip says so in a word", describeInvoiceColumn(shortSummary).text, "Delivery variance");
     check(
         "one short line among covered ones is enough",
         summarizeInvoiceStatus({ itemStatuses: [covered, partShare], hasDelivery: true }).key,
-        "mismatch"
+        "delivery-variance"
     );
     check(
         "  and it still reports how many were covered",
         summarizeInvoiceStatus({ itemStatuses: [covered, partShare], hasDelivery: true }).covered,
         1
     );
-    // NO MISMATCH WITHOUT A MATCH. Every invoice item of an unmatched invoice is
+    // NO VARIANCE WITHOUT A MATCH. Every invoice item of an unmatched invoice is
     // trivially short, so reporting them would put a discrepancy on every invoice the
     // vendor emailed ahead of the material — which is most of them. The clause order
     // in summarizeInvoiceStatus is what guarantees it.
@@ -263,7 +264,7 @@ export function run({ check, log, assert }) {
     log("THREE values and the middle stage is still barred:");
     assert(
         "the set is the link's two states plus the discrepancy",
-        Object.keys(STATUS_COPY.column.invoice).join(",") === "delivered,mismatch,awaiting-delivery"
+        Object.keys(STATUS_COPY.column.invoice).join(",") === "matched,delivery-variance,awaiting-delivery"
     );
     // #210 REMOVED A STAGE WORD AND #232 ADDED AN ERROR WORD, which is why the two do
     // not collide: under the one-delivery premise nothing further is coming, so a
@@ -285,7 +286,7 @@ export function run({ check, log, assert }) {
         !("no-ordered-items" in STATUS_COPY.column.invoice)
     );
     // ITS OWN TONE, so the palette cannot say a stage and an error with one color.
-    check("the discrepancy has a tone of its own", describeInvoiceColumn(shortSummary).tone, "mismatch");
+    check("the discrepancy has a tone of its own", describeInvoiceColumn(shortSummary).tone, "variance");
     assert(
         "  which is not the tone a stage wears on the other axis",
         describeInvoiceColumn(shortSummary).tone !== STATUS_COPY.column.delivery["partly-invoiced"]().tone
@@ -297,14 +298,14 @@ export function run({ check, log, assert }) {
     check(
         "no statuses, a delivery matched, still reads Delivered",
         summarizeInvoiceStatus({ itemStatuses: [], hasDelivery: true }).key,
-        "delivered"
+        "matched"
     );
     check("no argument does not throw", summarizeInvoiceStatus().key, "awaiting-delivery");
 
     log("");
     log("the `mismatch` BOOLEAN is gone — the key carries it (#232):");
     // Two representations of one fact is one more thing for #182 to find, the same
-    // call this function made on `anyArrived`. Every screen asks `key === "mismatch"`.
+    // call this function made on `anyArrived`. Every screen asks `key === "delivery-variance"`.
     for (const s of [paired, unpaired, shortSummary]) {
         assert(`\`${s.key}\` carries no separate mismatch flag`, !("mismatch" in s));
     }
@@ -317,8 +318,8 @@ export function run({ check, log, assert }) {
     // left is one sentence with an action in it, shaped like the variance prompt on
     // the same page — so the twin this file used to assert against is now the point.
     assert("no chip-density label survives", !("mismatch" in STATUS_COPY.column));
-    check("one key, so a check pins the branch not the wording", STATUS_COPY.detail.mismatch().key, "mismatch");
-    const mismatchSentence = STATUS_COPY.detail.mismatch().text;
+    check("one key, so a check pins the branch not the wording", STATUS_COPY.detail.deliveryVariance().key, "delivery-variance");
+    const mismatchSentence = STATUS_COPY.detail.deliveryVariance().text;
     assert("it says what is mismatched", mismatchSentence.includes("charges more than"));
     assert(
         "it names the matched delivery as the thing compared against",
@@ -539,7 +540,7 @@ export function run({ check, log, assert }) {
     );
     assert(
         "the tone vocabulary is still its own, never a chip's closed set of states",
-        !["complete", "partial", "mismatch", "none", "absent"].includes("exception")
+        !["complete", "partial", "variance", "none", "absent"].includes("exception")
     );
 
     // #241 — a folded entry's two figures are sums over the ordered items it covers,
@@ -621,7 +622,8 @@ export function run({ check, log, assert }) {
     // --- THE CHIPS ---------------------------------------------------------
     log("");
     log("a list cell is a CHIP: a closed set of values, and no figures:");
-    check("delivery named", describeInvoiceColumn(paired).text, "Delivered");
+    // #623 — the three-way match's word for an invoice its delivery covered.
+    check("delivery named", describeInvoiceColumn(paired).text, "Matched");
     check("none named", describeInvoiceColumn(unpaired).text, "Awaiting delivery");
     check("invoiced", describeDeliveryColumn(summarizeDeliveryInvoicing([dl(10, 10)])).text, "Invoiced");
     check("partly invoiced", describeDeliveryColumn(summarizeDeliveryInvoicing([dl(10, 10), dl(5, 0)])).text, "Partly invoiced");
@@ -646,7 +648,7 @@ export function run({ check, log, assert }) {
         assert(`chip "${chip.text}" carries no figure`, !/\d/.test(chip.text));
     }
     // The tone is what makes the two lists one system rather than two palettes.
-    check("both complete states share a tone", STATUS_COPY.column.invoice.delivered().tone, STATUS_COPY.column.delivery.invoiced().tone);
+    check("both complete states share a tone", STATUS_COPY.column.invoice.matched().tone, STATUS_COPY.column.delivery.invoiced().tone);
     check("both empty states too", STATUS_COPY.column.invoice["awaiting-delivery"]().tone, STATUS_COPY.column.delivery["awaiting-invoice"]().tone);
     // `absent` is not a value of the set — it is the absence of one. Neither
     // document axis has one now: the invoice chip stopped depending on having an item
@@ -715,7 +717,7 @@ export function run({ check, log, assert }) {
         ...everyChip.map((c) => c.text),
         ...Object.values(STATUS_COPY.detail.verdict).map((f) => f(short, "EA").text),
         STATUS_COPY.detail.againstOrder(bothBeyond, "EA").text,
-        STATUS_COPY.detail.mismatch().text,
+        STATUS_COPY.detail.deliveryVariance().text,
     ];
     // At any one moment "the vendor over-billed" and "the rest has not been
     // delivered yet" are the same measurement, so the copy may not pick one.
@@ -938,11 +940,21 @@ export function run({ check, log, assert }) {
     check("judged counts only the lines that count", summarizePODeliveryStatus(withdrawn).ordered, 0);
 
     log("");
-    log("the chip — the invoice axis's own words, and #210 left TWO of the three:");
-    // ANTI-VACUITY #2. The words are claimed to be REUSED, and nothing else here
-    // would notice one axis being edited without the other. Comparing the two maps
-    // is the claim itself rather than a restatement of either.
-    for (const key of ["delivered", "awaiting-delivery"]) {
+    log("the chip — the invoice axis's own words, and #623 left ONE of the three shared:");
+    // #623 split the complete state: `Matched` is the invoice matched to a delivery
+    // that covered it, `Delivered` how much of an order has been delivered. One fact
+    // each, so one word each, and the order's word may not come back to the invoice.
+    check("the invoice's complete state is its own word", STATUS_COPY.column.invoice.matched().text, "Matched");
+    assert(
+        "  and not the order's, which stays",
+        STATUS_COPY.column.po.delivered().text === "Delivered" &&
+            STATUS_COPY.column.invoice.matched().text !== STATUS_COPY.column.po.delivered().text
+    );
+    assert("  under a key of its own", !("delivered" in STATUS_COPY.column.invoice) && "delivered" in STATUS_COPY.column.po);
+    // ANTI-VACUITY #2. The word still shared is claimed to be REUSED, and nothing else
+    // here would notice one axis being edited without the other. Comparing the two
+    // maps is the claim itself rather than a restatement of either.
+    for (const key of ["awaiting-delivery"]) {
         check(
             `"${key}" reads identically on both axes`,
             STATUS_COPY.column.po[key]().text,
@@ -1618,7 +1630,8 @@ export function run({ check, log, assert }) {
     // and not a stale parse.
     assert("  including one #232 ADDED, so it is reading the new file", identifiers.has("speaks"));
     assert("it sees object keys", propertyKeys.has("invoicedNotDelivered"));
-    assert("  including one #210 added", propertyKeys.has("mismatch"));
+    // `mismatch` until #623 renamed the builder; the control follows the module.
+    assert("  including one #623 named", propertyKeys.has("deliveryVariance"));
     // A control on the negative direction too: a name that is genuinely absent and
     // has never been in this module must also come back absent, or the sets are
     // matching everything.

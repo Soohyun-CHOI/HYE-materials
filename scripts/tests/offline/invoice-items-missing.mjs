@@ -130,7 +130,7 @@ export function run({ check, assert, log }) {
     // ANTI-VACUITY for the scan: it has to be seen finding a sentence that IS there.
     assert(
         "the text walk reads this screen's strings at all",
-        allText(parseFile(SCREEN).ast).some((t) => t.includes("Recorded by:"))
+        allText(parseFile(SCREEN).ast).some((t) => t.includes("Recorded by"))
     );
 }
 

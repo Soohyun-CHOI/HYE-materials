@@ -287,7 +287,7 @@ async function overDeliver({ orderedItem, within, over, receivedDate }) {
  * An invoice with a real file, because the correction reads AIRTABLE's copy of it
  * and an unattached invoice is exactly the state that blocks the button (#140/#142).
  */
-async function makeInvoice({ code, issueDate, amountDue }) {
+async function makeInvoice({ code, issueDate, invoiceTotal }) {
     const blob = await put(`237-DEMO-${code}.pdf`, invoicePdfBytes(`237-DEMO ${code}`), {
         access: "public",
         contentType: "application/pdf",
@@ -298,7 +298,7 @@ async function makeInvoice({ code, issueDate, amountDue }) {
         vendorInvoiceCode: code,
         issueDate,
         dueDate: "2026-09-30",
-        amountDue,
+        invoiceTotal,
         shippingFee: 0,
         file: [{ url: blob.url, filename: `237-DEMO-${code}.pdf` }],
     });
@@ -389,7 +389,7 @@ const aDelivery = await overDeliver({
 const aInvoice = await makeInvoice({
     code: "237-DEMO-A",
     issueDate: "2026-08-11",
-    amountDue: 13 * PRICE,
+    invoiceTotal: 13 * PRICE,
 });
 await charge({ invoice: aInvoice, po: a.po, orderedItem: a.orderedItem, qty: 13 });
 console.log(`  ordered 10, delivered 13, invoiced 13 on ${aInvoice.invoiceId}`);
@@ -460,7 +460,7 @@ const b2 = await makeOrder({ leafCode: THIRD_CODE, qty: 7 });
 const bInvoice = await makeInvoice({
     code: "237-DEMO-B",
     issueDate: "2026-08-12",
-    amountDue: 5 * PRICE + 7 * PRICE,
+    invoiceTotal: 5 * PRICE + 7 * PRICE,
 });
 await charge({ invoice: bInvoice, po: b1.po, orderedItem: b1.orderedItem, qty: 5 });
 await charge({ invoice: bInvoice, po: b2.po, orderedItem: b2.orderedItem, qty: 7 });

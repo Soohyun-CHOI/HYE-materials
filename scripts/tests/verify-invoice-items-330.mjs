@@ -60,9 +60,13 @@ const ADMIN_EMAIL = "soo@hanyangengusa.com";
 // #382's target, and for its reason: this ordered item has nothing delivered
 // against it, so the computed pairing reaches `none` and the run writes nothing
 // on a record it does not own.
-const PO_RECORD_ID = "recFhuh7Rmic2VxXI"; // HYE-PO-260911-34
-const PO_ITEM_RECORD_ID = "recNWQmMybRWcCVKY"; // HYE-PO-260911-34-001
-const VENDOR_RECORD_ID = "recJMkaWAGnohzn4z"; // Lone Star Pipe & Supply
+//
+// THE IDS ARE THE TEST BASE'S SINCE #537 re-made the demo there, which gave every
+// record a new id; #623 read these off the same order, ordered item and vendor, as it
+// did for `verify-invoice-recorder-382.mjs`.
+const PO_RECORD_ID = "reckSot0DCjvUxeOG"; // HYE-PO-260911-34
+const PO_ITEM_RECORD_ID = "recY7wk6TXrzqv8M1"; // HYE-PO-260911-34-001
+const VENDOR_RECORD_ID = "recZYbtxnERQLTDDx"; // Lone Star Pipe & Supply
 
 /** The create path's own refusal, which this issue deliberately leaves alone. */
 const SUBMISSION_REFUSAL = "Add at least one item.";
@@ -204,7 +208,7 @@ try {
             body.set("vendorId", VENDOR_RECORD_ID);
             body.set("vendorInvoiceCode", code);
             body.set("issueDate", "2026-09-17");
-            body.set("amountDue", String((poItem.qty || 1) * poItem.unitPrice));
+            body.set("invoiceTotal", String((poItem.qty || 1) * poItem.unitPrice));
             body.set("shippingFee", "0");
             body.set("invoiceFileUrl", blobUrl);
             body.set("invoiceFileFilename", `${fixtures.TAG}-invoice.pdf`);
@@ -299,11 +303,11 @@ try {
             ok("the sentence stands where the table was", without.includes(ITEMS_MISSING_COPY.absent));
             ok("  the totals footer is gone", !without.includes("Items Subtotal"));
             ok("  the column heads are gone", !without.includes("Unit Price"));
-            ok("  the header-variance box is gone", !without.includes("Check the total"));
+            ok("  the totals box is gone", !without.includes("Totals differ"));
             ok("  the orders heading is not drawn over nothing", !/Purchase Order(s)?<\/h2>/.test(without));
-            // AND WHAT MUST SURVIVE. `Amount Due` is the vendor's own claim and is what
-            // makes this state legible rather than blank.
-            ok("  and Amount Due still states the vendor's claim", without.includes("Amount Due"));
+            // AND WHAT MUST SURVIVE. The `Invoice total` at the top is the vendor's own
+            // claim and is what makes this state legible rather than blank.
+            ok("  and the Invoice total still states the vendor's claim", without.includes("Invoice total"));
 
             // --- F -----------------------------------------------------------
             console.log("\nF — the update refusal, on the record's words, writing nothing");
@@ -320,7 +324,7 @@ try {
                 editBody.set("vendorId", VENDOR_RECORD_ID);
                 editBody.set("vendorInvoiceCode", `${fixtures.TAG}-EDITED`);
                 editBody.set("issueDate", beforeEdit.issueDate);
-                editBody.set("amountDue", String(beforeEdit.amountDue));
+                editBody.set("invoiceTotal", String(beforeEdit.invoiceTotal));
                 editBody.set("shippingFee", "0");
                 editBody.set("itemsJson", JSON.stringify([]));
                 const edited = await fetch(`${BASE}/invoices/${encodeURIComponent(invoiceId)}/edit`, {

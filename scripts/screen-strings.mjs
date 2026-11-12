@@ -218,7 +218,7 @@ const isStr = (n) => n?.type === "Literal" && typeof n.value === "string";
 
 /**
  * Which MEMBERS of each copy constant one file reaches — `VARIANCE_COPY` →
- * `{headerBeforeSaving}`, and `"*"` where the access is computed.
+ * `{totalsBeforeSaving}`, and `"*"` where the access is computed.
  *
  * WHY THE CONSTANT AS A WHOLE IS THE WRONG UNIT, measured on `/invoices/new`:
  * attributing every string in a constant a screen imports put `lib/variance.js`'s

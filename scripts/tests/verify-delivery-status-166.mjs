@@ -323,7 +323,7 @@ try {
                 vendorInvoiceCode: `${TAG}-${Math.random().toString(36).slice(2, 7)}`,
                 issueDate: "2026-08-01",
                 dueDate: "2026-09-01",
-                amountDue: qty * 10,
+                invoiceTotal: qty * 10,
                 shippingFee: 0,
                 file: [],
             });
@@ -396,13 +396,13 @@ try {
         const deliveredFull = pairedInvoice;
         const statusMap = await getInvoiceDeliveryStatus([deliveredFull]);
         const s = statusMap.get(deliveredFull.id);
-        check("a delivery is named, so the chip is Delivered", s.key, "delivered");
+        check("a delivery is named, so the chip is Matched", s.key, "matched");
         check("and the quantities match, so no marker", s.mismatch, false);
         check("one ordered item judged", s.judged, 1);
         // An `excludedCount` of 1 was asserted here for the freight item that stood
         // beside it. Both are gone (#278); every invoice item is judged now, so `judged`
         // above is the whole count.
-        check("the chip says so", describeInvoiceColumn(s).text, "Delivered");
+        check("the chip says so", describeInvoiceColumn(s).text, "Matched");
 
         const notDelivered = await makeOrder({ itemName: `${TAG} Pending`, qty: 6 });
         const pendingInvoice = await invoice({ po: notDelivered.po, orderedItem: notDelivered.orderedItem, qty: 6 });
@@ -437,7 +437,7 @@ try {
         const shortStatus = (await getInvoiceDeliveryStatus([await getInvoiceByRecordId(shortInvoice.id)])).get(
             shortInvoice.id
         );
-        check("the delivery is named, so the chip is still Delivered", shortStatus.key, "delivered");
+        check("the delivery is named, so the chip is still Matched", shortStatus.key, "matched");
         check("and the shortfall is the MARKER", shortStatus.mismatch, true);
         check("with no line counted as covered", shortStatus.covered, 0);
 
@@ -550,13 +550,13 @@ try {
         check(`the ordered item's Invoiced Qty is both invoices (${settleNote(itemTotal)})`, itemTotal.value, 16);
 
         const bothStatus = (await getInvoiceDeliveryStatus([await getInvoiceByRecordId(second.id)])).get(second.id);
-        check("the newer invoice reads Delivered, from its OWN delivery", bothStatus.key, "delivered");
+        check("the newer invoice reads Matched, from its OWN delivery", bothStatus.key, "matched");
         check("  and its quantities match, so no marker", bothStatus.mismatch, false);
 
         const olderStatus = (await getInvoiceDeliveryStatus([await getInvoiceByRecordId(deliveredFull.id)])).get(
             deliveredFull.id
         );
-        check("and the older invoice is unaffected by it", olderStatus.key, "delivered");
+        check("and the older invoice is unaffected by it", olderStatus.key, "matched");
         check("  likewise unmarked", olderStatus.mismatch, false);
         // THE POINT OF THE WHOLE PART: under the old fill these two answers were
         // 'awaiting-delivery' and 'delivered', and both carried the inferred marker.

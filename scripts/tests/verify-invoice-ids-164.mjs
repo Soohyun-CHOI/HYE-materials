@@ -315,7 +315,7 @@ try {
         vendorInvoiceCode: `${TAG}-A`,
         issueDate: "2026-01-15",
         dueDate: "2026-02-15",
-        amountDue: 100,
+        invoiceTotal: 100,
         shippingFee: 0,
         file: [],
     });
@@ -325,7 +325,7 @@ try {
         vendorInvoiceCode: `${TAG}-B`,
         issueDate: "2026-02-20",
         dueDate: "2026-03-20",
-        amountDue: 200,
+        invoiceTotal: 200,
         shippingFee: 0,
         file: [],
     });
@@ -438,7 +438,7 @@ try {
         vendorInvoiceCode: `${TAG}-C`,
         issueDate: "2026-03-01",
         dueDate: "2026-04-01",
-        amountDue: 300,
+        invoiceTotal: 300,
         shippingFee: 0,
         file: [],
     });

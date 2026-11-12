@@ -276,7 +276,7 @@ try {
         vendorInvoiceCode: `${TAG}-INV`,
         issueDate: new Date().toISOString().slice(0, 10),
         dueDate: null,
-        amountDue: 0,
+        invoiceTotal: 0,
         shippingFee: 0,
         file: [], // fixture only — the app requires a file, Airtable doesn't
     });

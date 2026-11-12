@@ -232,7 +232,7 @@ async function invoice({ items: invoiceItems, issueDate, note }) {
         vendorInvoiceCode: `166-DEMO ${note}`,
         issueDate,
         dueDate: "2026-09-01",
-        amountDue: total,
+        invoiceTotal: total,
         shippingFee: 0,
         file: [],
     });
@@ -272,7 +272,7 @@ const aDel = await deliver({
 ids.aDelivery = aDel.delivery.deliveryId;
 ids.aPO = a.po.poId;
 ids.a = (await invoice({ items: [{ ...a, qty: 20 }], issueDate: "2026-07-19", note: "A arrived" })).invoiceId;
-console.log(`  A  ${ids.a}  Delivered   (${ids.aDelivery} quotes ${ids.aPO} on its packing list)`);
+console.log(`  A  ${ids.a}  Matched     (${ids.aDelivery} quotes ${ids.aPO} on its packing list)`);
 
 // --- B: invoiced, nothing delivered, plus an invoice item with no ordered item ---
 const b = await makeOrder({ itemName: NAME.gasket, qty: 15 });
@@ -309,7 +309,7 @@ const eDel = await deliver({
     notes: "E, 2 beyond the order",
 });
 ids.e = (await invoice({ items: [{ ...e, qty: 10 }], issueDate: "2026-07-26", note: "E over-delivered" })).invoiceId;
-console.log(`  E  ${ids.e}  Delivered, and 2 beyond the order  [${eDel.written.join(", ")}]`);
+console.log(`  E  ${ids.e}  Matched, and 2 beyond the order  [${eDel.written.join(", ")}]`);
 
 // --- F: invoiced beyond the order --------------------------------------------
 const f = await makeOrder({ itemName: NAME.union, qty: 10 });
@@ -369,12 +369,12 @@ re-deriving them against those issues, which is that work's own job.
 ------------------------------------------------------------------
 Vendor "${VENDOR_NAME}", vendor invoice codes starting "166-DEMO".
 
-  ${ids.a ?? "A"}   [Delivered]
+  ${ids.a ?? "A"}   [Matched]
   ${ids.b ?? "B"}   [Awaiting delivery]      (nothing at all delivered)
   ${ids.c ?? "C"}   [Partly delivered]
-  ${ids.dOld ?? "D-old"}   [Delivered]         + (!)
+  ${ids.dOld ?? "D-old"}   [Matched]           + (!)
   ${ids.dNew ?? "D-new"}   [Awaiting delivery] + (!)
-  ${ids.e ?? "E"}   [Delivered]
+  ${ids.e ?? "E"}   [Matched]
   ${ids.f ?? "F"}   [Partly delivered]
 
   THREE CHIP VALUES AND NOTHING ELSE, the way an Airtable single select
@@ -404,8 +404,8 @@ Vendor "${VENDOR_NAME}", vendor invoice codes starting "166-DEMO".
 ------------------------------------------------------------------
 The section heading carries the SAME CHIP the list showed, from the same
 function, so the row you clicked and the page you land on cannot
-disagree. Since #232 that set has THREE values: Delivered, Mismatch and
-Awaiting delivery. A (!) marker stood beside the chip and is retired —
+disagree. Since #232 that set has THREE values: Matched, Delivery
+variance and Awaiting delivery (Delivered and Mismatch until #623). A (!) marker stood beside the chip and is retired —
 the discrepancy is a word now, so a reader meets it without hovering.
 
 Under the chip, ONE line naming the delivery this invoice matches:
@@ -433,7 +433,7 @@ and sets nothing — so every invoice it creates reads:
 
     no delivery matched   one sentence, no items
     matched and covered   the delivery, then item names, each silent
-    matched and short     Mismatch in red, the delivery, an amber box
+    matched and short     Delivery variance in red, the delivery, an amber box
                           saying what to do, then item names with the
                           short ones carrying their figures
 

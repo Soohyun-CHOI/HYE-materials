@@ -177,11 +177,11 @@ reads the order number off the file and fills the slot.
 | Qty | `90` |
 | Unit Price | `1.40` |
 | Shipping Fee | `0` |
-| Amount Due | `786.00` |
+| Invoice Total | `786.00` |
 
 Save. **The pairing box appears**: the app matched this invoice to
 `HYE-DL-260819-01` off the ordered items, and says nobody attached it by hand.
-The delivery chip reads `Delivered` — invoiced and delivered agree.
+The delivery chip reads `Matched` — invoiced and delivered agree.
 
 > **Why it pairs.** The rule tests **set containment only** — does every ordered
 > item this invoice charges appear on that delivery — plus the agreed unit price,
@@ -215,9 +215,9 @@ Above the date, the **pairing box**: `HYE-INV-260819-03` is attached as you
 watch. That invoice has been waiting with nothing delivered against it.
 
 > **Why 50 and not less.** Fifty is exactly what that invoice charges and exactly
-> what the order asked for, so the invoice reads `Delivered` and no over-delivery
+> what the order asked for, so the invoice reads `Matched` and no over-delivery
 > is raised. Any smaller number still pairs — quantity is not part of the test —
-> but the invoice would read `Mismatch`, which is Act IV's moment, not this one.
+> but the invoice would read `Delivery variance`, which is Act IV's moment, not this one.
 
 ### 3. The order that was just live — and both variance kinds
 
@@ -234,10 +234,10 @@ At `/invoices/new`, attach it. Detection fills the slot with the live order.
 |---|---|---|
 | Ordered item | `Gate Valve` `4"` | the only item on that order |
 | Qty | `10` | what the merge produced in Act I |
-| Unit Price | `48.00` | the order agreed **45.00** → `⚠ Order variance` |
+| Unit Price | `48.00` | the order agreed **45.00** → `⚠ Price variance` |
 | Remark | `Vendor invoiced list price` | the field exists to say why |
 | Shipping Fee | `0` | |
-| Amount Due | `520.00` | items add to **480.00** → `⚠ Check the total` |
+| Invoice Total | `520.00` | items add to **480.00** → `⚠ Totals differ` |
 
 > **The thresholds.** Unit price flags at more than **one cent** of difference:
 > 48.00 against 45.00 is three dollars. The header flags at more than the greater
@@ -327,9 +327,9 @@ silent.
 
 Act II showed two pairings that both came out clean. This is the same machinery
 on data that does not agree, and the order is the argument: a reader who has seen
-`Delivered` twice knows what `Mismatch` is a departure from.
+`Matched` twice knows what `Delivery variance` is a departure from.
 
-### 1. `/deliveries/new` — live, and the invoice turns `Mismatch`
+### 1. `/deliveries/new` — live, and the invoice turns `Delivery variance`
 
 | Field | Value |
 |---|---|
@@ -340,7 +340,7 @@ on data that does not agree, and the order is the argument: a reader who has see
 
 `HYE-INV-260819-05` charges 10 of that item. The set of ordered items matches and
 the delivery has room, so the pairing is made — and the invoice now reads
-`Mismatch`.
+`Delivery variance`.
 
 Open `/invoices/HYE-INV-260819-05`: the chip, and below the named delivery an
 amber box saying the invoice charges more than the delivery brought. **It names no
@@ -351,7 +351,7 @@ so a single figure there would be a sum of unlike things.
 > test, which is exactly what lets the marker exist: matching on quantity would
 > drop such an invoice out of consideration and no marker would ever appear.
 >
-> This is the same rule that produced `Delivered` twice in Act II. Nothing about
+> This is the same rule that produced `Matched` twice in Act II. Nothing about
 > the pairing changed — only the figures did.
 
 ### 2. `/deliveries/HYE-DL-260819-03/edit` — live, by hand
@@ -373,7 +373,7 @@ and that the three forms on this page submit separately.
 
 ### 3. `/invoices/HYE-INV-260821-01` — the exception list, and only exceptions
 
-The chip reads `Mismatch`. One entry under the delivery: `Hex Nut M20` — *50 EA
+The chip reads `Delivery variance`. One entry under the delivery: `Hex Nut M20` — *50 EA
 more invoiced than the matched delivery delivered*, in **amber**. This is the
 only PRE-MADE shortfall on the base; step 1 of this act makes one live, which is
 a different thing from having one to open.

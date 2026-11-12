@@ -135,7 +135,7 @@ and the sentence its detail density states (four, counting the singular and plur
 halves), both reached through `describeInvoiceOverdue`. On `/invoices` neither is
 findable — that screen imports describers and never names the constant, which is this
 group exactly. On `/invoices/[invoiceId]` **both are**, because that page already
-imports `STATUS_COPY` by name for `detail.mismatch`, and a screen that names a string
+imports `STATUS_COPY` by name for `detail.deliveryVariance`, and a screen that names a string
 has called it. So the row's `Screens` column is unchanged while its `Pieces` count
 moves: one issue, one constant, two screens, and only one of them blind.
 
@@ -148,7 +148,7 @@ hand work for the rest**, which is the sharper form of the staleness warning abo
 where the shape is open, so is the arithmetic.
 
 **Three of `STATUS_COPY`'s seventeen are words `_shared.md` locks as tier 1**, and
-they are the reason this group leads the file. `Delivered`, `Mismatch` and
+they are the reason this group leads the file. `Matched`, `Delivery variance` and
 `Awaiting delivery` reach `/invoices` through `describeInvoiceColumn`, and the same
 constant supplies `Invoiced` / `Partly invoiced` / `Awaiting invoice` to
 `/deliveries` and `/pos` and `Partly delivered` to the order axis. **A vocabulary
