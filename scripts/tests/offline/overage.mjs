@@ -997,6 +997,11 @@ export function run({ check, log, assert }) {
     // excess to the last one filled.
     const original = OVERAGE_COPY.banner.originalPO(facts).text;
     assert("the original PO's banner names the delivery, not a claim about the order", original.startsWith("Delivery "));
+    // #629 — the item is named by its one line, so a maker the order named is said.
+    assert(
+        "a banner names the item's maker after its size",
+        OVERAGE_COPY.banner.originalPO({ ...facts, maker: "Kitz" }).text.includes('Pipe 2", Kitz')
+    );
     assert("and points at the overage request", original.includes("HYE-PR-260805-01"));
 
     // --- THE PREVIEW -------------------------------------------------------

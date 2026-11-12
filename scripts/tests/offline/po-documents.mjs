@@ -478,6 +478,17 @@ export function run({ check, assert, log }) {
         PO_DOCUMENTS_COPY.badge.overDelivered,
     ];
     assert("every builder returns something to render", words.every((w) => w && w.length > 0));
+    // #629 — both lists name an ordered item by the one line, the maker after a comma.
+    check(
+        "a charge names the item's maker",
+        PO_DOCUMENTS_COPY.invoices.charge({ itemName: "Item A", size: '1/2"', maker: "Kitz", unit: "EA", qty: 2, unitPrice: 1 }).text.startsWith('Item A 1/2", Kitz — '),
+        true
+    );
+    check(
+        "  and so does a delivery",
+        PO_DOCUMENTS_COPY.deliveries.brought({ itemName: "Item B", maker: "Nibco", unit: "EA", qty: 13 }).text.startsWith("Item B, Nibco — "),
+        true
+    );
     for (const [word, why] of [
         ["arriv", "`delivered`, never `arrived`"],
         ["delivery", "`delivery` — the table is Deliveries"],

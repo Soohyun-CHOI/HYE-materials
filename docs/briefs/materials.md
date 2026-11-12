@@ -22,14 +22,14 @@ form undoes it.
 `What we last paid for an item, by vendor.`
 
 **action — a search box** with the placeholder `e.g. ball valve 2"`, and the
-hidden label `Search by item name, category, size or unit` for screen readers.
+hidden label `Search by item name, category, size, maker or unit` for screen readers.
 Search is token-based: the terms may be typed in any order and still find the same
 item, and the screen says so in a note beside the box, using two examples in code
 style — `ball valve 2"` and `2" ball valve`.
 
 **What the words reach is the catalog's vocabulary, not anybody's typing.** The
 item name is the category's own name, so the terms that find a row are HQ's terms
-plus the size and the unit. A word the tree does not use finds nothing however
+plus the size, the maker and the unit. A word the tree does not use finds nothing however
 many purchase orders carry the material. The examples are chosen to be reachable
 and a check holds them to it.
 
@@ -42,8 +42,10 @@ a redesign that shortens it takes the only explanation with it. Putting the path
 on the row is the other answer and is the design pass's to take.
 
 **evidence — one section per material.** A heading that is the item name as a link
-to its own screen, and under it in small gray text the size and unit joined by a
-middle dot — or `No size or unit recorded` when there are neither.
+to its own screen, and under it in small gray text the size, maker and unit joined
+by a middle dot — or `No size, maker or unit recorded` when there are none. Two
+makers' versions of one item are two sections with the same heading, told apart by
+that line.
 
 **That heading is the category's item name** — `Tube, SUS 304, AP` — up to 99
 characters and 30 at the median, repeated once per material down the page. The
@@ -100,9 +102,10 @@ sharpest distinction and the reason the miss costs a second query:
   `no purchase order has put an item under it yet.`
   The words were right and the price does not exist yet.
 - `No category in the catalog carries all of those words.`
-  `Try fewer words — a size is never part of a category.`
+  `Try fewer words — a size or a maker is never part of a category.`
   The reader is asking for something the tree does not name that way. **A size
-  always lands here**, since the tree names no dimension at all — and so does a
+  always lands here**, since the tree names no dimension at all, **and so does a
+  maker**, which the tree does not name either — and so does a
   query carrying no size, which is why the second half states a fact rather than
   telling the reader to drop a word that may not be there.
 

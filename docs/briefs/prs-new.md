@@ -35,8 +35,15 @@ text field. At least one entry with a file is required; the last remaining entry
 cannot be removed. An `Add` control appends another.
 
 **action — Items,** a repeating row: a category picked through four ordered
-levels, size, unit as a dropdown from the canonical 19-value list, quantity,
+levels, size, maker, unit as a dropdown from the canonical 19-value list, quantity,
 unit price. Each row shows its own computed amount.
+
+**The maker is optional and typed, as the size is.** It names whose item the
+requester wants, and it reaches the vendor on the purchase order beside the size.
+It is part of what an item is: two rows that differ only in their maker are two
+items, and two makers' versions of one item are two materials with prices of their
+own. Its field is labeled by its placeholder alone, `Maker`, as the size's is, and
+carries no example.
 
 **action — the category, which replaced a typed item name (#355).** Four ordered
 choices per row, each narrowing the next: 39 at the first level, and whatever the
@@ -264,7 +271,7 @@ category-less row through, and this one lets nothing be submitted without all fo
 levels.
 
 **The items table is the shape the request detail and the purchase order detail
-both show.** A reader fills in Item / Size / Unit / Qty / Unit Price here, reads
+both show.** A reader fills in Item / Size / Maker / Unit / Qty / Unit Price here, reads
 them back on the detail, and sees them frozen on the order.
 
 **`Discipline` is a `Disciplines` row under a job**, the same word as on the

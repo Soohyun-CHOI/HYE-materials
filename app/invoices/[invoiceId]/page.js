@@ -15,6 +15,7 @@ import { PAIRING, describePairing, describeTieBreak, linkedDelivery } from "@/li
 import { QualifierMarker, StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { foldInvoiceItems } from "@/lib/invoiceItemFold";
 import { invoiceDeliveryEntries } from "@/lib/invoiceDeliveryEntries";
+import { itemLabel } from "@/lib/materialIdentity";
 // #330 — one fact, one sentence, shared with `updateInvoiceAction`'s refusal.
 import { ITEMS_MISSING_COPY, invoiceItemsMissing } from "@/lib/invoiceItemsMissing";
 import { ORDER_BREAKDOWN_COPY, chargesByOrder } from "@/lib/invoiceOrderBreakdown";
@@ -431,7 +432,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                     the order off the page entirely. */}
                 {/* #330 — THE SENTENCE REPLACES THE WHOLE TABLE, heads and totals
                     footer included, and that is the decision rather than a detail.
-                    An empty `tbody` under seven column heads reads as an invoice that
+                    An empty `tbody` under eight column heads reads as an invoice that
                     charges for nothing; worse, the footer is arithmetic over an
                     absence — `formatUSD(undefined)` is `$0.00`, so it printed
                     `Items Subtotal $0.00` and a `Calculated Total` equal to the
@@ -456,6 +457,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                         <tr className="text-left text-zinc-500">
                             <th className="pr-2">Item</th>
                             <th className="pr-2">Size</th>
+                            <th className="pr-2">Maker</th>
                             <th className="pr-2">Unit</th>
                             <th className="pr-2 text-right">Qty</th>
                             <th className="pr-2 text-right">Unit Price</th>
@@ -484,6 +486,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                                     )}
                                 </td>
                                 <td className="py-1 pr-2">{it.size}</td>
+                                <td className="py-1 pr-2">{it.maker}</td>
                                 <td className="py-1 pr-2">{it.unit}</td>
                                 <td className="py-1 pr-2 text-right">{it.qty}</td>
                                 <td className="py-1 pr-2 text-right">{formatUSD(it.unitPrice)}</td>
@@ -501,7 +504,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                                 }
                             >
                                 <td
-                                    colSpan={5}
+                                    colSpan={6}
                                     className={
                                         row.strong
                                             ? "py-1 pr-2 text-right font-semibold"
@@ -727,7 +730,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                                         where the ambiguity #167 was solving actually
                                         lives. */}
                                     <span className={`font-medium ${ENTRY_TONE_CLASS[entry.tone]}`}>
-                                        {[entry.itemName, entry.size].filter(Boolean).join(" ") || "—"}
+                                        {itemLabel(entry) || "—"}
                                     </span>
 
                                     {/* NO FIGURES LINE. `Billed 15 · Delivered 15`

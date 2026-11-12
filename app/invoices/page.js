@@ -218,6 +218,7 @@ async function renderInvoiceListPage({ searchParams }) {
                             materialRecordId: i.material?.[0] ?? null,
                             itemName: i.itemName,
                             size: i.size,
+                            maker: i.maker,
                             unit: i.unit,
                             qty: i.qty,
                             over: i.overDelivered,

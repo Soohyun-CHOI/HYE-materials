@@ -37,7 +37,7 @@ the request list uses.
 **evidence — `Total Amount`.** The request's total, in the largest type on the
 page, in a bordered block of its own.
 
-**evidence — the items table, seven columns.** Item, Size, Unit, Qty, Unit
+**evidence — the items table, eight columns.** Item, Size, Maker, Unit, Qty, Unit
 Price, Amount, Remark. Qty and the two money columns are right-aligned. Under it,
 Items Subtotal, Shipping Fee and Total Amount. These figures are **live**, unlike
 the purchase order's frozen copies of them — this table changes when a signer
@@ -110,8 +110,9 @@ path stated under them. It is the same control on both screens deliberately — 
 signer reaches an item the way the requester did — so everything `/prs/new`'s
 brief says about the picker (39 choices at the top, a branch whose fourth level
 holds one option and another that holds dozens, the composed path being shorter
-than four segments 27% of the time) is true here too. Size, unit, quantity, unit
-price and remark are editable as before.
+than four segments 27% of the time) is true here too. Size, maker, unit, quantity,
+unit price and remark are editable as before, and a changed maker is logged under
+`Maker` as a changed size is under `Size`.
 
 **The name is never offered as text, and that is the rule rather than a
 restriction on this screen (#355).** `Item Name` is composed from the category,

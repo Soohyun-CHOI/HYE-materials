@@ -484,12 +484,13 @@ const PINNED = [
     // #357 — the search box's hidden label and the two sentences a miss chooses
     // between. The label is pinned because it is the one place the screen states
     // what the box actually matches, and it said `item name` until the name
-    // stopped being anybody's typing. The two sentences are pinned because the
-    // brief's whole point about them is that they must not read alike, and a
+    // stopped being anybody's typing, and gained `maker` when the label carried one
+    // (#629). The two sentences are pinned because the brief's whole point about
+    // them is that they must not read alike, and a
     // rewording that collapsed them would leave the brief describing a
     // distinction the screen no longer makes. Clauses rather than whole
     // sentences, so a brief's own 72-character wrap cannot break a pin.
-    "Search by item name, category, size or unit",
+    "Search by item name, category, size, maker or unit",
     "no purchase order has put an item under it yet",
     "No category in the catalog carries all of those words",
     // The truncation line, pinned on the half a redesign would drop: the brief

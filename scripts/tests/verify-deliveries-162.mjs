@@ -172,8 +172,8 @@ const fixtures = createFixtures({
             // cannot put its tag there and this discovery would find nothing.
             // The paragraph above is about a lookup that came back empty leaving
             // a row untracked; this would do it to EVERY row, and
-            // `expectAtLeast` below is what would say so. `Size` is the one
-            // writable free-text field identity still has.
+            // `expectAtLeast` below is what would say so. `Size` is a writable
+            // free-text field identity still has, beside the optional `Maker` (#629).
             tagField: "Size",
             discoverByTag: true,
             // A completed run always writes at least one of these, so 0 means the

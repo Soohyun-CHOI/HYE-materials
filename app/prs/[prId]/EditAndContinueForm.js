@@ -77,6 +77,7 @@ export default function EditAndContinueForm({
             hadCategory: Boolean(codesByRecordId.get(it.category?.[0])),
             itemName: it.itemName || "",
             size: it.size || "",
+            maker: it.maker || "",
             unit: it.unit || "",
             qty: it.qty ?? "",
             unitPrice: it.unitPrice ?? "",
@@ -225,6 +226,12 @@ export default function EditAndContinueForm({
                                 value={row.size}
                                 onChange={(e) => updateRow(i, "size", e.target.value)}
                                 placeholder="Size"
+                                className={inputClass}
+                            />
+                            <input
+                                value={row.maker}
+                                onChange={(e) => updateRow(i, "maker", e.target.value)}
+                                placeholder="Maker"
                                 className={inputClass}
                             />
                             <select

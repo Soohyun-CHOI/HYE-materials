@@ -346,6 +346,7 @@ async function renderPRDetailPage({ params }) {
                         <tr className="text-left text-zinc-500">
                             <th className="pr-2">Item</th>
                             <th className="pr-2">Size</th>
+                            <th className="pr-2">Maker</th>
                             <th className="pr-2">Unit</th>
                             <th className="pr-2 text-right">Qty</th>
                             <th className="pr-2 text-right">Unit Price</th>
@@ -362,6 +363,7 @@ async function renderPRDetailPage({ params }) {
                             <tr key={it.id} className="border-t border-zinc-200">
                                 <td className="py-1 pr-2">{it.itemName}</td>
                                 <td className="py-1 pr-2">{it.size}</td>
+                                <td className="py-1 pr-2">{it.maker}</td>
                                 <td className="py-1 pr-2">{it.unit}</td>
                                 <td className="py-1 pr-2 text-right">{it.qty}</td>
                                 <td className="py-1 pr-2 text-right">{it.unitPrice}</td>
@@ -379,7 +381,7 @@ async function renderPRDetailPage({ params }) {
                         itemsSubtotal={pr.itemsSubtotal}
                         shippingFee={pr.shippingFee}
                         totalAmount={pr.totalAmount}
-                        labelColSpan={5}
+                        labelColSpan={6}
                         trailingColSpan={quotations.length >= 2 ? 2 : 1}
                     />
                 </table>

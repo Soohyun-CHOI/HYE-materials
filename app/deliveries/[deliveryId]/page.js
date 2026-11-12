@@ -12,6 +12,7 @@ import { getAddressByRecordId } from "@/lib/airtable/addresses";
 // an address link name it identically. Pure module; nothing credentialed here.
 import { ADDRESS_CHOICE_COPY } from "@/lib/addressChoice";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
+import { itemLabel } from "@/lib/materialIdentity";
 import { getUserByRecordId } from "@/lib/airtable/users";
 import {
     ALLOCATION_COPY,
@@ -129,6 +130,7 @@ async function renderDeliveryDetailPage({ params }) {
             materialRecordId: item.material?.[0] ?? null,
             itemName: item.itemName,
             size: item.size,
+            maker: item.maker,
             unit: item.unit,
             qty: item.qty,
             over: item.overDelivered,
@@ -160,7 +162,7 @@ async function renderDeliveryDetailPage({ params }) {
             const context = overageByRow.get(item.id);
             return {
                 id: item.id,
-                label: [item.itemName, item.size].filter(Boolean).join(" "),
+                label: itemLabel(item),
                 eligible: context.eligibility.eligible,
                 // #265 — the marker is the TIE-BREAK now, not an inference: #219's
                 // tiers are gone and a request is offered only where the excess is
@@ -233,7 +235,7 @@ async function renderDeliveryDetailPage({ params }) {
                             <span className="tabular-nums">{item.qty}</span>
                             <span>{item.unit}</span>
                             <span className="text-base font-normal text-zinc-600">
-                                {[item.itemName, item.size].filter(Boolean).join(" ")}
+                                {itemLabel(item)}
                             </span>
                             {item.over && (
                                 <span className="whitespace-nowrap rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">
@@ -442,7 +444,7 @@ async function renderDeliveryDetailPage({ params }) {
                                     className="border-b border-zinc-100 last:border-0"
                                 >
                                     <td className="py-2">
-                                        {[row.itemName, row.size].filter(Boolean).join(" ")}
+                                        {itemLabel(row)}
                                     </td>
                                     {/* A `not against any order` cell stood in the
                                         else branch here (#278). It named a row whose

@@ -430,6 +430,7 @@ async function persistPRFromForm({ user, state, existing }) {
                 itemName: item.itemName,
                 categoryRecordId: item.categoryRecordId || "",
                 size: item.size,
+                maker: item.maker,
                 unit: item.unit,
                 qty: toNumberOrUndefined(item.qty),
                 unitPrice: toNumberOrUndefined(item.unitPrice),

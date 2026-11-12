@@ -71,9 +71,14 @@ const SERVICE = "lib/airtable/prEditLog.js";
 // re-pointed no history and kept the option's place and color; the alternative,
 // leaving `Item Name` standing, would have been a choice writable by nothing and
 // held by nothing, which verify-edit-log-fields-181.mjs fails on purpose.
+//
+// `Maker` CAME IN #629 AS AN ADD, AFTER `Size`, with the palette walked again from it —
+// made by hand on each base before the label was, which is the order this copy exists
+// to enforce.
 const EXPECTED_LABELS = [
     "Category",
     "Size",
+    "Maker",
     "Unit",
     "Qty",
     "Unit Price",

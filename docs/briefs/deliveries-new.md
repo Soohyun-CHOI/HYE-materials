@@ -43,6 +43,10 @@ a dropdown, and a quantity. An add-row control sits beside the heading and is
 disabled when there is no vendor, no candidate material, or every candidate has
 already been claimed by a row.
 
+**An option names the material** by its item name and size, the maker after a
+comma where its order named one, and the unit in parentheses — two makers' versions
+of one item are two options.
+
 **Each option in the material dropdown carries its own remaining quantity** —
 `N undelivered`, or `fully delivered` when there is none left. So the choice is
 made with the order's state visible rather than after it.

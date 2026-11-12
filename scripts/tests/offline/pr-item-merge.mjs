@@ -51,17 +51,19 @@ const row = ({
     categoryCodes = codes("0101001001"),
     itemName = "Stainless Steel (SUS) > Tube > SUS 304 > AP",
     size = '1"',
+    maker = "",
     unit = "EA",
     qty = "5",
     unitPrice = "12",
     remark = "",
     quotationIndex = null,
-} = {}) => ({ categoryCodes, itemName, size, unit, qty, unitPrice, remark, quotationIndex });
+} = {}) => ({ categoryCodes, itemName, size, maker, unit, qty, unitPrice, remark, quotationIndex });
 
 const EMPTY = {
     categoryCodes: ["", "", "", ""],
     itemName: "",
     size: "",
+    maker: "",
     unit: "",
     qty: "",
     unitPrice: "",
@@ -89,11 +91,12 @@ export function run({ check, assert, log }) {
 
     // -----------------------------------------------------------------------
     log("");
-    log("the six fields, one at a time — each difference keeps two rows:");
+    log("the seven fields, one at a time — each difference keeps two rows:");
     const base = row();
     const cases = [
         ["category", row({ categoryCodes: codes("0101001099") })],
         ["size", row({ size: '2"' })],
+        ["maker (#629)", row({ maker: "Kitz" })],
         ["unit", row({ unit: "FT" })],
         ["unit price", row({ unitPrice: "13" })],
         ["remark", row({ remark: "urgent" })],
@@ -148,6 +151,41 @@ export function run({ check, assert, log }) {
     check(
         "size is case-insensitive too, being half the same key",
         mergeIdenticalItems([row({ size: "SCH 40" }), row({ size: "sch 40" })]).length,
+        1
+    );
+    // #629 — the maker is the same kind of text as the size and folds the same way,
+    // because `getMaterialByKey` folds it: two rows that would be one material are
+    // one item.
+    check(
+        "maker is case-insensitive and its spacing normalized, as the size is",
+        mergeIdenticalItems([row({ maker: "KITZ  Corp" }), row({ maker: " kitz corp " })]).length,
+        1
+    );
+    check(
+        "  and the first spelling survives, as the size's does",
+        mergeIdenticalItems([row({ maker: "KITZ  Corp" }), row({ maker: " kitz corp " })])[0].maker,
+        "KITZ  Corp"
+    );
+    check(
+        "two makers are two items, and a maker is not none",
+        mergeIdenticalItems([row({ maker: "Kitz" }), row({ maker: "Nibco" }), row()]).length,
+        3
+    );
+    // An unset quotation index is the first quotation — the save links it there —
+    // so a row added to a resumed Draft merges with the hydrated row it repeats.
+    check(
+        "an unset quotation index and 0 are one quotation",
+        mergeIdenticalItems([row({ quotationIndex: 0 }), row({ quotationIndex: null })]).length,
+        1
+    );
+    check(
+        "  while 1 is another",
+        mergeIdenticalItems([row({ quotationIndex: 1 }), row({ quotationIndex: null })]).length,
+        2
+    );
+    check(
+        "  while two rows naming no maker still merge",
+        mergeIdenticalItems([row(), row({ maker: "  " })]).length,
         1
     );
     check(
@@ -222,6 +260,8 @@ export function run({ check, assert, log }) {
     check("  and are keyed as nothing", mergeKey({ ...EMPTY }), null);
     assert("  which is the write path's own test, moved rather than restated", isEmptyItemRow({ ...EMPTY }));
     assert("  a row with only a Unit picked is NOT empty", !isEmptyItemRow({ ...EMPTY, unit: "EA" }));
+    assert("  nor is one with only a Maker typed (#629)", !isEmptyItemRow({ ...EMPTY, maker: "Kitz" }));
+    assert("  while a Maker of spaces alone is untouched", isEmptyItemRow({ ...EMPTY, maker: "   " }));
     check(
         "an empty row between two identical ones does not block the merge",
         mergeIdenticalItems([row({ qty: "5" }), { ...EMPTY }, row({ qty: "5" })]).length,

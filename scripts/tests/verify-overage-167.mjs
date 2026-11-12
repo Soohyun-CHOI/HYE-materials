@@ -149,8 +149,9 @@ const fixtures = createFixtures({
             label: "Material",
             // #356 — `Item Name` is a LOOKUP through `Category` now, so a run
             // cannot put its tag there and this discovery would find nothing,
-            // leaking every fixture material onto a shared base. `Size` is the
-            // one writable free-text field identity still has.
+            // leaking every fixture material onto a shared base. `Size` is a
+            // writable free-text field identity still has, beside the optional
+            // `Maker` (#629).
             tagField: "Size",
             discoverByTag: true,
             children: [{ link: "Material Prices", table: TABLES.MATERIAL_PRICES, label: "Material Price" }],
@@ -270,7 +271,7 @@ try {
             prId: pr.prId,
             itemName,
             categoryRecordId: CATEGORY.recordId,
-            // #356 — identity is Category + Size + Unit, so with one category
+            // #356 — identity is Category + Size + Maker + Unit, so with one category
             // for the run the SIZE is what keeps two fixtures on two materials.
             // `applyOverageToPO` matches the overage order's ordered item on the
             // `Material` link, so two scenarios sharing one would let it settle

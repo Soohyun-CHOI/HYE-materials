@@ -27,6 +27,7 @@ import {
 // Issue #198 — pure and import-free, so a client component may hold it; the judgment
 // itself already ran on the server and every PO here carries its answer as `unsigned`.
 import { UNSIGNED_COPY, poOptionLabel } from "@/lib/poUnsigned";
+import { itemLabel } from "@/lib/materialIdentity";
 import { PO_ORIGIN, claimDetected, poOptionsForSlot } from "@/lib/poPickerOptions";
 // Issue #244 — same category as the two above: pure and import-free. This one is
 // the per-item half of what leaves an order open, and the sort below was an
@@ -61,6 +62,7 @@ const EMPTY_ITEM = {
     // Issue #84 — frozen copies from the linked PO Item, same as itemName/
     // unitPrice: never manually entered, never editable.
     size: "",
+    maker: "",
     unit: "",
     qty: "",
     unitPrice: "",
@@ -124,6 +126,7 @@ function defaultedItem(item, cache, usedElsewhere = new Set()) {
         poItemRecordId: first.id,
         itemName: first.itemName,
         size: first.size || "",
+        maker: first.maker || "",
         unit: first.unit || "",
         unitPrice: first.unitPrice != null ? String(first.unitPrice) : item.unitPrice,
     };
@@ -1066,6 +1069,7 @@ export default function InvoiceForm({ vendors, pos }) {
                     poItemTouched: true,
                     itemName: matched ? matched.itemName : item.itemName,
                     size: matched?.size || "",
+                    maker: matched?.maker || "",
                     unit: matched?.unit || "",
                     unitPrice: matched && matched.unitPrice != null ? String(matched.unitPrice) : item.unitPrice,
                     unitPriceEditing: false,
@@ -1720,8 +1724,7 @@ export default function InvoiceForm({ vendors, pos }) {
                                             >
                                                 {availablePoItemOptions.map((poItem) => (
                                                     <option key={poItem.id} value={poItem.id}>
-                                                        {poItem.itemName}
-                                                        {poItem.size ? ` — ${poItem.size}` : ""}
+                                                        {itemLabel(poItem)}
                                                         {poItem.uninvoicedQty != null
                                                             ? ` (Uninvoiced: ${poItem.uninvoicedQty})`
                                                             : ""}
@@ -1736,9 +1739,9 @@ export default function InvoiceForm({ vendors, pos }) {
                                                 PO Item at selection time; no input, no edit path.
                                                 A mismatch here means the wrong PO Item was picked,
                                                 not a value to correct in place. */}
-                                            {item.poItemRecordId && (item.size || item.unit) && (
+                                            {item.poItemRecordId && (item.size || item.maker || item.unit) && (
                                                 <p className="text-xs text-zinc-500">
-                                                    Size: {item.size || "—"} · Unit: {item.unit || "—"}
+                                                    Size: {item.size || "—"} · Maker: {item.maker || "—"} · Unit: {item.unit || "—"}
                                                 </p>
                                             )}
                                             {/* Issue #278 — a free-text Item Name box stood here,

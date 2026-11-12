@@ -630,6 +630,13 @@ export function run({ check, assert, log }) {
         "Rebar — 120"
     );
     check("and a nameless item still says something", ORDER_BREAKDOWN_COPY.charged({}).text, "That item — 0");
+    // #629 — the maker after the size, through the one line an item is named by, so
+    // two makers' versions of one item read apart under the order they charge.
+    check(
+        "a maker follows the size after a comma",
+        ORDER_BREAKDOWN_COPY.charged({ itemName: "166-DEMO Elbow", size: '3"', maker: "Kitz", unit: "EA", qty: 5 }).text,
+        '166-DEMO Elbow 3", Kitz — 5 EA'
+    );
     // Decision pinned mechanically rather than by reading the string: no price, no
     // amount, so no currency can reach this line.
     const withMoney = ORDER_BREAKDOWN_COPY.charged({

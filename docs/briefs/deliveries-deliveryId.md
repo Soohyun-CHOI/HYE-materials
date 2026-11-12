@@ -27,7 +27,7 @@ edit that is not available.
 **verdict — the headline received block.** A bordered block, the first thing
 under the heading, labeled `Received` with the item count appended when there is
 one. Inside it, one line per material: the quantity, the unit, then the item name
-and size in lighter weight. This is the answer to "what was delivered" and it is the
+and size, and the maker after a comma where the order named one, in lighter weight. This is the answer to "what was delivered" and it is the
 reason a reader opened the page. The app currently sets it in the largest text on
 the screen after the heading.
 

@@ -571,8 +571,8 @@ Three kinds, all verified rather than assumed.
   no input.
 - `PAIRING_REFUSED.priceUnknown`. Both callers build the price map from the very
   ordered items they then test against, so an ordered item always resolves.
-- `No size or unit recorded` on `/materials`. It needs a material with **neither**
-  size nor unit, and `materialsCache.js` skips a unit-less ordered item outright
+- `No size, maker or unit recorded` on `/materials`. It needs a material with **none**
+  of the three, and `materialsCache.js` skips a unit-less ordered item outright
   (#18) — *"a unit price without a unit cannot be compared to anything"* — so the
   item axis never gets one. A material with no **size** is reachable and is
   seeded (`Site Consumables`); the subtitle then renders the unit alone.

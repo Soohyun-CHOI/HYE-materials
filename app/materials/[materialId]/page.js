@@ -54,7 +54,7 @@ async function renderMaterialHistoryPage({ params }) {
     }
 
     const { material, rows } = history;
-    const subtitle = [material.size, material.unit].filter(Boolean).join(" · ");
+    const subtitle = [material.size, material.maker, material.unit].filter(Boolean).join(" · ");
 
     return (
         <div className="mx-auto w-full max-w-4xl p-8">

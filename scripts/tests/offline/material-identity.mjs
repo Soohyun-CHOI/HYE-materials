@@ -1,4 +1,5 @@
-// What makes two ordered items the same material (#356).
+// What makes two ordered items the same material (#356, #629), and the one line an
+// item is named by (#629).
 //
 // Pinned because this rule decides whether a company that buys one thing twice
 // gets one `Materials` row or two — and a split is silent, since both rows look
@@ -19,11 +20,11 @@
 // lib/materialIdentity.js imports only lib/typedText.js, with the extension
 // spelled out, which is what lets this be offline.
 
-import { materialIdentityKey, materialIdentityParts } from "../../../lib/materialIdentity.js";
+import { itemLabel, materialIdentityKey, materialIdentityParts } from "../../../lib/materialIdentity.js";
 import { callPassesProperty, callsTo, parseFile, parseSource, resolveFunction, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Material identity — Category + Size + Unit (#356)";
+export const title = "Material identity — Category + Size + Maker + Unit (#356, #629)";
 
 const CODE = "0102001017";
 const OTHER_CODE = "0102010006";
@@ -92,6 +93,31 @@ export function run({ check, log, assert }) {
         typeof materialIdentityKey({ categoryCode: CODE, size: "", unit: "EA" }),
         "string"
     );
+    // #629 — the maker folds as the size does, on the same two counts.
+    check(
+        "Maker case folds",
+        materialIdentityKey({ categoryCode: CODE, size: "2in", maker: "KITZ", unit: "EA" }) ===
+            materialIdentityKey({ categoryCode: CODE, size: "2in", maker: "Kitz", unit: "EA" }),
+        true
+    );
+    check(
+        "Maker is trimmed and an internal whitespace run collapses",
+        materialIdentityKey({ categoryCode: CODE, size: "2in", maker: "  Nibco   Inc ", unit: "EA" }) ===
+            materialIdentityKey({ categoryCode: CODE, size: "2in", maker: "Nibco Inc", unit: "EA" }),
+        true
+    );
+    // THE HALF EVERY MATERIAL MADE BEFORE #629 STANDS ON: an item naming no maker,
+    // however the caller says so, has the key a maker-less row has.
+    check(
+        "an absent Maker, an empty one, a blank one and null are one key",
+        new Set([
+            materialIdentityKey({ categoryCode: CODE, size: "2in", unit: "EA" }),
+            materialIdentityKey({ categoryCode: CODE, size: "2in", maker: "", unit: "EA" }),
+            materialIdentityKey({ categoryCode: CODE, size: "2in", maker: "   ", unit: "EA" }),
+            materialIdentityKey({ categoryCode: CODE, size: "2in", maker: null, unit: "EA" }),
+        ]).size,
+        1
+    );
 
     // ANTI-VACUITY. Every assertion above is an EQUALITY, and a key function
     // that returned one constant would pass all of them — so these are the
@@ -118,6 +144,26 @@ export function run({ check, log, assert }) {
         false
     );
     check(
+        "a different Maker is a different material (#629)",
+        materialIdentityKey({ categoryCode: CODE, size: "2in", maker: "Kitz", unit: "EA" }) ===
+            materialIdentityKey({ categoryCode: CODE, size: "2in", maker: "Nibco", unit: "EA" }),
+        false
+    );
+    check(
+        "a Maker is a different material from none",
+        materialIdentityKey({ categoryCode: CODE, size: "2in", maker: "Kitz", unit: "EA" }) ===
+            materialIdentityKey({ categoryCode: CODE, size: "2in", unit: "EA" }),
+        false
+    );
+    // A size and a maker are two axes, not one string: the same word in the other
+    // slot is a different material.
+    check(
+        "a word as the Size is not that word as the Maker",
+        materialIdentityKey({ categoryCode: CODE, size: "Kitz", unit: "EA" }) ===
+            materialIdentityKey({ categoryCode: CODE, size: "", maker: "Kitz", unit: "EA" }),
+        false
+    );
+    check(
         "a blank Size and a Size of \"0\" are not the same material",
         materialIdentityKey({ categoryCode: CODE, size: "", unit: "EA" }) ===
             materialIdentityKey({ categoryCode: CODE, size: "0", unit: "EA" }),
@@ -140,6 +186,16 @@ export function run({ check, log, assert }) {
         "Size is normalized but not lower-cased",
         materialIdentityParts({ categoryCode: CODE, size: "  SCH  40  PVC ", unit: "EA" }).size,
         "SCH 40 PVC"
+    );
+    check(
+        "Maker is normalized but not lower-cased (#629)",
+        materialIdentityParts({ categoryCode: CODE, size: "", maker: "  NIBCO   Inc ", unit: "EA" }).maker,
+        "NIBCO Inc"
+    );
+    check(
+        "an absent Maker is the empty string, the value a maker-less row holds",
+        materialIdentityParts({ categoryCode: CODE, size: "", unit: "EA" }).maker,
+        ""
     );
     check(
         "Unit keeps the canonical spelling",
@@ -212,6 +268,7 @@ export function run({ check, log, assert }) {
     assert('  coerced with & "" first', Boolean(formula?.includes('{Category Code} & ""')));
     assert("  and names {Item Name} nowhere", !formula?.includes("{Item Name}"));
     assert("  while still folding {Size}", Boolean(formula?.includes("LOWER(TRIM({Size}))")));
+    assert("  and {Maker} (#629)", Boolean(formula?.includes("LOWER(TRIM({Maker}))")));
     assert("  and {Unit}", Boolean(formula?.includes("LOWER(TRIM({Unit}))")));
 
     const upsert = resolveFunction(materials.ast, "upsertMaterial");
@@ -234,6 +291,87 @@ export function run({ check, log, assert }) {
         "  with Size beside it",
         creates.length === 1 && callPassesProperty(creates[0], "Size")
     );
+    assert(
+        "  and Maker (#629)",
+        creates.length === 1 && callPassesProperty(creates[0], "Maker")
+    );
+
+    // --- THE ONE LINE AN ITEM IS NAMED BY (#629) -------------------------
+    log("");
+    log("the one line an item is named by:");
+    check("a name and a size", itemLabel({ itemName: "Ball Valve", size: '2"' }), 'Ball Valve 2"');
+    check("then a comma and the maker", itemLabel({ itemName: "Ball Valve", size: '2"', maker: "Kitz" }), 'Ball Valve 2", Kitz');
+    check("no size: the maker after the name", itemLabel({ itemName: "Ball Valve", maker: "Kitz" }), "Ball Valve, Kitz");
+    check("no name: the size, then the maker", itemLabel({ size: '2"', maker: "Kitz" }), '2", Kitz');
+    check("the maker alone", itemLabel({ maker: "Kitz" }), "Kitz");
+    check("nothing at all is the empty string, for the caller's own word", itemLabel({}), "");
+    check("and a missing item too", itemLabel(undefined), "");
+    // A name carries commas of its own (`Tube, SUS 304, AP`); the line adds exactly
+    // one, before a maker.
+    check(
+        "a name with commas gains exactly one more, before the maker",
+        itemLabel({ itemName: "Tube, SUS 304, AP", size: "1/2in", maker: "Kitz" }),
+        "Tube, SUS 304, AP 1/2in, Kitz"
+    );
+
+    // --- NO SCREEN JOINS A NAME AND A SIZE BY HAND (AST) -----------------
+    //
+    // Thirteen call sites did until #629, two of them as one function written twice;
+    // a maker added to each would have been thirteen copies of a rule with a comma in
+    // it. What is asserted absent is the shape they had — an array holding an
+    // `.itemName` and a `.size` member — and the detector is shown finding a planted
+    // one, so an empty count is a finding rather than a blind walk.
+    log("");
+    log("no file joins an item's name and size by hand (AST):");
+    // `f?.size` parses as a ChainExpression around the member, so it is unwrapped —
+    // two of the thirteen were written that way, and a mutation found the detector
+    // blind to them.
+    const memberName = (e) => {
+        const inner = e?.type === "ChainExpression" ? e.expression : e;
+        return inner?.type === "MemberExpression" ? inner.property?.name : null;
+    };
+    const handJoined = (ast) => {
+        let n = 0;
+        walk(ast, (node) => {
+            if (node.type !== "ArrayExpression") return;
+            const members = node.elements.map(memberName);
+            if (members.includes("itemName") && members.includes("size")) n++;
+        });
+        return n;
+    };
+    const handJoinSites = [];
+    for (const file of HAND_JOIN_SCOPE) {
+        const count = handJoined(parseFile(file).ast);
+        if (count) handJoinSites.push(`${file} (${count})`);
+    }
+    check(`  across the ${HAND_JOIN_SCOPE.length} files that name an item`, handJoinSites.join(", ") || "none", "none");
+    check(
+        "  and the detector finds a planted one",
+        handJoined(parseSource(`const l = [row.itemName, row.size].filter(Boolean).join(" ");`, "<planted>").ast),
+        1
+    );
+    check(
+        "  and one written with optional chaining",
+        handJoined(parseSource(`const l = [f?.itemName, f?.size].filter(Boolean).join(" ");`, "<planted>").ast),
+        1
+    );
 }
+
+/**
+ * The files that named an item by hand before #629 and name one through `itemLabel`
+ * now — named rather than swept, since a sweep of every file asks about comments and
+ * fixtures as much as about screens.
+ */
+const HAND_JOIN_SCOPE = [
+    "lib/deliveryAllocation.js",
+    "lib/invoiceOrderBreakdown.js",
+    "lib/overage.js",
+    "lib/overage.server.js",
+    "lib/poDocuments.js",
+    "app/deliveries/[deliveryId]/page.js",
+    "app/invoices/[invoiceId]/page.js",
+    "app/invoices/new/InvoiceForm.js",
+    "app/prs/OverageStrip.js",
+];
 
 if (isMain(import.meta.url)) standalone(title, run);

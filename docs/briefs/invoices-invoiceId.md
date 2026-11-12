@@ -66,8 +66,8 @@ ID as a link, an em dash, and the order's status in bold. Absent entirely when
 there are no orders to name — see the items table below for the one state that
 does that.
 
-**evidence — the items table.** Seven columns: Item, Size, Unit, Qty, Unit
-Price, Amount, Remark. The last three of the first six are right-aligned
+**evidence — the items table.** Eight columns: Item, Size, Maker, Unit, Qty, Unit
+Price, Amount, Remark. The last three of the first seven are right-aligned
 figures. A row here is a *folded* item — an invoice item split across two orders
 reads as one row again — so the row count is not the stored row count. There is
 deliberately **no order column**: a folded row can span two orders, so that cell
@@ -339,7 +339,7 @@ line stands for rather than one row's.
 
 **When a delivery is matched AND something disagrees:** a list under the
 delivery, one entry per folded item, and **only** for the items that disagree.
-An entry carries the item's name and size, colored by its verdict tone, and one
+An entry carries the item's name, size and maker, colored by its verdict tone, and one
 sentence with the figures. One tone reaches it, `exception`, for a shortfall
 against the matched delivery. **A second, `unjudged`, reached it until #278** —
 gray text for an invoice item with no ordered item behind it, saying `Not
