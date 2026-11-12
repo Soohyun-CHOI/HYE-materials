@@ -14,6 +14,7 @@ import {
     filtersActive,
     listQuery,
     pageOfRows,
+    sameQuery,
 } from "@/lib/listFilters";
 import PickerFilter from "./PickerFilter";
 
@@ -104,15 +105,19 @@ export function useListFilters({ route, initial, initialPage, rows }) {
     };
 
     useEffect(() => {
-        // The URL already reflects the initial filters — the server seeded them from
-        // it — so the first mount has nothing to sync. **Unless the page it asked for
-        // is not the page it got (#326)**: a pasted `?page=99` has to come back as the
-        // page actually on screen, or the address bar contradicts the screen for as
-        // long as the reader stays on it. That is the one thing the asset screen's own
-        // clamp does not do, and it is why this test is here rather than a bare return.
+        // The first mount writes nothing when the address already asks for the screen on
+        // it. **It does not always** — the server seeded the filters from the address and
+        // DROPPED whatever this reader's options do not hold, and the page is clamped to
+        // the rows the bar left (#326) — so a pasted `?page=99`, a forged id or a
+        // requester this reader cannot see (#630) has to come back as the screen actually
+        // shown, or the address contradicts it and a copied link hands the next reader a
+        // narrowing this one never saw. This said the address already reflected the
+        // initial filters, which was false of exactly those links; and it compared the
+        // page as asked, a string, with the page resolved, a number, so every `?page=2`
+        // was written back over itself. `sameQuery` answers both.
         if (firstRun.current) {
             firstRun.current = false;
-            if (page.page === asked) return;
+            if (sameQuery(window.location.search, listQuery(route, state, page.page))) return;
         }
         const qs = listQuery(route, state, page.page);
         const href = qs ? `${pathname}?${qs}` : pathname;

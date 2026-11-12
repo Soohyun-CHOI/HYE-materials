@@ -23,12 +23,25 @@ so it was arrived at by typing its URL or by backing out of a request.
 button on the screen.
 
 **action — a filter bar** above the table, in a bordered box, and it is the same
-bar the other three document lists carry (#324). Six controls here: a search box
-reading `Search by PR ID, vendor or job` (#325); a job picker and a vendor picker,
-each taking several at once and each searchable; a `Requested by me` checkbox; a
-status dropdown; and a kind dropdown offering `Overage` and `Direct purchase`.
-Both dropdowns' first option is `All`. The active filters are mirrored into the
-URL, so a refresh, a shared link and the back button all restore the view.
+bar the other three document lists carry (#324). Seven controls here: a search box
+reading `Search by PR ID, vendor or job` (#325); a job picker, a vendor picker and
+a requester picker (#630), each taking several at once and each searchable; a
+`Requested by me` checkbox; a status dropdown; and a kind dropdown offering
+`Overage` and `Direct purchase`. Both dropdowns' first option is `All`. The active
+filters are mirrored into the URL, so a refresh, a shared link and the back button
+all restore the view.
+
+**The requester picker names a person by both names and the `Requester` column by
+the first.** A picker is where a person is chosen, and two people can share a first
+name; the column only reports one. A person with no name yet is offered as the
+start of their email address, which is what every other surface prints for them.
+It offers only the requesters of requests this reader can see, so it never tells a
+reader that a request outside their scope exists — and that includes the reader
+themselves, so "mine or Kim's" is one choice.
+
+**`Requested by me` and the requester picker narrow together.** Neither sets the
+other: the checkbox ticked beside somebody else picked leaves nothing, and the
+count and `Clear all filters` are how the reader sees it and gets out.
 
 **The box takes the names on the row and works out which one was typed.** A
 request is an internal document and carries no second name — the vendor's own
@@ -104,10 +117,10 @@ until #324 and the second covered both of the first two cases — the word `yet`
 is what made it false for a reader whose scope is simply empty, and all four
 document lists draw the same three-way distinction now.
 
-**When no row carries a job, or none carries a vendor:** that picker is absent
-entirely rather than empty. The options are the jobs and vendors ON the rows this
-reader can see, so a picker with nothing to offer means the rows have nothing to
-offer it. It listed the reader's assigned jobs until #324, which meant an
+**When no row carries a job, or none carries a vendor or a requester:** that picker
+is absent entirely rather than empty. The options are the jobs, vendors and
+requesters ON the rows this reader can see, so a picker with nothing to offer means
+the rows have nothing to offer it. It listed the reader's assigned jobs until #324, which meant an
 assignment with no request on it was an option that emptied the table, and a
 request reachable without an assignment — a signer's — was a row no filter could
 reach.
@@ -248,8 +261,9 @@ since #382, which gave the invoice the author it had been missing.
 read the same field, the request's `Requester`, from the row here and through the
 parent request there. The deliveries and invoice lists say `Recorded by me`
 instead, which is a different field and so a different word, and one word across
-those two. A redesign may restyle the bar and move it; what it may not do is let
-one list's control mean something different from the same control on another.
+those two. The requester picker is on this list alone. A redesign may restyle the
+bar and move it; what it may not do is let one list's control mean something
+different from the same control on another.
 
 **The kind mark is a filter here and nothing like it is a filter elsewhere**, and
 the rule behind that is worth knowing: a closed set on one of these lists becomes
