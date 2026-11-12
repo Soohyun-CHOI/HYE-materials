@@ -44,8 +44,9 @@ company ships to, and the name people will know it by.`
   `USA`. It is the closed set the field already holds and is not editable here.
 - `Job`, a dropdown, **optional**, whose empty option reads `No job`. Every job on
   the base is offered, grouped `My Jobs` then `All Jobs` — the reader's own
-  assignments first and none hidden, which is the request form's own grouping and
-  its three labels (`Jobs` is the heading when the reader has no assignment).
+  assignments first and none hidden, which is the grouping and the three labels the
+  request form shows the office and the President (`Jobs` is the heading when the
+  reader has no assignment).
 - A submit control, `Create Address`.
 
 The page is a narrow centered column, the same shape as the three `/admin` create
@@ -119,17 +120,17 @@ to be delivered is the site's fact: the person who talked to the vendor is the o
 who knows it. An Admin gate would also make this screen a dead end for the reader
 it is built for, since the request form sends a requester here.
 
-**Every job is offered, and an assignment GROUPS rather than gates.** The request
-form already offers every job to every requester with the assigned ones first and
-none hidden, so a job's identity is not scoped in this app and a job's address
-list cannot leak one — and narrowing here would refuse a requester the very job
-they are about to raise a request against, at the hop that form sends them
-through. **What an assignment gates elsewhere is an act that makes a claim**: a
-delivery says material arrived on a job, a tool event says it happened on one. An
-address attached to a job says neither — it says a place is somewhere that job
-ships to, and the person recording it is asserting nothing about themselves. So
-the grouping is the whole of what an assignment does on this screen, and a
-redesign may reorder it but must not turn it into a filter.
+**Every job is offered, and an assignment GROUPS rather than gates.** A job's
+identity is not scoped in this app — every reader may stand an asset list on any
+job — so a job's address list cannot leak one. **What an assignment gates elsewhere
+is an act that makes a claim**: a request commits money on a job, a delivery says
+material arrived on one, a tool event says it happened on one. That is why the
+request form offers a requester only their own jobs, and why a requester it sends
+here already holds the job they came with. An address attached to a job says none
+of these — it says a place is somewhere that job ships to, and the person recording
+it is asserting nothing about themselves. So the grouping is the whole of what an
+assignment does on this screen, and a redesign may reorder it but must not turn it
+into a filter.
 
 **A job reaches its addresses two ways and the screen reads both.**
 `Addresses."Jobs"` names every job that uses an address; `Jobs."Delivery Address"`

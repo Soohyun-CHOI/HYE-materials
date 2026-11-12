@@ -166,13 +166,18 @@ no timestamp, no actor; nothing reads it but the screen that writes it. There is
 statement for an unassigned person to falsify, so there is nothing for an
 assignment to protect.
 
-**THE DECIDING PRECEDENT IS THE SCREEN THAT SENDS THE READER.** `/prs/new` offers
-every job to every requester — its own comment says the assigned ones group first
-"without ever hiding the rest" — and a purchase request is far heavier than an
-address: it commits money, starts a signing chain and becomes an order. If the app
-lets any employee raise a request against any job, an address screen refusing that
-same job is a dead end at exactly the hop #385 builds, which is the Admin-gate
-argument one level in.
+**THE DECIDING PRECEDENT WAS THE SCREEN THAT SENDS THE READER, AND #639 TOOK IT
+AWAY WITHOUT MOVING THE DECISION.** `/prs/new` offered every job to every requester
+then — its own comment said the assigned ones group first "without ever hiding the
+rest" — and a purchase request is far heavier than an address: it commits money,
+starts a signing chain and becomes an order. If the app let any employee raise a
+request against any job, an address screen refusing that same job was a dead end at
+exactly the hop #385 builds, which is the Admin-gate argument one level in. #639
+held a request to its requester's own jobs, through `canAccessJobDeliveries` — the
+office and the President on every job — because a request does make a claim on its
+job: money. So a requester sent here holds a job of their own, and narrowing this
+picker would refuse them nothing; but it would protect nothing either, which is the
+paragraph above, and that paragraph never needed the precedent.
 
 - **`assignedJobsFor` IS DELIBERATELY NOT REACHED FOR, and this is the case
   `naming.md`'s `canAccessJobDeliveries` row is about read the other way.** One
@@ -184,7 +189,9 @@ argument one level in.
   first cut sorted every job by code, so an employee on one job scrolled past the
   rest — fine at two jobs and a defect at forty. The picker takes `/prs/new`'s
   partition and its three labels verbatim (`My Jobs` / `All Jobs`, and `Jobs` when
-  the reader has no assignment), because two screens naming one grouping two ways
+  the reader has no assignment) — the office's and the President's reading of that
+  screen since #639, which offers a requester their own jobs as one ungrouped list —
+  because two screens naming one grouping two ways
   is the drift this repository sweeps for. It costs no query: `requireUser()` has
   already returned the record `assignedJobs` sits on. The one difference is that
   those words are a copy constant here and JSX literals there, which is this
@@ -193,8 +200,10 @@ argument one level in.
   against `PRForm.js`, so rewording that picker fails here rather than quietly
   leaving the app grouping one thing two ways.
 - **`getAllJobs()` IS THEREFORE THE RIGHT CALL** and not a widening: a job's
-  identity is not scoped in this app, so a job's code and name are already on
-  `/prs/new` for every reader, and a job's address list cannot leak one.
+  identity is not scoped in this app, so a job's code and name are already in front
+  of every reader — on the asset lists, which every reader may stand on any job since
+  #593, where this said `/prs/new` until #639 — and a job's address list cannot leak
+  one.
 
 #### What the removal cost on the order axis
 

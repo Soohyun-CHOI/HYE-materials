@@ -27,7 +27,9 @@ import { withOpsLabel } from "@/lib/airtableOps";
 import { getCategoriesByLeafCode } from "@/lib/airtable/materialCategories";
 import { CATEGORY_PICKER_COPY, categoryItemFields } from "@/lib/materialCategory";
 import { getAllAddresses } from "@/lib/airtable/addresses";
+import { getAllDisciplines } from "@/lib/airtable/disciplines";
 import { ADDRESS_CHOICE_COPY } from "@/lib/addressChoice";
+import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
 import { OWN_DRAFT_COPY, ownDraftRefusal, requesterOf } from "@/lib/prRequester";
 import { userName } from "@/lib/userName";
 // #308 — the same judgment and the same words the invoice write path has used since
@@ -167,6 +169,41 @@ async function resumedDraft(user, recordId) {
     }
     const refusal = ownDraftRefusal(user, pr);
     return refusal ? { refusal } : { existing: pr };
+}
+
+/**
+ * The refusal of a discipline on a job this reader may not raise a request on (#639).
+ * Its words name the control to change, in the screen's own `Select a Job`.
+ */
+const JOB_NOT_OFFERED = "Select a Job you're assigned to.";
+
+/**
+ * Whether the discipline a save or a submission names is on a job this reader may raise
+ * a request on (#639): null when it is, or when it names none, and otherwise the
+ * sentence to return.
+ *
+ * THE RULE IS `canAccessJobDeliveries`, ASKED OF THE DISCIPLINE'S JOB — a requester's own
+ * `Assigned Jobs`, every job for the office and the President — and the page offers the
+ * jobs `accessibleJobs` answers with it, so the screen and this agree by being one
+ * function. A request reaches its job only through `Discipline`, so the discipline is
+ * what is judged; the form's job choice is never submitted.
+ *
+ * `getAllDisciplines` RATHER THAN A FIND, for `getAllAddresses`' reason below: it is the
+ * read the form's own picker was built from, and an id naming no discipline — or a row
+ * of another table, which `find` would hand back as though it were one — is simply not
+ * in it. Such an id is unreachable from the screen and is answered as a discipline not
+ * chosen.
+ *
+ * ASKED ON A SAVE AS WELL AS AT SUBMIT, which is #308's posture rather than #72's: a draft
+ * may be half-finished, and a job the reader may not raise on is not an unfinished
+ * answer but a wrong one. So a draft written on a job the office has since taken the
+ * reader off saves again only once its job is one of theirs.
+ */
+async function jobRefusal(user, disciplineId) {
+    if (!disciplineId) return null;
+    const discipline = (await getAllDisciplines()).find((d) => d.id === disciplineId);
+    if (!discipline) return "Select a Discipline.";
+    return canAccessJobDeliveries(user, discipline.jobId) ? null : JOB_NOT_OFFERED;
 }
 
 /**
@@ -507,6 +544,9 @@ export async function saveDraftAction(prevState, formData) {
             console.error("saveDraftAction could not read the draft it names", resumed.failed);
             return { error: "Couldn't save the draft. Please try again." };
         }
+        // #639 — the job the draft would be on, before anything is resolved or written.
+        const jobRefused = await jobRefusal(user, parsed.disciplineId);
+        if (jobRefused) return { error: jobRefused };
         // Resolved even on a Draft, so a saved row carries its link and its
         // composed name rather than being repaired at submit — and so a Draft
         // re-opened tomorrow shows the same item text a signer will see. Rows
@@ -642,6 +682,12 @@ export async function createPRAction(prevState, formData) {
             state;
 
         if (!disciplineId) return { error: "Select a Discipline." };
+        // #639 — the job, first after the discipline it is reached through. What matters
+        // most is that it runs ahead of the duplicate check below, which names another
+        // request on the same discipline, who raised it and when: not this reader's to
+        // learn about a job they may not raise on.
+        const jobRefused = await jobRefusal(user, disciplineId);
+        if (jobRefused) return { error: jobRefused };
         if (!vendorId) return { error: "Select a Vendor." };
         // #385 — REQUIRED AT SUBMIT AND NOT AT SAVE, which is every other required
         // field's shape on this form: a Draft is allowed to be half-finished (#72)

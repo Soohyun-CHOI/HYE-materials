@@ -38,13 +38,15 @@ export const metadata = { title: COPY.heading };
  * is `lib/loginDestination.js`'s problem avoided rather than solved again: nothing
  * arrives that could become a way out of the app.
  *
- * EVERY JOB, NOT THE READER'S OWN, WHICH IS `/prs/new`'s CALL AND NOT A NEW ONE.
- * That screen offers every job to every requester — its own comment says the
- * assigned ones sort first "without ever hiding the rest" — so a job's identity is
- * not scoped in this app and a job's address list cannot leak one. Scoping here
- * would refuse a requester the job they are about to raise a request against.
- * `assignedJobsFor` is deliberately not reached for: that is the assets axis's rule
- * for which job an EVENT may be filed against, which is a different question.
+ * EVERY JOB, NOT THE READER'S OWN, BECAUSE AN ADDRESS ON A JOB MAKES NO CLAIM.
+ * An assignment gates an act that says something about a job — a request's money,
+ * which is why `/prs/new` offers a requester only their own jobs since #639, a
+ * delivery's arrival, an asset event — and a place a job ships to says nothing about
+ * the person recording it. A job's identity is not scoped in this app either: every
+ * reader may stand an asset list on any job (#593), so a job's address list cannot
+ * leak one. `assignedJobsFor` is deliberately not reached for: that is the assets
+ * axis's rule for which job an EVENT may be filed against, which is a different
+ * question. `docs/notes/addresses.md` has the whole of it, and what #639 changed.
  */
 export default async function NewAddressPage(props) {
     return withOpsLabel("/addresses/new", () => renderNewAddressPage(props));
@@ -56,9 +58,10 @@ async function renderNewAddressPage({ searchParams }) {
     const { job: jobCode, from: fromPrId } = await searchParams;
     const [jobs, addresses] = await Promise.all([getAllJobs(), getAllAddresses()]);
 
-    // GROUPED TOWARD THE READER'S OWN ASSIGNMENTS AND HIDING NONE, which is
-    // `/prs/new`'s partition and not a second rule: same control, same reader, and
-    // #385 sends them here from that form. It costs no query — `requireUser()` has
+    // GROUPED TOWARD THE READER'S OWN ASSIGNMENTS AND HIDING NONE, which is the
+    // partition `/prs/new` shows the office and the President and not a second rule
+    // (a requester is offered their own jobs alone there since #639), and #385 sends
+    // a reader here from that form. It costs no query — `requireUser()` has
     // already returned the record `assignedJobs` is on. **The grouping is the whole
     // of what an assignment does on this screen**, because what it would gate is
     // not an act: see the page header.

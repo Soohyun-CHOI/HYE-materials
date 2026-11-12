@@ -2,6 +2,7 @@ import Link from "next/link";
 import UndrawnPage from "@/app/components/UndrawnPage";
 import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
+import { accessibleJobs } from "@/lib/deliveryAccess";
 import { getAllDisciplines } from "@/lib/airtable/disciplines";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getActiveUsers } from "@/lib/airtable/users";
@@ -96,12 +97,31 @@ async function renderNewPRPage({ searchParams }) {
           }
         : null;
 
-    // Default-sort the Job/Discipline picker toward the Requester's Assigned
-    // Jobs, without ever hiding the rest. This cited a "Phase 1 requirement"
-    // sentence in CLAUDE.md that is no longer there, in the word #280 retired.
+    // #639 — THE JOBS A REQUEST MAY GO ON ARE `canAccessJobDeliveries`'S, through
+    // `accessibleJobs`: a requester's own `Assigned Jobs`, and every job for the office
+    // and the President. That function is the app's one "may this person act on this
+    // job" — the overage draft and the direct-purchase claim already raise a request on
+    // it — and `docs/notes/naming.md` records why its name still says deliveries. The
+    // actions ask the same of the discipline a save or a submission names, so this list
+    // is what the screen offers and not what the server trusts.
+    //
+    // THE READER'S OWN COME FIRST, AND FOR A REQUESTER THEY ARE ALL THERE IS: the office
+    // keeps the grouping it had, its own jobs above the rest, and a requester's
+    // `otherJobs` is empty, which the form draws as one ungrouped list. Nothing here costs
+    // a query — `getAllJobs` is the read the page already made, and `requireUser()` has
+    // returned the record `assignedJobs` and the two flags sit on.
+    const offeredJobs = accessibleJobs(user, jobs);
     const assignedJobIds = new Set(user.assignedJobs || []);
-    const myJobs = jobs.filter((j) => assignedJobIds.has(j.id));
-    const otherJobs = jobs.filter((j) => !assignedJobIds.has(j.id));
+    const myJobs = offeredJobs.filter((j) => assignedJobIds.has(j.id));
+    const otherJobs = offeredJobs.filter((j) => !assignedJobIds.has(j.id));
+    // A DRAFT OPENED HERE CAN HOLD A JOB THE READER IS NO LONGER OFFERED — written before
+    // #639 on any job, or on one the office has since taken them off. The form shows it,
+    // as a choice that cannot be picked again, because a control showing some other job
+    // over the draft's own discipline would be a screen contradicting its draft; saving
+    // or submitting it is refused, in words saying to pick one of their own.
+    const unofferedJob = initialDraft?.jobId
+        ? (jobs.find((j) => j.id === initialDraft.jobId && !offeredJobs.includes(j)) ?? null)
+        : null;
 
     return (
         <UndrawnPage measure="document">
@@ -120,6 +140,7 @@ async function renderNewPRPage({ searchParams }) {
                 key={autoResume ? `draft-${chosenDraft.prId}` : "new"}
                 myJobs={myJobs}
                 otherJobs={otherJobs}
+                unofferedJob={unofferedJob}
                 disciplines={disciplines}
                 vendors={vendors}
                 users={users}

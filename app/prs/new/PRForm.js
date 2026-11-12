@@ -138,6 +138,9 @@ function formStateFromDraft(d, categories) {
 export default function PRForm({
     myJobs,
     otherJobs,
+    // #639 — the job of the draft opened here when the reader is not offered it, or
+    // null. Listed only while it is the one chosen, and never choosable: see the page.
+    unofferedJob = null,
     disciplines,
     vendors,
     users,
@@ -188,8 +191,13 @@ export default function PRForm({
     const router = useRouter();
 
     // #385 — the two job groups flattened, so a job id resolves to its record
-    // wherever it was listed. The page owns the grouping; this is the lookup.
-    const allJobs = useMemo(() => [...(myJobs || []), ...(otherJobs || [])], [myJobs, otherJobs]);
+    // wherever it was listed. The page owns the grouping; this is the lookup. #639 —
+    // and a draft's job the reader is not offered, so the address control below still
+    // answers for the job the draft holds.
+    const allJobs = useMemo(
+        () => [...(myJobs || []), ...(otherJobs || []), ...(unofferedJob ? [unofferedJob] : [])],
+        [myJobs, otherJobs, unofferedJob]
+    );
     const seedChoice = addressChoiceFromStored({
         storedAddressId: seed?.deliveryAddressId ?? "",
         defaultAddressId: jobDefaultAddressId(allJobs.find((j) => j.id === (seed?.jobId ?? ""))),
@@ -748,22 +756,45 @@ export default function PRForm({
                         <option value="" disabled>
                             Select a Job
                         </option>
-                        {myJobs.length > 0 && (
-                            <optgroup label="My Jobs">
-                                {myJobs.map((j) => (
-                                    <option key={j.id} value={j.id}>
-                                        {j.jobCode} — {j.jobName}
-                                    </option>
-                                ))}
-                            </optgroup>
+                        {/* #639 — the draft's own job when the reader is not offered it:
+                            shown while it is the one chosen, so the control says what the
+                            draft holds, and `disabled`, so it cannot be chosen again once
+                            left. A disabled option still matches a controlled value. */}
+                        {unofferedJob && jobId === unofferedJob.id && (
+                            <option value={unofferedJob.id} disabled>
+                                {unofferedJob.jobCode} — {unofferedJob.jobName}
+                            </option>
                         )}
-                        <optgroup label={myJobs.length > 0 ? "All Jobs" : "Jobs"}>
-                            {otherJobs.map((j) => (
+                        {/* #639 — A REQUESTER IS OFFERED THEIR OWN JOBS ALONE, so there is
+                            nothing to group and the list is one. The office and the
+                            President are offered every job, their own grouped first, as
+                            every reader was until then. */}
+                        {otherJobs.length === 0 ? (
+                            myJobs.map((j) => (
                                 <option key={j.id} value={j.id}>
                                     {j.jobCode} — {j.jobName}
                                 </option>
-                            ))}
-                        </optgroup>
+                            ))
+                        ) : (
+                            <>
+                                {myJobs.length > 0 && (
+                                    <optgroup label="My Jobs">
+                                        {myJobs.map((j) => (
+                                            <option key={j.id} value={j.id}>
+                                                {j.jobCode} — {j.jobName}
+                                            </option>
+                                        ))}
+                                    </optgroup>
+                                )}
+                                <optgroup label={myJobs.length > 0 ? "All Jobs" : "Jobs"}>
+                                    {otherJobs.map((j) => (
+                                        <option key={j.id} value={j.id}>
+                                            {j.jobCode} — {j.jobName}
+                                        </option>
+                                    ))}
+                                </optgroup>
+                            </>
+                        )}
                     </select>
                 </div>
 
@@ -773,7 +804,6 @@ export default function PRForm({
                     </label>
                     <select
                         id="disciplineId"
-                        name="disciplineId"
                         value={disciplineId}
                         onChange={(e) => setDisciplineId(e.target.value)}
                         required
@@ -797,7 +827,6 @@ export default function PRForm({
                     </label>
                     <select
                         id="vendorId"
-                        name="vendorId"
                         value={vendorId}
                         onChange={(e) => setVendorId(e.target.value)}
                         required
@@ -1182,6 +1211,21 @@ export default function PRForm({
                 checks that the id names a real address, which is what a directly
                 callable Server Action owes. See lib/addressChoice.js. */}
             <input type="hidden" name="deliveryAddressId" value={deliveryAddressId} />
+            {/* #639 — THE DISCIPLINE AND THE VENDOR ARE SUBMITTED FROM STATE, AS
+                EVERYTHING ELSE HERE IS, AND NOT FROM THEIR SELECTS. React resets
+                this form once an action settles, and a controlled `<select>` has
+                no `selected` attribute to fall back to, so it lands on its
+                disabled placeholder — whose value a form does not submit — until
+                the next render puts the selection back (the reset is recorded in
+                `app/prs/[prId]/EditAndContinueForm.js`). Measured in a browser
+                for #639: after a refused save the form's data held no vendor
+                picked since the page loaded, and no discipline either on a draft
+                resumed from the prompt, so `Save draft` pressed again with nothing
+                changed would have written the draft without them. A hidden input
+                keeps its value through a reset, since React writes it as the
+                default too. The selects still look empty until that render. */}
+            <input type="hidden" name="disciplineId" value={disciplineId} />
+            <input type="hidden" name="vendorId" value={vendorId} />
 
             <div className="space-y-3">
                 {/* #170 — SAID BEFORE THE SAVE, because the save is what merges. The

@@ -23,10 +23,17 @@ records.
 **identity.** The heading `New Purchase Request`.
 
 **action — the request's context, three linked dropdowns.** Job, Discipline, Vendor,
-all required. Job groups its options under `My Jobs` and `All Jobs` when the
-reader has assigned jobs, and offers just `Jobs` otherwise. Discipline is dependent:
+all required. **Which jobs Job offers depends on the reader.** A requester is offered
+the jobs they are assigned to and no others, in one list with no groups. The office
+and the President are offered every job, grouped under `My Jobs` and `All Jobs` when
+they have assigned jobs, and under just `Jobs` otherwise. Discipline is dependent:
 until a job is chosen its placeholder reads `Select a Job first`, and changing the
 job clears it, because one from the previous job no longer applies.
+
+**A request on any other job is refused on save and on submit, whatever sent it**,
+with `Select a Job you're assigned to.` in the same red line as every other refusal.
+The server judges the job a request reaches through its discipline, so a submission
+that did not come from this screen is refused in the same words.
 
 **action — Quotations,** a section with its own heading and the line
 `A Vendor can send more than one quotation — add one entry per quotation
@@ -102,10 +109,11 @@ same rule about the same kind of figure.
 the sentence above is about where it lands. An empty box and `1.005` are two
 mistakes.
 
-**Saving a draft is refused on these too, which is the one place this screen's
-draft is not permissive.** A draft may be half-finished — no category picked, no
-quantity typed, no quotation attached — and all of that still saves. What it may
-not hold is a figure that is wrong rather than absent.
+**Saving a draft is refused on these too, which is one of the two places this
+screen's draft is not permissive — the job is the other.** A draft may be
+half-finished — no category picked, no quantity typed, no quotation attached — and
+all of that still saves. What it may not hold is a figure that is wrong rather than
+absent, or a job the reader may not raise a request on.
 
 **action — Signers,** an ordered list the requester builds. Each signer is a
 person plus a confirmation type, `Approval` or `Agreement`, chosen per signer on a
@@ -128,6 +136,15 @@ already populated, and the draft's row is marked as being edited.
 
 **When the reader opens the draft list:** a modal listing their saved drafts, each
 with a delete control.
+
+**When a draft opened here is on a job the reader is not offered** — written on a job
+the office has since taken them off, or before requests were held to a reader's own
+jobs: the Job dropdown shows that job, as an option that cannot be chosen, and the
+draft's discipline under it. Saving and submitting are both refused with the sentence
+above until the reader picks one of their own jobs, and once they do, the draft's job
+leaves the list. A draft is otherwise allowed to be half-finished; a job the reader may
+not raise a request on is a wrong answer rather than a missing one, which is the
+figures' rule above.
 
 **When a draft has just been saved:** a `Draft saved` modal — **except when the
 save was the first half of leaving to create an address**, where the reader is
