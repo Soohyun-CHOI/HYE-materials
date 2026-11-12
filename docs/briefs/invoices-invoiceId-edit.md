@@ -38,7 +38,7 @@ the document in front of the reader states. Neither convention should be moved
 onto the other screen.
 
 **action — `Items`,** with a standing sentence directly under the heading:
-`Edit item values. Size/Unit and the linked PO are fixed here — to change an item's
+`Edit item values. Size/Maker/Unit and the linked PO are fixed here — to change an item's
 PO or add/remove items, delete and recreate the invoice.` This is the sentence that
 draws the boundary, and it is always visible rather than appearing on a failed
 attempt.
@@ -46,7 +46,7 @@ attempt.
 **Each item is a card, and its fields are labeled by placeholder alone** — no
 label sits above any of them, so a filled row shows no field names at all. Item
 name, quantity, unit price and remark are editable.
-Size and Unit are rendered as **disabled inputs**, not as text — they are frozen
+Size, Maker and Unit are rendered as **disabled inputs**, not as text — they are frozen
 reference copies from the ordered item, and the disabled control shows both what
 they are and that they are not yours to change. The linked order is shown as a
 read-only label.
@@ -72,7 +72,7 @@ that card, the same badge as on the invoice detail's items table.
 **`⚠ Order variance` is the same word here, on the invoice detail, and on the
 purchase order detail's list of invoices.** One flag, one word, three places.
 
-**Size and Unit are read-only here and on the new-invoice form, for one reason:** a
+**Size, Maker and Unit are read-only here and on the new-invoice form, for one reason:** a
 mismatch means the wrong ordered item was picked, so the fix is the link and never
 the value. Both screens have to keep saying that, and the disabled-input treatment
 is currently how this one says it.

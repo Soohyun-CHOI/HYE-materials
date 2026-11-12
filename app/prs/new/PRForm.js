@@ -50,6 +50,7 @@ const EMPTY_ITEM = {
     hadCategory: false,
     itemName: "",
     size: "",
+    maker: "",
     unit: "",
     qty: "",
     unitPrice: "",
@@ -90,6 +91,7 @@ function formStateFromDraft(d, categories) {
                   hadCategory: Boolean(codesByRecordId.get(it.categoryRecordId)),
                   itemName: it.itemName || "",
                   size: it.size || "",
+                  maker: it.maker || "",
                   unit: it.unit || "",
                   qty: it.qty === "" || it.qty == null ? "" : String(it.qty),
                   unitPrice: it.unitPrice === "" || it.unitPrice == null ? "" : String(it.unitPrice),
@@ -1031,6 +1033,12 @@ export default function PRForm({
                                         placeholder="Size"
                                         value={item.size}
                                         onChange={(e) => updateItem(i, "size", e.target.value)}
+                                        className={inputClass}
+                                    />
+                                    <input
+                                        placeholder="Maker"
+                                        value={item.maker}
+                                        onChange={(e) => updateItem(i, "maker", e.target.value)}
                                         className={inputClass}
                                     />
                                     <select

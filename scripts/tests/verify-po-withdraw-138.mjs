@@ -163,7 +163,7 @@ const fixtures = createFixtures({
     ],
 });
 const TAG = fixtures.TAG;
-// #356 — identity is Category + Size + Unit, so a fixture item carries one even
+// #356 — identity is Category + Size + Maker + Unit, so a fixture item carries one even
 // where this script never looks at the item axis: without it PO generation
 // reports `no Category` and the ordered item is never linked to a material.
 const CATEGORY = (await resolveVerifyCategories())[0];

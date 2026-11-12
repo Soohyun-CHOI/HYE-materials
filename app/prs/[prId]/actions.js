@@ -552,6 +552,7 @@ export async function editAndContinueAction(prevState, formData) {
                     updateItem(itemId, {
                         itemName: original.itemName ?? "",
                         size: original.size ?? "",
+                        maker: original.maker ?? "",
                         unit: original.unit ?? null,
                         qty: original.qty ?? null,
                         unitPrice: original.unitPrice ?? null,

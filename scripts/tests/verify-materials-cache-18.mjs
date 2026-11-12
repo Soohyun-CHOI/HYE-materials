@@ -158,9 +158,10 @@ const fixtures = createFixtures({
             // no run can put its tag there. The paragraph above is about one
             // lookup coming back empty and leaving one row untracked; this would
             // do it to every row of every run, and `expectAtLeast` below is the
-            // only thing that would say so. `Size` is the one writable free-text
-            // field identity still has, so the tag moved to it and every fixture
-            // key below prefixes its size with the tag.
+            // only thing that would say so. `Size` is a writable free-text field
+            // identity still has — `Maker` (#629) is the other, and optional — so
+            // the tag moved to it and every fixture key below prefixes its size with
+            // the tag.
             tagField: "Size",
             discoverByTag: true,
             // A completed run always writes at least one of these, so 0 means the
@@ -187,12 +188,13 @@ const track = fixtures.track;
  * a divergence between two implementations of one rule, which is exactly what
  * the run would then be measuring.
  */
-async function countMaterialRows({ categoryCode, size, unit }) {
+async function countMaterialRows({ categoryCode, size, maker = "", unit }) {
     const records = await base(TABLES.MATERIALS)
         .select({
             filterByFormula: `AND(
                 {Category Code} & "" = "${formulaString(categoryCode)}",
                 LOWER(TRIM({Size})) = LOWER(TRIM("${formulaString(size)}")),
+                LOWER(TRIM({Maker})) = LOWER(TRIM("${formulaString(maker)}")),
                 LOWER(TRIM({Unit})) = LOWER(TRIM("${formulaString(unit)}"))
             )`,
         })
@@ -342,6 +344,23 @@ if (!requester || !vendorA || !vendorB || !discipline) {
     assert("a second category on the same Size and Unit is a second row", mOther.id !== m1.id);
     check("and the first key still finds exactly one", await countMaterialRows(lookupA), 1);
 
+    // #629 — A MAKER IS PART OF THE KEY, AND COMPARED AS THE SIZE IS. The first half is
+    // the one every equality above is blind to: a find-or-create that ignored the
+    // maker would find m1 here and pass all of them. The second is the fold — a
+    // maker's case and its spacing are not a second maker — and the third is the
+    // half a maker-less item depends on: the key with no maker still finds m1, which
+    // is how every material made before #629 is found.
+    const keyMaker = { ...keyA, maker: `${TAG} Kitz` };
+    const lookupMaker = { categoryCode: keyA.categoryCode, size: keyA.size, maker: keyMaker.maker, unit: keyA.unit };
+    const mMaker = await upsertMaterial(keyMaker);
+    assert("a maker on the same category, size and unit is a second row", mMaker.id !== m1.id);
+    check("its Maker is the spelling it was created with", mMaker.maker, keyMaker.maker);
+    const mMakerFolded = await upsertMaterial({ ...keyMaker, maker: `  ${keyMaker.maker.toUpperCase().replace(" ", "   ")} ` });
+    check("an all-caps, wide-spaced maker matches the same row", mMakerFolded.id, mMaker.id);
+    check("one row for the maker's key", await countMaterialRows(lookupMaker), 1);
+    check("the maker-less key still finds its own row", (await getMaterialByKey(lookupA))?.id, m1.id);
+    check("and still exactly one", await countMaterialRows(lookupA), 1);
+
     // NO CATEGORY IS A THROW, not a nameless row (#356). `Item Name` is a lookup
     // through this link, so a row without one has no name and a `Material Label`
     // of `_Size_Unit` — worse than not existing. lib/materialsCache.js skips such
@@ -402,12 +421,16 @@ if (!requester || !vendorA || !vendorB || !discipline) {
     // three checks below compare `undefined`, and the bracket assertion below
     // PASSED on it, which is the same vacuity a mutation caught one tier down.
     const named = settledName.value;
-    check(`Item Name is the category's own label (${settleNote(settledName)})`, named.itemName, CATEGORY.label);
+    // THE CATEGORY'S ITEM NAME, AND THIS SAID ITS LABEL UNTIL #629. #416 aimed the
+    // lookup at `Material Categories."Item Name"` and left these expectations on
+    // `Category Label`, so the three below failed on every run since — found by
+    // #629's, the first after it.
+    check(`Item Name is the category's own item name (${settleNote(settledName)})`, named.itemName, CATEGORY.itemName);
     check("Category Code is its leaf code", named.categoryCode, CATEGORY.codes[3]);
     check(
         "Material Label composes the three",
         named.materialLabel,
-        `${CATEGORY.label}_${keyA.size}_EA`
+        `${CATEGORY.itemName}_${keyA.size}_EA`
     );
     // ASSERTED ON A NON-EMPTY STRING FIRST, so "no brackets" cannot be satisfied
     // by there being no label at all.
@@ -419,7 +442,18 @@ if (!requester || !vendorA || !vendorB || !discipline) {
         "  rendering the lookup bare, with no array brackets and no quotes",
         typeof named.materialLabel === "string" &&
             !named.materialLabel.includes("[") &&
-            !named.materialLabel.includes('"' + CATEGORY.label)
+            !named.materialLabel.includes('"' + CATEGORY.itemName)
+    );
+    // #629 — the maker between the size and the unit. The maker-less label above is
+    // the same three it always was, which is the half every existing row stands on.
+    const settledMaker = await waitFor(
+        () => getMaterialByRecordId(mMaker.id),
+        (m) => Boolean(m.itemName)
+    );
+    check(
+        `Material Label composes the four, the maker before the unit (${settleNote(settledMaker)})`,
+        settledMaker.value.materialLabel,
+        `${CATEGORY.itemName}_${keyA.size}_${keyMaker.maker}_EA`
     );
 
     // -----------------------------------------------------------------------

@@ -91,8 +91,8 @@ ones.
 **action — `Items`.** One row per invoice item: the ordered item chosen from a dropdown
 scoped to the slots' orders, then quantity, unit price, and a remark. The ordered
 item dropdown is sorted so that items with something still uninvoiced come first,
-and **each option carries that quantity** — the item's name, its size, and
-`(Uninvoiced: N)`.
+and **each option carries that quantity** — the item's name, its size, its maker
+after a comma where the order named one, and `(Uninvoiced: N)`.
 
 **The rows are a growable list.** A `+ Add item` control appends one, and every
 row carries a `Remove` once there are two or more. Each row states its own
@@ -100,7 +100,7 @@ row carries a `Remove` once there are two or more. Each row states its own
 computed from what is typed; `preview` is the word the edit screen uses for the
 same thing.
 
-**Size and Unit are not editable anywhere on this form.** They are frozen copies
+**Size, Maker and Unit are not editable anywhere on this form.** They are frozen copies
 taken from the ordered item, shown for reference. A mismatch there means the wrong
 ordered item was picked, not that the value needs correcting.
 
@@ -392,7 +392,7 @@ affordance to either control is promising something the app will decline.
 for an invoice.** The judgment runs on the server and the client reads only a
 boolean, so the form cannot invent its own phrasing for it.
 
-**Size and Unit being read-only here is what makes them reference data on the
+**Size, Maker and Unit being read-only here is what makes them reference data on the
 invoice detail too.** Neither screen offers an edit path, and the same reasoning
 covers both: a mismatch means the wrong ordered item was picked.
 

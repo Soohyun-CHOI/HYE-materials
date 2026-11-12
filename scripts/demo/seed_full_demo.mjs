@@ -1660,10 +1660,10 @@ await scenario("NO_SIZE", "a material with no size (a unit-less one cannot exist
     const order = await makeOrder({
         scenarioName: "NO_SIZE",
         notes: "General site consumables for the month.",
-        // SIZE ONLY, AND THE UNIT STAYS — the brief's `No size or unit recorded` needs
-        // BOTH blank, and that row cannot exist. `lib/materialsCache.js` skips a
-        // unit-less ordered item outright (#18): "a unit price without a unit cannot
-        // be compared to anything", so the item axis never gets one. Seeding it would
+        // SIZE ONLY, AND THE UNIT STAYS — the brief's `No size, maker or unit recorded`
+        // needs all three blank, and that row cannot exist. `lib/materialsCache.js`
+        // skips a unit-less ordered item outright (#18): "a unit price without a unit
+        // cannot be compared to anything", so the item axis never gets one. Seeding it would
         // mean hand-writing a Materials row AND a price row to surface a sentence the
         // app argues should not exist — recorded as unreachable instead, beside
         // `PO: {status}` and `priceUnknown`. What is reachable, and what this seeds,

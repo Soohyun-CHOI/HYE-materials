@@ -14,8 +14,8 @@ have we been buying from".
 
 **identity.** The item name as the page heading — this is the one detail screen in
 the app whose heading is a human name rather than a generated ID, because a
-material has no ID a person would recognize. Under it, the size and unit joined by
-a middle dot, in small gray text, when either exists.
+material has no ID a person would recognize. Under it, the size, maker and unit
+joined by a middle dot, in small gray text, when any exists.
 
 **That name is the category's own item name**, up to 99 characters and 30 at the
 median — `Metal Face Seal (VCR) Fitting, Gland`. It is one string from one field.
@@ -44,7 +44,7 @@ of it.
 not-found text every row-scoped screen uses for a refusal, so a reader is never
 told that something exists but is not theirs.
 
-**When there is no size or unit:** the subtitle is absent rather than showing a
+**When there is no size, maker or unit:** the subtitle is absent rather than showing a
 placeholder.
 
 **When a row's order is not in the ordinary signed state:** a short tag beside it —
@@ -72,7 +72,7 @@ a withdrawn order can appear here with a tag while the list screen shows its pri
 as the vendor's latest with a caveat. The two screens disagree in appearance and
 agree in fact, and that is the relationship to preserve.
 
-**A material's identity is its category, size and unit** — never the vendor, and
+**A material's identity is its category, size, maker and unit** — never the vendor, and
 never the name, which is a lookup of the category's own name and is nobody's
 typing.
 Two vendors' prices for one material are two rows here, not two materials.

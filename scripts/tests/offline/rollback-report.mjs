@@ -255,8 +255,15 @@ export async function run({ check, assert, log }) {
     // and the name composed from it are written in one update, so a restore that
     // put back the name and not the link would leave the two describing different
     // things — the state the picker exists to make unreachable — and would report
-    // the turn as cleanly rolled back.
-    check("  fields written by the restore", restored.length, 8);
+    // the turn as cleanly rolled back. EIGHT UNTIL #629 GAVE THE SIGNER A MAKER TO
+    // CHANGE, the same way round: a maker edited and not put back is a turn
+    // reported clean with the edit standing.
+    check("  fields written by the restore", restored.length, 9);
+    check(
+        "  the maker is among them",
+        restored.some(([name]) => name === "maker"),
+        true
+    );
     check(
         "  of those, fields that would skip a blank instead of clearing it",
         restored.filter(([, type]) => type !== "LogicalExpression").map(([name]) => name).join(", "),

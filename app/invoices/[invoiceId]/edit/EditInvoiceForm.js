@@ -11,7 +11,7 @@ const fieldClass =
     "mt-1 w-full rounded border border-zinc-300 px-3 py-2 disabled:opacity-50";
 
 // Issue #117 Tier 1 — edit an invoice's header fields and the VALUES of its
-// existing invoice items. Size/Unit are frozen copies from the linked PO Item
+// existing invoice items. Size/Maker/Unit are frozen copies from the linked PO Item
 // (reference-only, shown disabled), and the PO/PO Item links, plus
 // adding/removing invoice items, are out of scope here (delete + recreate for those).
 export default function EditInvoiceForm({ invoice, items: initialItems, vendors }) {
@@ -22,6 +22,7 @@ export default function EditInvoiceForm({ invoice, items: initialItems, vendors 
             id: it.id,
             itemName: it.itemName ?? "",
             size: it.size ?? "",
+            maker: it.maker ?? "",
             unit: it.unit ?? "",
             qty: it.qty ?? "",
             unitPrice: it.unitPrice ?? "",
@@ -187,7 +188,7 @@ export default function EditInvoiceForm({ invoice, items: initialItems, vendors 
             <div>
                 <h2 className="text-lg font-semibold">Items</h2>
                 <p className="text-sm text-zinc-600">
-                    Edit item values. Size/Unit and the linked PO are fixed here — to change an
+                    Edit item values. Size/Maker/Unit and the linked PO are fixed here — to change an
                     item&apos;s PO or add/remove items, delete and recreate the invoice.
                 </p>
                 <div className="mt-2 space-y-3">
@@ -207,6 +208,12 @@ export default function EditInvoiceForm({ invoice, items: initialItems, vendors 
                                         value={it.size}
                                         disabled
                                         placeholder="Size"
+                                        className={`${inputClass} opacity-60`}
+                                    />
+                                    <input
+                                        value={it.maker}
+                                        disabled
+                                        placeholder="Maker"
                                         className={`${inputClass} opacity-60`}
                                     />
                                     <input

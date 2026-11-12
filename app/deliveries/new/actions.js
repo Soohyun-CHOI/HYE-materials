@@ -239,6 +239,7 @@ export async function createDeliveryAction(prevState, formData) {
                         materialRecordId,
                         itemName: row.orderedItem.itemName ?? "",
                         size: row.orderedItem.size ?? "",
+                        maker: row.orderedItem.maker ?? "",
                         unit: row.orderedItem.unit ?? "",
                         qty: row.qty,
                         overDelivered: row.over,

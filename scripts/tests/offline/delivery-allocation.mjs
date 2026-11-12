@@ -509,6 +509,10 @@ export function run({ check, assert, log }) {
     check("the label joins name, size and unit", itemOptionLabel({ itemName: "Pipe", size: '2"', unit: "EA" }), 'Pipe 2" (EA)');
     check("blanks are omitted", itemOptionLabel({ itemName: "Gasket", size: "", unit: "PCS" }), "Gasket (PCS)");
     check("a unit-less option has no empty parens", itemOptionLabel({ itemName: "Pipe", size: '2"', unit: "" }), 'Pipe 2"');
+    // #629 — two makers' versions of one item are two materials and two options, so
+    // the option has to say which.
+    check("a maker follows the size after a comma", itemOptionLabel({ itemName: "Pipe", size: '2"', maker: "Kitz", unit: "EA" }), 'Pipe 2", Kitz (EA)');
+    check("  and two makers' options read apart", itemOptionLabel({ itemName: "Pipe", size: '2"', maker: "Kitz", unit: "EA" }) !== itemOptionLabel({ itemName: "Pipe", size: '2"', maker: "Nibco", unit: "EA" }), true);
 
     log("");
     log("An item on one entry row is not offered on another:");
@@ -592,6 +596,18 @@ export function run({ check, assert, log }) {
     ]);
     check("materialless rows group on name/size/unit", noMaterial.length, 2);
     check("  summing the repeat", noMaterial[0].qty, 4);
+    // #629 — and on the maker, which is part of what an item is.
+    const twoMakers = groupRowsByItem([
+        { itemName: "A", size: "", maker: "Kitz", unit: "EA", qty: 1, over: false },
+        { itemName: "A", size: "", maker: "Nibco", unit: "EA", qty: 2, over: false },
+    ]);
+    check("  two makers of one name are two groups", twoMakers.length, 2);
+    check("  each keeping its maker", twoMakers.map((g) => g.maker).join(","), "Kitz,Nibco");
+    check(
+        "  and a summary names the first by its maker",
+        summarizeDelivery([{ itemName: "Pipe", size: '2"', maker: "Kitz", unit: "FT", qty: 3, over: false }]).first.label,
+        'Pipe 2", Kitz'
+    );
 
     check("no rows groups to nothing", groupRowsByItem([]).length, 0);
     check("undefined rows does not throw", groupRowsByItem(undefined).length, 0);

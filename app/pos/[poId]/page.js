@@ -463,6 +463,7 @@ async function renderPODetailPage({ params }) {
                         <tr className="text-left text-zinc-500">
                             <th className="pr-2">Item</th>
                             <th className="pr-2">Size</th>
+                            <th className="pr-2">Maker</th>
                             <th className="pr-2">Unit</th>
                             <th className="pr-2 text-right">Qty</th>
                             <th className="pr-2 text-right">Unit Price</th>
@@ -506,6 +507,7 @@ async function renderPODetailPage({ params }) {
                                 <tr key={it.id} className="border-t border-zinc-200">
                                     <td className="py-1 pr-2">{it.itemName}</td>
                                     <td className="py-1 pr-2">{it.size}</td>
+                                    <td className="py-1 pr-2">{it.maker}</td>
                                     <td className="py-1 pr-2">{it.unit}</td>
                                     <td className="py-1 pr-2 text-right">{it.qty}</td>
                                     {/* #233 — through formatUSD, like the Total
@@ -579,7 +581,8 @@ async function renderPODetailPage({ params }) {
                         privilege branch left in this table — every `th` and
                         every `td` above renders unconditionally — so one count
                         serves both viewers and the table is 9 columns wide for
-                        all of them. A wrong value here still misaligns the
+                        all of them — 10 since #629 put Maker beside Size, which
+                        moved the label span from 5 to 6. A wrong value here still misaligns the
                         footer silently and no offline check can see it, so it is
                         counted in a browser; what changed is that there is one
                         number to count rather than two to keep in step.
@@ -589,7 +592,7 @@ async function renderPODetailPage({ params }) {
                         itemsSubtotal={po.itemsSubtotal}
                         shippingFee={po.shippingFee}
                         totalAmount={po.totalAmount}
-                        labelColSpan={5}
+                        labelColSpan={6}
                         trailingColSpan={3}
                     />
                 </table>

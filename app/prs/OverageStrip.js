@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { OVERAGE_COPY } from "@/lib/overage";
+import { itemLabel } from "@/lib/materialIdentity";
 import OverageButton from "@/app/deliveries/[deliveryId]/OverageButton";
 
 // Over-deliveries nobody has raised a request for, above the list of requests
@@ -90,7 +91,7 @@ export default function OverageStrip({ rows }) {
                         <span className="min-w-0 flex-1 truncate text-zinc-700">
                             {row.excess}
                             {row.unit ? ` ${row.unit}` : ""}{" "}
-                            {[row.itemName, row.size].filter(Boolean).join(" ")}
+                            {itemLabel(row)}
                             {row.originalPoId ? ` · beyond ${row.originalPoId}` : ""}
                         </span>
                         {row.eligible ? (

@@ -64,7 +64,7 @@ figure in the items table come from that same request and sit beside it.
 page, in a bordered block of its own. This is the figure the purchase order PDF
 prints as its TOTAL line, so it is what the vendor was told.
 
-**evidence — the items table, nine columns.** Item, Size, Unit, Qty, Unit
+**evidence — the items table, ten columns.** Item, Size, Maker, Unit, Qty, Unit
 Price, Amount, Delivered, Invoiced, Remark. The four money and quantity columns
 are right-aligned. `Delivered` and `Invoiced` are the two axes this screen
 exists to compare against `Qty`, and the reader does the subtraction: columns
@@ -72,7 +72,7 @@ named `Undelivered` and `Uninvoiced` used to sit beside them and were each their
 own row's `Qty` minus the column next to it, which is two figures where one
 would do. Under the table: Items Subtotal, Shipping Fee, Total Amount.
 
-Every viewer who can see the order sees all nine columns, including both
+Every viewer who can see the order sees all ten columns, including both
 quantity axes. Delivery figures were never gated; invoice figures stopped being
 gated in #235, on the reasoning that what a vendor invoiced is readable by anyone
 who may read the order behind it.

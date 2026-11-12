@@ -141,8 +141,8 @@ async function renderMaterialPricesPage({ searchParams }) {
                                     </Link>
                                 </h2>
                                 <p className="text-xs text-zinc-500">
-                                    {[material.size, material.unit].filter(Boolean).join(" · ") ||
-                                        "No size or unit recorded"}
+                                    {[material.size, material.maker, material.unit].filter(Boolean).join(" · ") ||
+                                        "No size, maker or unit recorded"}
                                 </p>
                             </div>
                             <Link

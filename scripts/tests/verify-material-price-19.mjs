@@ -244,10 +244,10 @@ if (incomplete) {
 
     const NAME = `${TAG} Ball Valve`;
     // #356 — THE SEARCHABLE WORDS MOVED FROM THE NAME TO THE SIZE, which is what
-    // this script has to follow. `Material Label` is `Item Name_Size_Unit` and
-    // `Item Name` is a LOOKUP of the category's path now, so the run tag can only
-    // reach the label through `Size` — the one writable free-text field identity
-    // still has. That also makes it what `discoverByTag` cleans up on, so the
+    // this script has to follow. `Material Label` is `Item Name_Size_Maker_Unit`
+    // (#629) and `Item Name` is a LOOKUP of the category's own name now (#416), so
+    // the run tag reaches the label through `Size` — a writable free-text field
+    // identity still has, beside the optional `Maker`. That also makes it what `discoverByTag` cleans up on, so the
     // fixture size carries the tag whether or not a query ever uses it. Whether
     // the SCREEN's matching should still be token-over-the-label was #357's, and
     // the answer was yes: the rule is unchanged, the path separator is no longer
@@ -285,7 +285,7 @@ if (incomplete) {
         qty: 10,
         unitPrice: 30,
         // A SECOND material on the same order, and its own category since #356:
-        // identity is Category + Size + Unit, so sharing the run's one category
+        // identity is Category + Size + Maker + Unit, so sharing the run's one category
         // and differing only in size would still make two rows — but this one
         // exists to be a genuinely different item on the screen, and a second
         // category is what that means now.

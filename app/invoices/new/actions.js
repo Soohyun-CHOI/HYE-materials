@@ -240,6 +240,7 @@ async function createInvoiceHandler(prevState, formData) {
                     poItemRecordId: item.poItemRecordId,
                     itemName: item.itemName,
                     size: item.size,
+                    maker: item.maker,
                     unit: item.unit,
                     qty: parseFloat(item.qty),
                     unitPrice: parseFloat(item.unitPrice),
