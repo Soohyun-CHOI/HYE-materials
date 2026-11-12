@@ -510,11 +510,13 @@ every difference between them is chosen; the words are shared.
   vendor or job`, `Search by Invoice ID, Vendor Invoice #, vendor or job`. It is
   drawn even when the pickers beside it are not, because it has no options to be
   missing and it reaches a name no dropdown on the screen offers.
-- The two pickers: `Jobs: All jobs`, `Vendors: All vendors`, `N selected` when
-  something is picked, `Search jobs…` / `Search vendors…` inside, `Clear jobs` /
-  `Clear vendors` beside the search, and `No matching jobs.` / `No matching
-  vendors.` when the search finds none. Every one of these is BUILT from the
-  axis's noun, so a third picker coins no strings by hand.
+- The pickers: `Jobs: All jobs`, `Vendors: All vendors`, and on `/prs` alone
+  `Requesters: All requesters`; `N selected` when something is picked,
+  `Search jobs…` / `Search vendors…` / `Search requesters…` inside,
+  `Clear jobs` / `Clear vendors` / `Clear requesters` beside the search, and
+  `No matching jobs.` / `No matching vendors.` / `No matching requesters.` when
+  the search finds none. Every one of these is BUILT from the axis's noun, so the
+  requester picker coined no strings by hand.
 - The selects: a label and a colon, then `All` as the first option — `Status:` on
   three lists and `Kind:` on one.
 - The toggles: `Requested by me` on `/prs` and `/pos`, `Recorded by me` on
@@ -522,6 +524,10 @@ every difference between them is chosen; the words are shared.
   reader's-own toggle is on all four lists since #382 — two words for two
   fields, and which word a list says follows the field it narrows by.
 - When anything is active: `N of M` and `Clear all filters`, together.
+- A link asking for something this reader's list cannot show — a job, vendor or
+  requester none of their rows carries, or a page past the end — opens on what the
+  list can show, and the address is rewritten to it, so a link copied from the
+  screen says what the screen shows.
 
 Twelve empty-state sentences, three per list, in the same module so they stay
 comparable:

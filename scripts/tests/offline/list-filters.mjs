@@ -38,7 +38,7 @@
 
 import { readFileSync } from "node:fs";
 import { isMain, standalone } from "./_harness.mjs";
-import { REPO_ROOT, listJsFiles, parseFile, repoPath, toPosix, walk } from "./_ast.mjs";
+import { REPO_ROOT, callsTo, calleeName, listJsFiles, parseFile, parseSource, repoPath, toPosix, walk } from "./_ast.mjs";
 import {
     CONTROL,
     FILTERED_LISTS,
@@ -64,6 +64,7 @@ import {
     pageOfRows,
     parseFilters,
     pickerOptions,
+    sameQuery,
     showsFilterBar,
 } from "../../../lib/listFilters.js";
 // #325 — imported to BUILD the rejected alternative below, not to re-test the
@@ -71,6 +72,11 @@ import {
 import { matchesTokens, searchTokens } from "../../../lib/typedText.js";
 import { PR_KIND, PR_KIND_CHOICES, PR_KIND_COPY } from "../../../lib/prKind.js";
 import { INVOICE_PAYMENT_WORDS } from "../../../lib/deliveryStatus.js";
+// #630 — the gate, the requester and the picker's name, called rather than restated, so
+// the narrow reader below is judged by the rules the page itself calls.
+import { canViewPR } from "../../../lib/prVisibility.js";
+import { requesterOf } from "../../../lib/prRequester.js";
+import { fullUserName } from "../../../lib/userName.js";
 
 export const title = "What the four document lists filter by, and what the bar says (#324)";
 
@@ -90,6 +96,9 @@ const SETTLED = {
         ["q", CONTROL.search],
         ["job", CONTROL.picker],
         ["vendor", CONTROL.picker],
+        // #630 — after the vendor, so the pickers stand together, and right before the
+        // toggle, so the two controls reading `Requester` sit side by side.
+        ["requester", CONTROL.picker],
         ["mine", CONTROL.toggle],
         ["status", CONTROL.select],
         ["kind", CONTROL.select],
@@ -254,6 +263,14 @@ export function run({ check, assert, log }) {
             FILTERED_LISTS.every((route) => axesFor(route).some((a) => a.param === param))
         );
     }
+    // #630 — THE ONE PICKER THAT IS NOT SHARED. `/pos` reads the same field through the
+    // request behind an order and the issue was the request list's; the deliveries and
+    // invoice lists hold a recorder, which is a different field.
+    check(
+        "only /prs picks by requester",
+        FILTERED_LISTS.filter((route) => axesFor(route).some((a) => a.param === "requester")).join(","),
+        "/prs"
+    );
 
     // ── 1b: what each list searches ─────────────────────────────────────────
     log("");
@@ -342,6 +359,10 @@ export function run({ check, assert, log }) {
             { id: "recJobB", label: "26-B — Beta" },
         ],
         vendor: [{ id: "recVenA", label: "Alpha Supply" }],
+        requester: [
+            { id: "recKim", label: "Jin Kim" },
+            { id: "recSoo", label: "Soo Choi" },
+        ],
         status: ["In Review", "Approved"],
         kind: PR_KIND_CHOICES,
     };
@@ -369,6 +390,19 @@ export function run({ check, assert, log }) {
     // deliberately silent for it, so a filter admitting the key would be the one place
     // a reader met a word the app does not have.
     check("the ordinary kind is not selectable", refused.kind, "");
+    // #630 — A REQUESTER IN A LINK IS A REQUEST, AND IT IS ANSWERED FROM THE OPTIONS. A
+    // person this reader's rows do not name is dropped before the browser, so a pasted
+    // link cannot narrow by — or tell the reader about — somebody outside their scope.
+    check(
+        "a requester the options hold is kept, once",
+        parseFilters("/prs", { requester: ["recSoo", "recLee", "recSoo"] }, prsOptions).requester.join(","),
+        "recSoo"
+    );
+    check(
+        "  and a requester the options do not hold is dropped",
+        parseFilters("/prs", { requester: "recLee" }, prsOptions).requester.length,
+        0
+    );
 
     // #325 — THE ONE AXIS WITH NO OPTIONS TO INTERSECT AGAINST. Its values are not a
     // set, so nothing is dropped; what is refused is a SHAPE, because one box holds one
@@ -398,11 +432,13 @@ export function run({ check, assert, log }) {
     log("axes compose with AND, and a picker's own selection with OR:");
     // Every row carries the four keys `/prs`'s box reads as well as the four its other
     // axes do, so one set of rows serves both halves of the composition.
+    // #630 — the reader is `recSoo`, so the two rows holding `isMine` are the two whose
+    // requester is them: the page derives both keys from the one requester.
     const rows = [
-        { id: "a", prId: "HYE-PR-260803-01", vendorName: "Acme Supply", jobCode: "26-A", jobName: "Alpha", jobId: "recJobA", vendorId: "recVenA", isMine: true, status: "Approved", kind: PR_KIND.ordinary },
-        { id: "b", prId: "HYE-PR-260803-02", vendorName: "Acme Supply", jobCode: "26-B", jobName: "Beta", jobId: "recJobB", vendorId: "recVenA", isMine: false, status: "Approved", kind: PR_KIND.overage },
-        { id: "c", prId: "HYE-PR-260804-01", vendorName: "Beta Pipe", jobCode: "26-B", jobName: "Beta", jobId: "recJobB", vendorId: "recVenB", isMine: true, status: "In Review", kind: PR_KIND.ordinary },
-        { id: "d", prId: "HYE-PR-260804-02", vendorName: null, jobCode: null, jobName: null, jobId: null, vendorId: null, isMine: false, status: "In Review", kind: PR_KIND.ordinary },
+        { id: "a", prId: "HYE-PR-260803-01", vendorName: "Acme Supply", jobCode: "26-A", jobName: "Alpha", jobId: "recJobA", vendorId: "recVenA", requesterId: "recSoo", isMine: true, status: "Approved", kind: PR_KIND.ordinary },
+        { id: "b", prId: "HYE-PR-260803-02", vendorName: "Acme Supply", jobCode: "26-B", jobName: "Beta", jobId: "recJobB", vendorId: "recVenA", requesterId: "recKim", isMine: false, status: "Approved", kind: PR_KIND.overage },
+        { id: "c", prId: "HYE-PR-260804-01", vendorName: "Beta Pipe", jobCode: "26-B", jobName: "Beta", jobId: "recJobB", vendorId: "recVenB", requesterId: "recSoo", isMine: true, status: "In Review", kind: PR_KIND.ordinary },
+        { id: "d", prId: "HYE-PR-260804-02", vendorName: null, jobCode: null, jobName: null, jobId: null, vendorId: null, requesterId: "recKim", isMine: false, status: "In Review", kind: PR_KIND.ordinary },
     ];
     const ids = (state) => applyFilters("/prs", state, rows).map((r) => r.id).join("");
     const base = emptyFilters("/prs");
@@ -421,6 +457,33 @@ export function run({ check, assert, log }) {
         "matchesFilters and applyFilters agree row for row",
         rows.every((r) => matchesFilters("/prs", { ...base, job: ["recJobB"] }, r) === ids({ ...base, job: ["recJobB"] }).includes(r.id))
     );
+
+    // #630 — THE REQUESTER PICKER IS AN AXIS LIKE THE OTHER TWO, AND `Requested by me`
+    // BESIDE IT IS TWO AXES, NOT ONE. Neither sets the other; they compose with AND, so
+    // picking somebody else with the toggle on leaves nothing, and picking the reader is
+    // the same narrowing as the toggle by another road.
+    log("");
+    log("the requester picker composes like the other two, and with `Requested by me` (#630):");
+    check("one requester narrows to their requests", ids({ ...base, requester: ["recKim"] }), "bd");
+    check("  and two mean either", ids({ ...base, requester: ["recKim", "recSoo"] }), "abcd");
+    check("a requester and a job together mean both", ids({ ...base, requester: ["recKim"], job: ["recJobB"] }), "b");
+    check(
+        "picking the reader admits the rows `Requested by me` does",
+        ids({ ...base, requester: ["recSoo"] }),
+        ids({ ...base, mine: true })
+    );
+    check("`Requested by me` beside somebody else picked admits nothing", ids({ ...base, mine: true, requester: ["recKim"] }), "");
+    check(
+        "  and beside the reader and somebody else, the reader's",
+        ids({ ...base, mine: true, requester: ["recSoo", "recKim"] }),
+        "ac"
+    );
+    check(
+        "  and an emptied pair says so in the plain sentence",
+        emptyStateText("/prs", "filtered", { ...base, mine: true, requester: ["recKim"] }),
+        "No purchase requests match these filters."
+    );
+    check("a requester picked counts as a filter", filtersActive("/prs", { ...base, requester: ["recKim"] }), true);
 
     // ── 4b: the box, and the AND that crosses fields ────────────────────────
     log("");
@@ -517,6 +580,33 @@ export function run({ check, assert, log }) {
     // other parameter does. `URLSearchParams` writes it as `+` and reads it back as a
     // space, so the round trip above is what says the shared link works.
     assert("  including the space between two tokens", qs.get("q") === "acme 2608");
+    // #630 — THE REQUESTER PICKER WRITES IN ITS AXIS POSITION AND REPEATS LIKE THE OTHER
+    // TWO, and what it writes is what a refresh or a shared link reads back.
+    const withRequester = { ...base, vendor: ["recVenA"], requester: ["recSoo", "recKim"], mine: true };
+    check(
+        "the requester picker writes after the vendor and before the toggle, once per person",
+        decodeURIComponent(filterQuery("/prs", withRequester)),
+        "vendor=recVenA&requester=recSoo&requester=recKim&mine=1"
+    );
+    const rq = new URLSearchParams(filterQuery("/prs", withRequester));
+    check(
+        "  and the URL it writes parses back to the same state",
+        JSON.stringify(
+            parseFilters(
+                "/prs",
+                { vendor: rq.getAll("vendor"), requester: rq.getAll("requester"), mine: rq.get("mine") },
+                prsOptions
+            )
+        ),
+        JSON.stringify(withRequester)
+    );
+    // ONE PERSON IS ONE VALUE, NOT AN ARRAY OF ONE, when Next hands the page a parameter
+    // that appears once — which is the shape a link naming one requester arrives in.
+    check(
+        "  and one requester in a link arrives as the one-person list",
+        JSON.stringify(parseFilters("/prs", { requester: rq.getAll("requester")[1] }, prsOptions).requester),
+        JSON.stringify(["recKim"])
+    );
 
     // ── 6: the three empty states ───────────────────────────────────────────
     log("");
@@ -694,10 +784,20 @@ export function run({ check, assert, log }) {
     // hand and the two that exist cannot drift into saying one thing two ways.
     const job = axesFor("/prs").find((a) => a.param === "job");
     const vendor = axesFor("/prs").find((a) => a.param === "vendor");
+    const requester = axesFor("/prs").find((a) => a.param === "requester");
     check("the job picker's summary", job.words.all, "All jobs");
     check("the vendor picker's summary", vendor.words.all, "All vendors");
     check("both count their selection the same way", job.words.selected(2), vendor.words.selected(2));
-    for (const [noun, words] of [["job", job.words], ["vendor", vendor.words]]) {
+    // #630 — THE THIRD PICKER'S FIVE STRINGS, BY VALUE. Built from the noun, which is the
+    // `Requester` column's head, so the picker and the column it narrows say one word;
+    // pinned anyway, because "built from the noun" is true of a builder that misspells it.
+    check(
+        "the requester picker's words",
+        JSON.stringify([requester.words.label, requester.words.all, requester.words.search, requester.words.clear, requester.words.empty]),
+        JSON.stringify(["Requesters", "All requesters", "Search requesters…", "Clear requesters", "No matching requesters."])
+    );
+    check("  and it counts its selection as the other two do", requester.words.selected(2), job.words.selected(2));
+    for (const [noun, words] of [["job", job.words], ["vendor", vendor.words], ["requester", requester.words]]) {
         assert(`the ${noun} picker names its noun in all four of its strings`,
             [words.all, words.search, words.clear, words.empty].every((s) => s.includes(noun))
         );
@@ -738,6 +838,10 @@ export function run({ check, assert, log }) {
         vendor.words.search,
         vendor.words.clear,
         vendor.words.empty,
+        requester.words.all,
+        requester.words.search,
+        requester.words.clear,
+        requester.words.empty,
         FILTER_BAR_COPY.clearAll,
         ...sentences,
     ];
@@ -851,6 +955,21 @@ export function run({ check, assert, log }) {
     // options to check it against and `FILTER_PARAMS` must not grow to hold it.
     assert("`page` is not a filter parameter", !FILTER_PARAMS.includes(RESERVED_PARAMS.page));
 
+    // #630 — WHAT THE MIRROR'S FIRST RUN ASKS: does the address already say the screen?
+    // A value the server dropped makes the answer no, so the address is rewritten; order
+    // and encoding alone do not, so no render is spent rewriting a link to itself.
+    log("");
+    log("an address is rewritten on arrival only when it asks for something the screen does not show (#630):");
+    const shown2 = listQuery("/prs", { ...idle, requester: ["recKim"], mine: true }, 2);
+    check("the address the bar would write says the screen", sameQuery(`?${shown2}`, shown2), true);
+    check("  in any order", sameQuery("?page=2&mine=1&requester=recKim", shown2), true);
+    check("  and a space either way it is encoded", sameQuery("?q=acme%202608", "q=acme+2608"), true);
+    check("a requester the server dropped is a difference", sameQuery("?requester=recKim&requester=recLee&mine=1&page=2", shown2), false);
+    check("  and so is a page past the end", sameQuery("?requester=recKim&mine=1&page=99", shown2), false);
+    check("  and a first page spelled out", sameQuery("?page=1", listQuery("/prs", idle, 1)), false);
+    check("  and the same name holding a different value", sameQuery("?q=a", "q=b"), false);
+    check("a bare address is the unfiltered screen", sameQuery("", listQuery("/prs", idle, 1)), true);
+
     // THE FOOT SAYS BOTH FACTS, AND THE COUNT INFLECTS. `LIST_NOUN` gained a singular
     // for exactly this; a list holding one row is reachable on every one of the four.
     log("");
@@ -903,6 +1022,12 @@ export function run({ check, assert, log }) {
         const bar = readFileSync(repoPath("app/components/ListFilterBar.js"), "utf8");
         for (const needed of ["applyFilters", "pageOfRows", "listQuery"])
             assert(`the shared bar is the one caller of ${needed}`, bar.includes(needed));
+        // #630 — CALLED, NOT MERELY IMPORTED, which is the shape #224 records: an import
+        // left behind by an edit passes `includes`.
+        assert(
+            "the mirror's first run asks whether the address already says the screen",
+            callsTo(parseFile("app/components/ListFilterBar.js").ast, "sameQuery").length === 1
+        );
     }
     for (const rel of PAGES) {
         const source = readFileSync(repoPath(rel), "utf8");
@@ -962,6 +1087,175 @@ export function run({ check, assert, log }) {
     });
     assert("the property walk found the invoice list's own keys", invoiceKeys.has(ROW_KEY.mine));
     assert("  and says no to a key that list has no axis for", !invoiceKeys.has(ROW_KEY.over));
+
+    // ── 9c: the requester picker names only who this reader can see (#630) ──
+    //
+    // THE PROPERTY IS A CHAIN, AND IT IS HELD IN TWO HALVES. The page gates the requests,
+    // reads the users those requests name, and builds the picker from the gated rows —
+    // so a request outside a reader's scope never puts its requester's name into the
+    // read, let alone into the picker. This tier cannot run the page, which reads
+    // Airtable, so the first half runs the chain on a narrow reader with the gate, the
+    // requester and the name the page itself calls, and the second reads the page's AST
+    // and requires each link to be the one the first half ran. Either half alone is the
+    // weak version: the run is a copy unless the page is held to it, and the shape says
+    // nothing about what canViewPR admits.
+    log("");
+    log("the requester picker offers a narrow reader the requesters they can see, and nobody else:");
+    const people = {
+        recScoped: { id: "recScoped", firstName: "Scoped", lastName: "Fixture", email: "scoped-fixture@x.test" },
+        recKim: { id: "recKim", firstName: "Jin", lastName: "Kim", email: "jkim@x.test" },
+        recLee: { id: "recLee", firstName: "Min", lastName: "Lee", email: "mlee@x.test" },
+        recPark: { id: "recPark", firstName: "", lastName: "", email: "spark@x.test" },
+    };
+    // `scoped-fixture@`'s shape: an Employee on one job — and, here, a signer on one
+    // request off it, which is canViewPR's chain clause and no assignment at all.
+    const reader = (over) => ({ role: "Employee", isAdmin: false, assignedJobs: [], signerRowIds: [], editRequestRowIds: [], ...over });
+    const scoped = reader({ id: "recScoped", assignedJobs: ["recJobA"], signerRowIds: ["recSignerRow"] });
+    const office = reader({ id: "recOffice", isAdmin: true });
+    const request = (prId, requesterId, jobId, over = {}) => ({
+        id: `rec${prId}`, prId, status: "In Review", requester: [requesterId], job: [jobId], signerRowIds: [], editRequestRowIds: [], ...over,
+    });
+    const requests = [
+        request("PR-1", "recScoped", "recJobA"),
+        request("PR-2", "recKim", "recJobA"),
+        request("PR-3", "recLee", "recJobB"),
+        request("PR-4", "recPark", "recJobB", { signerRowIds: ["recSignerRow"] }),
+        // A requester whose `Users` row did not come back: the column prints a dash.
+        request("PR-5", "recGone", "recJobA"),
+    ];
+    // The page's chain, link for link; `requesterWiring` below holds the page to it.
+    const pickerFor = (user) => {
+        const visible = requests.filter((pr) => canViewPR(user, pr));
+        const requesterIds = [...new Set(visible.map((pr) => requesterOf(pr)).filter(Boolean))];
+        const requesterRecords = requesterIds.map((id) => people[id]);
+        const fullNameById = Object.fromEntries(requesterRecords.filter(Boolean).map((u) => [u.id, fullUserName(u)]));
+        const shaped = visible.map((pr) => ({ requesterId: requesterOf(pr) }));
+        return {
+            read: requesterIds,
+            options: pickerOptions(shaped, ROW_KEY.requester, (r) => fullNameById[r.requesterId]),
+        };
+    };
+    const asOptions = (options) => options.map((o) => `${o.id}=${o.label}`).join(" | ");
+    const narrow = pickerFor(scoped);
+    check(
+        "a reader on one job is offered its requesters, the one they sign for, and themselves",
+        asOptions(narrow.options),
+        "recKim=Jin Kim | recScoped=Scoped Fixture | recPark=spark"
+    );
+    assert("  and not the requester whose only request is on another job", !narrow.options.some((o) => o.id === "recLee"));
+    assert("  whose name was never read at all", !narrow.read.includes("recLee"));
+    // THE OTHER DIRECTION, which is why the options come from rows and not assignments:
+    // a request reached through the signing chain alone still offers its requester.
+    assert("a request reached through the signing chain alone offers its requester", narrow.options.some((o) => o.id === "recPark"));
+    check("a requester with no name is offered by the app's fallback", narrow.options.find((o) => o.id === "recPark")?.label, "spark");
+    assert("a requester whose record did not come back is offered as nobody", !narrow.options.some((o) => o.id === "recGone"));
+    // ANTI-VACUITY: the same chain does name Lee for a reader who can see Lee's request.
+    check(
+        "the office, who sees every request, is offered every requester",
+        asOptions(pickerFor(office).options),
+        "recKim=Jin Kim | recLee=Min Lee | recScoped=Scoped Fixture | recPark=spark"
+    );
+    check(
+        "a link naming Lee for the narrow reader narrows by the rest of it",
+        parseFilters("/prs", { requester: ["recLee", "recKim"] }, { requester: narrow.options }).requester.join(","),
+        "recKim"
+    );
+
+    /**
+     * How `/prs`'s page feeds the requester picker, read off its AST: one entry per link,
+     * each `[what it says, whether it holds]`.
+     */
+    function requesterWiring(ast) {
+        const initOf = new Map();
+        walk(ast, (n) => {
+            if (n.type === "VariableDeclarator" && n.id?.type === "Identifier") initOf.set(n.id.name, n.init);
+        });
+        const mentions = (node, name) => {
+            let hit = false;
+            walk(node, (n) => {
+                if (n.type === "Identifier" && n.name === name) hit = true;
+            });
+            return hit;
+        };
+        const isCallOn = (n, object, method) =>
+            n?.type === "CallExpression" &&
+            n.callee?.type === "MemberExpression" &&
+            n.callee.object?.type === "Identifier" &&
+            n.callee.object.name === object &&
+            n.callee.property?.name === method;
+        // The read is the element of a `Promise.all` destructured into `requesterRecords`.
+        let read = null;
+        walk(ast, (n) => {
+            if (n.type !== "VariableDeclarator" || n.id?.type !== "ArrayPattern") return;
+            const at = n.id.elements.findIndex((e) => e?.type === "Identifier" && e.name === "requesterRecords");
+            const all = n.init?.type === "AwaitExpression" ? n.init.argument : n.init;
+            if (at >= 0 && calleeName(all) === "all") read = all.arguments[0]?.elements?.[at] ?? null;
+        });
+        let option = null;
+        let rowRequester = null;
+        walk(ast, (n) => {
+            if (n.type !== "Property" || n.computed) return;
+            const key = n.key?.name ?? n.key?.value;
+            if (key === "requester" && calleeName(n.value) === "pickerOptions") option = n.value;
+            if (key === ROW_KEY.requester) rowRequester = n.value;
+        });
+        const visible = initOf.get("visible");
+        const requesterIds = initOf.get("requesterIds");
+        const fullNames = initOf.get("fullNameById");
+        let gated = false;
+        walk(visible, (n) => {
+            if (calleeName(n) === "canViewPR") gated = true;
+        });
+        let named = false;
+        walk(fullNames, (n) => {
+            if (calleeName(n) === "fullUserName") named = true;
+        });
+        return [
+            ["the page gates `allPRs` through canViewPR", isCallOn(visible, "allPRs", "filter") && gated],
+            [
+                "  reads the requesters of those requests and of no others",
+                Boolean(requesterIds) && mentions(requesterIds, "visible") && !mentions(requesterIds, "allPRs"),
+            ],
+            [
+                "  reads exactly those users",
+                calleeName(read) === "getUsersByRecordIds" &&
+                    read.arguments.length === 1 &&
+                    read.arguments[0].type === "Identifier" &&
+                    read.arguments[0].name === "requesterIds",
+            ],
+            ["  names them from that read by both names", Boolean(fullNames) && mentions(fullNames, "requesterRecords") && named],
+            ["  shapes its rows from the gated requests", isCallOn(initOf.get("rows"), "visible", "map")],
+            ["  gives each row the request's own requester", calleeName(rowRequester) === "requesterOf"],
+            [
+                "  and builds the picker from those rows, by that key, under those names",
+                Boolean(option) &&
+                    option.arguments[0]?.type === "Identifier" &&
+                    option.arguments[0].name === "rows" &&
+                    option.arguments[1]?.value === ROW_KEY.requester &&
+                    mentions(option.arguments[2], "fullNameById"),
+            ],
+        ];
+    }
+    const pageSource = readFileSync(repoPath("app/prs/page.js"), "utf8");
+    for (const [what, holds] of requesterWiring(parseSource(pageSource, "app/prs/page.js").ast)) assert(what, holds);
+    // ANTI-VACUITY: each mutant the chain is about, planted in a copy of the page, and
+    // the link it breaks seen failing. A plant that did not apply would prove nothing, so
+    // each is required to have changed the copy.
+    const PLANTS = [
+        ["options from every request", 'pickerOptions(rows, "requesterId"', 'pickerOptions(allPRs.map((pr) => ({ requesterId: requesterOf(pr) })), "requesterId"', 6],
+        // Beside the gated rows rather than instead of them, so it is the clause barring
+        // `allPRs` that has to see it — the one naming `visible` alone would not.
+        ["names read for every request", "new Set(visible.map((pr) => requesterOf(pr))", "new Set([...visible, ...allPRs].map((pr) => requesterOf(pr))", 1],
+        ["the column's first name in the picker", "map((u) => [u.id, fullUserName(u)])", "map((u) => [u.id, userName(u)])", 3],
+        ["the gate dropped", "allPRs.filter((pr) => canViewPR(user, pr))", "allPRs.filter(Boolean)", 0],
+        ["a read of something else", "getUsersByRecordIds(requesterIds)", "getUsersByRecordIds(requesterIds.concat([]))", 2],
+        ["rows from every request", "const rows = visible.map(", "const rows = allPRs.map(", 4],
+        ["a row's requester taken from elsewhere", "requesterId: requesterOf(pr),", "requesterId: pr.id,", 5],
+    ];
+    for (const [mutant, from, to, link] of PLANTS) {
+        const planted = pageSource.replace(from, to);
+        assert(`the wiring sees a page with ${mutant}`, planted !== pageSource && !requesterWiring(parseSource(planted).ast)[link][1]);
+    }
 
     // ── 10: the detectors are seen working ──────────────────────────────────
     log("");

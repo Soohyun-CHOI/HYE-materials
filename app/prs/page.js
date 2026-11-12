@@ -15,7 +15,7 @@ import { withOpsLabel } from "@/lib/airtableOps";
 import PRListClient from "./PRListClient";
 import OverageStrip from "./OverageStrip";
 import DirectPurchaseStrip from "./DirectPurchaseStrip";
-import { userName } from "@/lib/userName";
+import { fullUserName, userName } from "@/lib/userName";
 
 export const metadata = { title: "Purchase Requests" };
 
@@ -93,15 +93,26 @@ async function renderPRListPage({ searchParams }) {
     const userNameById = Object.fromEntries(
         requesterRecords.filter(Boolean).map((u) => [u.id, userName(u)])
     );
+    // #630 — THE REQUESTER PICKER'S LABELS, FROM THE SAME RECORDS AND SO FROM NO READ.
+    // Its options are the requesters of the visible rows, whose records the column
+    // already needs, and a request this reader cannot see puts no id into the read above
+    // — so its requester's name is never fetched, let alone offered. Both names, where
+    // the column prints the first: a person is CHOSEN here (`lib/userName.js`).
+    const fullNameById = Object.fromEntries(
+        requesterRecords.filter(Boolean).map((u) => [u.id, fullUserName(u)])
+    );
 
     // Pre-shape each visible PR into a plain, display-ready row. jobId / vendorId /
-    // status / isMine / kind are the keys the bar's five axes read — isMine is
-    // resolved here so the requester's identity never has to go to the client.
+    // requesterId / status / isMine / kind are the keys the bar's pickers, toggle and
+    // selects read, and the box reads its own. isMine is resolved here, so whether a
+    // request is the reader's own is never the browser's judgment; the requester
+    // reaches the browser as a record id since #630, as the value its picker narrows by.
     const rows = visible.map((pr) => ({
         id: pr.id,
         prId: pr.prId,
         status: pr.status,
         isMine: isRequester(user, pr),
+        requesterId: requesterOf(pr),
         requesterName: userNameById[requesterOf(pr)] || "—",
         vendorId: pr.vendor?.[0] ?? null,
         vendorName: vendorsById[pr.vendor?.[0]] || "—",
@@ -133,6 +144,9 @@ async function renderPRListPage({ searchParams }) {
     const options = {
         job: pickerOptions(rows, "jobId", (r) => jobOptionLabel(r.jobCode, jobsById[r.jobId]?.jobName)),
         vendor: pickerOptions(rows, "vendorId", (r) => r.vendorName),
+        // #630 — a request whose requester's record did not come back has no label and
+        // so contributes no option, rather than one reading as the column's dash.
+        requester: pickerOptions(rows, "requesterId", (r) => fullNameById[r.requesterId]),
         status: STATUSES,
         kind: PR_KIND_CHOICES,
     };

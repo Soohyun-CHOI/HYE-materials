@@ -129,6 +129,7 @@ const CARRIED = [
     { route: "/invoices", param: "q", note: "#325 — the search term, and the only one of the four that reaches a second name: `Invoices.\"Vendor Invoice Code\"`, beside the Invoice ID, the vendor and the job. The vendor rings up quoting their own number, which is the case the whole issue is named for" },
     { route: "/prs", param: "job", note: "job filter; repeatable; a Job record id, intersected with the jobs on rows this reader can see" },
     { route: "/prs", param: "vendor", note: "#324 — vendor filter; repeatable; a Vendor record id. All four lists head a `Vendor` column and none could narrow by it" },
+    { route: "/prs", param: "requester", note: "#630 — requester filter; repeatable; a Users record id, intersected with the requesters of rows this reader can see, so a link naming someone whose requests are outside this reader's scope narrows by nobody" },
     { route: "/prs", param: "status", note: "status filter, one of the four submitted Purchase Requests values — a Draft never reaches this list" },
     { route: "/prs", param: "mine", note: "`1` narrows to the reader's own requests, read off `Purchase Requests.\"Requester\"`" },
     { route: "/prs", param: "kind", note: "#324 — `overage` or `direct-purchase`, the two marks this list renders. `ordinary` is not offered: the chip is deliberately silent for it and an option would coin the word" },

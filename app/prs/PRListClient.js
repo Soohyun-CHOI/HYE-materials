@@ -15,8 +15,8 @@ import ListFilterBar, { ListPageFoot, useListFilters } from "@/app/components/Li
 // THE BAR IS SHARED SINCE #324 and the mechanism is unchanged: no Apply button, and
 // the active filters mirrored into the URL so refresh, a shared link and the back
 // button restore them. What moved out is the state, the URL sync, the predicate and
-// every word — this list carries five axes now (a job picker, a vendor picker, the
-// reader's own, a status and a kind) and declares none of them here.
+// every word — this list carries seven axes now (the search box; a job, a vendor and a
+// requester picker; the reader's own; a status and a kind) and declares none of them here.
 const ROUTE = "/prs";
 
 export default function PRListClient({ rows, options, initialFilters, initialPage, totalCount }) {
