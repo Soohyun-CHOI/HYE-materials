@@ -9,6 +9,11 @@
 // the figure in it is what the page shell actually leaves, and that every screen
 // carrying it really is on that shell.
 //
+// THE SHELL IS THE BOX A SCREEN THE DESIGN HAS NOT DRAWN STANDS IN SINCE #258:
+// `app/components/UndrawnPage.js`' `list` measure, which a list's page names where it
+// spelled the classes itself until then. So a carrier's page is held to naming that
+// measure, and the measure to carrying both classes.
+//
 // THE THIRD CLAUSE IS THE ONE THAT CATCHES SOMETHING NOBODY WAS ASKING. 52rem is
 // `max-w-4xl` minus `p-8` and means nothing on a page built any other way, and
 // before this there was no mechanism at all — a `max-w-2xl` page importing the
@@ -127,14 +132,43 @@ function shellPageFor(relPath) {
     return existsSync(repoPath(sibling)) ? sibling : null;
 }
 
-/** Does this source declare a shell carrying BOTH shell classes in one string? */
+/**
+ * The box a page the design has not drawn stands in, and the one measure of it a list's page
+ * is (#258). Until then each list page spelled its own `mx-auto w-full max-w-4xl p-8`; the
+ * classes are the box's `list` measure since, and a page names the measure.
+ */
+const BOX = "app/components/UndrawnPage.js";
+const LIST_MEASURE = "list";
+
+/** Does a string carry BOTH shell classes? */
+const carriesShell = (s) => {
+    const classes = String(s ?? "").split(/\s+/);
+    return classes.includes("max-w-4xl") && classes.includes("p-8");
+};
+
+/** The classes one of the box's measures carries, read off its source. */
+function measureOf(ast, kind) {
+    let found = null;
+    walk(ast, (n) => {
+        if (n.type !== "VariableDeclarator" || n.id?.name !== "MEASURES" || n.init?.type !== "ObjectExpression") return;
+        const prop = n.init.properties.find((p) => (p.key.name ?? p.key.value) === kind);
+        if (prop?.value?.type === "Literal") found = prop.value.value;
+    });
+    return found;
+}
+
+/** Does this page stand in the box's `list` measure? */
 function hasShell(ast) {
+    let local = null;
+    walk(ast, (n) => {
+        if (n.type === "ImportDeclaration" && /(^|\/)UndrawnPage(\.js)?$/.test(String(n.source.value)))
+            local = n.specifiers.find((s) => s.type === "ImportDefaultSpecifier")?.local.name ?? null;
+    });
     let found = false;
     walk(ast, (n) => {
-        if (found) return;
-        if (n.type !== "Literal" || typeof n.value !== "string") return;
-        const classes = n.value.split(/\s+/);
-        if (classes.includes("max-w-4xl") && classes.includes("p-8")) found = true;
+        if (found || !local || n.type !== "JSXElement" || n.openingElement.name?.name !== local) return;
+        const measure = n.openingElement.attributes.find((a) => a.name?.name === "measure")?.value;
+        if (measure?.type === "Literal" && measure.value === LIST_MEASURE) found = true;
     });
     return found;
 }
@@ -163,12 +197,14 @@ export async function run({ check, log, assert }) {
         "  and not on a different budget on a different shell",
         !classTokenInCode(parseSource(`const t = <table className="w-full min-w-[32rem] table-fixed" />;`, "<other>").ast)
     );
-    const plantedShell = parseSource(`const s = <div className="mx-auto w-full max-w-4xl p-8" />;`, "<shell>");
-    assert("  the shell detector finds a planted shell", hasShell(plantedShell.ast));
+    const boxImport = `import Box from "@/app/components/UndrawnPage";\n`;
+    const plantedShell = parseSource(`${boxImport}const s = <Box measure="list" />;`, "<shell>");
+    assert("  the shell detector finds a page standing in the list box", hasShell(plantedShell.ast));
     assert(
-        "  and refuses a narrower one",
-        !hasShell(parseSource(`const s = <div className="mx-auto w-full max-w-2xl p-8" />;`, "<narrow>").ast)
+        "  and refuses one standing in a narrower box",
+        !hasShell(parseSource(`${boxImport}const s = <Box measure="document" />;`, "<narrow>").ast)
     );
+    assert("  and the classes detector finds both classes", carriesShell("mx-auto w-full max-w-4xl p-8") && !carriesShell("mx-auto w-full max-w-2xl p-8"));
 
     // ── the class is spelled once ────────────────────────────────────────────
     log("");
@@ -199,6 +235,9 @@ export async function run({ check, log, assert }) {
     // ── every carrier is on that shell ───────────────────────────────────────
     log("");
     log("every screen carrying the class is on that shell:");
+    const listClasses = measureOf(parseFile(BOX).ast, LIST_MEASURE);
+    log(`  the box's ${LIST_MEASURE} measure: ${listClasses}`);
+    check("  the box's list measure carries max-w-4xl + p-8", carriesShell(listClasses), true);
     const carriers = files.filter((rel) => importsTheClass(parseFile(rel).ast));
     assert(`${carriers.length} files import ${EXPORT_NAME}`, carriers.length > 0);
     const unshelled = [];

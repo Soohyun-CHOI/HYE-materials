@@ -4,20 +4,21 @@ import { Instrument_Sans } from "next/font/google";
  * The design's UI face, Instrument Sans: everything but ids, file names and the wordmark
  * (0h). `--font-ui` in `app/designValues.css` resolves to the variable this call sets.
  *
- * ONE FACE, ONE MODULE, ONE CALL, AND A LAYOUT IMPORTS THE FACES ITS SCREENS DRAW (#473).
- * The assets layout loaded all three faces itself until the sign-in screens needed two of
- * them under a layout of their own. A second call in that layout would have been a second
- * copy of this one's options — a `next/font` call takes literals only, so the two could
- * not share them — and one module holding all three would have handed the sign-in screens
- * the id face they never draw, preloaded. So each face is a module and each layout imports
- * the ones its screens read; `offline/design-values.mjs` holds that every face read on an
- * axis is loaded by a module that axis reaches. **#258 moves the variable classes to the
- * root layout's element** and both layouts stop applying them, with these three modules
- * unchanged.
+ * ONE FACE, ONE MODULE, ONE CALL (#473), AND THE ROOT LAYOUT IMPORTS ALL THREE (#258). The
+ * assets layout loaded all three faces itself until the sign-in screens needed two of them
+ * under a layout of their own; a second call there would have been a second copy of this
+ * one's options — a `next/font` call takes literals only, so the two could not share them —
+ * so each face became a module and each layout imported the ones its screens read. Since
+ * #258 one layout holds every screen and sets every face's variable on `<html>`, so every
+ * route preloads all three, the sign-in steps the id face they do not draw among them; the
+ * modules stayed apart, which costs nothing and keeps each call's options beside its face.
+ * `offline/design-values.mjs` holds that the root layout is the one file importing them and
+ * that every face loaded is read.
  *
  * LOADING ONE STYLES NOTHING (#456). The call defines the variable on whichever element
- * carries `uiFace.variable`; only what asks for `font-ui` draws in the face. It is a
- * variable font, so the three weights the design uses — 400, 500 and 600 — are one file.
+ * carries `uiFace.variable`; only what asks for `font-ui` draws in the face, and since #258
+ * that is `<body>`, so every word inherits it. It is a variable font, so the three weights
+ * the design uses — 400, 500 and 600 — are one file.
  *
  * A FACE THAT ARRIVES LATE IS NOT SWAPPED IN (#568): `display: "optional"`, where next/font's
  * own is `swap`. Swapped in after the first paint, the face moved every line drawn in its

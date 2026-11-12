@@ -1941,7 +1941,7 @@ export function run({ check, assert, log }) {
     // may again. So each has to be declared as a number in its own module, and
     // neither module may reach the other: a shared token, an alias and a re-export all
     // fail here. **What retires this** is a design decision that the two are one
-    // reader's page, taken where #258 names the design's values — and then this
+    // reader's page, taken where the document lists take the design — and then this
     // section changes in that commit, with both docstrings and the notes. The values
     // are not pinned here: this one is pinned above, and the document lists derive
     // theirs on purpose (`offline/list-filters.mjs`).

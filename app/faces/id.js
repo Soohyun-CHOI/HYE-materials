@@ -3,10 +3,10 @@ import { Fragment_Mono } from "next/font/google";
 /**
  * The design's id face, Fragment Mono: ids and file names, and nothing else (0h).
  * `--font-id` resolves to the variable this call sets; `app/faces/ui.js` says why each
- * face is a module of its own, why none is swapped in late (#568) and what #258 does with
- * them.
+ * face is a module of its own, why none is swapped in late (#568) and why the root layout
+ * imports all three (#258).
  *
  * Loaded at the one weight the design sets it at (#459). It is not a variable font, so the
- * weight is named. The assets layout imports it; the sign-in screens draw no id and do not.
+ * weight is named.
  */
 export const idFace = Fragment_Mono({ subsets: ["latin"], weight: "400", display: "optional", variable: "--font-fragment-mono" });

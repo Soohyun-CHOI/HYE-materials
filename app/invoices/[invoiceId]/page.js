@@ -13,6 +13,7 @@ import {
 } from "@/lib/deliveryStatus";
 import { PAIRING, describePairing, describeTieBreak, linkedDelivery } from "@/lib/deliveryInvoicePairing";
 import { QualifierMarker, StatusChip } from "@/app/components/DeliveryStatusMarks";
+import UndrawnPage from "@/app/components/UndrawnPage";
 import { foldInvoiceItems } from "@/lib/invoiceItemFold";
 import { invoiceDeliveryEntries } from "@/lib/invoiceDeliveryEntries";
 import { itemLabel } from "@/lib/materialIdentity";
@@ -250,7 +251,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
     ];
 
     return (
-        <div className="mx-auto w-full max-w-2xl p-8">
+        <UndrawnPage measure="document">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-semibold">{invoice.invoiceId}</h1>
                 <div className="flex items-center gap-4">
@@ -857,6 +858,6 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                     <DeleteInvoiceButton invoiceId={invoice.invoiceId} />
                 </div>
             )}
-        </div>
+        </UndrawnPage>
     );
 }

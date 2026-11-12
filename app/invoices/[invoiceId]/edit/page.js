@@ -1,4 +1,5 @@
 import Link from "next/link";
+import UndrawnPage from "@/app/components/UndrawnPage";
 import { requireAdmin } from "@/lib/authz";
 import { getInvoiceById } from "@/lib/airtable/invoices";
 import { getItemsByInvoice } from "@/lib/airtable/invoiceItems";
@@ -25,9 +26,9 @@ async function renderEditInvoicePage({ params }) {
     const { authorized } = await requireAdmin();
     if (!authorized) {
         return (
-            <div className="flex flex-1 items-center justify-center p-8">
+            <UndrawnPage measure="notice">
                 <p>Not authorized. Editing an invoice is Admin-only.</p>
-            </div>
+            </UndrawnPage>
         );
     }
 
@@ -47,7 +48,7 @@ async function renderEditInvoicePage({ params }) {
     const itemsWithPoId = items.map((it) => ({ ...it, poId: poIdByRecordId[it.po?.[0]] || null }));
 
     return (
-        <div className="mx-auto w-full max-w-2xl p-8">
+        <UndrawnPage measure="document">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-semibold">Edit {invoice.invoiceId}</h1>
                 <Link href={`/invoices/${invoice.invoiceId}`} className="text-sm underline">
@@ -56,6 +57,6 @@ async function renderEditInvoicePage({ params }) {
             </div>
 
             <EditInvoiceForm invoice={invoice} items={itemsWithPoId} vendors={vendors} />
-        </div>
+        </UndrawnPage>
     );
 }

@@ -125,8 +125,8 @@ import "./labels.css";
 // tape. The face is the design's choice and `LABEL_CODE_TYPEFACE` names it;
 // `next/font` takes it as a static import, so the name is spelled here as well and
 // `offline/asset-label-page.mjs` compares the two. It reaches the pages and the code
-// alone: the root layout and the assets layout are where a design is applied to
-// screens. The labels' page loaded it until #457.
+// alone: the root layout is where the design's faces are applied to screens (#258). The
+// labels' page loaded it until #457.
 //
 // IF THE FACE HAS NOT ARRIVED WHEN PRINT IS PRESSED, THE FALLBACK WOULD PRINT, and the
 // press waits for it (`document.fonts.ready`). The code is drawn only when the dialog

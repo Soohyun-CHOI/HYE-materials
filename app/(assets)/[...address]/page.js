@@ -11,9 +11,9 @@ export const metadata = { title: COPY.pageNotFound };
  * UNTIL #617 NEXT ANSWERED IT, with its own `404 | This page could not be found.` and no rail,
  * where Tools 56 draws 1h in the app's frame for "an address that matches nothing". A route
  * answers before a catch-all does, so this takes only what nothing else takes, and it sits on
- * the assets axis because the view is the axis's: a `not-found.js` at the root would be reached
- * by every screen, which may not read the design's names until #258 (`design-system.md`, `Who
- * may read a name`).
+ * the assets axis because the view is the axis's. A `not-found.js` at the root could read the
+ * design's names since #258, and would still not be this: it answers 404 and gates no reader,
+ * where this is a page that gates and answers 200, below.
  *
  * THE READER IS THE AXIS'S. Every signed-in user, as on the rest of the axis; one signed out is
  * sent to sign in and back here, as from any page (#373). The gate is the one read, which the

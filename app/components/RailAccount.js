@@ -8,9 +8,9 @@ import { NAVIGATION_COPY as COPY } from "@/lib/navigation";
 
 /*
  * The account at the rail's foot — Claude Design's 0m Account (#478): who is reading, and
- * the menu that signs them out, the one way to do that on the asset screens.
+ * the menu that signs them out, the one way to do that at a desk.
  *
- * WHAT IT SAYS ARRIVES AS WORDS, FROM THE READ THE PAGE MADE. The assets layout waits on
+ * WHAT IT SAYS ARRIVES AS WORDS, FROM THE READ THE PAGE MADE. The root layout waits on
  * `takePageUser()` and hands the rail `accountOf`'s words: the user the page's own gate
  * read, never a read of the layout's — `lib/authz.js` has why, and the order that makes
  * it work. No reader, or nobody signed in, is null, and then the rail draws none of this.

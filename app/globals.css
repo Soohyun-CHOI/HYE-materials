@@ -1,6 +1,6 @@
 @import "tailwindcss";
 /* The design's values under their names (#462): declared for every page here,
-   and read only on the tools axis and the sign-in screens until #258. */
+   and any file may read them since #258. */
 @import "./designValues.css";
 
 :root {
@@ -17,17 +17,16 @@
   --foreground: #171717;
 }
 
+/* The two colors the screens the design has not drawn read by these keys —
+   `bg-foreground`, `text-background` — as create-next-app left them. They name
+   no face: the root layout's `<body>` takes the design's ground, ink and face
+   (#258), and a `body` rule here would sit outside every layer and beat those
+   classes, which is how the Arial this file set held every screen above the
+   assets axis until then. Geist Sans and Geist Mono, which this block made
+   Tailwind's two defaults, went with the calls that loaded them. */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
 
 /* A control that acts shows the hand under the pointer, and one that does not

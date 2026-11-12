@@ -29,6 +29,7 @@ import { getInvoicesByRecordIds } from "@/lib/airtable/invoices";
 import DeleteDeliveryButton from "./DeleteDeliveryButton";
 import OverageButton from "./OverageButton";
 import Instant from "@/app/components/Instant";
+import UndrawnPage from "@/app/components/UndrawnPage";
 import { withOpsLabel } from "@/lib/airtableOps";
 import { userName } from "@/lib/userName";
 
@@ -77,12 +78,12 @@ async function renderDeliveryDetailPage({ params }) {
     // does not exist. Both render the ordinary not-found text.
     if (!delivery || !canAccessJobDeliveries(user, delivery.job?.[0])) {
         return (
-            <div className="mx-auto w-full max-w-3xl p-8">
+            <UndrawnPage measure="delivery">
                 <h1 className="text-2xl font-semibold">Delivery not found</h1>
                 <Link href="/deliveries" className="mt-6 inline-block text-sm underline">
                     ← All deliveries
                 </Link>
-            </div>
+            </UndrawnPage>
         );
     }
 
@@ -205,7 +206,7 @@ async function renderDeliveryDetailPage({ params }) {
     const tableRows = groupRowsByItemAndOrder(rows);
 
     return (
-        <div className="mx-auto w-full max-w-3xl p-8">
+        <UndrawnPage measure="delivery">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-semibold">{delivery.deliveryId}</h1>
                 <div className="flex items-center gap-4">
@@ -509,6 +510,6 @@ async function renderDeliveryDetailPage({ params }) {
                     />
                 </div>
             )}
-        </div>
+        </UndrawnPage>
     );
 }

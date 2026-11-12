@@ -25,6 +25,7 @@ import { formatUSD } from "@/lib/format";
 import { withOpsLabel } from "@/lib/airtableOps";
 import ItemsSummaryRows from "@/app/components/ItemsSummaryRows";
 import Instant from "@/app/components/Instant";
+import UndrawnPage from "@/app/components/UndrawnPage";
 import SigningPanel from "./SigningPanel";
 import GeneratePOForm from "./GeneratePOForm";
 import SignerProgressBar from "./SignerProgressBar";
@@ -238,7 +239,7 @@ async function renderPRDetailPage({ params }) {
     ].sort((a, b) => new Date(a.at) - new Date(b.at));
 
     return (
-        <div className="mx-auto w-full max-w-2xl p-8">
+        <UndrawnPage measure="document">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <h1 className="text-2xl font-semibold">{pr.prId}</h1>
@@ -524,6 +525,6 @@ async function renderPRDetailPage({ params }) {
                     <WithdrawPRForm prId={pr.prId} />
                 </div>
             )}
-        </div>
+        </UndrawnPage>
     );
 }

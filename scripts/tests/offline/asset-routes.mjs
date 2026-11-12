@@ -9,7 +9,10 @@
 // took the printed address out of the group.
 //
 // AND THE PRINTED ADDRESS IS HELD ON ITS OWN SINCE #478, which took its page out of the
-// group so that a scan renders no rail. A directory is not a segment, so the move left
+// group so that a scan rendered no rail. Since #258 the rail is the root layout's, above
+// every page, and a scan still draws none: the page redirects before anything is sent,
+// so what holds the page here is only that it stays where its address is. A directory is
+// not a segment, so the move left
 // the address alone — and a label already glued to an asset carries it, so that is the
 // one thing here that may never change. The check pins the template by value, finds the
 // one page that answers it, and holds that page outside the group with no layout but the
@@ -207,12 +210,13 @@ export async function run({ check, assert, log }) {
     );
     check("  and no layout but the root's stands above it", layoutsAbove(LABEL_PAGE).join(" "), "app/layout.js");
     assert("  and it is none of the screens'", !ASSET_ROUTES.includes(LABEL_ROUTE));
-    // ANTI-VACUITY: the same walk finds the assets layout above an asset screen, so the
-    // root-only answer above is a fact about where the page sits.
+    // ANTI-VACUITY: the same walk finds the sign-in layout above a sign-in step, so the
+    // root-only answer above is a fact about where the page sits. It found the assets
+    // layout above an asset screen until #258 gathered every screen into the root layout.
     check(
-        "  the walk finds the assets layout above a tool's page",
-        layoutsAbove(`${GROUP_DIR}/asset-categories/[categoryRecordId]/page.js`).join(" "),
-        `${GROUP_DIR}/layout.js app/layout.js`
+        "  the walk finds a second layout above a page that has one",
+        layoutsAbove("app/login/jobs/page.js").join(" "),
+        "app/login/layout.js app/layout.js"
     );
 
     // ── 2: the builders build those routes ──────────────────────────────────

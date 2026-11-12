@@ -10,15 +10,14 @@
  *
  * DECLARED HERE AND APPLIED NOWHERE, WHICH IS WHAT THIS FILE IS FOR. It holds
  * `@theme` blocks and comments, and nothing that selects an element: a rule here
- * would style every page, the ones above the tools axis included, and those each
- * hold a width container of their own. The one other thing a block may hold is
- * the keyframes an animation it declares runs, which select nothing and which
- * Tailwind emits only once that animation is read (#473). `app/globals.css`
- * imports it, so every page's stylesheet carries the names, and until #258 a name
- * is read only by a file that nothing outside `app/(tools)/` and `app/login/`
- * calls — with one exception, the date, which #463 had drawn on every screen and
- * `app/components/Instant.js` alone draws. `offline/design-values.mjs` holds all
- * three.
+ * would style every page at once, a screen the design has not drawn included. The
+ * one other thing a block may hold is the keyframes an animation it declares runs,
+ * which select nothing and which Tailwind emits only once that animation is read
+ * (#473). `app/globals.css` imports it, so every page's stylesheet carries the
+ * names, and any file may read one since #258 — until then only a file the asset
+ * screens and the sign-in steps alone reached might, the date aside (#463), which
+ * `app/components/Instant.js` draws on every screen. `offline/design-values.mjs`
+ * holds all three.
  *
  * WHAT IS HERE IS WHAT THE TOOLS SCREENS AND THE SIGN-IN SCREENS DRAW. A row of
  * the design's spec that only the screens above those draw is declared with the

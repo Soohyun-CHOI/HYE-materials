@@ -1,4 +1,5 @@
 import Link from "next/link";
+import UndrawnPage from "@/app/components/UndrawnPage";
 import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getDeliveriesByRecordIds } from "@/lib/airtable/deliveries";
@@ -167,7 +168,7 @@ async function renderDeliveriesListPage({ searchParams }) {
     const initialFilters = parseFilters("/deliveries", sp ?? {}, options);
 
     return (
-        <div className="mx-auto w-full max-w-4xl p-8">
+        <UndrawnPage measure="list">
             <div className="flex items-baseline justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-semibold">Deliveries</h1>
@@ -202,6 +203,6 @@ async function renderDeliveriesListPage({ searchParams }) {
             <Link href="/" className="mt-8 inline-block text-sm underline">
                 Home
             </Link>
-        </div>
+        </UndrawnPage>
     );
 }

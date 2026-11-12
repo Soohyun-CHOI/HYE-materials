@@ -1,4 +1,5 @@
 import Link from "next/link";
+import UndrawnPage from "@/app/components/UndrawnPage";
 import { requireUser } from "@/lib/authz";
 import { getSubmittedPRs } from "@/lib/airtable/purchaseRequests";
 import { getAllJobs } from "@/lib/airtable/jobs";
@@ -161,7 +162,7 @@ async function renderPRListPage({ searchParams }) {
     const initialFilters = parseFilters("/prs", sp, options);
 
     return (
-        <div className="mx-auto w-full max-w-4xl p-8">
+        <UndrawnPage measure="list">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-semibold">Purchase Requests</h1>
                 <Link href="/prs/new" className="rounded bg-foreground px-3 py-2 text-sm text-background">
@@ -191,6 +192,6 @@ async function renderPRListPage({ searchParams }) {
                 // you", which this list conflated into one sentence until #324.
                 totalCount={allPRs.length}
             />
-        </div>
+        </UndrawnPage>
     );
 }

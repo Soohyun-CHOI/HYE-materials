@@ -1,4 +1,5 @@
 import Link from "next/link";
+import UndrawnPage from "@/app/components/UndrawnPage";
 import { requireUser } from "@/lib/authz";
 import { getAllPOs } from "@/lib/airtable/purchaseOrders";
 import { getApprovedPRs, getPRsByRecordIds } from "@/lib/airtable/purchaseRequests";
@@ -332,7 +333,7 @@ async function renderPOListPage({ searchParams }) {
     const initialFilters = parseFilters("/pos", sp ?? {}, options);
 
     return (
-        <div className="mx-auto w-full max-w-4xl p-8">
+        <UndrawnPage measure="list">
             <h1 className="text-2xl font-semibold">Purchase Orders</h1>
 
             {/* Above the list, because the thing it reports cannot be IN the
@@ -358,6 +359,6 @@ async function renderPOListPage({ searchParams }) {
                 // thing that tells "none exist yet" apart from "none for you".
                 totalCount={pos.length}
             />
-        </div>
+        </UndrawnPage>
     );
 }

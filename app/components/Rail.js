@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { focusFellFromPage } from "@/lib/dialogFrame";
-import { NAVIGATION_COPY as COPY, NAVIGATION_SECTIONS, currentOf } from "@/lib/navigation";
+import { NAVIGATION_COPY as COPY, NAVIGATION_SECTIONS, currentOf, drawsRail } from "@/lib/navigation";
 import { WORDMARK } from "@/lib/productName";
 import Icon from "./Icon";
 import { useOpenerPress } from "./Menu";
@@ -18,17 +18,20 @@ import { useTooltip } from "./Tooltip";
  * screen sits in" (#460). `docs/notes/tools.md`'s `The navigation` has what was weighed
  * and measured for it.
  *
- * WRITTEN WHERE ANY SCREEN COULD CALL IT, AND ONLY THE ASSETS LAYOUT DOES. The screens
- * above the assets axis each hold a width container inside their own page — twenty-four
- * of them across twenty pages (`docs/notes/tools.md`) — and a rail beside them would
- * fight every one. So their screens are not under it, and while they are closed
- * (`lib/openScreens.js`, #542) their sections are not on it either; opened before #258,
- * pressing one leaves the rail behind. **What moves it is #258**, which gathers those
- * screens into one layout: the call moves from
- * `app/(assets)/layout.js` to `app/layout.js`, the design's faces move with it, and
- * `offline/design-values.mjs` widens its boundary to every route file, in one commit.
- * Nothing in this file changes, which is why it reads its section off the address
- * rather than taking it from the caller (`lib/navigation.js`).
+ * THE ROOT LAYOUT CALLS IT, AND IT STANDS BESIDE EVERY SCREEN BUT THE SIGN-IN STEPS (#258).
+ * Until then the assets layout called it and the materials screens were not under it,
+ * since each held a width container of its own; #258 gathered those into the one box a
+ * screen the design has not drawn stands in (`UndrawnPage.js`), and the call moved up.
+ * A root layout cannot know which page is below it, so this reads the address for both of
+ * its answers — which section is current, and whether to stand beside the screen at all:
+ * on a sign-in step (`lib/navigation.js:drawsRail`) it hands back the step as it is, inside
+ * the frame `app/login/layout.js` draws, with nothing of its own around it. A layout is
+ * kept across navigations, so the rail goes as a reader signs out and comes as a step
+ * leads on.
+ *
+ * THE MATERIALS SECTIONS ARE ON IT WHERE THEIR SCREENS ARE OPEN (`lib/openScreens.js`,
+ * #542, #631) — every build but production's — and the office's forms stand beside it with
+ * no section current until `Office` joins it with the screen it opens (#486).
  *
  * FROM THE 1280 WINDOW THE EXPANDED RAIL PUSHES THE SCREEN; BELOW IT, IT COVERS IT AS A
  * PANEL (0m). The breakpoint is Tailwind's `xl`, the design's 1280 at the default text
@@ -48,9 +51,9 @@ import { useTooltip } from "./Tooltip";
  * screen.
  *
  * THE EXPANDED STATE IS THIS COMPONENT'S, AND NOTHING STORES IT. A layout does not render
- * again on a navigation, so a rail held by the assets layout keeps what the reader set
- * across every move between asset screens. A reload, a new tab, a scan and a trip
- * through a screen without the rail start collapsed — the design's resting state.
+ * again on a navigation, so the rail keeps what the reader set across every move between
+ * the screens beside it. A reload, a new tab and a scan start collapsed — the design's
+ * resting state.
  * Storage only the browser reads would have the server draw the rail collapsed and
  * widen it after hydration, shifting the screen sideways on every load from 1280 up.
  *
@@ -129,15 +132,24 @@ const COLUMN = [
  * `lib/dialogFrame.js:focusFellFromPage`, and puts focus where the page begins — what a screen
  * reader names as it lands, and where a dialog's closing puts it (#459). An open dialog keeps
  * its own rule (#469), and a new address is a navigation's to place.
+ *
+ * A SCREEN THE DESIGN HAS NOT DRAWN IS LEFT AS IT WAS (#258). Focus held inside the box such a
+ * screen stands in — the mark `UndrawnPage.js` sets — is not watched, so where it falls is the
+ * browser's, as it was before those screens stood in this column: the heading is scrolled to
+ * as it takes focus, and a request form whose item row went with its own button would jump to
+ * its top.
+ *
+ * `drawn` is whether the column is on the page: a reader who came in through a sign-in step met
+ * the rail with no column, and the watch starts when one is drawn.
  */
-function useHeadingWhenFocusFalls(columnRef) {
+function useHeadingWhenFocusFalls(columnRef, drawn) {
     useEffect(() => {
         const column = columnRef.current;
         if (!column) return undefined;
         let held = null;
         let heldAt = null;
         const onFocusIn = (event) => {
-            held = event.target;
+            held = event.target.closest?.("[data-undrawn-page]") ? null : event.target;
             heldAt = window.location.pathname;
         };
         // Asked on the frame after what the column holds changed, once for the lot of them.
@@ -167,17 +179,19 @@ function useHeadingWhenFocusFalls(columnRef) {
             observer.disconnect();
             window.cancelAnimationFrame(frame);
         };
-    }, [columnRef]);
+    }, [columnRef, drawn]);
 }
 
 /**
- * The rail beside the column `children` render in. Whether the reader has it expanded is
- * kept here, so it lasts as long as the layout that holds it.
+ * The rail beside the column `children` render in, or on a sign-in step `children` alone.
+ * Whether the reader has it expanded is kept here, so it lasts as long as the layout that
+ * holds it.
  */
 export default function Rail({ account, children }) {
     const pathname = usePathname();
+    const drawn = drawsRail(pathname);
     const columnRef = useRef(null);
-    useHeadingWhenFocusFalls(columnRef);
+    useHeadingWhenFocusFalls(columnRef, drawn);
     const [expanded, setExpanded] = useState(false);
     const navRef = useRef(null);
     const toggleRef = useRef(null);
@@ -218,6 +232,10 @@ export default function Rail({ account, children }) {
             document.removeEventListener("keydown", onKeyDown);
         };
     }, [expanded, closePanel, isPanel]);
+
+    // A sign-in step is drawn whole by its own layout, so it stands where the rail's frame
+    // would, directly under `<body>`.
+    if (!drawn) return children;
 
     return (
         <div className="sm:flex sm:h-dvh print:h-auto">
