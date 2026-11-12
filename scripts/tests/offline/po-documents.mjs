@@ -73,17 +73,18 @@ const invoice = ({
     invoiceId,
     vendorInvoiceCode: code,
     issueDate,
-    varianceFlag: variance,
+    totalsDiffer: variance,
     paidDate,
 });
 
-const invoiceItem = ({ id = "recII1", inv = "recINV1", ordered = "recPOI_A", qty = 230, unitPrice = 13.49, variance = false } = {}) => ({
+const invoiceItem = ({ id = "recII1", inv = "recINV1", ordered = "recPOI_A", qty = 230, unitPrice = 13.49, variance = false, quantity = false } = {}) => ({
     id,
     invoice: inv ? [inv] : [],
     poItem: ordered ? [ordered] : [],
     qty,
     unitPrice,
-    varianceFlag: variance,
+    hasPriceVariance: variance,
+    hasQuantityVariance: quantity,
 });
 
 const delivery = ({ id = "recDL1", deliveryId = "HYE-DL-260804-06", receivedDate = "2026-07-23" } = {}) => ({
@@ -206,9 +207,10 @@ export function run({ check, assert, log }) {
     check("  the price survives the fold, since it is the key", oneCharge[0]?.charges[0]?.unitPrice, 13.49);
     check(
         "  and one flagged member flags the folded entry",
-        oneCharge[0]?.charges[0]?.varianceFlag,
+        oneCharge[0]?.charges[0]?.hasPriceVariance,
         true
     );
+    check("  while the quantity flag nobody carried stays clear", oneCharge[0]?.charges[0]?.hasQuantityVariance, false);
     const twoPrices = foldInvoicesOnOrder({
         orderedItems: ORDERED,
         invoiceItems: [
@@ -319,7 +321,7 @@ export function run({ check, assert, log }) {
     });
     check("three charges, one entry", paidTwice.length, 1);
     check("  carrying one `paid`", [paidTwice[0]?.paid].filter(Boolean).length, 1);
-    check("  and one header variance", [paidTwice[0]?.varianceFlag].filter(Boolean).length, 1);
+    check("  and one header variance", [paidTwice[0]?.totalsDiffer].filter(Boolean).length, 1);
     check("  while the three charges survive as three", paidTwice[0]?.charges.length, 3);
 
     // -----------------------------------------------------------------------

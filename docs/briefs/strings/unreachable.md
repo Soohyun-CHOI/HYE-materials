@@ -55,7 +55,7 @@ select carries no `required`.
   neither action can be reached from it.
 - **`Select a Vendor.`** — the vendor select is `required`, and the submit needs a
   chosen order, which needs a vendor.
-- **`Issue Date is required.`**, **`Amount Due is required.`** — both inputs are
+- **`Issue Date is required.`**, **`Invoice Total is required.`** — both inputs are
   `required`.
 - **`Attach the invoice file.`** — the submit is disabled until the upload reports
   done.
@@ -88,7 +88,7 @@ reachable** (the whole-number pair, which #254 measured as reachable because the
 controls' `step` validation does not fire).
 
 - **`Not authorized.`** — the page refuses a non-Admin first.
-- **`Select a Vendor.`**, **`Issue Date is required.`**, **`Amount Due is
+- **`Select a Vendor.`**, **`Issue Date is required.`**, **`Invoice Total is
   required.`** — all three controls are `required`.
 - **`Every item needs a name, quantity, and unit price.`** — all three are `required`
   on every row.

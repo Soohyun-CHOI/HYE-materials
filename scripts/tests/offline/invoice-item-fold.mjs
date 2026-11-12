@@ -101,22 +101,15 @@ export function run({ check, log, assert }) {
     check("the second group keeps its place", ordered[1].itemName, "Pipe");
 
     log("");
-    log("a variance on either half flags the folded row:");
-    check(
-        "second half flagged",
-        foldInvoiceItems([row({ id: "a" }), row({ id: "b", varianceFlag: true })])[0].varianceFlag,
-        true
-    );
-    check(
-        "first half flagged",
-        foldInvoiceItems([row({ id: "a", varianceFlag: true }), row({ id: "b" })])[0].varianceFlag,
-        true
-    );
-    check(
-        "neither",
-        foldInvoiceItems([row({ id: "a" }), row({ id: "b" })])[0].varianceFlag,
-        false
-    );
+    log("a variance on either half flags the folded row, each kind on its own (#623):");
+    const priceOnB = foldInvoiceItems([row({ id: "a" }), row({ id: "b", hasPriceVariance: true })])[0];
+    check("second half's price variance", priceOnB.hasPriceVariance, true);
+    check("  and the quantity flag stays its own", priceOnB.hasQuantityVariance, false);
+    const quantityOnA = foldInvoiceItems([row({ id: "a", hasQuantityVariance: true }), row({ id: "b" })])[0];
+    check("first half's quantity variance", quantityOnA.hasQuantityVariance, true);
+    check("  and the price flag stays its own", quantityOnA.hasPriceVariance, false);
+    const neither = foldInvoiceItems([row({ id: "a" }), row({ id: "b" })])[0];
+    check("neither", [neither.hasPriceVariance, neither.hasQuantityVariance].join(","), "false,false");
 
     log("");
     log("remarks are a human's own words, so distinct ones are kept:");

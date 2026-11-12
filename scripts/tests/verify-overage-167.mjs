@@ -343,7 +343,7 @@ try {
             vendorInvoiceCode: `${TAG}-${Math.random().toString(36).slice(2, 7)}`,
             issueDate,
             dueDate: "2026-09-01",
-            amountDue: items.reduce((s, l) => s + l.qty * (l.unitPrice ?? 12), 0),
+            invoiceTotal: items.reduce((s, l) => s + l.qty * (l.unitPrice ?? 12), 0),
             shippingFee: 0,
             file: [{ url: blob.url, filename: `${TAG}-invoice.pdf` }],
         });
@@ -445,7 +445,7 @@ try {
         // NOTHING ON THE HEADER MOVES — the total is unchanged, so only attribution
         // shifted. This is what makes splitting a PAID invoice safe.
         const after = await getInvoiceByRecordId(invoice.id);
-        check(`${label}: Amount Due unchanged`, after.amountDue, invoice.amountDue);
+        check(`${label}: Invoice Total unchanged`, after.invoiceTotal, invoice.invoiceTotal);
         check(`${label}: Paid Date unchanged`, after.paidDate ?? null, invoice.paidDate ?? null);
         check(`${label}: Calculated Total unchanged`, after.calculatedTotal, invoice.calculatedTotal);
 

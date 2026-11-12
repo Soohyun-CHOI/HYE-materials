@@ -111,7 +111,7 @@ import {
     getItemsByInvoice,
 } from "../../lib/airtable/invoiceItems.js";
 import { getInvoicedQtyForPOItem } from "../../lib/airtable/poItems.js";
-import { checkUnitPriceVariance, checkHeaderVariance } from "../../lib/variance.js";
+import { checkPriceVariance, checkQuantityVariance, checkTotalsDiffer } from "../../lib/variance.js";
 import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 import { getAllVendors, createVendor } from "../../lib/airtable/vendors.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
@@ -462,7 +462,7 @@ async function invoice({
     rows,
     issueDate,
     dueDate = "2026-09-30",
-    amountDue = null,
+    invoiceTotal = null,
     shippingFee = 0,
     tariff = null,
     salesTax = null,
@@ -490,7 +490,7 @@ async function invoice({
     }
 
     // #283 — the sales tax is a term of this sum too. A seed that omitted it would
-    // default `Amount Due` to less than `Calculated Total` and hand every taxed
+    // default `Invoice Total` to less than `Calculated Total` and hand every taxed
     // scenario a header variance it was not written to have: the same missing-term
     // mutant as the Airtable formula's, one layer out.
     const computed =
@@ -500,7 +500,7 @@ async function invoice({
         vendorInvoiceCode: code,
         issueDate,
         dueDate,
-        amountDue: amountDue ?? computed,
+        invoiceTotal: invoiceTotal ?? computed,
         shippingFee,
         ...(tariff !== null ? { tariff } : {}),
         ...(salesTax !== null ? { salesTax } : {}),
@@ -527,13 +527,13 @@ async function invoice({
         const poItemRecordId = created.poItem?.[0];
         if (!poItemRecordId) continue;
         const poItem = await getPOItemByRecordId(poItemRecordId);
-        const priceOff = checkUnitPriceVariance(created.unitPrice, poItem.unitPrice);
-        const qtyOff = (await getInvoicedQtyForPOItem(poItemRecordId)) > poItem.qty;
-        if (priceOff || qtyOff) await updateInvoiceItem(created.id, { varianceFlag: true });
+        const hasPriceVariance = checkPriceVariance(created.unitPrice, poItem.unitPrice);
+        const hasQuantityVariance = checkQuantityVariance(await getInvoicedQtyForPOItem(poItemRecordId), poItem.qty);
+        if (hasPriceVariance || hasQuantityVariance) await updateInvoiceItem(created.id, { hasPriceVariance, hasQuantityVariance });
     }
     const afterItems = await getInvoiceByRecordId(invoice.id);
-    if (checkHeaderVariance(afterItems.amountDue, afterItems.calculatedTotal || 0)) {
-        await updateInvoice(invoice.id, { varianceFlag: true });
+    if (checkTotalsDiffer(afterItems.invoiceTotal, afterItems.calculatedTotal || 0)) {
+        await updateInvoice(invoice.id, { totalsDiffer: true });
     }
     // #318 took `Invoices."Paid"` off the base and out of `updateInvoice`'s
     // signature; the date's presence IS the payment. The key was destructured away
@@ -988,7 +988,7 @@ await scenario("INV_WAIT_B", "delivered but unmatched — strip 2, second word",
 //
 // The live segment records a delivery of 3 against this. The set of ordered items
 // matches, so `fitRefusal` admits it and `roomOnOrderedItem` is 3 — positive — so the
-// pairing is computed and the invoice turns `Mismatch`. Quantity is deliberately not
+// pairing is computed and the invoice turns `Delivery variance`. Quantity is deliberately not
 // part of the containment test (lib/deliveryInvoicePairing.js), which is the whole
 // reason the marker can ever appear.
 await scenario("MISMATCH_START", "an invoice of 10 waiting for the live delivery of 3", async () => {
@@ -1084,7 +1084,7 @@ await scenario("VAR_TOTAL", "stated total ≠ computed total, and already paid",
         scenarioName: "VAR_TOTAL",
         // BOTH VARIANCE KINDS ON ONE INVOICE, WHICH IS WHAT MAKES THE ORDER'S OWN PAGE
         // DEMONSTRABLE. `/pos/[poId]` is the one screen in the app that can show the
-        // pair at once — `⚠ Check the total` on the invoice's row and `⚠ Order
+        // pair at once — `⚠ Totals differ` on the invoice's row and `⚠ Price
         // variance` on the item beneath it — and it is the whole reason #179 made
         // them two different words. A first pass gave this invoice only the header
         // variance, so no order anywhere carried both and the distinction had nothing
@@ -1101,7 +1101,7 @@ await scenario("VAR_TOTAL", "stated total ≠ computed total, and already paid",
         shippingFee: 150,
         // 40 x 39 + 150 = 1710. The vendor's document says 1620, so the header
         // disagrees as well — two different facts with two different remedies.
-        amountDue: 1620,
+        invoiceTotal: 1620,
         issueDate: "2026-08-09",
         paid: true,
     });
@@ -1151,7 +1151,7 @@ await scenario("SALES_TAX", "sales tax alone, and sales tax beside a tariff", as
         shippingFee: 65,
         sign: true,
     });
-    // 40 x 18.5 + 65 = 805, plus 8.25% of the material = 61.05. Amount Due
+    // 40 x 18.5 + 65 = 805, plus 8.25% of the material = 61.05. Invoice Total
     // AGREES, which is the point: the term reaching Calculated Total is what
     // stops the header check reporting the vendor's own arithmetic as wrong.
     const taxOnly = await invoice({
@@ -1159,7 +1159,7 @@ await scenario("SALES_TAX", "sales tax alone, and sales tax beside a tariff", as
         rows: [{ po: order.po, poItem: order.poItems[0], qty: 40, unitPrice: 18.5 }],
         shippingFee: 65,
         salesTax: 61.05,
-        amountDue: 866.05,
+        invoiceTotal: 866.05,
         issueDate: "2026-08-10",
     });
     ids.salesTax = taxOnly.invoiceId;
@@ -1180,7 +1180,7 @@ await scenario("SALES_TAX", "sales tax alone, and sales tax beside a tariff", as
         shippingFee: 120,
         tariff: 132,
         salesTax: 118.8,
-        amountDue: 1810.8,
+        invoiceTotal: 1810.8,
         issueDate: "2026-08-11",
     });
     ids.salesTaxTariff = bothTerms.invoiceId;
@@ -1748,10 +1748,10 @@ async function printGuide() {
     row("/prs strip, blocked rows", "5 — see Act IV for which reason is which");
 
     console.log("\nACT IV — when they disagree                              (mixed)");
-    row("live: record 3 against", get("MISMATCH_START", "pos"), " → ", get("MISMATCH_START", "invoices"), " goes Mismatch");
+    row("live: record 3 against", get("MISMATCH_START", "pos"), " → ", get("MISMATCH_START", "invoices"), " goes Delivery variance");
     row("live: hand-attach on Edit", get("HAND_ATTACH", "deliveries"), " ← ", get("HAND_ATTACH", "invoices"));
-    row("Order variance", get("VAR_PRICE", "invoices"), " on ", get("VAR_PRICE", "pos"));
-    row("Check the total, and paid", get("VAR_TOTAL", "invoices"));
+    row("Price variance", get("VAR_PRICE", "invoices"), " on ", get("VAR_PRICE", "pos"));
+    row("Totals differ, and paid", get("VAR_TOTAL", "invoices"));
     row("per-order breakdown", get("MULTI_ORDER", "invoices"));
     row("correction: raise it here", get("OVER", "deliveries"), " (invoice ", get("OVER", "invoices"), ")");
     row("correction: Inferred:", get("OVER_INFER", "deliveries"));

@@ -356,7 +356,7 @@ try {
     const backstops = {
         createQuotation: () => createQuotation({ prRecordId: NO_RECORD, prId: `${TAG}-NONE`, vendorId: NO_RECORD, file: foreignFile }),
         createInvoice: () =>
-            createInvoice({ vendorId: NO_RECORD, vendorInvoiceCode: `${TAG}-C`, issueDate: "2026-09-24", amountDue: 1, shippingFee: 0, file: foreignFile }),
+            createInvoice({ vendorId: NO_RECORD, vendorInvoiceCode: `${TAG}-C`, issueDate: "2026-09-24", invoiceTotal: 1, shippingFee: 0, file: foreignFile }),
         createDelivery: () =>
             createDelivery({ jobRecordId: NO_RECORD, vendorRecordId: NO_RECORD, receivedDate: "2026-09-24", notes: `${TAG}-C`, file: foreignFile }),
         replaceDeliveryPhoto: () => replaceDeliveryPhoto(NO_RECORD, foreignFile[0]),
@@ -416,7 +416,7 @@ try {
                 vendorId: vendorRecordId,
                 vendorInvoiceCode: code,
                 issueDate: "2026-09-24",
-                amountDue: String(unitPrice),
+                invoiceTotal: String(unitPrice),
                 shippingFee: "0",
                 itemsJson: "[]",
                 invoiceFileUrl: url,
@@ -612,7 +612,7 @@ try {
             vendorId: vendorRecordId,
             vendorInvoiceCode: invoiceCode,
             issueDate: "2026-09-24",
-            amountDue: String(unitPrice),
+            invoiceTotal: String(unitPrice),
             shippingFee: "0",
             itemsJson: JSON.stringify([
                 {

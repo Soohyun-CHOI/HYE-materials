@@ -12,8 +12,9 @@ import { getItemsByInvoice, updateInvoiceItem } from "@/lib/airtable/invoiceItem
 import { getPOItemByRecordId, getInvoicedQtyForPOItem } from "@/lib/airtable/poItems";
 import {
     ITEM_PRECISION_COPY,
-    checkHeaderVariance,
-    checkUnitPriceVariance,
+    checkTotalsDiffer,
+    checkPriceVariance,
+    checkQuantityVariance,
     headerPrecisionRefusal,
     isWholeCentPrice,
     isWholeQty,
@@ -81,10 +82,10 @@ async function updatePaidHandler(prevState, formData) {
 // Issue #117 — edit an invoice's own header fields and its existing invoice-item
 // values (Tier 1: no adding/removing invoice items and no PO/PO Item relink, so the
 // orders an invoice charges never change). Admin-only, re-checked here since
-// Server Actions are directly callable. Amount Due is an editable human entry
+// Server Actions are directly callable. Invoice Total is an editable human entry
 // (a mistyped vendor total is correctable) — "never overwritten" means the
 // backend never auto-derives it, and any money change here recomputes the
-// Variance Flag below.
+// two variance flags below.
 export const updateInvoiceAction = withAdminAction(
     () => ({ error: "Not authorized." }),
     updateInvoiceHandler
@@ -97,7 +98,7 @@ async function updateInvoiceHandler(prevState, formData) {
         const vendorInvoiceCode = formData.get("vendorInvoiceCode") || "";
         const issueDate = formData.get("issueDate");
         const dueDate = formData.get("dueDate") || null;
-        const amountDue = formData.get("amountDue");
+        const invoiceTotal = formData.get("invoiceTotal");
         const shippingFee = formData.get("shippingFee") || 0;
         const tariff = formData.get("tariff");
         const salesTax = formData.get("salesTax");
@@ -105,7 +106,7 @@ async function updateInvoiceHandler(prevState, formData) {
 
         if (!vendorId) return { error: "Select a Vendor." };
         if (!issueDate) return { error: "Issue Date is required." };
-        if (!amountDue) return { error: "Amount Due is required." };
+        if (!invoiceTotal) return { error: "Invoice Total is required." };
         // Issue #405 — the same four figures as `createInvoiceAction`'s, and this
         // screen is the one that can refuse over a box nobody touched: every save
         // from here sends all four, so an invoice carrying an off-cent `Tariff` is
@@ -123,7 +124,7 @@ async function updateInvoiceHandler(prevState, formData) {
             shippingFee: parseFloat(shippingFee),
             tariff: tariff ? parseFloat(tariff) : null,
             salesTax: salesTax ? parseFloat(salesTax) : null,
-            amountDue: parseFloat(amountDue),
+            invoiceTotal: parseFloat(invoiceTotal),
         });
         if (headerRefusal) return { error: headerRefusal };
         for (const item of items) {
@@ -165,7 +166,7 @@ async function updateInvoiceHandler(prevState, formData) {
                 vendorInvoiceCode,
                 issueDate,
                 dueDate,
-                amountDue: parseFloat(amountDue),
+                invoiceTotal: parseFloat(invoiceTotal),
                 shippingFee: parseFloat(shippingFee) || 0,
                 tariff: tariff ? parseFloat(tariff) : null,
                 // Issue #283 — Tariff's coercion; see createInvoiceHandler for why
@@ -199,27 +200,28 @@ async function updateInvoiceHandler(prevState, formData) {
             const itemsAfter = await getItemsByInvoice(invoice.id);
             for (const item of itemsAfter) {
                 const poItemRecordId = item.poItem?.[0];
-                let flag = false;
+                let hasPriceVariance = false;
+                let hasQuantityVariance = false;
                 if (poItemRecordId) {
                     const poItem = await getPOItemByRecordId(poItemRecordId);
-                    const unitPriceVariance = checkUnitPriceVariance(item.unitPrice, poItem.unitPrice);
+                    hasPriceVariance = checkPriceVariance(item.unitPrice, poItem.unitPrice);
                     const invoicedQty = await getInvoicedQtyForPOItem(poItemRecordId);
-                    flag = unitPriceVariance || invoicedQty > poItem.qty;
+                    hasQuantityVariance = checkQuantityVariance(invoicedQty, poItem.qty);
                 }
-                if (item.varianceFlag !== flag) {
-                    await updateInvoiceItem(item.id, { varianceFlag: flag });
+                if (item.hasPriceVariance !== hasPriceVariance || item.hasQuantityVariance !== hasQuantityVariance) {
+                    await updateInvoiceItem(item.id, { hasPriceVariance, hasQuantityVariance });
                 }
             }
 
             // Header check needs Calculated Total's rollup (Items Subtotal +
             // Shipping + Tariff + Sales Tax) to have caught up, so re-read fresh.
             const invoiceAfter = await getInvoiceByRecordId(invoice.id);
-            const headerFlag = checkHeaderVariance(
-                invoiceAfter.amountDue,
+            const headerFlag = checkTotalsDiffer(
+                invoiceAfter.invoiceTotal,
                 invoiceAfter.calculatedTotal || 0
             );
-            if (invoiceAfter.varianceFlag !== headerFlag) {
-                await updateInvoice(invoice.id, { varianceFlag: headerFlag });
+            if (invoiceAfter.totalsDiffer !== headerFlag) {
+                await updateInvoice(invoice.id, { totalsDiffer: headerFlag });
             }
         } catch (err) {
             // No cross-table transaction: a mid-failure may leave some fields

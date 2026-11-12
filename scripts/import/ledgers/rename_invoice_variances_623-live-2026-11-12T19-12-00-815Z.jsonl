@@ -1,0 +1,2 @@
+{"kind":"field","base":"live","table":"tblg3coc94b7odikV","at":"2026-11-12T19:12:00.815Z","name":"Has Quantity Variance","type":"checkbox","options":{"icon":"check","color":"redBright"}}
+{"kind":"field","base":"live","table":"tbl2Z4wEbU64YU14o","at":"2026-11-12T19:12:00.815Z","name":"Created At","type":"dateTime","options":{"dateFormat":{"name":"local","format":"l"},"timeFormat":{"name":"12hour","format":"h:mma"},"timeZone":"utc"}}

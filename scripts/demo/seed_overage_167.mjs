@@ -174,7 +174,7 @@ async function invoice({ po, orderedItem, qty, issueDate, paid }) {
         vendorInvoiceCode: `167-DEMO-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
         issueDate,
         dueDate: "2026-09-30",
-        amountDue: qty * 15,
+        invoiceTotal: qty * 15,
         shippingFee: 0,
         file: [{ url: blob.url, filename: "167-DEMO-invoice.pdf" }],
     });
@@ -270,7 +270,7 @@ Submit it, sign it through, and PO generation settles it:
   - the delivery's over-delivery row loses its flag and re-attaches to the new
     order's own ordered item (so /deliveries stops showing "Over-delivered")
   - ${ids.aInvoice ?? "<A-INV>"}'s single line of 12 splits into 10 on ${ids.aPo ?? "<A-PO>"} and 2 on the
-    new order — while Amount Due, Calculated Total and Paid do not move
+    new order — while Invoice Total, Calculated Total and Paid do not move
   - the invoice's items table FOLDS those two back into one row of 12, so it
     still reads line-for-line against the vendor's PDF, and its PO column is
     gone because a folded row spans two orders

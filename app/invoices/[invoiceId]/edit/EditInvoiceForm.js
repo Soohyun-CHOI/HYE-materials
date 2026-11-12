@@ -28,7 +28,8 @@ export default function EditInvoiceForm({ invoice, items: initialItems, vendors 
             unitPrice: it.unitPrice ?? "",
             remark: it.remark ?? "",
             poId: it.poId || "—",
-            varianceFlag: it.varianceFlag,
+            hasPriceVariance: it.hasPriceVariance,
+            hasQuantityVariance: it.hasQuantityVariance,
         }))
     );
 
@@ -113,15 +114,15 @@ export default function EditInvoiceForm({ invoice, items: initialItems, vendors 
                 </div>
 
                 <div>
-                    <label htmlFor="amountDue" className="block text-sm font-medium">
-                        Amount Due (vendor&apos;s stated total)
+                    <label htmlFor="invoiceTotal" className="block text-sm font-medium">
+                        Invoice Total
                     </label>
                     <input
                         type="number"
                         step="0.01"
-                        id="amountDue"
-                        name="amountDue"
-                        defaultValue={invoice.amountDue ?? ""}
+                        id="invoiceTotal"
+                        name="invoiceTotal"
+                        defaultValue={invoice.invoiceTotal ?? ""}
                         required
                         className={fieldClass}
                     />
@@ -249,9 +250,14 @@ export default function EditInvoiceForm({ invoice, items: initialItems, vendors 
                                 <div className="mt-2 flex items-center justify-between text-sm text-zinc-600">
                                     <span>
                                         PO: {it.poId}
-                                        {it.varianceFlag && (
+                                        {it.hasPriceVariance && (
                                             <span className="ml-2 rounded bg-red-100 px-1 text-xs text-red-700">
-                                                {VARIANCE_COPY.item}
+                                                {VARIANCE_COPY.price}
+                                            </span>
+                                        )}
+                                        {it.hasQuantityVariance && (
+                                            <span className="ml-2 rounded bg-red-100 px-1 text-xs text-red-700">
+                                                {VARIANCE_COPY.quantity}
                                             </span>
                                         )}
                                     </span>

@@ -151,12 +151,12 @@ export function run({ check, assert, log }) {
     }
     // ANTI-VACUITY: the walk has to be reading the sum rather than an empty node,
     // and it must be seen to say NO for something that is genuinely not a term of
-    // it. `vendorStatedTotal` is the figure this total is COMPARED against and is
+    // it. `invoiceTotal` is the figure this total is COMPARED against and is
     // the one value that must never be inside it.
     assert("the sum walk read the real expression", totalNames.has("itemsTotal"));
     assert(
         "  and says no to the figure the total is compared against",
-        !totalNames.has("vendorStatedTotal")
+        !totalNames.has("invoiceTotal")
     );
 
     // ── 2. the service layer writes each term ───────────────────────────────
@@ -191,7 +191,7 @@ export function run({ check, assert, log }) {
     for (const term of TERMS) {
         check(`  recordToInvoice reads "${term.field}"`, read.includes(term.field), true);
     }
-    assert("the reader walk saw the record's other fields", read.includes("Amount Due"));
+    assert("the reader walk saw the record's other fields", read.includes("Invoice Total"));
 
     // ── 4. both actions carry every term from the form to the writer ────────
     log("");

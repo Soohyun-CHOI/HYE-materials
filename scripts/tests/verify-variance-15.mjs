@@ -25,7 +25,7 @@
 //
 // #283 — IT ALSO CARRIES BOTH OPTIONAL MONEY TERMS NOW, and that is not scope
 // creep: this is the one script that already created an invoice, read
-// `Calculated Total` back off the base and compared it against `Amount Due`, so
+// `Calculated Total` back off the base and compared it against `Invoice Total`, so
 // the sales-tax term needed no second script. It supplies a tariff AND a sales
 // tax, in the same spirit as the values above — every term at once.
 //
@@ -39,7 +39,7 @@ import { getPOItemByRecordId, getInvoicedQtyForPOItem, getItemsByPO } from "../.
 import { getOpenPOs } from "../../lib/airtable/purchaseOrders.js";
 import { getVendorByRecordId } from "../../lib/airtable/vendors.js";
 import { uninvoicedQty } from "../../lib/poItemQty.js";
-import { checkHeaderVariance, checkUnitPriceVariance } from "../../lib/variance.js";
+import { checkTotalsDiffer, checkPriceVariance, checkQuantityVariance } from "../../lib/variance.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { printProvenance } from "./_provenance.mjs";
 
@@ -122,7 +122,7 @@ const ITEM_QTY = PO_ITEM_QTY + 3;
 const ITEM_UNIT_PRICE = Math.round((PO_ITEM_UNIT_PRICE + 18) * 100) / 100;
 // Airtable currency is stored to 2 places and JS addition is binary floating
 // point, so the comparison needs the same order of tolerance
-// `checkUnitPriceVariance` already uses for the same reason. Half a cent.
+// `checkPriceVariance` already uses for the same reason. Half a cent.
 const CENT = 0.005;
 
 // Fixtures (#171) — see scripts/tests/_fixtures.mjs. One bucket: the Invoice
@@ -150,6 +150,8 @@ const TAG = fixtures.TAG;
 
 let invoice;
 let createdItemId;
+let hasPriceVariance = false;
+let hasQuantityVariance = false;
 let complete = false;
 
 try {
@@ -160,7 +162,7 @@ try {
         dueDate: null,
         // Deliberately far off whatever the calculated total comes to, so the
         // header check fires whichever order resolveTarget() picked.
-        amountDue: ITEM_QTY * ITEM_UNIT_PRICE * 2 + 5000,
+        invoiceTotal: ITEM_QTY * ITEM_UNIT_PRICE * 2 + 5000,
         shippingFee: 0,
         tariff: TARIFF,
         salesTax: SALES_TAX,
@@ -192,17 +194,18 @@ try {
 
     // Same sequence as createInvoiceAction.
     const poItem = await getPOItemByRecordId(PO_ITEM_RECORD_ID);
-    const unitPriceVariance = checkUnitPriceVariance(created.unitPrice, poItem.unitPrice);
+    hasPriceVariance = checkPriceVariance(created.unitPrice, poItem.unitPrice);
     const invoicedQty = await getInvoicedQtyForPOItem(PO_ITEM_RECORD_ID);
-    const qtyVariance = invoicedQty > poItem.qty;
-    console.log({ poItemUnitPrice: poItem.unitPrice, poItemQty: poItem.qty, invoicedQty, unitPriceVariance, qtyVariance });
+    hasQuantityVariance = checkQuantityVariance(invoicedQty, poItem.qty);
+    console.log({ poItemUnitPrice: poItem.unitPrice, poItemQty: poItem.qty, invoicedQty, hasPriceVariance, hasQuantityVariance });
 
-    if (unitPriceVariance || qtyVariance) {
-        await updateInvoiceItem(created.id, { varianceFlag: true });
+    // #623 — the two judged and stored apart, where one flag held either.
+    if (hasPriceVariance || hasQuantityVariance) {
+        await updateInvoiceItem(created.id, { hasPriceVariance, hasQuantityVariance });
     }
 
     const invoiceAfterItems = await getInvoiceByRecordId(invoice.id);
-    console.log({ amountDue: invoiceAfterItems.amountDue, calculatedTotal: invoiceAfterItems.calculatedTotal });
+    console.log({ invoiceTotal: invoiceAfterItems.invoiceTotal, calculatedTotal: invoiceAfterItems.calculatedTotal });
 
     // -----------------------------------------------------------------------
     // #283 — THE FIRST ASSERTION, AND IT IS THE QUIET MUTANT THIS ISSUE IS
@@ -212,7 +215,7 @@ try {
     // detail prints a row for it — and `Calculated Total`'s formula was never
     // given the term. Nothing errors. `npm test` is green, because the formula is
     // not in this repository and leaves no diff. The total simply comes out short
-    // by the sales tax, and `checkHeaderVariance` below then reports that gap as
+    // by the sales tax, and `checkTotalsDiffer` below then reports that gap as
     // the vendor's own arithmetic error, which is precisely the false accusation
     // #283 exists to remove. So this is the one thing that has to be checked
     // against the base itself, and it is checked before anything else is claimed.
@@ -242,9 +245,9 @@ try {
     console.log(`Calculated Total includes the sales tax: ${invoiceAfterItems.calculatedTotal} (expected ${expected})`);
     // -----------------------------------------------------------------------
 
-    const headerVariance = checkHeaderVariance(invoiceAfterItems.amountDue, invoiceAfterItems.calculatedTotal || 0);
+    const headerVariance = checkTotalsDiffer(invoiceAfterItems.invoiceTotal, invoiceAfterItems.calculatedTotal || 0);
     if (headerVariance) {
-        await updateInvoice(invoice.id, { varianceFlag: true });
+        await updateInvoice(invoice.id, { totalsDiffer: true });
     }
 
     // Verify what actually got persisted.
@@ -252,10 +255,16 @@ try {
     const finalItems = await getItemsByPOItem(PO_ITEM_RECORD_ID);
     const finalItem = finalItems.find((i) => i.id === createdItemId);
 
-    console.log("Invoice Variance Flag:", finalInvoice.varianceFlag, "(expected true)");
-    console.log("Invoice Item Variance Flag:", finalItem.varianceFlag, "(expected true)");
+    console.log("Invoice Totals Differ:", finalInvoice.totalsDiffer, "(expected true)");
+    console.log("Invoice Item Has Price Variance:", finalItem.hasPriceVariance, `(expected ${hasPriceVariance})`);
+    console.log("Invoice Item Has Quantity Variance:", finalItem.hasQuantityVariance, `(expected ${hasQuantityVariance})`);
 
-    if (finalInvoice.varianceFlag !== true || finalItem.varianceFlag !== true) {
+    if (
+        finalInvoice.totalsDiffer !== true ||
+        !(hasPriceVariance || hasQuantityVariance) ||
+        finalItem.hasPriceVariance !== hasPriceVariance ||
+        finalItem.hasQuantityVariance !== hasQuantityVariance
+    ) {
         throw new Error("Variance flags did not persist as expected");
     }
 

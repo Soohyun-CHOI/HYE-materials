@@ -93,8 +93,9 @@ function thresholdDeclarationNumbers() {
 }
 
 const AWAITING = { key: "awaiting-delivery" };
-const MATCHED = { key: "delivered" };
-const MISMATCH = { key: "mismatch" };
+const MATCHED = { key: "matched" };
+// The delivery variance's key since #623 (`mismatch` until then).
+const DELIVERY_VARIANCE = { key: "delivery-variance" };
 
 /** An invoice record as the page holds it. */
 const inv = (invoiceId, issueDate, vendor = "vendorA") => ({
@@ -264,7 +265,7 @@ export function run({ check, assert, log }) {
     );
     check(
         "a mismatched invoice is not selected either — it HAS a delivery",
-        select({ invoices: [a, b], status: { [a.invoiceId]: MISMATCH }, ordered: {} }).length,
+        select({ invoices: [a, b], status: { [a.invoiceId]: DELIVERY_VARIANCE }, ordered: {} }).length,
         1
     );
     // Built inline rather than through the helper, whose `?? AWAITING` default is

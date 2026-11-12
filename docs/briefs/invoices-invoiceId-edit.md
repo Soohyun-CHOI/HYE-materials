@@ -22,10 +22,10 @@ heading is the record's name with one word in front of it. A link back to the
 invoice, labeled `← Back to invoice`.
 
 **action — the header fields:** vendor, the vendor's own invoice number, issue
-date, due date, `Amount Due`, `Shipping Fee`, and then `Tariff (optional)` and
+date, due date, `Invoice Total`, `Shipping Fee`, and then `Tariff (optional)` and
 `Sales Tax (optional)`, both with the placeholder `Leave blank if none`. Editing
-`Amount Due` is allowed and recomputes the variance check — the app never
-overwrites the vendor's stated total, but a person may fix a typo in it, and a
+`Invoice Total` is allowed and recomputes the totals check — the app never
+overwrites the vendor's figure, but a person may fix a typo in it, and a
 line under that field says so: `The figure printed on the vendor's invoice.
 Editing it re-checks it against our calculated total.`
 
@@ -62,15 +62,17 @@ for it to discard.
 
 ## What it carries only sometimes
 
-**When an item carries the order-variance flag:** the `⚠ Order variance` badge on
-that card, the same badge as on the invoice detail's items table.
+**When an item carries a variance flag:** the `⚠ Price variance` or
+`⚠ Quantity variance` badge on that card, or both, the same badges as on the
+invoice detail's items table.
 
 **While saving:** the button reflects it.
 
 ## What must agree elsewhere
 
-**`⚠ Order variance` is the same word here, on the invoice detail, and on the
-purchase order detail's list of invoices.** One flag, one word, three places.
+**`⚠ Price variance` and `⚠ Quantity variance` are the same words here, on the
+invoice detail, and on the purchase order detail's list of invoices.** One flag,
+one word, three places, for each.
 
 **Size, Maker and Unit are read-only here and on the new-invoice form, for one reason:** a
 mismatch means the wrong ordered item was picked, so the fix is the link and never
@@ -88,7 +90,7 @@ on it is the half-cent threshold behind the box below.
 the figure: `Shipping Fee has to be a whole number of cents.`,
 `Tariff has to be a whole number of cents.`,
 `Sales Tax has to be a whole number of cents.` or
-`Amount Due has to be a whole number of cents.` **This screen is the one that can
+`Invoice Total has to be a whole number of cents.` **This screen is the one that can
 refuse over a control nobody touched**, and a design has to keep that survivable:
 every save sends all four figures, so an invoice that reached the base carrying an
 off-cent `Tariff` — which only a hand edit in Airtable can now produce — stops an
@@ -113,8 +115,8 @@ these controls visible still matters — the app's sentence names a figure, and
 hiding the optional terms behind a disclosure would name a box the reader cannot
 see.
 
-**Editing `Amount Due` recomputes the variance flags** that the invoice detail and
-the invoice list then render. So this screen is where the red `⚠ Check the total`
+**Editing `Invoice Total` recomputes the variance flags** that the invoice detail and
+the invoice list then render. So this screen is where the red `⚠ Totals differ`
 box on the detail gets resolved — a design that hides the relationship between the
 two makes the flag look unfixable.
 

@@ -761,9 +761,9 @@ async function renderPODetailPage({ params }) {
                                         <span className="text-zinc-500">{inv.vendorInvoiceCode}</span>
                                     )}
                                     <span className="text-zinc-500">{inv.issueDate || "—"}</span>
-                                    {inv.varianceFlag && (
+                                    {inv.totalsDiffer && (
                                         <span className="rounded bg-amber-100 px-1 text-xs text-amber-700">
-                                            {VARIANCE_COPY.header}
+                                            {VARIANCE_COPY.totalsDiffer}
                                         </span>
                                     )}
                                     {/* NOTHING IN THIS SECTION IS GATED ANY MORE
@@ -809,9 +809,14 @@ async function renderPODetailPage({ params }) {
                                     {inv.charges.map((c) => (
                                         <li key={c.key}>
                                             {PO_DOCUMENTS_COPY.invoices.charge(c).text}
-                                            {c.varianceFlag && (
+                                            {c.hasPriceVariance && (
                                                 <span className="ml-1 rounded bg-red-100 px-1 text-red-700">
-                                                    {VARIANCE_COPY.item}
+                                                    {VARIANCE_COPY.price}
+                                                </span>
+                                            )}
+                                            {c.hasQuantityVariance && (
+                                                <span className="ml-1 rounded bg-red-100 px-1 text-red-700">
+                                                    {VARIANCE_COPY.quantity}
                                                 </span>
                                             )}
                                         </li>

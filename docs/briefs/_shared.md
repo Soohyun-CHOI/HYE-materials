@@ -203,11 +203,11 @@ way an Airtable single select works.
 |---|---|---|
 | `complete` | Nothing is outstanding on this axis. | green |
 | `partial` | Some of it is outstanding. A stage, on the way somewhere. | amber |
-| `mismatch` | An error. Two figures that should agree do not. | red |
+| `variance` | An error. Two figures that should agree do not. | red |
 | `none` | Not begun. No judgment implied. | gray |
 
-`mismatch` is amber's near neighbor and must not become amber (#232). `partial`
-means a stage and `mismatch` means an error; sharing one color would make that
+`variance` is amber's near neighbor and must not become amber (#232). `partial`
+means a stage and `variance` means an error; sharing one color would make that
 color say a stage on one list and an error on another, which is the single
 property this vocabulary exists to hold still. The current split is that the
 chip states the discrepancy in red and the prompt below it asks in amber.
@@ -243,13 +243,13 @@ axis's dash went with the state behind it, and the invoice axis lost its own in
 `absent` appear together anywhere a list column carries a status, and
 `/pos/[poId]` puts two such chips on one row since #235 — the delivery axis and
 the invoicing axis, deliberately sharing one palette so a reader crossing
-between them does not learn a second. `mismatch` reaches only the invoice list
+between them does not learn a second. `variance` reaches only the invoice list
 and the invoice detail. `exception` reaches only the invoice detail, where it can
 appear alongside chip tones on the same page. What never
 happens is two *different* chip vocabularies for one predicate on one screen;
 `STATUS_COPY.column.po` records that the two sets sharing three words never meet.
 
-**Which grade demands a person.** Two, and only two: `mismatch` and
+**Which grade demands a person.** Two, and only two: `variance` and
 `exception`. Both mean a human has to look before money moves, and the app
 currently states both alongside a sentence saying what to do. `partial` and
 `none` are waits, not problems — nobody is asked to act on them. This is the
@@ -346,11 +346,17 @@ it, so a figure moved between those two pages changes meaning. Anywhere both
 scopes appear on one screen, which one a figure belongs to has to be
 recoverable without counting.
 
-**A document's own arithmetic against a cross-document variance.** #179 named
-these two apart after they had shared one word: `⚠ Order variance` is an item
-that differs from what its order agreed, and `⚠ Check the total` is one
-document's stated total not matching its own computed total. Two different
-facts, two different remedies, and they can both be on one invoice at once.
+**The three-way match, in four names.** `⚠ Price variance` is an item whose
+unit price differs from its order's, `⚠ Quantity variance` an ordered item
+invoiced past what it ordered, across every invoice, `Delivery variance` an
+invoice item charging more of an ordered item than the delivery linked to its
+invoice brought of it — that invoice and that delivery alone, nothing summed
+across others — and
+`⚠ Totals differ` one document's Invoice Total not matching its own Calculated
+Total — `Totals agree` when it does, said only on the form where both are typed.
+Different facts with different remedies, and all of them can be on one invoice
+at once; each variance's qualifier is what tells it from the others, so no two
+may share one.
 
 **Stored against computed.** A delivery may be attached to an invoice by hand or
 matched by the app from the ordered items (#231). The app tells the reader which,
@@ -411,11 +417,14 @@ paragraph exists to name.
 
 Five axes. Within an axis the words are a closed set; across axes the same word
 is deliberately the same word, because the predicate is the same and only the
-denominator differs — the row supplies that, never the chip.
+denominator differs — the row supplies that, never the chip. **An invoice's
+complete state is `Matched` and an order's is `Delivered`**, because they are
+not one predicate: the invoice was matched to a delivery that covered it, the
+order has had what it asked for delivered.
 
 | Axis | Words |
 |---|---|
-| An invoice against its delivery | `Delivered`, `Mismatch`, `Awaiting delivery` |
+| An invoice against its delivery | `Matched`, `Delivery variance`, `Awaiting delivery` |
 | A delivery against its invoices | `Invoiced`, `Partly invoiced`, `Awaiting invoice`, `—` |
 | An order against its deliveries | `Delivered`, `Partly delivered`, `Awaiting delivery`, `—` |
 | An order against its invoices | `Invoiced`, `Partly invoiced`, `Awaiting invoice`, `—` |
@@ -477,11 +486,14 @@ one `PO Items` row's quantity, not the order's total.
 
 ### Variance (tier 1, `lib/variance.js`)
 
-`⚠ Order variance` — one item against what its order agreed.
-`⚠ Check the total` — a document's stated total against its own computed total.
-The pair is #179's and is pinned by `offline/variance-copy.mjs` as well.
-`Mismatch` is barred here: it belongs to the delivery axis, and one word on two
-axes of one page is exactly the defect #179 removed.
+`⚠ Price variance` — one item's unit price against its order's.
+`⚠ Quantity variance` — what every invoice has charged against an ordered item,
+against what it ordered.
+`⚠ Totals differ` / `Totals agree` — a document's Invoice Total against its own
+Calculated Total.
+The fourth is the delivery axis's `Delivery variance`, above. They are pinned by
+`offline/variance-copy.mjs` as well: one noun and a qualifier each for the three
+variances, and one subject with two verbs for the totals.
 
 The badge has a third string behind it, the invoice-level prompt, and this
 document named it as locked without quoting it until #303:
@@ -684,8 +696,9 @@ all — their heading is the document ID.
 
 ### A glyph inside a locked string
 
-Four strings carry a glyph as part of the string rather than as a rendered
-decoration: `⚠ Order variance`, `⚠ Check the total`, `✓ Paid`, and the em dash
+Five strings carry a glyph as part of the string rather than as a rendered
+decoration: `⚠ Price variance`, `⚠ Quantity variance`, `⚠ Totals differ`, `✓ Paid`,
+and the em dash
 that is `absent`'s entire text. Replacing one with an icon is a change to a
 locked word, not a change to its presentation, and the em dash in particular is
 a *value* — the thing the cell says — rather than a placeholder for a missing
@@ -749,7 +762,7 @@ boxes away from a reader who is not a site manager: the boxes are a control, the
 a label run is made from, so the column goes with the act it serves and every fact on the
 row stays — and the row's last column, the job, takes the room rather than a budget being
 re-cut. Two did drop facts. The invoice list's `Status` column — the payment word with the
-total-mismatch badge stacked under it — existed only for a President or an Admin, and
+total variance badge stacked under it — existed only for a President or an Admin, and
 the purchase order detail's items table had two column sets. #235 gave that table one
 set and #309 opened that column, so those tables' column counts ARE constants now, and
 both tables sum their declared widths to exactly the page width on the assumption that

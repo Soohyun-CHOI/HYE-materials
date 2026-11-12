@@ -206,12 +206,12 @@ own screen. Two facts, both true at once, and a reader needs to be able to tell
 which one they are looking at.
 
 **When an invoice's own total does not match its computed total:** a
-`⚠ Check the total` badge on that invoice's row.
+`⚠ Totals differ` badge on that invoice's row.
 
-**When one item on an invoice differs from what this order agreed:** an
-`⚠ Order variance` badge on that child row, inside the indented list. This is
-the one screen in the app that can show both variance kinds at once, which is
-why they must keep two different words.
+**When one item on an invoice differs from what this order agreed:** a
+`⚠ Price variance` or `⚠ Quantity variance` badge on that child row, or both,
+inside the indented list. This is the one screen in the app that can show the
+invoice's kind and the item's at once, which is why each keeps a word of its own.
 
 **When an invoice carries the vendor's own invoice number:** it appears in gray
 between the invoice ID and the date.

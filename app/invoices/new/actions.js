@@ -23,8 +23,9 @@ import { getDeliveriesForInvoice } from "@/lib/deliveryInvoicePairing.server";
 import { PAIRING, matchDeliveryToInvoice } from "@/lib/deliveryInvoicePairing";
 import {
     ITEM_PRECISION_COPY,
-    checkHeaderVariance,
-    checkUnitPriceVariance,
+    checkTotalsDiffer,
+    checkPriceVariance,
+    checkQuantityVariance,
     headerPrecisionRefusal,
     isWholeCentPrice,
     isWholeQty,
@@ -61,7 +62,7 @@ async function createInvoiceHandler(prevState, formData) {
         const vendorInvoiceCode = formData.get("vendorInvoiceCode") || "";
         const issueDate = formData.get("issueDate");
         const dueDate = formData.get("dueDate") || null;
-        const amountDue = formData.get("amountDue");
+        const invoiceTotal = formData.get("invoiceTotal");
         const shippingFee = formData.get("shippingFee") || 0;
         const tariff = formData.get("tariff"); // issue #57 — optional, only present once the header's "+ Add Tariff" was used
         const salesTax = formData.get("salesTax"); // issue #283 — the same, behind "+ Add Sales Tax"
@@ -71,8 +72,8 @@ async function createInvoiceHandler(prevState, formData) {
 
         if (!vendorId) return { error: "Select a Vendor." };
         if (!issueDate) return { error: "Issue Date is required." };
-        if (!amountDue) return { error: "Amount Due is required." };
-        // Issue #405 — the rest of `HEADER_TOLERANCE`'s premise, refused where the
+        if (!invoiceTotal) return { error: "Invoice Total is required." };
+        // Issue #405 — the rest of `TOTALS_TOLERANCE`'s premise, refused where the
         // reader can fix it. #254 held `Items Subtotal` through the item loop below
         // and left the three terms summed beside it, and the stated total they are
         // compared against, asked by nothing — so a `1.005` in any of the four boxes
@@ -84,7 +85,7 @@ async function createInvoiceHandler(prevState, formData) {
             shippingFee: parseFloat(shippingFee),
             tariff: tariff ? parseFloat(tariff) : null,
             salesTax: salesTax ? parseFloat(salesTax) : null,
-            amountDue: parseFloat(amountDue),
+            invoiceTotal: parseFloat(invoiceTotal),
         });
         if (headerRefusal) return { error: headerRefusal };
         // Required, unlike Quotations (#34) — every received vendor invoice
@@ -130,7 +131,7 @@ async function createInvoiceHandler(prevState, formData) {
             if (!item.poItemRecordId) {
                 return { error: "Every invoice item needs an ordered item from its PO." };
             }
-            // Issue #254 — the premise `HEADER_TOLERANCE` is derived from, refused
+            // Issue #254 — the premise `TOTALS_TOLERANCE` is derived from, refused
             // where the reader can fix it. `createInvoiceItem` throws on the same
             // judgment and stays the backstop; this is here because BOTH STATES ARE
             // REACHABLE FROM THE FORM — measured, the two controls' step validation
@@ -211,7 +212,7 @@ async function createInvoiceHandler(prevState, formData) {
                 vendorInvoiceCode,
                 issueDate,
                 dueDate,
-                amountDue: parseFloat(amountDue),
+                invoiceTotal: parseFloat(invoiceTotal),
                 shippingFee: parseFloat(shippingFee) || 0,
                 tariff: tariff ? parseFloat(tariff) : null,
                 // Issue #283 — Tariff's coercion, character for character. It maps
@@ -267,12 +268,13 @@ async function createInvoiceHandler(prevState, formData) {
                 if (!poItemRecordId) continue;
 
                 const poItem = await getPOItemByRecordId(poItemRecordId);
-                const unitPriceVariance = checkUnitPriceVariance(created.unitPrice, poItem.unitPrice);
+                const hasPriceVariance = checkPriceVariance(created.unitPrice, poItem.unitPrice);
                 const invoicedQty = await getInvoicedQtyForPOItem(poItemRecordId);
-                const qtyVariance = invoicedQty > poItem.qty;
+                const hasQuantityVariance = checkQuantityVariance(invoicedQty, poItem.qty);
 
-                if (unitPriceVariance || qtyVariance) {
-                    await updateInvoiceItem(created.id, { varianceFlag: true });
+                // #623 — the two judged and stored apart, where one flag held either.
+                if (hasPriceVariance || hasQuantityVariance) {
+                    await updateInvoiceItem(created.id, { hasPriceVariance, hasQuantityVariance });
                 }
             }
 
@@ -280,8 +282,8 @@ async function createInvoiceHandler(prevState, formData) {
             // Subtotal -> Calculated Total) to have caught up, so it's read
             // back fresh rather than trusted from the pre-Items `invoice`.
             const invoiceAfterItems = await getInvoiceByRecordId(invoice.id);
-            if (checkHeaderVariance(invoiceAfterItems.amountDue, invoiceAfterItems.calculatedTotal || 0)) {
-                await updateInvoice(invoice.id, { varianceFlag: true });
+            if (checkTotalsDiffer(invoiceAfterItems.invoiceTotal, invoiceAfterItems.calculatedTotal || 0)) {
+                await updateInvoice(invoice.id, { totalsDiffer: true });
             }
         } catch (err) {
             // Same create-then-delete rollback pattern as #5/#10: Airtable has

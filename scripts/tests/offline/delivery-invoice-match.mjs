@@ -188,7 +188,7 @@ export function run({ check, assert, log }) {
     );
 
     // -----------------------------------------------------------------------
-    // Mutation: replace checkUnitPriceVariance(...) with `false` in fitRefusal and
+    // Mutation: replace checkPriceVariance(...) with `false` in fitRefusal and
     // the three checks below fail while every containment check keeps passing.
     // NOT reachable on the live base, so this section is the only thing standing
     // between the gate and a silent removal.
@@ -212,7 +212,7 @@ export function run({ check, assert, log }) {
     // The tolerance is lib/variance.js's, not a second one written here. A cent of
     // float noise is absorbed; two cents is a different price.
     check(
-        "a cent of rounding noise is absorbed (checkUnitPriceVariance's own tolerance)",
+        "a cent of rounding noise is absorbed (checkPriceVariance's own tolerance)",
         fitRefusal(invoice({ charges: [["recPOI_A", 10.01]] }), delivery(), PRICES),
         null
     );

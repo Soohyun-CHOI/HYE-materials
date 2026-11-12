@@ -634,7 +634,7 @@ if (!requester || !vendorA || !vendorB || !discipline) {
     console.log("\nPart F — invoiced qty: the merged rollup:");
     const invoice = await createInvoice({
         vendorId: vendorA.id, vendorInvoiceCode: `${TAG}-INV`,
-        issueDate: "2026-07-29", dueDate: "2026-08-29", amountDue: 90, shippingFee: 0,
+        issueDate: "2026-07-29", dueDate: "2026-08-29", invoiceTotal: 90, shippingFee: 0,
     });
     track("invoices", invoice.id);
 

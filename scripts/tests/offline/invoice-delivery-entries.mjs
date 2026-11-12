@@ -276,10 +276,10 @@ export function run({ check, assert, log }) {
         "  so one ordered item's surplus cancels another's shortfall — the clamp is per pair",
         reclamped(SPLIT_CROSSED).invoicedNotDelivered !== foldedEntryShare(SPLIT_CROSSED.rows).invoicedNotDelivered
     );
-    check("  while the chip, read off the same rows, says mismatch", chipOf(SPLIT_CROSSED), "mismatch");
+    check("  while the chip, read off the same rows, says mismatch", chipOf(SPLIT_CROSSED), "delivery-variance");
     assert(
         "  which is the screen the mutant makes: an amber sentence with nothing pointing at it",
-        chipOf(SPLIT_CROSSED) === "mismatch" && reclamped(SPLIT_CROSSED).invoicedNotDelivered === 0
+        chipOf(SPLIT_CROSSED) === "delivery-variance" && reclamped(SPLIT_CROSSED).invoicedNotDelivered === 0
     );
 
     // THE PROPERTY, over every fixture rather than the one case that shows it.
@@ -289,7 +289,7 @@ export function run({ check, assert, log }) {
         // The `not-compared` exclusion this filter carried is gone with the verdict
         // (#278): every verdict an entry can hold is now a shortfall.
         const speaksShort = entriesOf(fixture).some((e) => e.copy.verdict);
-        check(`  ${name}`, speaksShort, chipOf(fixture) === "mismatch");
+        check(`  ${name}`, speaksShort, chipOf(fixture) === "delivery-variance");
     }
 
     // -----------------------------------------------------------------------

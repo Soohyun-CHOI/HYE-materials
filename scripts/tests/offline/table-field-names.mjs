@@ -62,7 +62,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { listJsFiles, parseFile, parseSource, repoPath, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "No reference names a retired table or field (#280, #333, #513, #622)";
+export const title = "No reference names a retired table or field (#280, #333, #513, #622, #623)";
 
 /** Where a string reaches Airtable, and nothing else, over `app/` + `lib/`. */
 const SCANNED_DIRS = ["app", "lib"];
@@ -215,18 +215,35 @@ const RETIRED = {
     "PR Edit Requests (Initiated)": "#622 — the `Users` link is `PR Edit Requests (as Initiator)`",
     "PR Edit Requests (Sent To)": "#622 — the `Users` link is `PR Edit Requests (as Recipient)`",
     "Jobs (Delivery Address)": "#622 — the `Addresses` link is `Jobs (as Delivery Address)`",
+    // #623 — BOTH VARIANCE FLAGS WERE `Variance Flag`, AND THE VENDOR'S TOTAL `Amount Due`.
+    // Renamed by id on both bases by `scripts/import/ran/rename_invoice_variances_623.mjs`:
+    // `Invoices."Totals Differ"`, `Invoice Items."Has Price Variance"` beside a new
+    // `Has Quantity Variance`, and `Invoices."Invoice Total"`. The test base wore
+    // `Has Total Variance` and `Has Order Variance` between that issue's two passes. No
+    // screen says any of the four since, so a literal equal to one is a retired address
+    // wherever it stands, and they are held over `scripts/` as well.
+    "Variance Flag": "#623 — `Invoices.\"Totals Differ\"` and `Invoice Items.\"Has Price Variance\"`",
+    "Has Total Variance": "#623 — the test base's name for `Invoices.\"Totals Differ\"` between the issue's two passes",
+    "Has Order Variance": "#623 — split into `Has Price Variance` and `Has Quantity Variance`",
+    "Amount Due": "#623 — the field is `Invoices.\"Invoice Total\"`, and no screen says `Amount due`",
 };
 
 /**
  * #622 — the retired names held over every literal in `app/`, `lib/` and `scripts/`, not
- * only the five positions above. A name belongs here only if a literal equal to it can be
- * nothing but an address: a link's whole name, its role in parentheses.
+ * only the five positions above, each with the script that renames it from that name. A
+ * name belongs here only if a literal equal to it can be nothing but an address: a link's
+ * whole name, its role in parentheses, or one of #623's four, which no screen says.
  */
-const RETIRED_EVERYWHERE = Object.freeze([
-    "PR Edit Requests (Initiated)",
-    "PR Edit Requests (Sent To)",
-    "Jobs (Delivery Address)",
-]);
+const RETIRED_EVERYWHERE_BY = Object.freeze({
+    "PR Edit Requests (Initiated)": "scripts/import/ran/rename_role_links_622.mjs",
+    "PR Edit Requests (Sent To)": "scripts/import/ran/rename_role_links_622.mjs",
+    "Jobs (Delivery Address)": "scripts/import/ran/rename_role_links_622.mjs",
+    "Variance Flag": "scripts/import/ran/rename_invoice_variances_623.mjs",
+    "Has Total Variance": "scripts/import/ran/rename_invoice_variances_623.mjs",
+    "Has Order Variance": "scripts/import/ran/rename_invoice_variances_623.mjs",
+    "Amount Due": "scripts/import/ran/rename_invoice_variances_623.mjs",
+});
+const RETIRED_EVERYWHERE = Object.freeze(Object.keys(RETIRED_EVERYWHERE_BY));
 
 /**
  * The files that name them on purpose: the script that renames them from these names, and
@@ -234,7 +251,7 @@ const RETIRED_EVERYWHERE = Object.freeze([
  * script is a change to this list.
  */
 const RETIRED_EVERYWHERE_KEPT_BY = Object.freeze([
-    "scripts/import/ran/rename_role_links_622.mjs",
+    ...new Set(Object.values(RETIRED_EVERYWHERE_BY)),
     "scripts/tests/offline/table-field-names.mjs",
 ]);
 
@@ -622,11 +639,13 @@ export function run({ check, assert, log }) {
     log("");
     log("no literal under app/, lib/ or scripts/ names a link #622 renamed, but the files that rename it:");
     const SUCCESSORS_622 = ["PR Edit Requests (as Initiator)", "PR Edit Requests (as Recipient)", "Jobs (as Delivery Address)"];
+    const SUCCESSORS_623 = ["Totals Differ", "Has Price Variance", "Has Quantity Variance", "Invoice Total"];
+    const RETIRED_623 = RETIRED_EVERYWHERE.filter((n) => RETIRED_EVERYWHERE_BY[n].includes("_623"));
     const everywhere = EVERYWHERE_DIRS.flatMap((dir) => sourceFiles(dir));
     const unread = [];
     const literals = everywhere.flatMap((file) => {
         try {
-            return literalsFromSource(readFileSync(repoPath(file), "utf8"), file, [...RETIRED_EVERYWHERE, ...SUCCESSORS_622]).map((l) => ({ ...l, file }));
+            return literalsFromSource(readFileSync(repoPath(file), "utf8"), file, [...RETIRED_EVERYWHERE, ...SUCCESSORS_622, ...SUCCESSORS_623]).map((l) => ({ ...l, file }));
         } catch {
             unread.push(file);
             return [];
@@ -642,11 +661,35 @@ export function run({ check, assert, log }) {
     const outside = literals.filter((l) => RETIRED_EVERYWHERE.includes(l.value) && !RETIRED_EVERYWHERE_KEPT_BY.includes(l.file));
     for (const h of outside) log(`  ${h.file}:${h.line}  ${JSON.stringify(h.value)}  — ${RETIRED[h.value]}`);
     check("literals of a name #622 retired, outside the files that rename it", outside.length, 0);
+    // #623's four: a literal of one anywhere but its own script and this check.
+    check(
+        "literals of the names #623 retired, outside the files that rename them",
+        outside.filter((l) => RETIRED_623.includes(l.value)).length,
+        0
+    );
     // The matcher has to be seen to say YES on the real tree, and the script that renames
     // the three is where it must: it names each as the name it renames from.
     assert(
         "  the script that renames them names all three, so the rule reads the real tree",
-        RETIRED_EVERYWHERE.every((n) => literals.some((l) => l.file === RETIRED_EVERYWHERE_KEPT_BY[0] && l.value === n))
+        RETIRED_EVERYWHERE.filter((n) => RETIRED_EVERYWHERE_BY[n].includes("_622")).every((n) =>
+            literals.some((l) => l.file === RETIRED_EVERYWHERE_BY[n] && l.value === n)
+        )
+    );
+    assert(
+        "  and #623's script names each name it renames from",
+        RETIRED_623.length === 4 && RETIRED_623.every((n) => literals.some((l) => l.file === RETIRED_EVERYWHERE_BY[n] && l.value === n))
+    );
+    assert(
+        "  a planted label saying the retired total is caught",
+        literalsFromSource("const label = \"Amount Due\";", "planted.js", RETIRED_EVERYWHERE).length === 1
+    );
+    assert(
+        "  a planted write naming #623's flag is caught",
+        literalsFromSource('fields["Variance Flag"] = true;', "planted.js", RETIRED_EVERYWHERE).length === 1
+    );
+    assert(
+        `  and #623's successors are named outside the files that rename them`,
+        SUCCESSORS_623.every((n) => literals.some((l) => l.value === n && !RETIRED_EVERYWHERE_KEPT_BY.includes(l.file)))
     );
     assert("  every file kept by name exists", RETIRED_EVERYWHERE_KEPT_BY.every((f) => existsSync(repoPath(f))));
     assert(

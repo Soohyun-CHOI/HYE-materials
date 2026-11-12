@@ -278,7 +278,7 @@ async function renderInvoiceListPage({ searchParams }) {
             isMine: inv.recordedBy?.[0] === user.id,
             issueDate: inv.issueDate || "",
             dueDate: inv.dueDate || "",
-            amountDue: inv.amountDue,
+            invoiceTotal: inv.invoiceTotal,
             deliveryChip: summary ? describeInvoiceColumn(summary) : null,
             paid: payment.paid,
             // The value the `Status` filter matches on AND the word the cell prints,
@@ -286,7 +286,7 @@ async function renderInvoiceListPage({ searchParams }) {
             status: invoicePaymentWord(payment),
             paymentWord: invoicePaymentWord(payment),
             overdueBadge: badge ? badge.text : null,
-            varianceBadge: inv.varianceFlag ? VARIANCE_COPY.header : null,
+            varianceBadge: inv.totalsDiffer ? VARIANCE_COPY.totalsDiffer : null,
         };
     });
 

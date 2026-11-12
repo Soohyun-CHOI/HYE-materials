@@ -85,7 +85,8 @@ export default function InvoicesListClient({ rows, options, initialFilters, init
 
                         THREE OF THOSE FIGURES WERE STALE AND #314 RE-MEASURED THEM
                         (#181). The date was 80px and is 72; `Awaiting delivery` was 120px
-                        and is 102; Amount Due's own header was 78px and is 84. And the
+                        and is 102; Amount Due's own header was 78px and is 84 (`Invoice
+                        Total`, 85, since #623). And the
                         Vendor sentence said 8rem held the longest name "at 16 characters
                         with nothing to spare" — see the re-measured table below for what
                         it actually holds and what has been wrapping since. The paragraph
@@ -122,8 +123,9 @@ export default function InvoicesListClient({ rows, options, initialFilters, init
 
                         THE 176px WAS SIZED FOR A DATE THIS COLUMN NO LONGER PRINTS.
                         #309 took the date off the badge — `Paid 2026-08-14` is `Paid` —
-                        so the widest thing in the cell is now `⚠ Check the total` at
-                        102px rather than the 104px payment word it used to stack under.
+                        so the widest thing in the cell became `⚠ Check the total` at
+                        102px rather than the 104px payment word it used to stack under —
+                        and `⚠ Totals differ` at 83px since #623, measured at 832px.
                         It was not re-cut there, on the ground that a width is the design
                         work's to decide and a visibility change is not the place to spend
                         slack it happens to create — so the 74px was recorded and left.
@@ -222,7 +224,7 @@ export default function InvoicesListClient({ rows, options, initialFilters, init
                                 <th className="pr-2">Job</th>
                                 <th className="pr-2">Issue Date</th>
                                 <th className="pr-2">Due Date</th>
-                                <th className="pr-2 text-right">Amount Due</th>
+                                <th className="pr-2 text-right">Invoice Total</th>
                                 <th className="pr-2">Delivery</th>
                                 {/* UNGATED SINCE #309, and `Status` heads its own subject
                                     again: the payment word, which every reader of the row
@@ -257,7 +259,7 @@ export default function InvoicesListClient({ rows, options, initialFilters, init
                                     <td className="py-1 pr-2">{row.jobCode || "—"}</td>
                                     <td className="py-1 pr-2">{row.issueDate || "—"}</td>
                                     <td className="py-1 pr-2">{row.dueDate || "—"}</td>
-                                    <td className="py-1 pr-2 text-right">{formatUSD(row.amountDue)}</td>
+                                    <td className="py-1 pr-2 text-right">{formatUSD(row.invoiceTotal)}</td>
                                     {/* Issue #166 — a FACT, never a verdict: "more invoiced
                                         than delivered" and not "over-billed", because at
                                         any one moment the two are the same measurement.
@@ -275,10 +277,10 @@ export default function InvoicesListClient({ rows, options, initialFilters, init
                                         STILL NO EXCEPTION TAGS. The two beyond-the-order
                                         tags this column used to carry both left it, for
                                         different reasons. `beyond order` (invoiced >
-                                        ordered) is one of the two things
-                                        `Invoice Items.Variance Flag` is set for, and the
-                                        invoice detail marks it per item —
-                                        `⚠ Order variance` since #179 — so a tag here
+                                        ordered) is what
+                                        `Invoice Items."Has Quantity Variance"` is set
+                                        for, and the invoice detail marks it per item —
+                                        `⚠ Quantity variance` since #623 — so a tag here
                                         would be one fact on two screens. `over-delivery`
                                         (delivered > ordered) is not a fact about THIS
                                         invoice at all but about the ordered item, and
@@ -290,8 +292,8 @@ export default function InvoicesListClient({ rows, options, initialFilters, init
 
                                         THE CHIP ALONE SINCE #232 — a `!` marker stood
                                         beside it and is retired. The discrepancy is a
-                                        third chip value now, so the cell says `Mismatch`
-                                        in words; the marker would have qualified a word
+                                        third chip value now, so the cell says `Delivery
+                                        variance` (`Mismatch` until #623) in words; the marker would have qualified a word
                                         the reader had already read, with a sentence only
                                         a hover could reach. Still one function, shared
                                         with the detail, so this cell and that page cannot
@@ -354,7 +356,9 @@ export default function InvoicesListClient({ rows, options, initialFilters, init
                                         against `⚠ Check the total` at 102px — so the new
                                         badge is NARROWER than the widest thing the cell
                                         already held and nothing was taken from another
-                                        column. The bound is the digit count: each one is
+                                        column. #623 made it the widest: `⚠ Totals
+                                        differ` is 83px, so `· 43d` at 98px leads by
+                                        15. The bound is the digit count: each one is
                                         about 7px, so a three-digit count lands at ~105px
                                         and a four-digit one would not fit. That is an
                                         invoice 2.7 years past its due date, which is a
@@ -433,7 +437,7 @@ export default function InvoicesListClient({ rows, options, initialFilters, init
                                         )}
                                         {/* THE VARIANCE BADGE IS NOT A FILTER, AND #324
                                             DECIDED THAT DELIBERATELY RATHER THAN BY
-                                            OMISSION. `Invoices."Variance Flag"` is a state
+                                            OMISSION. `Invoices."Totals Differ"` is a state
                                             this invoice holds, so that issue's rule
                                             produces the axis — what it has no name for is
                                             the fact on THIS list: the design pass merges

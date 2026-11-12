@@ -314,7 +314,7 @@ try {
         vendorInvoiceCode: `${TAG}-INV`,
         issueDate: "2026-09-18",
         dueDate: "2026-10-18",
-        amountDue: 304,
+        invoiceTotal: 304,
         shippingFee: 0,
     });
     track("invoices", invoice.id);

@@ -186,13 +186,13 @@ async function buildOrder(label, requester, discipline) {
 }
 
 /** One invoice and its charges: `[{ orderedItem, po, qty }]`. */
-async function buildInvoice(label, amountDue, charges) {
+async function buildInvoice(label, invoiceTotal, charges) {
     const invoice = await createInvoice({
         vendorId: VENDOR_RECORD_ID,
         vendorInvoiceCode: `${TAG}-${label}`,
         issueDate: "2026-09-18",
         dueDate: "2026-10-18",
-        amountDue,
+        invoiceTotal,
         shippingFee: 0,
     });
     track("invoices", invoice.id);

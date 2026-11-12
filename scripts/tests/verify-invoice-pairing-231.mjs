@@ -181,7 +181,7 @@ try {
         body.set("vendorId", VENDOR_RECORD_ID);
         body.set("vendorInvoiceCode", fixtures.TAG);
         body.set("issueDate", "2026-08-13");
-        body.set("amountDue", String((poItem.qty || 1) * poItem.unitPrice));
+        body.set("invoiceTotal", String((poItem.qty || 1) * poItem.unitPrice));
         body.set("shippingFee", "0");
         body.set("invoiceFileUrl", blobUrl);
         body.set("invoiceFileFilename", `${fixtures.TAG}-invoice.pdf`);

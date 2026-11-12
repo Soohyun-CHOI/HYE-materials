@@ -105,9 +105,13 @@ const ADMIN_EMAIL = "soo@hanyangengusa.com";
 // has nothing invoiced against it, and NO delivery item names it — so
 // `matchDeliveryToInvoice` reaches `none` and no link is written on any record
 // this script does not create. Verified in part B rather than trusted.
-const PO_RECORD_ID = "recFhuh7Rmic2VxXI"; // HYE-PO-260911-34
-const PO_ITEM_RECORD_ID = "recNWQmMybRWcCVKY"; // HYE-PO-260911-34-001
-const VENDOR_RECORD_ID = "recJMkaWAGnohzn4z"; // Lone Star Pipe & Supply
+//
+// THE IDS ARE THE TEST BASE'S SINCE #537 re-made the demo there, which gave every
+// record a new id; #623 found the old three no longer resolving and read these off the
+// same order, ordered item and vendor.
+const PO_RECORD_ID = "reckSot0DCjvUxeOG"; // HYE-PO-260911-34
+const PO_ITEM_RECORD_ID = "recY7wk6TXrzqv8M1"; // HYE-PO-260911-34-001
+const VENDOR_RECORD_ID = "recZYbtxnERQLTDDx"; // Lone Star Pipe & Supply
 
 let pass = true;
 let incomplete = false;
@@ -235,7 +239,7 @@ try {
         body.set("vendorId", VENDOR_RECORD_ID);
         body.set("vendorInvoiceCode", fixtures.TAG);
         body.set("issueDate", "2026-09-17");
-        body.set("amountDue", String((poItem.qty || 1) * poItem.unitPrice));
+        body.set("invoiceTotal", String((poItem.qty || 1) * poItem.unitPrice));
         body.set("shippingFee", "0");
         body.set("invoiceFileUrl", blobUrl);
         body.set("invoiceFileFilename", `${fixtures.TAG}-invoice.pdf`);
@@ -254,6 +258,7 @@ try {
             ])
         );
 
+        const postedAt = Date.now();
         const posted = await fetch(`${BASE}/invoices/new`, {
             method: "POST",
             headers: { cookie },
@@ -288,6 +293,15 @@ try {
             // find it — which is exactly why the handler's discarded batch is
             // invisible from inside the app. The reverse-link array is on the record
             // the mapper already read.
+            // #623 — and the moment it was entered, written by the same create and no
+            // other: an instant inside this POST's own round trip.
+            const enteredAt = Date.parse(invoice.createdAt);
+            ok(
+                "the invoice records the moment it was entered",
+                enteredAt >= postedAt - 1000 && enteredAt <= Date.now(),
+                `createdAt ${invoice.createdAt}`
+            );
+
             childItemIds = (invoice.invoiceItems || []).slice();
             ok("the action created the invoice item", childItemIds.length > 0, `${childItemIds.length}`);
         }
@@ -300,7 +314,18 @@ try {
         // absent. React renders the text/expression boundary as an empty comment, so
         // the html is flattened first — read off the live server before this was
         // written, rather than predicted.
-        const line = (html, value) => html.replace(/<!-- -->/g, "").includes(`<p>Recorded by: ${value}</p>`);
+        //
+        // #623 — THE LINE IS `Recorded by {name} · {day}`, the design's words, and the day
+        // is an `Instant` that draws nothing until the browser has its zone, so the html
+        // carries the instant in `dateTime` and an empty element. `at` is that instant, or
+        // `true` for any, or `undefined` where the name alone is the claim.
+        const line = (html, value, at) => {
+            const m = html
+                .replace(/<!-- -->/g, "")
+                .match(/<p>Recorded by ([^<]*?)\s*(?:<span aria-hidden="true">·<\/span>\s*<time dateTime="([^"]*)"[^>]*><\/time>)?<\/p>/i);
+            if (!m || m[1] !== value) return false;
+            return at === undefined || (at === true ? Boolean(m[2]) : m[2] === at);
+        };
         if (invoiceId) {
             const detail = await (
                 await fetch(`${BASE}/invoices/${encodeURIComponent(invoiceId)}`, { headers: { cookie } })
@@ -309,6 +334,12 @@ try {
                 `the fixture's page names the recorder (${userName(admin)})`,
                 line(detail, userName(admin)),
                 "checked the rendered html"
+            );
+            const entered = (await getInvoiceById(invoiceId))?.createdAt;
+            ok(
+                "  and beside the name, the moment it was entered",
+                Boolean(entered) && line(detail, userName(admin), entered),
+                entered || "no createdAt"
             );
         }
         // An invoice entered before the field existed, taken from the list rather
@@ -323,6 +354,11 @@ try {
             ok(
                 `an invoice with no recorder renders the em dash (${older})`,
                 line(olderHtml, "—"),
+                "checked the rendered html"
+            );
+            ok(
+                "  and still the day it was entered, which every invoice holds since #623",
+                line(olderHtml, "—", true),
                 "checked the rendered html"
             );
         } else {
@@ -346,7 +382,7 @@ try {
                 editBody.set("vendorId", VENDOR_RECORD_ID);
                 editBody.set("vendorInvoiceCode", editedCode);
                 editBody.set("issueDate", before.issueDate);
-                editBody.set("amountDue", String(before.amountDue));
+                editBody.set("invoiceTotal", String(before.invoiceTotal));
                 editBody.set("shippingFee", "0");
                 editBody.set("itemsJson", JSON.stringify([]));
                 const edited = await fetch(`${BASE}/invoices/${encodeURIComponent(invoiceId)}/edit`, {
@@ -368,6 +404,11 @@ try {
                     "  and left the recorder exactly as the create wrote it",
                     JSON.stringify(after.recordedBy || []) === JSON.stringify(before.recordedBy || []),
                     JSON.stringify(after.recordedBy || [])
+                );
+                ok(
+                    "  and the moment it was entered (#623)",
+                    Boolean(before.createdAt) && after.createdAt === before.createdAt,
+                    `${before.createdAt} -> ${after.createdAt}`
                 );
             }
         }

@@ -194,7 +194,7 @@ async function renderDeliveryDetailPage({ params }) {
     // rule, so the row a reader clicked and the page they land on cannot describe
     // the same delivery differently. There is no single figure to show instead:
     // a delivery can hold several items with different units, so the invoice's
-    // Amount Due has no counterpart here.
+    // Invoice Total has no counterpart here.
     const summary = summarizeDelivery(rows);
     const grouped = groupRowsByItem(rows);
 

@@ -2,7 +2,7 @@
 //
 // THE QUIET MUTANT IS THE FORM CALLING THE RULE AND STILL BUILDING ITS OWN
 // FIGURES, and it is asserted first because it is the state this issue would most
-// easily be "fixed" into. Import `checkHeaderVariance`, call it, pass
+// easily be "fixed" into. Import `checkTotalsDiffer`, call it, pass
 // `itemsTotal` — the rule is shared, the threshold is single, and the two screens
 // go on disagreeing exactly as before. Every other check in this tier stays green
 // through it: `invoice-money-terms.mjs` asserts on the `calculatedTotal`
@@ -19,7 +19,7 @@
 // WHAT SCOPES THAT SECOND ASSERTION IS THE CONSTANT #254 REFUSED TO MERGE.
 // `shippingFeeMismatch` is `Math.abs(...) > 0.01` in the same function and is a
 // DIFFERENT comparison — a typed shipping fee against the order's frozen one, two
-// figures that should be identical, which is `checkUnitPriceVariance`'s question
+// figures that should be identical, which is `checkPriceVariance`'s question
 // rather than the header's. It has to be seen and allowed, which is why it is
 // this file's anti-vacuity for that assertion: a walk that cannot find it cannot
 // have found anything.
@@ -42,7 +42,7 @@
 // AND THE PREMISE HAS A SECOND HALF, WHICH #405 ADDED AND WHICH THIS FILE'S OWN
 // RULE PUTS HERE RATHER THAN IN A THIRD FILE. `Items Subtotal` is one term of
 // `Calculated Total`; `Shipping Fee`, `Tariff` and `Sales Tax` are the other
-// three, and `Amount Due` is the figure the sum is compared against. Half a cent
+// three, and `Invoice Total` is the figure the sum is compared against. Half a cent
 // rests on ALL of them being whole numbers of cents, so a check that holds the
 // item half alone is asserting a premise that does not hold — which is the state
 // this file was in from #254 to #405, green throughout.
@@ -57,7 +57,7 @@
 // as 3, and no check in this repository reads live rows — `verify-variance-15.mjs`
 // creates its own whole-number fixtures and compares its own invoice, so it would
 // not notice either. The state surfaces only as the screen's own false positive:
-// `⚠ Check the total` on a stored invoice whose vendor did nothing but round its
+// `⚠ Totals differ` on a stored invoice whose vendor did nothing but round its
 // printed amounts. Closing that needs a credentialed check reading live values,
 // which is the shape `verification.md` prescribes for every Airtable-side rule and
 // which #254 does not add.
@@ -67,8 +67,8 @@ import {
     HEADER_PRECISION_COPY,
     ITEM_PRECISION_COPY,
     SHIPPING_FEE_PRECISION_COPY,
-    checkHeaderVariance,
-    checkUnitPriceVariance,
+    checkTotalsDiffer,
+    checkPriceVariance,
     headerPrecisionRefusal,
     isWholeCentPrice,
     isWholeQty,
@@ -86,7 +86,7 @@ const CREATE_ACTION = "app/invoices/new/actions.js";
 const EDIT_ACTION = "app/invoices/[invoiceId]/actions.js";
 
 /**
- * The four figures of `HEADER_TOLERANCE`'s premise that are NOT an item's (#405),
+ * The four figures of `TOTALS_TOLERANCE`'s premise that are NOT an item's (#405),
  * each as its copy key and the Airtable field the guard has to name.
  *
  * ORDERED AS `Calculated Total` SUMS, then the side it is compared against, which
@@ -96,7 +96,7 @@ const HEADER_FIGURES = [
     ["shippingFee", "Shipping Fee"],
     ["tariff", "Tariff"],
     ["salesTax", "Sales Tax"],
-    ["amountDue", "Amount Due"],
+    ["invoiceTotal", "Invoice Total"],
 ];
 
 /** The third argument of every `assertWholeCentPrice(...)` call in a subtree. */
@@ -108,7 +108,7 @@ function guardedFields(node) {
 }
 
 /** The two figures the header comparison is about, as this form names them. */
-const STATED = "vendorStatedTotal";
+const STATED = "invoiceTotal";
 const CALCULATED = "calculatedTotal";
 
 /** Every identifier name in a subtree. */
@@ -157,8 +157,8 @@ export function run({ check, assert, log }) {
 
     // -----------------------------------------------------------------------
     log("THE QUIET MUTANT — the form calls the rule and passes its own figures:");
-    const calls = callsNamed(form.ast, "checkHeaderVariance");
-    check("the form calls checkHeaderVariance", calls.length, 1);
+    const calls = callsNamed(form.ast, "checkTotalsDiffer");
+    check("the form calls checkTotalsDiffer", calls.length, 1);
     const args = calls[0]?.arguments ?? [];
     check("  with two arguments", args.length, 2);
     // Argument 1 is the typed figure, reached through a coercion, so the
@@ -176,7 +176,7 @@ export function run({ check, assert, log }) {
         args[1]?.type === "Identifier" ? args[1].name : `a ${args[1]?.type}`,
         CALCULATED
     );
-    // THE MUTANT, SPELLED OUT: `checkHeaderVariance(parseFloat(vendorStatedTotal),
+    // THE MUTANT, SPELLED OUT: `checkTotalsDiffer(parseFloat(invoiceTotal),
     // itemsTotal)` satisfies "calls the rule" and every other check in this tier.
     // What rejects it is the clause above, so prove that clause can say no.
     assert(
@@ -227,22 +227,22 @@ export function run({ check, assert, log }) {
     log("the tolerance itself — one number, derived, and no percentage term:");
     // Half a cent absorbs the representation error of summing whole-cent figures
     // and nothing else, so a genuine cent has to fire and the slop must not.
-    assert("a whole cent of difference fires", checkHeaderVariance(100.01, 100));
-    assert("  in both directions", checkHeaderVariance(99.99, 100));
+    assert("a whole cent of difference fires", checkTotalsDiffer(100.01, 100));
+    assert("  in both directions", checkTotalsDiffer(99.99, 100));
     assert(
         "  and floating-point slop does not",
-        !checkHeaderVariance(0.1 + 0.2, 0.3) && !checkHeaderVariance(100000.0000001, 100000)
+        !checkTotalsDiffer(0.1 + 0.2, 0.3) && !checkTotalsDiffer(100000.0000001, 100000)
     );
     // NO PERCENTAGE TERM: the giveaway is a tolerance that grows with the figure.
     // One percent of this invoice would have been $500.
     assert(
         "the tolerance does not scale with the invoice",
-        checkHeaderVariance(50000.01, 50000) && checkHeaderVariance(50100, 50000)
+        checkTotalsDiffer(50000.01, 50000) && checkTotalsDiffer(50100, 50000)
     );
     // AND NO DOLLAR FLOOR, which is #283's counterexample: a term the app has no
     // column for is unbounded downward, so a floor hides the small end of exactly
     // the class that issue exists to surface.
-    assert("a small missing charge is not swallowed", checkHeaderVariance(120, 124.8));
+    assert("a small missing charge is not swallowed", checkTotalsDiffer(120, 124.8));
     // The source, so a floor cannot come back as a `Math.max` the behavior above
     // would not distinguish on these inputs.
     const varianceSource = readFileSync(repoPath("lib/variance.js"), "utf8");
@@ -254,7 +254,7 @@ export function run({ check, assert, log }) {
     // The two constants stay two, and the header's is the tighter one.
     assert(
         "the two comparisons are still two",
-        checkUnitPriceVariance(10.005, 10) === false && checkHeaderVariance(10.005, 10) === true
+        checkPriceVariance(10.005, 10) === false && checkTotalsDiffer(10.005, 10) === true
     );
 
     // -----------------------------------------------------------------------
@@ -337,13 +337,13 @@ export function run({ check, assert, log }) {
     // sentence is the sum's first term, so two screens cannot name different ones.
     check(
         "with all four off the cent it names the sum's first term",
-        headerPrecisionRefusal({ shippingFee: 1.005, tariff: 1.005, salesTax: 1.005, amountDue: 1.005 }),
+        headerPrecisionRefusal({ shippingFee: 1.005, tariff: 1.005, salesTax: 1.005, invoiceTotal: 1.005 }),
         HEADER_PRECISION_COPY.shippingFee
     );
     check(
         "  and with the terms clean it reaches the other side",
-        headerPrecisionRefusal({ shippingFee: 1, tariff: 2, salesTax: 3, amountDue: 1.005 }),
-        HEADER_PRECISION_COPY.amountDue
+        headerPrecisionRefusal({ shippingFee: 1, tariff: 2, salesTax: 3, invoiceTotal: 1.005 }),
+        HEADER_PRECISION_COPY.invoiceTotal
     );
     // THE SERVICE WRITERS, BY FIELD NAME. `lib/airtable/invoices.js` cannot be
     // imported here — it reaches `client.js` and its module-load throw — so this is
@@ -425,20 +425,21 @@ export function run({ check, assert, log }) {
     // -----------------------------------------------------------------------
     log("");
     log("the form's sentence is a constant, where the vocabulary check can read it:");
-    const beforeSaving = VARIANCE_COPY.headerBeforeSaving("1,620.00", "1,710.00");
+    const beforeSaving = VARIANCE_COPY.totalsBeforeSaving("1,620.00", "1,710.00");
     assert("it states both figures", beforeSaving.includes("1,620.00") && beforeSaving.includes("1,710.00"));
     assert(
         "  and names the two controls rather than the two fields",
-        /Vendor's Stated Total/.test(beforeSaving) && !/Calculated Total\b/.test(beforeSaving)
+        /Invoice Total/.test(beforeSaving) && !/Calculated Total\b/.test(beforeSaving)
     );
     // The tense is the distinction #179 kept it out of the stored pair for: this
     // one addresses the person still typing.
     assert("  it addresses the moment before there is a record", /before submitting/.test(beforeSaving));
     assert(
         "  which the stored sentence deliberately does not",
-        !/before submitting/.test(VARIANCE_COPY.headerDetail("$1.00", "$2.00"))
+        !/before submitting/.test(VARIANCE_COPY.totalsDetail("$1.00", "$2.00"))
     );
-    // `Mismatch` is the delivery axis's on these same screens (#232).
+    // `Mismatch` was the delivery axis's on these same screens (#232), and the form's
+    // sentence names no variance kind since #623 either.
     assert("  and it does not take the delivery axis's word", !/mismatch/i.test(beforeSaving));
     // It has to be GONE from the form as element text, or the constant is a second
     // home for a sentence still typed into JSX.
@@ -454,7 +455,7 @@ export function run({ check, assert, log }) {
     assert(
         "  and its matcher would catch the old sentence",
         /doesn't match the calculated total/.test(
-            "Vendor's Stated Total (1.00) doesn't match the calculated total (2.00) — double-check"
+            "Invoice Total (1.00) doesn't match the calculated total (2.00) — double-check"
         )
     );
 }
