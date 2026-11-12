@@ -911,10 +911,11 @@ rail with every section on it and a breadcrumb above a record; the asset screens
 carry both, and the screens above them carry neither until #258 gathers them
 into one layout. There every "back" affordance is a per-page link written by
 whoever added the page. **And while the site uses Equipment & Tools alone, those
-screens are closed (#542)**: the rail carries no section for them and an address
-on one leads to the Equipment & Tools list, which is also where `/` and a
-sign-in with nowhere else to go land. One switch in `lib/openScreens.js` opens
-them; until #542 a root screen of links was the way in.
+screens are closed on the production deployment (#542, #631)**: the rail carries
+no section for them and an address on one leads to the Equipment & Tools list,
+which is also where `/` and a sign-in with nowhere else to go land. One switch in
+`lib/openScreens.js` opens them on every other build; until #542 a root screen of
+links was the way in.
 
 ## How a screen brief reads
 

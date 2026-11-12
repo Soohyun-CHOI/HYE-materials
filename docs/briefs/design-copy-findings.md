@@ -112,6 +112,7 @@ its own words.
 
 **The app decides it when the materials screens open again (#612, Soo).** The
 files draw no purchase request screen, so no sending takes this entry up. The
-screen is closed (#542); the word is chosen, and swept with everything under
-`What moves with them`, when `lib/openScreens.js` opens it.
+screen is closed on the production deployment (#542, #631); the word is chosen, and
+swept with everything under `What moves with them`, when `lib/openScreens.js` opens
+it there.
 

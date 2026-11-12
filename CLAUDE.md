@@ -68,7 +68,7 @@ What that boundary implies keeps coming up: a decision made before a PR exists c
 
 - Next.js (App Router, JavaScript, Tailwind), deployed on Vercel.
 - Airtable as data store only (base: "Material Purchases"). All business logic lives in the backend. Airtable formulas only for pure data transforms, never workflow logic.
-- Auth: a magic link, or the code the same email carries (#471), restricted to company email domain, verified. New signups always land as plain Employee (Is Admin: false) — promotion is a manual Airtable edit.
+- Auth: a magic link, or the code the same email carries (#471), restricted to company email domain, verified.
 
 
 ### Editing the Airtable schema
@@ -106,7 +106,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/cookieLifetime.js` — each sealed cookie's lifetime, one value for its seal and its cookie. A session lasts 30 days from sign-in and is never extended.
 - `lib/accountStatus.js` — whether a `Users` row may hold a session (#491), and the sealed finding a page hands `GET /api/auth/deactivated` to end one.
 - `lib/loginDestination.js` — where a signed-out reader was headed (#373), and where a reader with nowhere to go lands (#542).
-- `lib/openScreens.js` — whether the materials screens are open (#542): the one switch the rail and `next.config.mjs` read. **No page, link or action asks it.**
+- `lib/openScreens.js` — whether the materials screens are open: on every build but production's (#542, #631), the one switch `next.config.mjs` sets at build and the rail reads. **No page, link or action asks it.**
 - `lib/units.js` — `CANONICAL_UNITS`, the JS source of truth for the Unit select list.
 - `lib/editLogFields.js` — the labels a `PR Edit Log` row can be about. No call site may pass `createEditLogEntry` a string literal.
 - `lib/variance.js` — invoice/PO variance checks and `VARIANCE_COPY` (#179), plus the cent rule (#254, #308, #405). **Nothing writes a quantity or a currency figure into an item, a document total, or either side of the invoice header comparison without asking them.**

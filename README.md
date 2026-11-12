@@ -16,8 +16,9 @@ order → invoice → delivery** chain in one app, replacing a workflow that liv
 in email threads and spreadsheets. The same order sat in a spreadsheet, an email
 thread and a vendor's invoice with nothing tying them together, so reconciling
 what was ordered against what was invoiced was manual and after the fact. Its
-screens are closed until the sites start using them, and `lib/openScreens.js`
-is the one switch.
+screens are open on a local server and a preview deployment, which reach the
+test base, and closed on production until the sites start using them;
+`lib/openScreens.js` is the one switch.
 
 ## Stack
 

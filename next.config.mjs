@@ -1,8 +1,18 @@
 import { DEFAULT_DESTINATION } from "./lib/loginDestination.js";
-import { CLOSED_SEGMENTS } from "./lib/openScreens.js";
+import { materialsScreensAtBuild } from "./lib/openScreens.js";
+
+// The materials screens as this build sets them (#631): open on every build but the
+// production deployment's. Asked here once, for the redirects below and for the answer
+// the app's own code reads; `lib/openScreens.js` has why the build is what asks.
+const materialsScreens = materialsScreensAtBuild();
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // THE ANSWER THE APP'S OWN CODE READS (#631). Next inlines each entry into every
+  // bundle, the browser's as well as the server's, so the rail is drawn from the build
+  // that drew the redirects, and a browser never asks which deployment it is on.
+  env: materialsScreens.env,
+
   // pdf-parse (issue #46) wraps pdfjs-dist, which resolves its worker
   // script via a path relative to its own module location at runtime —
   // bundling it through Turbopack/webpack breaks that (the worker file
@@ -39,9 +49,9 @@ const nextConfig = {
 
   // THE ADDRESSES THAT LEAD ELSEWHERE (#542). `/` is no page: it leads to the Tools &
   // Equipment list, `DEFAULT_DESTINATION`, where a sign-in with nowhere else to go lands
-  // too. And while the materials screens are closed, every address under one of their first
-  // segments leads there as well — `lib/openScreens.js` decides which, and this reads it,
-  // so opening them is that module's switch and nothing here.
+  // too. And where the materials screens are closed — the production deployment, since
+  // #631 — every address under one of their first segments leads there as well:
+  // `lib/openScreens.js` decides which, and this reads it.
   //
   // HERE RATHER THAN IN `proxy.js`, A LAYOUT OR EACH PAGE. The proxy and a layout gate
   // nothing (CLAUDE.md), and a line in each of twenty pages would outlive the switch. Next
@@ -56,7 +66,7 @@ const nextConfig = {
   async redirects() {
     return [
       { source: "/", destination: DEFAULT_DESTINATION, permanent: false },
-      ...CLOSED_SEGMENTS.map((segment) => ({
+      ...materialsScreens.closedSegments.map((segment) => ({
         source: `/${segment}/:path*`,
         destination: DEFAULT_DESTINATION,
         permanent: false,

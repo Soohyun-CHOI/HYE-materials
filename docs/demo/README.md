@@ -5,10 +5,10 @@ What this directory holds, and the order things run in.
 `runbook.md` is the thing to have open while presenting: six acts, one screen at a
 time, with the exact values to type. Everything else here is setup.
 
-**The materials screens are closed for now (#542).** While
-`lib/openScreens.js:MATERIALS_SCREENS_OPEN` is false, the request, order, invoice,
-delivery and material screens the runbook opens lead to the Tools & Equipment list
-instead, so the runbook can be walked only once that switch is set to true.
+**The materials screens are closed on the production deployment (#542, #631).**
+There the request, order, invoice, delivery and material screens the runbook opens
+lead to the Tools & Equipment list instead, so the runbook is walked on a local server
+or a preview deployment, which open them and reach the test base the demo is seeded on.
 
 ## Between rehearsals — the one command
 
