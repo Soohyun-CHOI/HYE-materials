@@ -1,3 +1,4 @@
+import UndrawnPage from "@/app/components/UndrawnPage";
 import { requireAdmin } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import DisciplineForm from "./DisciplineForm";
@@ -16,9 +17,9 @@ async function renderNewDisciplinePage({ searchParams }) {
     const { authorized } = await requireAdmin();
     if (!authorized) {
         return (
-            <div className="flex flex-1 items-center justify-center p-8">
+            <UndrawnPage measure="notice">
                 <p>Not authorized. This page is Admin-only.</p>
-            </div>
+            </UndrawnPage>
         );
     }
 
@@ -32,7 +33,7 @@ async function renderNewDisciplinePage({ searchParams }) {
     );
 
     return (
-        <div className="mx-auto w-full max-w-sm p-8">
+        <UndrawnPage measure="form">
             <h1 className="text-2xl font-semibold">New Discipline</h1>
 
             {created && (
@@ -42,6 +43,6 @@ async function renderNewDisciplinePage({ searchParams }) {
             )}
 
             <DisciplineForm jobs={jobs} />
-        </div>
+        </UndrawnPage>
     );
 }

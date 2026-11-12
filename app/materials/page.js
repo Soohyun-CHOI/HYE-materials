@@ -12,6 +12,7 @@ import {
 import { isPOSigned } from "@/lib/poUnsigned";
 import { formatUSD } from "@/lib/format";
 import { LIST_TABLE_CLASS } from "@/app/components/listTableWidth";
+import UndrawnPage from "@/app/components/UndrawnPage";
 import MaterialSearchForm from "./MaterialSearchForm";
 import { withOpsLabel } from "@/lib/airtableOps";
 
@@ -65,7 +66,7 @@ async function renderMaterialPricesPage({ searchParams }) {
     const inCatalog = missed ? await anyCategoryMatches(tokens) : false;
 
     return (
-        <div className="mx-auto w-full max-w-4xl p-8">
+        <UndrawnPage measure="list">
             <h1 className="text-2xl font-semibold">Material prices</h1>
             <p className="mt-1 text-sm text-zinc-600">
                 What we last paid for an item, by vendor.
@@ -292,6 +293,6 @@ async function renderMaterialPricesPage({ searchParams }) {
                     </section>
                 );
             })}
-        </div>
+        </UndrawnPage>
     );
 }

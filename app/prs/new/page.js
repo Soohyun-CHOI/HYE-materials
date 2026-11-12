@@ -1,4 +1,5 @@
 import Link from "next/link";
+import UndrawnPage from "@/app/components/UndrawnPage";
 import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllDisciplines } from "@/lib/airtable/disciplines";
@@ -103,7 +104,7 @@ async function renderNewPRPage({ searchParams }) {
     const otherJobs = jobs.filter((j) => !assignedJobIds.has(j.id));
 
     return (
-        <div className="mx-auto w-full max-w-2xl p-8">
+        <UndrawnPage measure="document">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-semibold">New Purchase Request</h1>
                 <Link href="/prs" className="text-sm underline">
@@ -129,6 +130,6 @@ async function renderNewPRPage({ searchParams }) {
                 autoResume={autoResume}
                 draftList={draftList}
             />
-        </div>
+        </UndrawnPage>
     );
 }

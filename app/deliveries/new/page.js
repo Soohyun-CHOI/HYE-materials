@@ -1,4 +1,5 @@
 import Link from "next/link";
+import UndrawnPage from "@/app/components/UndrawnPage";
 import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllAddresses } from "@/lib/airtable/addresses";
@@ -48,7 +49,7 @@ async function renderNewDeliveryPage() {
 
     if (jobs.length === 0) {
         return (
-            <div className="mx-auto w-full max-w-3xl p-8">
+            <UndrawnPage measure="delivery">
                 <h1 className="text-2xl font-semibold">Record a delivery</h1>
                 <p className="mt-4 text-sm text-zinc-600">
                     You are not assigned to any job yet, so there is nothing to record a delivery
@@ -57,7 +58,7 @@ async function renderNewDeliveryPage() {
                 <Link href="/deliveries" className="mt-6 inline-block text-sm underline">
                     All deliveries
                 </Link>
-            </div>
+            </UndrawnPage>
         );
     }
 
@@ -86,7 +87,7 @@ async function renderNewDeliveryPage() {
     });
 
     return (
-        <div className="mx-auto w-full max-w-3xl p-8">
+        <UndrawnPage measure="delivery">
             <h1 className="text-2xl font-semibold">Record a delivery</h1>
             <p className="mt-1 text-sm text-zinc-600">
                 What was delivered, and on which job. The app works out which order it belongs to.
@@ -112,6 +113,6 @@ async function renderNewDeliveryPage() {
             <Link href="/deliveries" className="mt-8 inline-block text-sm underline">
                 All deliveries
             </Link>
-        </div>
+        </UndrawnPage>
     );
 }

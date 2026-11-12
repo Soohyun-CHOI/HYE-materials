@@ -1,4 +1,5 @@
 import Link from "next/link";
+import UndrawnPage from "@/app/components/UndrawnPage";
 import { requireUser } from "@/lib/authz";
 import { getAllInvoices } from "@/lib/airtable/invoices";
 import { getInvoiceItemsByRecordIds } from "@/lib/airtable/invoiceItems";
@@ -309,7 +310,7 @@ async function renderInvoiceListPage({ searchParams }) {
     const initialFilters = parseFilters("/invoices", sp ?? {}, options);
 
     return (
-        <div className="mx-auto w-full max-w-4xl p-8">
+        <UndrawnPage measure="list">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-semibold">Invoices</h1>
                 {/* Recording an invoice is office work and /invoices/new is
@@ -363,6 +364,6 @@ async function renderInvoiceListPage({ searchParams }) {
                 initialPage={sp?.page}
                 totalCount={allInvoices.length}
             />
-        </div>
+        </UndrawnPage>
     );
 }

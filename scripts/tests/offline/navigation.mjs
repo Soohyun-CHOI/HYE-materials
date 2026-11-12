@@ -18,9 +18,10 @@
 //      `word`, and the toggle's name and tooltip the one `toggleWord`. Values could not
 //      hold this — two constants holding the same string pass a value check and drift
 //      apart the first time one of them is edited.
-//   4. ONLY THE ASSETS LAYOUT CALLS THE RAIL, AND ONLY THE TWO PAGES THE DESIGN DRAWS
-//      ONE ON CALL THE BREADCRUMB. #258 moves the rail to the root layout, and this
-//      assertion moves with it in that commit.
+//   4. ONLY THE ROOT LAYOUT CALLS THE RAIL (#258), AND IT STANDS BESIDE EVERY ROUTE BUT THE
+//      SIGN-IN STEPS — `drawsRail`, asked of every route the app serves against a list typed
+//      out here — AND ONLY THE PAGES THE DESIGN DRAWS ONE ON CALL THE BREADCRUMB. The assets
+//      layout called the rail until #258 gathered every screen into the root layout.
 //   5. THE EDGES: the rail is not drawn below the phone's edge, never prints, stores
 //      nothing in the browser and spells no breakpoint — and its print rules are three
 //      named ones, none of them a `display`, which is what lets #457's print change a
@@ -28,7 +29,7 @@
 //   6. THE ACCOUNT AT THE RAIL'S FOOT SAYS WHO IS READING, FROM THE PAGE'S OWN READ
 //      (#478). What it says, by value, for each kind of reader the base holds; its
 //      button's name and tooltip one expression, read off its AST as the icons' are;
-//      the assets layout handing it `takePageUser()` and reading no user of its own; and
+//      the root layout handing it `takePageUser()` and reading no user of its own; and
 //      its one item posting to the sign-out route, as the phone's top-bar menu does.
 //
 // WHAT IT CANNOT SEE: anything rendered — a width, the Panel over the screen, the
@@ -41,7 +42,7 @@
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
-import { NAVIGATION_COPY, NAVIGATION_SECTIONS, accountOf, currentOf } from "../../../lib/navigation.js";
+import { NAVIGATION_COPY, NAVIGATION_SECTIONS, accountOf, currentOf, drawsRail } from "../../../lib/navigation.js";
 import { ASSET_CATEGORIES_PATH, ASSET_ROUTES } from "../../../lib/assetRoutes.js";
 import { ASSET_LIST_COPY } from "../../../lib/assetListView.js";
 import { MATERIALS_SCREENS_OPEN } from "../../../lib/openScreens.js";
@@ -56,7 +57,7 @@ const RAIL = "app/components/Rail.js";
 const ACCOUNT = "app/components/RailAccount.js";
 const BREADCRUMB = "app/components/Breadcrumb.js";
 const SIGN_OUT_ROUTE = "app/api/auth/logout/route.js";
-const ASSETS_LAYOUT = "app/(assets)/layout.js";
+const ROOT_LAYOUT = "app/layout.js";
 const CATEGORY_PAGE = "app/(assets)/asset-categories/[categoryRecordId]/page.js";
 const ASSET_PAGE = "app/(assets)/assets/[assetId]/page.js";
 const CATALOG_LIST = "app/(assets)/asset-catalog/CatalogList.js";
@@ -78,8 +79,8 @@ const ON_RAIL = SECTIONS.filter(([, , , axis]) => MATERIALS_SCREENS_OPEN || axis
 
 /** Every route the app serves, and the section it is in — `null` for none. */
 const SECTION_OF_ROUTE = {
-    // An address no route answers (#617): 1h's view in the assets layout, in no section, since
-    // no section owns an address that names nothing.
+    // An address no route answers (#617): 1h's view beside the rail, in no section, since no
+    // section owns an address that names nothing.
     "/[...address]": null,
     "/addresses/new": null,
     "/admin/categories/new": null,
@@ -105,13 +106,19 @@ const SECTION_OF_ROUTE = {
     "/prs": "purchase-requests",
     "/prs/[prId]": "purchase-requests",
     "/prs/new": "purchase-requests",
-    // The address a label prints draws nothing and sits outside the rail's layout (#478).
+    // The address a label prints draws nothing, only redirecting (#478).
     "/l/[labelCode]": null,
     "/assets/[assetId]": "assets",
     "/asset-categories": "assets",
     "/asset-categories/[categoryRecordId]": "assets",
     "/asset-catalog": "assets",
 };
+
+/**
+ * The routes drawn without the rail beside them (#258): the sign-in steps, which are 0o's own
+ * frame. Every other route the app serves stands in the rail's column.
+ */
+const WITHOUT_RAIL = ["/login", "/login/confirm", "/login/jobs", "/login/name"];
 
 /** An address a route template answers: each dynamic segment given a plain value. */
 const addressOf = (template) => template.replace(/\[[^\]]+\]/g, "sample1");
@@ -348,11 +355,30 @@ export async function run({ check, assert, log }) {
 
     // ── 4: who calls the rail and the breadcrumb ─────────────────────────────
     log("");
-    log("only the assets layout calls the rail, and only the three pages the design draws one on call the breadcrumb:");
+    log("only the root layout calls the rail, which stands beside every route but the sign-in steps, and only the three pages the design draws one on call the breadcrumb:");
     const appFiles = ["app", "lib"].flatMap((d) => listJsFiles(repoPath(d))).map(repoRelative);
     const importers = (target) =>
         appFiles.filter((rel) => [...importedPairs(rel, parseFile(rel).ast)].some((p) => p.startsWith(`${target}::`))).sort();
-    check("  the rail's callers", importers(RAIL).join(" "), ASSETS_LAYOUT);
+    check("  the rail's callers", importers(RAIL).join(" "), ROOT_LAYOUT);
+    const served = servedRoutes();
+    check(
+        "  the routes drawn without it",
+        served.filter((route) => !drawsRail(addressOf(route))).join(" "),
+        [...WITHOUT_RAIL].sort().join(" ")
+    );
+    // A segment is matched whole, as `isOpenAddress` matches one, and a query or a fragment is
+    // no part of it.
+    check(
+        "  and a segment is matched whole",
+        ["/login?destination=%2Fprs", "/login#x", "/logins", "/l/ABC", "/"].map((a) => drawsRail(a)).join(" "),
+        "false false true true true"
+    );
+    let railHands = null;
+    walk(railAst, (n) => {
+        if (n.type === "IfStatement" && n.test?.type === "UnaryExpression" && n.test.argument?.name === "drawn" && n.consequent?.type === "ReturnStatement")
+            railHands = n.consequent.argument?.name ?? null;
+    });
+    check("  where it is not drawn, the rail hands back the screen alone", railHands, "children");
     check("  the breadcrumb's callers", importers(BREADCRUMB).join(" "), [ASSET_PAGE, CATALOG_LIST, CATEGORY_PAGE].sort().join(" "));
     assert("  and the walk finds a component's callers at all", importers("app/components/DialogFrame.js").length > 2);
 
@@ -528,10 +554,10 @@ export async function run({ check, assert, log }) {
 
     // The layout hands the rail the page's read and reads nobody itself.
     const layoutCalls = [];
-    walk(parseFile(ASSETS_LAYOUT).ast, (n) => {
+    walk(parseFile(ROOT_LAYOUT).ast, (n) => {
         if (n.type === "CallExpression" && n.callee.type === "Identifier") layoutCalls.push(n.callee.name);
     });
-    check("  the assets layout takes the page's read", layoutCalls.filter((name) => name === "takePageUser").length, 1);
+    check("  the root layout takes the page's read", layoutCalls.filter((name) => name === "takePageUser").length, 1);
     check(
         "  and calls no reader or gate of its own",
         layoutCalls.filter((name) => ["getActiveUser", "getCurrentUser", "requireUser", "requireAdmin"].includes(name)).join(" "),

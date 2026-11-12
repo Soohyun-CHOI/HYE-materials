@@ -63,9 +63,11 @@ const INVENTORY_DIR = "docs/briefs/strings";
 
 /**
  * Every layout above a screen's own directory, which renders around it: the root
- * layout composes every tab title, and since #460 the assets layout draws the rail on
- * every asset screen. This was the root layout alone, which left the rail's words on
- * no screen's list.
+ * layout composes every tab title, and since #258 it draws the rail beside every screen
+ * (#460 had the assets layout draw it on the asset screens). This was the root layout
+ * alone at first, which left the rail's words on no screen's list. The sign-in steps list
+ * them too, which the rail stands beside none of: it asks the address at run time
+ * (`lib/navigation.js:drawsRail`), and this reads what a screen reaches.
  */
 function layoutsAbove(dir) {
     const out = [];

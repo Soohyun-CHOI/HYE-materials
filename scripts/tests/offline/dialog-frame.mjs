@@ -28,10 +28,14 @@
 //      `lib/controls.js`, pinned by value, and none is in their markup — the rule
 //      `offline/asset-list-view.mjs` holds for every file under `app/(assets)/`, which these
 //      do not sit under.
-//   5. ONE FRAME ON THE ASSETS AXIS. The asset page's two dialogs were the last drawn on
-//      `app/components/modalStyles.js`, and #458 moved them onto this frame, so a file
-//      under `app/(assets)/` importing it fails — the measurable condition CLAUDE.md's "one
-//      rule, one implementation" asked for, met.
+//   5. THE OLD FRAME IS A LIST THAT ONLY SHRINKS. The asset page's two dialogs were the last
+//      on the assets axis drawn on `app/components/modalStyles.js`, and #458 moved them onto
+//      this frame. Any screen may call this frame since #258, which left the dialogs of the
+//      screens the design has not drawn on the old one, each to move with its screen's
+//      design: so every file importing the old frame is named below, a file added fails, one
+//      that stops importing it fails until its line goes, and none of them is on the assets
+//      axis — the measurable condition CLAUDE.md's "one rule, one implementation" asks for,
+//      with the path to merging it.
 //   6. A DIALOG THAT SUBMITS (#469). The frame hands its `busy` to everything it holds: the
 //      form's submit draws 0f's Working and every other control locks, none disabled, and
 //      while it is open the frame puts back focus it let fall. What a button is under a busy
@@ -82,10 +86,28 @@ const MORE_ACTIONS = "app/(assets)/assets/[assetId]/MoreActions.js";
 
 /**
  * Whether a file draws a dialog on `modalStyles.js` — which no file under `app/(assets)/`
- * does since #458 moved the asset page's two onto the frame. One found is a second
- * frame growing back.
+ * does since #458 moved the asset page's two onto the frame. One found outside the list
+ * below is a second frame growing back.
  */
 const drawsOldFrame = (text) => text.includes("@/app/components/modalStyles");
+
+/**
+ * Every file still drawing a dialog on the old frame (#258): the dialogs of the screens the
+ * design has not drawn, each to move onto this frame with its screen's design. The list only
+ * shrinks.
+ */
+const ON_OLD_FRAME = [
+    "app/components/ConfirmDialog.js",
+    "app/components/FileViewer.js",
+    "app/deliveries/[deliveryId]/DeleteDeliveryButton.js",
+    "app/deliveries/[deliveryId]/OverageButton.js",
+    "app/invoices/[invoiceId]/DeleteInvoiceButton.js",
+    "app/invoices/new/InvoiceForm.js",
+    "app/pos/[poId]/WithdrawPOForm.js",
+    "app/prs/DirectPurchaseButton.js",
+    "app/prs/[prId]/WithdrawPRForm.js",
+    "app/prs/new/PRForm.js",
+];
 
 /** Attributes whose value a person reads or hears, and so must come from a constant. */
 const VISIBLE_ATTRIBUTES = new Set(["placeholder", "title", "alt", "aria-label"]);
@@ -1747,12 +1769,14 @@ export function run({ check, assert, log }) {
         check(`  no copy in ${label}'s markup${found.length ? ` (${found[0]})` : ""}`, found.length, 0);
     }
 
-    // ── 5: one frame on the assets axis ──────────────────────────────────────
+    // ── 5: the old frame, a list that only shrinks ───────────────────────────
     log("");
-    log("no file on the assets axis draws a dialog on the old frame, since #458:");
+    log("the files on the old frame are the list, and none is on the assets axis (#458, #258):");
     const assetsFiles = listJsFiles(repoPath("app/(assets)")).map((abs) => toPosix(abs).slice(toPosix(REPO_ROOT).length + 1));
-    const onOldFrame = assetsFiles.filter((rel) => drawsOldFrame(readFileSync(repoPath(rel), "utf8"))).sort();
-    check("  the files on it", onOldFrame.length, 0);
+    const appFiles = ["app", "lib"].flatMap((d) => listJsFiles(repoPath(d))).map((abs) => toPosix(abs).slice(toPosix(REPO_ROOT).length + 1));
+    const onOldFrame = appFiles.filter((rel) => rel !== "app/components/modalStyles.js" && drawsOldFrame(readFileSync(repoPath(rel), "utf8"))).sort();
+    check("  the files on it", onOldFrame.join(", "), [...ON_OLD_FRAME].sort().join(", "));
+    check("  and on the assets axis", onOldFrame.filter((rel) => assetsFiles.includes(rel)).length, 0);
     const onNewFrame = assetsFiles.filter((rel) => readFileSync(repoPath(rel), "utf8").includes("@/app/components/DialogFrame")).sort();
     // The registration's dialog (#456), the landing's two (#459), the labels' (#457), and the
     // asset page's transition, its retirement's question and 1j's two sheets (#458).
@@ -2056,17 +2080,22 @@ export function run({ check, assert, log }) {
     // `Rail.js`: it follows what holds focus and where, watches what it holds change — its
     // children, and an element turning disabled, hidden or inert, as the frame watches its own —
     // asks `focusFellFromPage` of the frame's own `canHoldFocus`, counting focus still on the
-    // dead control as fallen, and puts focus where a dialog's closing does.
+    // dead control as fallen, and puts focus where a dialog's closing does. Focus held inside a
+    // screen the design has not drawn is not followed (#258), so that screen keeps the browser's
+    // own answer — `offline/undrawn-pages.mjs` holds the mark's name — and the watch starts on
+    // whether the column is drawn, which a sign-in step does not draw.
     const columnKeeper = (railSource) => {
         const hook = railSource.slice(railSource.indexOf("function useHeadingWhenFocusFalls"), railSource.indexOf("export default function Rail"));
         return [
-            /held = event\.target;\s*heldAt = window\.location\.pathname;/.test(hook),
+            /held = event\.target\.closest\?\.\("\[data-undrawn-page\]"\) \? null : event\.target;\s*heldAt = window\.location\.pathname;/.test(hook),
             /observer\.observe\(column, \{ childList: true, subtree: true, attributes: true, attributeFilter: \["disabled", "hidden", "inert"\] \}\);/.test(hook),
             /heldCanHold: Boolean\(held && canHoldFocus\(held\)\)/.test(hook),
             /onDocument: document\.activeElement === null \|\| document\.activeElement === document\.body \|\| document\.activeElement === held/.test(hook),
             /samePage: heldAt === window\.location\.pathname/.test(hook) && /dialogOpen: Boolean\(document\.querySelector\("dialog\[open\]"\)\)/.test(hook),
             /if \(!fell\) return;\s*held = null;\s*focusPageHeading\(\);/.test(hook),
-            /useHeadingWhenFocusFalls\(columnRef\);/.test(railSource) && /<div ref=\{columnRef\} data-content-area="" className=\{COLUMN\}>/.test(railSource),
+            /useHeadingWhenFocusFalls\(columnRef, drawn\);/.test(railSource) &&
+                /\}, \[columnRef, drawn\]\);/.test(hook) &&
+                /<div ref=\{columnRef\} data-content-area="" className=\{COLUMN\}>/.test(railSource),
         ].join(" ");
     };
     const railSource = parseFile("app/components/Rail.js").source;

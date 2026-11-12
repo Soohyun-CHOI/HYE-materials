@@ -56,10 +56,10 @@ sits on the page, and whether a page is one column or two.
 
 What is amber today may be green; what has no shadow today may have one; what is
 a colored pill today may be a rule, an underline or a dot. Issue #462 names the
-values once, beginning with the ones the asset screens read; #258 is where the
-screens above them come onto the names and the repeated shapes become
-primitives, and both draw that set from the design rather than from what the
-screens do today.
+values once, beginning with the ones the asset screens read; #258 opened the
+names and the primitives built on them to every screen, and each screen above
+the asset screens comes onto them as its design is drawn, from the design
+rather than from what the screen does today.
 
 Two consequences worth stating plainly, because they are the ones a reader of
 this document is most likely to doubt. The colors named in this file — the
@@ -67,8 +67,8 @@ green, the amber, the red, the gray — appear only to say which facts currently
 share an appearance and which are deliberately kept apart. Substitute freely, as
 long as the distinctions in "What the app must make visible" survive the
 substitution. And the current column widths are hand-counted rem values in a
-`colgroup`; #179 and #235 both had to reason about them at the pixel, and #258
-takes them away. They are not a layout to preserve.
+`colgroup`; #179 and #235 both had to reason about them at the pixel, and each
+list's design takes them away. They are not a layout to preserve.
 
 ## What the design must not change
 
@@ -823,13 +823,15 @@ reader met the normal word first and had to hover for the one that mattered. It
 became a chip value in words. A meaning carried by color alone fails the same
 test one step further along, which is why the rule reads the way it does.
 
-**Modal styling had a single source until #456, and has two until #258.**
-`app/components/modalStyles.js` holds the backdrop and the card, imported at nine
-sites, and the screens above the assets axis keep it until #258. The assets axis
+**Modal styling had a single source until #456, and has two until each screen's
+design draws its dialogs.** `app/components/modalStyles.js` holds the backdrop and
+the card, imported at ten sites since #258 put the invoice form's confirmation on
+it, and the screens above the assets axis keep it. The assets axis
 opens its dialogs in the design's own frame, `app/components/DialogFrame.js` —
 the registration first, and every one of them since #458 moved the asset
 page's two off the old one. It was the one shape in the app that was already a primitive
-rather than a per-page reassembly, and #258 is where the rest joins the design's.
+rather than a per-page reassembly; any screen may open a dialog in the design's
+frame since #258, and each screen's dialogs join it as that screen is drawn.
 
 **BUT THE BEHAVIOR HAS TWO, AND THAT IS AN INCONSISTENCY RATHER THAN A
 DISTINCTION.** Anything opening over the page is supposed to close on `Escape`
@@ -849,7 +851,8 @@ popup, a date picker. `scripts/tests/offline/no-dark-mode.mjs` keeps it that
 way, and that file's own header says to **delete it** when dark mode returns
 rather than widen it or add an exemption. A second appearance is not forbidden;
 it is deferred until every screen reads its look by name — #462 declares the
-names, and #258 brings the screens above the assets axis onto them.
+names, #258 opened them to every screen, and each screen above the assets axis
+comes onto them as its design is drawn.
 
 **The asset's screen and the two sign-in screens are used at a phone width
 as well as at a monitor. Every other screen is used at a monitor**, the rest of
@@ -878,39 +881,38 @@ labels that follow happens at whatever machine the printer is attached to.
 there, and the desktop still has to work for it — the priority says which
 width is drawn first and how the other folds out of it. **That
 premise was decided rather than drifted into, and this is the constraint with
-the most bearing on #258**: breakpoints, touch targets and a spacing scale drawn
+the most bearing on drawing the screens above the assets axis**: breakpoints, touch targets and a spacing scale drawn
 for a monitor and widened for a phone afterwards are decided twice, and drawn
 with the phone case beside them are decided once. Both cases are on the table
 now, which is why the assets layout landed before the tokens rather than after.
 
-**The two axes also differ in how many places a width lands, and #336 is why.**
-Every screen outside the assets axis declares its own container inside its own
-page — twenty of those twenty-four pages do, twenty-four declarations in all —
-so a width settled there is an edit per page. The asset screens hold one
-container in the layout they share, so a width settled for that axis is one
-edit.
+**The two axes also differed in how many places a width lands, and #336 was
+why.** Every screen outside the assets axis declared its own container inside its
+own page — twenty pages, twenty-four declarations in all — so a width settled
+there was an edit per page, where the asset screens held one container in the
+layout they shared.
 
-**The two shapes are an inconsistency rather than a distinction worth keeping,
-and the direction is the tools one.** Repeating a container per page is what
-makes a width a search instead of an edit, and it costs more than the count
-suggests: the same class string appears twice in four of those pages, once per
-return path, so two branches of one screen can disagree about a width or a
-branch can be given none. Gathering them into a layout is the natural move when
-the values are named, and #336 did not do it — twenty pages is a refactor
-rather than a layout — so it is #258's to make.
+**#258 gathered those containers into one box rather than one width.** Every
+screen now stands in the column beside the rail, and a screen the design has not
+drawn stands there in one box holding the width its page had, by kind of screen —
+a form, a document, a delivery, a list — so a width is one edit again, and the
+box goes screen by screen as each is drawn. A drawn screen takes its measure from
+the design's names, as the asset screens do. **None of those widths is a layout
+to preserve**: they are the old pages' own, moved and not chosen.
 
-**The tools container holds the rail and nothing of a screen's own** (#460):
+**The column holds the rail and nothing of a screen's own** (#460):
 a screen's measure, room and type are its own, read from the names the design's
 values are declared under. **Every asset screen is drawn the design's way since
 #463** — the asset's as 0n's record page at a desk and 1j's app screen on a
 phone, the category list and a category's screen as 1a and 1d's lists, each one scroll
 with what heads it held at the top as its rows pass under (0i, #519).
 
-**The navigation shell is the asset screens' alone (#460).** The design drew a
-rail with every section on it and a breadcrumb above a record; the asset screens
-carry both, and the screens above them carry neither until #258 gathers them
-into one layout. There every "back" affordance is a per-page link written by
-whoever added the page. **And while the site uses Equipment & Tools alone, those
+**The rail stands beside every screen but the sign-in steps (#460, #258).** The
+design drew a rail with every section on it and a breadcrumb above a record; the
+asset screens carry both, and the screens above them carry the rail at a desk and
+no breadcrumb, which each record screen's design brings. There every "back"
+affordance is still a per-page link written by whoever added the page, and at a
+phone's width those screens have no navigation of their own. **And while the site uses Equipment & Tools alone, those
 screens are closed on the production deployment (#542, #631)**: the rail carries
 no section for them and an address on one leads to the Equipment & Tools list,
 which is also where `/` and a sign-in with nowhere else to go land. One switch in

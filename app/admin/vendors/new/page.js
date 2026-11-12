@@ -1,3 +1,4 @@
+import UndrawnPage from "@/app/components/UndrawnPage";
 import { requireAdmin } from "@/lib/authz";
 import { createVendorAction } from "./actions";
 import { withOpsLabel } from "@/lib/airtableOps";
@@ -15,16 +16,16 @@ async function renderNewVendorPage({ searchParams }) {
     const { authorized } = await requireAdmin();
     if (!authorized) {
         return (
-            <div className="flex flex-1 items-center justify-center p-8">
+            <UndrawnPage measure="notice">
                 <p>Not authorized. This page is Admin-only.</p>
-            </div>
+            </UndrawnPage>
         );
     }
 
     const { created } = await searchParams;
 
     return (
-        <div className="mx-auto w-full max-w-sm p-8">
+        <UndrawnPage measure="form">
             <h1 className="text-2xl font-semibold">New Vendor</h1>
 
             {created && (
@@ -87,6 +88,6 @@ async function renderNewVendorPage({ searchParams }) {
                     Create Vendor
                 </button>
             </form>
-        </div>
+        </UndrawnPage>
     );
 }

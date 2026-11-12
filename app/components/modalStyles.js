@@ -6,12 +6,17 @@
 //
 // ONE OF TWO FRAMES SINCE #456, AND WHAT ENDS THAT IS WRITTEN DOWN. The
 // design's frame is `app/components/DialogFrame.js`, on the browser's own
-// modal dialog, and only the assets axis calls it until #258. The last two
-// dialogs on that axis drawn here — the asset page's retirement and its
-// check-out sheet — moved onto the frame in #458, so nothing under
-// `app/(assets)/` imports this file, and `offline/dialog-frame.mjs` fails one
-// that does. The screens above the assets axis keep this file until #258
-// gives them the design's frame, and this file goes with it then.
+// modal dialog, which any screen may call since #258. The last two dialogs on
+// the assets axis drawn here — the asset page's retirement and its check-out
+// sheet — moved onto the frame in #458. **What stays here is the dialogs of
+// the screens the design has not drawn**, and #258 left them here rather than
+// moving them onto the frame: the frame is the design's look, so moving one
+// would restyle its screen ahead of its drawing, and each screen's design
+// draws its dialogs again. `offline/dialog-frame.mjs` names every file still
+// importing this one and fails a file added to the list or left on it once it
+// stops — the condition for this file going is that list emptying, one
+// screen's design at a time. `ConfirmDialog.js` joined it in #258, having
+// drawn the same chrome by hand with a darker backdrop.
 //
 // MODAL_CARD deliberately carries NO max-w-* width: width is the caller's
 // responsibility, appended per call site (max-w-md for the four standard

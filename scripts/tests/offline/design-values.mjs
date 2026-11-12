@@ -1,6 +1,6 @@
-// The design's values: declared once, pinned by value, and read by name only
-// where the design's two axes — the asset screens and the sign-in screens — are the
-// only callers (#462, #473).
+// The design's values: declared once, pinned by value, read by name — by any file a
+// route reaches since #258 — and the ground, the ink and the faces applied once, by
+// the root layout (#462, #473, #258).
 //
 // FOUR CLAIMS, AND THE ORDER IS THE ORDER THEY DEPEND ON EACH OTHER.
 //   1. `app/designValues.css` DECLARES AND DOES NOTHING ELSE: `@theme` blocks and
@@ -14,12 +14,13 @@
 //      grid — and the ones this repository adds: a length is rem, a whole number of
 //      the design's pixels over 16, outside the px kept by convention; no name
 //      carries a digit; and no name is a key Tailwind or the app already declares.
-//   3. A NAME IS READ ONLY BY A FILE THAT NOTHING OUTSIDE `app/(assets)/` AND
-//      `app/login/` CALLS — but for the date, which #463 had drawn on every screen
-//      and one component draws (`APP_WIDE`).
-//   4. EVERY NAME IS READ, OR WAITS ON AN ISSUE NAMED BESIDE IT — and a face that
-//      is read on an axis is loaded by its next/font call in a module that axis
-//      reaches.
+//   3. THE GROUND, THE INK AND THE FACES ARE APPLIED ONCE, BY THE ROOT LAYOUT (#258):
+//      `app/layout.js` sets each face's variable on `<html>` and White, Ink and the UI
+//      face on `<body>`, no other layout applies any of them, no file but the root
+//      layout imports a face's module, and `app/globals.css` names no face of its own.
+//   4. EVERY NAME IS READ, OR WAITS ON AN ISSUE NAMED BESIDE IT — and every face a
+//      name reads is loaded by its next/font call in `app/faces/`, which the root
+//      layout reaches, while no other face is loaded but the label's own.
 //
 // BY LITERAL, WHICH IS #351's AND #353's LESSON APPLIED BEFORE IT COULD REPEAT.
 // A table built from the declaration would pass for any value it held, so the
@@ -50,28 +51,30 @@
 //   produces; and the faces live in `@theme inline`, so a face is recognized by
 //   the next/font variable it resolves to. Both are asked of Tailwind as well.
 //
-// WHO READS IS WHO CALLS, NOT WHERE THE FILE SITS. #460's rail is written where any
-// screen could call it and only the assets layout does, so a rule about directories
-// would refuse it. The boundary is the import graph instead, walked from every
-// route file under `app/`: a file that only the route files of `DESIGN_AXES` reach
-// may read a name, a file that any other route file reaches may not — wherever it
-// lives — and a file that no route file reaches reads nothing, since nothing
-// renders it. Resolution is `unread-exports.mjs`'s `importedPairs`, the same
-// reading of a specifier that check makes, rather than a third copy of it.
+// A NAME IS READ BY WHAT A ROUTE REACHES. The import graph is walked from every
+// route file under `app/`, and a file no route file reaches reads nothing, since
+// nothing renders it, so a name only such a file reads is unread. Resolution is
+// `unread-exports.mjs`'s `importedPairs`, the same reading of a specifier that check
+// makes, rather than a third copy of it.
 //
-//   THE BOUNDARY WIDENED ONCE, TO THE SIGN-IN SCREENS (#473), AND ON A CONDITION. The
-//   two axes may read the names because each has a layout of its own above all of its
-//   pages and neither shares a component with the screens above them, so nothing a
-//   name styles can reach a screen holding a width container of its own; a component
-//   both axes call — `app/components/Controls.js` — may read one, and one any other
-//   screen calls may not. **#258 is what widens it to every route file**: those
-//   screens take one layout, the root layout applies the faces on its element, and
-//   `DESIGN_AXES` gives way to every route file under `app/`, in the commit that does.
+//   UNTIL #258 THE WALK WAS ALSO A BOUNDARY, and that is what it no longer is. A file
+//   that only the asset screens' route files reached might read a name (#462), and
+//   from #473 the sign-in steps' too, while a file any other route file reached might
+//   not, wherever it lived: the screens above the assets axis each held a width
+//   container of their own and drew in the stylesheet's Arial, so a name styling a
+//   component they shared would have restyled them with no design to answer to. #258
+//   gathered every screen into the root layout, which applies the faces on its own
+//   element, and moved those containers into the one box a screen the design has not
+//   drawn stands in (`offline/undrawn-pages.mjs` holds it), so any file a route
+//   reaches may read a name. The date's four names, which `Instant.js` alone could
+//   read on every screen (#463), needed their exception no longer and it went.
 //
-//   A FACE IS LOADED ON EACH AXIS THAT READS IT. The sign-in screens are outside the
-//   assets layout, so a face loaded there does not reach them; a face a file reads is
-//   loaded, for every axis whose routes reach that file, by a call in a module that
-//   axis reaches and only the design's axes do — `app/faces/`, one module a face.
+//   A FACE IS LOADED ONCE AND APPLIED ONCE. The root layout imports the three
+//   modules in `app/faces/` and sets their variables on `<html>`, so every route
+//   loads every face; a face a name reads needs its call there, with its variable,
+//   and a call loading a face no name reads fails, which is what Geist Sans and Geist
+//   Mono were from the template until #258. The label's Inconsolata is the one other
+//   call: the label's measured face, loaded by the dialog that prints it (#457).
 //
 // A NAME THAT IS NOT READ YET WAITS ON THE ISSUE THAT READS IT FIRST, written in
 // the table. A waiting name that something reads fails, so the pull request that
@@ -104,37 +107,19 @@ import { listJsFiles, parseFile, parseSource, REPO_ROOT, toPosix, walk } from ".
 import { isMain, standalone } from "./_harness.mjs";
 import { importedPairs } from "./unread-exports.mjs";
 
-export const title = "The design's values — declared once, read by name on the tools and sign-in screens (#462, #473)";
+export const title = "The design's values — declared once, read by name, the faces applied once (#462, #473, #258)";
 
 const DECLARATION = "app/designValues.css";
 const STYLESHEET = "app/globals.css";
-const ASSETS_DIR = "app/(assets)/";
-const SIGN_IN_DIR = "app/login/";
+const ROOT_LAYOUT = "app/layout.js";
+const FACES_DIR = "app/faces/";
 
 /**
- * The screens the design is applied to before #258, each by the directory of its route
- * files: the assets axis (#462) and the sign-in steps (#473). #258 replaces this with
- * every route file.
+ * The one face loaded outside `app/faces/`, and why: the label's code is set in Inconsolata,
+ * the label's own measured face rather than the design's, loaded by the dialog that draws and
+ * prints the labels (#457, `tools.md`).
  */
-const DESIGN_AXES = [ASSETS_DIR, SIGN_IN_DIR];
-
-/**
- * THE ONE FILE A SCREEN ABOVE THE DESIGN'S AXES MAY REACH AND STILL READ A NAME, AND THE NAMES
- * IT MAY READ (#463). The date's notation — its dimmed slashes and the room before its time —
- * is drawn on every screen by that issue's decision, and `app/components/Instant.js` is the one
- * component that draws a date, on the materials screens as on the assets axis. So it reads the
- * four date names and nothing else, the check holds both halves, and an entry that no screen
- * above the axes reaches, or that reads none of its names, fails as stale. **#258 is what makes
- * it redundant**: the boundary becomes every route file, and this goes with it.
- */
-const APP_WIDE = {
-    "app/components/Instant.js": [
-        "--opacity-date-separator",
-        "--spacing-date-separator-inline",
-        "--spacing-date-time-inline",
-        "--spacing-mobile-date-time-inline",
-    ],
-};
+const OWN_FACES = [{ file: "app/(assets)/assets/LabelsDialog.js", imported: "Inconsolata" }];
 
 /** Tailwind's own keyframes, which an animation declared here may run without declaring them. */
 const TAILWIND_KEYFRAMES = ["spin", "ping", "pulse", "bounce"];
@@ -388,8 +373,8 @@ const VALUES = [
     ["--text-brand-lg--font-weight", "500"],
     ["--tracking-id", "-0.02em", null],
     ["--tracking-brand", "-0.03em", null],
-    // A date, on every screen (#463), and the one name group a file the screens above the
-    // assets axis reach may read — `APP_WIDE` below. From the drawings, not the spec.
+    // A date, on every screen (#463), which `Instant.js` alone could read on the screens above
+    // the assets axis until #258 opened every name to every file. From the drawings, not the spec.
     ["--opacity-date-separator", "45%", null],
     // 1f's toast draws a moment's slashes at 60% on its Ink ground (#614).
     ["--opacity-toast-date-separator", "60%", null],
@@ -746,8 +731,8 @@ const PX_KEPT = ["--stroke-width-status-ring", "--stroke-width-icon", "--spacing
 
 /**
  * The three faces: the only names in `@theme inline`, each resolving to the
- * variable its next/font call sets. A face that is read on an axis needs that call,
- * with that `variable`, in a file that axis reaches and only the design's axes do.
+ * variable its next/font call sets. A face a name reads needs that call, with that
+ * `variable`, in a module in `app/faces/` the root layout reaches.
  */
 const FACES = {
     "--font-ui": { loader: "Instrument_Sans", variable: "--font-instrument-sans" },
@@ -757,11 +742,6 @@ const FACES = {
 
 /** The route files Next renders from, under `app/`. A file one of them reaches is on a page. */
 const ROUTE_FILE = /^app\/(.*\/)?(page|layout|template|loading|error|not-found|default|global-error|route)\.js$/;
-
-/** The design axis a route file is on, by its directory, or null for any other route. */
-const axisOf = (rel) => DESIGN_AXES.find((dir) => rel.startsWith(dir)) ?? null;
-const onDesignAxis = (rel) => axisOf(rel) !== null;
-const isAssetsFile = (rel) => axisOf(rel) === ASSETS_DIR;
 
 const withoutComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, "");
 
@@ -981,32 +961,17 @@ function routesReaching(graph) {
 
 /**
  * `waiting` maps every tracked name to the issue it waits on, or null once read.
- * `sources` maps a name to the names its value mixes in. Returns what was read
- * and every failure, each a sentence naming the file.
+ * `sources` maps a name to the names its value mixes in. `faceImporters` maps each module
+ * in `app/faces/` to the files importing it. Returns what was read and every failure, each
+ * a sentence naming the file.
  */
-export function judge({ waiting, sources, readsByFile, routesByFile, loaders, readersToCome, appWide = APP_WIDE }) {
+export function judge({ waiting, sources, readsByFile, routesByFile, loaders, readersToCome, faceImporters = new Map() }) {
     const failures = [];
     const read = new Set();
-    // For each face, the design axes whose routes reach a file that reads it.
-    const faceAxes = new Map(Object.keys(FACES).map((face) => [face, new Set()]));
+    // A file a route reaches reads its names; one no route reaches is rendered nowhere.
     for (const [file, names] of readsByFile) {
-        if (names.size === 0) continue;
-        const routes = [...(routesByFile.get(file) ?? [])];
-        const above = routes.filter((r) => !onDesignAxis(r));
-        // #463 — the one file every screen may reach and read the names it is allowed.
-        const allowed = appWide[file];
-        if (above.length > 0 && allowed) {
-            const beyond = [...names].filter((name) => !allowed.includes(name));
-            if (beyond.length > 0) failures.push(`${file} reads ${beyond.join(", ")}, which it is not allowed on every screen`);
-            for (const name of names) if (allowed.includes(name)) read.add(name);
-        } else if (above.length > 0) {
-            failures.push(`${file} reads ${[...names].join(", ")} and ${above.sort()[0]} calls it`);
-        } else if (routes.length > 0) {
-            for (const name of names) {
-                read.add(name);
-                for (const route of routes) faceAxes.get(name)?.add(axisOf(route));
-            }
-        }
+        if (names.size === 0 || (routesByFile.get(file)?.size ?? 0) === 0) continue;
+        for (const name of names) read.add(name);
     }
     // A value mixing another name in reads it, for as long as the value is read.
     let grew = true;
@@ -1022,32 +987,34 @@ export function judge({ waiting, sources, readsByFile, routesByFile, loaders, re
             }
         }
     }
-    // A stale exception: a file no screen above the axes reaches needs none, and one that
-    // reads none of its names has nothing to be excepted for.
-    for (const [file, allowed] of Object.entries(appWide)) {
-        const routes = [...(routesByFile.get(file) ?? [])];
-        if (!routes.some((r) => !onDesignAxis(r))) failures.push(`${file} is excepted for every screen and no screen above the axes reaches it`);
-        if (!allowed.some((name) => readsByFile.get(file)?.has(name))) failures.push(`${file} is excepted for every screen and reads none of its names`);
-    }
     for (const [name, issue] of waiting) {
         if (issue !== null && !readersToCome.includes(issue)) failures.push(`${name} waits on #${issue}, which is not an issue still to come`);
         if (read.has(name) && issue !== null) failures.push(`${name} is read and still waits on #${issue}`);
         if (!read.has(name) && issue === null) failures.push(`${name} is declared and nothing reads it`);
     }
+    // A face a name reads is loaded in `app/faces/`, into its variable, where the root layout
+    // reaches the call.
     for (const [face, { loader, variable }] of Object.entries(FACES)) {
-        for (const axis of faceAxes.get(face)) {
-            const loaded = loaders.some((l) => {
-                const routes = [...(routesByFile.get(l.file) ?? [])];
-                return (
-                    l.imported === loader &&
-                    l.variable === variable &&
-                    routes.length > 0 &&
-                    routes.every(onDesignAxis) &&
-                    routes.some((route) => axisOf(route) === axis)
-                );
-            });
-            if (!loaded) failures.push(`${face} is read on ${axis} and no file it reaches, and only the design's axes reach, loads ${loader} into ${variable}`);
-        }
+        if (!read.has(face)) continue;
+        const loaded = loaders.some(
+            (l) => l.imported === loader && l.variable === variable && l.file.startsWith(FACES_DIR) && routesByFile.get(l.file)?.has(ROOT_LAYOUT)
+        );
+        if (!loaded) failures.push(`${face} is read and no module in ${FACES_DIR} the root layout reaches loads ${loader} into ${variable}`);
+    }
+    // No other face is loaded: a call loads a face a name resolves to, in `app/faces/`, or is
+    // the label's own.
+    for (const l of loaders) {
+        if (OWN_FACES.some((own) => own.file === l.file && own.imported === l.imported)) continue;
+        const face = Object.entries(FACES).find(([, f]) => f.loader === l.imported && f.variable === l.variable)?.[0];
+        if (!face) failures.push(`${l.file} loads ${l.imported}, which no name reads`);
+        else if (!l.file.startsWith(FACES_DIR)) failures.push(`${l.file} loads ${l.imported}, which ${FACES_DIR} loads`);
+        else if (!read.has(face)) failures.push(`${l.file} loads ${l.imported}, and nothing reads ${face}`);
+    }
+    // And the root layout is the one file applying them: no other file imports a face's module.
+    for (const [module, importers] of faceImporters) {
+        if (!importers.has(ROOT_LAYOUT)) failures.push(`the root layout does not import ${module}`);
+        const others = [...importers].filter((f) => f !== ROOT_LAYOUT).sort();
+        if (others.length > 0) failures.push(`${others.join(", ")} imports ${module}, which the root layout alone applies`);
     }
     return { read, failures };
 }
@@ -1099,6 +1066,14 @@ export async function run({ check, assert, log }) {
     check("  app/globals.css opens with Tailwind, then the declaration", statements.slice(0, 2).join("; "), '@import "tailwindcss"; @import "./designValues.css"');
     check("  and imports the declaration once", globals.split("./designValues.css").length - 1, 1);
     check("  and reads none of its names", [...varRefsOf(globals, declaredNames)].join(" "), "");
+    // #258 — the stylesheet names no face: no rule sets one, which outside every layer would
+    // beat the root layout's classes as its `body` rule's Arial did, and no `--font-` key makes
+    // one Tailwind's default, as Geist's two did.
+    check(
+        "  and names no face of its own",
+        [...globals.matchAll(/font-family\s*:[^;}]*|--font-[\w-]+\s*:[^;}]*/g)].map((m) => m[0].trim()).join(" | "),
+        ""
+    );
 
     // ── 2: every value is the design's ───────────────────────────────────────
     log("");
@@ -1154,7 +1129,8 @@ export async function run({ check, assert, log }) {
     const otherStylesheets = cssFiles(join(REPO_ROOT, "app")).map(repoRelative).filter((f) => f !== DECLARATION);
     const appKeys = new Set(otherStylesheets.flatMap((rel) => [...keysOf(readFileSync(join(REPO_ROOT, rel), "utf8"))]));
     assert("  Tailwind's own keys are read, the ones the materials screens use among them", ["--text-sm", "--radius-lg", "--font-sans", "--color-red-500"].every((k) => tailwindKeys.has(k)));
-    assert("  and so are the app's own", ["--color-foreground", "--color-background", "--font-sans", "--font-mono"].every((k) => appKeys.has(k)));
+    // The app's own are its two template colors since #258 took Geist's two faces out.
+    assert("  and so are the app's own", ["--color-foreground", "--color-background"].every((k) => appKeys.has(k)));
     check("  no name is a key Tailwind already declares", [...declaredNames].filter((n) => tailwindKeys.has(n)).join(" "), "");
     check("  no name is a key the app's other stylesheets declare", [...declaredNames].filter((n) => appKeys.has(n)).join(" "), "");
 
@@ -1217,8 +1193,8 @@ export async function run({ check, assert, log }) {
     }
     const routesByFile = routesReaching(graph);
     assert(`  parsed ${jsFiles.length} modules and ${otherStylesheets.length} stylesheets`, jsFiles.length > 150 && otherStylesheets.length >= 2);
-    assert("  the assets layout is a route file that reaches itself", routesByFile.get("app/(assets)/layout.js")?.has("app/(assets)/layout.js"));
-    assert("  the root layout reaches app/globals.css", routesByFile.get(STYLESHEET)?.has("app/layout.js"));
+    assert("  the root layout is a route file that reaches itself", routesByFile.get(ROOT_LAYOUT)?.has(ROOT_LAYOUT));
+    assert("  and reaches app/globals.css", routesByFile.get(STYLESHEET)?.has(ROOT_LAYOUT));
     // The labels' stylesheet is reached through the dialog's import from both pages that
     // open it (#457), where it was the labels' page's own until then.
     assert(
@@ -1227,35 +1203,70 @@ export async function run({ check, assert, log }) {
             routesByFile.get("app/(assets)/assets/labels.css")?.has(route)
         )
     );
-    assert("  a component shared by both axes is reached from each", (() => {
+    assert("  a component every kind of screen shares is reached from an asset screen and a document's", (() => {
         const routes = [...(routesByFile.get("app/components/Instant.js") ?? [])];
-        return routes.some(isAssetsFile) && routes.some((r) => !isAssetsFile(r));
+        return routes.some((r) => r.startsWith("app/(assets)/")) && routes.some((r) => r.startsWith("app/prs/"));
     })());
     assert("  the labels' face loader is found, variable and all", loaders.some((l) => l.imported === "Inconsolata" && l.variable === "--font-label-code"));
     // #473 — the design's faces load in `app/faces/`, one module a face, and the first of
-    // them is found there and reached by both axes' layouts: the loader judgment below is
-    // asked against a real call, on each axis.
+    // them is found there and reached by the root layout (#258): the loader judgment below is
+    // asked against a real call.
     assert(
         "  and the UI face's, in the module that loads it",
         loaders.some((l) => l.file === "app/faces/ui.js" && l.imported === "Instrument_Sans" && l.variable === "--font-instrument-sans")
     );
-    assert(
-        "  which both axes' layouts reach",
-        ["app/(assets)/layout.js", "app/login/layout.js"].every((layout) => routesByFile.get("app/faces/ui.js")?.has(layout))
-    );
+    assert("  which the root layout reaches", routesByFile.get("app/faces/ui.js")?.has(ROOT_LAYOUT));
     assert("  the sign-in layout is a route file that reaches itself", routesByFile.get("app/login/layout.js")?.has("app/login/layout.js"));
-    assert("  and the controls are reached from both axes and from no other", (() => {
-        const routes = [...(routesByFile.get("app/components/Controls.js") ?? [])];
-        return routes.some(isAssetsFile) && routes.some((r) => axisOf(r) === SIGN_IN_DIR) && routes.every(onDesignAxis);
-    })());
+    const faceModules = jsFiles.filter((rel) => rel.startsWith(FACES_DIR));
+    const faceImporters = new Map(faceModules.map((m) => [m, new Set([...graph].filter(([, to]) => to.has(m)).map(([from]) => from))]));
+    check("  the faces' modules are the three", faceModules.sort().join(" "), ["app/faces/brand.js", "app/faces/id.js", "app/faces/ui.js"].join(" "));
 
-    // ── 3 and 4: who reads, and every name read or waiting ───────────────────
+    // ── 3: the ground, the ink and the faces, applied once ───────────────────
+    log("");
+    log("the root layout applies the ground, the ink and the faces, and no other layout does:");
+    const rootAst = parseFile(ROOT_LAYOUT).ast;
+    const elementClass = (ast, tag) => {
+        let found = null;
+        walk(ast, (n) => {
+            if (found || n.type !== "JSXElement" || n.openingElement.name?.name !== tag) return;
+            const v = n.openingElement.attributes.find((a) => a.name?.name === "className")?.value;
+            if (v?.type === "Literal") found = { tokens: v.value.split(/\s+/), holes: [] };
+            else if (v?.expression?.type === "TemplateLiteral")
+                found = {
+                    tokens: v.expression.quasis.flatMap((q) => q.value.cooked.split(/\s+/)).filter(Boolean),
+                    holes: v.expression.expressions.map((e) => (e.type === "MemberExpression" ? `${e.object.name}.${e.property.name}` : e.type)),
+                };
+        });
+        return found ?? { tokens: [], holes: [] };
+    };
+    const faceLocals = new Map();
+    walk(rootAst, (n) => {
+        if (n.type === "ImportDeclaration" && String(n.source.value).startsWith("@/app/faces/"))
+            for (const s of n.specifiers) faceLocals.set(s.local.name, `app/faces/${String(n.source.value).split("/").pop()}.js`);
+    });
+    const html = elementClass(rootAst, "html");
+    check(
+        "  <html> carries each face's variable, from its module",
+        html.holes.map((h) => `${faceLocals.get(h.split(".")[0]) ?? "?"}:${h.split(".")[1]}`).sort().join(" "),
+        ["app/faces/brand.js:variable", "app/faces/id.js:variable", "app/faces/ui.js:variable"].join(" ")
+    );
+    const GROUND = [cls("bg-", "white"), cls("font-", "ui"), cls("text-", "foreground-default")];
+    check("  <body> takes White, Ink and the UI face", GROUND.map((t) => elementClass(rootAst, "body").tokens.includes(t)).join(" "), "true true true");
+    const otherLayouts = jsFiles.filter((rel) => /(^|\/)layout\.js$/.test(rel) && rel !== ROOT_LAYOUT);
+    assert("  another layout is found, the sign-in steps'", otherLayouts.includes("app/login/layout.js"));
+    const applying = otherLayouts.filter((rel) => {
+        const tokens = tokensOf(stringsOf(parseFile(rel).ast));
+        return GROUND.some((t) => tokens.includes(t)) || /\b\w+Face\.variable\b/.test(parseFile(rel).source);
+    });
+    check("  no other layout applies any of them", applying.join(" "), "");
+
+    // ── 4: every name read or waiting, and the faces loaded where they are applied ──
     const waiting = new Map(tracked.map(([name, , issue]) => [name, issue]));
     const sources = new Map(tracked.map(([name, value]) => [name, varRefsOf(value, declaredNames)]));
-    const { read, failures } = judge({ waiting, sources, readsByFile, routesByFile, loaders, readersToCome: READERS_TO_COME });
+    const { read, failures } = judge({ waiting, sources, readsByFile, routesByFile, loaders, readersToCome: READERS_TO_COME, faceImporters });
 
     log("");
-    log("a name is read only where the design's axes are the only callers, and every name is read or waits:");
+    log("every name is read or waits, every face read is loaded once, and no other face is:");
     check("  failures", failures.join("\n    "), "");
     log(`  ${read.size} names read, ${[...waiting.values()].filter((i) => i !== null).length} waiting`);
     for (const issue of READERS_TO_COME) {
@@ -1266,29 +1277,25 @@ export async function run({ check, assert, log }) {
     log("");
     log("the judgment fails each planted case and passes its repair:");
     const plantedName = "--height-control-lg";
-    const plant = ({ file, routes, names = [plantedName], issue = 463, loaderFile = null, loaderRoutes = ["app/(assets)/layout.js"], appWide = {} }) =>
+    const UI_CALL = { imported: "Instrument_Sans", variable: "--font-instrument-sans" };
+    const plant = ({ file, routes, names = [plantedName], issue = 463, calls = [], faceImporters = new Map() }) =>
         judge({
-            appWide,
+            faceImporters,
             waiting: new Map(names.map((name) => [name, issue])),
             sources: new Map(),
-            readsByFile: new Map([[file, new Set(names)]]),
-            routesByFile: new Map([
-                [file, new Set(routes)],
-                ...(loaderFile ? [[loaderFile, new Set(loaderRoutes)]] : []),
-            ]),
-            loaders: loaderFile ? [{ file: loaderFile, imported: "Instrument_Sans", variable: "--font-instrument-sans" }] : [],
+            readsByFile: new Map([[file, new Set(names)], ...calls.map((c) => [c.file, new Set()])]),
+            routesByFile: new Map([[file, new Set(routes)], ...calls.map((c) => [c.file, new Set(c.routes)])]),
+            loaders: calls.map(({ file: callFile, imported, variable }) => ({ file: callFile, imported, variable })),
             readersToCome: READERS_TO_COME,
         }).failures;
     const shared = "app/components/PlantedRail.js";
+    // #258 — any file a route reaches reads its names, wherever the route is: a materials
+    // screen's as much as a tool's, which the boundary refused until then.
     assert(
-        "  a shared file only the assets layout calls reads, so a waiting name it reads is stale",
-        plant({ file: shared, routes: ["app/(assets)/layout.js"] }).some((f) => f.includes("still waits on #463"))
+        "  a file a route reaches reads, so a waiting name it reads is stale",
+        plant({ file: shared, routes: ["app/prs/page.js"] }).some((f) => f.includes("still waits on #463"))
     );
-    check("  and once the mark is gone it passes", plant({ file: shared, routes: ["app/(assets)/layout.js"], issue: null }).join(" | "), "");
-    assert(
-        "  the same file called by a screen above the axis fails, wherever it lives",
-        plant({ file: shared, routes: ["app/(assets)/layout.js", "app/page.js"], issue: null }).some((f) => f.includes("app/page.js calls it"))
-    );
+    check("  and once the mark is gone it passes, a screen above the assets axis calling it", plant({ file: shared, routes: ["app/prs/page.js", "app/layout.js"], issue: null }).join(" | "), "");
     assert(
         "  a file no route reaches reads nothing, so a name only it reads is unread",
         plant({ file: shared, routes: [], issue: null }).some((f) => f.includes("nothing reads it"))
@@ -1297,83 +1304,68 @@ export async function run({ check, assert, log }) {
         "  a name waiting on an issue that is not to come fails",
         plant({ file: shared, routes: [], issue: 999 }).some((f) => f.includes("#999"))
     );
+    const uiCall = (callFile, routes) => ({ file: callFile, routes, ...UI_CALL });
     assert(
-        "  a face read with no loader on the axis fails",
-        plant({ file: shared, routes: ["app/(assets)/layout.js"], names: ["--font-ui"], issue: null }).some((f) => f.includes("loads Instrument_Sans"))
+        "  a face read with no call loading it fails",
+        plant({ file: shared, routes: [ROOT_LAYOUT], names: ["--font-ui"], issue: null }).some((f) => f.includes("loads Instrument_Sans"))
     );
     check(
-        "  and its loader in a file only the assets axis reaches repairs it",
-        plant({ file: shared, routes: ["app/(assets)/layout.js"], names: ["--font-ui"], issue: null, loaderFile: "app/(assets)/layout.js" }).join(" | "),
-        ""
-    );
-    // #473 — the second axis, held the same three ways and one more: a face is loaded on
-    // each axis that reads it, so one loaded for the asset screens alone does not reach a
-    // sign-in screen.
-    check(
-        "  a file only the sign-in screens call reads too",
-        plant({ file: shared, routes: ["app/login/page.js", "app/login/confirm/page.js"], issue: null }).join(" | "),
+        "  and its call in app/faces/, which the root layout reaches, repairs it",
+        plant({ file: shared, routes: [ROOT_LAYOUT], names: ["--font-ui"], issue: null, calls: [uiCall("app/faces/ui.js", [ROOT_LAYOUT])] }).join(" | "),
         ""
     );
     assert(
-        "  and called by a screen above both axes as well, it fails",
-        plant({ file: shared, routes: ["app/login/page.js", "app/prs/page.js"], issue: null }).some((f) => f.includes("app/prs/page.js calls it"))
+        "  but a call only another layout reaches does not count",
+        plant({ file: shared, routes: [ROOT_LAYOUT], names: ["--font-ui"], issue: null, calls: [uiCall("app/faces/ui.js", ["app/login/layout.js"])] }).some((f) =>
+            f.includes("loads Instrument_Sans")
+        )
     );
     assert(
-        "  a face the sign-in screens read, loaded only where the assets axis reaches, fails",
-        plant({ file: shared, routes: ["app/login/page.js"], names: ["--font-ui"], issue: null, loaderFile: "app/faces/ui.js" }).some((f) =>
-            f.includes(`read on ${SIGN_IN_DIR}`)
+        "  nor one outside app/faces/, which is a second place the face loads",
+        plant({
+            file: shared,
+            routes: [ROOT_LAYOUT],
+            names: ["--font-ui"],
+            issue: null,
+            calls: [uiCall("app/faces/ui.js", [ROOT_LAYOUT]), uiCall(ROOT_LAYOUT, [ROOT_LAYOUT])],
+        }).some((f) => f.includes(`${ROOT_LAYOUT} loads Instrument_Sans, which ${FACES_DIR} loads`))
+    );
+    // Geist, as the root layout loaded it until #258: a face no name reads.
+    assert(
+        "  a call loading a face no name reads fails",
+        plant({
+            file: shared,
+            routes: [ROOT_LAYOUT],
+            issue: null,
+            calls: [{ file: ROOT_LAYOUT, routes: [ROOT_LAYOUT], imported: "Geist", variable: "--font-geist-sans" }],
+        }).some((f) => f.includes("loads Geist, which no name reads"))
+    );
+    assert(
+        "  as does a face's own call when nothing reads its name",
+        plant({ file: shared, routes: [ROOT_LAYOUT], issue: null, calls: [uiCall("app/faces/ui.js", [ROOT_LAYOUT])] }).some((f) =>
+            f.includes("nothing reads --font-ui")
         )
     );
     check(
-        "  and loaded where the sign-in layout reaches too, it passes",
+        "  and the label's own face passes",
         plant({
             file: shared,
-            routes: ["app/login/page.js", "app/(assets)/asset-categories/page.js"],
-            names: ["--font-ui"],
+            routes: [ROOT_LAYOUT],
             issue: null,
-            loaderFile: "app/faces/ui.js",
-            loaderRoutes: ["app/(assets)/layout.js", "app/login/layout.js"],
+            calls: [{ ...OWN_FACES[0], routes: ["app/(assets)/assets/[assetId]/page.js"], variable: "--font-label-code" }],
         }).join(" | "),
         ""
     );
     assert(
-        "  but a loader a screen above the axes reaches does not count",
-        plant({
-            file: shared,
-            routes: ["app/login/page.js"],
-            names: ["--font-ui"],
-            issue: null,
-            loaderFile: "app/faces/ui.js",
-            loaderRoutes: ["app/login/layout.js", "app/layout.js"],
-        }).some((f) => f.includes("loads Instrument_Sans"))
-    );
-
-    // #463 — THE ONE EXCEPTION, held both ways: a file excepted for every screen reads its own
-    // names wherever it is called, a name outside its list still fails, and an exception
-    // nothing above the axes reaches, or one that reads none of its names, is stale.
-    const dateName = "--opacity-date-separator";
-    const plantedDate = "app/components/PlantedDate.js";
-    check(
-        "  a file excepted for every screen reads its own names, called by a screen above the axes",
-        plant({ file: plantedDate, routes: ["app/(assets)/layout.js", "app/prs/page.js"], names: [dateName], issue: null, appWide: { [plantedDate]: [dateName] } }).join(" | "),
-        ""
-    );
-    assert(
-        "  and a name outside its list still fails",
-        plant({ file: plantedDate, routes: ["app/prs/page.js"], names: [dateName, plantedName], issue: null, appWide: { [plantedDate]: [dateName] } }).some((f) =>
-            f.includes("not allowed on every screen")
+        "  a face's module another layout imports fails, the root layout alone applying it",
+        plant({ file: shared, routes: [], issue: null, faceImporters: new Map([["app/faces/ui.js", new Set([ROOT_LAYOUT, "app/login/layout.js"])]]) }).some((f) =>
+            f.includes("app/login/layout.js imports app/faces/ui.js")
         )
     );
     assert(
-        "  an exception no screen above the axes reaches is stale",
-        plant({ file: plantedDate, routes: ["app/(assets)/layout.js"], names: [dateName], issue: null, appWide: { [plantedDate]: [dateName] } }).some((f) =>
-            f.includes("no screen above the axes reaches it")
-        )
-    );
-    assert(
-        "  as is one that reads none of its names",
-        plant({ file: plantedDate, routes: ["app/prs/page.js"], names: [plantedName], issue: null, appWide: { [plantedDate]: [dateName] } }).some((f) =>
-            f.includes("reads none of its names")
+        "  as does one the root layout does not import",
+        plant({ file: shared, routes: [], issue: null, faceImporters: new Map([["app/faces/id.js", new Set(["app/(assets)/layout.js"])]]) }).some((f) =>
+            f.includes("the root layout does not import app/faces/id.js")
         )
     );
 

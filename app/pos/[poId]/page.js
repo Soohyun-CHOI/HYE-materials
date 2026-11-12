@@ -59,6 +59,7 @@ import WithdrawPOForm from "./WithdrawPOForm";
 import SendToVendorForm from "./SendToVendorForm";
 import SentRecord from "./SentRecord";
 import Instant from "@/app/components/Instant";
+import UndrawnPage from "@/app/components/UndrawnPage";
 import { userName } from "@/lib/userName";
 
 // The route param IS the human-readable ID, so the tab names the record for
@@ -329,7 +330,7 @@ async function renderPODetailPage({ params }) {
     const pdfFile = po.poPdfFile?.[0];
 
     return (
-        <div className="mx-auto w-full max-w-2xl p-8">
+        <UndrawnPage measure="document">
             <h1 className="text-2xl font-semibold">{po.poId}</h1>
 
 
@@ -971,6 +972,6 @@ async function renderPODetailPage({ params }) {
                     )}
                 </div>
             )}
-        </div>
+        </UndrawnPage>
     );
 }

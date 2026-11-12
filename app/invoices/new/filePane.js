@@ -43,7 +43,8 @@
  */
 
 /**
- * On the page's own container, which is a Server Component and stays one.
+ * On the box the page stands in, `app/components/UndrawnPage.js`' `invoice-entry` since
+ * #258, which a Server Component renders and which stays one.
  *
  * It was `xl:has-[[data-invoice-file-pane]]:max-w-[96rem]` while the pane came and
  * went with the file, so that the width could follow client state without the

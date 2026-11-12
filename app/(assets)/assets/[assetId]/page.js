@@ -162,8 +162,8 @@ const ID_ON_PHONE = "font-id text-mobile-body-xs tracking-id tabular-nums text-f
  * it sits on, and the files of 2026-11-02 name it once, under the title. What is
  * one fact is one element — the heading, the status, an entry — set at each width's size;
  * what only one width draws is drawn there alone. Every word is a constant and every value a
- * name `app/designValues.css` declares, and the column the page sits in is the layout's
- * (`app/(assets)/layout.js`), which an asset page does not declare a width against: the 1080
+ * name `app/designValues.css` declares, and the column the page sits in is the rail's, which
+ * the root layout calls (`app/layout.js`), and an asset page declares no width against it: the 1080
  * here is the content's measure inside it, 0b's, not the column's.
  */
 export default async function AssetPage(props) {

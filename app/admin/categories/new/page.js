@@ -1,3 +1,4 @@
+import UndrawnPage from "@/app/components/UndrawnPage";
 import { requireAdmin } from "@/lib/authz";
 import { getCategoryTree } from "@/lib/airtable/materialCategories";
 import { CATEGORY_CREATION_COPY as COPY } from "@/lib/materialCategoryCreation";
@@ -47,20 +48,20 @@ async function renderNewCategoryPage() {
     const { authorized } = await requireAdmin();
     if (!authorized) {
         return (
-            <div className="flex flex-1 items-center justify-center p-8">
+            <UndrawnPage measure="notice">
                 <p>{COPY.notAdmin}</p>
-            </div>
+            </UndrawnPage>
         );
     }
 
     const categories = await getCategoryTree();
 
     return (
-        <div className="mx-auto w-full max-w-sm p-8">
+        <UndrawnPage measure="form">
             <h1 className="text-2xl font-semibold">{COPY.heading}</h1>
             <p className="mt-2 text-sm text-zinc-600">{COPY.intro}</p>
 
             <CategoryForm categories={categories} />
-        </div>
+        </UndrawnPage>
     );
 }

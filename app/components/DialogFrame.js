@@ -180,10 +180,10 @@ import useKeyboardCover from "./useKeyboardCover";
  * `data-preview` for what it holds to take the column's sides.
  *
  * THE ONLY FRAME ON THE ASSETS AXIS SINCE #458. The asset page's retirement and the
- * check-out's name sheet were drawn on `app/components/modalStyles.js` until then, and
- * `offline/dialog-frame.mjs` fails a file under `app/(assets)/` that imports it. The screens
- * above this axis keep `modalStyles.js` until #258, which is where they take the design's
- * frame and the file's own header says so.
+ * check-out's name sheet were drawn on `app/components/modalStyles.js` until then. Any screen
+ * may call this frame since #258; the dialogs of the screens the design has not drawn stay on
+ * `modalStyles.js` until each screen's design draws them here, and `offline/dialog-frame.mjs`
+ * names every file still on it.
  */
 
 /**

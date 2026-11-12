@@ -1,7 +1,5 @@
 import { KEYBOARD_VIEWPORT } from "@/app/components/keyboardViewport";
 import { SCROLL_LANE } from "@/app/components/scrollLane";
-import { brandFace } from "@/app/faces/brand";
-import { uiFace } from "@/app/faces/ui";
 import { WORDMARK } from "@/lib/productName";
 
 /**
@@ -43,21 +41,21 @@ export const viewport = KEYBOARD_VIEWPORT;
  * own bar. On a phone the document scrolls still, which is what lets the foot bar ride on
  * the keyboard.
  *
- * THE SIGN-IN SCREENS ARE THE SECOND SET THE DESIGN IS APPLIED TO, AND THIS IS WHAT LETS
- * THEM BE (#473). No screen here holds a width container or shares a component with the
- * screens above the assets axis, so a file only these steps and the asset screens reach may
- * read the design's names until #258 — `offline/design-values.mjs` holds the boundary —
- * and this layout is above every step the way the assets layout is above that axis.
+ * THE SIGN-IN SCREENS WERE THE SECOND SET THE DESIGN WAS APPLIED TO (#473), and this layout
+ * is the frame above every step. Since #258 the root layout holds every screen, and the rail
+ * it calls stands beside every screen but these: on a step it hands the step back as it is
+ * (`lib/navigation.js:drawsRail`), so this element is still the flex item directly under
+ * `<body>`, and its `flex-1` still fills the window below the phone's edge.
  *
- * THE FACES ARE APPLIED HERE, the two the steps draw: Instrument Sans for every word and
- * Bricolage Grotesque for the wordmark, from `app/faces/`, where each face is loaded once
- * for every layout that draws it. The root layout's own two faces are drawn by no element.
- * #258 applies the design's faces on the root layout's element, and this one stops.
+ * THE GROUND, THE INK AND THE FACES ARE THE ROOT LAYOUT'S SINCE #258 — White, Ink and
+ * Instrument Sans on `<body>`, and every face's variable on `<html>` — and this element
+ * applied the same three, with the two faces the steps draw, until then. What it adds is the
+ * column and the wordmark, in Bricolage Grotesque, and nothing of the type.
  */
 export default function SignInLayout({ children }) {
     return (
         <div
-            className={`${uiFace.variable} ${brandFace.variable} flex flex-1 flex-col bg-white font-ui text-foreground-default max-sm:min-h-dvh sm:h-dvh sm:flex-none`}
+            className="flex flex-1 flex-col max-sm:min-h-dvh sm:h-dvh sm:flex-none"
         >
             <main
                 className={`flex flex-1 justify-center px-page-gutter pt-sign-in-inset-top max-sm:px-mobile-gutter max-sm:pt-mobile-sign-in-inset-top sm:has-[[data-sign-in-list]]:items-stretch sm:has-[[data-sign-in-list]]:pt-sign-in-list-step-inset-y sm:has-[[data-sign-in-list]]:pb-sign-in-list-step-inset-y sm:min-h-0 sm:items-start sm:overflow-y-auto sm:overscroll-y-contain sm:pb-scroll-inset-bottom sm:[scrollbar-gutter:stable_both-edges] ${SCROLL_LANE}`}

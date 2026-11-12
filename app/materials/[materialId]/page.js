@@ -5,6 +5,7 @@ import { statusTag } from "@/lib/materialPriceView";
 import { countsAsOrdered } from "@/lib/poItemQty";
 import { formatUSD } from "@/lib/format";
 import { LIST_TABLE_CLASS } from "@/app/components/listTableWidth";
+import UndrawnPage from "@/app/components/UndrawnPage";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 // Static, unlike the four record-detail pages (#201), and the record-id keying
@@ -44,12 +45,12 @@ async function renderMaterialHistoryPage({ params }) {
     // exists when we are not showing it.
     if (!history) {
         return (
-            <div className="mx-auto w-full max-w-4xl p-8">
+            <UndrawnPage measure="list">
                 <p>Material not found.</p>
                 <Link href="/materials" className="mt-4 inline-block text-sm underline">
                     ← Material prices
                 </Link>
-            </div>
+            </UndrawnPage>
         );
     }
 
@@ -57,7 +58,7 @@ async function renderMaterialHistoryPage({ params }) {
     const subtitle = [material.size, material.maker, material.unit].filter(Boolean).join(" · ");
 
     return (
-        <div className="mx-auto w-full max-w-4xl p-8">
+        <UndrawnPage measure="list">
             <h1 className="text-2xl font-semibold">{material.itemName}</h1>
             {subtitle && <p className="mt-1 text-sm text-zinc-500">{subtitle}</p>}
 
@@ -203,6 +204,6 @@ async function renderMaterialHistoryPage({ params }) {
             <Link href="/materials" className="mt-6 inline-block text-sm underline">
                 ← Material prices
             </Link>
-        </div>
+        </UndrawnPage>
     );
 }

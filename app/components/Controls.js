@@ -33,14 +33,11 @@ import { moveFocus } from "./movedFocus";
  * reason, apart from the frame's in `lib/dialogFrame.js`.
  *
  * A SCREEN TAKES ITS LOOK FROM THESE AND WRITES NO VALUE. Every class reads a name
- * `app/designValues.css` declares, and until #258 only a file nothing outside
- * `app/(assets)/` and `app/login/` calls may do that — `offline/design-values.mjs` walks the
- * import graph, so a screen above those importing one of these fails it wherever the file
- * sits. **The materials screens keep their own controls until then**, and one of them is
- * the same kind of thing: `app/admin/disciplines/new/JobCombobox.js` is a searchable
- * combobox written for that form alone, unstyled, with keys of its own. #258 is where the
- * screens above this axis take these controls, and it is the condition for that one going
- * too.
+ * `app/designValues.css` declares, which any file may do since #258; until then only a file
+ * the asset screens and the sign-in steps alone reached might. **A screen the design has not
+ * drawn keeps its own controls until its design does**, and one of them is the same kind of
+ * thing: `app/admin/disciplines/new/JobCombobox.js` is a searchable combobox written for that
+ * form alone, unstyled, with keys of its own, and it goes when that form takes these.
  *
  * TWO SIZES, AND THE SIGN-IN SCREENS ARE THE SECOND (#473). `lg` is a dialog's — 0a's 36,
  * the size every control here was drawn at first — and `xl` a sign-in page's: 40 at a desk,

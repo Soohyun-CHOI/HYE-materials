@@ -1,7 +1,8 @@
 // The width every list table is held to, and the one place it is decided (#183).
 //
 // WHERE 52rem COMES FROM, which is the question this module exists to answer. A
-// list page's shell is `mx-auto w-full max-w-4xl p-8`: `max-w-4xl` is 56rem and
+// list page's shell is `mx-auto w-full max-w-4xl p-8` — `UndrawnPage.js`' `list`
+// measure since #258, where each page spelled it until then: `max-w-4xl` is 56rem and
 // `p-8` takes 2rem off each side, so the content box is 52rem — 832px at
 // 16px/rem, which is the figure every width measurement on these screens was
 // taken at. That subtraction was written out in full in TWO table comments and
@@ -25,8 +26,9 @@
 // NOT take this class** — `/deliveries/[deliveryId]` is `max-w-3xl` and declares
 // its own `min-w-[32rem]`, which is a different budget and not a stale copy of
 // this one. `scripts/tests/offline/list-table-width.mjs` reads the shell of
-// every page that imports this and fails one that is not `max-w-4xl` + `p-8`,
-// so the sentence above cannot quietly stop being true.
+// every page that imports this and fails one not standing in that `list` box, or
+// a box that is not `max-w-4xl` + `p-8`, so the sentence above cannot quietly stop
+// being true.
 //
 // KEEP THE CLASS ONE WHOLE LITERAL. `min-w-[52rem]` is a Tailwind arbitrary
 // value, generated only because the scanner finds that exact string in a source

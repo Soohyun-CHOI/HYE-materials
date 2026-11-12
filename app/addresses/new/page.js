@@ -1,3 +1,4 @@
+import UndrawnPage from "@/app/components/UndrawnPage";
 import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllAddresses } from "@/lib/airtable/addresses";
@@ -77,7 +78,7 @@ async function renderNewAddressPage({ searchParams }) {
     const initialJobId = jobs.find((candidate) => candidate.jobCode === jobCode)?.id ?? "";
 
     return (
-        <div className="mx-auto w-full max-w-sm p-8">
+        <UndrawnPage measure="form">
             <h1 className="text-2xl font-semibold">{COPY.heading}</h1>
             <p className="mt-2 text-sm text-zinc-600">{COPY.intro}</p>
 
@@ -88,6 +89,6 @@ async function renderNewAddressPage({ searchParams }) {
                 initialJobId={initialJobId}
                 fromPrId={typeof fromPrId === "string" ? fromPrId : ""}
             />
-        </div>
+        </UndrawnPage>
     );
 }

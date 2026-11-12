@@ -8,8 +8,7 @@ const MARK = "·";
  * history entry's line and the selection bar's second clause.
  *
  * THE 9s ARE `Space`s, so the two clauses copy and are read apart, which padding alone did
- * not do; the dot itself is not read. It reads design names, so a screen above the design's
- * axes must not reach it until #258 (`offline/design-values.mjs`).
+ * not do; the dot itself is not read.
  */
 export default function Dot() {
     return (

@@ -60,7 +60,7 @@ const NOT_MARKS = {
     "app/(assets)/assets/LabelsDialog.js": "a printed label's face and the symbol on it, the label's own drawing",
     "lib/assetLabelQR.js": "the QR symbol a label carries, built as a string",
     "app/prs/[prId]/SignerProgressBar.js": "the arcs of a request's send-backs, a chart and no mark",
-    "app/prs/new/PRForm.js": "a materials screen's own mark, until #258 draws those screens from the design",
+    "app/prs/new/PRForm.js": "a materials screen's own mark, until that screen's design draws it",
 };
 
 /**

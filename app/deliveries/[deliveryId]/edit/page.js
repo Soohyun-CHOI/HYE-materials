@@ -1,5 +1,6 @@
 import Link from "next/link";
 import FileViewer from "@/app/components/FileViewer";
+import UndrawnPage from "@/app/components/UndrawnPage";
 import { requireUser } from "@/lib/authz";
 import { FILE_AXIS } from "@/lib/fileLinks";
 import { getDeliveryById } from "@/lib/airtable/deliveries";
@@ -56,12 +57,12 @@ async function renderEditDeliveryPage({ params }) {
     // not be distinguishable from one that does not exist.
     if (!delivery || !canAccessJobDeliveries(user, delivery.job?.[0])) {
         return (
-            <div className="mx-auto w-full max-w-3xl p-8">
+            <UndrawnPage measure="delivery">
                 <h1 className="text-2xl font-semibold">Delivery not found</h1>
                 <Link href="/deliveries" className="mt-6 inline-block text-sm underline">
                     ← All deliveries
                 </Link>
-            </div>
+            </UndrawnPage>
         );
     }
 
@@ -79,7 +80,7 @@ async function renderEditDeliveryPage({ params }) {
     const photo = delivery.packingListFile?.[0] ?? null;
 
     return (
-        <div className="mx-auto w-full max-w-3xl p-8">
+        <UndrawnPage measure="delivery">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-semibold">Edit {delivery.deliveryId}</h1>
                 <Link
@@ -135,6 +136,6 @@ async function renderEditDeliveryPage({ params }) {
                 }))}
                 invoiceOptions={invoiceOptions}
             />
-        </div>
+        </UndrawnPage>
     );
 }
