@@ -274,12 +274,12 @@ const CARRIED = [
     {
         route: "/asset-categories",
         param: "page",
-        note: "#463 — which page of the categories the band leaves, 1-based, 0b's 25 to a page. Written by the two steps at the foot of the list through `assetCategoriesPath`, by `history.replaceState` since #520 since the rows are all in the browser, absent on the first page and dropped by every change to the band; a value that is not a page resolves to one rather than rendering nothing, by the clamp a category's own list uses (`pageOfAssetCategories`). Read by the list off the address, and it divides no read",
+        note: "#463 — which page of the categories the band leaves, 1-based, `ASSET_PAGE_SIZE` to a page. Written by the two steps at the foot of the list through `assetCategoriesPath`, by `history.replaceState` since #520 since the rows are all in the browser, absent on the first page and dropped by every change to the band; a value that is not a page resolves to one rather than rendering nothing, by the clamp a category's own list uses (`pageOfAssetCategories`). Read by the list off the address, and it divides no read",
     },
     {
         route: "/asset-catalog",
         param: "page",
-        note: "#527 — which page of the rows the catalog's band leaves, 1-based, 25 to a page by the clamp the category list uses (`pageOfAssetCategories`). Written by the pager's two steps through `assetCatalogPath` by `history.replaceState`, absent on the first page and dropped by every change to the band; it divides no read",
+        note: "#527 — which page of the rows the catalog's band leaves, 1-based, `ASSET_PAGE_SIZE` to a page by the clamp the category list uses (`pageOfAssetCategories`). Written by the pager's two steps through `assetCatalogPath` by `history.replaceState`, absent on the first page and dropped by every change to the band; it divides no read",
     },
     // THE FOUR DOCUMENT LISTS TOOK THE SAME NAME IN #326, which is what the reservation
     // in `lib/listFilters.js` was holding it for. One note serves all four because the
