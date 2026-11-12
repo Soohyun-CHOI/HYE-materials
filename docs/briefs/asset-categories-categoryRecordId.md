@@ -58,12 +58,12 @@ in. A change of order goes to the first page; a box, a step and the job's choice
 keep it, and a visit afresh starts newest first. The day each row says is the moment
 it is ordered by.
 
-**A page holds `ASSET_PAGE_SIZE` assets, 25**, the drawings' figure, and the page
-says which rows it shows of how many and, past one page, which page of how many
-with a step each way. **Two limits sit above that figure, and neither is a page
-size.** The holders of a page's assets that are out are read fifty to a query, so a
-page of more than fifty with more than fifty out would cost a second query. And a
-press of the page box selects the page, while one print takes at most
+**A page holds `ASSET_PAGE_SIZE` assets, 50**, and the page says which rows it
+shows of how many and, past one page, which page of how many with a step each way.
+**Two limits bound that figure, and neither is a page size.** The holders of a
+page's assets that are out are read fifty to a query, so a page of more than fifty
+with more than fifty out would cost a second query: fifty is that limit exactly.
+And a press of the page box selects the page, while one print takes at most
 `MAX_LABELS_PER_REQUEST`, 100, so a page larger than that would leave a press of its
 box refusing to print.
 
