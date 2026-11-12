@@ -632,3 +632,86 @@ A third picker on `/prs`, declared in `lib/listFilters.js` beside the job and ve
 - **THE GUARDS MOVED TO `lib/variance.js` AND THAT WAS FORCED BY ARITHMETIC.** `assertWholeQty` and `assertWholeCentPrice` were private to `lib/airtable/invoiceItems.js` with one caller each. This issue gives them five more — `createItem`, `updateItem`, `createPOItem`, `createPR`/`updatePR` and `createPO` — and four copies of a four-line throw is the duplication CLAUDE.md's own section forbids. They sit beside the predicates they wrap and the tolerance they are the premise for. `assertWholeCentPrice` gained a `field` argument, defaulting to `Unit Price`, because the figure is no longer always one.
 - **NOTHING ON THE BASE IS BLOCKED BY THIS, COUNTED RATHER THAN ASSUMED.** 43 `PR Items`, 39 `PO Items`, 24 `Invoice Items` and 25 `Delivery Items` rows: **0 fractional quantities and 0 sub-cent prices**. `Purchase Requests."Shipping Fee"` is set on 4 of 41 and `Purchase Orders."Shipping Fee"` on 4 of 37, all whole-cent. So no standing record becomes un-editable, and the refusals below are about what arrives next rather than about repairing anything. **This issue repairs no record and changes no schema.**
   - **WHAT WOULD HAPPEN IF ONE EXISTED is worth stating because the count could change by hand.** A signer opening the edit turn on such a row is refused on submit, with the figure in an editable box in front of them — recoverable. An Approved request's items are past editing in this app, so a row broken after approval is repaired in Airtable; the PO retry is what says so.
+
+---
+### A request goes on one of its requester's jobs (#639)
+
+`/prs/new` offered every job to every requester, its own jobs grouped first, and
+neither action asked which job a request was on — so a request could land on a site
+its requester had no part in, and a direct call could put one on any job at all.
+
+- **THE RULE IS `canAccessJobDeliveries`, AND IT WAS ALREADY THE ONE FOR RAISING A
+  REQUEST.** A person's own `Assigned Jobs`, and every job for the office and the
+  President, is what the issue asks for word for word, and it is what that function
+  answers. It already gates the two other ways a request is raised — the overage
+  draft and the direct-purchase claim — so a second predicate here would be the same
+  judgment written twice. `naming.md`'s row on the name records why it still says
+  deliveries. The page offers `accessibleJobs(user, jobs)`; the actions ask
+  `canAccessJobDeliveries` of the discipline's job. One function behind both is
+  what keeps the screen and the server from disagreeing.
+- **WHAT THE SCREEN OFFERS.** A requester: their own jobs, one list with no groups,
+  since there is nothing to group. The office and the President: every job, their
+  own under `My Jobs` above `All Jobs`, as before. **No read was added**: both lists
+  come out of the `getAllJobs` the page already made and the user `requireUser()`
+  already returned. `/prs/new` read 15 operations on main and 15 on this branch,
+  measured back to back as `soo@` on the test base with only `page.js` swapped.
+- **WHAT THE SERVER REFUSES, AND WHERE.** `saveDraftAction` and `createPRAction` ask
+  `jobRefusal` of the discipline the submission names — a request reaches its job
+  only through `Discipline`, and the form's job choice is never submitted. It reads
+  `getAllDisciplines` rather than finding the one row, for `getAllAddresses`' reason:
+  it is the read the picker was built from, and an id of another table, which `find`
+  would hand back as though it were a discipline, is simply absent. **The submit asks
+  it right after the discipline is known to be there and ahead of the duplicate
+  check**, because that check's warning names another request on the discipline, who
+  raised it and when — not the reader's to learn about a job they may not raise on.
+  What it costs: one `Disciplines` list per save or submit that names a discipline.
+  Measured: a first save 4 operations where it was 3, a refused submit 2, a refused
+  save 3 — and neither refusal writes.
+- **A SAVE IS REFUSED TOO, ON #308's GROUND RATHER THAN #72's.** A draft may be
+  half-finished; a job the reader may not raise on is a wrong answer, not a missing
+  one. So a draft written on a job the office has since taken its requester off, or
+  on any job before this issue, saves again only once its job is one of theirs. The
+  form shows such a draft's job as a `disabled` option, listed only while it is the
+  one chosen, so the control says what the draft holds — React matches a controlled
+  value against a disabled option exactly as it does the placeholder's — and the
+  reader can leave it but not come back to it.
+- **THE REFUSAL IS `Select a Job you're assigned to.`** It is the screen's own
+  `Select a Job` placeholder with the one thing that is wrong added, in the family of
+  `Select a Discipline.` and `Select a Vendor.` beside it, and the assets axis says the
+  same fact as `Choose a job you are assigned to.` It names the control to change and
+  not the job, because the control shows the job. `offline/request-job.mjs` holds that
+  the brief quotes it.
+- **EVERY OTHER WRITE OF A REQUEST'S DISCIPLINE, READ FOR THIS ISSUE.** There are two:
+  `createOverageDraft` copies the original request's, after
+  `createOverageDraftAction` has asked `canAccessJobDeliveries` of the delivery's job
+  — the job that discipline is on, since the ordered item behind the delivery was
+  found through that job's disciplines — and `claimDirectPurchase` writes none. Both
+  drafts are finished here, through the same two actions. `editAndContinueAction` —
+  a signer's turn, and the requester's when a request is returned to them — writes
+  the items, the notes, the shipping fee and new quotations, and never `Discipline`;
+  approving, returning and withdrawing write none either.
+- **SO A SIGNER CANNOT MOVE A REQUEST'S JOB, AND IF ONE EVER COULD, THE TEST WOULD BE
+  THE REQUESTER'S JOBS AND NOT THE SIGNER'S.** The job is the requester's choice and
+  the chain approves a request on it; the request stays the requester's through every
+  turn, so a turn that moved it would ask whether the requester may raise on the new
+  job. A request already in review when its requester leaves the job goes on through
+  its chain: this rule is about raising one. A requester who needs another job
+  withdraws and raises a new request.
+- **FOUND ON THE WAY, AND FIXED: A SECOND PRESS AFTER A REFUSAL COULD SEND NO
+  DISCIPLINE AND NO VENDOR.** React resets this form when an action settles, and a
+  controlled `<select>` lands on its disabled placeholder, which a form does not
+  submit, until the next render puts the selection back
+  (`app/prs/[prId]/EditAndContinueForm.js` records the reset). The Discipline and
+  Vendor were submitted from those selects. Measured on the test base: after a
+  refused save, the form's data held no vendor picked since the page loaded, and no
+  discipline either on a draft resumed from the prompt — so `Save draft` pressed
+  again with nothing changed would have written the draft without them, and a job
+  refusal answered that way would have saved by emptying the job. Both go from state
+  through hidden inputs now, as the address, the items and the signers already did;
+  measured again, the data after a refusal holds both. The selects still look empty
+  until the next render, which is the cost the reset was already recorded as having.
+- **NOT IN THIS ISSUE:** a job that has ended (#488) — none exists yet, and whether
+  one leaves this list is that issue's to say. And the address screen's job picker,
+  which still offers every job:
+  `docs/notes/addresses.md` says why the decision stands without the precedent this
+  issue removed.

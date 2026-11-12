@@ -737,7 +737,7 @@ office. Invoicing is Admin because invoicing is office work.
 | `/login/name`, `/login/jobs` | a signed-in reader with no name (#381), and then one with no job who is neither Admin nor the President (#554) |
 | `/prs`, `/prs/[prId]`, `/pos`, `/pos/[poId]` | row-scoped by `canViewPR` |
 | `/invoices`, `/invoices/[invoiceId]` | row-scoped, reaching `canViewPR` through the orders the invoice charges (#211) |
-| `/prs/new` | anyone signed in |
+| `/prs/new` | anyone signed in; a request goes on one of the reader's assigned jobs, or on any job for the office and the President (#639) |
 | `/deliveries`, `/deliveries/[deliveryId]`, `/deliveries/[deliveryId]/edit`, `/deliveries/new` | anyone signed in, then Job assignment |
 | `/materials`, `/materials/[materialId]` | anyone signed in; document identifiers gated per row (#19) |
 | `/asset-categories` | anyone signed in, with no Role and no Job gate (#337); the list starts from the reader's jobs, and any job's may be chosen by anyone (#509, #593); adding items from it is a site manager's (#506) |

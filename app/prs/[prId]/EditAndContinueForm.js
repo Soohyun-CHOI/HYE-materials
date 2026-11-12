@@ -16,7 +16,10 @@
  * recorded rather than fixed:** the submission carries this component's state
  * through `itemsJson`, not the DOM's, so a second press of Save sends the values
  * the reader picked even while the controls look empty — what the refusal costs
- * is a screen emptier than the form it describes. #367 made that path ordinary by
+ * is a screen emptier than the form it describes. `PRForm.js` was the exception
+ * until #639: it sent its Discipline and Vendor from those two selects, so a second
+ * press right after a refusal could send neither, and both go from state through
+ * hidden inputs since. #367 made that path ordinary by
  * adding a refusal a signer can reach by half-picking a category, which is why
  * the paragraph rides on that branch. **If it is fixed, the fix belongs where the
  * action is bound to the form — here and in `PRForm.js` — and not inside

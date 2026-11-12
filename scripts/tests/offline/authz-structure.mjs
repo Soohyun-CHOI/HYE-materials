@@ -82,6 +82,14 @@ const REQUIRE_USER_AXIS =
     "and the actual authorization is the record-by-record comparison in the body. A wrapper here would cover the " +
     "half that was never at risk and leave the deciding half uncovered, while looking like coverage.";
 
+// #639 — the request form's save and submit compare a JOB as well as an owner: the job of
+// the discipline the submission names, through canAccessJobDeliveries, which no role
+// helper covers either.
+const REQUEST_JOB_AXIS =
+    `${REQUIRE_USER_AXIS} Issue #639 — and the job of the discipline it names, through canAccessJobDeliveries ` +
+    "(lib/deliveryAccess.js): a requester passes on their own jobs and the office and the President on every " +
+    "job. offline/request-job.mjs holds where the body asks it.";
+
 // #162's two axes. Both are the requireUser shape above — session plus a
 // per-record comparison — but they compare different things, and saying which
 // keeps an exemption from reading as a blanket "deliveries are exempt".
@@ -330,9 +338,9 @@ const EXEMPTIONS = [
             "since #593, so it asks no job. No wrapper fits, as none fits the page: withSiteManagerAction would " +
             "refuse every reader who is not one and withAdminAction the site.",
     },
-    { file: "app/prs/new/actions.js", name: "saveDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
+    { file: "app/prs/new/actions.js", name: "saveDraftAction", mustCall: "requireUser", reason: REQUEST_JOB_AXIS },
     { file: "app/prs/new/actions.js", name: "deleteDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
-    { file: "app/prs/new/actions.js", name: "createPRAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
+    { file: "app/prs/new/actions.js", name: "createPRAction", mustCall: "requireUser", reason: REQUEST_JOB_AXIS },
     { file: "app/deliveries/new/actions.js", name: "createDeliveryAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },
     { file: "app/deliveries/[deliveryId]/actions.js", name: "updateDeliveryAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },
     { file: "app/deliveries/[deliveryId]/actions.js", name: "replaceDeliveryPhotoAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },
