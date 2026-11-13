@@ -36,19 +36,29 @@
 // AND SINCE #519 THE NOUN. The screens say `item` for a row of the category list and for each
 // labeled one, the design's word, where they said `tool` for both from #455; the code says
 // `category` and `asset`, which say neither, and the base's `Level 1` value `Tool` is the type
-// and arrives as data. The hazard is the same one a third time: the axis is `Tools &
-// Equipment` on every screen and its files sit under `docs/notes/tools.md`, so the next string
+// and arrives as data. The hazard is the same one a third time: the axis is `Equipment &
+// Tools` on every screen and its files sit under `docs/notes/tools.md`, so the next string
 // written beside them would say `tool` without anybody choosing it. So a string an asset screen
 // renders that says `tool` or `tools` as a word fails, once the axis's own name is taken out
-// of it — `Tools & Equipment` and `Back to Tools & Equipment`, the one place the site's word
+// of it — `Equipment & Tools` and `Go to Equipment & Tools`, the one place the site's word
 // stands (#513).
+//
+// AND SINCE #655 THE COLLECTOR READS A COPY KEY WHOSE VALUE IS ANOTHER CONSTANT'S KEY, which is
+// how `/[...address]` came to list its way to the list: `ASSET_LIST_COPY.goToTools` is
+// `ASSET_COPY.goToTools`, and that page names the first constant alone. This holds the reading
+// on the axis's own screens, where most such keys stand: the words found where they are
+// declared, that key alone and no other of its constant's, a key below the top level as far as
+// the value names it, and a value that is itself such a key followed to the words.
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
-import { stringsForRoute } from "../../screen-strings.mjs";
+import { stringsForRoute, stringsInFile } from "../../screen-strings.mjs";
 import { ASSET_ROUTES } from "../../../lib/assetRoutes.js";
 import { ASSET_REGISTRATION_COPY } from "../../../lib/assetRegistration.js";
 import { ASSET_LIST_COPY } from "../../../lib/assetListView.js";
+import { ASSET_COPY } from "../../../lib/assetView.js";
+import { ASSET_CATEGORY_COPY } from "../../../lib/assetCategory.js";
+import { ASSET_TRANSITION_COPY } from "../../../lib/assetTransition.js";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "The asset screens never say `register`, say `create` only where it is named, and say `tool` only in the axis's name (#455, #485, #519)";
@@ -112,6 +122,32 @@ const ROUTES = [
 ];
 
 export function run({ check, assert, log }) {
+    // ── 0: a key holding another constant's key (#655) ──────────────────────
+    // First, so a collector that throws on the reading fails these labels rather than hiding them.
+    log("the collector reads the key a copy key's value names, where its words stand, and no other (#655):");
+    const where = (route, text) => {
+        const s = stringsForRoute(route).strings.find((each) => each.text === text);
+        return s ? `${s.file} [${s.shape}]` : "none";
+    };
+    check(
+        "  an address naming nothing lists its way to the list, at the line that says it",
+        where("/[...address]", ASSET_COPY.goToTools),
+        "lib/assetView.js [ASSET_LIST_COPY, a key holding ASSET_COPY.goToTools]"
+    );
+    check("  and none of the item page's words that no key of its constant holds", where("/[...address]", ASSET_COPY.notFoundHeading), "none");
+    check(
+        "  a key below the top level is read as far as the value names it",
+        `${where("/[...address]", ASSET_CATEGORY_COPY.levelLabel.level1)} | ${where("/[...address]", ASSET_CATEGORY_COPY.levelLabel.size)}`,
+        "lib/assetCategory.js [ASSET_LIST_COPY, a key holding ASSET_CATEGORY_COPY.levelLabel.level1] | none"
+    );
+    const chained = stringsInFile("lib/assetSerial.js", new Set(["ASSET_SERIAL_COPY"]), new Map([["ASSET_SERIAL_COPY", new Set(["cancel"])]]));
+    check(
+        "  a value that is itself such a key is followed to the words",
+        chained.strings.map((s) => `${s.text} ${s.file}`).join(" | "),
+        `${ASSET_TRANSITION_COPY.cancel} lib/assetTransition.js`
+    );
+    log("");
+
     // ── 1: the screens it covers ────────────────────────────────────────────
     log("the routes this covers are the axis's, declared and typed out:");
     check("the declared routes", [...ASSET_ROUTES].sort().join(", "), [...ROUTES].sort().join(", "));
@@ -212,7 +248,7 @@ export function run({ check, assert, log }) {
     // axis's name, in a sentence and alone, passing.
     for (const planted of ["Add tools", "Add 1 tool", "Tool ID", "Retire this tool", "No tools yet", "Tool not found", "QR label for this tool"])
         assert(`  the noun matcher catches ${JSON.stringify(planted)}`, saysTool(planted));
-    for (const passed of ["Add items", "Item ID", "Retire this item", ASSET_LIST_COPY.heading, `Back to ${ASSET_LIST_COPY.heading}`, "Toolbox"])
+    for (const passed of ["Add items", "Item ID", "Retire this item", ASSET_LIST_COPY.heading, ASSET_COPY.goToTools, "Toolbox"])
         assert(`  and passes ${JSON.stringify(passed)}`, !saysTool(passed));
     assert("  but catches the word beside the axis's name", saysTool(`${ASSET_LIST_COPY.heading} tools`));
     const landing = stringsForRoute("/asset-categories/[categoryRecordId]").strings.map((s) => s.text);

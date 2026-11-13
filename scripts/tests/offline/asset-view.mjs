@@ -263,7 +263,9 @@ export function run({ check, assert, log }) {
     check("the empty history", ASSET_COPY.noHistory, "No history yet");
     check("a code no asset carries, at a desk", `${ASSET_COPY.notFoundHeading} | ${ASSET_COPY.notFoundCode.before}HYE-AST-260909-099${ASSET_COPY.notFoundCode.after}`, "Item not found | No item has the code HYE-AST-260909-099. Check it against the label.");
     check("  and after a scan", ASSET_COPY.notFoundScanned, "No item has this code. Check it against the label and scan again.");
-    check("  with the way back", ASSET_COPY.backToTools, "Back to Equipment & Tools");
+    // `Go to`, since a label or a link brings a reader here rather than the list (#655).
+    check("  with the way to the list", ASSET_COPY.goToTools, "Go to Equipment & Tools");
+    check("  and no key saying `Back to` beside it", "backToTools" in ASSET_COPY, false);
     // One line since the files of 2026-11-04 (1f, #601), where two rows said `Size` and `Symbol`.
     check("the label's print size, in text", ASSET_COPY.printsAt("11 × 12 mm"), "Prints at 11 × 12 mm on 12 mm tape");
     check("the rail's first block, the item's details (#601)", ASSET_COPY.detailsHeading, "Details");
@@ -667,8 +669,12 @@ export function run({ check, assert, log }) {
         `${drawsTheView(parseFile("app/(assets)/asset-categories/[categoryRecordId]/page.js").source)} ${drawsTheView(parseFile("app/(assets)/[...address]/page.js").source)}`,
         "true true"
     );
-    check("  which says `Page not found` and leads back to the list", /\{COPY\.pageNotFound\}/.test(view) && /href=\{ASSET_CATEGORIES_PATH\}>\s*\{COPY\.backToTools\}/.test(view), true);
+    check("  which says `Page not found` and leads to the list", /\{COPY\.pageNotFound\}/.test(view) && /href=\{ASSET_CATEGORIES_PATH\}>\s*\{COPY\.goToTools\}/.test(view), true);
     check("  a page drawing its own heading is seen", drawsTheView('return <h1 className="text-heading">{COPY.pageNotFound}</h1>;'), false);
+    // A code no item carries leads to the list too, at a desk alone: 1k-c draws a phone none (#655).
+    const leadsToList = (source) => /<div className="mt-gap-lg max-sm:hidden">\s*<ButtonLink variant="bordered" href=\{ASSET_CATEGORIES_PATH\}>\s*\{COPY\.goToTools\}/.test(source);
+    check("an item's page for a code no item carries leads to the list at a desk alone", leadsToList(pageSource), true);
+    check("  one drawn at a phone too is seen", leadsToList('<div className="mt-gap-lg">\n<ButtonLink variant="bordered" href={ASSET_CATEGORIES_PATH}>\n{COPY.goToTools}'), false);
 }
 
 if (isMain(import.meta.url)) await standalone(title, run);
