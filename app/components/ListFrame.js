@@ -9,8 +9,8 @@ import { SCROLL_LANE } from "@/app/components/scrollLane";
 import { useTooltip } from "@/app/components/Tooltip";
 
 // The pager's own height — its room above and below a 32 control, its rule counted in the
-// room above, 60 in all (0b) — is how far it stands over the rows and how much room the rows
-// end on, so the last one clears it; the selection
+// room above, 48 in all (0b, #646; 60 until then) — is how far it stands over the rows and how
+// much room the rows end on, so the last one clears it; the selection
 // bar adds its own height, its 8 inside and Edge round a 36 action, and the 12 it floats at
 // (0b). Each is written whole for Tailwind to find.
 const PAGER_OVER_ROWS = "-mt-[calc(var(--spacing-pager-inset-top)+var(--height-control)+var(--spacing-pager-inset-bottom))]";

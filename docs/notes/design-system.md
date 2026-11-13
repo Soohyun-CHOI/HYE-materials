@@ -451,6 +451,18 @@ The files of 2026-11-06 — Tools 54, Sign in 30, which is Sign in 29 byte for b
 
 **Drawn from the steps' own parts, and naming no value.** The heading and the sentence under it are `SignInHeader`'s, with no chip, and the one action stands where the confirmation's does: 32 under the header at a desk, in the foot bar on a phone. Measured against 1m-a and 1m-b in `authorization.md`, and every box stood where they put it. **The files set every step's heading `text-wrap: pretty`, and the app sets none.** 1m's is the first heading to wrap at all, and at 360 and at 341 it breaks where `pretty` breaks it, after `has been`; a heading that came to break differently is where the class would be added, to every step at once.
 
+## The row at 36 and the pager at 48, given in words (#646)
+
+**THESE ARE THE DESIGN'S VALUES, AND NO SENDING CARRIES THEM YET.** On 2026-11-13 Soo gave the web spec's new figures in words, with no file: 0b's Row 36 where it was 40, so 37 apart under its 1px rule, the column head's 36 unchanged; and the pager 48 where it was 60 — 7 above its 32 controls inside its 1px rule and 8 under them, 1 + 7 + 32 + 8, its sides as they were. They are the spec's, so a reading of a later sending that still draws a 40 row or a 60 pager has found a drawing older than the spec, not a difference to take back: the drawing is what moves. `--height-table-row`, `--spacing-pager-inset-top` and `--spacing-pager-inset-bottom` moved, and no other name did.
+
+**EVERYTHING THAT MAKES ROOM FOR THE PAGER FOLLOWED THROUGH ITS NAMES.** `ListFrame.js` writes each such length as a sum of the pager's names, and the bar's on top of them, so none was edited: the pager stands −48 over the rows, the rows end on 48 and on 114 while the selection bar stands, focus scrolls that far clear of the foot, and the catalog's track ends 48 over its lane's foot — 60 and 126 until then. `offline/asset-list-view.mjs` works each sum out from the declared values and holds the figures.
+
+**WHAT RESTED ON A 40 OR A 60 AND DID NOT MOVE.** The found item's 40 under the band is 1a's own drawing of a line on the Face inside an Edge, not a row (`--height-found-item`); an emptied list's 60 above and below its sentence is 1a's drawing too (`--spacing-list-emptied-inset-y`); a column ending in open space closes on 0i End's 40, which a list does not, the pager being its ending; the passing toast's 78 stands from the pager's top, which the pager's height does not reach; and where the column head holds, and what focus keeps clear at the top, count what stands over the rows and no row. Inside a row the checkbox's 32 target round its 16 box is the tallest thing, 2 clear of the 36 either side.
+
+**THE PHONE'S SCREENS TAKE NONE OF IT, AND A DESK'S LIST IN A NARROW WINDOW TAKES ALL OF IT.** The item's page and the sign-in steps read none of the three names. The list, a kind's page and the catalog are a desk's and support no phone's width (their briefs), so a narrow window draws their desk table, 36 rows and a 48 pager as a desk does; no spec draws them narrower, so nothing holds the old figures there.
+
+**WHAT A BROWSER SHOWED, AS `soo@` ON THE TEST BASE, ON `next dev` AT `t.localhost:3660`.** At 1440 × 900 the list, a kind's page — `TIG Welder`'s first fifty rows of eighty, and `Impact Drill, DeWalt`'s four — and the catalog drew every row 37 from the next and the column head 37 with its rule; the pager was 48, its controls 8 under its top edge, standing −48 over the rows, which ended on 48 with focus kept 48 clear of the foot, and the catalog's track ended 48 over its lane's foot. Scrolled to its end, each list's last row ended on the pager's top edge. With a row of `TIG Welder` selected the end room and the focus room were 114 and the bar 54 tall, 12 over the pager, and scrolled to the end the last row ended on the bar's top edge. Nothing in a row reached past it: a box's 32 target stood 2 under the rule and 2 over the next. At 373 × 810 under touch the item's page drew its 332 boxes where main draws them, and the three desk lists their rows 37 and their pager 48 where main draws 41 and 60, nothing moved sideways. The list, both kinds' pages and the catalog read 4, 4, 4 and 3 operations, as on main.
+
 ## From the design's words to the names
 
 Every declaration, by the design's row and the figure the design draws, and after them the values read under Tailwind's own names. A length's rem is the design's px over 16, and the px is given beside it.
@@ -496,7 +508,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0b Gap, in a nav row | `--spacing-nav-gap` | 0.6875rem (11) |
 | 0b Gap, an icon to its word inside a 32 control | `--spacing-control-icon-gap` | 0.375rem (6) |
 | 0b Band padding, above and below a band of controls | `--spacing-control-band-inset-y` | 0.875rem (14) |
-| 0b Row | `--height-table-row` | 2.5rem (40) |
+| 0b Row, under its 1px rule, so 37 apart — 40 until #646 | `--height-table-row` | 2.25rem (36) |
 | 0b Row, past the text | `--spacing-table-bleed` | 0.75rem (12) |
 | 0b Column head | `--height-table-header` | 2.25rem (36) |
 | 0b Selection bar, above the pager | `--spacing-selection-bar-offset` | 0.75rem (12) |
@@ -524,8 +536,8 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0f segmented row, either side of an option's word | `--spacing-segmented-option-inset-x` | 0.375rem (6) |
 | 0f segmented row, the pill sliding to a new choice | `--transition-duration-segmented` | 200ms |
 | 0f segmented row, how it slides — the rail's curve | `--ease-segmented` | cubic-bezier(0.2, 0, 0, 1) |
-| 0b Pager, above its controls, its 1px rule counted | `--spacing-pager-inset-top` | 0.75rem (12) |
-| 0b Pager, under them, 60 in all | `--spacing-pager-inset-bottom` | 1rem (16) |
+| 0b Pager, above its controls, its 1px rule counted — 12 until #646 | `--spacing-pager-inset-top` | 0.5rem (8) |
+| 0b Pager, under them, 48 in all — 16 and 60 until #646 | `--spacing-pager-inset-bottom` | 0.5rem (8) |
 | 1a and 1d's drawings, the least room between the rows a pager counts and its page — not the spec | `--spacing-pager-inline` | 1.5rem (24) |
 | 1a and 1d's drawings, from the page to its two steps — not the spec | `--spacing-pager-step-gap` | 0.625rem (10) |
 | 1a and 1d's drawings, how far the steps pull out so the last chevron's ink meets the text's edge — not the spec | `--spacing-pager-step-bleed` | 0.8125rem (13) |
