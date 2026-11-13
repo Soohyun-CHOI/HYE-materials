@@ -25,7 +25,6 @@ import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
 import { canDeleteDelivery, resolveDeleteCopy } from "@/lib/deliveryDelete";
 import { describeOveragePreview, tieBreakLabel } from "@/lib/overage";
 import { getOverageContext } from "@/lib/overage.server";
-import { getInvoicesByRecordIds } from "@/lib/airtable/invoices";
 import DeleteDeliveryButton from "./DeleteDeliveryButton";
 import OverageButton from "./OverageButton";
 import Instant from "@/app/components/Instant";
@@ -104,19 +103,11 @@ async function renderDeliveryDetailPage({ params }) {
     // has to be read for its label — the same measurement #314 made for a
     // discipline and #386 for an order's. A delivery recorded before the field
     // existed reads nothing at all, so the 12 rows on this base pay for none of it.
-    const [job, vendor, recorder, packingListPO, invoices, deliveryAddress] = await Promise.all([
+    const [job, vendor, recorder, packingListPO, deliveryAddress] = await Promise.all([
         delivery.job?.[0] ? getJobByRecordId(delivery.job[0]) : null,
         delivery.vendor?.[0] ? getVendorByRecordId(delivery.vendor[0]) : null,
         delivery.recordedBy?.[0] ? getUserByRecordId(delivery.recordedBy[0]) : null,
         delivery.packingListPO?.[0] ? getPOsByRecordIds(delivery.packingListPO) : null,
-        // #210 — the invoices naming this delivery. One batched read, and none at all
-        // for a delivery nobody has paired yet. NOT GATED PER INVOICE, and that is
-        // #167's exception on this page rather than a new one: the recorder is the
-        // person who pairs them, from a dropdown that showed them these very
-        // numbers, so printing them back discloses nothing they have not seen. A
-        // number whose invoice is outside their scope still leads to the ordinary
-        // not-found text, which is what the link is allowed to do.
-        getInvoicesByRecordIds(delivery.invoices || []),
         delivery.deliveryAddress?.[0]
             ? getAddressByRecordId(delivery.deliveryAddress[0])
             : null,
@@ -342,32 +333,12 @@ async function renderDeliveryDetailPage({ params }) {
                         "none"
                     )}
                 </p>
-                {/* #210 — the invoice or invoices this delivery is paired with, beside the
-                    PO the packing list named, because both are facts copied off the
-                    same document. Plural: one invoice names one delivery, so a
-                    delivery accumulates them as the office enters each one. Empty is
-                    a reading rather than a gap, and the sentence says which. */}
-                <p>
-                    <span className="text-zinc-500">Invoices:</span>{" "}
-                    {invoices.length === 0 ? (
-                        <span className="text-zinc-500">
-                            none attached — attach one from Edit once the office has entered it
-                        </span>
-                    ) : (
-                        invoices.map((inv, i) => (
-                            <span key={inv.id}>
-                                {i > 0 && ", "}
-                                <Link
-                                    href={`/invoices/${encodeURIComponent(inv.invoiceId)}`}
-                                    className="underline"
-                                >
-                                    {inv.invoiceId}
-                                </Link>
-                                {inv.vendorInvoiceCode ? ` (${inv.vendorInvoiceCode})` : ""}
-                            </span>
-                        ))
-                    )}
-                </p>
+                {/* #210's `Invoices:` line stood here — the invoices paired with this
+                    delivery, with `attach one from Edit` when there were none — and went
+                    with the pairing (#640). Which invoices charge what this delivery
+                    brought is the ordered items' fact: each row below names its order,
+                    and the order's own page lists the invoices charging it and the
+                    deliveries filling it (#233). */}
                 <p>
                     <span className="text-zinc-500">Recorded by:</span> {userName(recorder) || "—"}{" "}
                     {delivery.createdAt && (

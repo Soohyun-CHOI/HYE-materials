@@ -62,7 +62,6 @@ import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
 import { getOverageBannerFacts, getOverageBannerFactsForPO, getOverageContext, createOverageDraft } from "../../lib/overage.server.js";
 import { OVERAGE_BLOCKED, describeOverageBanner, isOverageApplied, resolveOriginalPOItem } from "../../lib/overage.js";
-import { orderedItemStatus } from "../../lib/deliveryStatus.js";
 import { foldInvoiceItems } from "../../lib/invoiceItemFold.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { printProvenance } from "./_provenance.mjs";
@@ -451,14 +450,12 @@ try {
 
         // THE OVER-DELIVERY IS RESOLVED on the original ordered item.
         const [originalAfter] = await getPOItemsForReconciliation([order.orderedItem.id]);
-        const status = orderedItemStatus({
-            orderedQty: originalAfter.qty,
-            invoicedQty: originalAfter.invoicedQty,
-            deliveredWithinQty: order.orderedItem.qty,
-            deliveredOverQty: 0,
-        });
-        check(`${label}: nothing is delivered beyond the original order now`, status.deliveredBeyondOrder, 0);
-        check(`${label}: nor invoiced beyond it`, status.invoicedBeyondOrder, 0);
+        // The two beyond-order figures off the ordered item's own rollups — what
+        // `orderedItemStatus` computed until #640 removed it with the invoice detail's
+        // aside.
+        const beyond = (total) => Math.max(0, (total || 0) - (originalAfter.qty || 0));
+        check(`${label}: nothing is delivered beyond the original order now`, beyond(originalAfter.deliveredQty), 0);
+        check(`${label}: nor invoiced beyond it`, beyond(originalAfter.invoicedQty), 0);
         check(`${label}: and the ordered item reads as fully invoiced`, originalAfter.invoicedQty, order.orderedItem.qty);
 
         // The items table folds the two invoice items back into one.

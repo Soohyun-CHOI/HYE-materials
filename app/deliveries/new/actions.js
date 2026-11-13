@@ -7,9 +7,6 @@ import { withOpsLabel } from "@/lib/airtableOps";
 import { base, TABLES } from "@/lib/airtable/client";
 import { createDelivery } from "@/lib/airtable/deliveries";
 import { createDeliveryItem } from "@/lib/airtable/deliveryItems";
-import { setInvoiceDelivery } from "@/lib/airtable/invoices";
-import { getInvoiceLinkCandidates } from "@/lib/deliveryInvoicePairing.server";
-import { invoiceFromOption, planPairings } from "@/lib/deliveryInvoicePairing";
 import { getPOById } from "@/lib/airtable/purchaseOrders";
 import { getPRByRecordId } from "@/lib/airtable/purchaseRequests";
 import { confirmIngestThenDelete } from "@/lib/blobIngest";
@@ -50,13 +47,11 @@ function itemLabelFor(orderedItems, materialRecordId) {
  * requireUser exemption in scripts/tests/offline/authz-structure.mjs.
  */
 export async function createDeliveryAction(prevState, formData) {
-    // #231 — LABELED HERE, BECAUSE THIS ACTION STARTED READING SOMETHING NEW.
-    // The computed pairing added `getInvoiceLinkCandidates` to a write path that
-    // used to read only what it was about to record, and an unlabeled action has
-    // no before and after — which is what #217 found by labeling the signing chain
-    // and discovering that 14 of its operations were not data. #224 remains the
-    // sweep over everything else; this is one action measuring the place it
-    // changed.
+    // #231 — LABELED HERE, BECAUSE THAT ISSUE'S COMPUTED PAIRING ADDED A READ to a
+    // write path that used to read only what it was about to record. #640 took the
+    // pairing and its read away; the label stays, because an unlabeled action has no
+    // before and after — which is what #217 found by labeling the signing chain and
+    // discovering that 14 of its operations were not data.
     return withOpsLabel("createDeliveryAction", async () => {
         const user = await requireUser();
 
@@ -155,14 +150,6 @@ export async function createDeliveryAction(prevState, formData) {
             return { error: ADDRESS_CHOICE_COPY.unknown };
         }
 
-        // #231 — the invoices this vendor could have sent, gated per record through the
-        // same walk the page used to render the picker. Read here rather than trusted
-        // from the form for the reason the allocation is re-run: an invoice can be
-        // paired with another delivery while this page sits open.
-        const invoiceOptions = await getInvoiceLinkCandidates(user, {
-            vendorRecordIds: [vendorRecordId],
-        });
-
         // ONE PLAN PER MATERIAL, each against the same snapshot. Different materials
         // never compete for the same ordered item, so planning them independently is
         // correct; the same material appearing twice was already summed above, which
@@ -248,37 +235,10 @@ export async function createDeliveryAction(prevState, formData) {
                 }
             }
 
-            // #210 — LAST, AND INSIDE THE ROLLBACK. Last because nothing follows it, so
-            // a failure here cannot leave a pairing whose delivery was then rolled back;
-            // inside, because a failure has to take the delivery with it rather than
-            // record material against an order and silently drop which invoice covers it.
-            // Destroying the delivery below removes this link with it, so the rollback
-            // needs no undo of its own.
-            //
-            // #231 — AND NOW THERE MAY BE SEVERAL, WHICH ADDS NO FAILURE MODE. Every
-            // invoice this delivery's ordered items place on it is written, and
-            // `planPairings` decides them against a pool where each decision so far
-            // already counts as attached. A throw part-way through leaves
-            // some invoices pointing at a delivery the catch below then destroys, and
-            // Airtable drops a link to a deleted record — so the partial state is
-            // undone by the same rollback that was already here, and the only thing
-            // added is that it may now undo more than one link.
-            const computed = planPairings({
-                delivery: {
-                    deliveryRecordId: delivery.id,
-                    deliveryId: delivery.deliveryId,
-                    orderedItems: plans.flatMap(({ plan }) =>
-                        plan.rows.map((row) => ({ poItemRecordId: row.orderedItem.id, qty: row.qty }))
-                    ),
-                },
-                invoices: invoiceOptions.map(invoiceFromOption),
-                agreedPrices: new Map(
-                    candidates.orderedItems.map((item) => [item.id, item.unitPrice])
-                ),
-            });
-            for (const invoice of computed.attach) {
-                await setInvoiceDelivery(invoice.invoiceRecordId, delivery.id);
-            }
+            // #210 WROTE THE PAIRING HERE, LAST AND INSIDE THE ROLLBACK, and #231 made it
+            // every invoice this delivery's ordered items placed on it. Both went with the
+            // link (#640): a delivery meets an invoice only through the ordered items both
+            // name, so recording one writes nothing on any invoice.
         } catch (err) {
             // Same create-then-delete rollback as the invoice path: Airtable has no
             // cross-table transactions, so a failure partway would otherwise leave a

@@ -353,16 +353,16 @@ function printGuide() {
     console.log(`
 Start the dev server and sign in as an Admin (both real accounts are Admin).
 
-READ SECTIONS 1 AND 3 AS #166's RECORD, NOT AS THESE SCREENS TODAY. They
-describe the invoice list and the deliveries list as this seed was written
-against them, and two later issues moved both without sweeping this guide:
-#210 took the invoice axis from three chip values to two — the chip reads
-whether Invoices."Delivery" is set, so every invoice this seed creates
-now shows [Awaiting delivery] and none carries a marker, since nothing here
-is paired — and #216 moved the ?unbilled=1 filter off /deliveries to a
-strip above /invoices. Noted rather than rewritten by #232, which redrew
-section 2 and verified only that screen; correcting the other two means
-re-deriving them against those issues, which is that work's own job.
+READ ALL THREE SECTIONS AS THEIR ISSUES' RECORD, NOT AS THESE SCREENS
+TODAY. Sections 1 and 3 are #166's and section 2 is #232's, and #640
+replaced what all three stood on: invoices and deliveries no longer pair
+(Invoices."Delivery" is gone), and each invoice reads by the three-way
+match — Matched once its ordered items' deliveries, filled oldest invoice
+first, cover what it charges, Awaiting delivery with its days since the
+Issue Date until then — with a table of every item's ordered, delivered
+and invoiced totals on its own page. #216 had already moved the
+?unbilled=1 filter off /deliveries to a strip above /invoices. Re-deriving
+this guide against those screens is a seed's own job, not #640's.
 
 ------------------------------------------------------------------
 1. /invoices  —  the new "Delivery" column

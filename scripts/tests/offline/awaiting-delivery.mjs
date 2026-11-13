@@ -15,10 +15,10 @@
 // plausible state), and a sort that returns its input order (the rows are all there
 // and only their order is wrong, which nobody can eyeball against 14 rows).
 //
-// WHAT THIS CANNOT SEE: whether the strip renders, and whether the read that feeds
-// `deliveredOrderedItems` returns the right ids. The first is rendering and this tier
-// never renders; the second is credentialed. Both were checked in a browser and the
-// finding is in the pull request.
+// WHAT THIS CANNOT SEE: whether the strip renders, and whether the oldest-first fill
+// that sets each summary's `partly` saw every row on its ordered items. The first is
+// rendering and this tier never renders; the second is credentialed. Both were checked
+// in a browser and the finding is in the pull request.
 
 import { walk } from "./_ast.mjs";
 import { parseFile } from "./_ast.mjs";
@@ -29,6 +29,7 @@ import {
     daysWaiting,
     hasWaitedLongEnough,
     selectInvoicesAwaitingDelivery,
+    summarizeInvoiceStatus,
 } from "../../../lib/deliveryStatus.js";
 import { isMain, standalone } from "./_harness.mjs";
 
@@ -92,10 +93,20 @@ function thresholdDeclarationNumbers() {
     return numbers;
 }
 
-const AWAITING = { key: "awaiting-delivery" };
-const MATCHED = { key: "matched" };
-// The delivery variance's key since #623 (`mismatch` until then).
-const DELIVERY_VARIANCE = { key: "delivery-variance" };
+const MATCHED = { key: "matched", judged: 1, covered: 1, partly: false };
+
+/**
+ * An invoice's summary, BUILT BY THE JUDGMENT (#640): one item per ordered item it
+ * charges, each of quantity 2, half of it delivered where `delivered` names the ordered
+ * item. So "something was delivered" is `partly` and nothing is matched by accident,
+ * and the summary's fields are `summarizeInvoiceStatus`'s own rather than a literal
+ * that could fall behind it. Until #640 the selector read the charged ordered items and
+ * a set of ordered items with any delivery; those were the pairing era's stand-ins for
+ * what the summary now carries.
+ */
+const summaryFor = (charged, delivered = []) =>
+    summarizeInvoiceStatus({ items: charged.map((p) => ({ qty: 2, filled: delivered.includes(p) ? 1 : 0 })) });
+const AWAITING = summaryFor(["poItem-1"]);
 
 /** An invoice record as the page holds it. */
 const inv = (invoiceId, issueDate, vendor = "vendorA") => ({
@@ -112,11 +123,9 @@ const TODAY = "2026-08-18";
 function select({ invoices, status, ordered, delivered = [] }) {
     return selectInvoicesAwaitingDelivery({
         invoices,
-        statusByInvoice: new Map(invoices.map((i) => [i.id, status[i.invoiceId] ?? AWAITING])),
-        orderedItemsByInvoice: new Map(
-            invoices.map((i) => [i.id, ordered[i.invoiceId] ?? ["poItem-1"]])
+        statusByInvoice: new Map(
+            invoices.map((i) => [i.id, status[i.invoiceId] ?? summaryFor(ordered[i.invoiceId] ?? ["poItem-1"], delivered)])
         ),
-        deliveredOrderedItems: new Set(delivered),
         vendorNameById: VENDORS,
         today: TODAY,
     });
@@ -227,18 +236,15 @@ export function run({ check, assert, log }) {
         selectInvoicesAwaitingDelivery({
             invoices: [shortOfIt],
             statusByInvoice: new Map([[shortOfIt.id, AWAITING]]),
-            orderedItemsByInvoice: new Map([[shortOfIt.id, ["poItem-1"]]]),
-            deliveredOrderedItems: new Set(),
             vendorNameById: VENDORS,
             today: "2026-09-30",
         }).length,
         1
     );
-    // THE THRESHOLD IS ONE RULE FOR BOTH ROW KINDS (#263). `deliveredNotMatched` looks
-    // like it should skip the wait — something arrived and only the pairing is missing —
-    // but the flag means "some slice against SOME ordered item, any quantity, any
-    // delivery, possibly another invoice's". The measured pair is in
-    // lib/deliveryStatus.server.js:getOrderedItemsWithDelivery.
+    // THE THRESHOLD IS ONE RULE FOR BOTH ROW KINDS (#263). A partly delivered invoice
+    // is waiting on the vendor exactly as a wholly undelivered one is. (#263 kept one
+    // threshold because the old flag was imprecise; #640 made the kind exact, and the
+    // reason for one rule became the simpler one.)
     const bothKindsShort = select({
         invoices: [shortOfIt, inv("HYE-INV-260813-02", "2026-08-13")],
         status: {},
@@ -263,11 +269,8 @@ export function run({ check, assert, log }) {
         select({ invoices: [a, b], status: { [a.invoiceId]: MATCHED }, ordered: {} }).length,
         1
     );
-    check(
-        "a mismatched invoice is not selected either — it HAS a delivery",
-        select({ invoices: [a, b], status: { [a.invoiceId]: DELIVERY_VARIANCE }, ordered: {} }).length,
-        1
-    );
+    // A `Delivery variance` invoice was asserted unselected here until #640 removed the
+    // value: the invoice axis has two, and the matched one is asserted just above.
     // Built inline rather than through the helper, whose `?? AWAITING` default is
     // exactly what this case has to defeat: an invoice the status map never mentions.
     check(
@@ -275,8 +278,6 @@ export function run({ check, assert, log }) {
         selectInvoicesAwaitingDelivery({
             invoices: [a],
             statusByInvoice: new Map(),
-            orderedItemsByInvoice: new Map([[a.id, ["poItem-1"]]]),
-            deliveredOrderedItems: new Set(),
             vendorNameById: VENDORS,
             today: TODAY,
         }).length,
@@ -305,7 +306,7 @@ export function run({ check, assert, log }) {
 
     // -----------------------------------------------------------------------
     log("");
-    log("the split names the observation, never the cause:");
+    log("the split says how much has been delivered, never why (#640):");
     const split = select({
         invoices: [a, b],
         status: {},
@@ -319,17 +320,16 @@ export function run({ check, assert, log }) {
         AWAITING_DELIVERY_KIND.noDeliveryRecorded
     );
     check(
-        "one of several ordered items has a delivery",
+        "one of several items partly delivered",
         kindOf(b.invoiceId),
-        AWAITING_DELIVERY_KIND.deliveredNotMatched
+        AWAITING_DELIVERY_KIND.partlyDelivered
     );
-    // ANY, NOT ALL: one slice against one of the ordered items is enough for a person
-    // to have something to look at, and requiring all of them would put a partly
-    // delivered invoice in the "nothing delivered" kind, which is the misreading the two
-    // words exist to prevent.
+    // ANY, NOT ALL: some of one item delivered is enough to say "partly", and requiring
+    // all of them would put a partly delivered invoice in the "nothing delivered" kind,
+    // which is the misreading the two words exist to prevent.
     assert(
-        "  ANY ordered item with a delivery is enough",
-        kindOf(b.invoiceId) === AWAITING_DELIVERY_KIND.deliveredNotMatched
+        "  ANY item with something delivered is enough",
+        kindOf(b.invoiceId) === AWAITING_DELIVERY_KIND.partlyDelivered
     );
     // THE SPLITTER MUTANT: always one kind. Both keys have to be reachable from one
     // call, or "every row says the same thing" reads as a real state of the base.
@@ -434,9 +434,8 @@ export function run({ check, assert, log }) {
     for (const control of ["Record a delivery", "Record delivery", "New invoice", "click", "button"]) {
         assert(`  says nothing about \`${control}\``, !words.includes(control));
     }
-    // AND CLAIMS NO CAUSE. `fitRefusal` is never stored and runs only at write time,
-    // so any of these words would be false about an invoice the matcher was never asked
-    // about — which, per docs/notes/backlog.md, is most of this base's rows.
+    // AND CLAIMS NO CAUSE. What the fill knows is how much has been delivered, never
+    // why the rest has not — so any of these words would be a claim nothing measured.
     for (const cause of ["refused", "rejected", "could not", "failed", "mismatch"]) {
         assert(`  claims no cause: \`${cause}\``, !words.toLowerCase().includes(cause));
     }
@@ -457,7 +456,7 @@ export function run({ check, assert, log }) {
     assert(
         "  and the two words differ",
         AWAITING_DELIVERY_COPY.kind[AWAITING_DELIVERY_KIND.noDeliveryRecorded] !==
-            AWAITING_DELIVERY_COPY.kind[AWAITING_DELIVERY_KIND.deliveredNotMatched]
+            AWAITING_DELIVERY_COPY.kind[AWAITING_DELIVERY_KIND.partlyDelivered]
     );
     // #227's vocabulary, on new screen text: a delivery is delivered, never arrived.
     for (const banned of ["arrived", "arrival"]) {
@@ -513,7 +512,7 @@ export function run({ check, assert, log }) {
     // Every "no X" assertion has a twin that shows the mechanism can see an X.
     assert("the copy string under test is non-empty", words.length > 40);
     assert("  and the control matcher finds a word that IS there", words.includes("Longest"));
-    assert("  and the cause matcher would catch one", "a refused pairing".includes("refused"));
+    assert("  and the cause matcher would catch one", "a refused delivery".includes("refused"));
     assert("the strip's call set really holds its calls", called.has("heading") || called.has("map"));
     assert("  and the judgment matcher would catch a sort", ["sort"].some((j) => new Set(["sort"]).has(j)));
     assert("the selector returns rows, not just a length", typeof baseline[0].invoiceId === "string");

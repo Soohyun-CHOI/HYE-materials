@@ -347,7 +347,7 @@ try {
     const items = await getItemsByInvoice(invoice.id);
     check("the invoice holds three item rows", items.length, 3);
 
-    const reconciliation = await getInvoiceReconciliation(items, { linkedDeliveryRecordId: null });
+    const reconciliation = await getInvoiceReconciliation(items);
     assert(
         "the reconciliation hands back the ordered quantities it read",
         reconciliation.orderedQtyByOrderedItem instanceof Map

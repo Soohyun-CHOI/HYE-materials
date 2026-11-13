@@ -208,7 +208,8 @@ export function run({ check, assert, log }) {
     // ANTI-VACUITY: `callsTo` has to be able to find a call in one of those files.
     assert(
         "the call matcher works on a function those files really do call",
-        callsTo(parseFile("lib/deliveryStatus.server.js").ast, "invoiceShareStatus").length > 0
+        // `summarizeInvoiceStatus` since #640, which retired `invoiceShareStatus`.
+        callsTo(parseFile("lib/deliveryStatus.server.js").ast, "summarizeInvoiceStatus").length > 0
     );
 }
 

@@ -9,10 +9,10 @@ import {
     STATUS_COPY,
     describeInvoiceColumn,
     describeInvoiceOverdue,
+    describeInvoiceWait,
     invoicePayment,
 } from "@/lib/deliveryStatus";
-import { PAIRING, describePairing, describeTieBreak, linkedDelivery } from "@/lib/deliveryInvoicePairing";
-import { QualifierMarker, StatusChip } from "@/app/components/DeliveryStatusMarks";
+import { StatusChip } from "@/app/components/DeliveryStatusMarks";
 import UndrawnPage from "@/app/components/UndrawnPage";
 import { foldInvoiceItems } from "@/lib/invoiceItemFold";
 import { invoiceDeliveryEntries } from "@/lib/invoiceDeliveryEntries";
@@ -46,20 +46,18 @@ export async function generateMetadata({ params }) {
     return { title: invoiceId };
 }
 
-// The tone a delivery entry can wear (#241), as a color. The DECISION is
+// The tone a delivery row can wear (#241, #640), as a color. The DECISION is
 // lib/deliveryStatus.js's and only which amber is settled here, the same split
 // app/components/DeliveryStatusMarks.js states for the chips. Not in that file
-// although it holds the other tone map: these are text colors on a detail list, not
-// the closed set of chip states, and one map serving both would tie a discrepancy in
-// a sentence to the background of a chip that means something else.
+// although it holds the other tone map: these are text colors on a detail table, not
+// the closed set of chip states, and one map serving both would tie a row's wait to
+// the background of a chip that means something else.
 //
-// `unjudged: "text-zinc-500"` STOOD BESIDE IT AND IS GONE (#278). It was the color of
-// an entry nothing was measured against, and its only producer was an invoice item
-// with no
-// ordered item behind it. A one-entry map is kept rather than inlined for the reason
-// the tone itself is: a second value re-entering finds a slot.
+// `waiting` IS #640's, AND IT REPLACED `exception`: a row whose quantity has not all
+// arrived is material still to come under the three-way match, not a discrepancy
+// against one delivery. A row answered in full carries no tone and wears no color.
 const ENTRY_TONE_CLASS = {
-    exception: "text-amber-700",
+    waiting: "text-amber-700",
 };
 
 // ROW-SCOPED, NOT ROLE-SCOPED (#211), gated exactly the way app/pos/[poId] is:
@@ -95,16 +93,13 @@ export default async function InvoiceDetailPage(props) {
     return withOpsLabel("/invoices/[invoiceId]", () => renderInvoiceDetailPage(props));
 }
 
-async function renderInvoiceDetailPage({ params, searchParams }) {
+async function renderInvoiceDetailPage({ params }) {
     const user = await requireUser();
     const { invoiceId } = await params;
-    const { paired, tied } = await searchParams;
-    // #231 — a key, never a sentence. An unknown or absent value words nothing,
-    // which is also what makes `none` need no entry: describePairing returns null
-    // for anything it has no voice for. `tied` is the qualifier and is read the
-    // same way: anything but the flag the action sends words nothing.
-    const pairingMessage = describePairing({ key: paired }, "banner");
-    const tieBreakMessage = describeTieBreak({ tieBreak: tied === "1" }, "banner");
+    // #231's `?paired` and `?tied` WERE READ HERE AND ARE GONE WITH THE PAIRING (#640).
+    // They carried, on the way in from creation, which delivery the app had matched the
+    // new invoice to; nothing is matched now, so there is nothing to say on arrival and
+    // the page reads no query string at all.
 
     const invoice = await getInvoiceById(invoiceId);
     if (!invoice) {
@@ -112,7 +107,12 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
     }
 
     const [items, vendor] = await Promise.all([
-        getItemsByInvoice(invoice.id),
+        // #640 — FROM THE IDS THE INVOICE ALREADY CARRIES, so the invoice is not found a
+        // second time to read its own link array (#193's shape, which the delivery detail
+        // has had since that issue). That find was one operation on every load, and it is
+        // what pays for the one the delivery section can now need: the other invoices on
+        // an ordered item partly delivered (lib/deliveryStatus.server.js).
+        getItemsByInvoice(invoice.id, { rowIds: invoice.invoiceItems || [] }),
         invoice.vendor?.[0] ? getVendorByRecordId(invoice.vendor[0]) : null,
     ]);
 
@@ -140,19 +140,14 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
         invoice.recordedBy?.[0] ? getUserByRecordId(invoice.recordedBy[0]) : null,
     ]);
 
-    // Issue #166 — the delivery side of this invoice, and since #210 the delivery it
-    // matches rather than an estimate of which one answered it. Up to three
-    // operations on top of what the page already holds (PO Items, Delivery Items,
-    // Deliveries), keyed on ids from the level above; the invoice's own invoice items
-    // are already loaded, so there is no query for them, and the pairing is a field
-    // on the record above. Down from five — the two that went existed only to order
-    // the other invoices on the same ordered item so one of them could be picked. #232
-    // took the third off an invoice that matches no delivery, which reads TWO: that
-    // level is the matched delivery now rather than every delivery on the ordered
-    // items. The rule is lib/deliveryStatus.js.
-    const reconciliation = await getInvoiceReconciliation(items, {
-        linkedDeliveryRecordId: linkedDelivery(invoice),
-    });
+    // Issue #166 — the delivery side of this invoice, as the three-way match reads it
+    // since #640: the ordered items this invoice charges, their delivered and invoiced
+    // totals, and how much of this invoice the oldest-first fill answered. `PO Items`,
+    // then the `Delivery Items` that name the deliveries the section lists, and the
+    // other invoices' items only when an ordered item is partly delivered and charged
+    // by another invoice too. The invoice's own items are already loaded and are never
+    // read again. The rule is lib/deliveryStatus.js.
+    const reconciliation = await getInvoiceReconciliation(items);
 
     // Issue #167 — fold the rows an overage split produced back into one, so the
     // table still reads line-for-line against the vendor's PDF. The key is #18's
@@ -184,16 +179,15 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
         orderedQtyByOrderedItem: reconciliation.orderedQtyByOrderedItem,
     });
 
-    // Issue #241 — the delivery section's entries, one per FOLDED item rather than
-    // one per invoice item, so what counts as one material is decided once for this
-    // page. The same fold, joined to the reconciliation rows on the invoice item's
-    // record id; shares are added rather than re-derived, and an entry with nothing
-    // to say does not come back at all. Costs no query — both inputs are computed
-    // above. The rule is lib/invoiceDeliveryEntries.js.
+    // Issue #241 — the delivery section's rows, one per FOLDED item rather than one
+    // per invoice item, so what counts as one material is decided once for this page.
+    // The same fold, joined to the reconciliation rows on the invoice item's record id;
+    // figures are added rather than re-derived, and since #640 every item has a row.
+    // Costs no query — both inputs are computed above. The rule is
+    // lib/invoiceDeliveryEntries.js.
     const deliveryEntries = invoiceDeliveryEntries({
         folded: foldedItems,
         rows: reconciliation.rows,
-        hasDelivery: reconciliation.summary.hasDelivery,
     });
 
     // Issue #16 — surfaced but never blocking: a variance is a review prompt, not a
@@ -204,12 +198,14 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
     const hasItemVariance = items.some((it) => it.hasPriceVariance || it.hasQuantityVariance);
     const file = invoice.file?.[0];
 
-    // #316 — the server's day, for the one judgment on this page that needs one.
+    // #316 — the server's day, for the two judgments on this page that need one: the
+    // payment's lateness and, since #640, how long the invoice has waited on a delivery.
     // `/invoices` and `/pos` take it the same way and for the same reason; `daysWaiting`
-    // documents what a server day does and does not promise, and `invoicePayment`
-    // inherits both properties. Costs no Airtable operation: `Paid` and `Due Date` are
-    // already on the record this page loaded, so today is the only new input.
+    // documents what a server day does and does not promise, and both judgments inherit
+    // its properties. Costs no Airtable operation: `Paid Date`, `Due Date` and `Issue
+    // Date` are already on the record this page loaded, so today is the only new input.
     const today = new Date().toISOString().slice(0, 10);
+    const wait = describeInvoiceWait(reconciliation.summary, invoice.issueDate, today);
 
     // Summary rows in the same invoice-style shape as PR/PO (#102), with
     // invoice's own figures. Shipping Fee always renders (as $0.00 when
@@ -268,37 +264,9 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 </div>
             </div>
 
-            {/* #231 — what the app worked out about this invoice's delivery, said only
-                on the way in from creation. It is not part of the record, so it lives
-                on the query string rather than being re-derived on every load: a
-                reader who reaches this page any other way sees the delivery section
-                below, which is the standing answer. `none` sends no parameter, so
-                there is no voice here for it.
-
-                THE ONE PARAMETER #321 LEFT, AND IT SURVIVES BECAUSE IT IS NOT A
-                CONFIRMATION. That issue took the green line off five screens on the
-                ground that the arrival already said what it said; this box says what
-                nothing else on the page says — which delivery was picked, and whether
-                a tie-break picked it. It keeps the defect the same issue names, and
-                said so: a reload repeats it, and the URL copied to somebody else
-                shows them a judgment made about somebody else's creation. That is a
-                cost of carrying a one-time account on the query string at all, not a
-                second thing to fix here. This comment said `said once` until #321
-                read it in a browser. */}
-            {pairingMessage && (
-                <div
-                    className={`mt-4 rounded border px-3 py-2 text-sm ${
-                        pairingMessage.key === PAIRING.matched && !tieBreakMessage
-                            ? "border-zinc-300 bg-zinc-50 text-zinc-700"
-                            : "border-amber-300 bg-amber-50 text-amber-800"
-                    }`}
-                >
-                    <p>{pairingMessage.text}</p>
-                    {/* One box, two sentences — the tie-break is how the match above
-                        was decided, not a second thing that happened. */}
-                    {tieBreakMessage && <p className="mt-1">{tieBreakMessage.text}</p>}
-                </div>
-            )}
+            {/* #231's arrival box stood here — which delivery the app had matched the new
+                invoice to, carried on `?paired` and `?tied` — and went with the pairing
+                (#640). The delivery section below is the standing answer on every load. */}
 
             <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3">
                 <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
@@ -439,11 +407,11 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                     A row an overage split produced spans two orders once folded, so
                     there is no single value for that cell: it is unrepresentable
                     rather than merely inconvenient. The order did not disappear from
-                    the page — the Delivery section below is one box per ORDERED
-                    ITEM, which by construction has exactly one, and a split shows as
-                    two boxes each naming its own. Both halves of that trade are in
-                    this one commit on purpose: removing the column alone would take
-                    the order off the page entirely. */}
+                    the page: #167 put it in the Delivery section's per-ordered-item
+                    boxes, and since #237 it is the `Purchase Orders` section above,
+                    which names the order each folded item was charged against where
+                    the items disagree about it. This said the Delivery section was
+                    one box per ordered item until #640 — false since #241 folded it. */}
                 {/* #330 — THE SENTENCE REPLACES THE WHOLE TABLE, heads and totals
                     footer included, and that is the decision rather than a detail.
                     An empty `tbody` under eight column heads reads as an invoice that
@@ -568,222 +536,99 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 )}
             </div>
 
-            {/* Issue #166 — was the material this invoice invoiced for delivered.
-                One box per invoice item, in the items table's own order.
+            {/* Issue #166 — has what this invoice charges for been delivered, as the
+                three-way match answers it since #640: through the ordered items this
+                invoice and the deliveries both name, never through a delivery named on
+                the invoice.
 
-                THE HEADING CHIP IS THE ONE THE LIST SHOWS, from the same function,
-                so the row a reader clicked and the page they land on cannot
-                describe the invoice differently — #162's summarizeDelivery is
-                shared between its list and its detail for the same reason.
+                THE HEADING CHIP IS THE ONE THE LIST SHOWS, from the same function and the
+                same per-item figures, and the wait beside it is the one the list row and
+                the strip above the list print (`describeInvoiceWait`) — so the row a
+                reader clicked and the page they land on cannot describe the invoice
+                differently. #162's summarizeDelivery is shared between its list and its
+                detail for the same reason.
 
-                SCOPED TO THIS INVOICE SINCE #232, AND ITS DENSITY NOW FOLLOWS THE
-                STATE. `Invoices."Delivery"` is a single link, so the delivery a
-                reader wants named is the SAME one for every box; naming it per box
-                printed one document as many times as the invoice has items, which is
-                the repetition #233 took off the order's page.
+                THEN THE DELIVERIES, ONCE, AS THE ORDERED ITEMS' RATHER THAN THIS
+                INVOICE'S: every delivery that brought one of these ordered items, oldest
+                entered first. A delivery is not any one invoice's under the three-way
+                match, so the section names them without claiming which of them answered
+                this one — the table says how much did.
 
-                THE INVOICE LEVEL SAYS WHAT THE STATE IS AND A BOX POINTS AT AN
-                EXCEPTION — that is the whole layout, and it follows from the
-                one-delivery premise (docs/notes, "The one-delivery premise"). What
-                this invoice charges is delivered by the delivery it matches or not at all,
-                so "everything invoiced was delivered" is one fact about one document:
-                the chip states it, and a box repeating it would state it once per
-                invoice item.
+                THEN ONE ROW PER ITEM, EVERY ITEM. The ordered item's three totals — what
+                was ordered, and what every delivery and every invoice on it add up to —
+                then how much of THIS invoice's quantity the oldest-first fill answered.
+                The heads say `to date` because those two totals are not this invoice's;
+                `This invoice` is the column that is. A row still waiting wears amber on its
+                name and its last cell, the tone the module decides; which amber is
+                ENTRY_TONE_CLASS above.
 
-                SO THREE STATES AT THREE DENSITIES. Matched to nothing: one sentence
-                and no item list at all — this section is about a delivery, and with
-                none matched there is nothing per item to say. Matched and covered:
-                the delivery, and nothing under it, since #241 dropped the entry that
-                agrees. Matched and short: the amber box, then one entry per material
-                that disagrees, carrying its figures.
-
-                THE CHIP AND THE BOX BELOW IT ARE THE FACT AND THE ASK. `Delivery
-                variance` (`Mismatch` until #623) is a chip value since #232's third
-                pass, so the discrepancy is a word a reader meets without hovering; a `!` marker stood beside `Delivered`
-                and qualified a word that had already been read, with its sentence in
-                a tooltip that reaches neither touch nor a keyboard. The sentence is
-                the amber box, shaped like the variance prompt further down this same
-                page because it is the same grade of fact — a person must look before
-                money moves.
-
-                COLOR ON THE ENTRY, NAME INCLUDED, AND #232's RULE HERE WAS THE
-                OPPOSITE. That issue colored the verdict alone and left the name black,
-                because its first version colored everything and the color then
-                distinguished nothing — which was true of a list holding EVERY invoice
-                item, where the silent ones would have been colored too. #241 emptied
-                that premise: the list holds only what disagrees, so coloring the name
-                cannot reach a normal item and the color says exactly `this one is the
-                problem`. A black name over an amber sentence had the color attached to
-                nothing a reader could name, and with several short items black and
-                amber alternate down the page.
-
-                THE TONE IS THE VERDICT'S, and since #278 there is one of them. It
-                said `Not compared — no ordered item` was gray in both halves,
-                because an invoice item nothing was measured against is not a
-                problem; that entry is gone with the invoice item behind it, so every
-                entry in this list is amber. An entry the order-scoped aside alone
-                put in the list has no verdict and is amber too: something exceeding
-                an ordered item is why it is here. The aside itself stays uncolored,
-                which is #232's distinction and holds — it is the ordered item's fact
-                rather than this invoice's.
-
-                THE NAMED SLOTS STILL DO THEIR WORK, and that half of #232's argument
-                is untouched: lib/deliveryStatus.js returns `verdict` and `againstOrder`
-                as separate slots rather than a list, so the aside cannot be colored by
-                a caller iterating one collection. Both slots can be null and the module
-                decides which — a call site cannot withhold one either. What moved is
-                only WHICH tone, and that is a semantic decision, so it comes from the
-                module too; ENTRY_TONE_CLASS at the top of this file holds the colors,
-                because which amber is a rendering decision. */}
+                WHAT WENT WITH #640: `No delivery has been matched to this invoice yet.`,
+                the amber `Delivery variance` box, and the per-item verdicts and
+                `Against the ordered item:` aside. Each compared this invoice with the one
+                delivery `Invoices."Delivery"` named, or stated a figure these columns now
+                show; docs/notes/deliveries-and-invoices.md has the record. */}
             <div className="mt-8">
                 <div className="flex items-center gap-2">
                     <h2 className="text-lg font-semibold">Delivery</h2>
                     <StatusChip chip={describeInvoiceColumn(reconciliation.summary)} />
+                    {wait && <span className="text-sm tabular-nums text-zinc-500">{wait.text}</span>}
                 </div>
 
-                {/* #232 — THE MATCHED DELIVERY, ONCE, AND NOTHING OF ITS OWN BESIDE
-                    IT. No ordered items: a delivery can carry charges this invoice has
-                    nothing to do with, so listing what it brought would show orders
-                    this invoice never charged. No marker either — a document named
-                    directly under this invoice's own heading is this invoice's
-                    structurally, which is the argument #166 used when it moved these
-                    inside the boxes and is why `— attached to this invoice` retires
-                    here rather than moving.
-
-                    `matched` is #231's word, from PAIRING_COPY, and it says the fact
-                    the state actually is: nothing has been matched to this invoice, as
-                    against the material not having been delivered. Those became different
-                    facts when #210 stored the pairing, and the verdict inside each
-                    box used to conflate them by saying `Nothing delivered yet` under
-                    an empty list. */}
-                {reconciliation.delivery ? (
+                {reconciliation.deliveries.length > 0 ? (
                     <p className="mt-1 text-sm text-zinc-600">
-                        <Link
-                            href={`/deliveries/${encodeURIComponent(reconciliation.delivery.deliveryId)}`}
-                            className="underline"
-                        >
-                            {reconciliation.delivery.deliveryId}
-                        </Link>{" "}
-                        ({reconciliation.delivery.receivedDate || "—"})
+                        {STATUS_COPY.detail.deliveries.label}:{" "}
+                        {reconciliation.deliveries.map((d, i) => (
+                            <span key={d.id}>
+                                {i > 0 && ", "}
+                                <Link
+                                    href={`/deliveries/${encodeURIComponent(d.deliveryId)}`}
+                                    className="underline"
+                                >
+                                    {d.deliveryId}
+                                </Link>
+                            </span>
+                        ))}
                     </p>
                 ) : (
                     <p className="mt-1 text-sm text-zinc-600">
-                        No delivery has been matched to this invoice yet.
+                        {STATUS_COPY.detail.deliveries.none().text}
                     </p>
                 )}
 
-                {/* AFTER THE DELIVERY IS NAMED, NOT BEFORE IT, and the order is the
-                    sentence's own grammar. It says the invoice charges more than the
-                    delivery matched to it delivered, so a reader meets the delivery
-                    it is about first and the claim about it second — putting the
-                    accusation above the document it accuses would have the reader
-                    scroll back for the subject. It also keeps the section's first
-                    line the same line in all three states, which is what makes the
-                    box read as an addition rather than as a different layout.
-
-                    Its own sentence rather than the chip's, at detail density: the
-                    chip is one word and this is what does not match plus who has to
-                    act. See STATUS_COPY.detail.deliveryVariance for why it carries no figure
-                    and why it wears the variance prompt's shape. */}
-                {reconciliation.summary.key === "delivery-variance" && (
-                    <p className="mt-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                        {STATUS_COPY.detail.deliveryVariance().text}
-                    </p>
-                )}
-
-                {/* ONLY WHAT DISAGREES, AND ONE ENTRY PER MATERIAL (#241). Two rules
-                    decide what is here, and both live in lib/invoiceDeliveryEntries.js
-                    rather than in this condition — the offline tier cannot read JSX,
-                    and "the list vanished" is a failure that looks exactly like a
-                    normal invoice.
-
-                    NO LIST WITHOUT A MATCHED DELIVERY is #232's and is unchanged: with
-                    nothing matched there is no second term, so an entry per invoice
-                    item was a list of names with no fact in any of them, and the
-                    sentence above is the whole answer. It named
-                    `Not compared — no ordered item` as going with them; that entry no
-                    longer exists at any pairing (#278).
-
-                    NO ENTRY THAT AGREES is #241's, and the fold is what forced it. #232
-                    kept a silent entry when the list was one per invoice item; folded,
-                    the list is the name column of the items table directly above —
-                    same count, same names, same order. The invoice level says what the
-                    state is and the item level points at an exception, which is the
-                    division #232 settled and this is the last cell of it. So a covered
-                    invoice renders no list at all: the delivery, named once, is the
-                    section. `This invoice has no lines.` went with the same edit — an
-                    invoice with no items has no exceptions either, and the items table
-                    above already says it is empty. */}
                 {deliveryEntries.length > 0 && (
-                    <ul className="mt-3 space-y-2 text-sm">
-                        {deliveryEntries.map((entry) => {
-                            const copy = entry.copy;
-                            return (
-                                /* NO BORDER SINCE #232's THIRD PASS. It was a box
-                                   drawn around `Ordered · Invoiced · Delivered`, a share
-                                   line, a verdict, an aside and a delivery list; with
-                                   the inside emptied it framed a name. A list is
-                                   enough, and the border was making a silent entry
-                                   look like a card that had failed to load.
-
-                                   KEYED ON THE FOLD'S OWN KEY (#241), which is what an
-                                   entry now is. An `Invoice Item ID` would have to pick
-                                   one of the rows a folded entry stands for. */
-                                <li key={entry.key}>
-                                    {/* NO PO LINK (#232's third pass), and since #241
-                                        no entry it could hang on: a folded entry can
-                                        span two orders, which is #167's own reason the
-                                        items table has no such column. #167 put it here
-                                        because the items table dropped its PO column —
-                                        a row an overage split produced spans two
-                                        orders once folded, so that cell had no single
-                                        value — and this section was the nearest place
-                                        with one order per entry. It is the wrong place
-                                        on two counts: which order an item was invoiced
-                                        against is not a delivery fact, and it is not
-                                        a fact a reader of THIS screen acts on, since
-                                        nothing about whether to pay turns on it. #237
-                                        took the question, under `Purchase Orders`
-                                        above, answered only where the folded items do
-                                        not all touch the same set of orders — which is
-                                        where the ambiguity #167 was solving actually
-                                        lives. */}
-                                    <span className={`font-medium ${ENTRY_TONE_CLASS[entry.tone]}`}>
+                    <table className="mt-3 w-full text-sm">
+                        <thead>
+                            <tr className="text-left text-zinc-500">
+                                <th className="pr-2">{STATUS_COPY.detail.heads.item}</th>
+                                <th className="pr-2 text-right">{STATUS_COPY.detail.heads.ordered}</th>
+                                <th className="pr-2 text-right">{STATUS_COPY.detail.heads.delivered}</th>
+                                <th className="pr-2 text-right">{STATUS_COPY.detail.heads.invoiced}</th>
+                                <th className="pr-2 text-right">{STATUS_COPY.detail.heads.thisInvoice}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {deliveryEntries.map((entry) => (
+                                /* KEYED ON THE FOLD'S OWN KEY (#241), which is what a row
+                                   now is. An `Invoice Item ID` would have to pick one of
+                                   the rows a folded entry stands for. */
+                                <tr key={entry.key} className="border-t border-zinc-200">
+                                    <td className={`py-1 pr-2 ${ENTRY_TONE_CLASS[entry.tone] ?? ""}`}>
                                         {itemLabel(entry) || "—"}
-                                    </span>
-
-                                    {/* NO FIGURES LINE. `Billed 15 · Delivered 15`
-                                        stood here and was the same on every box of a
-                                        normal invoice; the two sentences below carry
-                                        the quantities on the entries that have
-                                        something to say. `Billed` is also in the items
-                                        table directly above this section — and since
-                                        #241 the entry and that row are the same unit,
-                                        so a figure here is against the same quantity a
-                                        reader just read there. */}
-                                    {copy.verdict && (
-                                        <p className={ENTRY_TONE_CLASS[entry.tone]}>
-                                            {copy.verdict.text}
-                                        </p>
-                                    )}
-
-                                    {/* CONDITIONAL AGAIN (#232, second pass). It was
-                                        made unconditional to anchor the figures line
-                                        above it; that line is gone, so a normal box
-                                        has nothing to anchor and stays silent. Its
-                                        `N ordered` term went with it — that question
-                                        is `/pos/[poId]`'s `Qty` column, one click
-                                        away and on a page that names this invoice
-                                        since #233. */}
-                                    {copy.againstOrder && (
-                                        <p className="text-zinc-600">
-                                            {copy.againstOrder.text}
-                                        </p>
-                                    )}
-                                </li>
-                            );
-                        })}
-                    </ul>
+                                    </td>
+                                    <td className="py-1 pr-2 text-right tabular-nums">{entry.copy.ordered}</td>
+                                    <td className="py-1 pr-2 text-right tabular-nums">{entry.copy.delivered}</td>
+                                    <td className="py-1 pr-2 text-right tabular-nums">{entry.copy.invoiced}</td>
+                                    <td
+                                        className={`py-1 pr-2 text-right tabular-nums ${
+                                            ENTRY_TONE_CLASS[entry.copy.thisInvoice.tone] ?? ""
+                                        }`}
+                                    >
+                                        {entry.copy.thisInvoice.text}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 )}
             </div>
 

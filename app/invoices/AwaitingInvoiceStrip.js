@@ -44,9 +44,9 @@ import { AWAITING_INVOICE_COPY } from "@/lib/deliveryStatus";
 //
 // AND NARROWING THE ITEM PICKER TO THIS DELIVERY WOULD BE WORSE THAN NOT
 // PREFILLING. An invoice can legitimately charge for something the delivery did not
-// bring — that is exactly the discrepancy #210's mismatch marker exists to catch —
-// so a picker restricted to what was delivered would make the real case unenterable and
-// the marker unreachable.
+// bring — material shipped later, or on another delivery, which the three-way match
+// waits for (#640) — so a picker restricted to what was delivered would make the real
+// case unenterable.
 //
 // So this strip is a list and nothing else: which deliveries are uninvoiced and how
 // long they have waited, which is what replaces the month-end email. Recording an

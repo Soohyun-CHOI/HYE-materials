@@ -1,4 +1,4 @@
-// An invoice's variances are four names, and its totals one pair (#179, #623).
+// An invoice's variances are three names, and its totals one pair (#179, #623, #640).
 //
 // THE QUIET MUTANT IS ONE WORD FOR TWO KINDS, and it is asserted first. That is not a
 // hypothetical: it is the state #179 found, where the list said `⚠ Variance` for the
@@ -7,14 +7,17 @@
 // landed on. Setting two constants back to one value restores it exactly, every
 // screen still renders, and nothing else in this repository would notice.
 //
-// FOUR SINCE #623, IN THE THREE-WAY MATCH'S WORDS: `⚠ Price variance` and
-// `⚠ Quantity variance` for an item against its order, the delivery axis's
-// `Delivery variance` for the invoice against its delivery, and `⚠ Totals differ` for
-// the invoice against itself, with `Totals agree` when the comparison passes. The three
-// variances are one noun with a qualifier each, so the property held here is that no
-// two share a qualifier; the totals pair shares its subject and differs in the verb.
-// #179 had named the item kind `⚠ Order variance` over a flag that held either cause,
-// and the totals kind `⚠ Check the total`, an instruction.
+// THREE SINCE #640, IN THE THREE-WAY MATCH'S WORDS: `⚠ Price variance` and
+// `⚠ Quantity variance` for an item against its order, and `⚠ Totals differ` for the
+// invoice against itself, with `Totals agree` when the comparison passes. #623 named a
+// fourth, `Delivery variance` — the invoice against the one delivery
+// `Invoices."Delivery"` named — and #640 retired it with the pairing: compared
+// cumulatively, less delivered than invoiced is a wait (`Awaiting delivery`), and the
+// word is barred below so it cannot come back. The two variances are one noun with a
+// qualifier each, so the property held here is that they do not share one; the totals
+// pair shares its subject and differs in the verb. #179 had named the item kind
+// `⚠ Order variance` over a flag that held either cause, and the totals kind
+// `⚠ Check the total`, an instruction.
 //
 // THE SECOND FAILURE IS SLOWER AND IS CHECKED ON THE SOURCE: a call site going back
 // to a literal, or to a word since retired. So no file under `app/` or `lib/` may
@@ -27,7 +30,7 @@ import { STATUS_COPY } from "../../../lib/deliveryStatus.js";
 import { callPassesProperty, callsTo, listJsFiles, parseFile, repoPath, resolveFunction, toPosix } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "An invoice's variances are four names, and its totals one pair (#179, #623)";
+export const title = "An invoice's variances are three names, and its totals one pair (#179, #623, #640)";
 
 /**
  * The words retired from the screens, as what a screen string would hold. `Mismatch`
@@ -45,6 +48,9 @@ const RETIRED = [
     { word: "Total variance", test: (code) => /Total variance/i.test(code) },
     { word: "Stated Total", test: (code) => /Stated Total/i.test(code) },
     { word: "Amount due", test: (code) => /Amount due/i.test(code) },
+    // #640 — the invoice against one delivery, word and key, retired with the pairing.
+    { word: "Delivery variance", test: (code) => /Delivery variance/i.test(code) },
+    { word: "delivery-variance", test: (code) => code.includes("delivery-variance") },
 ];
 
 /** A file's code with its comments, block and line, taken out. */
@@ -59,11 +65,10 @@ const retiredIn = (source) => {
 export function run({ check, assert, log }) {
     const price = VARIANCE_COPY.price;
     const quantity = VARIANCE_COPY.quantity;
-    const delivery = STATUS_COPY.column.invoice["delivery-variance"]().text;
     const differ = VARIANCE_COPY.totalsDiffer;
     const agree = VARIANCE_COPY.totalsAgree;
-    const variances = [price, quantity, delivery];
-    const all = [price, quantity, delivery, differ, agree];
+    const variances = [price, quantity];
+    const all = [price, quantity, differ, agree];
 
     // -----------------------------------------------------------------------
     log("THE QUIET MUTANT — one word for two kinds is the screen #179 found:");
@@ -73,7 +78,7 @@ export function run({ check, assert, log }) {
         "  so the one-word mutant disagrees with the rule",
         oneWord.price === oneWord.totalsDiffer && price !== differ
     );
-    check("  and the five words are five", new Set(all).size, 5);
+    check("  and the four words are four", new Set(all).size, 4);
     assert(
         "  and none is a prefix of another, which would read as one word qualified",
         all.every((a) => all.every((b) => a === b || !b.includes(a)))
@@ -84,19 +89,26 @@ export function run({ check, assert, log }) {
     log("the three-way match's names (#623):");
     check("an item's unit price against its order's", price, "⚠ Price variance");
     check("what an ordered item has been invoiced against what it ordered", quantity, "⚠ Quantity variance");
-    check("the invoice against the delivery matched to it", delivery, "Delivery variance");
+    // #640 — the invoice's delivery chip is no variance: two values, a match and a wait.
+    check(
+        "the invoice's delivery chip names no variance",
+        Object.values(STATUS_COPY.column.invoice)
+            .map((build) => build().text)
+            .join(", "),
+        "Matched, Awaiting delivery"
+    );
     check("the invoice's own two totals, apart", differ, "⚠ Totals differ");
     check("  and together", agree, "Totals agree");
     // ONE NOUN AND A QUALIFIER EACH for the three variances. The qualifier is the whole
     // distinction, so two kinds sharing one would be one word on two facts again.
     const qualifier = (word) => /^(?:⚠ )?(\w+) variance$/.exec(word)?.[1] ?? null;
     assert("each variance is its qualifier and the noun `variance`", variances.every((w) => qualifier(w) !== null));
-    check("  and no two share a qualifier", new Set(variances.map(qualifier)).size, 3);
+    check("  and the two do not share a qualifier", new Set(variances.map(qualifier)).size, 2);
     // THE TOTALS PAIR IS ONE SUBJECT AND TWO VERBS, and only the one that asks for a look
     // carries the look-at-this glyph.
     assert("the two totals words share their subject", /^(?:⚠ )?Totals /.test(differ) && /^Totals /.test(agree));
     assert("  and only the disagreement carries the glyph", differ.startsWith("⚠") && !agree.includes("⚠"));
-    for (const [kind, word] of [["price", price], ["quantity", quantity], ["delivery", delivery], ["totals", differ]]) {
+    for (const [kind, word] of [["price", price], ["quantity", quantity], ["totals", differ]]) {
         assert(
             `the ${kind} word reads as a state, not an instruction`,
             !/^(?:⚠ )?(Check|Recheck|Double-check|Review|Look)\b/.test(word)

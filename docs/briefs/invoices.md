@@ -96,11 +96,10 @@ function that takes no reader, which is the whole of what keeps two readers from
 seeing two values on one row. Measured: the office and a site employee spend the
 same 14 operations on this screen and the breakdown is identical table for table.
 
-**One invoice charges orders on one job**, which follows from the app's
-one-delivery premise rather than from a field: a delivery holds a single job, and an
-invoice is answered by one delivery or none. Nothing on the write side enforces it,
-so where the walk finds two the column names neither rather than picking — the em
-dash again. A redesign should know the cell has that third state and that no reader
+**An invoice normally charges orders on one job**, and nothing makes it: no field
+holds it and nothing on the write side enforces it (it followed from the one-delivery
+premise until #640 retired that). So where the walk finds two the column names
+neither rather than picking — the em dash again. A redesign should know the cell has that third state and that no reader
 has ever seen it.
 
 **verdict — the payment word, in the `Status` column.** `Paid` in green or `Not paid`
@@ -115,15 +114,18 @@ third surface would have made three, so they converged on the negation of `Paid`
 which is the participle the field is named for. The same word now reads at three
 places, about one invoice here and about a set of them on the order list.
 
-**verdict — the Delivery chip.** One of `Matched` / `Delivery variance` /
-`Awaiting delivery`. This is the same chip the invoice detail shows beside its own
-`Delivery` heading, from the same function, so the row a reader clicks and the
-page they land on cannot describe the invoice differently.
+**verdict — the Delivery chip.** One of `Matched` / `Awaiting delivery`. This is the
+same chip the invoice detail shows beside its own `Delivery` heading, from the same
+function, so the row a reader clicks and the page they land on cannot describe the
+invoice differently. `Matched` says everything the invoice charges has been delivered:
+invoices and deliveries meet only through the ordered items both name, and what has
+been delivered on an ordered item answers its invoices oldest first, in the order they
+were entered. Until then the invoice is `Awaiting delivery` — a wait, never an error,
+since the rest may still be on its way.
 
-`Delivery variance` is red and is the only red chip in the app. It is deliberately not
-`partial`'s amber: amber on this axis would put a stage color on an error, and
-under the app's one-delivery premise a shortfall here is not a stage — nothing
-further is coming.
+**Beside `Awaiting delivery`, in gray, how long it has waited** — `12d`, the days since
+its `Issue Date`, the same figure the strip above prints for the same invoice. It is
+not part of the chip: a chip is a closed set and carries no figure.
 
 **The column head is `Delivery`**, the same word the purchase order list carries
 over the same chip set. One word, two subjects, and the row supplies which.
@@ -266,14 +268,14 @@ the two report on two different kinds of record.
 first and above the table, with a counted heading —
 `N invoices are waiting on a delivery` — then this line:
 
-`Longest wait first. Nothing has confirmed the material these invoices charge for.`
+`Longest wait first. Not everything these invoices charge for has been delivered.`
 `Only invoices that have waited N days or more are listed.`
 
 and one row per invoice: its ID as a link, its issue date with the days it has
 waited, the vendor, and one of two words saying which state it is in.
 
 **The third sentence is the threshold, and the strip states it because the list is
-a claim.** An invoice with no delivery matched to it is the ordinary state, not an
+a claim.** An invoice still awaiting delivery is the ordinary state, not an
 exception — the vendor emails the invoice at shipment, so a worklist holding every
 one of them is the table below with a different heading. So an invoice reaches this
 strip only once it has waited long enough that nobody expects the delivery to still
@@ -281,51 +283,43 @@ be in flight, and the strip says which number it applied so a reader knows what 
 list is asserting. `N` is a whole number of **calendar** days, counted the same way
 the row's own `Nd` is counted, so a reader can check one against the other.
 
-**The wait applies to both row words equally.** `delivered, not matched` looks like
-it should skip it — something arrived, so the office rather than the vendor is what
-is being waited on — but the signal behind that word is much weaker than it reads:
-it fires when any quantity was delivered against any one of the orders the invoice
-charges, by any delivery, possibly answering a different invoice entirely. A
-redesign must not present the two words as two urgencies.
+**The wait applies to both row words equally.** A partly delivered invoice is
+waiting on the vendor exactly as a wholly undelivered one is. A redesign must not
+present the two words as two urgencies.
 
-The two words are `nothing delivered yet`, when nothing has been delivered against
-any order the invoice charges, and `delivered, not matched`, when something has and no
-delivery is paired with it. **Neither claims a reason.** The refusal reasons the
-pairing rule produces are never stored and it only runs when a document is written,
-so an unmatched invoice is equally consistent with a refusal, with nothing having
-arrived at the time, and with the pairing never having been attempted — the last
-being the common case on today's seeded base. The words say what is observable and
-send the reader to look.
+The two words are `nothing delivered yet`, when nothing has been delivered for any
+item the invoice charges, and `partly delivered`, when some of it has and not all.
+**Neither claims a reason.** The app knows how much has been delivered, never why the
+rest has not.
 
 **This strip is silent when empty too**, and it counts the days from `Issue Date` —
 the vendor's own date on the document, the same choice the delivery strip makes in
 using the packing list's `Received Date` rather than when either was entered here.
 
 **Both strips can appear at once, and often on one situation seen from both ends.**
-A delivery nobody has invoiced and an invoice nobody has matched each get a row, in
+A delivery not yet invoiced and an invoice not yet delivered each get a row, in
 different strips. Neither strip's contents depend on the other's. They are told
 apart without color: each heading names and counts its own subject, and the row IDs
 carry different prefixes.
 
 **Its row count and the number of `Awaiting delivery` chips in the table can
-differ, and that is not a defect.** A chip says an invoice has no delivery
-matched; a row says the app could compute no pairing for it yet **and enough time
-has passed to ask about it**. The threshold is now the ordinary reason the two
-figures disagree: an invoice entered this week wears the chip and earns no row.
-An invoice whose ordered items nothing has delivered wears the chip and has a row;
-one the pairing refused for another reason wears the chip and has none. **This paragraph
-named a third case until #278** — an invoice charging no ordered item at all,
-which two hand-entered rows on the base were in and which no invoice can be in
-now.
+differ, and that is not a defect.** A chip says not everything has been delivered;
+a row says that **and enough time has passed to ask about it**. The threshold is the
+ordinary reason the two figures disagree: an invoice issued this week wears the chip
+and earns no row. An invoice whose items were all removed by hand wears the chip and
+has no row either, since neither row word can be said of it.
 
 ## What must agree elsewhere
 
 **The Delivery chip is the invoice detail's chip.** If the two vocabularies drift,
 the list and the page describe one invoice two ways.
 
-**`Delivery variance` belongs to this axis and nowhere else.** It is one of the
-three-way match's variances, and its qualifier is its own: no other fact may say
-`Delivery`, as no other may say `Price` or `Quantity`.
+**The wait beside the chip is the strip's figure.** Both count from `Issue Date` and
+both print `Nd`; a design that redraws one redraws the other.
+
+**This axis carries no variance.** `Delivery variance` compared an invoice with the one
+delivery it named and left with that link (#640); less delivered than invoiced is a
+wait. The variances are `Price` and `Quantity`, against the order.
 
 **`⚠ Totals differ` is one of three badges.** The others are `⚠ Price variance`
 and `⚠ Quantity variance`, which appear on the invoice detail and on the

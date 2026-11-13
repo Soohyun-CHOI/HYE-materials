@@ -125,9 +125,9 @@ list's design takes them away. They are not a layout to preserve.
    **Two facts ride beside that selection and neither is a confirmation** —
    that fewer were written than asked for, which offers to write the rest or be
    done, and which of those written have no recorded registration. They are what
-   the arrival cannot show, the way the invoice screen says how a delivery was
-   matched to it (#231), and the category page's own brief carries both and what a reload
-   does to them.
+   the arrival cannot show — the shape the invoice screen used, until #640, to say how
+   a delivery was matched to it (#231) — and the category page's own brief carries both
+   and what a reload does to them.
 
    A redesign that adds a success state to a document screen is undoing this,
    which is why it is here rather than in one brief.
@@ -203,33 +203,28 @@ way an Airtable single select works.
 |---|---|---|
 | `complete` | Nothing is outstanding on this axis. | green |
 | `partial` | Some of it is outstanding. A stage, on the way somewhere. | amber |
-| `variance` | An error. Two figures that should agree do not. | red |
 | `none` | Not begun. No judgment implied. | gray |
 
-`variance` is amber's near neighbor and must not become amber (#232). `partial`
-means a stage and `variance` means an error; sharing one color would make that
-color say a stage on one list and an error on another, which is the single
-property this vocabulary exists to hold still. The current split is that the
-chip states the discrepancy in red and the prompt below it asks in amber.
+**No chip tone is an error since #640.** `variance` stood here, red, for the
+`Delivery variance` chip — an invoice against the one delivery it named — and went with
+that chip: compared cumulatively, less delivered than invoiced is a wait. If an error
+chip comes back it needs its own color, away from `partial`'s amber, for #232's reason:
+one color saying a stage on one list and an error on another is the single thing this
+vocabulary exists to prevent.
 
-**Group 2 — the verdict tone.** One name, for a line of text rather than a chip,
-added by #241. It is deliberately not a chip tone: reusing one would make a
-single word mean a chip on one screen and a text color on another.
+**Group 2 — the detail tone.** One name, for a line of text rather than a chip. It is
+deliberately not a chip tone: reusing one would make a single word mean a chip on one
+screen and a text color on another.
 
 | Tone | What it means | Currently |
 |---|---|---|
-| `exception` | A discrepancy a person has to act on. | amber text |
+| `waiting` | A row of the invoice detail's delivery table whose quantity has not all been delivered yet. | amber text |
 
-**This group held two until #278, and the second is worth knowing about even
-though it is gone.** `unjudged` was gray text for an invoice item with no ordered
-item
-behind it — "nothing was measured here", not a problem but the absence of one —
-and the pair made a distinction the invoice detail drew on purpose: gray said
-nothing was compared, amber said something is wrong. #278 removed that item
-itself, so the gray half has no producer and every entry in that list is now an
-exception. A design does not have to draw the distinction; it should know the
-list was once two things and is now one, because reintroducing a second grade
-there would need its own argument.
+**This group has been three things.** `exception` (#241) was a shortfall against the
+one delivery an invoice named, a discrepancy to act on; `unjudged` (until #278) was
+gray text for an invoice item with nothing behind it. #640 replaced both with
+`waiting`, because under the three-way match a shortfall is material still to come. A
+row answered in full carries no tone at all.
 
 **Group 3 — `absent`, which is not a chip at all.** It means the comparison was
 never made, and it renders as plain text with no color. Making it a chip would
@@ -243,19 +238,17 @@ axis's dash went with the state behind it, and the invoice axis lost its own in
 `absent` appear together anywhere a list column carries a status, and
 `/pos/[poId]` puts two such chips on one row since #235 — the delivery axis and
 the invoicing axis, deliberately sharing one palette so a reader crossing
-between them does not learn a second. `variance` reaches only the invoice list
-and the invoice detail. `exception` reaches only the invoice detail, where it can
-appear alongside chip tones on the same page. What never
+between them does not learn a second. `waiting` reaches only the invoice detail,
+where it appears alongside chip tones on the same page. What never
 happens is two *different* chip vocabularies for one predicate on one screen;
 `STATUS_COPY.column.po` records that the two sets sharing three words never meet.
 
-**Which grade demands a person.** Two, and only two: `variance` and
-`exception`. Both mean a human has to look before money moves, and the app
-currently states both alongside a sentence saying what to do. `partial` and
-`none` are waits, not problems — nobody is asked to act on them. This is the
-distinction most worth keeping legible under a new palette: a redesign in which
-"waiting" and "wrong" are equally loud loses the only signal the app has for
-"stop".
+**Which grade demands a person.** No tone, since #640: `partial`, `none` and
+`waiting` are waits, not problems. What demands a person is the variance badges and
+the totals box (`⚠ Price variance`, `⚠ Quantity variance`, `⚠ Totals differ`), which
+say what to do beside them. This is the distinction most worth keeping legible under a
+new palette: a redesign in which "waiting" and "wrong" are equally loud loses the only
+signal the app has for "stop".
 
 ### Distinctions that are not tones
 
@@ -346,22 +339,17 @@ it, so a figure moved between those two pages changes meaning. Anywhere both
 scopes appear on one screen, which one a figure belongs to has to be
 recoverable without counting.
 
-**The three-way match, in four names.** `⚠ Price variance` is an item whose
-unit price differs from its order's, `⚠ Quantity variance` an ordered item
-invoiced past what it ordered, across every invoice, `Delivery variance` an
-invoice item charging more of an ordered item than the delivery linked to its
-invoice brought of it — that invoice and that delivery alone, nothing summed
-across others — and
-`⚠ Totals differ` one document's Invoice Total not matching its own Calculated
-Total — `Totals agree` when it does, said only on the form where both are typed.
-Different facts with different remedies, and all of them can be on one invoice
-at once; each variance's qualifier is what tells it from the others, so no two
-may share one.
-
-**Stored against computed.** A delivery may be attached to an invoice by hand or
-matched by the app from the ordered items (#231). The app tells the reader which,
-because a computed pairing is a claim the app is making and a stored one is a
-claim a person made. `PAIRING_COPY` carries the sentences.
+**The three-way match, in three names and a wait.** `⚠ Price variance` is an item
+whose unit price differs from its order's, `⚠ Quantity variance` an ordered item
+invoiced past what it ordered, across every invoice, and `⚠ Totals differ` one
+document's Invoice Total not matching its own Calculated Total — `Totals agree` when
+it does, said only on the form where both are typed. Different facts with different
+remedies, all of which can be on one invoice at once; each variance's qualifier is
+what tells it from the others, so no two may share one. **Delivery is not a variance
+(#640):** invoices and deliveries meet only through the ordered items both name, what
+has been delivered on an ordered item answers its invoices oldest first in entry
+order, and an invoice not yet answered in full is `Awaiting delivery`. `Delivery
+variance` — an invoice against the one delivery it named — went with that link.
 
 **Nothing against zero.** An em dash means no comparison was possible; a `0`
 means a comparison was made and came to zero. They are different facts and the
@@ -419,12 +407,12 @@ Five axes. Within an axis the words are a closed set; across axes the same word
 is deliberately the same word, because the predicate is the same and only the
 denominator differs — the row supplies that, never the chip. **An invoice's
 complete state is `Matched` and an order's is `Delivered`**, because they are
-not one predicate: the invoice was matched to a delivery that covered it, the
-order has had what it asked for delivered.
+not one predicate: everything the invoice charges has been delivered through its
+ordered items, the order has had what it asked for delivered.
 
 | Axis | Words |
 |---|---|
-| An invoice against its delivery | `Matched`, `Delivery variance`, `Awaiting delivery` |
+| An invoice against its ordered items' deliveries | `Matched`, `Awaiting delivery` |
 | A delivery against its invoices | `Invoiced`, `Partly invoiced`, `Awaiting invoice`, `—` |
 | An order against its deliveries | `Delivered`, `Partly delivered`, `Awaiting delivery`, `—` |
 | An order against its invoices | `Invoiced`, `Partly invoiced`, `Awaiting invoice`, `—` |
@@ -475,14 +463,18 @@ invoicing something reads as a plural noun and was tried.
 
 The sentences that go with them, all tier 1:
 
-- `⚠ This invoice charges more than the delivery matched to it delivered — take it up with the vendor, or with whoever received the material, before confirming payment.`
-- `N EA more invoiced than the matched delivery delivered`
-- `N EA invoiced, none of it delivered by the matched delivery`
-- `Against the ordered item: N EA more invoiced, N EA more delivered`
+- `No delivery has been recorded for this invoice's items yet.`
+- the delivery table's heads, `Ordered`, `Delivered to date`, `Invoiced to date` and
+  `This invoice`, and its last cell, `N of N EA delivered`
 - `Longest wait first. No invoice yet covers what these deliveries brought.`
+- `Longest wait first. Not everything these invoices charge for has been delivered.`,
+  with the strip's two row words `nothing delivered yet` and `partly delivered`
+- beside `Awaiting delivery`, the wait as `Nd`, counted from the `Issue Date`
 
-`Against the ordered item`, not `Against the order`: the comparison is against
-one `PO Items` row's quantity, not the order's total.
+`to date` is what tells the ordered item's totals from this invoice's own figure
+(#232's scope confusion, kept away by words). The three verdict sentences that stood
+here compared an invoice with the one delivery it named and went with that link
+(#640).
 
 ### Variance (tier 1, `lib/variance.js`)
 
@@ -491,9 +483,9 @@ one `PO Items` row's quantity, not the order's total.
 against what it ordered.
 `⚠ Totals differ` / `Totals agree` — a document's Invoice Total against its own
 Calculated Total.
-The fourth is the delivery axis's `Delivery variance`, above. They are pinned by
-`offline/variance-copy.mjs` as well: one noun and a qualifier each for the three
-variances, and one subject with two verbs for the totals.
+A fourth, `Delivery variance`, was the delivery axis's until #640. They are pinned by
+`offline/variance-copy.mjs` as well: one noun and a qualifier each for the two
+variances, one subject with two verbs for the totals, and `Delivery variance` barred.
 
 The badge has a third string behind it, the invoice-level prompt, and this
 document named it as locked without quoting it until #303:
@@ -592,22 +584,16 @@ not. A wait is recognizable by having degrees — `Awaiting X` → `Partly X` �
   for the office and `… Ask the office to generate it.` for everyone else (#176).
 - `unsigned`, lowercase, as a suffix inside a dropdown option label (#198).
 
-### Deliveries and pairing (tier 1)
+### Deliveries (tier 1)
 
 `lib/deliveryAllocation.js` carries the over-delivery banner (`Over-delivered —
 N EA delivered beyond what {order} ordered.`), its unattributable twin, the
 `(N over)` table mark, and the refusal `Nothing on this job orders this item
 from this vendor, so there is no order to record it against.`
 
-`lib/deliveryInvoicePairing.js` carries `One invoice belongs to one delivery, so
-one already attached elsewhere is listed but cannot be picked. A delivery can
-carry more than one invoice.` and four refusals, two of which are deliberately
-the same sentence — `That invoice no longer exists.` answers both "not found"
-and "outside your scope", because telling the two apart would confirm that a
-record exists outside someone's scope.
-
-`lib/deliveryInvoicePairing.js` carries the seven pairing sentences, including the
-tie-break. `lib/overage.js` carries the overage request's preview, its eight
+`lib/deliveryInvoicePairing.js` carried the pairing's words — the edit page's rule
+and refusals and the seven pairing sentences — until #640 removed the pairing.
+`lib/overage.js` carries the overage request's preview, its eight
 refusals, its five short strip reasons (`no invoice yet`, `invoice and delivery
 disagree`, `spans two invoices`, `invoices differ on price`, `invoice has no
 file`) and seven banners. **A sixth read `no ordered item` and went in #278**,

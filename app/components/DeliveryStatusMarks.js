@@ -23,16 +23,9 @@
 const TONE_CLASS = {
     complete: "bg-green-100 text-green-800",
     partial: "bg-amber-100 text-amber-800",
-    // #232 — ITS OWN TONE RATHER THAN `partial`'s AMBER, and the reason is the
-    // property this file exists to hold: a tone means the same thing on both lists.
-    // `partial` is `Partly invoiced`, a stage; `variance` is an error, and an error
-    // wearing the stage color would make the palette say two things. Red is the color
-    // this page already gives a discrepancy between two figures — `⚠ Totals differ`
-    // on the invoice detail — while amber there is the PROMPT that asks a person to
-    // look. So the chip states the discrepancy in red and the box below asks in amber,
-    // which is the split those two already had before this chip existed.
-    // `mismatch` until #623, when the chip it colors became `Delivery variance`.
-    variance: "bg-red-100 text-red-800",
+    // A `variance` tone stood here (#232), red for the `Delivery variance` chip — an
+    // error, kept off `partial`'s amber so the palette would not say a stage and an
+    // error in one color. It went with that chip (#640): no chip value is an error now.
     none: "bg-zinc-100 text-zinc-600",
 };
 
@@ -72,10 +65,10 @@ export function StatusChip({ chip }) {
  * BACK TO ONE CALLER SINCE #232, AND THE NAME IS STILL RIGHT. That issue made the
  * discrepancy a chip value: the chip said `Delivered` and the marker qualified it, so
  * a reader met the normal word first and had to hover for the one that mattered. What
- * is left is #167's inferred attribution on the overage affordance — a guess, which
- * is what a qualifier is for, and reading it off the stored pairing is that issue's
- * work. The name outlived the reuse that prompted it, which is the point of naming a
- * component for its shape: it does not have to be renamed back.
+ * is left is the overage affordance's tie-break (#265): several invoices could have
+ * supplied the quotation at the same price. The name outlived the reuse that prompted
+ * it, which is the point of naming a component for its shape: it does not have to be
+ * renamed back.
  *
  * `title` alone would be the whole affordance on a mouse and nothing at all
  * anywhere else: a tooltip opens on neither touch nor a keyboard. So the same

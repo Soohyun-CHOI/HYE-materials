@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { AWAITING_DELIVERY_COPY } from "@/lib/deliveryStatus";
 
-// Invoices nobody has matched to a delivery, above the list of invoices (#256). The
+// Invoices whose material has not all been delivered, above the list of invoices (#256,
+// #640). The
 // fourth strip built to the shape #176 set, and the second on this page; the
 // selection rule, the two row kinds and the ordering are lib/deliveryStatus.js's,
 // so this file is the rendering and nothing else.
@@ -36,7 +37,7 @@ import { AWAITING_DELIVERY_COPY } from "@/lib/deliveryStatus";
 // different thing about the same documents.
 //
 // NEITHER STRIP'S CONTENTS DEPEND ON THE OTHER'S. An uninvoiced delivery and an
-// unmatched invoice for the same material appear in both, once each, and suppressing
+// invoice still awaiting the same material appear in both, once each, and suppressing
 // either would make one strip's rule a function of the other's — a coupling nobody
 // could reason about later, and the two admit different readers anyway: #216's rows
 // are Job-scoped deliveries and these are invoices under #211's walk.
@@ -60,10 +61,10 @@ import { AWAITING_DELIVERY_COPY } from "@/lib/deliveryStatus";
 // control would be addressed to readers who cannot use it — #216's rule about copy
 // naming a control, one step further along.
 //
-// And no link to a delivery on a `delivered, not matched` row, although one exists
-// by definition. There may be several, and naming one would be this app asserting a
-// pairing it did not make; the invoice's own page is where the reader goes to see
-// what it charges and against which orders.
+// And no link to a delivery on a `partly delivered` row, although one exists by
+// definition. There may be several, and they are the ordered items' rather than this
+// invoice's (#640); the invoice's own page names every one and says how much of each
+// item has arrived.
 
 export default function AwaitingDeliveryStrip({ rows }) {
     if (!rows || rows.length === 0) return null;

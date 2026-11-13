@@ -43,19 +43,10 @@
 // retired in the same commit that added this paragraph; the order it charged
 // (`237-DEMO Cap`) is left standing, an order having existed either way.
 //
-// IT RUNS #231's MATCHER, BECAUSE `createInvoice` DOES NOT. The computed pairing lives
-// in `createInvoiceAction` — `getDeliveriesForInvoice`, then `matchDeliveryToInvoice`, then
-// `setInvoiceDelivery` on `matched` — and a seed that writes the record directly skips
-// all three, so an invoice whose material demonstrably arrived was left with an empty
-// `Delivery`. That is worse than a missing fixture: the screen then says
-// `Awaiting delivery` and `No delivery has been matched to this invoice yet`, which is
-// exactly what a real failed match looks like, so anyone later working on the invoice
-// axis would read their own code as broken against data the matcher had never been
-// asked about. **Nothing here writes that link by hand** — the three steps run in the
-// order the action runs them, right after the items land and before the correction,
-// which is also the order the office works in. Whatever the matcher answers is the
-// fixture's state: A matches its delivery, B has no delivery at all and answers `none`,
-// and both answers are printed by the run.
+// IT RAN #231's MATCHER UNTIL #640, because `createInvoice` does not and an invoice
+// whose material had arrived would otherwise have read as unmatched. #640 removed the
+// pairing: an invoice's delivery state is computed from the ordered items it charges,
+// so the seed writes the records and the screens read them, with nothing to run.
 //
 // THE TWO CASES CANNOT SHARE ONE INVOICE: A must render silent and B must render
 // listed, and an invoice is one or the other. Two invoices, therefore, and the ids
@@ -88,16 +79,9 @@ import {
     getItemsByDelivery,
     getDeliveryItemsByRecordIds,
 } from "../../lib/airtable/deliveryItems.js";
-import {
-    createInvoice,
-    getAllInvoices,
-    getInvoiceByRecordId,
-    setInvoiceDelivery,
-} from "../../lib/airtable/invoices.js";
+import { createInvoice, getAllInvoices, getInvoiceByRecordId } from "../../lib/airtable/invoices.js";
 import { createInvoiceItem, getItemsByInvoice } from "../../lib/airtable/invoiceItems.js";
 import { createOverageDraft, getOverageContext } from "../../lib/overage.server.js";
-import { getDeliveriesForInvoice } from "../../lib/deliveryInvoicePairing.server.js";
-import { PAIRING, linkedDelivery, matchDeliveryToInvoice } from "../../lib/deliveryInvoicePairing.js";
 import { getMaterialByKey } from "../../lib/airtable/materials.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
@@ -131,7 +115,6 @@ const seededPRRecordIds = [];
 // seed_delivery_status_166.mjs had to fix.
 const ids = {};
 const manifest = [];
-const pairings = [];
 
 /** Every record this run created, for telling a fixture from real data later. */
 function made(kind, id, note) {
@@ -192,14 +175,6 @@ async function resolveSeededIds() {
     ids.bInvoice = b?.invoiceId;
     [ids.aPo, ids.aCorrectionPo] = await ordersOf(a);
     [ids.bPo1, ids.bPo2] = await ordersOf(b);
-    // The delivery is read off the INVOICE's own link rather than looked up by name,
-    // so a re-run reports what the matcher actually left there — including nothing,
-    // if it left nothing.
-    const pairedRecordId = linkedDelivery(a);
-    if (pairedRecordId) {
-        const [delivery] = await getDeliveriesByRecordIds([pairedRecordId]);
-        ids.aDelivery = delivery?.deliveryId;
-    }
 }
 
 /** A one-page PDF standing in for the vendor's invoice scan. */
@@ -332,51 +307,6 @@ async function charge({ invoice, po, orderedItem, qty, unitPrice = PRICE }) {
     return item;
 }
 
-/**
- * #231's computed pairing, in `createInvoiceAction`'s own three steps: the candidate
- * walk, the pure matcher, and a write ONLY on `matched`. Called after an invoice's
- * charges exist and never with a delivery chosen here — see the header.
- *
- * The invoice is read back off the base rather than assembled from what was just
- * written; the action assembles it from the submitted form rows to save a read, and
- * a seed has no reason to.
- */
-async function pairInvoice(invoice) {
-    const items = await getItemsByInvoice(invoice.id);
-    const orderedItems = items.map((it) => ({
-        poItemRecordId: it.poItem?.[0] || null,
-        unitPrice: it.unitPrice,
-    }));
-    const { deliveries, invoices, agreedPrices } = await getDeliveriesForInvoice(requester, {
-        vendorRecordId: vendor.id,
-        orderedItems,
-    });
-    const outcome = matchDeliveryToInvoice({
-        invoice: {
-            invoiceRecordId: invoice.id,
-            invoiceId: invoice.invoiceId,
-            orderedItems: orderedItems.filter((o) => o.poItemRecordId),
-            pairedDeliveryRecordId: null,
-        },
-        deliveries,
-        invoices,
-        agreedPrices,
-    });
-    if (outcome.key === PAIRING.matched) {
-        await setInvoiceDelivery(invoice.id, outcome.deliveryRecordId);
-    }
-    pairings.push({ invoiceId: invoice.invoiceId, outcome, deliveries: deliveries.length });
-    console.log(
-        `  pairing ${invoice.invoiceId}: ${outcome.key}` +
-            `${outcome.deliveryId ? ` -> ${outcome.deliveryId}` : ""}` +
-            ` (${deliveries.length} delivery${deliveries.length === 1 ? "" : "s"} to choose from)`
-    );
-    return outcome;
-}
-
-// ---------------------------------------------------------------------------
-// A — the corrective order: two orders, one folded item touching both, SILENT
-// ---------------------------------------------------------------------------
 console.log("\nA — a correction splits one invoiced item across two orders:");
 
 const a = await makeOrder({ leafCode: FIRST_CODE, qty: 10 });
@@ -394,11 +324,6 @@ const aInvoice = await makeInvoice({
 await charge({ invoice: aInvoice, po: a.po, orderedItem: a.orderedItem, qty: 13 });
 console.log(`  ordered 10, delivered 13, invoiced 13 on ${aInvoice.invoiceId}`);
 
-// BEFORE the correction, which is where the action runs it and the order the office
-// works in: the invoice arrives, the pairing is computed, and only then does anyone
-// notice the excess. The link survives the split — the delivery's rows move to the
-// corrective order's ordered item, and the invoice still charges every one of them.
-await pairInvoice(aInvoice);
 
 // The correction, through the same context the delivery page's button reads.
 const overRow = (await getItemsByDelivery(aDelivery.id)).find((r) => r.overDelivered);
@@ -464,10 +389,6 @@ const bInvoice = await makeInvoice({
 });
 await charge({ invoice: bInvoice, po: b1.po, orderedItem: b1.orderedItem, qty: 5 });
 await charge({ invoice: bInvoice, po: b2.po, orderedItem: b2.orderedItem, qty: 7 });
-// Nothing has been delivered against either order, so this answers `none` and writes
-// nothing. Run anyway, and that is the point: `Awaiting delivery` on this invoice is
-// then the matcher's ANSWER rather than a question never put to it.
-await pairInvoice(bInvoice);
 
 ids.bInvoice = bInvoice.invoiceId;
 ids.bPo1 = b1.po.poId;
@@ -506,10 +427,10 @@ repeat it. The items table below shows one row of 13; the two rows behind
 it are 10 on the first order and 3 on the second, at one price, which is
 what makes them fold.
 
-Its Delivery section reads Delivered, naming ${ids.aDelivery ?? "<A-DL>"} —
-#231's matcher put it there, the delivery having brought every ordered item
-the invoice charges. The two entries under it are one per invoice item, both
-silent and both the same name, because the split made two rows of one item.
+Its Delivery section reads Matched and names ${ids.aDelivery ?? "<A-DL>"},
+the delivery that brought both ordered items the invoice charges, and its
+table has one row for the one folded item: 13 of 13 delivered, across the
+order and its correction.
 
 ------------------------------------------------------------------
 2. /invoices/${ids.bInvoice ?? "<B>"}  —  listed, one item per order
@@ -557,25 +478,7 @@ this seed created touches them.
     for (const { kind, id, note } of manifest) {
         console.log(`  ${kind.padEnd(18)} ${String(id).padEnd(26)} ${note}`);
     }
-    if (pairings.length > 0) {
-        console.log(`\n${"=".repeat(72)}`);
-        console.log("#231's PAIRING, PER INVOICE — the matcher's answer, not a choice made here");
-        console.log("=".repeat(72));
-        for (const { invoiceId, outcome, deliveries } of pairings) {
-            console.log(
-                `  ${invoiceId.padEnd(20)} ${outcome.key.padEnd(10)}` +
-                    ` ${outcome.deliveryId ?? "(no link written)"}` +
-                    `   ${deliveries} delivery(s) considered`
-            );
-        }
-    }
     console.log(`
-Also written by this run, and by #231's matcher rather than by hand: the
-\`Delivery\` link on each invoice the matcher paired. Never set here
-directly — an empty link is a real state of a real invoice, and a hand-set one
-would be indistinguishable from a computed one, which is the confusion this
-whole paragraph exists to avoid.
-
 Also created as side effects, by the app rather than by this file: one
 Quotation on the correction request (the invoice's own file, re-uploaded),
 the corrective order's PO PDF, and three Materials rows and their Material

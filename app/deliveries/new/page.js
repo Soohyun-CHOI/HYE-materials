@@ -4,7 +4,6 @@ import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllAddresses } from "@/lib/airtable/addresses";
 import { getDeliveryCandidates } from "@/lib/deliveryAllocation.server";
-import { getInvoiceLinkCandidates } from "@/lib/deliveryInvoicePairing.server";
 import { accessibleJobs as jobsFor } from "@/lib/deliveryAccess";
 import { withOpsLabel } from "@/lib/airtableOps";
 import DeliveryForm from "./DeliveryForm";
@@ -74,17 +73,9 @@ async function renderNewDeliveryPage() {
         getAllAddresses(),
     ]);
 
-    // #210 — the invoices this viewer may pair a delivery with, narrowed up front to
-    // the vendors that actually supplied these jobs so the batched reads stay small.
-    // GATED PER RECORD through lib/invoiceVisibility.js rather than by a rule of its
-    // own: a dropdown of invoice numbers is a surface that shows invoices. The form
-    // narrows again to the vendor chosen, client-side, off this same list — the
-    // arrangement the candidate ORDERED ITEMS already use.
-    const invoiceOptions = await getInvoiceLinkCandidates(user, {
-        vendorRecordIds: [
-            ...new Set(orderedItems.map((item) => item.vendorRecordId).filter(Boolean)),
-        ],
-    });
+    // #210's INVOICE CANDIDATES WERE READ HERE, for a dropdown pairing the new delivery
+    // with an invoice, and went with the pairing (#640): a delivery meets an invoice
+    // only through the ordered items both name, so recording one asks about no invoice.
 
     return (
         <UndrawnPage measure="delivery">
@@ -107,7 +98,6 @@ async function renderNewDeliveryPage() {
                 addresses={addresses}
                 // A Map cannot cross the server/client boundary; a plain object can.
                 vendorNames={Object.fromEntries(vendorNameById)}
-                invoiceOptions={invoiceOptions}
             />
 
             <Link href="/deliveries" className="mt-8 inline-block text-sm underline">

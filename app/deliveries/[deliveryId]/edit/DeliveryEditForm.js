@@ -1,63 +1,35 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import { refuseOversizeUpload } from "@/lib/uploadLimit";
-import {
-    attachDeliveryInvoiceAction,
-    detachDeliveryInvoiceAction,
-    replaceDeliveryPhotoAction,
-    updateDeliveryAction,
-} from "../actions";
-import {
-    LINK_COPY,
-    availableInvoiceOptions,
-    invoiceOptionLabel,
-} from "@/lib/deliveryInvoicePairing";
+import { replaceDeliveryPhotoAction, updateDeliveryAction } from "../actions";
 
-// EVERY IMPORT HERE MUST BE CLIENT-SAFE. lib/deliveryInvoicePairing.js is pure and
-// dependency-free for exactly this reason; its credentialed half is a separate
-// module (lib/deliveryInvoicePairing.server.js), because importing a module EXECUTES it
-// and anything reaching lib/airtable/client.js throws `Missing AIRTABLE_TEST_API_KEY` in
-// the browser. scripts/tests/offline/client-import-safety.mjs fails on the mistake.
+// EVERY IMPORT HERE MUST BE CLIENT-SAFE: importing a module EXECUTES it, and anything
+// reaching lib/airtable/client.js throws `Missing AIRTABLE_TEST_API_KEY` in the browser.
+// scripts/tests/offline/client-import-safety.mjs fails on the mistake.
 
 /**
- * The four editable things on a recorded delivery: the received date and the note
- * (#162), the photo (#162), and the invoice this delivery is invoiced by (#210).
+ * The three editable things on a recorded delivery: the received date and the note,
+ * and the photo (#162). #210 added a fourth, the invoice this delivery was paired
+ * with, and #640 took it away with the pairing: invoices and deliveries meet only
+ * through the ordered items both name, so there is nothing to attach.
  *
- * FOUR SEPARATE FORMS, not one save. For the photo that is #142's rule made
- * structural rather than remembered: a combined save would carry the current
- * attachment's url in its payload and rewrite the field on every save, and
- * re-submitting an url Airtable issued returns success while silently emptying the
- * field once it has expired. Here the photo is written only by the action that
- * received a fresh upload, and replaceDeliveryPhoto refuses anything that is not one
- * of our own Blob urls. For the invoice the reason is different and simpler: attach
- * and detach are two claims about two records, so one control that quietly did both
- * would move an invoice between deliveries in a single submit nobody reviewed.
+ * SEPARATE FORMS, not one save. For the photo that is #142's rule made structural
+ * rather than remembered: a combined save would carry the current attachment's url in
+ * its payload and rewrite the field on every save, and re-submitting an url Airtable
+ * issued returns success while silently emptying the field once it has expired. Here
+ * the photo is written only by the action that received a fresh upload, and
+ * replaceDeliveryPhoto refuses anything that is not one of our own Blob urls.
  */
 export default function DeliveryEditForm({
     deliveryId,
     receivedDate,
     notes,
-    vendorName,
-    vendorRecordId,
-    attachedInvoices = [],
-    invoiceOptions = [],
 }) {
     const [detailsState, saveDetails, savingDetails] = useActionState(updateDeliveryAction, {});
     const [photoState, savePhoto, savingPhoto] = useActionState(replaceDeliveryPhotoAction, {});
-    const [attachState, attachInvoice, attaching] = useActionState(attachDeliveryInvoiceAction, {});
-    const [detachState, detachInvoice, detaching] = useActionState(detachDeliveryInvoiceAction, {});
     const [photo, setPhoto] = useState({ status: "empty" });
-    const [pickedInvoice, setPickedInvoice] = useState("");
-
-    // Narrowed and ordered by the shared rule, so this screen and the entry form
-    // cannot come to offer different sets.
-    const options = useMemo(
-        () => availableInvoiceOptions(invoiceOptions, { vendorRecordId }),
-        [invoiceOptions, vendorRecordId]
-    );
-    const attachedIds = new Set(attachedInvoices.map((inv) => inv.invoiceRecordId));
 
     async function onPhotoChange(e) {
         const file = e.target.files?.[0];
@@ -153,106 +125,6 @@ export default function DeliveryEditForm({
                     {savingPhoto ? "Replacing…" : "Replace photo"}
                 </button>
             </form>
-
-            {/* --- #210: the invoice this delivery is invoiced by ------------------ */}
-            <div className="mt-8 border-t border-zinc-200 pt-6">
-                <h2 className="text-sm font-medium">Invoices</h2>
-                <p className="mt-1 text-xs text-zinc-500">
-                    {LINK_COPY.field.oneEach().text}
-                </p>
-
-                {attachedInvoices.length === 0 ? (
-                    <p className="mt-3 text-sm text-zinc-600">
-                        None attached yet.
-                    </p>
-                ) : (
-                    <ul className="mt-3 space-y-2">
-                        {attachedInvoices.map((inv) => (
-                            <li key={inv.invoiceRecordId} className="flex items-center gap-3 text-sm">
-                                <span>
-                                    {[inv.vendorInvoiceCode, inv.invoiceId].filter(Boolean).join(" · ")}
-                                </span>
-                                {/* Its own form per row: the action takes one
-                                    invoice, and a single form with a changing hidden
-                                    field would make which row was submitted depend
-                                    on render order. */}
-                                <form action={detachInvoice}>
-                                    <input type="hidden" name="deliveryId" value={deliveryId} />
-                                    <input
-                                        type="hidden"
-                                        name="invoiceRecordId"
-                                        value={inv.invoiceRecordId}
-                                    />
-                                    <button
-                                        type="submit"
-                                        disabled={detaching}
-                                        className="text-xs underline disabled:opacity-50"
-                                    >
-                                        {detaching ? "Detaching…" : "Detach"}
-                                    </button>
-                                </form>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-                {detachState?.error && (
-                    <p className="mt-2 text-sm text-red-700">
-                        {detachState.error}
-                    </p>
-                )}
-
-                {options.length === 0 ? (
-                    <p className="mt-4 text-sm text-amber-700">
-                        {LINK_COPY.field.emptyList({ vendorName }).text}
-                    </p>
-                ) : (
-                    <form action={attachInvoice} className="mt-4 space-y-3">
-                        <input type="hidden" name="deliveryId" value={deliveryId} />
-                        <div>
-                            <label htmlFor="attachInvoice" className="block text-sm font-medium">
-                                Attach an invoice
-                            </label>
-                            <select
-                                id="attachInvoice"
-                                name="invoiceRecordId"
-                                value={pickedInvoice}
-                                onChange={(e) => setPickedInvoice(e.target.value)}
-                                className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm"
-                            >
-                                <option value="">Select an invoice…</option>
-                                {options.map((o) => (
-                                    <option
-                                        key={o.invoiceRecordId}
-                                        value={o.invoiceRecordId}
-                                        // An invoice on ANOTHER delivery is listed and
-                                        // unselectable, naming where it went — #162's
-                                        // fully-delivered item, one level up. One
-                                        // already on THIS delivery is above instead.
-                                        disabled={
-                                            Boolean(o.linkedDeliveryRecordId) &&
-                                            !attachedIds.has(o.invoiceRecordId)
-                                        }
-                                    >
-                                        {invoiceOptionLabel(o)}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        {attachState?.error && (
-                            <p className="text-sm text-red-700">
-                                {attachState.error}
-                            </p>
-                        )}
-                        <button
-                            type="submit"
-                            disabled={attaching || !pickedInvoice}
-                            className="rounded border border-zinc-300 px-3 py-1.5 text-sm disabled:opacity-50"
-                        >
-                            {attaching ? "Attaching…" : "Attach invoice"}
-                        </button>
-                    </form>
-                )}
-            </div>
         </div>
     );
 }

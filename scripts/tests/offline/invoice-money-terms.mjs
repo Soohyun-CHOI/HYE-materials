@@ -176,11 +176,13 @@ export function run({ check, assert, log }) {
             check(`  ${name} writes "${term.field}"`, writesField(fn, term.field), true);
         }
     }
-    // ANTI-VACUITY: `writesField` must be seen to say no. `setInvoiceDelivery` is a
-    // writer in the same module that legitimately writes one field and not these.
-    const linker = resolveFunction(service.ast, "setInvoiceDelivery");
-    assert("the field-write matcher works on a neighbor", writesField(linker, "Delivery"));
-    assert("  and says no to a field that writer does not touch", !writesField(linker, "Sales Tax"));
+    // ANTI-VACUITY: `writesField` must be seen to say no. `createInvoice` writes the
+    // recorder and never the payment, which is `updateInvoice`'s alone. It was
+    // `setInvoiceDelivery`, the module's narrow writer of `Invoices."Delivery"`, until
+    // #640 removed that field and the writer with it.
+    const creator = resolveFunction(service.ast, "createInvoice");
+    assert("the field-write matcher works on a field the creator writes", writesField(creator, "Recorded By"));
+    assert("  and says no to a field that writer does not touch", !writesField(creator, "Paid Date"));
 
     // ── 3. and reads it back ────────────────────────────────────────────────
     log("");

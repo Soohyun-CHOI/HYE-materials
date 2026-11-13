@@ -58,7 +58,8 @@ a grade on the item itself.
 
 **verdict — the Invoiced chip.** One of `Invoiced` / `Partly invoiced` /
 `Awaiting invoice` / `—`. It compares, per ordered item this delivery filled, what
-the invoices naming it charge against what it brought.
+it brought against what has been invoiced on that ordered item — every invoice on it,
+answering its deliveries oldest first in the order they were entered (#640).
 
 **evidence — the foot of the list, two facts, always.** How many deliveries the list
 holds, and which page of them this is. Both are stated whether or not there is a

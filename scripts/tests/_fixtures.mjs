@@ -227,8 +227,8 @@ export function createFixtures({ tag, buckets }) {
      * Remember a record this run created. Returns the id, so it composes.
      *
      * DEDUPED, and that is not tidiness — it is a correctness fix a real script
-     * caught. verify-delivery-status-166.mjs tracks the same invoice from two
-     * places, which its own hand-rolled `track` deduped. Without that, teardown
+     * caught. verify-delivery-status-166.mjs (deleted by #640) tracked the same
+     * invoice from two places, which its own hand-rolled `track` deduped. Without that, teardown
      * deletes the record on the first pass and on the second tries to read it for
      * its children; Airtable answers a gone record with "You are not authorized to
      * perform this operation", which is indistinguishable from a real permission

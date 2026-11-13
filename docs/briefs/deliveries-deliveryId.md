@@ -3,7 +3,7 @@
 Route: `/deliveries/[deliveryId]`
 Who reaches it: anyone signed in who is assigned to the delivery's job, or the
 office. Editing is open to the same set, because what it changes — the received
-date, the note, the photo, the attached invoice — is a correction to the record
+date, the note, the photo — is a correction to the record
 rather than to what the delivery was allocated against. Deleting is the recorder's
 or the office's.
 
@@ -34,7 +34,7 @@ the screen after the heading.
 **identity — a block of facts copied off the delivery.** The job as code and
 name, the vendor, the received date, `Delivery address`, `PO on packing list` as a
 link or the word
-`none`, the invoices paired with this delivery, who recorded it and when, and the
+`none`, who recorded it and when, and the
 packing list photo as a control that opens it over this page in the shared viewer
 (`_shared.md`, "A file opens over the screen that named it"), titled
 `Packing list photo · {filename}`. `PO on packing list` is named at that length on
@@ -50,10 +50,11 @@ purchase order document a vendor reads. **There is no control for it here and a
 redesign should not draw one:** the address is set once, when the delivery is
 recorded. An em dash on every delivery entered before the field existed.
 
-**Invoices is plural and empty is a reading.** One invoice belongs to one
-delivery, so a delivery accumulates them as the office enters each. With none,
-the line says `none attached — attach one from Edit once the office has entered
-it` rather than disappearing.
+**No `Invoices` row (#640).** An `Invoices` row named the invoices paired with this
+delivery until #640 removed the pairing. Invoices and deliveries meet only through the
+ordered items both name, so which invoices charge what this delivery brought is the
+order's fact: each row below names its order, and the order's page lists the invoices
+charging it and the deliveries filling it.
 
 **evidence — the `Recorded against` table, three columns.** Item, Order, Qty.
 One row per material and order: a stored row is one allocated slice, so an
@@ -149,11 +150,10 @@ diverge.
 saying to reload in a moment if it was just uploaded. This is the one place the
 app admits an upload is still in flight.
 
-**Five actions land here and none of them says so.** Recording the delivery,
-editing it, replacing the packing list photo, attaching an invoice and detaching
-one all finish on this screen, and each one is visible on it: the record, the
-edited facts, the new photo, the invoice appearing in or leaving the `Invoices`
-block. This carried a green line for each until #321 — see `_shared.md`, "The
+**Three actions land here and none of them says so.** Recording the delivery,
+editing it and replacing the packing list photo all finish on this screen, and each
+one is visible on it: the record, the edited facts, the new photo. Attaching and
+detaching an invoice were two more until #640. This carried a green line for each until #321 — see `_shared.md`, "The
 arrival is the confirmation".
 
 **When the reader may delete this delivery:** a delete control at the foot,
@@ -183,9 +183,8 @@ lists the deliveries filling it and names each one; this screen names the orders
 from the other side. Neither is the only place that answers it, and they must not
 disagree about which orders a delivery touched.
 
-**`PO on packing list` and the invoice row are paired deliberately** — both are
-facts copied off the same physical document, and they sit together for that
-reason.
+**`PO on packing list` is a fact copied off the physical document**, and it sat
+beside the invoice row for that reason until #640 removed the row.
 
 **The block's sentences are shared with the strip on the purchase request
 list**, which lists the excesses still waiting for a request in short form. The long sentence here

@@ -217,7 +217,7 @@ async function buildInvoice(label, invoiceTotal, charges) {
 /** The breakdown the page computes, from the production reads. */
 async function readBreakdown(invoice) {
     const items = await getItemsByInvoice(invoice.id);
-    const reconciliation = await getInvoiceReconciliation(items, { linkedDeliveryRecordId: null });
+    const reconciliation = await getInvoiceReconciliation(items);
     const materialByOrderedItem = new Map(
         reconciliation.rows.map((r) => [r.invoiceItemId, r.materialRecordId])
     );

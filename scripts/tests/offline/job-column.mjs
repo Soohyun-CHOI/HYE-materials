@@ -15,8 +15,9 @@
 //      states the standing rule: no table in this app drops a column by reader, and
 //      the fact is not what varies.
 //   2  IT NAMES ONE JOB OR NONE, AND NEVER PICKS. The column asserts one job because
-//      the one-delivery premise says an invoice charges one — but nothing on the write
-//      side enforces that, so the state is reachable by hand. Asserted BEHAVIORALLY,
+//      an invoice charges one in practice (the one-delivery premise said so until #640
+//      retired it) — but nothing on the write side enforces that, so the state is
+//      reachable. Asserted BEHAVIORALLY,
 //      the module being import-free: two orders on one job is the ordinary case and
 //      must name it, two orders on two jobs must name nothing.
 //   3  NO PRIVILEGE BRANCH CARRIES THE JOB ON ONE SIDE ONLY. `offline/invoice-
@@ -136,8 +137,8 @@ export function run({ check, assert, log }) {
     // ── 2: one job or none, and never a pick ────────────────────────────────
     //
     // CALLED RATHER THAN READ, which is what being import-free buys. The cases are the
-    // premise's own: an invoice charges orders on one job (`docs/notes/
-    // deliveries-and-invoices.md`, `## The one-delivery premise`), so two orders on ONE
+    // practice's own: an invoice charges orders on one job (`lib/invoiceJob.js`'s header;
+    // a corollary of the one-delivery premise until #640), so two orders on ONE
     // job is the ordinary reason to carry two — a correction that split every item
     // across an order and its overage order — and two orders on two jobs is the state
     // no write of this app produces and no hand edit is stopped from producing.
@@ -256,11 +257,16 @@ export function run({ check, assert, log }) {
     assert("the delivery scope is still narrowed", Boolean(narrowed) && mentions(narrowed, "accessibleJobs"));
 
     const statusCall = callArguments(list.ast, "getInvoiceDeliveryStatus");
-    check("getInvoiceDeliveryStatus is handed two arguments", (statusCall || []).length, 2);
+    // THREE SINCE #640: the gated invoices, their gated items, and every item as
+    // `siblings` — what the oldest-first fill places the gated items among. The second
+    // is what chooses the `PO Items` read, so it is the one the gather rule holds; the
+    // third is arithmetic only, and the module returns nothing of it.
+    check("getInvoiceDeliveryStatus is handed three arguments", (statusCall || []).length, 3);
     assert(
         "  and the second is filtered on the gate's answer",
         mentions(statusCall?.[1], "visibleIds")
     );
+    assert("  and the third names the siblings", mentions(statusCall?.[2], "siblings"));
     // ANTI-VACUITY: the ungated hand-over is seen to be caught.
     const ungated = parseSource(
         "const r = await getInvoiceDeliveryStatus(invoices, invoiceItems);\n" +
