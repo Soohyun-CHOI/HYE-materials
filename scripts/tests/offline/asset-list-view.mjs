@@ -85,7 +85,6 @@ import {
     toggleAsset,
     assetListScope,
     assetCategoriesInScope,
-    countColumns,
     listJobFromAsset,
     pagerPosition,
 } from "../../../lib/assetListView.js";
@@ -982,9 +981,9 @@ export function run({ check, assert, log }) {
         return heads.join(", ");
     };
     check(
-        "the list heads its columns the name, each count's column — each status, and on one job On loan (#598) — and the total (#569)",
+        "the list heads its columns the name, each status and the total (#569), and On loan on no job since #652",
         columnHeads(parseFile(CATEGORY_LIST)),
-        "COPY.nameLabel, column.onLoan ? COPY.onLoanLabel : column.status, COPY.totalLabel"
+        "COPY.nameLabel, status, COPY.totalLabel"
     );
     // ONE TRACK PER STATUS, AND THE COUNT IN THE REPEAT IS A LITERAL (#531): a class a
     // stylesheet is built from cannot be computed, so the repeat says 4 and is held to the
@@ -995,19 +994,19 @@ export function run({ check, assert, log }) {
     check("  one 56 track per status, four", countTracks, 4);
     check("  as many as a screen draws, Deleted none (#582)", countTracks, SHOWN_STATUS_VALUES.length);
     check("  and the total's after them, one track at the counts' 56", tracks?.[2], "_var(--width-table-count)");
-    // ONE JOB'S LIST DRAWS ONE MORE, ON LOAN'S (#598): its own literal, as many as countColumns
-    // hands one job, and the list takes it off the same allJobs it hands countColumns.
-    const loanGridSource = parseFile(CATEGORY_LIST).source;
-    const loanTracks = loanGridSource.match(/const COLUMNS_WITH_LOAN = "grid-cols-\[minmax\(0,1fr\)_repeat\((\d+),var\(--width-table-count\)\)((?:_var\(--[\w-]+\))*)\]";/);
+    // ONE GRID ON ONE JOB AND ON ALL (#652): from #598 one job's list drew a fifth count, On loan,
+    // in a grid of its own; it draws none now, so the head and every row stand on `COLUMNS`, the
+    // row's cells are its counts in the vocabulary's order, and nothing reads the row's `onLoan`.
+    const gridSource = parseFile(CATEGORY_LIST).source;
     check(
-        "  on one job one more for On loan, as many as countColumns hands it, the total's after them (#598)",
-        `${Number(loanTracks?.[1])}/${countColumns({ allJobs: false }).length} ${countTracks}/${countColumns({ allJobs: true }).length} ${loanTracks?.[2]}`,
-        "5/5 4/4 _var(--width-table-count)"
-    );
-    check(
-        "  the grid chosen off the allJobs its counts are",
-        /const counted = countColumns\(\{ allJobs \}\);\s*const columns = allJobs \? COLUMNS : COLUMNS_WITH_LOAN;/.test(loanGridSource),
-        true
+        "  one grid for the head and every row, on one job as on all, and no On loan read (#652)",
+        [
+            (gridSource.match(/grid-cols-\[/g) ?? []).length,
+            (gridSource.match(/className=\{`\$\{TABLE_(?:HEAD|ROW)\} \$\{COLUMNS\}`\}/g) ?? []).length,
+            /\{row\.counts\.map\(\(entry\) => \(\s*<span key=\{entry\.status\} role="cell"[^>]*>\s*\{entry\.count\}/.test(gridSource),
+            /onLoan|COLUMNS_WITH_LOAN/.test(gridSource),
+        ].join(" "),
+        "1 2 true false"
     );
     check(
         "  and a list with the type left out is seen (anti-vacuity)",

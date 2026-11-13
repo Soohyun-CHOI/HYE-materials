@@ -389,8 +389,13 @@ export async function run({ check, log, assert }) {
     log("");
     log("the sheets say the screens' words:");
     check("the sheets are the list's heading and its items", first.made.sheets.map((sheet) => sheet.name).join(" | "), "Equipment & Tools | Items");
-    // On one job's list `On loan` stands before `Retired` (#598), as 1a draws it; on all jobs there is none.
-    check("  the first's heads are 1a's, the total last (#569)", first.made.sheets[0].columns.map((c) => c.header).join(" | "), "Name | Type | Category | In stock | Out | In repair | On loan | Retired | Total");
+    // On one job's file `On loan` stands before `Retired` (#598), a column 1a drew until #652 and the
+    // file keeps; on all jobs there is none.
+    check(
+        "  the first's heads are 1a's and on one job On loan, which 1a draws no longer (#652), the total last (#569)",
+        first.made.sheets[0].columns.map((c) => c.header).join(" | "),
+        "Name | Type | Category | In stock | Out | In repair | On loan | Retired | Total"
+    );
     check("  and on all jobs no On loan (#598)", all.made.sheets[0].columns.map((c) => c.header).join(" | "), "Name | Type | Category | In stock | Out | In repair | Retired | Total");
     check(
         "  the second's 1d's and the catalog's",
