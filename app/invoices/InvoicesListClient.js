@@ -260,49 +260,58 @@ export default function InvoicesListClient({ rows, options, initialFilters, init
                                     <td className="py-1 pr-2">{row.issueDate || "—"}</td>
                                     <td className="py-1 pr-2">{row.dueDate || "—"}</td>
                                     <td className="py-1 pr-2 text-right">{formatUSD(row.invoiceTotal)}</td>
-                                    {/* Issue #166 — a FACT, never a verdict: "more invoiced
-                                        than delivered" and not "over-billed", because at
-                                        any one moment the two are the same measurement.
+                                    {/* Issue #166 — a FACT, never a verdict: an invoice
+                                        the deliveries have not caught up with is waiting,
+                                        never "over-billed", because at any one moment the
+                                        two are the same measurement.
 
-                                        TWO CHIPS AND A MISMATCH MARKER SINCE #210. The
-                                        chip is the link's own two states — the delivery
-                                        is named or it is not — and a quantity shortfall
-                                        is the marker beside it, which is #166's
-                                        marker-vs-chip shape inherited rather than
-                                        re-argued. `Partly delivered` left this column
-                                        with the inference that produced it: the old fill
-                                        put an invoice whose own delivery had not delivered
-                                        into that state routinely.
+                                        TWO CHIPS SINCE #640, AND THE WAIT UNDER THE
+                                        SECOND. `Matched` once everything this invoice
+                                        charges has been delivered against the ordered
+                                        items it names, `Awaiting delivery` until then,
+                                        with how many days since its `Issue Date` in gray
+                                        below it — the same figure the strip above prints,
+                                        from the same function. Not inside the chip: a
+                                        chip is a closed set and carries no digit (#166).
+                                        STACKED RATHER THAN BESIDE, MEASURED: chip and
+                                        `99d` side by side need 133px and the column has
+                                        106, so a line of their own costs no re-cut —
+                                        the shape the `Status` cell already has for its
+                                        badge (#179), and no taller than a row whose
+                                        vendor name wraps, which every row on the test
+                                        base's one vendor does.
+                                        `Delivery variance` (`Mismatch` before #623) left
+                                        with the pairing it compared against; #232 had
+                                        made it a chip value in place of a marker, and
+                                        both are gone.
 
-                                        STILL NO EXCEPTION TAGS. The two beyond-the-order
-                                        tags this column used to carry both left it, for
-                                        different reasons. `beyond order` (invoiced >
-                                        ordered) is what
-                                        `Invoice Items."Has Quantity Variance"` is set
-                                        for, and the invoice detail marks it per item —
-                                        `⚠ Quantity variance` since #623 — so a tag here
-                                        would be one fact on two screens. `over-delivery`
-                                        (delivered > ordered) is not a fact about THIS
-                                        invoice at all but about the ordered item, and
-                                        inside a column headed `Delivery` it reads as
-                                        "more delivered than this invoice covers", which is a
-                                        different and wrong claim. Both facts are on the
-                                        invoice detail, under the ordered item they
-                                        belong to.
+                                        STILL NO EXCEPTION TAGS. `beyond order` (invoiced
+                                        > ordered) is what `Invoice Items."Has Quantity
+                                        Variance"` is set for, and the invoice detail marks
+                                        it per item — `⚠ Quantity variance` since #623 — so
+                                        a tag here would be one fact on two screens.
+                                        `over-delivery` (delivered > ordered) is not a fact
+                                        about THIS invoice at all but about the ordered
+                                        item, and inside a column headed `Delivery` it
+                                        reads as "more delivered than this invoice covers",
+                                        which is a different and wrong claim. Both facts
+                                        are on the invoice detail, under the ordered item
+                                        they belong to.
 
-                                        THE CHIP ALONE SINCE #232 — a `!` marker stood
-                                        beside it and is retired. The discrepancy is a
-                                        third chip value now, so the cell says `Delivery
-                                        variance` (`Mismatch` until #623) in words; the marker would have qualified a word
-                                        the reader had already read, with a sentence only
-                                        a hover could reach. Still one function, shared
-                                        with the detail, so this cell and that page cannot
-                                        describe one invoice differently — and the server
-                                        is what calls it (#324), so this file holds no
-                                        judgment of its own. */}
+                                        Still one function, shared with the detail, so this
+                                        cell and that page cannot describe one invoice
+                                        differently — and the server is what calls it
+                                        (#324), so this file holds no judgment of its own. */}
                                     <td className="py-1 pr-2">
                                         {row.deliveryChip ? (
-                                            <StatusChip chip={row.deliveryChip} />
+                                            <>
+                                                <StatusChip chip={row.deliveryChip} />
+                                                {row.deliveryWait && (
+                                                    <span className="block text-xs tabular-nums text-zinc-500">
+                                                        {row.deliveryWait}
+                                                    </span>
+                                                )}
+                                            </>
                                         ) : (
                                             <span className="text-zinc-500">—</span>
                                         )}

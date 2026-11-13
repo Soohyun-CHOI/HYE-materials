@@ -115,7 +115,7 @@ export const OWNED_LINKS = Object.freeze({
     "Purchase Orders": ["PR", "Our PIC", "Our Manager", "Sent By", "Delivery Address"],
     "PO Items": ["PO", "Material"],
     Addresses: ["Jobs"],
-    Invoices: ["Vendor", "Delivery", "Recorded By"],
+    Invoices: ["Vendor", "Recorded By"],
     "Invoice Items": ["Invoice", "PO", "PO Item"],
     Materials: ["Category"],
     "Material Prices": ["Material", "Vendor", "Latest PO"],

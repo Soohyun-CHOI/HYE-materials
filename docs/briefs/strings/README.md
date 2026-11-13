@@ -91,11 +91,11 @@ control both render it and the output names only the first. A sweeper filtering 
 word and editing what the rows point at would move one of two sites. Grep the screen's
 files for the word once the filter has told you it is there.
 
-**Read `unfindable.md` before trusting the filter.** Three of the words
-`docs/briefs/_shared.md` locks as tier 1 — `Matched`, `Delivery variance`,
-`Awaiting delivery` — reach `/invoices` through a constant that screen never names,
-so the extractor produces none of them. A sweep that skipped that file would stand on
-a list with three locked words missing from it, on the screens where the delivery
+**Read `unfindable.md` before trusting the filter.** Two of the words
+`docs/briefs/_shared.md` locks as tier 1 — `Matched` and `Awaiting delivery` — reach
+`/invoices` through a constant that screen never names, so the extractor produces
+neither. A sweep that skipped that file would stand on a list with two locked words
+missing from it, on the screens where the delivery
 axis and the invoicing axis meet.
 
 ## What a brief carries and what these files carry

@@ -6,11 +6,7 @@ import { getInvoiceItemsByRecordIds } from "@/lib/airtable/invoiceItems";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getDeliveriesByRecordIds } from "@/lib/airtable/deliveries";
-import {
-    getDeliveryInvoicing,
-    getInvoiceDeliveryStatus,
-    getOrderedItemsWithDelivery,
-} from "@/lib/deliveryStatus.server";
+import { getDeliveryInvoicing, getInvoiceDeliveryStatus } from "@/lib/deliveryStatus.server";
 import { resolveInvoiceScope } from "@/lib/invoiceVisibility";
 import { jobForInvoices } from "@/lib/invoiceJob";
 import { accessibleJobs } from "@/lib/deliveryAccess";
@@ -20,6 +16,7 @@ import {
     daysWaiting,
     describeInvoiceColumn,
     describeInvoiceOverdue,
+    describeInvoiceWait,
     invoicePayment,
     invoicePaymentWord,
     isNotFullyInvoiced,
@@ -120,30 +117,24 @@ async function renderInvoiceListPage({ searchParams }) {
     // carries `Job` as a lookup through its discipline.
     const jobByInvoice = jobForInvoices({ invoiceItems, poById, prById });
 
-    // Issue #166 — whether what each invoice invoiced for has been delivered. TWO
-    // operations for a page of any size, down from five: #210 stores the pairing on
-    // `Invoices."Delivery"`, so the two levels that existed only to attribute an
-    // answer — every OTHER invoice on the same ordered item, and those invoices' parents
-    // for their `Issue Date` — are nobody's business any more. It read THREE until
-    // #314, whose third was the `Invoice Items` level this page now holds and hands
-    // over; the read did not get cheaper, it stopped happening twice. The per-row
-    // alternative is what #143 ruled out and #162 measured at over 200 calls. The
-    // rule itself is lib/deliveryStatus.js.
+    // Issue #166 — whether what each invoice invoiced for has been delivered, as the
+    // three-way match reads it since #640: one `PO Items` read over the ordered items
+    // the gated invoices charge, and the oldest-first fill over every invoice item on
+    // them. Every invoice's items are already in hand from the gate's walk above, so
+    // the fill reads nothing more — main's two levels joining an invoice to the one
+    // delivery `Invoices."Delivery"` named are gone with the link. The rule is
+    // lib/deliveryStatus.js.
     //
-    // RUN OVER THE GATED ROWS, so a refused invoice's items never reach the wire
-    // either — the same call #169 makes when it gathers PO Item ids from the rows
-    // canViewPR already admitted.
-    // #256 — `orderedItemsByInvoice` is the level this call already read and used to
-    // discard, so the second strip's selection costs no query for it.
-    //
-    // #314 — AND THE LEVEL IT USED TO READ IS HANDED OVER, FILTERED TO THE GATED ROWS.
-    // The filter is the gather rule, not an optimization: `orderedItemsByInvoice`
-    // feeds a `PO Items` read below, so passing every invoice's items would put a
-    // refused row's ordered items on the wire. Same line #169 draws on `/pos` and
-    // `offline/po-payment-column.mjs` holds there.
-    const { byInvoice: statusByInvoice, orderedItemsByInvoice } = await getInvoiceDeliveryStatus(
+    // THE GATED ITEMS CHOOSE WHAT IS READ AND EVERY ITEM PLACES THEM. The first argument
+    // pair is the gather rule #169 set and `offline/job-column.mjs` holds: the `PO Items`
+    // read is over the rows `visible` admitted, so a refused invoice's ordered items
+    // never reach the wire. `siblings` hands the fill the other invoices' items on those
+    // same ordered items — which is what says whether this invoice is answered first or
+    // waits behind an older one — and nothing of theirs is returned.
+    const { byInvoice: statusByInvoice } = await getInvoiceDeliveryStatus(
         invoices,
-        invoiceItems.filter((item) => visibleIds.has(item.invoice?.[0]))
+        invoiceItems.filter((item) => visibleIds.has(item.invoice?.[0])),
+        { siblings: invoiceItems }
     );
 
     // #216 — THE STRIP'S ROWS ARE DELIVERIES, SO THEY ARE GATED AS DELIVERIES.
@@ -229,16 +220,13 @@ async function renderInvoiceListPage({ searchParams }) {
     );
 
     // #256 — the other direction. Selection is the chip's own key, so no invoice can
-    // sit here and read differently in the table; the split into two row kinds needs
-    // only whether anything was delivered against the ordered items each invoice charges,
-    // which is one batched read over ids the call above already returned.
+    // sit here and read differently in the table, and since #640 the row's kind — nothing
+    // or part of it delivered — comes off the same summary, so the strip reads nothing
+    // the chip did not. It read `PO Items` once more until then, for a flag only
+    // approximately true of the invoice it labeled.
     const awaitingDeliveryRows = selectInvoicesAwaitingDelivery({
         invoices,
         statusByInvoice,
-        orderedItemsByInvoice,
-        deliveredOrderedItems: await getOrderedItemsWithDelivery(
-            [...orderedItemsByInvoice.values()].flat()
-        ),
         vendorNameById,
         today,
     });
@@ -280,6 +268,10 @@ async function renderInvoiceListPage({ searchParams }) {
             dueDate: inv.dueDate || "",
             invoiceTotal: inv.invoiceTotal,
             deliveryChip: summary ? describeInvoiceColumn(summary) : null,
+            // #640 — how long an invoice still awaiting delivery has waited, counted from
+            // its `Issue Date` as the strip above counts it, so the row and the strip say
+            // one figure. Null once matched.
+            deliveryWait: describeInvoiceWait(summary, inv.issueDate, today)?.text ?? null,
             paid: payment.paid,
             // The value the `Status` filter matches on AND the word the cell prints,
             // which is one string rather than two that agree.

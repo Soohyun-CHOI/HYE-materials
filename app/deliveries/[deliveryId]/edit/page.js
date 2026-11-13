@@ -7,8 +7,6 @@ import { getDeliveryById } from "@/lib/airtable/deliveries";
 import { getJobByRecordId } from "@/lib/airtable/jobs";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
-import { getInvoiceLinkCandidates } from "@/lib/deliveryInvoicePairing.server";
-import { getInvoicesByRecordIds } from "@/lib/airtable/invoices";
 import DeliveryEditForm from "./DeliveryEditForm";
 import { withOpsLabel } from "@/lib/airtableOps";
 
@@ -32,13 +30,10 @@ export const metadata = { title: "Edit Delivery" };
  * allocation-editing UI. The correction for those is to delete the delivery and
  * enter it again, which the detail page offers.
  *
- * #210 ADDED A FOURTH EDITABLE THING, AND IT PASSES THAT TEST RATHER THAN BENDING
- * IT. The invoice this delivery is invoiced by changes no `Delivery Items` row, moves
- * no quantity between orders and re-runs no allocation — it is orthogonal to the
- * one reason the four above are fixed. It has to be editable because the invoice is
- * not always in the app when the material lands: the vendor usually emails it at
- * delivery, but an invoice nobody has entered yet cannot be picked, so leaving it
- * blank at entry is a normal answer and this is where the pairing is finished.
+ * #210 ADDED A FOURTH EDITABLE THING — the invoice this delivery was paired with —
+ * and #640 TOOK IT AWAY WITH THE PAIRING. Invoices and deliveries meet only through
+ * the ordered items both name, so nothing on this page says which invoice a delivery
+ * answers; the invoice detail and the order's own page say how much of each arrived.
  */
 // Labeled for #190 by #224, the sweep across every entry point that opened no
 // scope. An outer wrapper, so the page's own logic keeps its indentation, and
@@ -66,15 +61,9 @@ async function renderEditDeliveryPage({ params }) {
         );
     }
 
-    const [job, vendor, attached, invoiceOptions] = await Promise.all([
+    const [job, vendor] = await Promise.all([
         delivery.job?.[0] ? getJobByRecordId(delivery.job[0]) : null,
         delivery.vendor?.[0] ? getVendorByRecordId(delivery.vendor[0]) : null,
-        getInvoicesByRecordIds(delivery.invoices || []),
-        // #210 — narrowed to THIS delivery's vendor, which is the whole narrowing
-        // (see lib/deliveryInvoicePairing.js on why not the job), and gated per record
-        // through lib/invoiceVisibility.js so the dropdown cannot name an invoice
-        // this viewer may not read. Measured budget is in that module's header.
-        getInvoiceLinkCandidates(user, { vendorRecordIds: delivery.vendor || [] }),
     ]);
 
     const photo = delivery.packingListFile?.[0] ?? null;
@@ -117,24 +106,15 @@ async function renderEditDeliveryPage({ params }) {
             </div>
 
             <p className="mt-4 rounded border border-zinc-200 px-3 py-2 text-xs text-zinc-600">
-                Only the received date, the note, the packing list photo and the invoice this
-                delivery is invoiced by can be changed. The item, the quantity, the vendor and the PO
-                are fixed — correcting one of those means deleting this delivery and entering it
-                again.
+                Only the received date, the note and the packing list photo can be changed. The
+                item, the quantity, the vendor and the PO are fixed — correcting one of those means
+                deleting this delivery and entering it again.
             </p>
 
             <DeliveryEditForm
                 deliveryId={delivery.deliveryId}
                 receivedDate={delivery.receivedDate || ""}
                 notes={delivery.notes || ""}
-                vendorName={vendor?.vendorName ?? ""}
-                vendorRecordId={delivery.vendor?.[0] ?? ""}
-                attachedInvoices={attached.map((inv) => ({
-                    invoiceRecordId: inv.id,
-                    invoiceId: inv.invoiceId,
-                    vendorInvoiceCode: inv.vendorInvoiceCode || "",
-                }))}
-                invoiceOptions={invoiceOptions}
             />
         </UndrawnPage>
     );

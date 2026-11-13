@@ -103,7 +103,6 @@ import {
     createInvoice,
     getInvoiceByRecordId,
     updateInvoice,
-    setInvoiceDelivery,
 } from "../../lib/airtable/invoices.js";
 import {
     createInvoiceItem,
@@ -963,8 +962,13 @@ await scenario("INV_WAIT_A", "an invoice with nothing delivered — strip 2, fir
     ids.invWaitAPo = order.po.poId;
 });
 
-// --- INV_WAIT_B — delivered, and nothing paired them -----------------------
-await scenario("INV_WAIT_B", "delivered but unmatched — strip 2, second word", async () => {
+// --- INV_WAIT_B — part of it delivered ------------------------------------
+//
+// 60 of 100 delivered, so the invoice is `Awaiting delivery` and the strip's second
+// word is `partly delivered` (#640). Until #640 all 100 were delivered and nothing
+// paired them, which read `delivered, not matched`; under the three-way match that
+// shape is simply `Matched`.
+await scenario("INV_WAIT_B", "part of it delivered — strip 2, second word", async () => {
     const order = await makeOrder({
         scenarioName: "INV_WAIT_B",
         notes: "U-bolts for the rack.",
@@ -973,7 +977,7 @@ await scenario("INV_WAIT_B", "delivered but unmatched — strip 2, second word",
     });
     await deliver({
         scenarioName: "INV_WAIT_B",
-        rows: [{ poItem: order.poItems[0], qty: 100 }],
+        rows: [{ poItem: order.poItems[0], qty: 60 }],
         receivedDate: "2026-08-12",
     });
     const inv = await invoice({
@@ -986,11 +990,10 @@ await scenario("INV_WAIT_B", "delivered but unmatched — strip 2, second word",
 
 // --- MISMATCH_START — an invoice of 10 against an order nothing has filled ------
 //
-// The live segment records a delivery of 3 against this. The set of ordered items
-// matches, so `fitRefusal` admits it and `roomOnOrderedItem` is 3 — positive — so the
-// pairing is computed and the invoice turns `Delivery variance`. Quantity is deliberately not
-// part of the containment test (lib/deliveryInvoicePairing.js), which is the whole
-// reason the marker can ever appear.
+// The live segment records a delivery of 3 against this, and the invoice stays
+// `Awaiting delivery` with 3 of 10 delivered — the three-way match's partial state
+// (#640). Until #640 the delivery was paired with the invoice and turned it
+// `Delivery variance`, a value the invoice axis no longer has.
 await scenario("MISMATCH_START", "an invoice of 10 waiting for the live delivery of 3", async () => {
     const order = await makeOrder({
         scenarioName: "MISMATCH_START",
@@ -1007,15 +1010,15 @@ await scenario("MISMATCH_START", "an invoice of 10 waiting for the live delivery
     ids.mismatchPo = order.po.poId;
 });
 
-// --- HAND_ATTACH — the pairing the computed rule refuses -------------------
+// --- HAND_ATTACH — two documents that share no ordered item -----------------
 //
 // A delivery that brought one thing, and an invoice from the same vendor charging
-// SOMETHING ELSE. `fitRefusal` returns `not-contained`, so nothing is computed onto
-// it — but `invoiceLinkRefusal` (the delivery's own Edit page) tests only existence,
-// visibility, vendor and whether the invoice is already taken, and has NO containment
-// check. So the pairing is made by hand on stage in four clicks, which is #210's
-// premise exactly: the pairing is a fact somebody knows and the app was guessing at.
-await scenario("HAND_ATTACH", "a delivery and an invoice the computed rule will not pair", async () => {
+// SOMETHING ELSE. Until #640 this was paired by hand on the delivery's Edit page, the
+// one pairing the computed rule refused; the pairing and the control are gone, and
+// under the three-way match the two never meet — the delivery waits for an invoice and
+// the invoice for a delivery, each on its own strip. The scenario name is kept so a
+// reset finds its rows.
+await scenario("HAND_ATTACH", "a delivery and an invoice that share no ordered item", async () => {
     const brought = await makeOrder({
         scenarioName: "HAND_ATTACH",
         notes: "Elbows for the riser.",
@@ -1238,7 +1241,7 @@ await scenario("SHORTFALL", "an invoice charging 200 against a delivery of 150",
         items: [{ ...ITEM.hexNut, size: "M20", qty: 200, unitPrice: 0.6 }],
         sign: true,
     });
-    const delivery = await deliver({
+    await deliver({
         scenarioName: "SHORTFALL",
         rows: [{ poItem: order.poItems[0], qty: 150 }],
         receivedDate: "2026-08-06",
@@ -1263,10 +1266,8 @@ await scenario("SHORTFALL", "an invoice charging 200 against a delivery of 150",
         rows: [{ po: order.po, poItem: order.poItems[0], qty: 200, unitPrice: 0.6 }],
         issueDate: "2026-08-06",
     });
-    // The pairing is SET rather than computed, for the reason #231 gives: the rule
-    // refuses nothing here, but the seed should not depend on the matcher's outcome to
-    // put a known state on a screen.
-    await setInvoiceDelivery(inv.id, delivery.id);
+    // Paired with its delivery here until #640; the two now meet through the ordered
+    // item alone, so 150 of 200 delivered reads `Awaiting delivery` on its own.
     ids.shortfall = inv.invoiceId;
 });
 
@@ -1304,7 +1305,6 @@ await scenario("OVER", "12 delivered against 10 ordered, invoiced 12, invoice ha
         rows: [{ po: order.po, poItem: order.poItems[0], qty: 12, unitPrice: 26 }],
         issueDate: "2026-08-12",
     });
-    await setInvoiceDelivery(inv.id, delivery.id);
     ids.over = delivery.deliveryId;
     ids.overInvoice = inv.invoiceId;
     ids.overPo = order.po.poId;
@@ -1332,11 +1332,10 @@ await scenario("OVER_BLOCKED", "3 over-deliveries blocked for 3 different reason
 
     // (b) the excess spans two of this delivery's own invoices
     //
-    // BOTH INVOICES NAME THIS DELIVERY, AND NEITHER COVERS THE EXCESS ON ITS OWN — which
-    // is what `spansInvoices` actually tests. `candidateBills` takes the invoices naming
-    // this delivery as its first tier, so with two of them there are two candidates;
-    // `selectOverageInvoice` then refuses because the first candidate's quantity is less
-    // than the excess. A first attempt at this seeded two invoices that each DID cover
+    // TWO INVOICES ON THE ORDERED ITEM, AND NEITHER COVERS THE EXCESS ON ITS OWN — which
+    // is what `spansInvoices` actually tests: `selectOverageInvoice` keeps only an
+    // invoice charging at least the excess, and here none does. (They named this delivery
+    // until #640; the rule never needed that, and the candidates are the ordered item's.) A first attempt at this seeded two invoices that each DID cover
     // the excess and got an eligible button instead: two candidates alone is not the
     // condition. The refusal is about the QUOTATION rather than the arithmetic — two
     // invoices means two files and a purchase request takes one.
@@ -1361,14 +1360,11 @@ await scenario("OVER_BLOCKED", "3 over-deliveries blocked for 3 different reason
     // string, so the vendor's own number read `LSP-OVERBLOCKED2-08010`, a five-digit
     // tail on a screen a customer sees.
     for (const [n, qty, issueDate] of [[1, 15, "2026-08-09"], [2, 15, "2026-08-10"]]) {
-        const inv = await invoice({
+        await invoice({
             scenarioName: `OVER_BLOCKED_${n}`,
             rows: [{ po: b.po, poItem: b.poItems[0], qty, unitPrice: 12 }],
             issueDate,
         });
-        // BOTH, not just the first: one invoice naming the delivery is a single candidate
-        // and refuses under `excessExceedsInvoice` instead, which is a different sentence.
-        await setInvoiceDelivery(inv.id, bDelivery.id);
     }
     ids.blockedSpans = bDelivery.deliveryId;
 
@@ -1387,13 +1383,12 @@ await scenario("OVER_BLOCKED", "3 over-deliveries blocked for 3 different reason
         ],
         receivedDate: "2026-08-07",
     });
-    const cInvoice = await invoice({
+    await invoice({
         scenarioName: "OVER_BLOCKED_3",
         rows: [{ po: c.po, poItem: c.poItems[0], qty: 15, unitPrice: 34 }],
         issueDate: "2026-08-08",
         withFile: false,
     });
-    await setInvoiceDelivery(cInvoice.id, cDelivery.id);
     ids.blockedNoFile = cDelivery.deliveryId;
 });
 
@@ -1481,13 +1476,12 @@ await scenario("OVER_EXCEEDS", "blocked: the one invoice does not cover the exce
         receivedDate: "2026-08-03",
         notes: "Nine over — the vendor shipped a full box.",
     });
-    const only = await invoice({
+    await invoice({
         scenarioName: "OVER_EXCEEDS",
         // 4 invoiced against an excess of 9: this invoice cannot carry it.
         rows: [{ po: order.po, poItem: order.poItems[0], qty: 4, unitPrice: 64 }],
         issueDate: "2026-08-04",
     });
-    await setInvoiceDelivery(only.id, delivery.id);
     ids.overExceeds = delivery.deliveryId;
 });
 
@@ -1733,8 +1727,8 @@ async function printGuide() {
     row("  demo26-unsigned.pdf warns", get("DETECT_UNSIGNED", "pos"));
     row("  demo26-closed.pdf: nothing left", get("DETECT_CLOSED", "pos"));
     row("  demo26-none.pdf: no PO found", "(no order number printed on it)");
-    row("invoice this → pairs on screen", get("DL_WAIT", "pos"), "  attaches ", get("DL_WAIT", "deliveries"));
-    row("deliver this → pairs on screen", get("INV_WAIT_A", "invoices"), " is waiting for its material");
+    row("invoice this → its delivery reads Invoiced", get("DL_WAIT", "pos"), "  for ", get("DL_WAIT", "deliveries"));
+    row("deliver this → it reads Matched", get("INV_WAIT_A", "invoices"), " is waiting for its material");
     row("tariff in the totals footer", get("TARIFF", "invoices"));
     row("sales tax in the totals footer", get("SALES_TAX", "invoices", 0));
     row("  both terms, tax after duty", get("SALES_TAX", "invoices", 1));
@@ -1742,14 +1736,14 @@ async function printGuide() {
     console.log("\nACT III — the three waiting lists                       (pre-made)");
     row("/invoices strip 1", get("DL_WAIT", "deliveries"), " — delivery nobody has invoiced");
     row("/invoices strip 2, word 1", get("INV_WAIT_A", "invoices"), " — nothing delivered yet");
-    row("/invoices strip 2, word 2", get("INV_WAIT_B", "invoices"), " — delivered, not matched");
+    row("/invoices strip 2, word 2", get("INV_WAIT_B", "invoices"), " — partly delivered");
     row("/pos strip", get("PO_WAIT", "prs", 0), " and ", get("PO_WAIT", "prs", 1));
     row("/prs strip, with a button", get("OVER", "deliveries"));
     row("/prs strip, blocked rows", "5 — see Act IV for which reason is which");
 
     console.log("\nACT IV — when they disagree                              (mixed)");
-    row("live: record 3 against", get("MISMATCH_START", "pos"), " → ", get("MISMATCH_START", "invoices"), " goes Delivery variance");
-    row("live: hand-attach on Edit", get("HAND_ATTACH", "deliveries"), " ← ", get("HAND_ATTACH", "invoices"));
+    row("live: record 3 against", get("MISMATCH_START", "pos"), " → ", get("MISMATCH_START", "invoices"), " shows 3 of 10 delivered");
+    row("never meet: no shared ordered item", get("HAND_ATTACH", "deliveries"), " and ", get("HAND_ATTACH", "invoices"));
     row("Price variance", get("VAR_PRICE", "invoices"), " on ", get("VAR_PRICE", "pos"));
     row("Totals differ, and paid", get("VAR_TOTAL", "invoices"));
     row("per-order breakdown", get("MULTI_ORDER", "invoices"));

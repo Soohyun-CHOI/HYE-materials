@@ -59,12 +59,8 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { listJsFiles, parseFile, repoPath, toPosix, REPO_ROOT } from "./_ast.mjs";
 import { listEntryPoints, countEntryPointFiles, routeTemplate } from "./_entrypoints.mjs";
 import { importedPairs } from "./unread-exports.mjs";
-import {
-    STATUS_COPY,
-    AWAITING_INVOICE_COPY,
-    AWAITING_DELIVERY_COPY,
-    orderedItemStatus,
-} from "../../../lib/deliveryStatus.js";
+import { STATUS_COPY, AWAITING_INVOICE_COPY, AWAITING_DELIVERY_COPY } from "../../../lib/deliveryStatus.js";
+import { foldedEntryFigures } from "../../../lib/invoiceDeliveryEntries.js";
 import { ITEM_PRECISION_COPY, VARIANCE_COPY } from "../../../lib/variance.js";
 import { AWAITING_PO_COPY, AWAITING_SEND_COPY } from "../../../lib/poListView.js";
 // #324 — the three empty states MOVED here from `lib/poListView.js` when the other
@@ -88,7 +84,6 @@ import { ASSET_EXPORT_COPY } from "../../../lib/assetListExport.js";
 import { ASSET_LABEL_PAGE_COPY } from "../../../lib/assetLabelPage.js";
 import { ASSET_EVENT_VALUES } from "../../../lib/assetStatus.js";
 import { PO_DOCUMENTS_COPY } from "../../../lib/poDocuments.js";
-import { LINK_COPY } from "../../../lib/deliveryInvoicePairing.js";
 import { ALLOCATION_COPY } from "../../../lib/deliveryAllocation.js";
 import { OVERAGE_COPY } from "../../../lib/overage.js";
 import { DIRECT_PURCHASE_COPY } from "../../../lib/directPurchase.js";
@@ -198,16 +193,15 @@ export function briefFileName(route) {
  * invoiced term entirely while every check stayed green.
  *
  * Deriving it removes the hazard rather than documenting it: the producer names the
- * keys, so a rename carries them. The four figures are exactly the old literal's —
- * ordered 25 and invoiced 30 put 5 beyond the order, 12 within plus 3 over put 15
- * delivered and 15 not invoiced. `ordered` and `deliveredWithin` come along unread.
+ * keys, so a rename carries them. Since #640 the producer is `foldedEntryFigures`, whose
+ * output is what the invoice detail's delivery table hands `STATUS_COPY.detail.filled`
+ * — #274's `orderedItemStatus` went with the comparison against one delivery. One
+ * invoice item of 15 against an ordered item of 25, 15 delivered and 30 invoiced to
+ * date, 12 of it answered: a waiting row, which is the tone the table can produce.
  */
-const SAMPLE_STATUS = orderedItemStatus({
-    orderedQty: 25,
-    invoicedQty: 30,
-    deliveredWithinQty: 12,
-    deliveredOverQty: 3,
-});
+const SAMPLE_STATUS = foldedEntryFigures([
+    { poItemRecordId: "recSample", qty: 15, filled: 12, ordered: 25, delivered: 15, invoiced: 30 },
+]);
 
 /** The four sections every screen brief carries, in this order. */
 const REQUIRED_HEADINGS = [
@@ -306,19 +300,16 @@ const PINNED = [
     // called it a locked word and quoted it nowhere, so it was the pair's third
     // string and the only one a rewording could have taken silently.
     "⚠ An item on this invoice differs from what its order agreed",
-    // #274 — THE THREE `_shared.md` CALLS TIER 1 AND NOTHING PINNED. Its status
-    // section quotes four sentences from `lib/deliveryStatus.js` as locked words;
-    // only `Not compared — no ordered item` above was ever pinned, so the other
-    // three could be reworded in the constant while the brief went on quoting the
-    // old wording to a designer. This issue reworded all three, which is the moment
-    // to close it. Each is pinned WITHOUT its figure, because the brief writes `N`
-    // where a builder puts a number — the pin is the wording, which is what a
-    // redesign may not change.
-    "⚠ This invoice charges more than the delivery matched to it delivered",
-    "more invoiced than the matched delivery delivered",
-    "invoiced, none of it delivered by the matched delivery",
+    // #274 pinned the three verdict sentences `_shared.md` quoted from
+    // `lib/deliveryStatus.js`; #640 removed all three with the comparison against one
+    // delivery, and pins what the invoice detail's delivery section says instead. Each
+    // is pinned WITHOUT a figure, because the brief writes `N` where a builder puts a
+    // number — the pin is the wording, which is what a redesign may not change.
+    "No delivery has been recorded for this invoice's items yet.",
+    "Delivered to date",
+    "Invoiced to date",
     "Longest wait first. No invoice yet covers what these deliveries brought.",
-    "Longest wait first. Nothing has confirmed the material these invoices charge for.",
+    "Longest wait first. Not everything these invoices charge for has been delivered.",
     // #263 — THE THRESHOLD SENTENCE, PINNED WITHOUT ITS FIGURE like the three above,
     // and for a reason this one makes sharper: the brief writes `N` where the constant
     // interpolates `AWAITING_DELIVERY_DAYS`, so a pin carrying the number would fail
@@ -326,7 +317,7 @@ const PINNED = [
     // expect. The wording is what a redesign may not change; the figure is meant to.
     "Only invoices that have waited",
     "nothing delivered yet",
-    "delivered, not matched",
+    "partly delivered",
     "No invoice charges this order yet.",
     // #330 — the one sentence an invoice with no items says, and it is pinned
     // because TWO surfaces read it from one constant: this screen, where it stands
@@ -364,9 +355,8 @@ const PINNED = [
     // screens are drawn, the briefs quote none of their words, and `DESIGNED` below holds those
     // briefs to the constants' keys instead — the same two halves, a key the code holds and a
     // brief that names it, with the sentence's wording left to the constant and the drawing.
-    "That invoice no longer exists.",
-    "No invoice from this vendor has been entered yet, so there is nothing to attach.",
-    "One invoice belongs to one delivery, so one already attached elsewhere is",
+    // Three of #210's `LINK_COPY` sentences stood here — the delivery edit page's
+    // refusals for attaching an invoice — and went with the control (#640).
     "Nothing on this job orders this item from this vendor, so there is no order to",
     "✓ Paid",
     "Not paid",
@@ -897,10 +887,13 @@ export function run({ check, assert, log }) {
     // the count here is what makes a tone SILENTLY DROPPED from STATUS_COPY visible,
     // since a shrunken set would otherwise agree with a shrunken brief.
     // SIX SINCE #278, WHICH TOOK `unjudged` WITH ITS ONLY PRODUCER — the verdict for a
-    // charge with no ordered item. This count is what makes a tone silently DROPPED
-    // visible, since a shrunken set would otherwise agree with a shrunken brief, so
-    // the number moving is the point rather than an inconvenience.
-    check("STATUS_COPY reaches six tones", tones.size, 6);
+    // charge with no ordered item. FIVE SINCE #640, which took `variance` (the
+    // `Delivery variance` chip) and `exception` (the verdicts against one delivery) and
+    // added `waiting`, a delivery-table row not yet answered in full. This count is what
+    // makes a tone silently DROPPED visible, since a shrunken set would otherwise agree
+    // with a shrunken brief, so the number moving is the point rather than an
+    // inconvenience.
+    check("STATUS_COPY reaches five tones", tones.size, 5);
 
     const unlisted = [...tones].filter((t) => !shared.includes(`\`${t}\``)).sort();
     check("no tone the shared brief does not name", unlisted.length === 0 ? "none" : unlisted.join(", "), "none");
@@ -928,7 +921,6 @@ export function run({ check, assert, log }) {
         // #620 — the sign-in steps' and the asset axis's constants left this list with their
         // pins; `designedStrings()` walks them for the drawn briefs' check below.
         ...stringsFrom(PO_DOCUMENTS_COPY),
-        ...stringsFrom(LINK_COPY),
         ...stringsFrom(STATUS_COPY),
         ...stringsFrom(AWAITING_INVOICE_COPY),
         ...stringsFrom(AWAITING_DELIVERY_COPY),
@@ -1105,7 +1097,8 @@ export function run({ check, assert, log }) {
             "assets-assetId.md"
     );
     assert("the tone walk found a chip tone", tonesInStatusCopy().has("complete"));
-    assert("  and a verdict tone", tonesInStatusCopy().has("exception"));
+    // #640 — the delivery table's row tone, the one a detail sentence carries.
+    assert("  and a detail tone", tonesInStatusCopy().has("waiting"));
     assert("  and rejects one nobody defines", !tonesInStatusCopy().has("catastrophe"));
     assert("a fabricated sentence is in no constant", !loadable.some((s) => s.includes("Everything is fine here")));
     assert("  and a pinned one is", loadable.some((s) => s.includes("⚠ Totals differ")));

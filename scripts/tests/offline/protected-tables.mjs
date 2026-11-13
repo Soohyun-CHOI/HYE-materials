@@ -151,6 +151,10 @@ const CLASSIFIED = {
     // names: every one moved into `ran/` after its description named it (#621). Descriptions alone, on
     // either base.
     "scripts/import/ran/describe_ran_paths_621.mjs": { describes: true },
+    // `Assets."Category"`'s description, one clause that named `Invoices."Delivery"` once #640 deleted
+    // it; the link fields themselves are only read here, their deletion being a hand step. Descriptions
+    // alone, on either base.
+    "scripts/import/ran/remove_invoice_delivery_link_640.mjs": { describes: true },
     // `Asset Log."Event"`'s two loan options (#598), made by a row written with typecast and deleted at
     // once on the test base, and refused on the live base, where they are a hand step.
     "scripts/import/ran/add_loan_events_598.mjs": { writes: ["rowRequest"] },

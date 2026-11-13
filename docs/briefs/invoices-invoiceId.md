@@ -15,10 +15,11 @@ it charges for actually delivered. A reader who can answer all three
 without scrolling twice has what they came for.
 
 This is the densest screen in the app and the one where a redesign can do the
-most damage, because three of the four things it says are silent in the normal
-case. An invoice with nothing wrong shows no variance badge, no variance box, no
-delivery variance box, and an empty delivery list. If those are drawn as always present,
-every clean invoice looks like a problem and the screen stops working.
+most damage, because two of the things it says are silent in the normal case and
+the third is quiet. An invoice with nothing wrong shows no variance badge and no
+variance box, and its delivery table's rows read `N of N EA delivered` in plain text.
+If those are drawn as alarms, every clean invoice looks like a problem and the screen
+stops working.
 
 ## What it always carries
 
@@ -57,10 +58,13 @@ totals; `Amount due` is said on no screen, being the same figure. The app curren
 gives it the largest type on the page and a bordered block of its own.
 
 **verdict — the delivery chip.** One word beside the `Delivery` heading, from
-the closed set `Matched` / `Delivery variance` / `Awaiting delivery`. It is the same
-chip the invoice list shows for this row, from the same function, so the row a
-reader clicked and the page they land on cannot describe the invoice
-differently.
+the closed set `Matched` / `Awaiting delivery`, and beside `Awaiting delivery` in
+gray the days since the `Issue Date` (`98d`). It is the same chip and the same
+figure the invoice list shows for this row, from the same functions, so the row a
+reader clicked and the page they land on cannot describe the invoice differently.
+`Matched` says everything this invoice charges has been delivered, read through the
+ordered items it names (#640): what has been delivered on an ordered item answers
+its invoices oldest first, in the order they were entered.
 
 **evidence — the orders this invoice charges.** A heading that is `Purchase Order`
 or `Purchase Orders` depending on the count, then one line per order: the order
@@ -92,11 +96,17 @@ delete an invoice item delete the invoice with it. So a redesign should treat th
 as a record missing its own contents rather than as an empty state on a spectrum
 with the others — and must not reserve space for a table that is not there.
 
-**evidence — the matched delivery.** Under the `Delivery` heading, either the
-delivery ID as a link with its received date in parentheses, or the sentence
-`No delivery has been matched to this invoice yet.` One line, in the same
-position, in every state — that is what makes everything below it read as an
-addition rather than as a different layout.
+**evidence — the deliveries.** Under the `Delivery` heading, either `Deliveries:` and
+every delivery that brought one of the ordered items this invoice charges, each a
+link, or the sentence `No delivery has been recorded for this invoice's items yet.`
+They are the ordered items' deliveries, not this invoice's — a delivery belongs to no
+one invoice — so the line names them and the table below says how much arrived.
+
+**evidence — the delivery table.** One row per item, folded as the items table is,
+under the heads `Item` · `Ordered` · `Delivered to date` · `Invoiced to date` ·
+`This invoice`. The middle three are the ordered item's own totals, every delivery
+and every invoice on it — which is why two heads say `to date` — and the last is this
+invoice's: `150 of 200 EA delivered`.
 
 **action.** A link back to the invoice list.
 
@@ -268,20 +278,6 @@ visible on it: the record itself, the edited figures, the payment sentence with
 its control closed again. This carried a green line for each until #321 — see
 `_shared.md`, "The arrival is the confirmation".
 
-**When the reader has just arrived from creating this invoice:** a box stating
-what the app worked out about which delivery this invoice belongs to. It is gray
-when a single delivery matched cleanly and amber in every other case — several
-candidates, a rival invoice charging the same ordered item, or a tie nothing
-could break. When a tie-break decided it, a second sentence in the same box says
-so, because the tie-break is *how* the match was decided rather than a second
-thing that happened. **This is the one thing on this screen that comes off the
-query string**, and it survived #321 because it is not a confirmation: the
-standing answer is the delivery section further down, and this says which
-delivery was picked and how, which nothing else on the page holds. It is written
-only on the way in from creation, so reaching this page any other way shows
-nothing — but a reload does repeat it, and so does the link copied to somebody
-else. This brief said the box never appeared on a reload, which was wrong.
-
 **When an individual charge differs from what its order agreed:** a small badge
 inside that item's name cell for each way it differs — `⚠ Price variance` for a
 unit price other than the order's, `⚠ Quantity variance` for an ordered item
@@ -303,14 +299,6 @@ the same thing about the same invoice: a red box under the items table, carrying
 different fact from the badges above and the two can be on one invoice at once.
 Red states a discrepancy; amber asks a person to look. That split is the page's
 own and both colors appear on it.
-
-**When the verdict is `Delivery variance`:** an amber box, below the named delivery
-rather than above it, saying the invoice charges more than the matched delivery
-delivered and who to take it up with. It sits after the delivery because the
-sentence is about that document — putting the accusation above the document it
-accuses makes the reader scroll back for the subject. It names no quantity: one
-invoice can be short on two ordered items with different units, so a single
-figure here would be either wrong or a sum of unlike things.
 
 **When the folded items are not all divided among the orders the same way:** a
 short indented list under each order's row, naming what that order was invoiced
@@ -340,27 +328,10 @@ says so. The figure also adds up every ordered item behind the line, since one
 folded row can cover two of them on one order, so it is the whole of what that
 line stands for rather than one row's.
 
-**When a delivery is matched AND something disagrees:** a list under the
-delivery, one entry per folded item, and **only** for the items that disagree.
-An entry carries the item's name, size and maker, colored by its verdict tone, and one
-sentence with the figures. One tone reaches it, `exception`, for a shortfall
-against the matched delivery. **A second, `unjudged`, reached it until #278** —
-gray text for an invoice item with no ordered item behind it, saying `Not
-compared — no ordered item`. That charge is not a state this app has, so the
-list holds one grade of thing now.
-
-When the delivery is matched and everything agrees, this list is **empty and
-absent**: the delivery, named once, is the whole section. The item level points
-at exceptions and the invoice level says what the state is, so an entry that
-agrees would repeat the items table directly above it — same names, same order,
-same count. And when no delivery is matched at all there is no list either,
-because with nothing matched there is no second term to compare against.
-
-**When something exceeds the ordered item:** one further uncolored line inside
-that entry, beginning `Against the ordered item:`. It is an aside about the
-ordered item rather than a fact about this invoice, which is why it stays
-uncolored while the lines above it are toned — and why the frame it belongs to
-is named in the words.
+**When an item has not all arrived:** its row's name and its `This invoice` cell in
+amber — the one tone the table carries, `waiting`. It is a wait, not an error: under
+the three-way match the rest may still be on its way, which is what the chip says
+too. A row answered in full carries no color.
 
 ## What must agree elsewhere
 
@@ -379,22 +350,23 @@ smaller gray text, is the facts about the pairing. That screen puts an invoice's
 charges under the invoice the same way, so a reader crossing between the two
 meets one grammar rather than two.
 
-**`Delivery variance` is the delivery axis's, and each variance's qualifier is its
-own.** `Total`, `Order` and `Delivery` say what each is compared against, so a
-second fact borrowing one of them would put one word on two facts of one page.
+**The variances are against the order and each qualifier is its own.** `Price` and
+`Quantity` say what each compares, and the totals pair says `Totals`. `Delivery
+variance` stood beside them until #640: it compared this invoice with the one delivery
+it named, and with that link gone a shortfall is a wait, not a variance.
 
-**An ordered quantity appears on this screen as a denominator and nowhere
-else.** The `Purchase Orders` list carries one because that line's subject is an
-order and a charge against it needs a whole to be read against. The delivery
-section carries none — it compares this invoice against the delivery matched to
-it — and `/pos/[poId]`'s `Qty` column is where an ordered quantity stands as a
-figure in its own right.
+**An ordered quantity appears on this screen twice, and both are the order's.** The
+`Purchase Orders` list carries one as a denominator, because that line's subject is
+an order and a charge against it needs a whole to be read against; the delivery
+table carries it as `Ordered`, the first of the three totals the three-way match
+compares. `/pos/[poId]`'s `Qty` column is the same figure on the order's own page.
 
-**What every invoice has charged against an ordered item belongs to
-`/pos/[poId]`.** This screen speaks for one document, that one speaks for the
-order across every invoice on it, and a figure moved between them changes
-meaning. A redesign that brings the cross-document total here puts two scopes on
-one line with nothing to tell them apart.
+**What every invoice has charged against an ordered item is here once, labeled.**
+The delivery table's `Invoiced to date` is that cross-document total, because the
+comparison this section exists for is the ordered item's totals against each other
+(#640); its head says `to date` so it is not read as this invoice's own, which is the
+`This invoice` column. `/pos/[poId]` speaks for the order across every invoice on it,
+and a redesign must keep the two scopes told apart in words, not by position alone.
 
 **The overdue sentence is the invoice list's badge**, produced by the same judgment
 from the same call, so the row a reader clicked and the page they land on cannot

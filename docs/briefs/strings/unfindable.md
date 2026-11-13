@@ -56,10 +56,8 @@ chunks, so a concatenated sentence counts more than once.
 |---|---|---|---|---|
 | `STATUS_COPY` | `lib/deliveryStatus.js` | `describeInvoiceColumn`, `describeDeliveryColumn`, `describePOColumn`, `describePOInvoicingColumn`, `describePOPaymentColumn`, `describeInvoiceOverdue` | `/invoices`, `/deliveries`, `/pos`, `/pos/[poId]` | 28 |
 | `OVERAGE_COPY` | `lib/overage.js` | `describeOveragePreview`, `describeOverageBanner`, `tieBreakLabel` | `/deliveries/[deliveryId]`, `/deliveries/[deliveryId]/edit`, `/pos/[poId]`, `/prs/[prId]` | 94 |
-| `PAIRING_COPY` | `lib/deliveryInvoicePairing.js` | `describePairing`, `describeTieBreak`, `planPairings` | `/invoices/[invoiceId]`, `/deliveries/new` | 31 |
 | `ALLOCATION_COPY` | `lib/deliveryAllocation.js` | `describePlan`, `itemOptionLabel` | `/deliveries/new` | 38 |
 | `DELETE_COPY` | `lib/deliveryDelete.js` | `resolveDeleteCopy` | `/deliveries/[deliveryId]` | 22 |
-| `LINK_COPY` | `lib/deliveryInvoicePairing.js` | `availableInvoiceOptions` | `/deliveries/new` | 11 |
 | `WITHDRAW_COPY` | `lib/poWithdraw.js` | `getWithdrawCopy` | `/pos/[poId]` | 5 |
 | `AWAITING_PO_COPY` | `lib/poListView.js` | `awaitingPOCopy` | `/pos`, `/prs/[prId]` | 4 |
 | `ROLLBACK_COPY` | `lib/rollbackReport.js` | `rollbackMessage` | `/prs/[prId]` | 15 |
@@ -147,9 +145,10 @@ there. **A count of this kind is reproducible for the constants a screen NAMES a
 hand work for the rest**, which is the sharper form of the staleness warning above:
 where the shape is open, so is the arithmetic.
 
-**Three of `STATUS_COPY`'s seventeen are words `_shared.md` locks as tier 1**, and
-they are the reason this group leads the file. `Matched`, `Delivery variance` and
-`Awaiting delivery` reach `/invoices` through `describeInvoiceColumn`, and the same
+**Two of `STATUS_COPY`'s words are ones `_shared.md` locks as tier 1 for the invoice
+axis**, and they are the reason this group leads the file. `Matched` and `Awaiting
+delivery` reach `/invoices` through `describeInvoiceColumn` (`Delivery variance` did
+too, until #640 removed it), and the same
 constant supplies `Invoiced` / `Partly invoiced` / `Awaiting invoice` to
 `/deliveries` and `/pos` and `Partly delivered` to the order axis. **A vocabulary
 sweep working from the extractor alone would stand on a list with those words
@@ -165,7 +164,8 @@ their words tier 2 for that reason.
 that is the more useful result (#303).** That issue settled what a row of each of the
 four item tables is called, so every one of these constants was a candidate. Six say
 `ordered item` and none says a bare `item` for a `PO Items` row: `DELETE_COPY`'s three
-deletion voices, all ten of `PAIRING_COPY`'s sentences, and `RESTORE.items`, which is
+deletion voices, all ten of `PAIRING_COPY`'s sentences (gone with the pairing in
+#640), and `RESTORE.items`, which is
 `the items you edited` about `PR Items` on a request's own page and correct with the
 modifier dropped. The two defects the sweep did fix were both in strings the extractor
 produces — one written straight into JSX and one an `error:` property — so a sweep

@@ -151,6 +151,13 @@ the one document the system emits, and the office sends it to the vendor by hand
 
 ## Act II — Invoicing, delivery, and the app doing the matching
 
+> **Retired by #640 — read as the record of the pairing, not as the app today.** Steps 1 and 2 below walk the pairing box on both entry forms; neither form has one now.
+> Invoices and deliveries no longer pair: they meet only through the ordered items
+> both name, an invoice reads `Matched` once its ordered items' deliveries, filled
+> oldest invoice first, cover what it charges and `Awaiting delivery` (with its days
+> since the `Issue Date`) until then, and `Delivery variance` is gone. Re-cutting this
+> act against those screens is the demo's own job.
+
 **Live.** The centre of the demo. Both directions of the pairing, both ending
 clean — the disagreements are Act IV's, on purpose.
 
@@ -278,14 +285,13 @@ for.
 - **8 deliveries are waiting for an invoice** — longest wait first, days counted
   from the packing list's own `Received Date`.
 - **14 invoices are waiting on a delivery** — days from the vendor's `Issue
-  Date`, and one of two words per row: `nothing delivered yet`, or `delivered,
-  not matched`.
+  Date`, and one of two words per row: `nothing delivered yet`, or `partly
+  delivered` (`delivered, not matched` until #640).
 
 The row you fixed in Act II is **gone from the first strip**. Point at that.
 
-> Neither word claims a reason. The refusal reasons the pairing rule produces are
-> never stored, so an unmatched invoice is equally consistent with a refusal, with
-> nothing having been delivered, and with the pairing never having been attempted.
+> Neither word claims a reason: the app knows how much has been delivered, never why
+> the rest has not.
 
 ### 2. `/pos` — approved requests with no order
 
@@ -322,6 +328,13 @@ silent.
 ---
 
 ## Act IV — When they disagree
+
+> **Retired by #640 — read as the record of the pairing, not as the app today.** Steps 1 to 3 below show the invoice turning `Delivery variance`, the hand-attach control and the exception list; none of the three exists now.
+> Invoices and deliveries no longer pair: they meet only through the ordered items
+> both name, an invoice reads `Matched` once its ordered items' deliveries, filled
+> oldest invoice first, cover what it charges and `Awaiting delivery` (with its days
+> since the `Issue Date`) until then, and `Delivery variance` is gone. Re-cutting this
+> act against those screens is the demo's own job.
 
 **Mixed.** Two live, the rest pre-made.
 

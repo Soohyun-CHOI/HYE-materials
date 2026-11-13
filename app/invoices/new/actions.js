@@ -4,12 +4,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { withAdminAction, requireUser } from "@/lib/authz";
 import { base, TABLES } from "@/lib/airtable/client";
-import {
-    createInvoice,
-    getInvoiceByRecordId,
-    updateInvoice,
-    setInvoiceDelivery,
-} from "@/lib/airtable/invoices";
+import { createInvoice, getInvoiceByRecordId, updateInvoice } from "@/lib/airtable/invoices";
 import { createInvoiceItem, updateInvoiceItem } from "@/lib/airtable/invoiceItems";
 import { getPOItemByRecordId, getInvoicedQtyForPOItem } from "@/lib/airtable/poItems";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
@@ -19,8 +14,6 @@ import { createDirectPurchase } from "@/lib/airtable/directPurchases";
 import { DIRECT_PURCHASE_COPY, directPurchaseBlocked } from "@/lib/directPurchase";
 import { isPOWithdrawn } from "@/lib/poWithdraw";
 import { withOpsLabel } from "@/lib/airtableOps";
-import { getDeliveriesForInvoice } from "@/lib/deliveryInvoicePairing.server";
-import { PAIRING, matchDeliveryToInvoice } from "@/lib/deliveryInvoicePairing";
 import {
     ITEM_PRECISION_COPY,
     checkTotalsDiffer,
@@ -45,10 +38,10 @@ export const createInvoiceAction = withAdminAction(
 
 async function createInvoiceHandler(prevState, formData) {
     // LABELED IN #231, AND THE SCOPE WRAPS THE WHOLE BODY RATHER THAN A CALL TO IT.
-    // This action is where the computed pairing's reads happen, and an unlabeled
-    // write path would cost whatever it costs with nothing able to say so — #217 is
-    // the precedent, where labeling the signing chain is what found that 14 of its
-    // operations were not data.
+    // That issue labeled it for the computed pairing's reads, which #640 removed; the
+    // label stays because an unlabeled write path would cost whatever it costs with
+    // nothing able to say so — #217 is the precedent, where labeling the signing chain
+    // is what found that 14 of its operations were not data.
     //
     // The shape is approveAction's, and it is forced rather than chosen:
     // `offline/source-shape.mjs` resolves this action through its wrapper's last
@@ -184,13 +177,12 @@ async function createInvoiceHandler(prevState, formData) {
             };
         }
 
-        // #382 — THE SESSION, READ ONCE FOR THE TWO THINGS BELOW THAT NEED IT: the
-        // `Recorded By` this create writes, and the delivery pairing's Job scope.
+        // #382 — THE SESSION, FOR THE `Recorded By` THIS CREATE WRITES. It was read
+        // for the delivery pairing's Job scope too, until #640 removed the pairing.
         // `withAdminAction` loads a user to decide the gate and discards it
         // (lib/authzWrap.js:createFlagGuard), so an action needing the person pays one
         // operation for them — #185's question, reported at #193 rather than fixed by
-        // changing every wrapper's contract. The pairing block below used to make this
-        // call itself, which is why this is one operation moved rather than one added.
+        // changing every wrapper's contract.
         //
         // BELOW THE REFUSALS AND ABOVE THE FIRST WRITE. A submission this action turns
         // away still costs nothing, and nothing is created before the person writing
@@ -301,58 +293,11 @@ async function createInvoiceHandler(prevState, formData) {
             return { error: "Something went wrong creating the invoice. Please try again." };
         }
 
-        // #231 — THE COMPUTED PAIRING, and it is deliberately OUTSIDE the rollback
-        // above. #210's delivery path writes its pairing INSIDE, because there a
-        // recorder typed the invoice number off the packing list and dropping it would
-        // silently discard what they said; nothing was said here. This answer is
-        // derived, so a failure to work it out must not undo an invoice the office
-        // entered — the call lib/materialsCache.js makes for the same reason, and the
-        // one #167's apply step makes about not undoing the approval that produced it.
-        // What a failure leaves is an unpaired invoice, which is this feature's
-        // ordinary state and is what #216's strip above /invoices lists.
-        //
-        // The user this walk is scoped by is the one read above the create (#382),
-        // which is where the note about paying an operation for a person the wrapper
-        // already loaded now lives. This block made that call itself until #382 gave
-        // the write a second use for it.
-        let pairing = { key: PAIRING.none };
-        try {
-            const { deliveries, invoices, agreedPrices } = await getDeliveriesForInvoice(user, {
-                vendorRecordId: vendorId,
-                orderedItems: items.map((item) => ({
-                    poItemRecordId: item.poItemRecordId || null,
-                    unitPrice: parseFloat(item.unitPrice),
-                })),
-            });
-            pairing = matchDeliveryToInvoice({
-                // The invoice as it now stands on the base: unpaired, and charging exactly
-                // what was just created. Read from the submitted rows rather than from
-                // the created records, which say the same thing and would cost a read.
-                invoice: {
-                    invoiceRecordId: invoice.id,
-                    invoiceId: invoice.invoiceId,
-                    orderedItems: items
-                        .filter((item) => item.poItemRecordId)
-                        .map((item) => ({
-                            poItemRecordId: item.poItemRecordId,
-                            unitPrice: parseFloat(item.unitPrice),
-                        })),
-                    pairedDeliveryRecordId: null,
-                },
-                deliveries,
-                invoices,
-                agreedPrices,
-            });
-            if (pairing.key === PAIRING.matched) {
-                await setInvoiceDelivery(invoice.id, pairing.deliveryRecordId);
-            }
-        } catch (err) {
-            // Best-effort in lib/materialsCache.js's shape: logged, and the invoice
-            // stands. `pairing` keeps its `none`, so the page says nothing rather than
-            // reporting a match that was not made.
-            console.error("createInvoiceAction could not compute a delivery pairing", err);
-            pairing = { key: PAIRING.none };
-        }
+        // #231's COMPUTED PAIRING STOOD HERE AND IS GONE WITH THE LINK IT WROTE (#640).
+        // It matched the new invoice to one delivery and stored it on
+        // `Invoices."Delivery"`; invoices and deliveries meet only through the ordered
+        // items they both name now, so there is nothing to work out at entry and nothing
+        // to write after it.
 
         // Issue #140 — every write above succeeded, so the uploaded object has
         // served its purpose: Airtable holds the invoice file now. Deliberately
@@ -381,29 +326,11 @@ async function createInvoiceHandler(prevState, formData) {
         // new-invoice page, a known follow-up), so the full record is shown
         // straight after creation.
         //
-        // #231 — the pairing outcome rides along as a KEY, never a sentence: the copy
-        // is lib/deliveryInvoicePairing.js's, so a query string carrying words would be a
-        // second place to reword one. `none` is omitted rather than sent, because the
-        // banner has no `none` voice and a parameter meaning "say nothing" would invite
-        // one.
-        //
-        // The tie-break rides as a SECOND parameter rather than as a value of the
-        // first, because it is not an outcome: it composes with `matched`, and
-        // folding it in would mean a key that has to report both what happened and
-        // how it was decided. A bare flag, not a count — the objection to sending a
-        // count was that the reader cannot act on two differently from three, and
-        // this is a fact they act on by opening the delivery.
-        //
-        // #321 — THE QUERY STRING IS NOW THIS AND NOTHING ELSE. It opened
-        // `?done=created`, and the two below hung off that as `&…`; the confirmation
-        // is gone, so `paired` leads and the separator moved with it. A `none`
-        // pairing on an invoice that needs no tie-break leaves no query string at
-        // all, which is the ordinary case.
-        const query = new URLSearchParams();
-        if (pairing.key !== PAIRING.none) query.set("paired", pairing.key);
-        if (pairing.tieBreak) query.set("tied", "1");
-        const qs = query.toString();
-        redirect(`/invoices/${encodeURIComponent(invoice.invoiceId)}${qs ? `?${qs}` : ""}`);
+        // #321 AND #640 — WITH NO QUERY STRING AT ALL. #321 took the confirmation off
+        // it and left #231's `paired` and `tied`, which said on arrival which delivery
+        // the app had matched; the pairing is gone (#640), so the arrival says what it
+        // says by being the invoice's own page.
+        redirect(`/invoices/${encodeURIComponent(invoice.invoiceId)}`);
     });
 }
 

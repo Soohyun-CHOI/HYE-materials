@@ -339,28 +339,6 @@ const EXEMPTIONS = [
     { file: "app/deliveries/[deliveryId]/actions.js", name: "deleteDeliveryAction", mustCall: "requireUser", reason: DELIVERY_AUTHOR_AXIS },
     {
         file: "app/deliveries/[deliveryId]/actions.js",
-        name: "attachDeliveryInvoiceAction",
-        mustCall: "requireUser",
-        reason:
-            `${DELIVERY_JOB_AXIS} Issue #210 — TWO per-record axes rather than one, ` +
-            "and neither is a role. The Job comparison admits it to the delivery; the " +
-            "invoice it is about is then gated per record through " +
-            "lib/invoiceVisibility.js, so a caller cannot pair an invoice they may not " +
-            "read. Both re-run from a fresh read inside " +
-            "lib/deliveryInvoicePairing.server.js, because an invoice can be paired with " +
-            "another delivery while the form sits open.",
-    },
-    {
-        file: "app/deliveries/[deliveryId]/actions.js",
-        name: "detachDeliveryInvoiceAction",
-        mustCall: "requireUser",
-        reason:
-            `${DELIVERY_JOB_AXIS} Issue #210 — the same two axes as the attach action ` +
-            "above, minus the vendor test: a pairing that somehow crossed vendors has " +
-            "to stay detachable, or the refusal would lock in the state it objects to.",
-    },
-    {
-        file: "app/deliveries/[deliveryId]/actions.js",
         name: "createOverageDraftAction",
         mustCall: "requireUser",
         reason:

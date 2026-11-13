@@ -17,7 +17,6 @@ import { describeOveragePreview } from "@/lib/overage";
 import { createOverageDraft, getOverageContext } from "@/lib/overage.server";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
 import { deleteDeliveryAsUser } from "@/lib/deliveryDelete";
-import { setDeliveryInvoiceAsUser } from "@/lib/deliveryInvoicePairing.server";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 // Every export below gates on requireUser() and then compares per record, so none
@@ -137,76 +136,9 @@ export async function replaceDeliveryPhotoAction(prevState, formData) {
     });
 }
 
-/**
- * Attach the invoice this delivery is invoiced by, after the fact (#210).
- *
- * THE LATER-ATTACHMENT PATH, and it is an in-place edit rather than a second entry
- * screen because the pairing is ORTHOGONAL TO ALLOCATION. What this page refuses to
- * change — the item, the quantity, the vendor, the packing list PO — is refused on
- * one ground: changing it changes what the delivery was allocated against, and there
- * is deliberately no allocation-editing UI. An invoice link changes no `Delivery
- * Items` row, moves no quantity between orders and re-runs nothing, so that reason
- * does not reach it. It belongs with the received date, the note and the photo.
- *
- * WHY IT HAS TO EXIST AT ALL: the vendor usually emails the invoice at shipment, so it
- * is normally on hand first — but not always, and an invoice nobody has entered yet
- * cannot be picked from a dropdown. Leaving it blank at entry is a normal answer,
- * which makes this the path that finishes the pairing.
- *
- * Every decision is in lib/deliveryInvoicePairing.server.js, which re-runs the row gate
- * from a fresh read; this contributes the session gate, the Job comparison and the
- * redirect.
- */
-export async function attachDeliveryInvoiceAction(prevState, formData) {
-    return withOpsLabel("attachDeliveryInvoiceAction", async () => {
-        const user = await requireUser();
-        const deliveryId = formData.get("deliveryId");
-        const invoiceRecordId = formData.get("invoiceRecordId");
-
-        const loaded = await loadForEdit(user, deliveryId);
-        if (loaded.error) return loaded;
-
-        const result = await setDeliveryInvoiceAsUser({
-            user,
-            delivery: loaded.delivery,
-            invoiceRecordId,
-            attach: true,
-        });
-        if (result.error) return result;
-
-        redirect(`/deliveries/${encodeURIComponent(deliveryId)}`);
-    });
-}
-
-/**
- * Detach an invoice from this delivery (#210).
- *
- * DETACH RATHER THAN SWAP, and the pair of separate controls is deliberate: an
- * invoice can only ever name one delivery, so re-pointing one is a claim about two
- * deliveries at once. Making it two steps means the screen it left says so, and the
- * refusal `taken-by-another` stays truthful rather than being something the app
- * silently overrides.
- */
-export async function detachDeliveryInvoiceAction(prevState, formData) {
-    return withOpsLabel("detachDeliveryInvoiceAction", async () => {
-        const user = await requireUser();
-        const deliveryId = formData.get("deliveryId");
-        const invoiceRecordId = formData.get("invoiceRecordId");
-
-        const loaded = await loadForEdit(user, deliveryId);
-        if (loaded.error) return loaded;
-
-        const result = await setDeliveryInvoiceAsUser({
-            user,
-            delivery: loaded.delivery,
-            invoiceRecordId,
-            attach: false,
-        });
-        if (result.error) return result;
-
-        redirect(`/deliveries/${encodeURIComponent(deliveryId)}`);
-    });
-}
+// #210's `attachDeliveryInvoiceAction` AND `detachDeliveryInvoiceAction` STOOD HERE and
+// went with the pairing they wrote (#640): invoices and deliveries meet only through
+// the ordered items both name, so there is no link to attach or detach.
 
 /**
  * Delete a delivery and its delivery items.

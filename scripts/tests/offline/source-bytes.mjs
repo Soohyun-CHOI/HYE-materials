@@ -9,7 +9,8 @@
 // offline check reads with `readFileSync`, which is indifferent to NULs.
 //
 // IT HAPPENED TWICE, WHICH IS WHY THE COST IS KNOWN RATHER THAN IMAGINED.
-// lib/deliveryInvoiceMatch.js (`lib/deliveryInvoicePairing.js` since #184) carried
+// lib/deliveryInvoiceMatch.js (`lib/deliveryInvoicePairing.js` from #184 until #640
+// deleted it) carried
 // one inside a template literal — a sort key's separator, where a NUL is
 // functionally the BETTER character, since it orders below every printable one. The
 // module was then missing from a repository-wide count of a word it uses thirty-two
@@ -278,11 +279,12 @@ export function run({ check, assert, log }) {
     check("and every one of them is in git's answer", missing.length, 0);
     for (const m of missing.slice(0, 5)) log(`    not tracked: ${m}`);
 
-    // The module that carried the second incident is in the set, or this check
-    // would have passed on the day the byte went in.
+    // The module that carried the first incident is in the set, or this check would
+    // have passed on the day the byte went in. (The second's, lib/deliveryInvoicePairing.js,
+    // was deleted by #640.)
     assert(
         "the file that carried one is in scope",
-        tracked.some((f) => f.endsWith("deliveryInvoicePairing.js"))
+        tracked.some((f) => f.endsWith("lib/airtableOps.js"))
     );
     // And so are the three the old extension scope could not see, named because
     // losing them again would be silent — a scope narrowing is not a failure.

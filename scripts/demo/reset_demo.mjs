@@ -240,29 +240,14 @@ if (!overDeliveryId) {
     );
 }
 
-// Act II's forward pairing: the invoice is waiting again.
+// Act II's two waits. Until #640 these read `Invoices."Delivery"` and
+// `Deliveries."Invoices"` to see the pairing undone; the link is gone, and both waits are
+// computed from the ordered items now — so the invoice must exist, and the delivery's
+// order must hold nothing invoiced, which is what keeps it waiting.
 const invWaitAId = pickRecordId(after.byScenario, "INV_WAIT_A", "invoices");
-if (!invWaitAId) {
-    check("the INV_WAIT_A invoice exists", false, "no invoice carries that code");
-} else {
-    const inv = await base(TABLES.INVOICES).find(invWaitAId);
-    check(
-        `${pick(after.byScenario, "INV_WAIT_A", "invoices")} names no delivery`,
-        (inv.get("Delivery") || []).length === 0
-    );
-}
-
-// Act II's reverse pairing: the delivery is waiting again, and its order is uninvoiced.
+check("the INV_WAIT_A invoice exists", Boolean(invWaitAId), "no invoice carries that code");
 const dlWaitId = pickRecordId(after.byScenario, "DL_WAIT", "deliveries");
-if (!dlWaitId) {
-    check("the DL_WAIT delivery exists", false, "no delivery carries that tag");
-} else {
-    const dl = await base(TABLES.DELIVERIES).find(dlWaitId);
-    check(
-        `${pick(after.byScenario, "DL_WAIT", "deliveries")} is waiting for an invoice`,
-        (dl.get("Invoices") || []).length === 0
-    );
-}
+check("the DL_WAIT delivery exists", Boolean(dlWaitId), "no delivery carries that tag");
 const dlWaitPoId = pickRecordId(after.byScenario, "DL_WAIT", "pos");
 if (!dlWaitPoId) {
     check("the DL_WAIT order exists", false, "no order under that request");

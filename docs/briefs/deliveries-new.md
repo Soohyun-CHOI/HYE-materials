@@ -119,22 +119,11 @@ record it against.`
 saying that, because the packing list names that order, the extra is recorded
 against it and flagged rather than allocated to another order.
 
-**When the app can work out which invoice this delivery answers:** a box above the
-date, before the fields, carrying one of several sentences — one invoice matched
-and attached, several each attached, or an ambiguous case where none was. It is
-gray when the app is simply reporting what it did and **amber when it is asking the
-reader to check something** — a shared ordered item, or a tie nothing could break.
-A tie-break adds a second sentence in the same box, and turns it amber, because a
-tie is the one attachment here that asks rather than tells.
-
-**Nothing appears at all when the ordered items place no invoice.** An unpaired
-invoice is the ordinary state, not an event to report — so the box is absent
-whenever the app has nothing to claim, and that silence is what this preview
-must not break.
-
-**The preview comes before the control, not after.** That order is the order of the
-facts: the app has decided, and the checkbox for saying otherwise is for the rarer
-case where the document disagrees.
+**No invoice is mentioned on this screen (#640).** A box above the date said which
+invoice the app had matched to this delivery until #640 removed the pairing:
+invoices and deliveries meet only through the ordered items both name, so recording
+a delivery says nothing about any invoice, and how much of an order has been invoiced
+is the invoice and order screens' to say.
 
 **When the photo is uploading, attached or failed:** `Uploading {filename}…` in
 gray, `{filename} attached` in green, or `Upload failed: {error}` in red.
@@ -159,14 +148,6 @@ says the same thing.
 the tag on the delivery detail, the deliveries list and the purchase order detail.
 Four places, one word, one meaning.
 
-**The pairing sentences are shared with the invoice detail's own banner**, which
-reports the same judgment from the other direction. One predicate serves both, so
-the two screens cannot disagree about why a delivery and an invoice were paired.
-
-**The gray-versus-amber split in the pairing box is the app's general grammar:**
-gray reports what was done, amber asks a person to check. The invoice detail uses
-the identical split for the identical box.
-
 **The allocation preview is the same rule that writes the rows**, and the delivery
 detail's `Recorded against` table is the same allocation read back. A reader should
 recognize the second from the first.
@@ -182,8 +163,9 @@ and the two group headings — one question about one table, asked on two forms.
 The two refusals are shared too, so a missing address reads identically whichever
 form refused it.
 
-**The gray-versus-amber split under this control is the same grammar** as the
-pairing box above it: gray reports what the app did, amber asks a person to check.
+**The gray-versus-amber split under this control is the app's general grammar:**
+gray reports what the app did, amber asks a person to check. (The pairing box above
+it used the same split until #640 removed it.)
 
 **This screen is the only place the address is ever set.** It cannot be edited
 afterwards and the delivery's own page has no control for it — inventory is

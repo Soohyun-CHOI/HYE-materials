@@ -439,40 +439,40 @@ export function run(reporter) {
     );
 
     log("");
-    log("Invoices.\"Delivery\" — ONE writer, and it is not the header editor (#210):");
-    // A WRITER COUNT, the same category as the two above, and the reason it is worth
-    // pinning is the AUTHORIZATION rather than the field. `updateInvoice` is the
-    // office's header-correction path and every caller of it is Admin-only (#117);
-    // this pairing is written from the DELIVERY side by a Job-scoped action, because
-    // the packing list is where it is known. One function with both axes on it would
-    // make the narrower one unenforceable — so the pairing gets its own narrow writer,
-    // the shape setPOItemMaterial and replaceDeliveryPhoto already have.
-    const invoicesTable = fileOf("lib/airtable/invoices.js");
-    const isDeliveryKey = (n) =>
-        n.type === "Property" && (n.key?.name === "Delivery" || n.key?.value === "Delivery");
-    const deliveryLinkWrites = [];
-    walk(invoicesTable.ast, (n) => {
-        if (isDeliveryKey(n)) deliveryLinkWrites.push(n);
-    });
-    check(
-        "lib/airtable/invoices.js writes Delivery in exactly one place",
-        deliveryLinkWrites.length,
-        1
-    );
-    const setInvoiceDeliveryFn = resolveFunction(invoicesTable.ast, "setInvoiceDelivery");
+    log("Invoices.\"Delivery\" and Deliveries.\"Invoices\" — no reader and no writer (#640):");
+    // #210 STORED WHICH DELIVERY AN INVOICE DESCRIBES and this section held its one
+    // narrow writer, apart from the Admin-only header editor. #640 removed the link from
+    // both bases: invoices and deliveries meet only through the ordered items both name.
+    // So what is pinned now is the absence — a `Delivery` key written or read on the
+    // invoice table's module, or an `Invoices` one on the delivery table's, is a stale
+    // name for a field that no longer exists, and a write to it fails at Airtable.
+    const isKey = (name) => (n) =>
+        n.type === "Property" && (n.key?.name === name || n.key?.value === name);
+    const readsField = (name) => (n) =>
+        n.type === "CallExpression" &&
+        n.callee?.type === "MemberExpression" &&
+        n.callee.property?.name === "get" &&
+        n.arguments?.[0]?.value === name;
+    const found = (relPath, predicate) => {
+        const hits = [];
+        walk(fileOf(relPath).ast, (n) => {
+            if (predicate(n)) hits.push(n);
+        });
+        return hits.length;
+    };
+    check("lib/airtable/invoices.js writes no Delivery", found("lib/airtable/invoices.js", isKey("Delivery")), 0);
+    check("  and reads none", found("lib/airtable/invoices.js", readsField("Delivery")), 0);
+    check("lib/airtable/deliveries.js reads no Invoices", found("lib/airtable/deliveries.js", readsField("Invoices")), 0);
+    // ANTI-VACUITY: both matchers are seen finding the same field name where it is still
+    // real — `Delivery Items."Delivery"`, written and read by its own table's module.
     assert(
-        "and that place is setInvoiceDelivery",
-        deliveryLinkWrites.filter((w) => within(w, setInvoiceDeliveryFn)).length === 1
+        "the key matcher finds Delivery Items' own Delivery write",
+        found("lib/airtable/deliveryItems.js", isKey("Delivery")) > 0
     );
-    const updateInvoiceFn = resolveFunction(invoicesTable.ast, "updateInvoice");
     assert(
-        "updateInvoice exists and never touches the pairing",
-        Boolean(updateInvoiceFn) && firstPositionOf(updateInvoiceFn, isDeliveryKey) === -1
+        "  and the read matcher its read",
+        found("lib/airtable/deliveryItems.js", readsField("Delivery")) > 0
     );
-    // ANTI-VACUITY: `isDeliveryKey` must be able to find something, or the two
-    // assertions above are satisfied by a matcher that matches nothing. The write it
-    // does find is the one inside the narrow writer, which is the positive case.
-    assert("the Delivery-key matcher found a write at all", deliveryLinkWrites.length > 0);
 
     log("");
     log("Withdrawn-PO guards (#138):");
@@ -521,7 +521,8 @@ export function run(reporter) {
     // proves the export is withAdminAction with the wrapper's own arity.
     //
     // EXERCISING THE REAL ACTION WAS AVAILABLE AND IS DELIBERATELY LEFT ALONE.
-    // verify-invoice-pairing-231.mjs reaches a Server Action over HTTP, and soo@ is
+    // verify-invoice-recorder-382.mjs reaches a Server Action over HTTP (as
+    // verify-invoice-pairing-231.mjs did until #640 deleted it), and soo@ is
     // both Admin and named, so this one is reachable today. #250 owns settling that
     // harness against the heaviest write there is; a second one grown here for an
     // input check would be the duplication that issue exists to avoid.

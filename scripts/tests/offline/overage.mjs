@@ -9,11 +9,14 @@
 //   - THAT THE COMPARISON IS THE ORDERED ITEM'S TOTALS, not one delivery's and not one
 //     invoice's, which is the decision the whole rule rests on.
 //   - WHICH INVOICE SUPPLIES THE QUOTATION: it must cover the excess on its own, the
-//     candidates must agree on price, and the pairing is a preference among equals
-//     rather than #219's tier.
-//   - THAT THE ORDERING IS THIS MODULE'S AND PRIVATE, on the AST: it moved out of
-//     lib/deliveryStatus.js with #219, and a second sort by Issue Date anywhere
-//     would answer the same question differently with nothing behavioral noticing.
+//     candidates must agree on price, and the one whose charge runs past the order —
+//     by the oldest-first fill (#640) — is a preference among equals, never a tier.
+//     It was the invoice paired with the excess's delivery until #640 removed the
+//     pairing.
+//   - THAT THE ORDERING IS ENTRY ORDER AND PRIVATE, on the AST: built on
+//     lib/deliveryStatus.js's `byEntryOrder` since #640, and a sort by Issue Date
+//     anywhere here would answer the same question differently with nothing
+//     behavioral noticing.
 //   - THAT THE BANNER IS DERIVED, from the linked PR's status and the row's flag,
 //     so a withdrawal reopens the row with no write anywhere.
 //
@@ -55,9 +58,8 @@ import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "Overage requests — the agreement rule, the quotation, the banner (#167, #265)";
 
-/** The delivery the excess delivered against, and one it did not. */
+/** The delivery the excess delivered against. */
 const DELIVERY = "recDL1";
-const OTHER_DELIVERY = "recDL2";
 
 /** One over-delivery row as the readers see it. */
 const row = (over = {}) => ({
@@ -68,7 +70,8 @@ const row = (over = {}) => ({
     size: '2"',
     overDelivered: true,
     poItem: ["recPOI1"],
-    // #219 — the row's own delivery, which is the pairing preference since #265.
+    // The row's own delivery, which the banner names (`facts.deliveryId`). It was the
+    // pairing preference from #219 to #640.
     delivery: [DELIVERY],
     overagePRRecordId: null,
     formerPOItemRecordId: null,
@@ -76,33 +79,29 @@ const row = (over = {}) => ({
 });
 
 /**
- * An invoice NAMING THIS DELIVERY, which #265 leaves as a preference among candidates
- * that already agree on price — so every clause that is not about the preference reads
- * without a pairing spelled out in it.
+ * One invoice item on the ordered item, as lib/overage.server.js hands it over. Its
+ * `Invoice Item ID` is its invoice's ID and a number, so `id` orders the fixtures in
+ * entry order — "01" was entered before "02" — which is the order the fill pours in
+ * since #640. `issueDate` rides along unread: the vendor's date orders nothing now.
  */
 const invoice = (id, qty, issueDate, over = {}) => ({
     invoiceItemRecordId: `recII${id}`,
+    invoiceItemId: `HYE-INV-2607${id}-001`,
     invoiceRecordId: `recINV${id}`,
     invoiceId: `HYE-INV-2607${id}`,
     issueDate,
     qty,
     unitPrice: 12,
     hasFile: true,
-    deliveryRecordId: DELIVERY,
     ...over,
 });
 
-/** The same invoice naming NO delivery — #210's ordinary state. */
-const unpairedInvoice = (id, qty, issueDate, over = {}) =>
-    invoice(id, qty, issueDate, { deliveryRecordId: null, ...over });
-
-/** And one naming a DIFFERENT delivery. */
-const otherDeliveryInvoice = (id, qty, issueDate, over = {}) =>
-    invoice(id, qty, issueDate, { deliveryRecordId: OTHER_DELIVERY, ...over });
-
-/** selectOverageInvoice for this row's delivery unless told otherwise. */
-const pick = (invoices, excess, deliveryRecordId = DELIVERY) =>
-    selectOverageInvoice({ invoices, excess, deliveryRecordId });
+/**
+ * selectOverageInvoice against an ordered quantity of 9 unless told otherwise, so one
+ * invoice of 12 runs exactly 3 past the order — the paradigm excess the clauses below
+ * ask about.
+ */
+const pick = (invoices, excess, orderedQty = 9) => selectOverageInvoice({ invoices, excess, orderedQty });
 
 /**
  * The ordered item's three totals, AGREEING by default, so a clause that is not about
@@ -291,8 +290,9 @@ export function run({ check, log, assert }) {
     // #219's THREE TIERS ARE GONE AND THIS IS WHAT REPLACED THEM. They existed to pick
     // a document when the app could not tell whether the excess was invoiced at all; the
     // agreement rule answers that first, so what is left is narrower — a candidate has
-    // to cover the excess on its own, they have to agree on price, and the pairing is a
-    // preference among equals.
+    // to cover the excess on its own, they have to agree on price, and the one whose
+    // charge runs past the order is a preference among equals (the pairing was, until
+    // #640).
     log("");
     log("#265 — the quotation comes from an invoice covering the excess on its own:");
     check(
@@ -347,40 +347,40 @@ export function run({ check, log, assert }) {
     );
 
     log("");
-    log("  the pairing is a PREFERENCE among equals, not a tier:");
-    // #219's OWN DEFECT, WHICH IS WHY THE PAIRING SURVIVES AT ALL: an ordered item
-    // filled by two deliveries and invoiced by two invoices, each large enough to cover
-    // the excess and both at the agreed price. The excess belongs to the delivery whose
-    // row carries the flag, and the stored pairing is the only thing that says which
-    // invoice describes it — so the older invoice must NOT win on age alone.
-    const twoDeliveries = [
-        otherDeliveryInvoice("01", 12, "2026-07-01"),
-        invoice("02", 12, "2026-07-02"),
-    ];
-    check("the one naming this delivery is preferred", pick(twoDeliveries, 3).invoice.invoiceId, "HYE-INV-260702");
-    // AND IT IS NOT A TIER: an invoice naming ANOTHER delivery is still a candidate,
-    // which is exactly what #219 refused. It has to be, because it counts toward
-    // `Invoiced Qty` and therefore toward the agreement that got this far.
+    log("  the invoice past the order is a PREFERENCE among equals, not a tier (#640):");
+    // #219's OWN CASE, ANSWERED WITHOUT A PAIRING: an ordered item of 10 invoiced by two
+    // invoices of 12, each large enough to cover an excess of 3 and both at the agreed
+    // price. The fill pours the 10 ordered into the older one first, so it charges 2
+    // past the order and the newer one 12 — the newer one is the invoice that ran past
+    // the order, and it must win although it is not the oldest.
+    const twoInvoices = [invoice("01", 12, "2026-07-01"), invoice("02", 12, "2026-07-02")];
+    check("the one past the order is preferred, not the oldest", pick(twoInvoices, 3, 10).invoice.invoiceId, "HYE-INV-260702");
+    check("  and the older one is reported as passed over", pick(twoInvoices, 3, 10).tieBreak.passedOver.join(","), "HYE-INV-260701");
+    // AND IT IS NOT A TIER: an invoice the fill places inside the order is still a
+    // candidate. It has to be — after #217's apply step splits the excess onto the
+    // overage order, nothing on the original ordered item is past the order any more,
+    // and the banner still names an invoice.
+    const insideTheOrder = [invoice("01", 12, "2026-07-01"), invoice("02", 12, "2026-07-02")];
     check(
-        "one naming another delivery is still chosen when it is the only candidate",
-        pick([otherDeliveryInvoice("01", 12, "2026-07-01")], 3).invoice.invoiceId,
+        "with nothing past the order, the oldest covering one is chosen, not a refusal",
+        pick(insideTheOrder, 3, 24).invoice.invoiceId,
         "HYE-INV-260701"
     );
+    check("  reported as a tie-break", pick(insideTheOrder, 3, 24).tieBreak.chosen, "HYE-INV-260701");
+    check("  naming what it was chosen over", pick(insideTheOrder, 3, 24).tieBreak.passedOver.join(","), "HYE-INV-260702");
+    // OLDEST IS ENTRY ORDER, NEVER THE VENDOR'S DATE (#640). "02" was entered second
+    // and carries the earlier `Issue Date`; entry order still puts "01" first.
     check(
-        "  as is one naming none",
-        pick([unpairedInvoice("01", 12, "2026-07-01")], 3).invoice.invoiceId,
+        "the oldest is the first entered, whatever the Issue Date says",
+        pick([invoice("01", 12, "2026-07-02"), invoice("02", 12, "2026-06-01")], 3, 24).invoice.invoiceId,
         "HYE-INV-260701"
     );
-    // With nothing recorded the ordering decides and that is NOT a refusal, because by
-    // then the figures are equal either way.
-    const bothUnpaired = [unpairedInvoice("01", 12, "2026-07-01"), unpairedInvoice("02", 12, "2026-07-02")];
-    check("two unpaired equals: the oldest, and not a refusal", pick(bothUnpaired, 3).invoice.invoiceId, "HYE-INV-260701");
-    check("  reported as a tie-break", pick(bothUnpaired, 3).tieBreak.chosen, "HYE-INV-260701");
-    check("  naming what it was chosen over", pick(bothUnpaired, 3).tieBreak.passedOver.join(","), "HYE-INV-260702");
-    // An undated invoice does not claim to be the oldest — sortCandidates' own call.
+    // A row made by hand with no ID does not claim to be the oldest — sortCandidates'
+    // own call for a data gap.
     check(
-        "an undated invoice sorts last",
-        pick([unpairedInvoice("01", 12, null), unpairedInvoice("02", 12, "2026-07-02")], 3).invoice.invoiceId,
+        "an invoice item with no ID sorts last",
+        pick([invoice("01", 12, "2026-07-01", { invoiceItemId: "" }), invoice("02", 12, "2026-07-02")], 3, 24)
+            .invoice.invoiceId,
         "HYE-INV-260702"
     );
 
@@ -390,8 +390,8 @@ export function run({ check, log, assert }) {
     // so an invoice split across two rows on one ordered item changed no figure; here a
     // candidate has to cover the excess, and two half-entries would each look too small.
     const splitInvoice = [
-        { ...invoice("01", 7, "2026-07-01"), invoiceItemRecordId: "recIIa" },
-        { ...invoice("01", 5, "2026-07-01"), invoiceItemRecordId: "recIIb" },
+        { ...invoice("01", 7, "2026-07-01"), invoiceItemRecordId: "recIIa", invoiceItemId: "HYE-INV-260701-001" },
+        { ...invoice("01", 5, "2026-07-01"), invoiceItemRecordId: "recIIb", invoiceItemId: "HYE-INV-260701-002" },
     ];
     check("one invoice in two rows folds to one candidate", foldByInvoice(splitInvoice).length, 1);
     check("  carrying the summed charge", foldByInvoice(splitInvoice)[0].qty, 12);
@@ -448,69 +448,59 @@ export function run({ check, log, assert }) {
 
     // --- THE ORDERING IS THIS MODULE'S, AND PRIVATE (AST) ----------------
     log("");
-    log("the ordering moved here with #219 and is not exported (AST):");
+    log("the ordering is entry order, built on lib/deliveryStatus.js, and not exported (AST):");
     const { ast } = parseFile("lib/overage.js");
-    let importsFromDeliveryStatus = false;
+    const fromDeliveryStatus = [];
     walk(ast, (node) => {
-        if (node.type !== "ImportDeclaration") return;
-        if (node.source.value?.includes("deliveryStatus")) importsFromDeliveryStatus = true;
+        if (node.type !== "ImportDeclaration" || !node.source.value?.includes("deliveryStatus")) return;
+        for (const spec of node.specifiers) fromDeliveryStatus.push(spec.imported?.name ?? spec.local.name);
     });
-    assert("lib/overage.js imports nothing from lib/deliveryStatus.js", !importsFromDeliveryStatus);
+    // #640 — THE ONE ORDERING AND THE ONE FILL, BORROWED RATHER THAN COPIED. Until then
+    // this module imported nothing from there and kept #166's `Issue Date` sort to
+    // itself; entry order is now what every comparison between invoices and deliveries
+    // pours in, so a second implementation here is what would drift.
+    check(
+        "lib/overage.js takes the comparator and the fill from lib/deliveryStatus.js",
+        fromDeliveryStatus.sort().join(","),
+        "byEntryOrder,fillOldestFirst"
+    );
     assert(
-        "  and `sortInvoicesOldestFirst` is not on its export list either",
+        "  and `sortInvoicesOldestFirst` is not on its export list",
         !("sortInvoicesOldestFirst" in overage)
     );
     assert("  nor is a premise constant", !("INFERRED_PREMISE" in overage));
-    // EXACTLY ONE sort by Issue Date in the repo's judgment layer: this one. Two would
-    // answer the same question differently and nothing behavioral would notice, which
-    // is why this is a source-shape check — and the count is asserted rather than mere
-    // presence, so a copy added beside it fails.
-    const invoiceSorts = [];
+    // NO SORT BY `Issue Date` IS LEFT, and the count is asserted rather than absence of
+    // one name, so a copy added beside the entry-order sort fails.
+    const sorts = [];
     walk(ast, (node) => {
         if (node.type !== "CallExpression") return;
         const callee = node.callee;
         if (callee?.type !== "MemberExpression" || callee.property?.name !== "sort") return;
-        if (JSON.stringify(node.arguments).includes("issueDate")) invoiceSorts.push(node);
+        // The signer chain sorts by `Sequence Order`, which orders no invoice.
+        if (JSON.stringify(node.arguments).includes("sequenceOrder")) return;
+        sorts.push(node);
     });
-    check("one Issue Date sort, and it lives here now", invoiceSorts.length, 1);
-    assert("  and it tie-breaks on Invoice ID", JSON.stringify(invoiceSorts[0].arguments).includes("invoiceId"));
-    // ONE TIER ORDERS, THE OTHER REFUSES — asserted as a call count, because the
-    // behavioral difference is invisible at one candidate and this is the shape a
-    // later edit would undo by "tidying" the fallback tier into symmetry with the
-    // paired one.
-    check("the ordering is called from exactly one tier", callsTo(ast, "sortInvoicesOldestFirst").length, 1);
+    check("one invoice sort, and it orders by entry", sorts.length, 1);
+    check("  never by Issue Date", JSON.stringify(sorts[0]?.arguments ?? []).includes("issueDate"), false);
+    assert("  and through byEntryOrder", JSON.stringify(sorts[0]?.arguments ?? []).includes("byEntryOrder"));
+    check("the ordering is called from exactly one place", callsTo(ast, "sortInvoicesOldestFirst").length, 1);
 
-    // THE CALLER OBLIGATION, PINNED. selectOverageInvoice falls to the fallback tier
-    // when it is not told which delivery — the honest answer for a row that names
-    // none, and the wrong one for a caller that forgot. Every call site in the
-    // credentialed module passes it, including the APPLY step, which has to split the
-    // same invoice the preview quoted.
+    // THE CALLER OBLIGATION, PINNED. selectOverageInvoice finds the invoice past the
+    // order by pouring the ordered quantity, and a caller that forgot it pours 0 — every
+    // invoice is then past the order and the preference silently becomes the oldest.
+    // Every call site in the credentialed module passes it, including the APPLY step,
+    // which has to split the same invoice the preview quoted.
     log("");
-    log("every selectOverageInvoice call site names a delivery (AST):");
+    log("every selectOverageInvoice call site passes the ordered quantity (AST):");
     const { ast: prAst } = parseFile("lib/overage.server.js");
-    // BOTH NAMES, BECAUSE THE APPLY PATH HAS A HOP. `applyOverageToPO` hands the
-    // delivery to `splitInvoiceItemForOverage`, which passes it on as a shorthand
-    // property — so asserting only the inner call would have been satisfied by a
-    // shorthand whose value the outer call had stopped supplying. Measured: dropping
-    // it from the outer call passed a check that only looked at the inner one.
-    const callSites = ["selectOverageInvoice", "splitInvoiceItemForOverage"].flatMap((name) =>
-        callsTo(prAst, name).map((call) => ({ name, call }))
-    );
-    assert(`found ${callSites.length} call sites, preview and apply alike`, callSites.length >= 5);
-    for (const [i, { name, call }] of callSites.entries()) {
-        assert(`  ${name} call ${i + 1} passes deliveryRecordId`, callPassesProperty(call, "deliveryRecordId"));
+    const callSites = callsTo(prAst, "selectOverageInvoice");
+    assert(`found ${callSites.length} call sites, preview and apply alike`, callSites.length >= 4);
+    for (const [i, call] of callSites.entries()) {
+        assert(`  call ${i + 1} passes orderedQty`, callPassesProperty(call, "orderedQty"));
     }
     // ANTI-VACUITY for that matcher: it must report false for a property that is not
     // there, or every call "passes" everything.
-    assert(
-        "  and the matcher is not answering true for anything",
-        !callPassesProperty(callSites[0].call, "shipmentRecordId")
-    );
-    assert(
-        "  both names really were found, so neither loop ran empty",
-        callSites.some((c) => c.name === "selectOverageInvoice") &&
-            callSites.some((c) => c.name === "splitInvoiceItemForOverage")
-    );
+    assert("  and the matcher is not answering true for anything", !callPassesProperty(callSites[0], "deliveryRecordId"));
 
     // #265 — AND THE ELIGIBILITY CALL NAMES THE ORDERED ITEM'S TOTALS. This is the one
     // mutation the behavioral checks above cannot see: `overageEligibility` fails
@@ -546,8 +536,8 @@ export function run({ check, log, assert }) {
     assert("  and `Unit Price`, for the price the candidates are compared on", reconciliationFields.has("Unit Price"));
     // ANTI-VACUITY: the walk has to be seen missing a field that is not there.
     assert("  and the walk is not answering true for anything", !reconciliationFields.has("Agreed Qty"));
-    // The pairing is flattened in ONE place (#210), so the credentialed side takes
-    // linkedDelivery rather than indexing `.delivery[0]` a second time.
+    // The judgment comes from this module, and #219's accessor for the row's delivery
+    // is gone with the pairing preference it fed (#640).
     const prImports = new Map();
     walk(prAst, (node) => {
         if (node.type !== "ImportDeclaration") return;
@@ -555,20 +545,13 @@ export function run({ check, log, assert }) {
             prImports.set(spec.imported?.name ?? spec.local.name, node.source.value);
         }
     });
-    check("the flattening comes from #210's own module", prImports.get("linkedDelivery"), "./deliveryInvoicePairing");
-    check("and the judgment from this one", prImports.get("selectOverageInvoice"), "./overage");
-    // THE NAME BELOW IS A LITERAL, SO SOMETHING HAS TO ANCHOR IT (#427). If
-    // lib/overage.js renamed the accessor and lib/overage.server.js were not updated,
-    // the check below would go on finding the old name in overagePR's import list
-    // and go on passing. This is the half that notices, in the same `in overage`
-    // shape this file already uses to assert a name is ABSENT.
-    assert("lib/overage.js still exports the accessor named below", "attachedDeliveryRecordId" in overage);
-    check("  including the row accessor", prImports.get("attachedDeliveryRecordId"), "./overage");
+    check("the judgment comes from this one", prImports.get("selectOverageInvoice"), "./overage");
+    assert("lib/overage.js no longer exports attachedDeliveryRecordId", !("attachedDeliveryRecordId" in overage));
 
-    // AND THE FIELD THE ACCESSOR READS IS ON THE ROWS. Every over-delivery row reaches
-    // the narrowing through lib/airtable/deliveryItems.js's one mapper, so a
-    // projection without `delivery` would degrade every answer to the fallback tier
-    // in silence — no error, just an inference where a lookup was available.
+    // AND THE ROW'S DELIVERY IS STILL ON THE ROWS, because the banner names it
+    // (`facts.deliveryId`) and every over-delivery row reaches the banner through
+    // lib/airtable/deliveryItems.js's one mapper — a projection without `delivery`
+    // would put `that delivery` where an id belongs, with no error.
     const { ast: rowAst } = parseFile("lib/airtable/deliveryItems.js");
     const rowFields = new Set();
     walk(rowAst, (node) => {

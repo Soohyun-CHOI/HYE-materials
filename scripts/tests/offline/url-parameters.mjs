@@ -317,16 +317,13 @@ const CARRIED = [
     },
 
     // ── a one-time account of something the screen does not otherwise say ───
-    {
-        route: "/invoices/[invoiceId]",
-        param: "paired",
-        note: "#231 — which delivery the app matched to this invoice at creation. NOT a confirmation: the standing answer below is the delivery section, and this says how the match was reached, which nothing else on the page holds",
-    },
-    { route: "/invoices/[invoiceId]", param: "tied", note: "#231 — `1` when a tie-break decided the pairing above; a bare flag, never a count" },
+    // #231's `paired` and `tied` on `/invoices/[invoiceId]` stood first here — which
+    // delivery the app matched a new invoice to, and whether a tie-break did it — and
+    // went with the pairing (#640). The shape survives in `unwritten` below.
     {
         route: "/asset-categories/[categoryRecordId]",
         param: "unwritten",
-        note: "#449 — how many a registration was asked for and did not write, which offers to create the rest or stop. NOT a confirmation: what was written is the landing's own selection (`id`), and this is the one fact about the registration that list cannot show — `paired`'s shape, on the record a registration lands on. Written by `assetCategoryPath`'s fourth argument, which only the registration passes; a reload repeats it until `Not now` deletes it from the address, and every address the list itself writes carries the selection alone, so the reader's first press or step leaves it behind",
+        note: "#449 — how many a registration was asked for and did not write, which offers to create the rest or stop. NOT a confirmation: what was written is the landing's own selection (`id`), and this is the one fact about the registration that list cannot show — the shape #231's `paired` had until #640, on the record a registration lands on. Written by `assetCategoryPath`'s fourth argument, which only the registration passes; a reload repeats it until `Not now` deletes it from the address, and every address the list itself writes carries the selection alone, so the reader's first press or step leaves it behind",
     },
     {
         route: "/asset-categories/[categoryRecordId]",
@@ -468,7 +465,8 @@ function routeOfPath(text, routes) {
     if (!path.startsWith("/") && !path.includes("/")) return null;
     const segs = path.split("/").filter(Boolean);
     // A catch-all (`/[...address]`, #617) answers only what no other route takes, as Next
-    // resolves it, so it is tried last; first it took `/invoices/*?paired`.
+    // resolves it, so it is tried last; first it took `/invoices/*?paired` (#231's,
+    // gone since #640).
     const catchAll = (route) => route.includes("[...");
     for (const route of [...routes.filter((r) => !catchAll(r)), ...routes.filter(catchAll)]) {
         if (route === "/") {
@@ -520,8 +518,9 @@ function scopes(ast) {
  *
  * A KEY IS PLACED BY ITS OWN TEXT WHERE IT CAN BE, AND BY ITS SCOPE OTHERWISE, and the
  * split is what makes the attribution exact rather than plausible. `?token=` sits in
- * the same template as `/login/confirm` and needs no scope at all; `.set("paired", …)`
- * and the `&job=` fragment carry no path, so they take the single route their own
+ * the same template as `/login/confirm` and needs no scope at all; a `.set(key, …)` on
+ * a query built apart from its path (#231's `paired`, until #640) and the `&job=`
+ * fragment carry no path, so they take the single route their own
  * function redirects to. Only when that fails does the file's own route stand in,
  * which is what puts a list client's mirrored filters on the list.
  *
