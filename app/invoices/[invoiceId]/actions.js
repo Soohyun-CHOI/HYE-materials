@@ -6,7 +6,7 @@ import { requireUser, withAdminAction } from "@/lib/authz";
 import { base, TABLES, getLinkedRecords } from "@/lib/airtable/client";
 import { getInvoiceById, updateInvoice } from "@/lib/airtable/invoices";
 import { getItemsByInvoice, updateInvoiceItem } from "@/lib/airtable/invoiceItems";
-import { destroyVarianceLogEntries } from "@/lib/airtable/varianceLog";
+import { destroyInvoiceVarianceLogEntries } from "@/lib/airtable/invoiceVarianceLog";
 import {
     ACCEPTANCE_COPY,
     ITEM_PRECISION_COPY,
@@ -156,7 +156,7 @@ async function updateInvoiceHandler(prevState, formData) {
         // (#117) and the answer is to delete and re-enter. Its words are the
         // detail screen's, because those two say the same thing.
         if (invoiceItemsMissing(invoice)) return { error: ITEMS_MISSING_COPY.absent };
-        // #648 — whose edit this is, for the `Variance Log` row an edit writes when it moves
+        // #648 — whose edit this is, for the `Invoice Variance Log` row an edit writes when it moves
         // a figure an acceptance stands on. The gate above is the wrapper's; this reads the
         // person, as `createInvoiceAction` reads the recorder.
         const user = await requireUser();
@@ -218,7 +218,7 @@ async function updateInvoiceHandler(prevState, formData) {
 }
 
 // Issue #117 — delete an invoice and its children. Admin-only, re-checked
-// here. Removes the Invoice Items and, since #648, its `Variance Log` rows, then the
+// here. Removes the Invoice Items and, since #648, its `Invoice Variance Log` rows, then the
 // Invoice. The linked POs and their
 // PO Items are never touched: deleting an Invoice Item only detaches this
 // invoice via reverse-links, so partial-invoicing tracking on the PO side stays
@@ -246,7 +246,7 @@ async function deleteInvoiceHandler(invoiceId) {
             await Promise.allSettled(items.map((r) => base(TABLES.INVOICE_ITEMS).destroy([r.id])));
             // #648 — the log is the invoice's child as its items are, so it goes with them
             // rather than staying behind naming an invoice that is gone.
-            await destroyVarianceLogEntries(invoice.varianceLog);
+            await destroyInvoiceVarianceLogEntries(invoice.invoiceVarianceLog);
             await base(TABLES.INVOICES).destroy([invoice.id]);
         } catch (err) {
             console.error("deleteInvoiceAction failed", err);

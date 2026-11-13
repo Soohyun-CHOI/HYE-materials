@@ -4,25 +4,35 @@
 // a reason, and an edit that changes what the variance compares opens it again — or, when the
 // edit leaves no variance at all, clears it. This makes the two places that holds:
 //
-//   Variance Log                          new table, append-only, a child of Invoices
-//     Variance Log ID                       primary, singleLineText — {Invoice ID}-{seq}
-//     Invoice                               link -> Invoices (single by the app)
-//     Invoice Item                          link -> Invoice Items (single by the app; blank on a
-//                                           Totals differ row)
-//     Variance                              singleSelect: Price variance / Quantity variance /
-//                                           Totals differ
-//     Event                                 singleSelect: Accepted / Reopened / Cleared
-//     Reason                                multilineText — on an Accepted row, required by the app
-//     Vendor Figure, Our Figure             number — the two figures the variance compared
-//     Recorded By                           link -> Users (single by the app)
-//     Event At                              dateTime, UTC
+//   Invoice Variance Log                  new table, append-only, a child of Invoices
+//     Invoice Variance Log ID             primary, singleLineText — {Invoice ID}-{seq}
+//     Invoice                             link -> Invoices (single by the app)
+//     Invoice Item                        link -> Invoice Items (single by the app; blank on a
+//                                         Totals differ row)
+//     Variance                            singleSelect: Price variance / Quantity variance /
+//                                         Totals differ
+//     Event                               singleSelect: Accepted / Reopened / Cleared
+//     Reason                              multilineText — on an Accepted row, required by the app
+//     Vendor Figure, Our Figure           number — the two figures the variance compared
+//     Recorded By                         link -> Users (single by the app)
+//     Event At                            dateTime, UTC
 //   Invoice Items."Price Variance Accepted"     new checkbox — the cache of the item's acceptance
 //   Invoice Items."Quantity Variance Accepted"  new checkbox
 //   Invoices."Totals Differ Accepted"           new checkbox
 //
-// and the three reverse links the table's links make, `Variance Log` on `Invoices`, `Invoice
+// and the three reverse links the table's links make, `Invoice Variance Log` on `Invoices`, `Invoice
 // Items` and `Users`, each with a description. Why a log and a cache rather than fields alone is
 // `docs/notes/deliveries-and-invoices.md`, "Accepting an invoice's variances (#648)".
+//
+// A TABLE STANDING UNDER A NAME IT HAS WORN IS RENAMED, NOT MADE AGAIN. The test base took this
+// table first as `Variance Log`, its primary `Variance Log ID` and its three reverse links
+// `Variance Log`, from this script's first version (`add_variance_log_648.mjs`, whose ledger
+// stands under that name); the name was then made to say whose log it is. A run that finds the
+// table under a former name — by table name, its fields matched in order by their own names or
+// their former ones — PATCHes the table's name and description, the primary's name, and each
+// reverse link's name, by id, so every row and every link is kept (`airtable-access.md`: a table's
+// and a field's `name` PATCH cleanly). Any description that is not the one written here is
+// rewritten the same way. A field of another type or other options stops the run.
 //
 // ONE CREATE CARRIES THE TABLE, EVERY FIELD AND EVERY SELECT'S CHOICES WITH THEIR COLORS — the
 // eighth measured limit in `docs/notes/airtable-access.md`, and the only moment a select's list
@@ -35,25 +45,26 @@
 // each link's setting, and a run with a hand step outstanding exits 2.
 //
 // A LEFTOVER FIELD STOPS IT. Deleting a table leaves the reverse links it made standing as text
-// under their names (#335, #384), and a second `Variance Log` on `Invoices` would come back as
-// `Variance Log 2`, which nothing here would address. So a field already named `Variance Log` on
+// under their names (#335, #384), and a second `Invoice Variance Log` on `Invoices` would come back as
+// `Invoice Variance Log 2`, which nothing here would address. So a field already named `Invoice Variance Log` on
 // any of the three far tables, other than this table's own reverse link, stops the run before
 // anything is written.
 //
 // A LEDGER BEFORE THE WRITES. `--apply` writes the base — `live` or `test`, as the run named it —
-// the table it makes, each field, and each description it gives a reverse link, to
-// `scripts/import/ledgers/add_variance_log_648-<base>-<instant>.jsonl` first. Nothing here can be
-// taken back through the API: a table and a field are deleted by hand.
+// the table it makes, each field, each name and description it changes with what it was before,
+// to `scripts/import/ledgers/add_invoice_variance_log_648-<base>-<instant>.jsonl` first. A rename
+// is taken back by the same PATCHes with the two sides swapped; a table and a field are deleted
+// by hand, since the API deletes neither.
 //
 // AND IT LOOKS AFTERWARDS. The re-read compares the whole schema against the read before — every
 // table's id, name, primary field and description, every field's id, name, type, options and
-// description — with the new table, the three checkboxes and the three reverse links set aside,
-// and those against what this made.
+// description — with this table, the three checkboxes and the three reverse links set aside,
+// and those against what this writes, names and descriptions included.
 //
 // Usage (from the repo root) — the test base unless the run names the live one (#534):
-//   node --env-file=.env.local scripts/import/add_variance_log_648.mjs                     (dry run)
-//   node --env-file=.env.local scripts/import/add_variance_log_648.mjs --apply
-//   AIRTABLE_BASE=live node --env-file=.env.local scripts/import/add_variance_log_648.mjs  (dry run, live)
+//   node --env-file=.env.local scripts/import/ran/add_invoice_variance_log_648.mjs                     (dry run)
+//   node --env-file=.env.local scripts/import/ran/add_invoice_variance_log_648.mjs --apply
+//   AIRTABLE_BASE=live node --env-file=.env.local scripts/import/ran/add_invoice_variance_log_648.mjs  (dry run, live)
 //
 // No loader flag: this file imports only built-ins and the base's module.
 //
@@ -66,26 +77,34 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describeAirtableBase, resolveAirtableBase } from "../../lib/airtableBase.js";
+import { describeAirtableBase, resolveAirtableBase } from "../../../lib/airtableBase.js";
 
 /** The base this run reaches (#534), resolved at the top of main(): the test base unless the run names the live one. */
 let airtable = null;
 
-const SCRIPT = "add_variance_log_648";
+const SCRIPT = "add_invoice_variance_log_648";
 
 const API_ROOT = "https://api.airtable.com/v0";
 
-const LEDGER_DIR = join(dirname(fileURLToPath(import.meta.url)), "ledgers");
+const LEDGER_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "ledgers");
 
 /** The far tables, by the ids both bases share (#534), and `Users` by name. */
 const INVOICES = { name: "Invoices", id: "tbl2Z4wEbU64YU14o" };
 const INVOICE_ITEMS = { name: "Invoice Items", id: "tblg3coc94b7odikV" };
 const USERS = { name: "Users" };
 
-const TABLE_NAME = "Variance Log";
+const TABLE_NAME = "Invoice Variance Log";
 
 /** The reverse link each link makes on its far table, named after this table. */
 const REVERSE_NAME = TABLE_NAME;
+
+/**
+ * The names this table, its fields and its reverse links have worn before these (#648): the test
+ * base made them under the first, and a run finding them renames them.
+ */
+const FORMER_TABLE_NAMES = ["Variance Log"];
+const FORMER_FIELD_NAMES = { "Invoice Variance Log ID": ["Variance Log ID"] };
+const FORMER_REVERSE_NAMES = ["Variance Log"];
 
 /** `Deliveries."Created At"`'s options, which every `X At` on this base takes. */
 const DATETIME_OPTIONS = {
@@ -123,11 +142,11 @@ const TABLE_DESCRIPTION =
  */
 const FIELDS = [
     {
-        name: "Variance Log ID",
+        name: "Invoice Variance Log ID",
         type: "singleLineText",
         description:
             "{Invoice ID}-{seq}, three digits, minted by lib/idSequence.server.js:generateChildId " +
-            "(Invoices::Variance Log) — a child of the invoice its variances are on.",
+            "(Invoices::Invoice Variance Log) — a child of the invoice its variances are on.",
     },
     {
         name: "Invoice",
@@ -203,7 +222,7 @@ const CHECKBOXES = [
         name: "Price Variance Accepted",
         description:
             "True while an Admin's acceptance of this item's price variance stands (#648): its " +
-            "latest Variance Log row is Accepted. Written by lib/variance.server.js with that row, " +
+            "latest Invoice Variance Log row is Accepted. Written by lib/variance.server.js with that row, " +
             "and cleared with a Reopened or Cleared one. Read only beside Has Price Variance.",
     },
     {
@@ -211,7 +230,7 @@ const CHECKBOXES = [
         name: "Quantity Variance Accepted",
         description:
             "True while an Admin's acceptance of this item's quantity variance stands (#648): its " +
-            "latest Variance Log row is Accepted. Written by lib/variance.server.js with that row, " +
+            "latest Invoice Variance Log row is Accepted. Written by lib/variance.server.js with that row, " +
             "and cleared with a Reopened or Cleared one. Read only beside Has Quantity Variance.",
     },
     {
@@ -219,7 +238,7 @@ const CHECKBOXES = [
         name: "Totals Differ Accepted",
         description:
             "True while an Admin's acceptance of this invoice's totals difference stands (#648): its " +
-            "latest Totals differ row on Variance Log is Accepted. Written by lib/variance.server.js " +
+            "latest Totals differ row on Invoice Variance Log is Accepted. Written by lib/variance.server.js " +
             "with that row, and cleared with a Reopened or Cleared one. Read only beside Totals Differ.",
     },
 ].map((spec) => ({ ...spec, type: "checkbox", options: { icon: "check", color: "greenBright" } }));
@@ -227,10 +246,10 @@ const CHECKBOXES = [
 /** The descriptions the three reverse links take, by far table. */
 const REVERSE_DESCRIPTIONS = {
     [INVOICES.name]:
-        "Reverse link of Variance Log.\"Invoice\" (#648): every row recorded against this " +
+        "Reverse link of Invoice Variance Log.\"Invoice\" (#648): every row recorded against this " +
         "invoice's variances. The invoice detail reads them for who accepted each and why.",
-    [INVOICE_ITEMS.name]: "Reverse link of Variance Log.\"Invoice Item\" (#648): every row recorded against this item's two variances.",
-    [USERS.name]: "Reverse link of Variance Log.\"Recorded By\" (#648): every acceptance, reopening and clearing this person recorded.",
+    [INVOICE_ITEMS.name]: "Reverse link of Invoice Variance Log.\"Invoice Item\" (#648): every row recorded against this item's two variances.",
+    [USERS.name]: "Reverse link of Invoice Variance Log.\"Recorded By\" (#648): every acceptance, reopening and clearing this person recorded.",
 };
 
 let calls = 0;
@@ -285,36 +304,76 @@ function tablePayload(far) {
     };
 }
 
-/** What is wrong with the table as it stands, or [] when it is the one this makes. */
-function tableProblems(table, far) {
+/** The table as it stands, under its name or one it has worn. */
+function findTable(tables) {
+    return byName(tables, TABLE_NAME) ?? FORMER_TABLE_NAMES.map((n) => byName(tables, n)).find(Boolean) ?? null;
+}
+
+/** A spec's field on the table, by its name or a name it has worn. */
+function fieldOf(table, spec) {
+    for (const name of [spec.name, ...(FORMER_FIELD_NAMES[spec.name] ?? [])]) {
+        const field = fieldNamed(table, name);
+        if (field) return field;
+    }
+    return null;
+}
+
+/**
+ * What is wrong with the table's shape — its fields, their order, types, options, links and
+ * choices — or [] when it is the one this makes, whatever its names and descriptions say.
+ */
+function shapeProblems(table, far) {
     const problems = [];
-    if (table.description !== TABLE_DESCRIPTION) problems.push(`${TABLE_NAME}'s description is not the one this writes`);
-    const names = table.fields.map((f) => f.name);
-    if (JSON.stringify(names) !== JSON.stringify(FIELDS.map((f) => f.name))) {
-        problems.push(`${TABLE_NAME} holds ${JSON.stringify(names)}, not the fields this makes`);
+    const found = FIELDS.map((spec) => fieldOf(table, spec));
+    const missing = FIELDS.filter((_, i) => !found[i]).map((spec) => spec.name);
+    if (missing.length > 0 || table.fields.length !== FIELDS.length || found.some((f, i) => table.fields[i]?.id !== f?.id)) {
+        problems.push(`${table.name} holds ${JSON.stringify(table.fields.map((f) => f.name))}, not the fields this makes in order`);
         return problems;
     }
-    if (table.primaryFieldId !== table.fields[0].id) problems.push(`${TABLE_NAME}'s primary field is not Variance Log ID`);
-    for (const spec of FIELDS) {
-        const field = fieldNamed(table, spec.name);
-        if ((field.description ?? "") !== spec.description) problems.push(`${TABLE_NAME}."${spec.name}"'s description is not the one this writes`);
+    if (table.primaryFieldId !== found[0].id) problems.push(`${table.name}'s primary field is not ${FIELDS[0].name}`);
+    FIELDS.forEach((spec, i) => {
+        const field = found[i];
         if (spec.linkTo) {
             if (field.type !== "multipleRecordLinks" || field.options?.linkedTableId !== far[spec.linkTo.name].id) {
-                problems.push(`${TABLE_NAME}."${spec.name}" is not a link to ${spec.linkTo.name}`);
+                problems.push(`${table.name}."${field.name}" is not a link to ${spec.linkTo.name}`);
             }
-            continue;
+            return;
         }
-        if (field.type !== spec.type) problems.push(`${TABLE_NAME}."${spec.name}" is a ${field.type}, not a ${spec.type}`);
+        if (field.type !== spec.type) problems.push(`${table.name}."${field.name}" is a ${field.type}, not a ${spec.type}`);
         if (spec.type === "singleSelect") {
             const choices = (field.options?.choices ?? []).map(({ name, color }) => ({ name, color }));
             if (JSON.stringify(choices) !== JSON.stringify(spec.options.choices)) {
-                problems.push(`${TABLE_NAME}."${spec.name}" holds ${JSON.stringify(choices)}`);
+                problems.push(`${table.name}."${field.name}" holds ${JSON.stringify(choices)}`);
             }
         } else if (spec.options && JSON.stringify(field.options) !== JSON.stringify(spec.options)) {
-            problems.push(`${TABLE_NAME}."${spec.name}" has options ${JSON.stringify(field.options)}`);
+            problems.push(`${table.name}."${field.name}" has options ${JSON.stringify(field.options)}`);
         }
-    }
+    });
     return problems;
+}
+
+/** The names and descriptions on the table that are not the ones this writes, as PATCHes. */
+function tableRenames(table) {
+    const patches = [];
+    if (table.name !== TABLE_NAME || (table.description ?? "") !== TABLE_DESCRIPTION) {
+        patches.push({
+            what: `table ${table.id}`,
+            path: `/tables/${table.id}`,
+            before: { name: table.name, description: table.description ?? "" },
+            after: { name: TABLE_NAME, description: TABLE_DESCRIPTION },
+        });
+    }
+    for (const spec of FIELDS) {
+        const field = fieldOf(table, spec);
+        if (field.name === spec.name && (field.description ?? "") === spec.description) continue;
+        patches.push({
+            what: `${TABLE_NAME}.${field.id}`,
+            path: `/tables/${table.id}/fields/${field.id}`,
+            before: { name: field.name, description: field.description ?? "" },
+            after: { name: spec.name, description: spec.description },
+        });
+    }
+    return patches;
 }
 
 /** A checkbox as it stands, or null; a problem when one stands that is not it. */
@@ -329,17 +388,31 @@ function checkboxState(far, spec) {
 }
 
 /**
- * Each link's reverse field on its far table, found by the link's own `inverseLinkFieldId` — or,
- * before the table exists, a field already holding the name the reverse needs, which stops the run.
+ * Each link's reverse field on its far table, found by the link's own `inverseLinkFieldId` — and
+ * a field already holding the name the reverse needs that is not it, which stops the run.
  */
 function reverseLinks(table, far) {
     return FIELDS.filter((f) => f.linkTo).map((spec) => {
         const farTable = far[spec.linkTo.name];
-        const link = table ? fieldNamed(table, spec.name) : null;
+        const link = table ? fieldOf(table, spec) : null;
         const reverse = link ? farTable.fields.find((f) => f.id === link.options?.inverseLinkFieldId) ?? null : null;
         const squatter = farTable.fields.find((f) => f.name === REVERSE_NAME && f.id !== reverse?.id) ?? null;
         return { spec, farTable, link, reverse, squatter };
     });
+}
+
+/** The reverse links' names and descriptions that are not the ones this writes, as PATCHes. */
+function reverseRenames(reverses) {
+    return reverses
+        .filter((r) => r.reverse)
+        .filter((r) => r.reverse.name !== REVERSE_NAME || (r.reverse.description ?? "") !== REVERSE_DESCRIPTIONS[r.farTable.name])
+        .map((r) => ({
+            what: `${r.farTable.name}.${r.reverse.id}`,
+            path: `/tables/${r.farTable.id}/fields/${r.reverse.id}`,
+            before: { name: r.reverse.name, description: r.reverse.description ?? "" },
+            after: { name: REVERSE_NAME, description: REVERSE_DESCRIPTIONS[r.farTable.name] },
+            former: FORMER_REVERSE_NAMES.includes(r.reverse.name),
+        }));
 }
 
 /** Every fact of the schema, with `skip`'s tables and fields left out. */
@@ -362,9 +435,16 @@ function shape(tables, skip) {
 /** The hand steps still outstanding: each link that still allows many records. */
 function handSteps(table) {
     return FIELDS.filter((f) => f.linkTo)
-        .map((spec) => fieldNamed(table, spec.name))
+        .map((spec) => fieldOf(table, spec))
         .filter((field) => field && field.options?.prefersSingleRecordLink !== true)
         .map((field) => `${TABLE_NAME}."${field.name}" (${field.id}) — open the field, turn off "Allow linking to multiple records", save`);
+}
+
+/** Each link's single-record setting, as the base reports it. */
+function linkSettings(table) {
+    return FIELDS.filter((f) => f.linkTo)
+        .map((spec) => fieldOf(table, spec))
+        .map((field) => `${field.name} ${field.options?.prefersSingleRecordLink === true ? "one record" : "many records"}`);
 }
 
 async function main() {
@@ -390,11 +470,11 @@ async function main() {
         return finish(1, "a table is not the one this expects");
     }
 
-    const existing = byName(before, TABLE_NAME);
+    const existing = findTable(before);
     const reverses = reverseLinks(existing, far);
     const states = CHECKBOXES.map((spec) => ({ spec, ...checkboxState(far, spec) }));
     const stops = [
-        ...(existing ? tableProblems(existing, far) : []),
+        ...(existing ? shapeProblems(existing, far) : []),
         ...reverses.filter((r) => r.squatter).map((r) => `${r.farTable.name}."${REVERSE_NAME}" (${r.squatter.id}, a ${r.squatter.type}) already stands and is not this table's reverse link — delete it by hand first (#335, #384)`),
         ...states.map((s) => s.problem),
     ].filter(Boolean);
@@ -404,17 +484,20 @@ async function main() {
         return finish(1, "a field is not the one this expects");
     }
 
-    log(`  ${TABLE_NAME}: ${existing ? `stands, ${existing.id}` : `-> made, ${FIELDS.length} fields`}`);
-    for (const s of states) log(`  ${s.spec.table.name}."${s.spec.name}" ${s.field ? `stands, ${s.field.id}` : "-> made, checkbox"}`);
-    const describe = existing
-        ? reverses.filter((r) => (r.reverse?.description ?? "") !== REVERSE_DESCRIPTIONS[r.farTable.name])
-        : reverses;
-    for (const r of reverses) {
-        const pending = describe.includes(r);
-        log(`  ${r.farTable.name}."${REVERSE_NAME}" ${r.reverse ? `stands, ${r.reverse.id}` : "-> made with the table"}${pending ? ", -> described" : ""}`);
-    }
+    const renames = existing ? [...tableRenames(existing), ...reverseRenames(reverses)] : [];
+    const describeBoxes = states.filter((s) => s.field && (s.field.description ?? "") !== s.spec.description);
 
-    const pending = (existing ? 0 : 1) + states.filter((s) => !s.field).length + describe.length;
+    if (existing) log(`  ${existing.name} ${existing.id}: stands${existing.name === TABLE_NAME ? "" : `, -> renamed "${TABLE_NAME}"`}`);
+    else log(`  ${TABLE_NAME}: -> made, ${FIELDS.length} fields`);
+    for (const p of renames) {
+        const moves = [p.before.name !== p.after.name ? `"${p.before.name}" -> "${p.after.name}"` : null, p.before.description !== p.after.description ? "description" : null].filter(Boolean);
+        log(`    ${p.what}: ${moves.join(", ")}`);
+    }
+    for (const s of states) log(`  ${s.spec.table.name}."${s.spec.name}" ${s.field ? `stands, ${s.field.id}` : "-> made, checkbox"}${describeBoxes.includes(s) ? ", -> described" : ""}`);
+    if (!existing) for (const r of reverses) log(`  ${r.farTable.name}."${REVERSE_NAME}" -> made with the table, -> described`);
+    if (existing) log(`  links: ${linkSettings(existing).join(", ")}`);
+
+    const pending = (existing ? 0 : 1 + reverses.length) + renames.length + states.filter((s) => !s.field).length + describeBoxes.length;
     if (pending > 0 && !apply) {
         log("");
         log("=".repeat(72));
@@ -423,8 +506,6 @@ async function main() {
         return finish(2, "dry run");
     }
 
-    let made = existing;
-    const madeIds = new Set();
     if (pending > 0) {
         mkdirSync(LEDGER_DIR, { recursive: true });
         const at = new Date().toISOString();
@@ -434,17 +515,21 @@ async function main() {
         // `lib/airtableBase.js` and nowhere else (`offline/airtable-base.mjs`).
         const lines = [
             ...(existing ? [] : [{ kind: "table", base: where, at, payload: tablePayload(far) }]),
+            ...renames.map((p) => ({ kind: "rename", base: where, at, what: p.what, path: p.path, before: p.before, after: p.after })),
             ...states.filter((s) => !s.field).map((s) => ({ kind: "field", base: where, table: s.spec.table.id, at, name: s.spec.name, type: s.spec.type, options: s.spec.options })),
-            ...describe.map((r) => ({ kind: "description", base: where, table: r.farTable.id, at, field: REVERSE_NAME, before: r.reverse?.description ?? "", after: REVERSE_DESCRIPTIONS[r.farTable.name] })),
+            ...describeBoxes.map((s) => ({ kind: "description", base: where, table: s.spec.table.id, field: s.field.id, at, before: s.field.description ?? "", after: s.spec.description })),
         ];
         writeFileSync(ledger, lines.map((line) => JSON.stringify(line)).join("\n") + "\n");
         log("");
         log(`ledger: ${ledger}`);
 
         if (!existing) {
-            made = await request("POST", `/meta/bases/${baseId}/tables`, tablePayload(far));
-            madeIds.add(made.id);
+            const made = await request("POST", `/meta/bases/${baseId}/tables`, tablePayload(far));
             log(`  made: ${TABLE_NAME} ${made.id}`);
+        }
+        for (const p of renames) {
+            await request("PATCH", `/meta/bases/${baseId}${p.path}`, p.after);
+            log(`  patched: ${p.what} — "${p.after.name}"`);
         }
         for (const s of states.filter((s) => !s.field)) {
             const field = await request("POST", `/meta/bases/${baseId}/tables/${s.spec.table.id}/fields`, {
@@ -453,53 +538,49 @@ async function main() {
                 options: s.spec.options,
                 description: s.spec.description,
             });
-            madeIds.add(field.id);
             log(`  made: ${s.spec.table.name}."${s.spec.name}" ${field.id}`);
         }
+        for (const s of describeBoxes) {
+            await request("PATCH", `/meta/bases/${baseId}/tables/${s.spec.table.id}/fields/${s.field.id}`, { description: s.spec.description });
+            log(`  described: ${s.spec.table.name}."${s.spec.name}"`);
+        }
     }
 
-    // The reverse links, read off the table as it now stands: each is set aside from the
-    // comparison below, given its description, and named as the far table's code reads it.
+    // A table made just now: its reverse links, read off the table as it stands, take their
+    // descriptions — and a name, should Airtable have named one otherwise, the quiet symptom
+    // airtable-access.md records: `record.get("Invoice Variance Log")` would read nothing.
     let tables = await readTables(baseId);
-    const now = reverseLinks(byName(tables, TABLE_NAME), farTables(tables).far);
-    for (const r of now) {
-        if (!r.reverse) continue;
-        if (r.reverse.name !== REVERSE_NAME) {
-            // A reverse link Airtable named otherwise is the quiet symptom airtable-access.md records:
-            // `record.get("Variance Log")` would read nothing. The name PATCHes cleanly.
-            await request("PATCH", `/meta/bases/${baseId}/tables/${r.farTable.id}/fields/${r.reverse.id}`, { name: REVERSE_NAME });
-            log(`  renamed: ${r.farTable.name}."${r.reverse.name}" -> "${REVERSE_NAME}"`);
+    if (!existing) {
+        for (const p of reverseRenames(reverseLinks(findTable(tables), farTables(tables).far))) {
+            await request("PATCH", `/meta/bases/${baseId}${p.path}`, p.after);
+            log(`  patched: ${p.what} — "${p.after.name}"`);
         }
-        if ((r.reverse.description ?? "") !== REVERSE_DESCRIPTIONS[r.farTable.name]) {
-            await request("PATCH", `/meta/bases/${baseId}/tables/${r.farTable.id}/fields/${r.reverse.id}`, {
-                description: REVERSE_DESCRIPTIONS[r.farTable.name],
-            });
-            log(`  described: ${r.farTable.name}."${REVERSE_NAME}"`);
-        }
+        tables = await readTables(baseId);
     }
 
-    // The re-read.
-    tables = await readTables(baseId);
+    // The re-read: everything this writes, names and descriptions included.
     const table = byName(tables, TABLE_NAME);
     const after = farTables(tables).far;
     const wrong = [];
     if (!table) wrong.push(`${TABLE_NAME} does not stand`);
-    else wrong.push(...tableProblems(table, after));
+    else {
+        wrong.push(...shapeProblems(table, after));
+        if (wrong.length === 0) {
+            for (const p of tableRenames(table)) wrong.push(`${p.what} reads "${p.before.name}", not as this writes it`);
+        }
+    }
     for (const spec of CHECKBOXES) {
         const s = checkboxState(after, spec);
-        if (!s.field || s.problem || (s.field.description ?? "") !== spec.description) {
-            wrong.push(`${spec.table.name}."${spec.name}" is not the field this makes`);
-        }
+        if (!s.field || s.problem || (s.field.description ?? "") !== spec.description) wrong.push(`${spec.table.name}."${spec.name}" is not the field this makes`);
     }
     const finalReverses = table ? reverseLinks(table, after) : [];
     for (const r of finalReverses) {
         if (!r.reverse) wrong.push(`${TABLE_NAME}."${r.spec.name}" has no reverse link on ${r.farTable.name}`);
-        else if (r.reverse.name !== REVERSE_NAME || (r.reverse.description ?? "") !== REVERSE_DESCRIPTIONS[r.farTable.name]) {
-            wrong.push(`${r.farTable.name}."${r.reverse.name}" is not named and described as this writes`);
-        }
     }
-    // Everything else: the schema before against the schema after, the new and the reverse set aside.
+    for (const p of reverseRenames(finalReverses)) wrong.push(`${p.what} reads "${p.before.name}", not as this writes it`);
+    // Everything else: the schema before against the schema after, this table and its own set aside.
     const skip = new Set([
+        ...(existing ? [existing.id] : []),
         ...(table ? [table.id] : []),
         ...CHECKBOXES.map((spec) => fieldNamed(after[spec.table.name], spec.name)?.id).filter(Boolean),
         ...finalReverses.map((r) => r.reverse?.id).filter(Boolean),
@@ -512,10 +593,11 @@ async function main() {
         for (const p of wrong) log(`  WRONG: ${p}`);
         return finish(1, `${wrong.length} problem(s)`);
     }
-    log(`  ${TABLE_NAME} ${table.id}: ${FIELDS.length} fields, both selects' choices and colors as written`);
+    log(`  ${TABLE_NAME} ${table.id}: ${FIELDS.length} fields named and described as written, both selects' choices and colors`);
     log(`  ${CHECKBOXES.length} checkboxes, each with its description`);
     log(`  ${finalReverses.length} reverse links named "${REVERSE_NAME}", each with its description`);
     log("  every other table and field: id, name, type, options and description unchanged");
+    log(`  links: ${linkSettings(table).join(", ")}`);
 
     const steps = handSteps(table);
     if (steps.length > 0) {
@@ -524,7 +606,6 @@ async function main() {
         for (const step of steps) log(`  ${step}`);
         return finish(2, `${steps.length} hand step(s) outstanding`);
     }
-    log("  all three links allow one record");
     return finish(0, "the base reads as this run leaves it");
 }
 

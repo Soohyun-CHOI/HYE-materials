@@ -14,7 +14,7 @@
 //      and an overage's split each had until here — which would move a figure and leave the
 //      cache saying `accepted`. So a flag is written in two places in `app/` and `lib/`: the
 //      create action, on rows no acceptance can stand on yet, and `lib/variance.server.js`. The
-//      three caches are written there alone, each after its `Variance Log` row.
+//      three caches are written there alone, each after its `Invoice Variance Log` row.
 //   3. THE PAIR (#185). The control is behind `canAccept`, the page hands it `user.isAdmin`, and
 //      the action is `withAdminAction`; what an acceptance says — the badge and who, when and why
 //      — is behind neither, because it is a fact of the invoice for every reader (#309's grade).
@@ -113,9 +113,9 @@ function guardedElements(fn, tag, guard) {
     return out;
 }
 
-/** A `Variance Log` row as the mapper hands it. */
+/** An `Invoice Variance Log` row as the mapper hands it. */
 const entry = (id, kind, event, item, extra = {}) => ({
-    varianceLogId: `HYE-INV-261113-01-${String(id).padStart(3, "0")}`,
+    invoiceVarianceLogId: `HYE-INV-261113-01-${String(id).padStart(3, "0")}`,
     variance: VARIANCE_KINDS[kind],
     event,
     invoiceItem: item ? [item] : [],
@@ -127,7 +127,7 @@ const entry = (id, kind, event, item, extra = {}) => ({
 
 /** The schema script's two selects, read off its AST rather than run (it writes). */
 function schemaChoices() {
-    const { ast } = parseFile("scripts/import/add_variance_log_648.mjs");
+    const { ast } = parseFile("scripts/import/ran/add_invoice_variance_log_648.mjs");
     const lists = {};
     walk(ast, (node) => {
         if (node.type !== "VariableDeclarator" || !["VARIANCE_CHOICES", "EVENT_CHOICES"].includes(node.id?.name)) return;
@@ -197,11 +197,11 @@ export function run({ check, assert, log }) {
         entry(3, "totals", VARIANCE_EVENTS.accepted, null),
     ];
     check("the latest is by sequence, -1000 after -999 and not before it", latestVarianceEntry(rows, "price", "itA")?.event, VARIANCE_EVENTS.reopened);
-    check("  one item's rows are not another's", latestVarianceEntry(rows, "price", "itB")?.varianceLogId, "HYE-INV-261113-01-002");
-    check("  and the invoice's totals rows name no item", latestVarianceEntry(rows, "totals")?.varianceLogId, "HYE-INV-261113-01-003");
+    check("  one item's rows are not another's", latestVarianceEntry(rows, "price", "itB")?.invoiceVarianceLogId, "HYE-INV-261113-01-002");
+    check("  and the invoice's totals rows name no item", latestVarianceEntry(rows, "totals")?.invoiceVarianceLogId, "HYE-INV-261113-01-003");
     check(
         "  so a totals row naming an item is not the invoice's",
-        latestVarianceEntry([...rows, entry(7, "totals", VARIANCE_EVENTS.reopened, "itA")], "totals")?.varianceLogId,
+        latestVarianceEntry([...rows, entry(7, "totals", VARIANCE_EVENTS.reopened, "itA")], "totals")?.invoiceVarianceLogId,
         "HYE-INV-261113-01-003"
     );
     check("an open mark reopened says when", varianceNote(rows, "price", ["itA"], "open")?.kind, "reopened");
@@ -260,9 +260,9 @@ export function run({ check, assert, log }) {
     );
     assert(
         "an acceptance's row is written before its cache is set",
-        Boolean(accept) && cacheClears(accept).length >= 2 && cacheClears(accept).every((c) => position(accept, "createVarianceLogEntry") < c.start)
+        Boolean(accept) && cacheClears(accept).length >= 2 && cacheClears(accept).every((c) => position(accept, "createInvoiceVarianceLogEntry") < c.start)
     );
-    assert("  and a cache that fails takes the row back out", Boolean(accept) && callsTo(accept, "destroyVarianceLogEntries").length === 1);
+    assert("  and a cache that fails takes the row back out", Boolean(accept) && callsTo(accept, "destroyInvoiceVarianceLogEntries").length === 1);
 
     // -----------------------------------------------------------------------
     log("");

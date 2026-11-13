@@ -27,7 +27,7 @@ import { getVisibleInvoiceIds } from "@/lib/invoiceVisibility";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
 import { getUserByRecordId, getUsersByRecordIds } from "@/lib/airtable/users";
-import { getVarianceLogEntries } from "@/lib/airtable/varianceLog";
+import { getInvoiceVarianceLogEntries } from "@/lib/airtable/invoiceVarianceLog";
 // #382 — the first name, which is what a screen REPORTING a person prints. The
 // delivery detail's `Recorded by` line takes it from here for the same reason.
 import { userName } from "@/lib/userName";
@@ -147,19 +147,19 @@ async function renderInvoiceDetailPage({ params }) {
     // entered before the field existed.
     //
     // #648 — AND WHO ACCEPTED EACH VARIANCE, which is the one read this page can add. The
-    // `Variance Log` rows come off the ids the invoice already carries, in the same round trip
+    // `Invoice Variance Log` rows come off the ids the invoice already carries, in the same round trip
     // as the orders, and an invoice nobody has accepted anything on has none and reads nothing
     // — every invoice until an Admin accepts one. Where there are rows, the people they name
     // are read in ONE batch with the recorder rather than beside it, so the people cost the
     // one operation the recorder always did and the log is the only operation added.
-    const logIds = invoice.varianceLog || [];
+    const logIds = invoice.invoiceVarianceLog || [];
     const recorderId = invoice.recordedBy?.[0] ?? null;
-    const [poRecords, varianceLog, recorderAlone] = await Promise.all([
+    const [poRecords, invoiceVarianceLog, recorderAlone] = await Promise.all([
         Promise.all(poRecordIds.map((id) => getPOByRecordId(id))),
-        getVarianceLogEntries(logIds),
+        getInvoiceVarianceLogEntries(logIds),
         logIds.length === 0 && recorderId ? getUserByRecordId(recorderId) : null,
     ]);
-    const peopleIds = [recorderId, ...varianceLog.flatMap((e) => e.recordedBy)].filter(Boolean);
+    const peopleIds = [recorderId, ...invoiceVarianceLog.flatMap((e) => e.recordedBy)].filter(Boolean);
     const people =
         logIds.length === 0
             ? recorderAlone
@@ -236,7 +236,7 @@ async function renderInvoiceDetailPage({ params }) {
     // was reopened. Resolved here with the name, so the Client Component draws words and a
     // day, and nobody's record reaches the browser.
     const noteFor = (kind, rowIds, state) => {
-        const note = varianceNote(varianceLog, kind, rowIds, state);
+        const note = varianceNote(invoiceVarianceLog, kind, rowIds, state);
         if (!note) return null;
         return note.kind === "accepted"
             ? { ...note, byName: userName(personById.get(note.by)) || null }
