@@ -14,9 +14,10 @@
 // overflow, and everything else in the space drags (`sheetHold.js:scrollsUnder`).
 //
 // THE AXIS'S NAME IS ONE STRING, AND THE OLD ONE IS HELD GONE FROM EVERYTHING A SCREEN CAN
-// SAY. `ASSET_LIST_COPY.heading` and the way back say `Equipment & Tools` by value, the rail
-// reads the heading, and no string literal, template or JSX text under `app/` or `lib/` says
-// `Tools & Equipment` — comments are not read, since a comment may cite the design's word.
+// SAY. `ASSET_LIST_COPY.heading` and the way to the list say `Equipment & Tools` by value, the
+// rail reads the heading, and no string literal, template or JSX text under `app/` or `lib/`
+// says `Tools & Equipment` — comments are not read, since a comment may cite the design's word.
+// Since #655 none says `Back to Equipment & Tools` either: the way to the list says `Go to`.
 //
 // WHAT IT CANNOT SEE. That a phone draws the space at 194 under its keyboard, or that it gives
 // way first on a short screen: the flex arrangement is held here, the boxes were measured in a
@@ -182,9 +183,11 @@ export async function run({ check, log }) {
 
     // ── #591: the axis's name on screen ────────────────────────────────────
     log("everything a reader sees names the axis `Equipment & Tools` (#591):");
-    check("  the heading, the way back and the rail", [ASSET_LIST_COPY.heading, ASSET_COPY.backToTools, NAVIGATION_COPY.sections.assets].join(" | "), "Equipment & Tools | Back to Equipment & Tools | Equipment & Tools");
+    check("  the heading, the way to the list and the rail", [ASSET_LIST_COPY.heading, ASSET_COPY.goToTools, NAVIGATION_COPY.sections.assets].join(" | "), "Equipment & Tools | Go to Equipment & Tools | Equipment & Tools");
     check("  and no string under app/ or lib/ says the old name", saying(OLD_NAME).join(" "), "");
-    check("  and the new one is spelled in the heading and the way back alone", saying("Equipment & Tools").join(" "), "lib/assetListView.js lib/assetView.js");
+    check("  and the new one is spelled in the heading and the way to the list alone", saying("Equipment & Tools").join(" "), "lib/assetListView.js lib/assetView.js");
+    // The pages that find nothing say `Go to`, a label or a link having brought the reader (#655).
+    check("  and no string says `Back to` it", saying("Back to Equipment & Tools").join(" "), "");
 
     // ANTI-VACUITY: the readers see what they are looking for. A planted sheet whose space stands
     // under a condition and whose class reads a state, a planted screen saying the old name in a

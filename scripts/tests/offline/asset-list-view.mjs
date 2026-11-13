@@ -2626,7 +2626,7 @@ export function run({ check, assert, log }) {
     for (const [key, label] of [
         ["statusLabel", ASSET_COPY.statusLabel],
         ["jobLabel", ASSET_COPY.jobLabel],
-        ["backToTools", ASSET_COPY.backToTools],
+        ["goToTools", ASSET_COPY.goToTools],
     ])
         check(`  ${key} is the asset page's word`, ASSET_LIST_COPY[key], label);
     // A status is a closed vocabulary value and is rendered from it. Spelling one

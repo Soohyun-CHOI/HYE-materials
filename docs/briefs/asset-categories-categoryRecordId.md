@@ -158,7 +158,7 @@ or pager stand with it, and **the way to add stays on any other kind**: it is ho
 kind's first assets are added.
 
 **When no category carries the record id:** `ASSET_LIST_COPY.pageNotFound` and the
-way back to the list (`ASSET_LIST_COPY.backToTools`), answering one state — no screen
+way to the list (`ASSET_LIST_COPY.goToTools`), answering one state — no screen
 on this axis is gated per record.
 
 **On the owning job's list, its assets on loan elsewhere**: each a row whose status

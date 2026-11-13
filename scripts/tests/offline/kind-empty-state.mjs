@@ -15,7 +15,7 @@
 //   2. OFF THE SOURCE, THE PAGE: it asks the judgment of those three facts, draws the first empty's
 //      heading and the choice that shows the items, by the job choice's own `All jobs`, and the second's with who
 //      fills it and the opener, the first before the second,
-//      and the not-found's heading and way back.
+//      and the not-found's heading and way to the list.
 //   3. NO READ ADDED: what the page imports from the base is what it imported before #612, and the
 //      judgment awaits nothing.
 //   4. ANTI-VACUITY: a page in #509's shape is seen drawing neither empty's words.
@@ -75,7 +75,7 @@ export function emptyFacts(source) {
             const view = parseFile("app/(assets)/PageNotFound.js").source;
             return [
                 returnsView && /<h1 className="text-heading font-semibold">\{COPY\.pageNotFound\}<\/h1>/.test(view),
-                returnsView && /\{COPY\.backToTools\}/.test(view),
+                returnsView && /\{COPY\.goToTools\}/.test(view),
             ].join(" ");
         })(),
     };
@@ -118,9 +118,9 @@ export function run({ check, log }) {
             ASSET_LIST_COPY.untilASiteManagerAdds,
             ASSET_LIST_COPY.pageNotFound,
             ASSET_COPY.notFoundHeading,
-            ASSET_COPY.backToTools,
+            ASSET_COPY.goToTools,
         ].join(" | "),
-        "No items on 25-USA-13 | Choose All jobs to see items on other jobs. | Nothing added yet | Items show here once you add them. | Items show here once a site manager adds them. | Page not found | Item not found | Back to Equipment & Tools"
+        "No items on 25-USA-13 | Choose All jobs to see items on other jobs. | Nothing added yet | Items show here once you add them. | Items show here once a site manager adds them. | Page not found | Item not found | Go to Equipment & Tools"
     );
     check("  and the list's copy holds no second not-found heading", "notFoundHeading" in ASSET_LIST_COPY, false);
 
@@ -133,7 +133,7 @@ export function run({ check, log }) {
     check("  the job's own empty: its heading, no opener or other heading, and the choice that shows the items (#617)", facts.elsewhere, "true false true");
     check("  the other empty: its heading, who fills it, and the bordered opener", facts.none, "true true true");
     check("  the job's own empty is asked first", facts.order, true);
-    check("an unknown kind: Page not found and the way back", facts.missing, "true true");
+    check("an unknown kind: Page not found and the way to the list", facts.missing, "true true");
 
     // ── 3: no read added ────────────────────────────────────────────────────
     log("");

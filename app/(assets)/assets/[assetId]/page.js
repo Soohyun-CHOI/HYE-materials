@@ -172,10 +172,11 @@ export default async function AssetPage(props) {
 
 /**
  * A code no asset carries (#463): the desk's 1h, centered in the column with the code it
- * asked for and the way back to the list, and the phone's 1k-c, the mark, then the code in Ink 3
- * over the title, as every phone title block opens on its id (#538), and the sentence — no way
- * back, since a phone arrived here from a scan. Its top bar carries `More actions` with the
- * account alone (#495), as every one does, and no name.
+ * asked for and the way to the list, `Go to` since a label or a link is how a reader arrives
+ * (#655), and the phone's 1k-c, the mark, then the code in Ink 3 over the title, as every phone
+ * title block opens on its id (#538), and the sentence — no way to the list, since a phone
+ * arrived here from a scan. Its top bar carries `More actions` with the account alone (#495), as
+ * every one does, and no name.
  */
 function AssetNotFound({ asked, account }) {
     return (
@@ -197,7 +198,7 @@ function AssetNotFound({ asked, account }) {
                 <p className="mt-gap max-w-mobile-empty-state text-mobile-body text-pretty text-foreground-subtle sm:hidden">{COPY.notFoundScanned}</p>
                 <div className="mt-gap-lg max-sm:hidden">
                     <ButtonLink variant="bordered" href={ASSET_CATEGORIES_PATH}>
-                        {COPY.backToTools}
+                        {COPY.goToTools}
                     </ButtonLink>
                 </div>
             </div>

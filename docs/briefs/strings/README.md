@@ -74,7 +74,7 @@ settled now read one way each. What does not move is the shape of the work: filt
 judge which table each noun points at, sweep, re-filter.
 
 ```
-node scripts/screen-strings.mjs > /tmp/all.txt          # the census, 21 screens
+node scripts/screen-strings.mjs > /tmp/all.txt          # the census, every screen
 node scripts/screen-strings.mjs /invoices/new           # one screen, with shapes
 ```
 
