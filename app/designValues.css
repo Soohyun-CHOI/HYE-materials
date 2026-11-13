@@ -113,7 +113,7 @@
     --spacing-nav-gap: 0.6875rem; /* Gap, 11: between an icon and its word in a nav row */
     --spacing-control-icon-gap: 0.375rem; /* Gap, 6: between an icon and its word inside a 32 control */
     --spacing-control-band-inset-y: 0.875rem; /* Band padding, 14: above and below a band of controls */
-    --height-table-row: 2.5rem; /* Row, 40: a table row */
+    --height-table-row: 2.25rem; /* Row, 36: a table row, under its 1px rule, so rows stand 37 apart; 40 until #646 */
     --spacing-table-bleed: 0.75rem; /* Row, 12: how far a row's hover face, and a sticky ground over rows, reach past the text */
     --height-table-header: 2.25rem; /* Column head, 36: every table's head row */
     --spacing-selection-bar-offset: 0.75rem; /* Selection bar, 12: above the pager */
@@ -137,8 +137,8 @@
     --width-catalog-items: 3rem; /* 1l, 48: the catalog's column of how many items stand under a row, fixed — the drawing's, by 0b Row's rule */
     --spacing-fill-table-inset-right: 2.25rem; /* 1l, 36: how far in from the window's edge a list on Fill sets its table, the lane's 8 within it — from the drawings, not the spec */
     --spacing-catalog-preview-stack: 0.125rem; /* 1l, 2: from Shows as to the name under it in the catalog's dialog — from the drawings, not the spec */
-    --spacing-pager-inset-top: 0.75rem; /* Pager, 12: above its controls, counting its 1px rule */
-    --spacing-pager-inset-bottom: 1rem; /* Pager, 16: under them, so 60 in all */
+    --spacing-pager-inset-top: 0.5rem; /* Pager, 8: above its controls, counting its 1px rule, so 7 inside it; 12 until #646 */
+    --spacing-pager-inset-bottom: 0.5rem; /* Pager, 8: under them, so 48 in all, 1 + 7 + 32 + 8; 16 and 60 until #646 */
     --spacing-pager-inline: 1.5rem; /* 1a and 1d, 24: the least room between the rows a pager counts and its page — from the drawings, not the spec */
     --spacing-pager-step-gap: 0.625rem; /* 1a and 1d, 10: from the page to its two steps — from the drawings, not the spec */
     --spacing-pager-step-bleed: 0.8125rem; /* 1a and 1d, 13: how far the steps pull out so the last chevron's ink meets the text's edge — from the drawings, not the spec */

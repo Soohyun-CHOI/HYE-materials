@@ -252,7 +252,8 @@ const VALUES = [
     // 0b's Gap inside a 32 control and its Band padding, which 1a's band reads (#520).
     ["--spacing-control-icon-gap", "0.375rem", null],
     ["--spacing-control-band-inset-y", "0.875rem", null],
-    ["--height-table-row", "2.5rem", null],
+    // The row's 36 under its 1px rule, 37 apart, since Design's web spec moved it from 40 (#646).
+    ["--height-table-row", "2.25rem", null],
     ["--spacing-table-bleed", "0.75rem", null],
     ["--height-table-header", "2.25rem", null],
     ["--spacing-selection-bar-offset", "0.75rem", null],
@@ -261,9 +262,10 @@ const VALUES = [
     ["--transition-duration-selection-bar", "160ms", null],
     // The mark that leads an action's reason in the bar (#495).
     ["--spacing-selection-bar-reason-gap", "0.375rem", null],
-    // The pager's 60 (#505): 12 above its controls, its rule counted, and 16 under them.
-    ["--spacing-pager-inset-top", "0.75rem", null],
-    ["--spacing-pager-inset-bottom", "1rem", null],
+    // The pager's 48 (#646): 8 above its controls, its rule counted, and 8 under them —
+    // 60 from #505 until then, at 12 and 16.
+    ["--spacing-pager-inset-top", "0.5rem", null],
+    ["--spacing-pager-inset-bottom", "0.5rem", null],
     // 1a and 1d's drawings, where the spec states no figure — #463's lists.
     ["--spacing-table-column-inline", "1.25rem", null],
     // 1a's counts at 56 since the files of 2026-10-23 (#566), 96 until then.

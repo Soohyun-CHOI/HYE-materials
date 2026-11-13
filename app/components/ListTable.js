@@ -44,9 +44,9 @@ export const TABLE_HEAD =
     "sticky top-(--table-head-top) z-10 -mb-px box-content grid h-table-header items-center gap-x-table-column-inline border-b border-divider-strong bg-background-translucent px-table-bleed text-heading-sm text-foreground-subtle shadow-[inset_0_1px_0_var(--color-divider-strong)] backdrop-blur-sm";
 
 /**
- * 0b's Row: 40 under its 1px Rule, its text 12 in from the content's edge where the rule
- * stops, and a square face under the pointer and while it is selected — Wash, since a table
- * row counts as bordered (0f), and Face (0c). Every list 1a and 1d draw sets the row's corners
+ * 0b's Row: 36 under its 1px Rule, so rows stand 37 apart — 40 until #646 — its text 12 in
+ * from the content's edge where the rule stops, and a square face under the pointer and while
+ * it is selected — Wash, since a table row counts as bordered (0f), and Face (0c). Every list 1a and 1d draw sets the row's corners
  * at 0, where 0b's sentence gives the hover a Control radius on 1080; the drawings are followed
  * since 2026-10-12, and the row wore the Control radius until then. `isolate` makes it a
  * stacking context of its own, so its box stays under the column head (above).
@@ -187,10 +187,11 @@ function PagerStep({ href, onPress, label, back }) {
  * and on the right which page of how many and a step each way, the last chevron's ink on the
  * text's edge. A step at its end is drawn and does not act — the drawings' — where the steps
  * were absent at the ends until #463. The ground under it is the frame's, and so is the
- * 1px rule over it, which 0b's 12 above the controls counts — so 60 in all (#505).
+ * 1px rule over it, which 0b's 8 above the controls counts — so 48 in all, 1 + 7 + 32 + 8
+ * (#646), where it was 60 from #505 until then.
  *
  * THE PAGE AND ITS STEPS STAND ONLY WHEN THERE IS A SECOND PAGE (0b Pager, #519): `position`
- * left out, the pager is its count alone, still 60, the count holding the controls' height.
+ * left out, the pager is its count alone, still 48, the count holding the controls' height.
  * The caller decides, since it knows how many pages there are.
  *
  * THE COUNT'S PIECES SIT IN ONE SPAN, SO THE BOX THAT CENTERS THEM KEEPS THEIR SPACES (#538).

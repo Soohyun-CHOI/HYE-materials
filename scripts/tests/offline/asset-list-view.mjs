@@ -60,6 +60,7 @@
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
+import { readFileSync } from "node:fs";
 import { ASSET_EVENT, ASSET_STATUS, ASSET_STATUS_VALUES, SHOWN_STATUS_VALUES } from "../../../lib/assetStatus.js";
 import { ASSET_COPY } from "../../../lib/assetView.js";
 import { ASSET_NOTE_COPY } from "../../../lib/assetNote.js";
@@ -2345,7 +2346,7 @@ export function run({ check, assert, log }) {
     // along its baseline, the figure at Ink 3, its noun said to assistive tech alone — and
     // under that line a caption where a page hands one, which a category's page does (#507); 32 above
     // it, or the breadcrumb bar's 14 where one stands over it, which the category's page alone
-    // says. The pager is 60, its rule counted in the 12 above its controls, and the rows end
+    // says. The pager is 48, its rule counted in the 8 above its controls (#646), and the rows end
     // on that. Under the pointer the bar's clear lifts its Ink 3 to Ink, and a breadcrumb
     // level keeps its Ink 2, a target set in text (0f). Read through one function, so a
     // planted list is judged the same way.
@@ -2384,7 +2385,7 @@ export function run({ check, assert, log }) {
     check("  and drawn only where the page hands one, a head with nothing to count its title alone (#519)", head.countGiven, true);
     check("  32 above it, or the breadcrumb's 14, and 18 under it — and with no bar over it at least a 36 control's line (#519)", head.top, true);
     check("  the breadcrumb's on the category's page and not on the list", head.under, "true|");
-    check("the pager is 60, its rule counted in the 12 above its controls (#505)", head.pager, true);
+    check("the pager's rule is counted in the room above its controls (#505)", head.pager, true);
     check("  and the rows end on that", head.endRoom, true);
     check("the bar's clear lifts to Ink under the pointer (#505)", head.clear, true);
     check("  and a breadcrumb level keeps its Ink 2, taking the Hover face alone", head.level, "true true true");
@@ -2408,10 +2409,92 @@ export function run({ check, assert, log }) {
     check("  a noun drawn beside the figure is seen", plantedHead.figure, false);
     check("  a head with neither top is seen", plantedHead.top, false);
     check("  the breadcrumb's top on the wrong screen is seen", plantedHead.under, "|true");
-    check("  a pager with its rule outside its 12 is seen", plantedHead.pager, false);
+    check("  a pager with its rule outside that room is seen", plantedHead.pager, false);
     check("  rows ending short of it are seen", plantedHead.endRoom, false);
     check("  a clear that keeps Ink 3 is seen", plantedHead.clear, false);
     check("  and a level that lifts is seen", plantedHead.level, "true true false");
+
+    // EVERY LENGTH THE PAGER SETS IS THE PAGER'S OWN HEIGHT, AND THE BAR'S WITH IT (#646). Design's
+    // web spec moved the pager from 60 to 48 — its rule, 7, a 32 control and 8 — and the row from
+    // 40 to 36, 37 apart under its rule, the column head's 36 unchanged. The frames write each
+    // length the pager or the selection bar sets as a sum of names, so each sum is worked out here
+    // from what `app/designValues.css` declares and held as a figure: a sum that drops a term
+    // reads short, and a value that moves reads as what it moved to. The pager over the rows, the
+    // end room, focus kept clear of it and the catalog's track ending over it are 48 each, and the
+    // end room and focus while the bar stands 114.
+    const remValues = (css) =>
+        new Map([...css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/(--[a-z-]+)\s*:\s*([\d.]+)rem\s*;/g)].map((m) => [m[1], Number(m[2]) * 16]));
+    const figureOf = (sum, values) =>
+        [
+            ...sum
+                .replace(/var\((--[a-z-]+)\)/g, (_, name) => String(values.get(name) ?? NaN))
+                .replace(/(\d)px/g, "$1")
+                .matchAll(/([+-]?)([^+-]+)/g),
+        ].reduce((total, [, sign, term]) => total + (sign === "-" ? -1 : 1) * term.split("*").reduce((product, factor) => product * Number(factor), 1), 0);
+    const pagerRoom = (parsed, values) => {
+        const figures = [];
+        walk(parsed.ast, (n) => {
+            if (n.type !== "VariableDeclarator" || n.init?.type !== "Literal" || typeof n.init.value !== "string") return;
+            const sum = /\[calc\(([^\]]*--spacing-pager-inset-top[^\]]*)\)\]/.exec(n.init.value);
+            if (sum) figures.push(`${n.id.name} ${figureOf(sum[1], values)}`);
+        });
+        return figures.join(", ");
+    };
+    const pagerParts = (pagerSource, values) => {
+        const top = /pt-\[calc\(([^\]]*)\)\]/.exec(pagerSource);
+        const parts = [
+            1,
+            top ? figureOf(top[1], values) : NaN,
+            /className="flex h-control items-center/.test(pagerSource) ? values.get("--height-control") : NaN,
+            /\bpb-pager-inset-bottom\b/.test(pagerSource) ? values.get("--spacing-pager-inset-bottom") : NaN,
+        ];
+        return `${parts.join(" + ")} = ${parts.reduce((sum, part) => sum + part, 0)}`;
+    };
+    const rowPitch = (parsed, values) => {
+        const pitches = [];
+        walk(parsed.ast, (n) => {
+            if (n.type !== "VariableDeclarator" || !/^TABLE_ROW(_FILL)?$/.test(n.id?.name ?? "") || n.init?.type !== "Literal") return;
+            const classes = String(n.init.value).split(/\s+/);
+            const counted = ["box-content", "h-table-row", "pt-px"].every((name) => classes.includes(name));
+            pitches.push(`${n.id.name} ${counted ? values.get("--height-table-row") + 1 : NaN}`);
+        });
+        return pitches.join(", ");
+    };
+    const declaredValues = remValues(readFileSync(repoPath("app/designValues.css"), "utf8"));
+    check(
+        "what the pager sets is its 48, and 114 with the selection bar over it (#646)",
+        pagerRoom(frame, declaredValues),
+        "PAGER_OVER_ROWS 48, END_ROOM 48, END_ROOM_WITH_BAR 114, KEEP_CLEAR_OF_PAGER 48, KEEP_CLEAR_OF_BAR 114, TRACK_OVER_PAGER 48"
+    );
+    check("  the pager itself its rule, 7 above its controls, a 32 control and 8 under them", pagerParts(functionSource(table, "Pager"), declaredValues), "1 + 7 + 32 + 8 = 48");
+    check("  and rows 37 apart, a 36 row under its 1px rule, on both kinds of list", rowPitch(table, declaredValues), "TABLE_ROW 37, TABLE_ROW_FILL 37");
+    check(
+        "  the pager's old 60, and 126 with the bar, are seen",
+        pagerRoom(frame, new Map([...declaredValues, ["--spacing-pager-inset-top", 12], ["--spacing-pager-inset-bottom", 16]])),
+        "PAGER_OVER_ROWS 60, END_ROOM 60, END_ROOM_WITH_BAR 126, KEEP_CLEAR_OF_PAGER 60, KEEP_CLEAR_OF_BAR 126, TRACK_OVER_PAGER 60"
+    );
+    check(
+        "  a sum that drops a term is seen",
+        pagerRoom(
+            parseSource(
+                'const END_ROOM = "h-[calc(var(--spacing-pager-inset-top)+var(--height-control))]";\n' +
+                    'const KEEP_CLEAR_OF_BAR = "scroll-pb-[calc(var(--spacing-pager-inset-top)+var(--height-control)+var(--spacing-pager-inset-bottom)+var(--height-control-lg)+2*var(--spacing-selection-bar-inset)+2px)]";',
+                "<planted ListFrame>"
+            ),
+            declaredValues
+        ),
+        "END_ROOM 40, KEEP_CLEAR_OF_BAR 102"
+    );
+    check(
+        "  a pager whose rule stands outside its room is seen",
+        pagerParts('<div className="pt-pager-inset-top pb-pager-inset-bottom"><p className="flex h-control items-center" /></div>', declaredValues),
+        "1 + NaN + 32 + 8 = NaN"
+    );
+    check(
+        "  and a row that does not count its rule is seen",
+        rowPitch(parseSource('const TABLE_ROW = "relative grid h-table-row px-table-bleed";\nconst TABLE_ROW_FILL = "relative box-content grid h-table-row pt-px";', "<planted ListTable>"), declaredValues),
+        "TABLE_ROW NaN, TABLE_ROW_FILL 37"
+    );
 
     // ── 2f: which job a reader's lists stand on (#509, #520) ─────────────────
     log("");
