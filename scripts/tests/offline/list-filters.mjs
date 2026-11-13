@@ -130,34 +130,24 @@ const SETTLED = {
 };
 
 /**
- * What each list's box says and what it matches, by value (#325).
+ * What each list's box matches, by value (#325, #649).
  *
- * TWO ARRAYS PER LIST BECAUSE THEY ARE TWO CLAIMS. `names` is a promise printed in the
- * box and `keys` is what the matcher walks, and the defect they exist to catch is one
- * drifting from the other — a box that offers `Vendor Invoice #` and a matcher that
- * never reads it, or the reverse, which is a list quietly searching something it never
- * said it would.
+ * THE KEYS AND THE SENTENCE BELOW ARE TWO CLAIMS, and the defect they exist to catch is
+ * one drifting from the other — a box that offers `delivery ID` and a matcher that
+ * never reads one, or the reverse, a list quietly searching something nobody decided
+ * it would. `/invoices` matches one key its sentence does not name, the vendor's own
+ * number, and that is #649's decision rather than the drift: it is pinned here by value.
  *
  * THE THREE NAMES THAT ARE DELIBERATELY ABSENT are held further down, by name, because
  * an exclusion nobody wrote down gets re-added by the next reader.
  */
 const SEARCHES = {
-    "/prs": {
-        names: ["PR ID", "vendor", "job"],
-        keys: ["prId", "vendorName", "jobCode", "jobName"],
-    },
-    "/pos": {
-        names: ["PO ID", "vendor", "job"],
-        keys: ["poId", "vendorName", "jobCode", "jobName"],
-    },
-    "/deliveries": {
-        names: ["Delivery ID", "vendor", "job"],
-        keys: ["deliveryId", "vendorName", "jobCode", "jobName"],
-    },
-    "/invoices": {
-        names: ["Invoice ID", "Vendor Invoice #", "vendor", "job"],
-        keys: ["invoiceId", "vendorInvoiceCode", "vendorName", "jobCode", "jobName"],
-    },
+    "/prs": ["prId", "vendorName", "jobCode", "jobName"],
+    "/pos": ["poId", "vendorName", "jobCode", "jobName"],
+    "/deliveries": ["deliveryId", "vendorName", "jobCode", "jobName"],
+    // #649 — the invoice's own id, the orders its items charge, the deliveries on those
+    // ordered items and the vendor's number; the vendor and the job are pickers alone.
+    "/invoices": ["invoiceId", "poIds", "deliveryIds", "vendorInvoiceCode"],
 };
 
 /** What each box says, one string serving as its label and its placeholder. */
@@ -165,16 +155,18 @@ const SEARCH_LABELS = {
     "/prs": "Search by PR ID, vendor or job",
     "/pos": "Search by PO ID, vendor or job",
     "/deliveries": "Search by Delivery ID, vendor or job",
-    "/invoices": "Search by Invoice ID, Vendor Invoice #, vendor or job",
+    "/invoices": "Search invoice, PO or delivery ID",
 };
 
 /**
  * The names no list searches, and why — the far side of #325's line.
  *
  * ALL THREE ARE ANOTHER DOCUMENT'S NAME REACHED THROUGH A LINK, which is what the rule
- * bars: allow one and the whole chain follows, a delivery by its order and an order by
- * its request and a request by its quotation. Held as row keys because that is the
- * shape the mutant takes — somebody adds the key to a page and the name to an axis.
+ * bars on three lists: allow one and the whole chain follows, a delivery by its order and
+ * an order by its request and a request by its quotation. `/invoices` crosses it for two
+ * names alone since #649 — the orders and deliveries an invoice is reconciled against —
+ * and none of these three is one of them. Held as row keys because that is the shape the
+ * mutant takes — somebody adds the key to a page and the name to an axis.
  */
 const NOT_SEARCHED = [
     ["packingListPO", "a delivery holds a LINK to an order, not a name of its own"],
@@ -274,29 +266,41 @@ export function run({ check, assert, log }) {
 
     // ── 1b: what each list searches ─────────────────────────────────────────
     log("");
-    log("each box says what it matches, and matches what it says (#325):");
-    for (const [route, want] of Object.entries(SEARCHES)) {
+    log("each box says what it matches, and matches what it says (#325, #649):");
+    for (const [route, keys] of Object.entries(SEARCHES)) {
         const axis = axesFor(route).find((a) => a.control === CONTROL.search);
-        check(`${route} searches ${want.names.join(" + ")}`, axis.names.join(" + "), want.names.join(" + "));
-        check(`  off the row's ${want.keys.join(", ")}`, axis.keys.join(","), want.keys.join(","));
-        // THE LABEL IS BUILT FROM `names`, so a name added to the matcher appears in the
-        // box without anybody writing a sentence. Pinned by value as well, because
-        // "built from the array" is true of a builder that punctuates it wrongly.
+        check(`${route} searches the row's ${keys.join(", ")}`, axis.keys.join(","), keys.join(","));
+        // Pinned by value: three are built from their names by `searchBy` and
+        // `/invoices`' is written out, and "built from the array" is true of a builder
+        // that punctuates it wrongly.
         check(`  and the box reads \`${SEARCH_LABELS[route]}\``, axis.words.label, SEARCH_LABELS[route]);
-        assert(
-            "  every name it says is in the sentence it draws",
-            want.names.every((name) => axis.words.label.includes(name))
-        );
     }
-    // THE THREE SUBJECT KEYS ARE SHARED AND THE ID IS NOT, which is the whole shape of
-    // the decision: a vendor and a job are facts every one of these rows holds and
-    // every one of these lists heads a column for (#314), and the id and the second
-    // name are the document's own.
-    for (const route of FILTERED_LISTS) {
-        const axis = axesFor(route).find((a) => a.control === CONTROL.search);
-        assert(
-            `${route} searches the vendor and the job`,
-            ["vendorName", "jobCode", "jobName"].every((key) => axis.keys.includes(key))
+    // THE THREE SUBJECT KEYS ARE SHARED BY THREE LISTS AND THE ID IS NOT, which is the
+    // whole shape of #325's decision: a vendor and a job are facts every one of these rows
+    // holds and every one of these lists heads a column for (#314), and the id and the
+    // second name are the document's own. #649 took both off `/invoices`' box, where they
+    // are pickers alone, so the vendor's name and the job's code find nothing there.
+    const searchKeysOf = (route) => axesFor(route).find((a) => a.control === CONTROL.search).keys;
+    check(
+        "the vendor and the job are searched on every list but /invoices",
+        FILTERED_LISTS.filter((route) =>
+            ["vendorName", "jobCode", "jobName"].every((key) => searchKeysOf(route).includes(key))
+        )
+            .sort()
+            .join(","),
+        "/deliveries,/pos,/prs"
+    );
+    assert(
+        "  and /invoices searches none of the three",
+        ["vendorName", "jobCode", "jobName"].every((key) => !searchKeysOf("/invoices").includes(key))
+    );
+    // #649 — ANOTHER DOCUMENT'S ID IS SEARCHED ON ONE LIST, and the other three still
+    // hold #325's line: a delivery is not found by its order, nor an order by its request.
+    for (const key of ["poIds", "deliveryIds"]) {
+        check(
+            `only /invoices searches \`${key}\``,
+            FILTERED_LISTS.filter((route) => searchKeysOf(route).includes(key)).join(","),
+            "/invoices"
         );
     }
     check(
@@ -516,6 +520,42 @@ export function run({ check, assert, log }) {
         "  and `null` never reaches the haystack as a word",
         ids({ ...base, q: "null" }) === ""
     );
+
+    // #649 — THE INVOICE LIST'S BOX, RUN. Two of its keys hold LISTS — an invoice charges
+    // orders and draws on deliveries in the plural — and the vendor and the job are not
+    // among its keys, though every row here still carries both for its cells.
+    log("");
+    log("the invoice box finds a row by its orders, its deliveries and the vendor's number (#649):");
+    const invoiceRows = [
+        { id: "p", invoiceId: "HYE-INV-260911-19", poIds: ["HYE-PO-260901-01"], deliveryIds: ["HYE-DL-260905-02"], vendorInvoiceCode: "LSP-0091", vendorName: "Acme Supply", jobCode: "26-A", jobName: "Alpha" },
+        { id: "q", invoiceId: "HYE-INV-260911-20", poIds: ["HYE-PO-260901-01", "HYE-PO-260902-03"], deliveryIds: ["HYE-DL-260905-02", "HYE-DL-260907-01"], vendorInvoiceCode: "", vendorName: "Beta Pipe", jobCode: "26-B", jobName: "Beta" },
+        { id: "r", invoiceId: "HYE-INV-260912-01", poIds: ["HYE-PO-260902-04"], deliveryIds: [], vendorInvoiceCode: "BP-7", vendorName: "Beta Pipe", jobCode: "26-B", jobName: "Beta" },
+    ];
+    const found = (q) =>
+        applyFilters("/invoices", { ...emptyFilters("/invoices"), q }, invoiceRows)
+            .map((r) => r.id)
+            .join("");
+    check("by its own id, part of it", found("INV-260911"), "pq");
+    check("by an order its items charge, which two invoices may share", found("PO-260901-01"), "pq");
+    check("  the second order in a row's list, typed in lower case", found("po-260902-03"), "q");
+    check("by a delivery on its ordered items, which two may share too", found("DL-260905-02"), "pq");
+    check("  and the second delivery in a row's list", found("DL-260907"), "q");
+    check("by the vendor's own number, which the box does not name", found("0091"), "p");
+    check("two tokens, its own id and one of its deliveries", found("260911 DL-260907"), "q");
+    check("a row with no delivery is still found by its own id", found("260912-01"), "r");
+    // THE VENDOR AND THE JOB ARE PICKERS ALONE ON THIS LIST: the cells carry them and the
+    // box does not read them.
+    check("the vendor's name finds nothing", found("acme"), "");
+    check("  nor the job's code", found("26-B"), "");
+    check("  nor the job's name", found("alpha"), "");
+    // A LIST IS SPREAD INTO THE HAYSTACK, NOT STRINGIFIED: `String(["a","b"])` is `a,b`,
+    // and a token carrying that comma would match across two of one row's ids.
+    check(
+        "no token straddles two ids of one list",
+        found("HYE-PO-260901-01,HYE-PO-260902-03"),
+        ""
+    );
+    check("  and no comma reaches the haystack at all", found(","), "");
 
     // ── 5: the URL a state produces ─────────────────────────────────────────
     log("");
@@ -1067,9 +1107,9 @@ export function run({ check, assert, log }) {
             // #325 — A SEARCH NAMES ITS OWN KEYS AND THERE ARE SEVERAL. `ROW_KEY` is one
             // key per parameter whatever the route, and a search reads a different set
             // per list, so that axis carries `keys` and this reads them. The pairing is
-            // the same one and is stronger for being plural: a page shaping four of the
-            // five keys `/invoices` searches fails here, and the box would otherwise
-            // have gone on promising `Vendor Invoice #` and matching nothing.
+            // the same one and is stronger for being plural: a page shaping three of the
+            // four keys `/invoices` searches fails here, and the box would otherwise
+            // have gone on promising `delivery ID` and matching nothing.
             const wanted = axis.control === CONTROL.search ? axis.keys : [ROW_KEY[axis.param]];
             for (const key of wanted) {
                 assert(`${rel} sets \`${key}\` for its \`${axis.param}\` axis`, keys.has(key));
@@ -1325,20 +1365,22 @@ export function run({ check, assert, log }) {
     );
 
     // The plural key walk of 9b, seen saying no. `/prs` searches four keys and not the
-    // fifth `/invoices` does, so a page shaping only some of them is the mutant.
+    // second name `/invoices` does, so a page shaping only some of them is the mutant.
     const prsSearch = axesFor("/prs").find((a) => a.control === CONTROL.search);
     assert(
         "the search key walk is plural and list-specific",
         prsSearch.keys.length === 4 && !prsSearch.keys.includes("vendorInvoiceCode")
     );
     // The label builder, seen producing a different sentence from different names, so
-    // the four pinned strings above are a fact about the declaration rather than about
-    // a builder that ignores its argument.
+    // the three built strings pinned above are a fact about the declaration rather than
+    // about a builder that ignores its argument.
+    const builtLabels = ["/prs", "/pos", "/deliveries"].map(
+        (route) => axesFor(route).find((a) => a.control === CONTROL.search).words.label
+    );
     assert(
         "the box's sentence is built from the names it is given",
-        SEARCH_LABELS["/invoices"] !== SEARCH_LABELS["/prs"] &&
-            SEARCH_LABELS["/invoices"].includes("Vendor Invoice #") &&
-            !SEARCH_LABELS["/prs"].includes("Vendor Invoice #")
+        new Set(builtLabels).size === 3 &&
+            builtLabels.every((label, i) => label.includes(["PR ID", "PO ID", "Delivery ID"][i]))
     );
 }
 

@@ -6,7 +6,11 @@ import { getInvoiceItemsByRecordIds } from "@/lib/airtable/invoiceItems";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getDeliveriesByRecordIds } from "@/lib/airtable/deliveries";
-import { getDeliveryInvoicing, getInvoiceDeliveryStatus } from "@/lib/deliveryStatus.server";
+import {
+    getDeliveryInvoicing,
+    getInvoiceDeliveryIds,
+    getInvoiceDeliveryStatus,
+} from "@/lib/deliveryStatus.server";
 import { resolveInvoiceScope } from "@/lib/invoiceVisibility";
 import { jobForInvoices } from "@/lib/invoiceJob";
 import { accessibleJobs } from "@/lib/deliveryAccess";
@@ -56,10 +60,13 @@ export const metadata = { title: "Invoices" };
 // decision — whether to fetch the invoice items the gate walks from — and the `Job`
 // column needs that walk's records whoever is reading, so the branch is gone and the
 // two readers run one path. **That is the property, not a side effect:** the office
-// and a site employee now spend the same operations on this screen and read the same
-// eight columns, and a rendered fact derived on one side of a privilege test is the
-// mutant #309 removed from the payment cell and this issue must not reintroduce one
-// column along. `offline/job-column.mjs` holds it.
+// and a site employee now make the same reads on this screen and read the same eight
+// columns, and a rendered fact derived on one side of a privilege test is the mutant
+// #309 removed from the payment cell and this issue must not reintroduce one column
+// along. `offline/job-column.mjs` holds it. The same reads are not the same COUNT: the
+// delivery reads go over the jobs a reader may see deliveries on, so a site employee
+// whose jobs hold none spends fewer, and since #649 one whose invoices draw on
+// deliveries off their jobs spends one more (`getInvoiceDeliveryIds`).
 //
 // Labeled for #190 by #216, and for the reason #224 exists: this page had no
 // label, so its cost had never been measured and #216 could not have shown what
@@ -143,9 +150,10 @@ async function renderInvoiceListPage({ searchParams }) {
     // never reach the wire. `siblings` hands the fill the other invoices' items on those
     // same ordered items — which is what says whether this invoice is answered first or
     // waits behind an older one — and nothing of theirs is returned.
-    const { byInvoice: statusByInvoice } = await getInvoiceDeliveryStatus(
+    const gatedItems = invoiceItems.filter((item) => visibleIds.has(item.invoice?.[0]));
+    const { byInvoice: statusByInvoice, orderedItems } = await getInvoiceDeliveryStatus(
         invoices,
-        invoiceItems.filter((item) => visibleIds.has(item.invoice?.[0])),
+        gatedItems,
         { siblings: invoiceItems }
     );
 
@@ -178,6 +186,13 @@ async function renderInvoiceListPage({ searchParams }) {
     // what builds "what was delivered" below.
     const { byDelivery: invoicingByDelivery, slices: deliverySlices } =
         await getDeliveryInvoicing(jobDeliveries);
+
+    // #649 — the deliveries the search finds each invoice by: every delivery on an ordered
+    // item its items charge, which is what its own page names (#640). The rows are the
+    // strip's own wherever they reach — every delivery for the office and the President,
+    // so for them this reads nothing — and only a row outside this reader's delivery scope
+    // is read, so a delivery finds the same invoices whoever types it.
+    const deliveryIdsByInvoice = await getInvoiceDeliveryIds(gatedItems, orderedItems, deliverySlices);
 
     const slicesByDelivery = new Map();
     for (const slice of deliverySlices) {
@@ -244,6 +259,17 @@ async function renderInvoiceListPage({ searchParams }) {
     });
 
 
+    // #649 — the orders the search finds each invoice by: the `PO ID` of every order its
+    // items charge, off the records the gate's walk already resolved, in item order.
+    const poIdsByInvoice = new Map();
+    for (const item of gatedItems) {
+        const poId = poById.get(item.po?.[0])?.poId;
+        const parent = item.invoice[0];
+        if (!poId) continue;
+        if (!poIdsByInvoice.has(parent)) poIdsByInvoice.set(parent, []);
+        if (!poIdsByInvoice.get(parent).includes(poId)) poIdsByInvoice.get(parent).push(poId);
+    }
+
     // #324 — EVERY ROW PRE-SHAPED ON THE SERVER, which is the arrangement the other
     // three lists already use and this one did not, because it had no client component
     // to hand a row to. Each judgment is made exactly where it was: the chip is
@@ -261,15 +287,17 @@ async function renderInvoiceListPage({ searchParams }) {
             vendorName: vendorNameById[inv.vendor?.[0]] || "—",
             jobId: jobByInvoice.get(inv.id) ?? null,
             jobCode: jobById.get(jobByInvoice.get(inv.id))?.jobCode || null,
-            // #325 — free, off the same record as the code.
-            jobName: jobById.get(jobByInvoice.get(inv.id))?.jobName || null,
             // #325 — THE ONE SECOND NAME ANY OF THE FOUR DOCUMENTS CARRIES, and the
-            // case the whole issue is named for: a vendor rings up quoting their own
-            // number and nothing in this app reached the row by it. It is on the record
+            // case that issue was named for: a vendor rings up quoting their own number
+            // and nothing in this app reached the row by it. It is on the record
             // `getAllInvoices()` returned, so the search costs no read here either. No
-            // column shows it — that is a width decision the design pass owns — so the
-            // box says `Vendor Invoice #` to make the promise visible instead.
+            // column shows it — that is a width decision the design pass owns — and since
+            // #649 the box does not name it either, though it still finds it.
             vendorInvoiceCode: inv.vendorInvoiceCode || "",
+            // #649 — the other two documents' ids the box finds an invoice by. Neither is
+            // rendered on this list; both are on the invoice's own page.
+            poIds: poIdsByInvoice.get(inv.id) ?? [],
+            deliveryIds: deliveryIdsByInvoice.get(inv.id) ?? [],
             // #382 — the axis this list did not have until `Invoices` gained a
             // `Recorded By`. Resolved here so nobody's identity reaches the client,
             // which is the arrangement the other three lists already use. An invoice
