@@ -136,18 +136,24 @@ export function run({ check, assert, log }) {
     // THE QUIET MUTANT OF THE SPLIT IS THE JOIN COMING BACK. One flag set on
     // `price || quantity` renders, passes every word above and stores a price variance
     // for a row that only went over — the state #623 recomputed the test base out of.
-    // Three writers set the flags, and each is held to both predicates and both fields.
+    // Two writers set the flags, and each is held to both predicates and both fields: the
+    // create action on the rows it has just made, and since #648 the one re-judgment of a
+    // stored invoice, which the edit action and an overage's split both call
+    // (`offline/variance-acceptance.mjs` holds that they call it and write no flag of their
+    // own). The re-judgment asks the predicates in `itemFlags` and writes in
+    // `judgeInvoiceAgain`, so each half is read where it is.
     const WRITERS = [
-        ["the create action", "app/invoices/new/actions.js", "createInvoiceAction"],
-        ["the edit action", "app/invoices/[invoiceId]/actions.js", "updateInvoiceAction"],
-        ["an overage's split", "lib/overage.server.js", "recomputeInvoiceItemVariance"],
+        ["the create action", "app/invoices/new/actions.js", "createInvoiceAction", "createInvoiceAction"],
+        ["the re-judgment", "lib/variance.server.js", "itemFlags", "judgeInvoiceAgain"],
     ];
-    for (const [who, file, name] of WRITERS) {
-        const fn = resolveFunction(parseFile(file).ast, name);
-        assert(`${who} resolves`, Boolean(fn));
-        if (!fn) continue;
-        assert(`  ${who} asks the price predicate`, callsTo(fn, "checkPriceVariance").length > 0);
-        assert(`  ${who} asks the quantity predicate`, callsTo(fn, "checkQuantityVariance").length > 0);
+    for (const [who, file, askName, writeName] of WRITERS) {
+        const ast = parseFile(file).ast;
+        const asks = resolveFunction(ast, askName);
+        const fn = resolveFunction(ast, writeName);
+        assert(`${who} resolves`, Boolean(asks) && Boolean(fn));
+        if (!asks || !fn) continue;
+        assert(`  ${who} asks the price predicate`, callsTo(asks, "checkPriceVariance").length > 0);
+        assert(`  ${who} asks the quantity predicate`, callsTo(asks, "checkQuantityVariance").length > 0);
         const writes = callsTo(fn, "updateInvoiceItem").filter(
             (c) => callPassesProperty(c, "hasPriceVariance") || callPassesProperty(c, "hasQuantityVariance")
         );

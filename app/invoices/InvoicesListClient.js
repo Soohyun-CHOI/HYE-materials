@@ -458,8 +458,18 @@ export default function InvoicesListClient({ rows, options, initialFilters, init
                                             code naming a symbol before design has said
                                             what it asserts. `docs/notes/backlog.md` and
                                             `deliveries-and-invoices.md` carry it. */}
+                                        {/* #648 — GREEN ONCE ACCEPTED. A totals difference an
+                                            Admin accepted is settled, so it stops wearing the
+                                            red a reader is meant to act on; the badge stays,
+                                            since the row's invoice still carries the fact. */}
                                         {row.varianceBadge && (
-                                            <span className="mt-0.5 block w-fit rounded bg-red-100 px-1 text-xs text-red-700">
+                                            <span
+                                                className={`mt-0.5 block w-fit rounded px-1 text-xs ${
+                                                    row.varianceAccepted
+                                                        ? "bg-green-100 text-green-700"
+                                                        : "bg-red-100 text-red-700"
+                                                }`}
+                                            >
                                                 {row.varianceBadge}
                                             </span>
                                         )}

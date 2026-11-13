@@ -66,6 +66,14 @@ for it to discard.
 `⚠ Quantity variance` badge on that card, or both, the same badges as on the
 invoice detail's items table.
 
+**When an Admin has accepted one:** `Price variance · Accepted` or
+`Quantity variance · Accepted` in green, and under it
+`Changing the figures it was accepted on reopens it.` — because this screen is where that
+happens: a save that moves the item's unit price (for a price variance) or its quantity
+(for a quantity variance), or the totals the totals difference was accepted on, opens the
+variance again on the invoice's page, and one that leaves no variance clears it. A save
+that moves neither leaves it accepted.
+
 **While saving:** the button reflects it.
 
 ## What must agree elsewhere

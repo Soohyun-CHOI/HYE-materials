@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { PAYMENT_CHECK_COPY } from "@/lib/variance";
 import { updatePaidAction } from "./actions";
 
 // THE WHOLE `Payment` SECTION'S BODY, AND IT WAS `PaidForm` UNTIL #318.
@@ -54,9 +55,16 @@ import { updatePaidAction } from "./actions";
 // `key` on the payment values for one revision to force exactly that, and it was removed
 // once the behavior turned out not to depend on it. Which is why there is no `useEffect`
 // here and no state to keep in step with the props.
-export default function PaymentSection({ invoiceId, paidDate, overdue, canEdit }) {
+export default function PaymentSection({ invoiceId, paidDate, overdue, outstanding, canEdit }) {
     const [state, formAction, pending] = useActionState(updatePaidAction, null);
     const [editing, setEditing] = useState(false);
+    // #648 — WHETHER THE ANSWER TO `Save payment` IS A QUESTION FIRST. Recording a payment on
+    // an invoice with a variance nobody accepted, or material still awaited, is allowed — the
+    // app records a payment made elsewhere, so it refuses nothing — and asked once, with what
+    // is left listed. Only when the save turns an unpaid record paid: moving the date of a
+    // payment already recorded is not marking anything paid. `checking` is the question
+    // being shown; it is asked again only if the reader goes back and saves again.
+    const [checking, setChecking] = useState(false);
     // THE FIELD OPENS ON THE RECORD AND ON NOTHING ELSE (#318). It used to prefill
     // today the moment the `Paid` box was ticked, which was a convenience while the
     // tick was the deliberate act. With the box gone the date IS the payment, and a
@@ -83,7 +91,25 @@ export default function PaymentSection({ invoiceId, paidDate, overdue, canEdit }
     // the sentence previewing the draft, this is what the reader watches it undo.
     function cancel() {
         setDate(paidDate || "");
+        setChecking(false);
         setEditing(false);
+    }
+
+    const left = outstanding ?? { variances: [], delivery: null };
+
+    // THE QUESTION STOPS THE SUBMISSION RATHER THAN THE BUTTON, so pressing Enter in the date
+    // field asks it too: a form with one field submits on Enter whatever its buttons are.
+    // React runs a form's action only when its submit event was not prevented. Whether to ask
+    // is judged here, at the press, and `checking` holds the answer until the date moves —
+    // every change to the field puts it back — so the JSX below branches on the question being
+    // shown and never on the payment fact (`offline/invoice-visibility.mjs`, 3b).
+    function askFirst(event) {
+        const turnsPaid = !paidDate && Boolean(date);
+        const somethingLeft = left.variances.length > 0 || Boolean(left.delivery);
+        if (turnsPaid && somethingLeft && !checking) {
+            event.preventDefault();
+            setChecking(true);
+        }
     }
 
     return (
@@ -144,7 +170,7 @@ export default function PaymentSection({ invoiceId, paidDate, overdue, canEdit }
             )}
 
             {canEdit && editing && (
-                <form action={formAction} className="mt-3 space-y-2">
+                <form action={formAction} onSubmit={askFirst} className="mt-3 space-y-2">
                     {/* Where every refusal this section can produce arrives, and it is
                         inside the control on purpose: the reader who submitted is the
                         only reader who can have caused one. */}
@@ -187,13 +213,19 @@ export default function PaymentSection({ invoiceId, paidDate, overdue, canEdit }
                                 id="paidDate"
                                 name="paidDate"
                                 value={date}
-                                onChange={(e) => setDate(e.target.value)}
+                                onChange={(e) => {
+                                    setDate(e.target.value);
+                                    setChecking(false);
+                                }}
                                 className="rounded border border-zinc-300 px-2 py-1 text-sm"
                             />
                             {date && (
                                 <button
                                     type="button"
-                                    onClick={() => setDate("")}
+                                    onClick={() => {
+                                        setDate("");
+                                        setChecking(false);
+                                    }}
                                     disabled={pending}
                                     className="text-sm text-zinc-500 underline disabled:opacity-50"
                                 >
@@ -202,31 +234,69 @@ export default function PaymentSection({ invoiceId, paidDate, overdue, canEdit }
                             )}
                         </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                        {/* `Save payment` RATHER THAN `Save`, FOR `Edit payment`'s OWN
-                            REASON one control along: the pair opens and commits one
-                            fact on a page that has another form on it, and a lone `Save`
-                            names no subject. The two now read as one control's two
-                            ends. */}
-                        <button
-                            type="submit"
-                            disabled={pending}
-                            className="rounded bg-foreground px-4 py-2 text-sm text-background disabled:opacity-50"
-                        >
-                            {pending ? "Saving..." : "Save payment"}
-                        </button>
-                        {/* The same word for the same act as `/invoices/new`'s, and the
-                            same shape: a text button beside the one that commits, which
-                            renders only while the fields are open. */}
-                        <button
-                            type="button"
-                            onClick={cancel}
-                            disabled={pending}
-                            className="text-sm text-zinc-500 underline disabled:opacity-50"
-                        >
-                            Cancel
-                        </button>
-                    </div>
+                    {/* #648 — WHAT IS LEFT, ASKED ONCE. Each open variance in red, as its badge
+                        is; the delivery wait in gray, as information, since a delivery
+                        recorded ends it by itself and nothing is wrong. The question replaces
+                        the two buttons while it stands, and `Go back` brings them back with
+                        the date as typed. */}
+                    {checking && (
+                        <div className="rounded border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm">
+                            <p className="font-medium">{PAYMENT_CHECK_COPY.heading}</p>
+                            <ul className="mt-1 space-y-0.5">
+                                {left.variances.map((v) => (
+                                    <li key={v.key} className="text-red-700">
+                                        {v.text}
+                                    </li>
+                                ))}
+                                {left.delivery && <li className="text-zinc-600">{left.delivery}</li>}
+                            </ul>
+                            <div className="mt-2 flex items-center gap-3">
+                                <button
+                                    type="submit"
+                                    autoFocus
+                                    disabled={pending}
+                                    className="rounded bg-foreground px-4 py-2 text-sm text-background disabled:opacity-50"
+                                >
+                                    {pending ? "Saving..." : PAYMENT_CHECK_COPY.confirm}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setChecking(false)}
+                                    disabled={pending}
+                                    className="text-sm text-zinc-500 underline disabled:opacity-50"
+                                >
+                                    {PAYMENT_CHECK_COPY.back}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                    {!checking && (
+                        <div className="flex items-center gap-3">
+                            {/* `Save payment` RATHER THAN `Save`, FOR `Edit payment`'s OWN
+                                REASON one control along: the pair opens and commits one
+                                fact on a page that has another form on it, and a lone `Save`
+                                names no subject. The two now read as one control's two
+                                ends. */}
+                            <button
+                                type="submit"
+                                disabled={pending}
+                                className="rounded bg-foreground px-4 py-2 text-sm text-background disabled:opacity-50"
+                            >
+                                {pending ? "Saving..." : "Save payment"}
+                            </button>
+                            {/* The same word for the same act as `/invoices/new`'s, and the
+                                same shape: a text button beside the one that commits, which
+                                renders only while the fields are open. */}
+                            <button
+                                type="button"
+                                onClick={cancel}
+                                disabled={pending}
+                                className="text-sm text-zinc-500 underline disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    )}
                 </form>
             )}
         </div>

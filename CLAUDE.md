@@ -109,7 +109,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/openScreens.js` — whether the materials screens are open: on every build but production's (#542, #631), the one switch `next.config.mjs` sets at build and the rail reads. **No page, link or action asks it.**
 - `lib/units.js` — `CANONICAL_UNITS`, the JS source of truth for the Unit select list.
 - `lib/editLogFields.js` — the labels a `PR Edit Log` row can be about. No call site may pass `createEditLogEntry` a string literal.
-- `lib/variance.js` — invoice/PO variance checks and `VARIANCE_COPY` (#179), plus the cent rule (#254, #308, #405). **Nothing writes a quantity or a currency figure into an item, a document total, or either side of the invoice header comparison without asking them.**
+- `lib/variance.js` — variance checks and their acceptance, `VARIANCE_COPY` (#179, #648) and the cent rule (#254, #308, #405); `lib/variance.server.js`, its reads and writes. **Nothing writes a quantity or a currency figure into an item, a document total, or either side of the totals comparison without asking them.**
 - `lib/typedText.js` — typed text: `normalizeItemText` (trim, collapse internal whitespace, case untouched), the key two are compared by, `capitalizeWords` (#538), and a query's match tokens (#325).
 - `lib/prItemMerge.js` — identical PR item rows are one item on save (#170), and `PR_ITEM_MERGE_COPY`.
 - `lib/rollbackReport.js` — what a failed rollback in the signing chain reports (#188).
@@ -220,7 +220,7 @@ Read `docs/notes/data-model.md` before touching `lib/airtable/**` or a field or 
 
 ## ID generation (lib/idSequence*.js)
 
-`docs/notes/id-generation.md` holds the counter rule, the six daily families and the nine child relations.
+`docs/notes/id-generation.md` holds the counter rule, the six daily families and the ten child relations.
 
 ## Querying parent/child data
 
@@ -275,7 +275,7 @@ Read `docs/notes/uploads-and-drafts.md` before changing an upload path or `persi
 - **Caller obligation for the flag helpers:** `requireAdmin()` only *reports* the decision. A caller that does not act on `{ authorized }` protects nothing.
 - **Re-authorization rule:** every directly-callable endpoint re-authorizes to the level of the strictest page that renders its UI. A page being the only caller is not a substitute — Route Handlers and Server Actions are reachable directly.
 - Any route or action that fetches a caller-supplied URL, or hands one to Airtable, restricts it to our own Blob store, independent of auth.
-- **Role-scoped:** `app/admin/**` and the invoice write paths (`/invoices/new`, `/invoices/[invoiceId]/edit`, and the edit, delete and payment actions) are Admin-only; the assets axis's eight actions are a site manager's (#506, #533, #598, #601), and `/asset-catalog` and its four actions the office's (#527, #552), as is an asset's job change (#583).
+- **Role-scoped:** `app/admin/**` and the invoice write paths (both forms and every invoice action) are Admin-only; the assets axis's eight actions are a site manager's (#506, #533, #598, #601), and `/asset-catalog` and its four actions the office's (#527, #552), as is an asset's job change (#583).
 - **Row-scoped, not role-scoped:** `/prs`, `/prs/[prId]`, `/pos`, `/pos/[poId]`, `/invoices`, `/invoices/[invoiceId]`. All need only an active session to reach, then decide per record through `canViewPR` — for the invoice routes via `lib/invoiceVisibility.js`, which owns the walk and no predicate of its own. **A refusal renders the ordinary not-found text**, a write's too: never confirm that a record exists outside someone's scope.
 - **Enforced by `offline/authz-structure.mjs`**, which enumerates every `app/api/**/route.js` and every `"use server"` export and requires each to be wrapped or listed as an exemption with a reason. A stale exemption fails. An exemption's per-record comparison is held by `offline/owner-before-write.mjs` wherever a request is read by id (#440).
 

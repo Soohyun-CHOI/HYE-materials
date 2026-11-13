@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { updateInvoiceAction } from "../actions";
-import { VARIANCE_COPY } from "@/lib/variance";
+import { ACCEPTANCE_COPY, ITEM_VARIANCE_KINDS, VARIANCE_COPY, varianceState } from "@/lib/variance";
 
 const inputClass =
     "rounded border border-zinc-300 px-2 py-1";
@@ -28,8 +28,9 @@ export default function EditInvoiceForm({ invoice, items: initialItems, vendors 
             unitPrice: it.unitPrice ?? "",
             remark: it.remark ?? "",
             poId: it.poId || "—",
-            hasPriceVariance: it.hasPriceVariance,
-            hasQuantityVariance: it.hasQuantityVariance,
+            // #648 — each kind open or accepted, as the record holds it when the form opens.
+            priceVariance: varianceState(it, "price"),
+            quantityVariance: varianceState(it, "quantity"),
         }))
     );
 
@@ -250,15 +251,27 @@ export default function EditInvoiceForm({ invoice, items: initialItems, vendors 
                                 <div className="mt-2 flex items-center justify-between text-sm text-zinc-600">
                                     <span>
                                         PO: {it.poId}
-                                        {it.hasPriceVariance && (
-                                            <span className="ml-2 rounded bg-red-100 px-1 text-xs text-red-700">
-                                                {VARIANCE_COPY.price}
-                                            </span>
-                                        )}
-                                        {it.hasQuantityVariance && (
-                                            <span className="ml-2 rounded bg-red-100 px-1 text-xs text-red-700">
-                                                {VARIANCE_COPY.quantity}
-                                            </span>
+                                        {/* #648 — an accepted variance reads as accepted here
+                                            too, and says what a save will do to it: a changed
+                                            quantity or unit price is a changed figure it was
+                                            accepted on. */}
+                                        {ITEM_VARIANCE_KINDS.map((kind) => {
+                                            const state = it[`${kind}Variance`];
+                                            if (!state) return null;
+                                            const accepted = state === "accepted";
+                                            return (
+                                                <span
+                                                    key={kind}
+                                                    className={`ml-2 rounded px-1 text-xs ${
+                                                        accepted ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                                                    }`}
+                                                >
+                                                    {accepted ? ACCEPTANCE_COPY.badge[kind] : VARIANCE_COPY[kind]}
+                                                </span>
+                                            );
+                                        })}
+                                        {ITEM_VARIANCE_KINDS.some((kind) => it[`${kind}Variance`] === "accepted") && (
+                                            <span className="block text-xs text-zinc-500">{ACCEPTANCE_COPY.editNote}</span>
                                         )}
                                     </span>
                                     <span>Amount (preview): {amount.toFixed(2)}</span>

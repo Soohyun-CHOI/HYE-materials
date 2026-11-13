@@ -23,7 +23,9 @@ import { TABLES } from "../../lib/airtable/client.js";
  * be silently missed either way.
  */
 export const ORDER = [
-    // The invoice side, deepest first.
+    // The invoice side, deepest first. An invoice's `Variance Log` rows name its items and
+    // the invoice itself, so they go first (#648).
+    TABLES.VARIANCE_LOG,
     TABLES.INVOICE_ITEMS,
     TABLES.INVOICES,
     // The delivery side.
