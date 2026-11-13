@@ -116,11 +116,12 @@ Everything in this section is absent in the normal case. Where the entry does
 not say what stands in its place, nothing does — no empty box, no placeholder,
 no reserved space.
 
-**When the reader is an Admin:** an `Edit` link beside the heading, an `Edit payment`
-control in the `Payment` section, and a delete button at the foot of the page behind a
-top border. For everyone else none of the three exists, and no disabled control marks
-where they were. **Three controls, three places, and only the middle one edits in
-place** — the other two open another screen and a confirmation.
+**When the reader is an Admin:** an `Edit` link beside the heading, an `Accept` control
+beside each variance nobody has accepted, an `Edit payment` control in the `Payment`
+section, and a delete button at the foot of the page behind a top border. For everyone
+else none of them exists, and no disabled control marks where they were. **Four kinds of
+control, and only the middle two edit in place** — the other two open another screen and
+a confirmation.
 
 **When the delete button is pressed:** a confirmation, headed
 `Delete this invoice?`, naming the invoice and saying that it and its invoice
@@ -257,6 +258,19 @@ The slot is real and empty by construction — which is a thing to know rather t
 reason to drop it, because what fills it is a direct call or an Admin demoted between
 load and submit.
 
+**When an Admin saves a payment on an unpaid invoice that still has something left:**
+the save asks once before it records. `Save payment` — or Enter in the date field —
+shows `Still open on this invoice:` and a list where the two buttons were: each
+variance nobody has accepted, in red as its badge is, with the item it is on, and, while
+not everything the invoice charges has been delivered, the delivery chip's words and its
+wait in gray — `Awaiting delivery · 12d — not everything it charges has been delivered
+yet.` Then `Save payment anyway`, which records it, and `Go back`, which brings the two
+buttons back with the date as typed; changing the date puts the question away too.
+**It asks and never refuses**: the app records a payment made elsewhere, so nothing it
+lists can stop one. **The delivery's sentence is information and must not be drawn as a
+warning** — a wait the next delivery ends by itself, beside variances somebody has to
+decide about. Moving the date of a payment already recorded asks nothing.
+
 **When a tariff was entered:** one extra row in the totals footer, between
 Shipping Fee and Calculated Total.
 
@@ -285,9 +299,10 @@ invoiced past what it ordered, across every invoice — and **no sentence beside
 them**. Each is its own stored flag, so the badge names the cause; what it was
 compared against lives on the order's own page.
 
-**When at least one item carries either flag:** an amber prompt near the foot of
-the page asking someone to check the item against the order, or take it up
-with the vendor, before the invoice is paid. It sits outside the `Payment` section
+**When at least one item carries either flag and nobody has accepted it:** an amber
+prompt near the foot of the page asking someone to check the item against the order,
+or take it up with the vendor, before the invoice is paid. An accepted variance has
+been looked at, so it raises no prompt. It sits outside the `Payment` section
 deliberately — the reader here to catch a wrong item is not the reader who records
 payment, and naming payment as a deadline
 discloses nothing about this vendor.
@@ -299,6 +314,31 @@ the same thing about the same invoice: a red box under the items table, carrying
 different fact from the badges above and the two can be on one invoice at once.
 Red states a discrepancy; amber asks a person to look. That split is the page's
 own and both colors appear on it.
+
+**When an Admin presses `Accept` beside a variance:** a `Reason` box opens where the
+mark is — under the item's badges, or inside the totals box — with `Accept` and
+`Cancel` under it, and the control that opened it goes while it is open. Not a dialog,
+for `Edit payment`'s reason. **A reason is required**, and a blank one is refused inside
+that form in the app's own words (`Reason is required.`) rather than by the browser. Each
+of the three is accepted on its own — a price variance, a quantity variance, the totals
+— and an item folded from two rows accepts every row that carries it.
+
+**When a variance has been accepted:** its badge reads as accepted and stops being red —
+`Price variance · Accepted`, `Quantity variance · Accepted`, `Totals differ · Accepted`,
+in green, the kind's word first as on the open badge and no `⚠` — and the totals box turns
+green with the same comparison after those words. Under it, for every reader who reaches
+the invoice, who accepted it, the day and why: `Accepted by {name} · {day} — {reason}`.
+**What the office decided about an invoice is a fact of the invoice**, of the grade
+payment is, so the line is not behind the control; only `Accept` is the Admin's.
+
+**When an edit moves what an accepted variance was accepted on:** it is open again — red,
+`Accept` beside it for an Admin — with `Reopened · {day} — the figures it was accepted
+on changed.` under it. What it was accepted on is the two figures it compares: a price
+variance's unit price and the order's, a quantity variance's item quantity and the
+order's, the totals' Invoice Total and Calculated Total. An edit that moves neither —
+a Due Date, the vendor's number — leaves it accepted, and one that leaves no variance at
+all simply takes the mark away. Awaiting delivery is not a variance and is never
+accepted: a delivery recorded makes the invoice `Matched` by itself.
 
 **When the folded items are not all divided among the orders the same way:** a
 short indented list under each order's row, naming what that order was invoiced
@@ -343,6 +383,10 @@ this axis, the two screens describe one invoice two ways.
 both places they are shown** — here, and on the purchase order detail's list of
 invoices charging that order. `⚠ Totals differ` is the invoice's own, and the
 purchase order detail is the one screen in the app that shows all three at once. They change together or not at all.
+
+**The accepted badges are one set too**, on this page, the edit screen, the purchase
+order detail and — for the totals — the invoice list, each the open badge's word followed
+by `· Accepted`. Who accepted it and why is stated on this page alone; the others mark it.
 
 **The nesting grammar is shared with `/pos/[poId]`.** A parent row is a
 document's identity and its own facts; a child list under it, indented and in

@@ -213,6 +213,11 @@ which one they are looking at.
 inside the indented list. This is the one screen in the app that can show the
 invoice's kind and the item's at once, which is why each keeps a word of its own.
 
+**When an Admin has accepted one of the three:** it reads `Totals differ · Accepted`,
+`Price variance · Accepted` or `Quantity variance · Accepted` in green, the words the
+invoice's own page uses. Who accepted it and why are stated there and not here; this
+screen marks it, one click away from the reason.
+
 **When an invoice carries the vendor's own invoice number:** it appears in gray
 between the invoice ID and the date.
 

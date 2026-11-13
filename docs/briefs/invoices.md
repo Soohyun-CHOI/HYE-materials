@@ -196,6 +196,14 @@ its width back and this cell becomes the tallest thing in the row.
 **When the invoice fails its own arithmetic:** a red `⚠ Totals differ` badge
 **stacked underneath** the payment word rather than beside it, in the same cell.
 
+**When an Admin has accepted that difference:** the badge reads
+`Totals differ · Accepted`, in green — settled, and no longer the red a reader is meant
+to act on. It stays rather than going, since the invoice still carries the difference,
+and who accepted it and why are on the invoice's own page. **It does not fit the column
+on one line**: at 1024px in a 106px `Status` cell it wraps to two, and a row carrying it
+measured 63px against the 49px of a row carrying `⚠ Totals differ` — the one mark in this
+cell that costs height, which is the design pass's to re-cut.
+
 This badge is **not** the kind of variance an employee is on this screen to
 catch. It is the totals flag — the vendor's Invoice Total against what its items
 add up to — which means the entry missed something, and it is the office's to

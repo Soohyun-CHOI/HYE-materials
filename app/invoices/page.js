@@ -25,7 +25,7 @@ import {
 } from "@/lib/deliveryStatus";
 import { jobOptionLabel, parseFilters, pickerOptions } from "@/lib/listFilters";
 import { withOpsLabel } from "@/lib/airtableOps";
-import { VARIANCE_COPY } from "@/lib/variance";
+import { ACCEPTANCE_COPY, VARIANCE_COPY, varianceState } from "@/lib/variance";
 import AwaitingInvoiceStrip from "./AwaitingInvoiceStrip";
 import AwaitingDeliveryStrip from "./AwaitingDeliveryStrip";
 import InvoicesListClient from "./InvoicesListClient";
@@ -69,6 +69,18 @@ export const metadata = { title: "Invoices" };
 // possible at all; the sweep across every other screen is #224's.
 export default async function InvoiceListPage(props) {
     return withOpsLabel("/invoices", () => renderInvoiceListPage(props));
+}
+
+/**
+ * A row's totals mark (#179, #623, #648): `⚠ Totals differ` while it is open, the accepted
+ * badge once an Admin has accepted it, nothing where the totals agree. The item kinds have no
+ * mark on this list, which is #179's and unchanged.
+ */
+function totalsBadge(inv) {
+    const state = varianceState(inv, "totals");
+    if (state === "open") return VARIANCE_COPY.totalsDiffer;
+    if (state === "accepted") return ACCEPTANCE_COPY.badge.totals;
+    return null;
 }
 
 async function renderInvoiceListPage({ searchParams }) {
@@ -278,7 +290,10 @@ async function renderInvoiceListPage({ searchParams }) {
             status: invoicePaymentWord(payment),
             paymentWord: invoicePaymentWord(payment),
             overdueBadge: badge ? badge.text : null,
-            varianceBadge: inv.totalsDiffer ? VARIANCE_COPY.totalsDiffer : null,
+            // #648 — the totals difference, open or accepted: an accepted one reads as
+            // accepted rather than red, off the cache on the record already in hand.
+            varianceBadge: totalsBadge(inv),
+            varianceAccepted: varianceState(inv, "totals") === "accepted",
         };
     });
 

@@ -1,24 +1,21 @@
 "use server";
 
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
-import { withAdminAction } from "@/lib/authz";
+import { requireUser, withAdminAction } from "@/lib/authz";
 import { base, TABLES, getLinkedRecords } from "@/lib/airtable/client";
-import {
-    getInvoiceById,
-    getInvoiceByRecordId,
-    updateInvoice,
-} from "@/lib/airtable/invoices";
+import { getInvoiceById, updateInvoice } from "@/lib/airtable/invoices";
 import { getItemsByInvoice, updateInvoiceItem } from "@/lib/airtable/invoiceItems";
-import { getPOItemByRecordId, getInvoicedQtyForPOItem } from "@/lib/airtable/poItems";
+import { destroyInvoiceVarianceLogEntries } from "@/lib/airtable/invoiceVarianceLog";
 import {
+    ACCEPTANCE_COPY,
     ITEM_PRECISION_COPY,
-    checkTotalsDiffer,
-    checkPriceVariance,
-    checkQuantityVariance,
     headerPrecisionRefusal,
+    isVarianceKind,
     isWholeCentPrice,
     isWholeQty,
 } from "@/lib/variance";
+import { acceptVariance, judgeInvoiceAgain } from "@/lib/variance.server";
 import { ITEMS_MISSING_COPY, invoiceItemsMissing } from "@/lib/invoiceItemsMissing";
 import { withOpsLabel } from "@/lib/airtableOps";
 
@@ -159,6 +156,10 @@ async function updateInvoiceHandler(prevState, formData) {
         // (#117) and the answer is to delete and re-enter. Its words are the
         // detail screen's, because those two say the same thing.
         if (invoiceItemsMissing(invoice)) return { error: ITEMS_MISSING_COPY.absent };
+        // #648 — whose edit this is, for the `Invoice Variance Log` row an edit writes when it moves
+        // a figure an acceptance stands on. The gate above is the wrapper's; this reads the
+        // person, as `createInvoiceAction` reads the recorder.
+        const user = await requireUser();
 
         try {
             await updateInvoice(invoice.id, {
@@ -189,40 +190,19 @@ async function updateInvoiceHandler(prevState, formData) {
                 });
             }
 
-            // Recompute variance AFTER the edits land (set AND clear, unlike
+            // Judge every variance again AFTER the edits land (set AND clear, unlike
             // creation which only sets): a correction can remove a variance, so a
-            // stale flag must be cleared. Per-item uses the fresh Unit Price and
-            // the cumulative invoiced Qty (this invoice's new Qty already
-            // included). The `if (poItemRecordId)` guard below is NOT the free-text
-            // charge #278 removed — no such row exists any more — but a link a hand
-            // edit emptied in Airtable, which is a row to survive rather than to
-            // describe; with nothing to compare against, its flag clears.
-            const itemsAfter = await getItemsByInvoice(invoice.id);
-            for (const item of itemsAfter) {
-                const poItemRecordId = item.poItem?.[0];
-                let hasPriceVariance = false;
-                let hasQuantityVariance = false;
-                if (poItemRecordId) {
-                    const poItem = await getPOItemByRecordId(poItemRecordId);
-                    hasPriceVariance = checkPriceVariance(item.unitPrice, poItem.unitPrice);
-                    const invoicedQty = await getInvoicedQtyForPOItem(poItemRecordId);
-                    hasQuantityVariance = checkQuantityVariance(invoicedQty, poItem.qty);
-                }
-                if (item.hasPriceVariance !== hasPriceVariance || item.hasQuantityVariance !== hasQuantityVariance) {
-                    await updateInvoiceItem(item.id, { hasPriceVariance, hasQuantityVariance });
-                }
-            }
-
-            // Header check needs Calculated Total's rollup (Items Subtotal +
-            // Shipping + Tariff + Sales Tax) to have caught up, so re-read fresh.
-            const invoiceAfter = await getInvoiceByRecordId(invoice.id);
-            const headerFlag = checkTotalsDiffer(
-                invoiceAfter.invoiceTotal,
-                invoiceAfter.calculatedTotal || 0
-            );
-            if (invoiceAfter.totalsDiffer !== headerFlag) {
-                await updateInvoice(invoice.id, { totalsDiffer: headerFlag });
-            }
+            // stale flag must be cleared — each item's against the fresh Unit Price and
+            // the cumulative invoiced Qty (this invoice's new Qty already included),
+            // then the totals against a fresh Calculated Total, whose rollup the edits
+            // have just moved. An item whose ordered-item link a hand edit emptied has
+            // nothing to be compared against, and its flags clear. #648 — and an
+            // acceptance whose two figures this edit moved ends in the same pass:
+            // `Reopened` while its variance still stands, `Cleared` once it does not,
+            // with this Admin as the one whose edit it was. One function, shared with an
+            // overage correction's split, since both writes can move a figure an
+            // acceptance stands on (lib/variance.server.js).
+            await judgeInvoiceAgain({ invoiceRecordId: invoice.id, recordedByUserId: user.id });
         } catch (err) {
             // No cross-table transaction: a mid-failure may leave some fields
             // updated and others not, but the invoice stays structurally valid
@@ -238,7 +218,8 @@ async function updateInvoiceHandler(prevState, formData) {
 }
 
 // Issue #117 — delete an invoice and its children. Admin-only, re-checked
-// here. Removes the Invoice Items, then the Invoice. The linked POs and their
+// here. Removes the Invoice Items and, since #648, its `Invoice Variance Log` rows, then the
+// Invoice. The linked POs and their
 // PO Items are never touched: deleting an Invoice Item only detaches this
 // invoice via reverse-links, so partial-invoicing tracking on the PO side stays
 // intact. Children go first so a mid-failure can only leave harmless orphan
@@ -263,6 +244,9 @@ async function deleteInvoiceHandler(invoiceId) {
                 TABLES.INVOICE_ITEMS
             );
             await Promise.allSettled(items.map((r) => base(TABLES.INVOICE_ITEMS).destroy([r.id])));
+            // #648 — the log is the invoice's child as its items are, so it goes with them
+            // rather than staying behind naming an invoice that is gone.
+            await destroyInvoiceVarianceLogEntries(invoice.invoiceVarianceLog);
             await base(TABLES.INVOICES).destroy([invoice.id]);
         } catch (err) {
             console.error("deleteInvoiceAction failed", err);
@@ -270,5 +254,50 @@ async function deleteInvoiceHandler(invoiceId) {
         }
 
         redirect("/invoices");
+    });
+}
+
+// Issue #648 — accept one kind of variance on an invoice, with a reason. Admin-only,
+// re-checked here since Server Actions are directly callable: accepting is invoicing,
+// which is the office's (CLAUDE.md's role convention), and the control renders only
+// where `user.isAdmin` is — #185's pair, held by `offline/variance-acceptance.mjs`.
+//
+// RETURNED, NOT THROWN (#185): `VarianceAcceptance.js` binds this through
+// `useActionState`, so a refusal reaches the form it came from, beside the badge.
+//
+// A REFUSAL ABOUT THE PAGE BEING OUT OF DATE REFRESHES AS IT REFUSES (#378). Nothing open
+// of that kind to accept means the page was drawn before an edit or another press moved
+// it, and the sentence alone would stand beside a badge that is no longer true; the
+// refresh redraws the page with it. A typed reason is lost by that redraw only when
+// there is nothing left for it to be about.
+export const acceptVarianceAction = withAdminAction(
+    () => ({ error: "Only an Admin can accept a variance." }),
+    acceptVarianceHandler
+);
+
+async function acceptVarianceHandler(prevState, formData) {
+    return withOpsLabel("acceptVarianceAction", async () => {
+        const invoiceId = formData.get("invoiceId");
+        const kind = formData.get("kind");
+        const itemRecordIds = formData.getAll("invoiceItemId").filter(Boolean);
+        const reason = String(formData.get("reason") || "").trim();
+
+        if (!isVarianceKind(kind)) return { error: ACCEPTANCE_COPY.refusals.failed };
+        if (!reason) return { error: ACCEPTANCE_COPY.refusals.reason };
+
+        const user = await requireUser();
+        let result;
+        try {
+            result = await acceptVariance({ invoiceId, kind, itemRecordIds, reason, recordedByUserId: user.id });
+        } catch (err) {
+            console.error("acceptVarianceAction failed", err);
+            return { error: ACCEPTANCE_COPY.refusals.failed };
+        }
+        if (result.stale) {
+            refresh();
+            return { error: ACCEPTANCE_COPY.refusals.stale };
+        }
+
+        redirect(`/invoices/${invoiceId}`);
     });
 }

@@ -28,7 +28,7 @@ import { getUserByRecordId } from "@/lib/airtable/users";
 import { PO_ADDRESS_COPY } from "@/lib/poDeliveryAddress";
 import { formatUSD } from "@/lib/format";
 // #179 — the two variance kinds, named where the predicates that set them live.
-import { VARIANCE_COPY } from "@/lib/variance";
+import { ACCEPTANCE_COPY, ITEM_VARIANCE_KINDS, VARIANCE_COPY } from "@/lib/variance";
 import { describeOverageBanner } from "@/lib/overage";
 import { getOverageBannerFactsForPO } from "@/lib/overage.server";
 // #266 — `overPortion` is the `(N over)` the delivery detail's folded row already
@@ -761,9 +761,17 @@ async function renderPODetailPage({ params }) {
                                         <span className="text-zinc-500">{inv.vendorInvoiceCode}</span>
                                     )}
                                     <span className="text-zinc-500">{inv.issueDate || "—"}</span>
-                                    {inv.totalsDiffer && (
+                                    {/* #648 — an accepted totals difference reads as
+                                        accepted, green, where an open one keeps the
+                                        amber this page gives it. */}
+                                    {inv.totalsVariance === "open" && (
                                         <span className="rounded bg-amber-100 px-1 text-xs text-amber-700">
                                             {VARIANCE_COPY.totalsDiffer}
+                                        </span>
+                                    )}
+                                    {inv.totalsVariance === "accepted" && (
+                                        <span className="rounded bg-green-100 px-1 text-xs text-green-700">
+                                            {ACCEPTANCE_COPY.badge.totals}
                                         </span>
                                     )}
                                     {/* NOTHING IN THIS SECTION IS GATED ANY MORE
@@ -809,16 +817,24 @@ async function renderPODetailPage({ params }) {
                                     {inv.charges.map((c) => (
                                         <li key={c.key}>
                                             {PO_DOCUMENTS_COPY.invoices.charge(c).text}
-                                            {c.hasPriceVariance && (
-                                                <span className="ml-1 rounded bg-red-100 px-1 text-red-700">
-                                                    {VARIANCE_COPY.price}
-                                                </span>
-                                            )}
-                                            {c.hasQuantityVariance && (
-                                                <span className="ml-1 rounded bg-red-100 px-1 text-red-700">
-                                                    {VARIANCE_COPY.quantity}
-                                                </span>
-                                            )}
+                                            {/* #648 — each kind open or accepted, as the
+                                                invoice's own page draws it; who accepted it
+                                                and why are on that page, one click away. */}
+                                            {ITEM_VARIANCE_KINDS.map((kind) => {
+                                                const state = c[`${kind}Variance`];
+                                                if (!state) return null;
+                                                const accepted = state === "accepted";
+                                                return (
+                                                    <span
+                                                        key={kind}
+                                                        className={`ml-1 rounded px-1 ${
+                                                            accepted ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                                                        }`}
+                                                    >
+                                                        {accepted ? ACCEPTANCE_COPY.badge[kind] : VARIANCE_COPY[kind]}
+                                                    </span>
+                                                );
+                                            })}
                                         </li>
                                     ))}
                                 </ul>

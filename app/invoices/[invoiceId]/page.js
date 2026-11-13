@@ -26,7 +26,8 @@ import { ORDER_BREAKDOWN_COPY, chargesByOrder } from "@/lib/invoiceOrderBreakdow
 import { getVisibleInvoiceIds } from "@/lib/invoiceVisibility";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
-import { getUserByRecordId } from "@/lib/airtable/users";
+import { getUserByRecordId, getUsersByRecordIds } from "@/lib/airtable/users";
+import { getInvoiceVarianceLogEntries } from "@/lib/airtable/invoiceVarianceLog";
 // #382 — the first name, which is what a screen REPORTING a person prints. The
 // delivery detail's `Recorded by` line takes it from here for the same reason.
 import { userName } from "@/lib/userName";
@@ -34,9 +35,18 @@ import { DAY_FORMAT, formatUSD } from "@/lib/format";
 import Instant from "@/app/components/Instant";
 // #179 — the variance kinds are named in one place, beside the predicates that set
 // them; #623 gave them the design's names.
-import { VARIANCE_COPY } from "@/lib/variance";
+import {
+    ACCEPTANCE_COPY,
+    ITEM_VARIANCE_KINDS,
+    PAYMENT_CHECK_COPY,
+    VARIANCE_COPY,
+    openVariances,
+    varianceNote,
+    varianceState,
+} from "@/lib/variance";
 import { withOpsLabel } from "@/lib/airtableOps";
 import PaymentSection from "./PaymentSection";
+import { TotalsVariance, VarianceMark } from "./VarianceAcceptance";
 import DeleteInvoiceButton from "./DeleteInvoiceButton";
 
 // The route param IS the human-readable ID, so the tab names the record for
@@ -135,10 +145,31 @@ async function renderInvoiceDetailPage({ params }) {
     // name they will not see, and folding it into a round trip the page was already
     // making costs no wall-clock time. One operation, and none at all on an invoice
     // entered before the field existed.
-    const [poRecords, recorder] = await Promise.all([
+    //
+    // #648 — AND WHO ACCEPTED EACH VARIANCE, which is the one read this page can add. The
+    // `Invoice Variance Log` rows come off the ids the invoice already carries, in the same round trip
+    // as the orders, and an invoice nobody has accepted anything on has none and reads nothing
+    // — every invoice until an Admin accepts one. Where there are rows, the people they name
+    // are read in ONE batch with the recorder rather than beside it, so the people cost the
+    // one operation the recorder always did and the log is the only operation added.
+    const logIds = invoice.invoiceVarianceLog || [];
+    const recorderId = invoice.recordedBy?.[0] ?? null;
+    const [poRecords, invoiceVarianceLog, recorderAlone] = await Promise.all([
         Promise.all(poRecordIds.map((id) => getPOByRecordId(id))),
-        invoice.recordedBy?.[0] ? getUserByRecordId(invoice.recordedBy[0]) : null,
+        getInvoiceVarianceLogEntries(logIds),
+        logIds.length === 0 && recorderId ? getUserByRecordId(recorderId) : null,
     ]);
+    const peopleIds = [recorderId, ...invoiceVarianceLog.flatMap((e) => e.recordedBy)].filter(Boolean);
+    const people =
+        logIds.length === 0
+            ? recorderAlone
+                ? [recorderAlone]
+                : []
+            : peopleIds.length > 0
+              ? await getUsersByRecordIds([...new Set(peopleIds)])
+              : [];
+    const personById = new Map(people.map((p) => [p.id, p]));
+    const recorder = recorderId ? personById.get(recorderId) ?? null : null;
 
     // Issue #166 — the delivery side of this invoice, as the three-way match reads it
     // since #640: the ordered items this invoice charges, their delivered and invoiced
@@ -194,9 +225,28 @@ async function renderInvoiceDetailPage({ params }) {
     // gate on marking something paid. #179 — the ITEMS only, a price variance or a
     // quantity variance (#623). Totals differ is stated once, in the red box under the
     // totals, and the two used to be one condition here, which printed that fact twice
-    // on one page.
-    const hasItemVariance = items.some((it) => it.hasPriceVariance || it.hasQuantityVariance);
+    // on one page. #648 — an OPEN one: a variance an Admin has accepted is settled, and the
+    // prompt asks a reader to take up something nobody has.
+    const hasItemVariance = foldedItems.some((it) =>
+        ITEM_VARIANCE_KINDS.some((kind) => it[`${kind}Variance`] === "open")
+    );
     const file = invoice.file?.[0];
+
+    // #648 — what each mark says beside its badge: who accepted it, when and why, or when it
+    // was reopened. Resolved here with the name, so the Client Component draws words and a
+    // day, and nobody's record reaches the browser.
+    const noteFor = (kind, rowIds, state) => {
+        const note = varianceNote(invoiceVarianceLog, kind, rowIds, state);
+        if (!note) return null;
+        return note.kind === "accepted"
+            ? { ...note, byName: userName(personById.get(note.by)) || null }
+            : note;
+    };
+    const totalsState = varianceState(invoice, "totals");
+    const totalsFigures = [
+        formatUSD(invoice.invoiceTotal),
+        formatUSD(invoice.calculatedTotal ?? invoice.itemsSubtotal),
+    ];
 
     // #316 — the server's day, for the two judgments on this page that need one: the
     // payment's lateness and, since #640, how long the invoice has waited on a delivery.
@@ -460,17 +510,27 @@ async function renderInvoiceDetailPage({ params }) {
                                         its cause now, which the one `Order variance`
                                         flag #179 drew could not. What each was compared
                                         against is on the order's own page, beside the
-                                        quantity and the price (#233). */}
-                                    {it.hasPriceVariance && (
-                                        <span className="ml-1 rounded bg-red-100 px-1 text-xs text-red-700">
-                                            {VARIANCE_COPY.price}
-                                        </span>
-                                    )}
-                                    {it.hasQuantityVariance && (
-                                        <span className="ml-1 rounded bg-red-100 px-1 text-xs text-red-700">
-                                            {VARIANCE_COPY.quantity}
-                                        </span>
-                                    )}
+                                        quantity and the price (#233).
+
+                                        #648 — EACH ONE OPEN OR ACCEPTED, and an Admin may
+                                        accept an open one with a reason beside it. A folded
+                                        row's state and its `Accept` cover every member
+                                        carrying that kind; the action writes only those
+                                        still open. */}
+                                    {ITEM_VARIANCE_KINDS.map((kind) => {
+                                        const state = it[`${kind}Variance`];
+                                        return state ? (
+                                            <VarianceMark
+                                                key={kind}
+                                                kind={kind}
+                                                state={state}
+                                                invoiceId={invoice.invoiceId}
+                                                itemRecordIds={it.rowIds}
+                                                note={noteFor(kind, it.rowIds, state)}
+                                                canAccept={user.isAdmin}
+                                            />
+                                        ) : null;
+                                    })}
                                 </td>
                                 <td className="py-1 pr-2">{it.size}</td>
                                 <td className="py-1 pr-2">{it.maker}</td>
@@ -524,13 +584,18 @@ async function renderInvoiceDetailPage({ params }) {
                     they add up to, and the stored flag was computed when there were —
                     so it would print a red disagreement about the vendor's arithmetic
                     on a record whose own contents are missing. */}
-                {invoice.totalsDiffer && (
-                    <p className="mt-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
-                        {VARIANCE_COPY.totalsDetail(
-                            formatUSD(invoice.invoiceTotal),
-                            formatUSD(invoice.calculatedTotal ?? invoice.itemsSubtotal)
-                        )}
-                    </p>
+                {/* #648 — GREEN ONCE AN ADMIN HAS ACCEPTED IT, with who, when and why under
+                    it, and the same comparison after the accepted badge's words; red with an
+                    `Accept` beside it for an Admin until then. */}
+                {totalsState && (
+                    <TotalsVariance
+                        state={totalsState}
+                        invoiceId={invoice.invoiceId}
+                        openText={VARIANCE_COPY.totalsDetail(...totalsFigures)}
+                        acceptedText={ACCEPTANCE_COPY.totalsDetail(...totalsFigures)}
+                        note={noteFor("totals", [], totalsState)}
+                        canAccept={user.isAdmin}
+                    />
                 )}
                 </>
                 )}
@@ -712,6 +777,19 @@ async function renderInvoiceDetailPage({ params }) {
                     invoiceId={invoice.invoiceId}
                     paidDate={invoice.paidDate}
                     overdue={describeInvoiceOverdue(invoicePayment(invoice, today)).sentence}
+                    outstanding={{
+                        variances: openVariances({
+                            folded: foldedItems.map((it) => ({ ...it, label: itemLabel(it) || it.itemName })),
+                            invoice,
+                        }),
+                        delivery:
+                            reconciliation.summary?.key === "awaiting-delivery"
+                                ? PAYMENT_CHECK_COPY.delivery(
+                                      describeInvoiceColumn(reconciliation.summary).text,
+                                      wait?.text
+                                  )
+                                : null,
+                    }}
                     canEdit={user.isAdmin}
                 />
             </div>

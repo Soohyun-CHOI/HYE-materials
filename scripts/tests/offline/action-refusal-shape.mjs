@@ -115,6 +115,13 @@ const ACTIONS = {
         binding: "useActionState",
         why: "the edit form binds it and renders state.error above the fields",
     },
+    acceptVarianceAction: {
+        text: "Only an Admin can accept a variance.",
+        file: "app/invoices/[invoiceId]/actions.js",
+        shape: "return",
+        binding: "useActionState",
+        why: "VarianceAcceptance.js binds it, one form per mark, and renders state.error inside that form (#648)",
+    },
     deleteInvoiceAction: {
         text: "Only an Admin can delete invoices.",
         file: "app/invoices/[invoiceId]/actions.js",

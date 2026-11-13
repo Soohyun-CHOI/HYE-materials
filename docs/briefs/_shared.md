@@ -248,7 +248,9 @@ happens is two *different* chip vocabularies for one predicate on one screen;
 the totals box (`⚠ Price variance`, `⚠ Quantity variance`, `⚠ Totals differ`), which
 say what to do beside them. This is the distinction most worth keeping legible under a
 new palette: a redesign in which "waiting" and "wrong" are equally loud loses the only
-signal the app has for "stop".
+signal the app has for "stop". **One an Admin has accepted demands nobody**: it reads
+`· Accepted` after its word, in green, with who accepted it and why on the invoice's own
+page, and drawing it as loud as an open one would put "stop" on a decision already made.
 
 ### Distinctions that are not tones
 

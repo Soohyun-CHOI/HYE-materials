@@ -26,7 +26,7 @@
 //      array's length, and, since #470, that generateFirstChildIds reads nothing
 //      and takes no lock. Parsed, not text-matched.
 //   3. EVERY generateChildId CALL SITE under lib/, enumerated rather than listed,
-//      so a ninth child table cannot ship with an unregistered ID shape or still
+//      so a new child table cannot ship with an unregistered ID shape or still
 //      passing a shape of its own (which would now be silently ignored) — and
 //      every generateFirstChildIds call site with them (#470).
 //
@@ -429,7 +429,7 @@ export function run({ check, log, assert }) {
 
     log("");
     log("the child registry:");
-    check("all nine child relations are registered", Object.keys(CHILD_KINDS).length, 9);
+    check("all ten child relations are registered", Object.keys(CHILD_KINDS).length, 10);
     check("Quotations is the only labeled sequence",
         Object.values(CHILD_KINDS).filter((k) => k.seqPrefix).length, 1);
     check("and the only one padded to 2", Object.values(CHILD_KINDS).filter((k) => k.padLength === 2).length, 1);
@@ -656,7 +656,7 @@ export function run({ check, log, assert }) {
     // --- Part 3: every child call site, enumerated ------------------------
     // Fail-closed in authz-structure.mjs's shape: a new child table added later
     // is covered without anyone remembering to register it here. It cannot be a
-    // hard-coded list of eight, or the ninth would be invisible.
+    // hard-coded list, or the next one would be invisible.
     log("");
     log("every generateChildId call site under lib/ (enumerated, fail-closed):");
 
