@@ -262,12 +262,17 @@ export function run({ check, assert, log }) {
     // is what chooses the `PO Items` read, so it is the one the gather rule holds; the
     // third is arithmetic only, and the module returns nothing of it.
     check("getInvoiceDeliveryStatus is handed three arguments", (statusCall || []).length, 3);
+    // #649 HOISTED THE SECOND INTO A LOCAL, because `getInvoiceDeliveryIds` takes the same
+    // gated items: a bare identifier is read through to what it was declared as, so a
+    // local holding every item is caught as surely as the call written out.
+    const gatedFrom = (ast, arg) =>
+        arg?.type === "Identifier" ? declaratorInit(ast, arg.name) : arg;
     assert(
         "  and the second is filtered on the gate's answer",
-        mentions(statusCall?.[1], "visibleIds")
+        mentions(gatedFrom(list.ast, statusCall?.[1]), "visibleIds")
     );
     assert("  and the third names the siblings", mentions(statusCall?.[2], "siblings"));
-    // ANTI-VACUITY: the ungated hand-over is seen to be caught.
+    // ANTI-VACUITY: the ungated hand-over is seen to be caught, written out and as a local.
     const ungated = parseSource(
         "const r = await getInvoiceDeliveryStatus(invoices, invoiceItems);\n" +
             "const jobById = new Map(deliveryJobs.map((j) => [j.id, j]));\n",
@@ -275,8 +280,17 @@ export function run({ check, assert, log }) {
     );
     assert(
         "an unfiltered hand-over and a narrowed job map are both reported",
-        !mentions(callArguments(ungated.ast, "getInvoiceDeliveryStatus")?.[1], "visibleIds") &&
+        !mentions(gatedFrom(ungated.ast, callArguments(ungated.ast, "getInvoiceDeliveryStatus")?.[1]), "visibleIds") &&
             mentions(declaratorInit(ungated.ast, "jobById"), "deliveryJobs")
+    );
+    const ungatedLocal = parseSource(
+        "const gatedItems = invoiceItems.slice();\n" +
+            "const r = await getInvoiceDeliveryStatus(invoices, gatedItems, { siblings: invoiceItems });\n",
+        "<ungated-local>"
+    );
+    assert(
+        "  and so is a local that holds every item under a gated name",
+        !mentions(gatedFrom(ungatedLocal.ast, callArguments(ungatedLocal.ast, "getInvoiceDeliveryStatus")?.[1]), "visibleIds")
     );
 
     // ── 5: one word on four lists, and the read gone with the column ────────

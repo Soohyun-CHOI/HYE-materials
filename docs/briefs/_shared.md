@@ -511,11 +511,13 @@ control kinds and nothing else. Which axes a list carries is settled per list an
 every difference between them is chosen; the words are shared.
 
 - The search box, first and on all four lists (#325). One string serves as its
-  label and its placeholder, and it names everything the box takes: `Search by PR
-  ID, vendor or job`, `Search by PO ID, vendor or job`, `Search by Delivery ID,
-  vendor or job`, `Search by Invoice ID, Vendor Invoice #, vendor or job`. It is
-  drawn even when the pickers beside it are not, because it has no options to be
-  missing and it reaches a name no dropdown on the screen offers.
+  label and its placeholder: `Search by PR ID, vendor or job`, `Search by PO ID,
+  vendor or job`, `Search by Delivery ID, vendor or job`, and on `/invoices`
+  `Search invoice, PO or delivery ID` (#649), which finds an invoice by the orders
+  and deliveries it concerns and by the vendor's own number, unnamed, and leaves the
+  vendor and the job to the pickers. It is drawn even when the pickers beside it are
+  not, because it has no options to be missing and it reaches a name no dropdown on
+  the screen offers.
 - The pickers: `Jobs: All jobs`, `Vendors: All vendors`, and on `/prs` alone
   `Requesters: All requesters`; `N selected` when something is picked,
   `Search jobs…` / `Search vendors…` / `Search requesters…` inside,
