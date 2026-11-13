@@ -176,10 +176,11 @@ export function run({ check, assert, log }) {
         "Drill, Level, Saw"
     );
 
-    // THE COLUMNS ARE THE STATUSES A SCREEN SHOWS, BY THAT NAME. The summary's counts iterate
-    // `SHOWN_STATUS_VALUES`, and since #598 the list's heads and its export's columns are
-    // `countColumns`', which iterates it beside the module's `On loan`; one that took the whole
-    // vocabulary — under its own name or under this one — would draw a `Deleted` column.
+    // THE COLUMNS ARE THE STATUSES A SCREEN SHOWS, BY THAT NAME. The summary's counts and the list's
+    // heads iterate `SHOWN_STATUS_VALUES`, and the export's columns are its own `countColumns`', which
+    // iterates it beside `On loan` — the list's too from #598 until #652, when the list dropped that
+    // column and the function went to the export; one that took the whole vocabulary — under its own
+    // name or under this one — would draw a `Deleted` column.
     const importsOf = (path, from) =>
         parseFile(path)
             .ast.body.filter((n) => n.type === "ImportDeclaration" && from.test(n.source.value))
@@ -191,18 +192,18 @@ export function run({ check, assert, log }) {
     );
     const columnModules = ["app/(assets)/asset-categories/AssetCategoryList.js", "lib/assetListExport.js"];
     check(
-        "  and the list and its export take their columns from countColumns, naming no status list of their own (#598)",
+        "  and so do the list and its export, importing no column list from the summary's module (#652)",
         columnModules
-            .map((path) => `${path}: ${[...importsOf(path, /assetStatus(\.js)?$/).filter((name) => /STATUS_VALUES/.test(name)), ...importsOf(path, /assetListView(\.js)?$/).filter((name) => name === "countColumns")].join(",")}`)
+            .map((path) => `${path}: ${[...importsOf(path, /assetStatus(\.js)?$/).filter((name) => /STATUS_VALUES/.test(name)), ...importsOf(path, /assetListView(\.js)?$/).filter((name) => /[Cc]olumns/.test(name))].join(",")}`)
             .join(" | "),
-        columnModules.map((path) => `${path}: countColumns`).join(" | ")
+        columnModules.map((path) => `${path}: SHOWN_STATUS_VALUES`).join(" | ")
     );
     const countColumnsSource = (() => {
-        const source = parseFile("lib/assetListView.js").source;
-        const at = source.indexOf("export function countColumns");
-        return source.slice(at, source.indexOf("\n}\n", at));
+        const source = parseFile("lib/assetListExport.js").source;
+        const at = source.indexOf("\nfunction countColumns");
+        return at < 0 ? "" : source.slice(at, source.indexOf("\n}\n", at));
     })();
-    check("  which builds them from SHOWN_STATUS_VALUES", /SHOWN_STATUS_VALUES\.map\(\(status\) => \(\{ key: status, status \}\)\)/.test(countColumnsSource) && !/ASSET_STATUS_VALUES/.test(countColumnsSource), true);
+    check("  the export's countColumns builds them from SHOWN_STATUS_VALUES", /SHOWN_STATUS_VALUES\.map\(\(status\) => \(\{ key: status, status \}\)\)/.test(countColumnsSource) && !/ASSET_STATUS_VALUES/.test(countColumnsSource), true);
 
     // ── a catalog row's items ───────────────────────────────────────────────
     log("");

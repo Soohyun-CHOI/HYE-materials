@@ -4,8 +4,10 @@
 // stands on `Assets."Job"`. A site manager on the owner job lends an item in stock there to another
 // job, where it is in stock and recorded on as that job's own; a site manager there returns it to its
 // owner, and it is lent on by nobody. A retirement takes the owner job, so an item retired on loan goes
-// back to its owner as it ends (Soo). The owner's list counts it as On loan outside Total, the job it
-// stands on counts it as its own, and all jobs count it once. One judgment decides the offers —
+// back to its owner as it ends (Soo). The owner's export counts it as On loan outside Total and its
+// kind's page lists it with the job it stands on — the owner's list draws no such count since #652,
+// and keeps a kind it lent whole at zero — the job it stands on counts it as its own, and all jobs
+// count it once. One judgment decides the offers —
 // `lib/assetTransition.js:planTransition` — and each place that could drift from it is held here.
 //
 // SO IT HOLDS:
@@ -18,7 +20,8 @@
 //   3. A PRESS BY VALUE (`readLend`, `readReturn`): the order of the refusals, a lending left half done
 //      finished with no second entry, another job refused there, and nothing lent on.
 //   4. THE LIST'S COUNT BY VALUE: the owner's On loan outside Total, the borrower's own, all jobs once,
-//      the `Job` chip, a search by the lent item's id, a kind's page's row and its box, the export.
+//      the `Job` chip, a search by the lent item's id, a kind lent whole standing at zero (#652), a
+//      kind's page's row and its box, the export.
 //   5. THE WRITES OFF THEIR SOURCE: the two actions' wrapper, fresh plan and latest entry, the entry
 //      before the item and only where due, the item's write caught and named, no `writeEvent`; the
 //      provider, the menu, the dialog and the sheet, the return's question, the page's caption and its
@@ -32,7 +35,7 @@
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
-import { assetListScope, categoryListRows, countColumns, holderRowIds, loanedTo, readCategoryList, assetCategoriesInScope, idsInScope } from "../../../lib/assetListView.js";
+import { assetListScope, categoryListRows, holderRowIds, loanedTo, readCategoryList, assetCategoriesInScope, idsInScope } from "../../../lib/assetListView.js";
 import { ASSET_TRANSITION_COPY, lendStart, planTransition, readLend, readRetirement, readReturn, rowJob } from "../../../lib/assetTransition.js";
 import { ASSET_COPY, loanRoute, logRowFacts } from "../../../lib/assetView.js";
 import { ASSET_EXPORT_COPY, listExport } from "../../../lib/assetListExport.js";
@@ -70,6 +73,25 @@ const READERS = {
     "not a site manager, on the owner": { isSiteManager: false, assignedJobs: [OWNER.id] },
     "the office, not a site manager": { isAdmin: true, isSiteManager: false, assignedJobs: [OWNER.id] },
 };
+
+/**
+ * A kind the owner lent whole (#652): two items it owns, one in stock and one out, both standing on
+ * the borrower, and no other item of the kind anywhere.
+ */
+function lentWhole() {
+    return {
+        jobs: [
+            { ...OWNER, assets: [], ownedAssets: ["d1", "d2"] },
+            { ...BORROWER, assets: ["d1", "d2"], ownedAssets: [] },
+            { ...OTHER, assets: [], ownedAssets: [] },
+        ],
+        kinds: [{ id: "recK3", itemName: "Core Drill", level1: "Tool", level2: "Power tools", assets: ["d1", "d2"] }],
+        kept: new Map([
+            ["d1", { status: "In stock", assetId: "HYE-AST-261004-001", lastEventAt: "2026-10-06T12:00:00.000Z" }],
+            ["d2", { status: "Out", assetId: "HYE-AST-261004-002", lastEventAt: "2026-10-07T12:00:00.000Z" }],
+        ]),
+    };
+}
 
 const plan = (reader, { status = ASSET_STATUS.IN_STOCK, job = OWNER.id, owner = OWNER.id, latest = null, jobs = JOBS } = {}) =>
     planTransition({ user: READERS[reader] ?? reader, jobs, status, assetJobId: job, ownerJobId: owner, latest });
@@ -228,7 +250,7 @@ export function run({ check, assert, log }) {
     const countsOf = (row) => `${row.itemName}: ${row.counts.map((c) => c.count).join("/")} on loan ${row.onLoan}`;
     const owner = rowsOn(OWNER.id);
     check("the owner's scope shows its own and the two it lent", `${[...owner.scope.shown].join(",")} lent ${[...owner.scope.lent].join(",")}`, "a1,a2,a3,a4 lent a3,a4");
-    check("  and counts them On loan, in no status", owner.rows.map(countsOf).join(" | "), "Drill: 1/0/0/1 on loan 2");
+    check("  and counts them on loan, in no status — the export's column, the list drawing none (#652)", owner.rows.map(countsOf).join(" | "), "Drill: 1/0/0/1 on loan 2");
     const ownerRead = readCategoryList(owner.rows, new URLSearchParams(""), { allJobs: false });
     check("  outside its Total", ownerRead.rows.map((row) => row.total).join(), "1");
     check("  its latest change the lent item's", ownerRead.rows[0].updatedAt, "2026-10-20T12:00:00.000Z");
@@ -252,10 +274,27 @@ export function run({ check, assert, log }) {
         "HYE-AST-261001-003"
     );
     check("  and on the borrower's it is found in its row", readCategoryList(borrower.rows, new URLSearchParams("q=HYE-AST-261001-003"), { allJobs: false, jobs: JOBS, job: BORROWER.id }).found[0]?.status, "In stock");
+    // A KIND THE OWNER LENT WHOLE KEEPS ITS ROW, EVERY COUNT ZERO (#652): the list draws no On loan,
+    // so the row is all the owner's list says of it, and its kind's page lists the items lent.
+    const lentKind = lentWhole();
+    const lentScope = assetListScope(reader, lentKind.jobs, OWNER.id);
+    const lentRows = readCategoryList(categoryListRows(assetCategoriesInScope(lentKind.kinds, lentScope.shown), lentScope, lentKind.kept), new URLSearchParams(""), { allJobs: false }).rows;
     check(
-        "the columns: On loan before Retired on one job, none on all",
-        `${countColumns({ allJobs: false }).map((c) => (c.onLoan ? "On loan" : c.status)).join(",")} | ${countColumns({ allJobs: true }).map((c) => (c.onLoan ? "On loan" : c.status)).join(",")}`,
-        "In stock,Out,In repair,On loan,Retired | In stock,Out,In repair,Retired"
+        "a kind the owner lent whole keeps its row on the owner's list, every count and its total zero (#652)",
+        lentRows.map((row) => `${row.itemName}: ${row.counts.map((c) => `${c.status} ${c.count}`).join(", ")} total ${row.total}`).join(" | "),
+        "Core Drill: In stock 0, Out 0, In repair 0, Retired 0 total 0"
+    );
+    check(
+        "  and its kind's page lists both items with the job each stands on",
+        lentKind.kinds[0].assets.map((id) => `${id}: ${loanedTo(lentScope, { id, job: [BORROWER.id] })}`).join(" | "),
+        "d1: 26-USA-12 | d2: 26-USA-12"
+    );
+    check(
+        "  where the borrower's list counts them as its own",
+        readCategoryList(categoryListRows(lentKind.kinds, assetListScope(reader, lentKind.jobs, BORROWER.id), lentKind.kept), new URLSearchParams(""), {})
+            .rows.map((row) => `${row.itemName}: ${row.counts.map((c) => c.count).join("/")} total ${row.total}`)
+            .join(" | "),
+        "Core Drill: 1/1/0/0 total 2"
     );
     const read = (id, job) => ({ id, job: [job], status: kept.get(id).status, assetLog: [`${id}-log`] });
     check(
@@ -306,6 +345,36 @@ async function exportAndRest({ check, assert, log, jobs, kinds, kept }) {
         "  the lent one out has its holder read and named where it stands, as the page does not",
         `${askedRows.join(",")} | ${items.rows.map((row) => row[at("Checked out to")] ?? "").join(",")}`,
         "a4-log | ,Dana K,,"
+    );
+    // The kind the owner lent whole (#652): the list's row says zero everywhere, and the file says
+    // what the list does not — both items On loan, and each where it stands.
+    const lentKind = lentWhole();
+    const lentHeld = [
+        { ...whole("a1", OWNER.id, OWNER.id), id: "d1", assetId: lentKind.kept.get("d1").assetId, status: "In stock", job: [BORROWER.id], category: ["recK3"], lastEventAt: lentKind.kept.get("d1").lastEventAt },
+        { ...whole("a1", OWNER.id, OWNER.id), id: "d2", assetId: lentKind.kept.get("d2").assetId, status: "Out", job: [BORROWER.id], category: ["recK3"], lastEventAt: lentKind.kept.get("d2").lastEventAt },
+    ];
+    const lentFile = await listExport({
+        user: { isSiteManager: true, assignedJobs: [OWNER.id] },
+        search: `job=${OWNER.id}`,
+        timeZone: "UTC",
+        now: new Date("2026-10-22T12:00:00.000Z"),
+        read: {
+            categories: async () => lentKind.kinds,
+            jobs: async () => lentKind.jobs,
+            assets: async (ids) => lentHeld.filter((asset) => ids.includes(asset.id)),
+            logRows: async (ids) => ids.map((id) => ({ id, event: "Checked out", eventAt: "2026-10-21T15:00:00.000Z", checkedOutTo: "Dana K" })),
+        },
+    });
+    const [lentList, lentItems] = lentFile.sheets;
+    check(
+        "the export of a kind lent whole counts both On loan, the list's zeros beside them (#652)",
+        `${lentList.columns.map((c) => c.header).join(",")} | ${lentList.rows.map((row) => row.join(",")).join(" | ")}`,
+        "Name,Type,Category,In stock,Out,In repair,On loan,Retired,Total | Core Drill,Tool,Power tools,0,0,0,2,0,0"
+    );
+    check(
+        "  and lists each with the job it stands on and the owner's",
+        lentItems.rows.map((row) => `${row[0]} ${row[lentItems.columns.findIndex((c) => c.header === "Job")]} ${row[lentItems.columns.findIndex((c) => c.header === "Owner job")]}`).join(" | "),
+        "HYE-AST-261004-002 26-USA-12 25-USA-13 | HYE-AST-261004-001 26-USA-12 25-USA-13"
     );
 
     // ── 5: the writes, off their source ─────────────────────────────────────

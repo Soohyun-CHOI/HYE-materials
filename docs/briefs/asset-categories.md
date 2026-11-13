@@ -47,11 +47,12 @@ would read as "not known". Both readings a single figure could have stay
 available, since what was ever bought is the total and `Retired` together. A
 deleted asset is counted nowhere.
 
-**On one job's list, a fifth count, `On loan`** (`ASSET_LIST_COPY.onLoanLabel`): the
-job's own assets standing on another job, lent, outside the total — the job they
-stand on counts them in its own status and total. A kind whose every asset is on
-loan stands with that count alone. On all jobs there is no such column: every asset
-is counted once, where it stands.
+**No count for what a job has lent.** A job's own assets standing on another job are
+in no column and outside the total — the job they stand on counts them in its own
+status and total — and its kinds' screens list them with that job
+(`asset-categories-categoryRecordId.md`). A kind whose every asset is on loan keeps
+its row, every count zero, and opens on them. On all jobs every asset is counted
+once, where it stands.
 
 **The rows are ordered by name**, a run of digits read as a number, or by **the
 latest event among the kind's assets** on what the list stands on — a registration,
@@ -103,7 +104,9 @@ and for nobody else.
 **For every reader, `Export`**, over a list with rows: the list as an Excel file
 (`lib/assetListExport.js`). Its first sheet is the list as it stands — the job or
 all jobs, whatever the band holds, every row it leaves rather than the page shown,
-in the list's order, with the same counts and total; its second is every asset those
+in the list's order, with the same counts and total, and on one job one count the
+list does not draw, the job's own assets on loan elsewhere
+(`ASSET_LIST_COPY.onLoanLabel`), before `Retired`; its second is every asset those
 counts are made of, one row each, with its id, its serial number, the catalog's
 levels, its status, its job and its owner job, who has one that is out, its note and
 the day it last changed. It is named for the job, or all jobs, and the day. Nothing is
