@@ -232,9 +232,10 @@ a failure between the two leaves exactly this. Nothing repairs it, since a later
 would state a time that is not when it was created.
 
 **When no asset carries the code:** `ASSET_COPY.notFoundHeading`. At a desk it names
-the code asked for (`ASSET_COPY.notFoundCode`) with the way back to the list
-(`ASSET_COPY.backToTools`); on a phone it says `ASSET_COPY.notFoundScanned` and offers
-**no way back** — a phone came from a scan, and the next thing it does is scan again.
+the code asked for (`ASSET_COPY.notFoundCode`) with the way to the list
+(`ASSET_COPY.goToTools`) — a way to it rather than back, since a label or a link brought the
+reader and not the list; on a phone it says `ASSET_COPY.notFoundScanned` and offers
+**no way to the list** — a phone came from a scan, and the next thing it does is scan again.
 It answers one state, no such asset: no screen on this axis is gated per record. A
 deleted asset reads the same.
 

@@ -21,7 +21,7 @@ import Icon from "./Icon";
  *
  * WHICH SCREENS CARRY ONE IS THE DESIGN'S: a category's page and an asset's (1d, 1f, 1g),
  * and not the category list, which is a section's top, nor a screen saying a record is not
- * there, which keeps its own way back (1h). **Below the phone's edge the asset page
+ * there, which keeps its own way to the list (1h). **Below the phone's edge the asset page
  * draws the phone's top bar in its place (1j, #463)** and passes `phone={false}`; a category's
  * page, which the design draws at a desk alone, keeps it at every width.
  *

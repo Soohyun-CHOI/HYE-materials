@@ -25,7 +25,9 @@
 // literal inside belongs to that function's own purpose: reaching it means walking
 // somebody else's body and dragging their log lines out with it, which is why
 // `lib/materialPriceView.js:statusTag`'s three words stayed hand work.
-// `docs/briefs/strings/unfindable.md` carries that test and what each fix cost.
+// `docs/briefs/strings/unfindable.md` carries that test and what each fix cost. #655
+// closed a sixth by the same test: a copy key whose value is another constant's key
+// names that key, so the key is read where it is declared (`borrowedIn` below).
 //
 // THE COSTS, because a closed shape has one and hiding it would be the whole mistake
 // this file exists against. Reading a `label:` property also collects
@@ -33,7 +35,8 @@
 // per screen that uploads a file. The container rule reaches only a CHILD container,
 // which is what keeps `ENTRY_TONE_CLASS` and `MODAL_BACKDROP` out; the first version
 // of its pre-pass forgot the attribute skip and put CSS classes on the invoice
-// detail.
+// detail. A constant a screen reads whole brings the keys it borrows whole too (#655),
+// as it brings its own words.
 //
 // WHAT IT STILL CANNOT SEE is `unfindable.md`, grouped by shape, and the two worth
 // repeating here are the ones no rule will ever close: a string another entry point
@@ -141,6 +144,44 @@ function resolveImport(spec, fromRel) {
         if (existsSync(repoPath(candidate)) && statSync(repoPath(candidate)).isFile()) return candidate;
     }
     return null;
+}
+
+/**
+ * Where a copy constant a file names is declared (#655): in that file, or in the module the
+ * file imports it from, under the name that module gives it. Null for anything else — a
+ * namespace import, a re-export, a package — which a key holding it then stays unread for.
+ */
+function declaredIn(ast, local, relPath) {
+    for (const stmt of ast.body) {
+        const decls =
+            stmt.type === "VariableDeclaration"
+                ? stmt.declarations
+                : stmt.type === "ExportNamedDeclaration" && stmt.declaration?.type === "VariableDeclaration"
+                  ? stmt.declaration.declarations
+                  : [];
+        if (decls.some((d) => d.id?.name === local)) return { file: relPath, name: local };
+        if (stmt.type !== "ImportDeclaration") continue;
+        const spec = stmt.specifiers.find((s) => s.type === "ImportSpecifier" && s.local?.name === local);
+        if (!spec) continue;
+        const file = resolveImport(stmt.source.value, relPath);
+        return file ? { file, name: spec.imported.name } : null;
+    }
+    return null;
+}
+
+/**
+ * The node a dotted key reaches through nested object literals — `levelLabel.level1` — or the
+ * first node on the way that is not one, a builder say, which is then read whole (#655).
+ */
+function valueAt(node, path) {
+    let at = node;
+    for (const segment of path) {
+        if (at?.type !== "ObjectExpression") return at;
+        const p = at.properties.find((q) => q.type === "Property" && !q.computed && (q.key?.name ?? q.key?.value) === segment);
+        if (!p) return null;
+        at = p.value;
+    }
+    return at;
 }
 
 /**
@@ -262,7 +303,7 @@ const isSwitchProperty = (node, key) =>
  * child of an element carries text, and one that is an `onChange` handler does not.
  * That distinction is the whole of what #254's census lacked.
  */
-export function stringsInFile(relPath, allowed = "*", members = new Map()) {
+export function stringsInFile(relPath, allowed = "*", members = new Map(), seen = new Set()) {
     const source = readFileSync(repoPath(relPath), "utf8");
     let ast;
     try {
@@ -350,6 +391,54 @@ export function stringsInFile(relPath, allowed = "*", members = new Map()) {
             if (isStr(n.key)) add(n.key.value, n.key, "property name", "switch");
         });
     }
+
+    /**
+     * A KEY WHOSE VALUE IS ANOTHER COPY CONSTANT'S KEY (unfindable.md's shape H, closed by #655).
+     * `ASSET_LIST_COPY.goToTools` is `ASSET_COPY.goToTools`, so `/[...address]`, which names the
+     * first constant alone, rendered a sentence this file put on no list: the value is a member
+     * expression, which holds no literal, and `lib/` is not followed to the module that does.
+     *
+     * THE VALUE NAMES ITS KEY, SO ONLY THAT KEY IS READ. What kept the shape open was the cost of
+     * reading the other constant whole, which would have put its every sentence on a screen
+     * rendering one; and reading only the keys a screen reads would be dataflow. Neither is
+     * needed: the key is written in the value, so the value is resolved where it is declared —
+     * in this file or the module it imports the constant from — and that key alone is read,
+     * through nested objects as far as the value names them (`levelLabel.level1`). A value that is
+     * itself such a key is followed again, each key once. A computed step
+     * (`CONFIRM_COPY[state].action`) names no key and is left. Read off a `lib/` constant the
+     * screen names, where every instance stands: no file under `app/` declares one.
+     */
+    const borrowed = [];
+    const borrowedIn = (root, owner) => {
+        if (root?.type === "MemberExpression") borrowed.push({ ref: root, owner });
+        else if (root?.type === "ObjectExpression")
+            for (const p of root.properties) if (p.type === "Property") borrowedIn(p.value, owner);
+    };
+    const nestedErrors = [];
+    const readBorrowed = () => {
+        for (const { ref, owner } of borrowed) {
+            const path = [];
+            let at = ref;
+            while (at?.type === "MemberExpression" && !at.computed && at.property?.type === "Identifier") {
+                path.unshift(at.property.name);
+                at = at.object;
+            }
+            if (at?.type !== "Identifier" || !COPY_NAME.test(at.name) || path.length === 0) continue;
+            const home = declaredIn(ast, at.name, relPath);
+            if (!home) continue;
+            const named = `${home.name}.${path.join(".")}`;
+            const visit = `${home.file}:${named}`;
+            if (seen.has(visit)) continue;
+            const { strings, error } = stringsInFile(
+                home.file,
+                new Set([home.name]),
+                new Map([[home.name, new Set([path.join(".")])]]),
+                new Set([...seen, visit])
+            );
+            if (error) nestedErrors.push(`${home.file}: ${error}`);
+            for (const s of strings) out.push({ ...s, shape: `${owner}, a key holding ${named}` });
+        }
+    };
 
     const skip = (node, key) => {
         if (isSwitchProperty(node, key)) return true;
@@ -519,22 +608,31 @@ export function stringsInFile(relPath, allowed = "*", members = new Map()) {
                 const roots =
                     wanted === "*" || n.init?.type !== "ObjectExpression"
                         ? [n.init]
-                        : n.init.properties
-                              .filter((p) => wanted.has(p.key?.name ?? p.key?.value))
-                              .map((p) => p.value);
+                        : [
+                              ...n.init.properties
+                                  .filter((p) => wanted.has(p.key?.name ?? p.key?.value))
+                                  .map((p) => p.value),
+                              // A key a borrowed value names below the top level (#655).
+                              ...[...wanted]
+                                  .filter((key) => key.includes("."))
+                                  .map((key) => valueAt(n.init, key.split(".")))
+                                  .filter(Boolean),
+                          ];
                 for (const root of roots) {
                     inExpression(root, n.id.name);
                     switchesIn(root);
+                    borrowedIn(root, n.id.name);
                 }
             },
             skip
         );
+    readBorrowed();
 
     // One text can be reached twice — a container inside a `*_COPY` member, say. The
     // first sighting keeps its line.
     const byText = new Map();
     for (const s of out) if (!byText.has(s.text)) byText.set(s.text, s);
-    return { strings: [...byText.values()], error: null };
+    return { strings: [...byText.values()], error: nestedErrors.length ? nestedErrors.join("; ") : null };
 }
 
 export function stringsForRoute(route) {

@@ -3,8 +3,10 @@ import { ASSET_LIST_COPY as COPY } from "@/lib/assetListView";
 import { ASSET_CATEGORIES_PATH } from "@/lib/assetRoutes";
 
 /**
- * 1h's `Page not found`: the heading centered in the column and the way back under it, for an
- * address that names nothing (#617) and for a kind's address no row carries (#612).
+ * 1h's `Page not found`: the heading centered in the column and the way to the list under it,
+ * for an address that names nothing (#617) and for a kind's address no row carries (#612). The
+ * way says `Go to` and not `Back to` (#655): a reader reaches such an address from a link or a
+ * bookmark rather than from the list, so there is nothing to go back to.
  *
  * ONE VIEW FOR BOTH, SINCE 1h DRAWS ONE. The kind's page drew it inline from #519; #617 gave
  * every other address it, which until then met Next's own 404 — `404 | This page could not be
@@ -18,7 +20,7 @@ export default function PageNotFound() {
             <h1 className="text-heading font-semibold">{COPY.pageNotFound}</h1>
             <div className="mt-gap-lg">
                 <ButtonLink variant="bordered" href={ASSET_CATEGORIES_PATH}>
-                    {COPY.backToTools}
+                    {COPY.goToTools}
                 </ButtonLink>
             </div>
         </div>

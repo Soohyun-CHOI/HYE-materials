@@ -578,6 +578,7 @@ const DESIGNED = new Map([
             "ASSET_LIST_COPY.untilYouAdd",
             "ASSET_LIST_COPY.untilASiteManagerAdds",
             "ASSET_LIST_COPY.pageNotFound",
+            "ASSET_LIST_COPY.goToTools",
             "ASSET_LIST_COPY.printCap",
             "ASSET_REGISTRATION_COPY.added",
             "ASSET_REGISTRATION_COPY.shortfall",
@@ -613,9 +614,13 @@ const DESIGNED = new Map([
             "ASSET_COPY.noHistory",
             "ASSET_COPY.notFoundHeading",
             "ASSET_COPY.notFoundScanned",
+            "ASSET_COPY.goToTools",
             "ASSET_COPY.symbolTooLargeNote",
         ],
     ],
+    // 1h's view for an address no route answers, drawn since #617 and held as a drawn brief
+    // since #655, which found it quoting the screen's words where no check held them.
+    ["...address.md", ["ASSET_LIST_COPY.pageNotFound", "ASSET_LIST_COPY.goToTools"]],
     [
         "tools-new.md",
         [

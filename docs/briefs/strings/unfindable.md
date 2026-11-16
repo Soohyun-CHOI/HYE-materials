@@ -274,6 +274,11 @@ whole app** — swept for and found once, at `confirmChangeMessage` — and it i
 one member of this group a rule could plausibly reach, by collecting a template
 returned by a lower-case module-level function.
 
+**The material picker's four level labels are this group's too**: `Level 1` … `Level 4`
+are built by `CATEGORY_LEVELS.map((_, i) => ...)`, so they stand as literals in no
+file, and a screen naming them lists the template's one piece, `Level`, and no label
+whole.
+
 ## G — Declared-only closed vocabulary
 
 `info`, `warning`, `no-vendor`, `no-job` and `matched` on `/invoices/new`. Each is
@@ -290,34 +295,11 @@ four were `key` properties and are covered now. A value that is only ever assign
 is not, and closing it would mean treating every module-level string as a
 vocabulary.
 
-## H — A copy key whose value is another constant's (#368)
-
-`Pick level 1 first.` and `Pick level 2 first.` on `/admin/categories/new`. That
-screen reuses the item picker's own words for its two parent controls —
-`CATEGORY_CREATION_COPY.awaitingParent` **is** `CATEGORY_PICKER_COPY.awaitingParent`,
-so the level labels a requester reads and the ones the office reads cannot drift —
-and the extractor attributes a `*_COPY` constant to the screens whose files NAME it.
-`/prs/new` and `/prs/[prId]` name that one; this screen names only its own.
-
-**The test answers "the screen called that string", so this one is closable** — a
-member expression whose object is a `*_COPY` in a file the screen reaches is a NAME,
-not a function body, which is the distinction the whole file turns on. **It was left
-open on cost rather than on principle:** resolving the reference means pulling in the
-whole of the other constant, which for `CATEGORY_PICKER_COPY` is six more strings
-this screen does not render — `Pick a category.`, the two refusals about a row's
-levels, and the two about a row saved before the catalog. An over-reach of six
-against a yield of two is the wrong side of the trade the `label:` row below records,
-and a rule that resolved only the KEYS a screen reads would be dataflow.
-
-**The four level labels are a different gap and are group F's**: `Level 1` … `Level 4`
-are built by `CATEGORY_LEVELS.map((_, i) => ...)`, so they exist as literals in no
-file at all and no screen has ever produced them, `/prs/new` included.
-
 ## What was closed, and what it cost
 
-Five shapes went during the pass that wrote this file, and #185 NARROWED a sixth
-rather than closing one. Each is a rule in `scripts/screen-strings.mjs` and each has
-its reason in that file's header.
+Five shapes went during the pass that wrote this file, #185 NARROWED a sixth rather
+than closing one, and #655 closed the one #368 met afterwards. Each is a rule in
+`scripts/screen-strings.mjs` and each has its reason in that file's header.
 
 | Closed | Rule | Yield | Cost |
 |---|---|---|---|
@@ -327,11 +309,40 @@ its reason in that file's header.
 | a string SET read the same way | the array case of the rule above | 2 strings | none found |
 | a bare string const the screen imports by name | the signal is the import, not the spelling | 1 string | none — an object or a number cannot enter |
 | **narrowed:** a thrown message, when the file is `"use server"` (#185) | the directive, not a list of files | **−9 strings** | a client throw is still collected, and two of the three left are console-only |
+| a copy key whose value is another constant's key (#655) | read the key the value names, where it is declared | 81 strings on 30 screens | a constant read whole brings its borrowed keys whole too |
 
 **Twelve shapes were met; five closed; seven are above.** The count of strings the
 extractor cannot produce on the five screens that had a full hand inventory went
 **42 → 26** across the first three fixes, and the last two took the remaining sets
 off `/prs/new`, `/pos` and `/prs` before they were ever written down.
+
+**THE THIRTEENTH, MET BY #368 AND CLOSED BY #655: A KEY WHOSE VALUE IS ANOTHER
+CONSTANT'S.** `CATEGORY_CREATION_COPY.awaitingParent` **is**
+`CATEGORY_PICKER_COPY.awaitingParent`, so the level labels the office reads and the
+ones a requester reads cannot drift, and `ASSET_LIST_COPY.goToTools` **is**
+`ASSET_COPY.goToTools`. The extractor credits a screen with the constants its files
+name, and a member expression holds no literal, so `/admin/categories/new` listed none
+of its two parent controls' words and `/[...address]` no way to the list. It stood
+open on cost: reading the other constant whole would have put its other strings on a
+screen rendering two of them, and reading only the keys a screen reads would be
+dataflow. **Neither was needed, since the value names its key**: the rule finds where
+the constant is declared and reads that key alone, through nested objects as far as
+the value goes, and follows a value that is itself such a key. 52 such keys stand in
+`lib/` and none in `app/`; one reaches its constant through a computed step, the
+sign-in mail's `CONFIRM_COPY[state].action`, which names no key and is left.
+
+**What it found, measured over every screen**: the census went 4,176 → 4,257, 81
+strings and none lost. 25 are the rail's `Equipment & Tools` on every screen off the
+axis, `NAVIGATION_COPY.sections.assets` being `ASSET_LIST_COPY.heading`; four are
+`/admin/categories/new`'s, `Pick level` and `first.` (the builder's pieces),
+`Pick a category.` and `Level`; and 52 are on the five screens of the
+Equipment & Tools axis, `/[...address]`'s way to the list among them. **The cost is
+the existing granularity's**: a constant a screen reads whole brings every borrowed key
+with it, as it brings its own words. `/[...address]` gained eleven of
+`ASSET_LIST_COPY`'s borrowed keys it does not render, beside the 39 of that
+constant's own words it already listed for the same reason. 17 strings a screen
+listed already are now first met through a borrowed key, each at a line holding the
+literal; for `Job` on the two category screens that is another line than before.
 
 **THE NARROWING IS THE OTHER DIRECTION AND IT MATTERS MORE THAN ITS SIZE.** Every row
 above added strings the tool could not see; #185's took away nine it should never
