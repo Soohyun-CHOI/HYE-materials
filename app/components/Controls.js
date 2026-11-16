@@ -1370,10 +1370,10 @@ export function SegmentedChoice({ name, options, value, onChange }) {
  * — with the one the field holds marked `chosen` and scrolled to, so a reader who does not
  * remember what the catalog holds need not guess at its first letters. Typing narrows to
  * `suggestions` until the list shuts, and emptying the field opens the whole list again, since
- * nothing is left to narrow by. The keys are the same either way. `lane` is the most the list
- * stands at before it scrolls in 0i's lane (`Menu.js`), its drawing's.
+ * nothing is left to narrow by. The keys are the same either way. `lane` marks a list drawn as a
+ * lane of its own, which stands at the lane's height before it scrolls in 0i's bar (`Menu.js`).
  */
-export function Combobox({ name, value, onChange, onPick, onBlur, suggestions, every, lane, gutter = false, heading, placeholder, listOpen, onListOpenChange, mark }) {
+export function Combobox({ name, value, onChange, onPick, onBlur, suggestions, every, lane = false, heading, placeholder, listOpen, onListOpenChange, mark }) {
     const field = useField();
     const formBusy = Boolean(useContext(FormBusyContext));
     const listId = `${field.control}list`;
@@ -1478,7 +1478,6 @@ export function Combobox({ name, value, onChange, onPick, onBlur, suggestions, e
                 labelId={field.labelId}
                 heading={heading}
                 lane={lane}
-                gutter={gutter}
                 options={list.map((suggestion, index) => ({
                     key: suggestion.key ?? suggestion.label,
                     label: suggestion.label,
@@ -1572,10 +1571,10 @@ const FILTER_CHIP_HELD =
  * one, it says the value alone, as 1b draws it, where a chip taking several says its name before
  * what it holds. Its `values` and `onChange` keep the one shape, an empty list or one value.
  * `fit` is where its list opens, as `Menu`'s: from its left, or set against its right end for a
- * chip at the end of its row; and `lane` the height a list drawn as a lane of its own stops at
- * (`Menu`'s, #555), 1l's band.
+ * chip at the end of its row; and `lane` marks a list drawn as a lane of its own (`Menu`'s, #555),
+ * 1a's band and 1l's.
  */
-export function FilterChip({ label, options, values, onChange, clearLabel, several, single = false, fit = "start", lane, gutter = false }) {
+export function FilterChip({ label, options, values, onChange, clearLabel, several, single = false, fit = "start", lane = false }) {
     const id = useId();
     const labelId = `${id}label`;
     const listId = `${id}list`;
@@ -1715,7 +1714,6 @@ export function FilterChip({ label, options, values, onChange, clearLabel, sever
                 labelId={labelId}
                 fit={fit}
                 lane={lane}
-                gutter={gutter}
                 rows="sm"
                 multiselectable={!single}
                 options={options.map((option, index) => ({

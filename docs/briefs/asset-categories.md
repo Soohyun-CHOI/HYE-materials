@@ -25,9 +25,10 @@ category's page, or by typing the id or a serial number into this screen's searc
 
 ## What it always carries
 
-**Which job the list stands on** (`lib/assetListView.js:assetListScope`): the first
-of the reader's own jobs by its code, or all jobs for a reader assigned to none, or
-whatever job the reader chooses — any job, or all of them. A job the address asks
+**Which job the list stands on** (`lib/assetListView.js:assetListScope`): all jobs
+for the office (`Is Admin`) whatever it is assigned to, a site manager among them;
+otherwise the first of the reader's own jobs by its code, or all jobs for a reader
+assigned to none; or whatever job the reader chooses — any job, or all of them. A job the address asks
 for that the list does not offer is answered where the list starts, as an address
 naming no job is, so a list never says whether such a job exists; so is all jobs
 where there is one job or none. The rail's link carries no job, and every step

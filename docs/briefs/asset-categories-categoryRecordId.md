@@ -29,8 +29,9 @@ and an id no row carries is answered as no page (below).
 ## What it always carries
 
 **Which job the list stands on**, as the category list's (`asset-categories.md`):
-the first of the reader's own jobs by its code, all jobs for a reader assigned to
-none, or whichever job or all jobs the reader chooses. Choosing keeps the selection
+all jobs for the office whatever it is assigned to; otherwise the first of the
+reader's own jobs by its code, or all jobs for a reader assigned to none; or
+whichever job or all jobs the reader chooses. Choosing keeps the selection
 and goes to the first page. A job the address asks for that the list does not offer
 is answered where the list starts.
 

@@ -21,10 +21,11 @@ const ALL_JOBS_LABEL = axesFor(FILTERED_LISTS[0]).find((axis) => axis.param === 
 // by the field's `Job`, which neither shows.
 //
 // IT OFFERS `All jobs` FIRST AND THEN THE JOBS (#548), as the files draw it on all three screens.
-// A list starts on the first job by its code, and `All jobs` is every job the reader may choose
-// between at once, which the address carries as `ALL_JOBS`, and which the chip and the level
-// say as they say a job. From #509 to #520 `All jobs` stood first as where every list started,
-// and #520 took it away; it is back as a choice and not as the start.
+// A list starts on the first of the reader's own jobs by its code, and `All jobs` is every job
+// the reader may choose between at once, which the address carries as `ALL_JOBS`, and which the
+// chip and the level say as they say a job. From #509 to #520 `All jobs` stood first as where
+// every list started, and #520 took it away; it is back as a choice, and as the start for a
+// reader assigned to none (#593) and for the office (#656).
 //
 // WHAT IT OFFERS AND WHAT IT HOLDS ARE THE PAGE'S, from `lib/assetListView.js:assetListScope`,
 // the one judgment the page read its rows by. This file only turns a choice into an address.

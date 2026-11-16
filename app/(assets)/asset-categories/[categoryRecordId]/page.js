@@ -122,7 +122,8 @@ export async function generateMetadata() {
  * `assetListScope`, the judgment `/asset-categories` reads its rows by — which comes off the
  * job list's own link arrays, so only the scope's items are read. A list
  * stands on one job since #520, the first of the reader's own by its code until they move — any
- * job since #593, and all of them for a reader assigned to none — and the head counts what this
+ * job since #593, and all of them for a reader assigned to none and, since #656, for the
+ * office — and the head counts what this
  * category holds there; from #509 it started from all of the reader's jobs, counted `N of M`
  * once a job narrowed it. **The job is chosen in the breadcrumb since #519**, a level after
  * `Equipment & Tools`, as 1d draws it, wherever there are two jobs to choose between — every

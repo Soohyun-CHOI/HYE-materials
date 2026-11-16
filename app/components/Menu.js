@@ -89,19 +89,17 @@ const MENU_HEADING = "shrink-0 truncate px-control-inset-x py-menu-heading-inset
  * 15 wide with its arrows — since nothing measured off the DOM shows a scrollbar, #538's reading
  * missed it. Each draws `SCROLL_LANE` now, the one string every lane reads, and keeps a scroll past
  * its end from moving what is behind it (0i Chain). **A list drawn as a lane of its own is handed
- * `lane`**, the `max-h-*` class of the height its drawing stops it at, and stands at that height or
- * the room under its control, whichever is less — 1l's band chips at 340 and its dialog's two
- * fields at 228.
+ * `lane`**, and stands at the lane's height (`--max-height-menu-lane`, 240) or the room under its
+ * control, whichever is less — a chip's in 1a's band and 1l's, and 1l's dialog's two fields, which
+ * the files of 2026-11-13 stop at the one height, 228 of rows inside the 5 and the Edge.
  *
- * THE FILES DRAW TWO KINDS OF LIST, AND `gutter` IS 1l's (#617). 1a's band chips and every list
- * 1b and 1i open hold the Menu's 5 above and below in the frame and scroll in a region holding the
- * 5 either side, reserving nothing for the bar, so a row passing the top or the foot is cut 5 inside
- * the Edge — what Soo ruled for every list on #555, and what Tools 56 draws there. 1l's band chips
- * and its dialog's two fields scroll the padded box itself with `scrollbar-gutter: stable` (0i
- * Gutter): the 5 scroll away with the rows, a row scrolled to the middle runs to the Edge, and the
- * rows stand 6 from the list's left and 14 from its right however short the list. Those three hand
- * `gutter`; #555 had drawn them as 1a's are until #617 took 1l's drawing back. At rest the two
- * draw alike but for the 8.
+ * EVERY LIST IS ONE KIND (#656). It holds the Menu's 5 above and below in the frame and scrolls in
+ * a region holding the 5 either side, reserving nothing for the bar, so a row passing the top or
+ * the foot is cut 5 inside the Edge and the bar runs from 5 under the Edge to 5 above it — what Soo
+ * ruled for every list on #555, what Tools 56 drew for 1a, and what the files of 2026-11-13 draw for
+ * 1l's lists too. From #617 those three scrolled the padded box itself with
+ * `scrollbar-gutter: stable` (`gutter`, 0i Gutter): the 5 scrolled away with the rows, a row met
+ * the Edge, and the bar ran the list's whole height.
  *
  * A ROW TAKES ITS FACE WHILE A FINGER HOLDS IT, AFTER A REST (#617). 0a gives every control but a
  * text button its hover fill while held, and these rows took none under a finger from #578. A
@@ -110,7 +108,7 @@ const MENU_HEADING = "shrink-0 truncate px-control-inset-x py-menu-heading-inset
  */
 export const HELD_ROW = "transition-[background-color] duration-0 pointer-coarse:active:bg-hover pointer-coarse:active:delay-held";
 
-export default function Menu({ id, anchorRef, shown, labelId, heading, options, active, shade = true, onPick, fit = "field", minWidth, rows = "lg", multiselectable = false, checkSlot = false, lane, gutter = false }) {
+export default function Menu({ id, anchorRef, shown, labelId, heading, options, active, shade = true, onPick, fit = "field", minWidth, rows = "lg", multiselectable = false, checkSlot = false, lane = false }) {
     const listRef = useRef(null);
     const checkedIndex = options.findIndex((option) => option.checked);
 
@@ -171,11 +169,11 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
             aria-labelledby={labelId}
             aria-multiselectable={multiselectable || undefined}
             popover="manual"
-            className={`inset-auto mx-0 mt-menu-offset mb-0 flex-col rounded-card border border-border bg-white ${gutter ? "" : "py-menu-inset"} font-ui text-body-sm text-foreground-default tabular-nums shadow-popover open:flex ${
+            className={`inset-auto mx-0 mt-menu-offset mb-0 flex-col rounded-card border border-border bg-white py-menu-inset font-ui text-body-sm text-foreground-default tabular-nums shadow-popover open:flex ${
                 fit === "field" ? "" : "w-max min-w-menu max-w-menu"
-            } ${lane ?? ""}`}
+            } ${lane ? "max-h-menu-lane" : ""}`}
         >
-            <div className={`flex min-h-0 flex-col overflow-y-auto overscroll-contain ${gutter ? "p-menu-inset [scrollbar-gutter:stable]" : "px-menu-inset"} ${SCROLL_LANE}`}>
+            <div className={`flex min-h-0 flex-col overflow-y-auto overscroll-contain px-menu-inset ${SCROLL_LANE}`}>
                 {heading && (
                     <div aria-hidden="true" className={MENU_HEADING}>
                         {heading}
