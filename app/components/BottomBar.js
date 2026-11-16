@@ -54,7 +54,8 @@ const BAR_STACK = {
  * ON A PHONE IT IS THE BOTTOM BAR (Tools 0a Foot bar): at the page's foot, sticky, 16 above
  * and either side and 20 below, its rows 12 apart, drawing no rule and no shadow — and while
  * the content runs on past it, a soft edge, the translucent white over a blur, fading in over
- * the 24 above it. **It rides on the keyboard**, 12 below it rather than 20,
+ * the 24 above it; it comes and goes in 160ms on `ease-out`, as 1j draws it, where it took the
+ * default curve until #659. **It rides on the keyboard**, 12 below it rather than 20,
  * so a screen's action and its field are both in sight while somebody types: a browser that
  * shrinks the page for its keyboard keeps a sticky bar above it by itself — every screen that
  * draws this asks for that (`keyboardViewport.js`), the asset page only since #495,
@@ -109,7 +110,7 @@ export default function BottomBar({ stack = "form", bleed = true, phoneOnly = fa
                 <span
                     aria-hidden="true"
                     data-under={under || undefined}
-                    className="pointer-events-none absolute inset-x-0 -top-mobile-bottom-bar-bleed bottom-0 -z-10 hidden bg-background-translucent opacity-0 backdrop-blur-sm transition-opacity duration-mobile-bottom-bar [mask-image:linear-gradient(transparent,black_var(--spacing-mobile-bottom-bar-bleed))] data-under:opacity-100 max-sm:block"
+                    className="pointer-events-none absolute inset-x-0 -top-mobile-bottom-bar-bleed bottom-0 -z-10 hidden bg-background-translucent opacity-0 backdrop-blur-sm transition-opacity duration-mobile-bottom-bar ease-out [mask-image:linear-gradient(transparent,black_var(--spacing-mobile-bottom-bar-bleed))] data-under:opacity-100 max-sm:block"
                 />
                 {children}
             </div>

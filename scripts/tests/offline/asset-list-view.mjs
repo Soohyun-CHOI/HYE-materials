@@ -2216,7 +2216,24 @@ export function run({ check, assert, log }) {
         /beneath \? "border-divider-strong bg-background-translucent backdrop-blur-sm" : "border-transparent bg-white"/.test(frameSource),
         true
     );
-    check("  and the rows end on the pager's height, and the bar's too while it stands", /className=\{overlayShown \? END_ROOM_WITH_BAR : END_ROOM\}/.test(frameSource), true);
+    check(
+        "  and the rows end on the pager's height, and the bar's too while it stands",
+        /className=\{`\$\{overlayShown \? END_ROOM_WITH_BAR : END_ROOM\} \$\{END_ROOM_MOVES\}`\}/.test(frameSource),
+        true
+    );
+    // #659 — the room changes in 160ms on `ease-out`, as the drawings move it: growing to the bar's as
+    // the bar comes and back as it goes (1a, 1d), and on Fill going as the lane turns sideways (1l).
+    const endRoomMoves = (source) =>
+        [
+            /const END_ROOM_MOVES = "transition-\[height\] duration-list-end ease-out";/.test(source),
+            /\{footer && <div aria-hidden="true" className=\{`\$\{sideways \? "h-0" : END_ROOM\} \$\{END_ROOM_MOVES\}`\} \/>\}/.test(source),
+        ].join(" ");
+    check("  the room under the rows grows with the selection bar and goes as the catalog turns sideways, in 160ms on ease-out", endRoomMoves(frame.source), "true true");
+    check(
+        "  and rooms that change at once, the catalog's taken away, are seen (anti-vacuity)",
+        endRoomMoves('const END_ROOM_MOVES = "";\n{footer && !sideways && <div aria-hidden="true" className={END_ROOM} />}'),
+        "false false"
+    );
     const rail = parseFile(RAIL);
     check(
         "the column holding a list scrolls nothing and reserves no lane",
@@ -2894,7 +2911,7 @@ export function run({ check, assert, log }) {
                 /footer && !sideways \? `\$\{TRACK_OVER_PAGER\} \$\{KEEP_CLEAR_OF_PAGER\}` : ""/.test(fn),
             /setSideways\(lane\.scrollWidth > lane\.clientWidth\)/.test(fn) && /setScrolledSideways\(lane\.scrollLeft > 0\)/.test(fn) && /headRef\.current\.scrollLeft = lane\.scrollLeft/.test(fn),
             /data-scrolled-sideways=\{scrolledSideways && laneShown \? "" : undefined\}/.test(fn) && /className=\{`group\/fill /.test(fn),
-            lane >= 0 && pager > lane && /\$\{sideways \? "" : PAGER_OVER_ROWS\}/.test(fn) && /\{footer && !sideways && <div aria-hidden="true" className=\{END_ROOM\} \/>\}/.test(fn),
+            lane >= 0 && pager > lane && /\$\{sideways \? "" : PAGER_OVER_ROWS\}/.test(fn) && /\{footer && <div aria-hidden="true" className=\{`\$\{sideways \? "h-0" : END_ROOM\} \$\{END_ROOM_MOVES\}`\} \/>\}/.test(fn),
             !/\boverlay/i.test(body),
             /const BAND_FILL = `\$\{LIST_FILL\} flex shrink-0 items-center gap-gap pb-control-band-inset-y`;/.test(source),
         ].join(" ");
@@ -2945,13 +2962,22 @@ export function run({ check, assert, log }) {
         ),
         "false false false false false"
     );
-    // 1d's NAME IN THE BAR once its head has scrolled under it: measured by the frame, marked on
-    // the lane, drawn by the bar under the mark behind a 16 rule 16 either side at 13 and 600,
-    // and handed by the category's page alone.
+    // 1d's NAME IN THE BAR once its title has scrolled under it (#659): the title's foot against
+    // the bar's, the one judgment the phone's top bar asks of its heading too, asked by the frame
+    // of the head's heading on every scroll and whenever the title changes size, marked on the
+    // lane, drawn by the bar under the mark behind a 16 rule 16 either side at 13 and 600 on
+    // `ease-out` — CSS's own curve since #659, `design-values.mjs` holds that — and handed by the
+    // category's page alone. Until #659 the frame measured the head's whole height.
     const crumbSource = parseFile("app/components/Breadcrumb.js").source;
-    const nameInBar = ({ frameSource: f, crumb, category, asset }) =>
+    const topBarSource = parseFile("app/components/TopBar.js").source;
+    const nameInBar = ({ frameSource: f, topBar, crumb, category, asset }) =>
         [
-            /setTitleGone\(head\.getBoundingClientRect\(\)\.bottom <= bar\.getBoundingClientRect\(\)\.bottom\)/.test(f),
+            /export function titleGoneUnder\(title, bar\) \{\s*return Boolean\(title && bar && title\.getBoundingClientRect\(\)\.bottom <= bar\.getBoundingClientRect\(\)\.bottom\);\s*\}/.test(topBar),
+            /import \{ titleGoneUnder \} from "@\/app\/components\/TopBar";/.test(f) &&
+                /const titleOf = \(\) => headerRef\.current\?\.querySelector\("h1"\) \?\? null;/.test(f) &&
+                /setTitleGone\(titleGoneUnder\(titleOf\(\), topRef\.current\)\);/.test(f) &&
+                !/getBoundingClientRect/.test(f),
+            /const title = titleOf\(\);\s*if \(title\) resized\.observe\(title\);/.test(f),
             /data-title-gone=\{titleGone \? "" : undefined\}/.test(f) && /group\/list-frame/.test(f),
             /className="pointer-events-none invisible flex min-w-0 items-center opacity-0 transition-\[opacity,visibility\] duration-breadcrumb-title ease-out group-data-title-gone\/list-frame:visible group-data-title-gone\/list-frame:opacity-100"/.test(crumb),
             /<span aria-hidden="true" className="mx-breadcrumb-title-rule-inline h-breadcrumb-title-rule w-px shrink-0 bg-divider" \/>\s*<span className="min-w-0 truncate text-body-sm font-semibold text-foreground-default">\{title\}<\/span>/.test(crumb),
@@ -2959,19 +2985,21 @@ export function run({ check, assert, log }) {
             !/<Breadcrumb[^>]*\btitle=/.test(asset),
         ].join(" ");
     check(
-        "  1d's name comes into the bar once its head has gone under it, and an asset's page hands the bar none",
-        nameInBar({ frameSource: frameWhole, crumb: crumbSource, category: categorySource, asset: assetSource }),
-        "true true true true true true"
+        "  1d's name comes into the bar once its title's foot passes the bar's, as the phone's bar judges, and an asset's page hands the bar none",
+        nameInBar({ frameSource: frameWhole, topBar: topBarSource, crumb: crumbSource, category: categorySource, asset: assetSource }),
+        "true true true true true true true true"
     );
     check(
-        "  and a name always shown, measured off the title alone, or handed by an asset's page is seen (anti-vacuity)",
+        "  and a name brought in by the head's foot, by the title's top, unwatched as the title folds, always shown, or handed by an asset's page is seen (anti-vacuity)",
         nameInBar({
-            frameSource: "setTitleGone(title.getBoundingClientRect().top < 0)",
+            frameSource:
+                "const measure = () => { const bar = topRef.current; const head = headerRef.current; if (bar && head) setTitleGone(head.getBoundingClientRect().bottom <= bar.getBoundingClientRect().bottom); }; for (const child of lane.children) resized.observe(child);",
+            topBar: "export function titleGoneUnder(title, bar) { return Boolean(title && bar && title.getBoundingClientRect().top <= bar.getBoundingClientRect().bottom); }",
             crumb: '<div className="flex min-w-0 items-center"><span>{title}</span></div>',
             category: "<Breadcrumb levels={levels} />",
             asset: "<Breadcrumb levels={levels} title={category.itemName} />",
         }),
-        "false false false false false false"
+        "false false false false false false false false"
     );
     // A DIALOG'S JOB SAYS THE JOB'S NAME AFTER ITS CODE (1b): the registration from both pages
     // that open it. The check-out and check-in at a desk did too, and the phone's sheet and foot

@@ -10,7 +10,8 @@
 // drawn by `Controls.js:FieldClear` and nowhere else — at the six fields that end in one — or one that
 // is no field's, each with why. A clear written by hand beside a field, a `Done` or a sheet's row that
 // lets focus go, and a `mousedown` stopped by an arrow of its own rather than `keepFocus` are each a
-// failure here.
+// failure here. So, since #659, is a number field's step that lets its `mousedown` through, or selects
+// text, or takes a double tap's zoom: pressed fast, it selected the field's line under it.
 //
 // WHAT IT CANNOT SEE. A phone. What the press does to a sheet standing on a keyboard was reproduced in
 // this repository's browser with a keyboard stood in — the eight events in `keepFocus`'s header — and
@@ -157,6 +158,28 @@ export function run({ check, assert, log }) {
     check("  and so does each of SheetRows' rows", /aria-disabled=\{locked \|\| undefined\}\s*onMouseDown=\{keepFocus\}\s*onClick=\{locked \? undefined : row\.onPress\}/.test(frame), true);
     check("  the dialog's search results and a menu's options take the same press", `${/onMouseDown=\{keepFocus\}\s*onClick=\{\(\) => onPick\(result\)\}/.test(frame)} ${/onMouseDown=\{keepFocus\}\s*onClick=\{\(\) => onPick\(index\)\}/.test(parseFile(MENU).source)}`, "true true");
     check("  and no mousedown under app/ is stopped by an arrow of its own", files.filter(({ source }) => ownMouseDowns(source) > 0).map(({ path }) => path).join(" | "), "");
+
+    // #659 — a number field's step pressed fast is double-clicked, and a double click on a mark with no
+    // text selected the field's line under it. Each step stops its mousedown as a sheet's presses do,
+    // selects no text and takes no double-tap zoom; the figure is a field and is selected as one.
+    log("");
+    log("a number field's steps, pressed fast, select nothing and leave the figure its caret:");
+    const steps = (source) => {
+        const step = source.match(/const STEP =\s*"([^"]*)";/)?.[1] ?? "";
+        return [
+            (source.match(/aria-label=\{COPY\.(fewer|more)\} aria-disabled=\{formBusy \|\| undefined\} onMouseDown=\{keepFocus\} onClick=\{step\(-?1\)\} className=\{STEP\}/g) ?? []).length,
+            /(?<![\w-])select-none(?![\w-])/.test(step),
+            /(?<![\w-])touch-manipulation(?![\w-])/.test(step),
+            !/select-none|touch-/.test(source.match(/<input\s+id=\{field\.control\}[\s\S]*?\/>/)?.[0] ?? "select-none"),
+        ].join(" ");
+    };
+    const controlsSource = readFileSync(repoPath(CONTROLS), "utf8");
+    check("  both steps stop their mousedown, no step selects text or zooms, and the figure stays selectable", steps(controlsSource), "2 true true true");
+    check(
+        "  and steps as they were until #659, pressed with nothing stopped, are seen (anti-vacuity)",
+        steps('const STEP =\n    "flex h-control-sm";\n<button type="button" aria-label={COPY.fewer} aria-disabled={formBusy || undefined} onClick={step(-1)} className={STEP}>\n<input\n id={field.control}\n className="select-none" />'),
+        "0 false false false"
+    );
 
     // ── anti-vacuity ────────────────────────────────────────────────────────
     log("");

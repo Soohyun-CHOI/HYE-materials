@@ -606,8 +606,7 @@ export function run({ check, assert, log }) {
             /"-mt-record-header-actions-bleed flex shrink-0 items-center gap-gap max-sm:hidden"/.test(pageSource),
             /"inline-flex items-baseline gap-gap text-body max-sm:items-center max-sm:text-mobile-body"/.test(pageSource),
             /export default function TopBar\(\{ name, children \}\)/.test(topBar) && !/\{id\}/.test(topBar),
-            /const heading = name \? document\.querySelector\("h1"\) : null;/.test(topBar) &&
-                /setNamed\(Boolean\(bar && heading && heading\.getBoundingClientRect\(\)\.bottom <= bar\.getBoundingClientRect\(\)\.bottom\)\)/.test(topBar),
+            /setNamed\(titleGoneUnder\(name \? document\.querySelector\("h1"\) : null, barRef\.current\)\);/.test(topBar),
             /named \? "visible opacity-100" : "invisible opacity-0"/.test(topBar) && /inset-x-mobile-top-bar-title-inset-x/.test(topBar),
         ].join(" ");
     const topBarSource = parseFile("app/components/TopBar.js").source;

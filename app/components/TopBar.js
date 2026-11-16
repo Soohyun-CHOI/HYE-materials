@@ -19,17 +19,30 @@ import { pageScroll } from "./sheetHold";
  * UNDER THE BAR (0a): at 17 and 600, clear of 56 at either side, ending in an ellipsis, over
  * 160ms, and gone again as it comes back. The name the bar watches is the page's heading — its
  * one `h1`, as `DialogFrame.js` finds it — measured on every scroll and resize, and it has gone
- * under once its foot is at or above the bar's. 1j's own code brings it in from a scroll of 52,
- * 4 before the foot reaches the bar; the bar takes the spec's sentence and measures it, as
- * `ListFrame` measures 1d's head rather than read a figure. Out, it is hidden from assistive
- * tech, which reads the heading. 1k-c, a code no asset carries, passes no name.
+ * under once its foot is at or above the bar's (`titleGoneUnder`). 1j's own code brings it in
+ * from a scroll of 52, 4 before the foot reaches the bar; the bar takes the spec's sentence and
+ * measures it, as `ListFrame` measures 1d's title rather than read a figure. Out, it is hidden
+ * from assistive tech, which reads the heading. 1k-c, a code no asset carries, passes no name.
  *
  * STICKY AT THE TOP, DRAWING NO RULE (0a, 0k): white at 0.82 over a blur while the page runs
- * under it, fading out over the 24 below it, and nothing at all with the page at its top.
+ * under it, fading out over the 24 below it, and nothing at all with the page at its top; it
+ * comes and goes in 160ms on `ease-out`, as 1j draws it, where it took the default curve
+ * until #659.
  * The document scrolls below the phone's edge rather than the rail's column (`Rail.js`), so
  * whether anything runs under it is the window's scroll — the page's, as `sheetHold.js`
  * counts it, since a sheet holding the page leaves the document no scroll of its own (#579).
  */
+
+/**
+ * Whether a title has gone under the bar holding over it: its foot at or above the bar's (0a, 1d).
+ * The phone's top bar asks it of the page's heading, and `ListFrame` of 1d's title under the
+ * breadcrumb (#659), so a name comes into either bar at the one moment. With no title or no
+ * bar there is nothing to name.
+ */
+export function titleGoneUnder(title, bar) {
+    return Boolean(title && bar && title.getBoundingClientRect().bottom <= bar.getBoundingClientRect().bottom);
+}
+
 export default function TopBar({ name, children }) {
     const barRef = useRef(null);
     const [under, setUnder] = useState(false);
@@ -37,9 +50,7 @@ export default function TopBar({ name, children }) {
     useEffect(() => {
         const measure = () => {
             setUnder(pageScroll(window) > 0);
-            const bar = barRef.current;
-            const heading = name ? document.querySelector("h1") : null;
-            setNamed(Boolean(bar && heading && heading.getBoundingClientRect().bottom <= bar.getBoundingClientRect().bottom));
+            setNamed(titleGoneUnder(name ? document.querySelector("h1") : null, barRef.current));
         };
         measure();
         window.addEventListener("scroll", measure, { passive: true });
@@ -55,7 +66,7 @@ export default function TopBar({ name, children }) {
             <span
                 aria-hidden="true"
                 data-under={under || undefined}
-                className="pointer-events-none absolute inset-x-0 top-0 -bottom-mobile-top-bar-bleed -z-10 bg-background-translucent opacity-0 backdrop-blur-sm transition-opacity duration-mobile-top-bar [mask-image:linear-gradient(to_top,transparent,black_var(--spacing-mobile-top-bar-bleed))] data-under:opacity-100"
+                className="pointer-events-none absolute inset-x-0 top-0 -bottom-mobile-top-bar-bleed -z-10 bg-background-translucent opacity-0 backdrop-blur-sm transition-opacity duration-mobile-top-bar ease-out [mask-image:linear-gradient(to_top,transparent,black_var(--spacing-mobile-top-bar-bleed))] data-under:opacity-100"
             />
             {name && (
                 <div

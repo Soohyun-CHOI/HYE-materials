@@ -7,6 +7,7 @@ import Icon from "@/app/components/Icon";
 import { LIST_FILL, LIST_MEASURE } from "@/app/components/ListTable";
 import { SCROLL_LANE } from "@/app/components/scrollLane";
 import { useTooltip } from "@/app/components/Tooltip";
+import { titleGoneUnder } from "@/app/components/TopBar";
 
 // The pager's own height — its room above and below a 32 control, its rule counted in the
 // room above, 48 in all (0b, #646; 60 until then) — is how far it stands over the rows and how
@@ -17,6 +18,10 @@ const PAGER_OVER_ROWS = "-mt-[calc(var(--spacing-pager-inset-top)+var(--height-c
 const END_ROOM = "h-[calc(var(--spacing-pager-inset-top)+var(--height-control)+var(--spacing-pager-inset-bottom))]";
 const END_ROOM_WITH_BAR =
     "h-[calc(var(--spacing-pager-inset-top)+var(--height-control)+var(--spacing-pager-inset-bottom)+var(--spacing-selection-bar-offset)+var(--height-control-lg)+2*var(--spacing-selection-bar-inset)+2px)]";
+// And the room changes in 160ms on `ease-out`, as the drawings move it (#659): growing to the bar's
+// as the bar comes and back as it goes (1a, 1d), and on Fill going as the lane turns sideways and
+// coming back as it turns straight (1l). It changed at once until then.
+const END_ROOM_MOVES = "transition-[height] duration-list-end ease-out";
 
 // Where the column head holds, and what focus scrolls clear of at the top: 1a's head at its
 // least — 32 above, a 36 control's line, 18 under — or 1d's 48 bar, the column head's 36
@@ -74,13 +79,20 @@ function rowsRunBeneath(lane) {
  * the head's least height — or 1d's 48 bar. The lane keeps what holds at the top, and the pager
  * at the foot, out of the way of what keyboard focus scrolls to (`scroll-padding`).
  *
- * 1d's NAME COMES INTO THE BAR ONCE ITS HEADER HAS SCROLLED UNDER IT, and goes as it comes back
- * (1d): the frame marks the lane `data-title-gone`, and `Breadcrumb.js` draws the name it is
- * handed under that mark. Measured on every scroll, as the pager's ground is.
+ * 1d's NAME COMES INTO THE BAR ONCE ITS TITLE HAS SCROLLED UNDER IT, and goes as it comes back
+ * (1d, #659): the title is the head's heading, its one `h1`, and it has gone once its foot is at
+ * or above the bar's — the phone's top bar's judgment (`titleGoneUnder`) — which 1d draws from
+ * a scroll of 46, where the head's own foot is further down. The frame marks the lane
+ * `data-title-gone`, and `Breadcrumb.js` draws the name it is handed under that mark. Measured
+ * on every scroll, as the pager's ground is, and whenever the title changes size, since a title
+ * that folds onto a second line, or is set again once its face arrives, moves its foot without
+ * moving the head's. From #519 until #659 the frame measured the head's whole height, so the
+ * name came in well after the title had gone.
  *
  * THE PAGER IS THE ENDING, SO THE ROWS END ON NO 40 (0i End). They end on the pager's own
  * height instead, so the last row scrolls clear of it — and on the selection bar's as well
- * while it stands (0b), so no row stays under the bar either. It stands outside the scroll,
+ * while it stands (0b), so no row stays under the bar either, the room growing to it as the
+ * bar comes and back as it goes, in 160ms (#659). It stands outside the scroll,
  * over its foot, clear of the lane's 8.
  *
  * THE PAGER STANDS OVER THE ROWS AND THE COLUMN HEAD (#501). It takes the head's z-index and
@@ -120,17 +132,19 @@ export default function ListFrame({ top, header, band, found, foundCount = 1, fo
     useEffect(() => {
         const lane = laneRef.current;
         if (!lane) return undefined;
+        // The title the bar names: the heading in the head under a bar (1d).
+        const titleOf = () => headerRef.current?.querySelector("h1") ?? null;
         const measure = () => {
             setBeneath(rowsRunBeneath(lane));
-            const bar = topRef.current;
-            const head = headerRef.current;
-            if (bar && head) setTitleGone(head.getBoundingClientRect().bottom <= bar.getBoundingClientRect().bottom);
+            setTitleGone(titleGoneUnder(titleOf(), topRef.current));
         };
         measure();
         lane.addEventListener("scroll", measure, { passive: true });
         const resized = new ResizeObserver(measure);
         resized.observe(lane);
         for (const child of lane.children) resized.observe(child);
+        const title = titleOf();
+        if (title) resized.observe(title);
         return () => {
             lane.removeEventListener("scroll", measure);
             resized.disconnect();
@@ -162,7 +176,7 @@ export default function ListFrame({ top, header, band, found, foundCount = 1, fo
                     </div>
                 )}
                 <div className={LIST_MEASURE}>{children}</div>
-                {footer && <div aria-hidden="true" className={overlayShown ? END_ROOM_WITH_BAR : END_ROOM} />}
+                {footer && <div aria-hidden="true" className={`${overlayShown ? END_ROOM_WITH_BAR : END_ROOM} ${END_ROOM_MOVES}`} />}
             </div>
             {footer && (
                 <div className={`relative z-10 shrink-0 pr-scrollbar-gutter ${PAGER_OVER_ROWS}`}>
@@ -315,9 +329,10 @@ export function SelectionBar({ shown, label, count, notOnPage, words, clearLabel
  *
  * WHAT IT SHARES WITH `ListFrame`: the pager pinned over the lane's foot — below it while the
  * lane scrolls sideways — its ground saying whether rows run beneath (`rowsRunBeneath`), the rows
- * ending on its height while it stands over them, and focus scrolling clear of it. `label` names
- * the table, whose head row and rows the frame holds in two parts; the catalog's dialogs stand
- * outside the frame. It held the catalog's selection bar over the pager from #527 until #552
+ * ending on its height while it stands over them, the room going in 160ms as the lane turns
+ * sideways and the pager steps below it, as 1l moves it (#659), and focus scrolling clear of
+ * it. `label` names the table, whose head row and rows the frame holds in two parts; the
+ * catalog's dialogs stand outside the frame. It held the catalog's selection bar over the pager from #527 until #552
  * took away `Set class`, the one act a selection there was for.
  *
  * `empty` IS WHAT A LIST THE BAND EMPTIED SAYS IN THE ROWS' PLACE, under the column head and
@@ -376,7 +391,7 @@ export function ListFrameFill({ top, header, band, columnHead, label, footer, em
                     >
                         <div aria-hidden="true" className="h-table-header" />
                         {children}
-                        {footer && !sideways && <div aria-hidden="true" className={END_ROOM} />}
+                        {footer && <div aria-hidden="true" className={`${sideways ? "h-0" : END_ROOM} ${END_ROOM_MOVES}`} />}
                     </div>
                 )}
             </div>

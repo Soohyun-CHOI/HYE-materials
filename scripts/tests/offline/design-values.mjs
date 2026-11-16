@@ -13,7 +13,8 @@
 //      shadow ink in an amount, every size carries a line height on the 0.25rem
 //      grid — and the ones this repository adds: a length is rem, a whole number of
 //      the design's pixels over 16, outside the px kept by convention; no name
-//      carries a digit; and no name is a key Tailwind or the app already declares.
+//      carries a digit; and no name is a key Tailwind or the app already declares,
+//      but for Tailwind's four curves, declared again as CSS's own (#659).
 //   3. THE GROUND, THE INK AND THE FACES ARE APPLIED ONCE, BY THE ROOT LAYOUT (#258):
 //      `app/layout.js` sets each face's variable on `<html>` and White, Ink and the UI
 //      face on `<body>`, no other layout applies any of them, no file but the root
@@ -203,6 +204,8 @@ const VALUES = [
     ["--spacing-segmented-inset", "0.125rem", null],
     ["--spacing-segmented-option-inset-x", "0.375rem", null],
     ["--transition-duration-segmented", "200ms", null],
+    // 1l's pill fading in at the first choice and an option's ink changing (#659).
+    ["--transition-duration-segmented-fade", "120ms", null],
     ["--ease-segmented", "cubic-bezier(0.2, 0, 0, 1)", null],
     ["--min-width-menu", "8.75rem", null],
     ["--max-width-menu", "17.5rem", null],
@@ -258,6 +261,8 @@ const VALUES = [
     ["--spacing-selection-bar-inset", "0.5rem", null],
     ["--spacing-selection-bar-slide", "0.5rem", null],
     ["--transition-duration-selection-bar", "160ms", null],
+    // The room under a list's rows changing, for the bar and as 1l turns sideways (#659).
+    ["--transition-duration-list-end", "160ms", null],
     // The mark that leads an action's reason in the bar (#495).
     ["--spacing-selection-bar-reason-gap", "0.375rem", null],
     // The pager's 48 (#646): 8 above its controls, its rule counted, and 8 under them —
@@ -338,6 +343,8 @@ const VALUES = [
     ["--color-scrollbar-thumb-hover", "color-mix(in oklab, var(--color-foreground-default) 34%, transparent)", null],
     // 0f · States
     ["--width-number-input", "7.5rem", null],
+    // Its ground and ring changing, as the drawings move them (#659).
+    ["--transition-duration-number-input", "120ms", null],
     ["--spacing-stepper-inset-x", "0.1875rem", null],
     // A busy action (#473); its turn and its track are the drawings', not the spec's.
     ["--transition-delay-busy", "300ms", null],
@@ -493,7 +500,8 @@ const VALUES = [
     ["--transition-duration-avatar", "90ms", null],
     // 0m's account menu, beside a collapsed button and growing in (#495).
     ["--spacing-account-menu-offset-x", "0.5rem", null],
-    ["--animate-account-menu", "account-menu-in 120ms ease-out", null],
+    // Every menu and list's entrance, the account's alone from #495 until #659.
+    ["--animate-menu", "menu-in 120ms ease-out", null],
     ["--height-breadcrumb", "3rem", null],
     // From the drawings, not the spec (#519): the chevron after a breadcrumb level that opens
     // the job's list, its gap from the word and how far it runs into the level's side room.
@@ -720,6 +728,22 @@ const VALUES = [
 ];
 
 /**
+ * CSS's own curves under Tailwind's names (#659), the four keys of Tailwind's the declaration
+ * takes again. The drawings write CSS's keywords — `ease-out` on every fade, `ease` where they
+ * name none — and Tailwind's utilities of those names draw other curves, as does a transition
+ * naming none, which reads `--default-transition-timing-function`. So a class takes CSS's curve
+ * by its own word, and no screen names a curve of its own. They sit outside `VALUES`: no row of
+ * the design names them, and a name Tailwind declares is read wherever its utility is, so none
+ * waits on a reader.
+ */
+const CSS_CURVES = [
+    ["--ease-in", "ease-in"],
+    ["--ease-out", "ease-out"],
+    ["--ease-in-out", "ease-in-out"],
+    ["--default-transition-timing-function", "ease"],
+];
+
+/**
  * The lengths that stay px: what is drawn in px by convention. The ring is a
  * stroke, and so is every mark's line, the one 1.25 at any size (#502); the
  * scrollbar's lane is the browser's own, whose width follows no text size, so the
@@ -820,6 +844,9 @@ export function parseDeclaration(css) {
 
 /** Every custom property a stylesheet declares, comments aside. */
 const keysOf = (css) => new Set([...withoutComments(css).matchAll(/(--[a-z0-9-]+)\s*:/gi)].map((m) => m[1]));
+
+/** And each one's value, as the last declaration of it says. */
+const valuesOf = (css) => new Map([...withoutComments(css).matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/gi)].map((m) => [m[1], m[2].trim()]));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tailwind, asked what a token reads
@@ -1045,11 +1072,11 @@ export async function run({ check, assert, log }) {
 
     // #473 — a block's keyframes are what an animation it declares runs, and nothing else:
     // each one is run by an animation declared here, and each animation runs keyframes
-    // declared here or Tailwind's own. #495 added the account menu's entrance.
+    // declared here or Tailwind's own. #495 added the account menu's entrance, every menu's since #659.
     const keyframes = parsed.blocks.flatMap((b) => b.keyframes);
     const animations = [...declared].filter(([name]) => name.startsWith("--animate-"));
     const runs = (value) => value.split(/\s+/)[0];
-    check("  the keyframes declared are the account menu's entrance and the caret's blink", keyframes.join(" "), "account-menu-in code-caret-blink");
+    check("  the keyframes declared are every menu's entrance and the caret's blink", keyframes.join(" "), "menu-in code-caret-blink");
     check(
         "  every keyframes is run by an animation declared here",
         keyframes.filter((k) => !animations.some(([, value]) => runs(value) === k)).join(" "),
@@ -1078,8 +1105,13 @@ export async function run({ check, assert, log }) {
     // ── 2: every value is the design's ───────────────────────────────────────
     log("");
     log("every declaration is the design's value, and the relations the design states hold:");
-    check("  declared names are exactly the table's", [...declared.keys()].sort().join(" "), [...declaredNames].sort().join(" "));
+    check(
+        "  declared names are exactly the table's and Tailwind's four curves",
+        [...declared.keys()].sort().join(" "),
+        [...declaredNames, ...CSS_CURVES.map(([name]) => name)].sort().join(" ")
+    );
     for (const [name, value] of VALUES) check(`  ${name}`, declared.get(name), value);
+    for (const [name, value] of CSS_CURVES) check(`  ${name} is CSS's own ${value}`, declared.get(name), value);
 
     check("  no name carries a digit", [...declaredNames].filter((n) => /\d/.test(n)).join(" "), "");
 
@@ -1132,6 +1164,21 @@ export async function run({ check, assert, log }) {
     // The app's own are its two template colors since #258 took Geist's two faces out.
     assert("  and so are the app's own", ["--color-foreground", "--color-background"].every((k) => appKeys.has(k)));
     check("  no name is a key Tailwind already declares", [...declaredNames].filter((n) => tailwindKeys.has(n)).join(" "), "");
+    // #659 — Tailwind's keys the declaration takes again are its four curves and no other, and
+    // each is a curve of Tailwind's own there, so taking it again changes what its utility draws.
+    check(
+        "  the keys of Tailwind's declared again are its four curves",
+        [...declared.keys()].filter((n) => tailwindKeys.has(n)).sort().join(" "),
+        CSS_CURVES.map(([name]) => name).sort().join(" ")
+    );
+    const tailwindValues = valuesOf(readFileSync(requireFromRepo.resolve("tailwindcss/theme.css"), "utf8"));
+    check(
+        "  and Tailwind's own value for each is another curve",
+        CSS_CURVES.filter(([name, value]) => !/^cubic-bezier\(/.test(tailwindValues.get(name) ?? "") || tailwindValues.get(name) === value)
+            .map(([name]) => name)
+            .join(" "),
+        ""
+    );
     check("  no name is a key the app's other stylesheets declare", [...declaredNames].filter((n) => appKeys.has(n)).join(" "), "");
 
     // ── the oracle, seen to work before anything is claimed with it ──────────
@@ -1163,6 +1210,63 @@ export async function run({ check, assert, log }) {
     sees(cls("rounded-", "full"), []);
     sees(cls("text-", "zinc-500"), []);
     sees("Choose", []);
+    // #659 — a curve's class takes Tailwind's key, which the declaration gives CSS's curve, and a
+    // transition naming no curve takes the default.
+    const curveOf = makeReader(ds, new Set(CSS_CURVES.map(([name]) => name)));
+    const takes = (token, expected) =>
+        check(`  ${token} takes its curve from`, [...curveOf([token])].sort().join(" "), [...expected].sort().join(" "));
+    takes(cls("ease-", "out"), ["--ease-out"]);
+    takes(cls("ease-", "in"), ["--ease-in"]);
+    takes(cls("ease-", "in-out"), ["--ease-in-out"]);
+    takes(cls("transition-", "opacity"), ["--default-transition-timing-function"]);
+    takes(cls("transition-", "[opacity,visibility]"), ["--default-transition-timing-function"]);
+
+    // #659 — each fade the drawings draw names its curve by their word: `ease-out` where they write
+    // it, and nothing where they write `ease`, which a transition naming no curve takes. Found by
+    // the duration each fade reads, one class string to a fade.
+    log("");
+    log("each fade the drawings draw takes their curve by its word:");
+    const curvesBy = (source, duration) =>
+        [...source.matchAll(new RegExp(`[^"'\`]*(?<![\\w-])${duration}(?![\\w-])[^"'\`]*`, "g"))].map((m) => (m[0].match(/(?<![\w-])ease-[a-z-]+/g) ?? ["none"]).join(","));
+    const fades = (read) =>
+        [
+            ["app/components/Breadcrumb.js", "duration-breadcrumb-title"],
+            ["app/components/TopBar.js", "duration-mobile-top-bar"],
+            ["app/components/BottomBar.js", "duration-mobile-bottom-bar"],
+            ["app/components/ListFrame.js", "duration-selection-bar"],
+            ["app/components/ListFrame.js", "duration-list-end"],
+            ["app/components/Toast.js", "duration-toast"],
+            ["app/components/Tooltip.js", "duration-tooltip"],
+            ["app/components/Controls.js", "duration-segmented-fade"],
+            ["app/components/Controls.js", "duration-number-input"],
+        ]
+            .map(([file, duration]) => curvesBy(read(file), duration).join(" "))
+            .join(" | ");
+    check(
+        "  1d's name, the phone's top bar's edge and name, the foot bar's edge, the selection bar's three and the room under the rows on ease-out; the toast and the tooltip on none; a segmented option's ink on ease-out and a number field's frame on none",
+        fades((file) => readFileSync(join(REPO_ROOT, file), "utf8")),
+        "ease-out | ease-out ease-out | ease-out | ease-out ease-out ease-out | ease-out | none | none | ease-out | none"
+    );
+    check(
+        "  and a soft edge naming no curve, as both did until #659, is seen (anti-vacuity)",
+        fades((file) =>
+            file.endsWith("Bar.js") ? '"absolute opacity-0 transition-opacity duration-mobile-top-bar duration-mobile-bottom-bar"' : readFileSync(join(REPO_ROOT, file), "utf8")
+        ),
+        "ease-out | none | none | ease-out ease-out ease-out | ease-out | none | none | ease-out | none"
+    );
+    // #659 — 1l's pill takes two motions at once, as the drawing has them: it slides in the segmented
+    // row's 200ms on the rail's curve and fades in its 120ms on `ease-out`, each list in the
+    // properties' order, and with reduced motion it does neither. Tailwind compiles the two lists
+    // into the names they say.
+    const controls = readFileSync(join(REPO_ROOT, "app/components/Controls.js"), "utf8");
+    const pill = cls("transition-", "[left,opacity] ", "duration-", "[var(--transition-duration-segmented),var(--transition-duration-segmented-fade)] ", "ease-", "[var(--ease-segmented),var(--ease-out)] ", "motion-reduce:", "transition-none");
+    check("  1l's pill slides in 200ms on the rail's curve and fades in 120ms on ease-out, at once with reduced motion", controls.includes(pill), true);
+    const pillReads = makeReader(ds, new Set([...declaredNames, ...CSS_CURVES.map(([name]) => name)]));
+    check(
+        "  and its two lists read those names",
+        [...pillReads(pill.split(" "))].sort().join(" "),
+        ["--default-transition-timing-function", "--ease-out", "--ease-segmented", "--transition-duration-segmented", "--transition-duration-segmented-fade"].sort().join(" ")
+    );
 
     // ── the corpus, the graph and the reads ──────────────────────────────────
     log("");

@@ -37,9 +37,12 @@ import Icon from "./Icon";
  *
  * A CATEGORY'S PAGE NAMES ITSELF IN THE BAR ONCE ITS TITLE HAS SCROLLED UNDER IT (1d, #519):
  * `title`, after the path behind a 16 Rule 16 either side, at 13 and 600 in Ink, fading in over
- * 160ms and out the same way. Whether it has is `ListFrame.js`'s to measure, which marks its
- * lane; until then the name is hidden, from assistive tech too, which has the heading. An
- * asset's page scrolls its title away with no name coming in (1f), so it hands none.
+ * 160ms and out the same way on `ease-out`, CSS's own curve as `app/designValues.css` gives
+ * Tailwind's name (#659). Whether it has is `ListFrame.js`'s to measure, which marks its
+ * lane once the title's foot is at or above the bar's (#659), the head's caption and controls
+ * still in sight under it; until then the name is hidden, from assistive tech too, which has
+ * the heading. An asset's page scrolls its title away with no name coming in (1f), so it hands
+ * none.
  */
 
 const LEVEL =
