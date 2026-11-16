@@ -158,7 +158,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/directPurchase.js` — the way out of an invoice with no order (#272): the one predicate the modal and the action share, and `DIRECT_PURCHASE_COPY`; `lib/directPurchase.server.js`, the strip's rows and the Draft a site raises from one.
 - `lib/prKind.js` — which of three kinds a request is (#272), the mark for each and the signer's sentence.
 - `lib/prWait.js` — a record waiting for a request: `WAIT_STAGE`, and the listed-against-offered split both strips above `/prs` obey (#272).
-- `lib/deliveryAllocation.js` — the allocation rule (`planDelivery`), its replay (`recomputeOverDelivery`), `ALLOCATION_COPY`, and the dropdown helpers the form imports; `lib/deliveryAllocation.server.js`, the Job → Disciplines → PRs → POs → PO Items walk that finds ordered items.
+- `lib/deliveryAllocation.js` — the allocation rule (`planDelivery`), its replay (`recomputeOverDelivery`), `ALLOCATION_COPY`, and the dropdown helpers the form imports; `lib/deliveryAllocation.server.js`, the walk that finds ordered items.
 - `lib/deliveryAddress.js` — where a delivery arrived (#387): the default taken from the orders it attaches to. **A job's address defaults `/prs/new` and nothing else, and a recorded delivery's is never rewritten — stock is counted by it.**
 - `lib/deliveryStatus.js` — delivered against invoiced against ordered: the judgment, `STATUS_COPY`, the list filters, the worklist order. All three order-scope summaries live here (#311), and `AWAITING_DELIVERY_DAYS` (#263). **Invoices and deliveries meet only through the ordered items both name (#640)**: one side's total fills the other's rows oldest first in entry order (`fillOldestFirst`). **A screen showing an invoice never compares `Due Date` to today (#316)** — `invoicePayment` hands back the verdict and its day count. `lib/deliveryStatus.server.js` holds the two batched walks through `PO Items`.
 - `lib/deliveryAccess.js` — `canAccessJobDeliveries`, the one Job-scope rule for deliveries.
@@ -167,7 +167,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/invoiceJob.js` — the job an invoice charges for (#314): one judgment, walked from the orders it charges, **taking no reader** so two readers cannot see two values on one row.
 - `lib/invoiceItemFold.js` — `foldInvoiceItems`: a split invoice item reads as one row again.
 - `lib/invoiceItemsMissing.js` — an invoice holding no item rows (#330): the predicate and the one sentence its screen and `updateInvoiceAction` share. **The create path's refusal is a DIFFERENT fact and keeps its own words.**
-- `lib/invoiceOrderBreakdown.js` — an invoice's items under the orders they charge (#237), and `ORDER_BREAKDOWN_COPY`.
+- `lib/invoiceSpread.js` — an item as the vendor wrote it, spread over its orders by `fillOrderedItems` and read back (#660); `lib/invoiceSpread.server.js`, its read.
 - `lib/invoiceDeliveryEntries.js` — the invoice detail's delivery table (#241, #640), one row per folded item.
 - `lib/prRequester.js` — who raised a request, and whether a write may take it as the reader's own draft (#440). **Nothing else reads `Requester` off a request.**
 - `lib/prVisibility.js` — `canViewPR`, the one row-visibility rule for a PR.

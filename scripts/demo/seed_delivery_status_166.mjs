@@ -236,7 +236,8 @@ async function invoice({ items: invoiceItems, issueDate, note }) {
         shippingFee: 0,
         file: [],
     });
-    for (const bl of invoiceItems) {
+    // #660 — each its own item on the vendor's invoice, numbered as createInvoiceAction numbers them.
+    for (const [index, bl] of invoiceItems.entries()) {
         await createInvoiceItem({
             invoiceRecordId: inv.id,
             invoiceId: inv.invoiceId,
@@ -248,6 +249,7 @@ async function invoice({ items: invoiceItems, issueDate, note }) {
             qty: bl.qty,
             unitPrice: 10,
             remark: "",
+            position: index + 1,
         });
     }
     // A second `createInvoiceItem` call stood here under `if (freeText)`, writing an

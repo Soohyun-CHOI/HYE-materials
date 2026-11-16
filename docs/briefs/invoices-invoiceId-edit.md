@@ -37,19 +37,28 @@ typed is exactly what someone comes here to fix. A create form asks only for wha
 the document in front of the reader states. Neither convention should be moved
 onto the other screen.
 
-**action — `Items`,** with a standing sentence directly under the heading:
-`Edit item values. Size/Maker/Unit and the linked PO are fixed here — to change an item's
-PO or add/remove items, delete and recreate the invoice.` This is the sentence that
-draws the boundary, and it is always visible rather than appearing on a failed
-attempt.
+**action — `Items`,** with a standing sentence directly under the heading,
+`INVOICE_SPREAD_COPY.editIntro`: an item on more than one order takes a quantity per
+order, Size, Maker and Unit are fixed, and adding or removing an item means deleting
+and re-entering the invoice. This is the sentence that draws the boundary, and it is
+always visible rather than appearing on a failed attempt.
 
-**Each item is a card, and its fields are labeled by placeholder alone** — no
-label sits above any of them, so a filled row shows no field names at all. Item
-name, quantity, unit price and remark are editable.
-Size, Maker and Unit are rendered as **disabled inputs**, not as text — they are frozen
-reference copies from the ordered item, and the disabled control shows both what
-they are and that they are not yours to change. The linked order is shown as a
-read-only label.
+**Each item is a card — an item as the vendor wrote it, as the invoice detail shows
+it — and its fields are labeled by placeholder alone** — no label sits above any of
+them, so a filled row shows no field names at all. Item name, quantity, unit price and
+remark are editable, and the name, price and remark are the item's on every order it
+is on. Size, Maker and Unit are rendered as **disabled inputs**, not as text — they are
+frozen reference copies from the ordered item, and the disabled control shows both what
+they are and that they are not yours to change. An item on one order shows that order
+as a read-only label.
+
+**action — a quantity per order, on an item that can be on more than one.** Where the
+item's material at its ordered price is on two or more of the invoice's orders, its
+one quantity box becomes a box per order — each labeled by the order's ID, with what
+is uninvoiced on it apart from this invoice (`INVOICE_SPREAD_COPY.uninvoiced`) — and
+the item's total under them (`INVOICE_SPREAD_COPY.total`). **Setting an order to
+nothing takes this invoice off it on save, and giving a quantity to an order the item
+had none on puts it there**; a save leaving an item at nothing is refused.
 
 **evidence — running previews.** Each card shows `Amount (preview):` computed from
 the quantity and price as typed, and the section foot shows
@@ -63,8 +72,9 @@ for it to discard.
 ## What it carries only sometimes
 
 **When an item carries a variance flag:** the `⚠ Price variance` or
-`⚠ Quantity variance` badge on that card, or both, the same badges as on the
-invoice detail's items table.
+`⚠ Quantity variance` badge on that card — beside the order it is about where the item
+takes a quantity per order — or both, the same badges as on the invoice detail's items
+table.
 
 **When an Admin has accepted one:** `Price variance · Accepted` or
 `Quantity variance · Accepted` in green, and under it
@@ -128,10 +138,11 @@ the invoice list then render. So this screen is where the red `⚠ Totals differ
 box on the detail gets resolved — a design that hides the relationship between the
 two makes the flag look unfixable.
 
-**The items are the folded rows' source, not the folded rows.** The invoice detail
-shows one row per folded item; this screen edits the stored rows. A split invoice
-item reads as one row there and as two cards here, and that is correct rather than
-a bug — but a design should not imply the two counts must match.
+**The items here are the invoice detail's items, and an order's quantity is a share
+of one.** Both screens show the vendor's items in the order written; the stored rows
+are one per order an item is on, which neither screen counts. A share an edit removes
+keeps the record of its variances: what was accepted on it stays on the invoice's log,
+ended by a `Cleared` entry rather than deleted.
 
 **`preview` is this screen's word for a value the server will recompute**, and it
 appears nowhere else in the app. If a redesign introduces live-calculated fields

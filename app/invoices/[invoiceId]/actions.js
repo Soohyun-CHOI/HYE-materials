@@ -5,7 +5,10 @@ import { redirect } from "next/navigation";
 import { requireUser, withAdminAction } from "@/lib/authz";
 import { base, TABLES, getLinkedRecords } from "@/lib/airtable/client";
 import { getInvoiceById, updateInvoice } from "@/lib/airtable/invoices";
-import { getItemsByInvoice, updateInvoiceItem } from "@/lib/airtable/invoiceItems";
+import { createInvoiceItem, getItemsByInvoice, updateInvoiceItem } from "@/lib/airtable/invoiceItems";
+import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
+import { editableShares, invoicePositions, planShareEdits } from "@/lib/invoiceSpread";
+import { getSpreadOrderedItems } from "@/lib/invoiceSpread.server";
 import { destroyInvoiceVarianceLogEntries } from "@/lib/airtable/invoiceVarianceLog";
 import {
     ACCEPTANCE_COPY,
@@ -15,7 +18,7 @@ import {
     isWholeCentPrice,
     isWholeQty,
 } from "@/lib/variance";
-import { acceptVariance, judgeInvoiceAgain } from "@/lib/variance.server";
+import { acceptVariance, judgeInvoiceAgain, recordInvoiceItemsRemoved } from "@/lib/variance.server";
 import { ITEMS_MISSING_COPY, invoiceItemsMissing } from "@/lib/invoiceItemsMissing";
 import { withOpsLabel } from "@/lib/airtableOps";
 
@@ -124,15 +127,19 @@ async function updateInvoiceHandler(prevState, formData) {
             invoiceTotal: parseFloat(invoiceTotal),
         });
         if (headerRefusal) return { error: headerRefusal };
+        // #660 — AN ITEM IS THE VENDOR'S, WITH A QUANTITY PER ORDER WHERE IT TAKES ONE. A share's
+        // quantity left blank is nothing, which removes it; what an item adds up to is checked
+        // below, once what it stands on is read.
         for (const item of items) {
-            if (!item.itemName || !item.qty || !item.unitPrice) {
+            if (!item.itemName || !item.unitPrice) {
                 return { error: "Every item needs a name, quantity, and unit price." };
             }
             // Issue #254 — the same refusal as `createInvoiceAction`'s, and this
             // screen needs it more: both figures are freely editable here, where the
             // create form at least freezes the price to the ordered item.
-            if (!isWholeQty(parseFloat(item.qty))) {
-                return { error: ITEM_PRECISION_COPY.qty };
+            for (const share of item.shares || []) {
+                const qty = share.qty === "" || share.qty == null ? 0 : parseFloat(share.qty);
+                if (!isWholeQty(qty)) return { error: ITEM_PRECISION_COPY.qty };
             }
             if (!isWholeCentPrice(parseFloat(item.unitPrice))) {
                 return { error: ITEM_PRECISION_COPY.unitPrice };
@@ -146,8 +153,8 @@ async function updateInvoiceHandler(prevState, formData) {
         // so a refusal read any later would already have changed the record it was
         // refusing to touch. The count costs NOTHING: `recordToInvoice` carries the
         // `Invoice Items` reverse-link, so it is on the record the line above just
-        // loaded — the `getItemsByInvoice` call further down is inside the try and
-        // is for the item edits, not for this.
+        // loaded — the `getItemsByInvoice` call further down is for the item edits'
+        // plan, not for this.
         //
         // A DIFFERENT FACT FROM `createInvoiceAction`'s, AND THEREFORE A DIFFERENT
         // SENTENCE. That one refuses a SUBMISSION with no rows and says
@@ -160,6 +167,43 @@ async function updateInvoiceHandler(prevState, formData) {
         // a figure an acceptance stands on. The gate above is the wrapper's; this reads the
         // person, as `createInvoiceAction` reads the recorder.
         const user = await requireUser();
+
+        // #660 — WHAT EACH ITEM STANDS ON, READ BEFORE ANY WRITE, and the writes planned from
+        // it: the invoice's items off the ids it carries, its orders, and their ordered items,
+        // so a quantity per order can only land on an ordered item of the item's own material
+        // at its own ordered price on one of this invoice's orders (`editableShares`). An item
+        // the form sent that is not one of this invoice's is ignored, never written — the rule
+        // this action always had for a row. An item left adding up to nothing is refused here,
+        // before the header is touched.
+        const existing = await getItemsByInvoice(invoice.id, { rowIds: invoice.invoiceItems || [] });
+        const poRecordIds = [...new Set(existing.map((it) => it.po?.[0]).filter(Boolean))];
+        const orders = await Promise.all(poRecordIds.map((id) => getPOByRecordId(id)));
+        const orderedItems = await getSpreadOrderedItems(orders);
+        const orderedItemById = new Map(orderedItems.map((o) => [o.id, o]));
+        const thisInvoiceOn = new Map();
+        for (const it of existing) {
+            const id = it.poItem?.[0];
+            if (id) thisInvoiceOn.set(id, (thisInvoiceOn.get(id) || 0) + (it.qty || 0));
+        }
+        const positions = new Map(invoicePositions({ items: existing, orderedItemById }).map((p) => [p.key, p]));
+        const nextPosition =
+            Math.max(0, ...existing.map((it) => (typeof it.position === "number" ? it.position : 0))) + 1;
+        const plans = [];
+        for (const item of items) {
+            const position = positions.get(item.key);
+            if (!position) continue;
+            const candidates = editableShares({ position, orderedItems, thisInvoiceOn }).map((e) => e.orderedItem.id);
+            const plan = planShareEdits({
+                existing: position.shares.map((s) => ({ id: s.id, orderedItemId: s.orderedItem?.id ?? null, qty: s.qty })),
+                candidates,
+                submitted: item.shares,
+            });
+            if (plan.total <= 0) return { error: "Every item needs a name, quantity, and unit price." };
+            // A row made by hand holds no `Position`; a share added beside it takes a number,
+            // and so does the row, or the two would read back as two items.
+            const number = position.position ?? (plan.creates.length > 0 ? nextPosition + plans.length : null);
+            plans.push({ item, position, plan, number });
+        }
 
         try {
             await updateInvoice(invoice.id, {
@@ -175,19 +219,51 @@ async function updateInvoiceHandler(prevState, formData) {
                 salesTax: salesTax ? parseFloat(salesTax) : null,
             });
 
-            // Apply item-value edits, but only to items that actually belong to
-            // this invoice — a submitted id for some other invoice's item (or a
-            // forged one) is ignored, never blindly written.
-            const existing = await getItemsByInvoice(invoice.id);
-            const ownIds = new Set(existing.map((i) => i.id));
-            for (const item of items) {
-                if (!ownIds.has(item.id)) continue;
-                await updateInvoiceItem(item.id, {
-                    itemName: item.itemName,
-                    qty: parseFloat(item.qty),
-                    unitPrice: parseFloat(item.unitPrice),
-                    remark: item.remark || "",
-                });
+            // Apply each item's edits to its own invoice items: every share it keeps takes the
+            // item's name, unit price and remark with its own quantity; a share it gains is made
+            // on that ordered item with the ordered item's frozen size, maker and unit (#84); a
+            // share it loses goes, its variances' record ended first and kept.
+            for (const { item, position, plan, number } of plans) {
+                const unitPrice = parseFloat(item.unitPrice);
+                const remark = item.remark || "";
+                for (const update of plan.updates) {
+                    await updateInvoiceItem(update.id, {
+                        itemName: item.itemName,
+                        qty: update.qty,
+                        unitPrice,
+                        remark,
+                        ...(position.position == null && number != null ? { position: number } : {}),
+                    });
+                }
+                for (const create of plan.creates) {
+                    const orderedItem = orderedItemById.get(create.orderedItemId);
+                    await createInvoiceItem({
+                        invoiceRecordId: invoice.id,
+                        invoiceId: invoice.invoiceId,
+                        poRecordId: orderedItem.poRecordId,
+                        poItemRecordId: orderedItem.id,
+                        itemName: item.itemName,
+                        size: orderedItem.size,
+                        maker: orderedItem.maker,
+                        unit: orderedItem.unit,
+                        qty: create.qty,
+                        unitPrice,
+                        remark,
+                        position: number,
+                    });
+                }
+                if (plan.removes.length > 0) {
+                    // #660 — THE INVOICE STANDS, SO WHAT WAS DECIDED ABOUT THE ITEM STANDS: each
+                    // variance the log follows on it ends in a `Cleared` row before it goes, and
+                    // its rows stay, their `Invoice Item` link emptied by the destroy.
+                    await recordInvoiceItemsRemoved({
+                        invoice,
+                        items: existing.filter((it) => plan.removes.includes(it.id)),
+                        orderedItemById,
+                        recordedByUserId: user.id,
+                    });
+                    for (const id of plan.removes) await base(TABLES.INVOICE_ITEMS).destroy([id]);
+                }
             }
 
             // Judge every variance again AFTER the edits land (set AND clear, unlike
@@ -205,10 +281,13 @@ async function updateInvoiceHandler(prevState, formData) {
             await judgeInvoiceAgain({ invoiceRecordId: invoice.id, recordedByUserId: user.id });
         } catch (err) {
             // No cross-table transaction: a mid-failure may leave some fields
-            // updated and others not, but the invoice stays structurally valid
-            // (no orphaned/duplicated children — this only writes existing
-            // records) and a re-submit reconciles it. The final variance pass
-            // above keeps the flag consistent with whatever landed on success.
+            // updated and others not. Since #660 a save also makes and removes
+            // invoice items, so a failure can leave an item with a share made and
+            // another not yet moved; every row it leaves names an ordered item of
+            // the item's own choice, so the invoice reads as one quantity per order
+            // the office can see and correct, and a re-submit of the same form
+            // plans against what landed. The final variance pass above keeps the
+            // flags consistent with whatever landed on success.
             console.error("updateInvoiceAction failed", err);
             return { error: "Something went wrong updating the invoice. Please try again." };
         }

@@ -653,10 +653,11 @@ matcher rather than about their standing.** `Purchase order PDF` and
 other constants, so a pin on one would go on passing after the viewer stopped
 saying it — the reason `Paid` is not pinned either.
 
-### Items (tier 1, `lib/prItemMerge.js`, `lib/invoiceOrderBreakdown.js`)
+### Items (tier 1, `lib/prItemMerge.js`, `lib/invoiceSpread.js`)
 
 `N items repeat an item above them — each will be saved into that item, with the
-quantities added.` (#170) and the per-order breakdown line (#237).
+quantities added.` (#170), and the sentence under an invoice's item whose quantity
+runs past what its orders have uninvoiced (`INVOICE_SPREAD_COPY.over`, #660).
 
 ### Withdrawal and deletion (tier 2)
 

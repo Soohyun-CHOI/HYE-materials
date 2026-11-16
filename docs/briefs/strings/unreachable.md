@@ -124,9 +124,9 @@ deciding to remove it.
   **`Couldn't delete the invoice. Please try again.`** — need Airtable to fail.
 - **`Invoice File`** — not a refusal but the same class: the link's fallback text,
   used when an attachment carries no filename, and every upload path sends one.
-- **`That item`** — `lib/invoiceOrderBreakdown.js`'s fallback for an invoice item
-  with neither an item name nor a size; an item name is required on every write
-  path.
+- **`That item`** — `INVOICE_SPREAD_COPY.choice`'s fallback for a choice whose
+  ordered items carry neither an item name nor a size; an ordered item takes its
+  name from its category on every write path.
 
 ## `/deliveries/new`
 

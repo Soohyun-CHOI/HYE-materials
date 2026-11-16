@@ -9,8 +9,8 @@ Nothing about existing data — it is a create form. Its job is to get a vendor'
 paper invoice into the system **item by item against the orders it names**, which
 is the reconciliation the whole app exists to make possible. This is the most
 complex form in the app by a wide margin, and almost all of that complexity is one
-thing: an invoice can charge more than one order, and each of its items has to be
-matched to a specific ordered item.
+thing: an invoice can charge more than one order, and each of its items is entered
+as the vendor wrote it and spread over the ordered items of the orders it names.
 
 The reader is holding the vendor's document. Everything on the form is a
 transcription of something printed on it, plus the app's attempt to guess which
@@ -88,11 +88,23 @@ still uninvoiced. On, the slot gets a search box with the placeholder
 `Search all POs by number...`, which can reach any order including fully invoiced
 ones.
 
-**action — `Items`.** One row per invoice item: the ordered item chosen from a dropdown
-scoped to the slots' orders, then quantity, unit price, and a remark. The ordered
-item dropdown is sorted so that items with something still uninvoiced come first,
-and **each option carries that quantity** — the item's name, its size, its maker
-after a comma where the order named one, and `(Uninvoiced: N)`.
+**action — `Items`.** One row per item as the vendor wrote it: a choice from a
+dropdown of the slots' orders' materials, then quantity and unit price, and **no
+order** — the row never asks which order an item is on. The dropdown offers **one
+entry per material at one ordered price across every slot's order**, so a material
+ordered on two orders at one price is one entry; entries with something still
+uninvoiced come first, and **each carries what is uninvoiced on all of it** — the
+item's name, its size, its maker after a comma where the order named one, and
+`(Uninvoiced: N)`. **Where a material stands at two ordered prices, each of its
+entries also names its orders and its price** (`INVOICE_SPREAD_COPY.choice`), and
+that is the one case the office enters an item per order. No row's list is narrowed
+by another's: a vendor can write one material twice.
+
+**The save spreads each item and the screen does not show the spread.** Oldest order
+first, each ordered item up to what it has uninvoiced, what is left on the last one —
+where it reads as a `Quantity variance` on the invoice. One thing about it is said
+here, under the item: a quantity past what its entry has uninvoiced
+(`INVOICE_SPREAD_COPY.over`).
 
 **The rows are a growable list.** A `+ Add item` control appends one, and every
 row carries a `Remove` once there are two or more. Each row states its own
@@ -199,7 +211,7 @@ warning. They must stay distinguishable from each other:
   was still selected, because an invoice can be recorded against an unsigned
   order. The wording is the app's shared unsigned-order copy, not this form's.
 - an order found with nothing left uninvoiced.
-- several orders found: one item row is scaffolded per order.
+- several orders found: the one row stands, since an item is spread over every order.
 - **orders found belonging to two different vendors** — a warning, because
   nothing can be auto-applied and the reader has to pick.
 - **a PO-shaped string found that matches no order** — a warning naming what was
@@ -255,20 +267,21 @@ reader actually states, which is why both terms are hidden by default here and
 both are always visible on the edit screen. The two conventions differ on
 purpose; neither is drifting toward the other.
 
-**When a row has an ordered item matched to it:** its unit price is **locked** to
-the ordered item's own figure, with an `Edit` control beside the field that opens
+**When a row has an entry chosen:** its unit price is **locked** to the entry's
+ordered price, with an `Edit` control beside the field that opens
 it and a `Cancel` that reverts it and clears whatever remark was written for the
 edit. A price is not freely typed on a matched row, and the two controls are a
 per-row affordance a design has to place.
 
-**When a row's quantity exceeds what its ordered item has left uninvoiced:** an
-amber line under the row naming both figures and saying it is not blocked but
-worth a note. A caution rather than a refusal.
+**When a row's quantity exceeds what its entry has left uninvoiced:** one amber line
+under the row, `INVOICE_SPREAD_COPY.over` — how much over and how much was left, or
+that nothing was, and that it will show as a `Quantity variance`. A caution rather
+than a refusal, and the only thing the screen says about the spread.
 
-**When an item differs from what its order agreed:** the remark field is where
-the reader says why, and its placeholder says so — `Remark — why this differs from
-the PO`. The field appears when the price lock is open or the quantity exceeds
-what is uninvoiced; the placeholder is what names its purpose.
+**When an item's price differs from what its order agreed:** the remark field is
+where the reader says why, and its placeholder says so — `Remark — why this differs
+from the PO`. The field appears when the price lock is open; the placeholder is
+what names its purpose.
 
 **A free-text item, with no ordered item behind it, does not exist (#278).** It
 was hidden behind a flag in this file with its backend path left open, so a
@@ -277,21 +290,13 @@ every branch that described the result are gone. Only a purchase request takes
 typed items. **A second box survived that removal and went in #272**: the one a
 row showed before its own order was picked, which the header reaches whenever it
 holds two orders. **Nothing on this screen types an item name.** Every invoice
-item takes its name from the ordered item it is matched to, and a row that cannot
-be matched yet says which choice is missing instead of offering a box.
-
-**When a row's purchase order has no ordered item left to pick:** the row says so
-in amber, in two sentences — `This invoice already charges every ordered item on
-this purchase order.` and then the two ways out, a different order or removing the
-row. One ordered item belongs to one item of one invoice (#91), so a second row on
-an exhausted order has nothing to choose, and this is where a reader is told
-rather than refused on submit. **The two sentences are two on purpose (#303):**
-each names one kind of item row, which is what lets the second say `this item`
-without a reader having to work out which table it means.
+item takes its name from the ordered items of its entry, and a row before any
+order is chosen says which choice is missing instead of offering a box. **No row
+can run out of entries**, since no row's list is narrowed by another's, so there is
+no sentence for a row with nothing left to pick.
 
 **The refusal behind it is `Every invoice item needs an ordered item from its PO.`,
-and it is the only one of this action's fourteen submit refusals a reader can
-reach.** It carries both modifiers because it names a row of two tables in one
+and it is the only one of this action's submit refusals a reader can reach.** It carries both modifiers because it names a row of two tables in one
 sentence, which no restructuring avoids — the fact it states IS the relation
 between them (#303).
 Every other is pre-empted by a `required` control or by the submit button being

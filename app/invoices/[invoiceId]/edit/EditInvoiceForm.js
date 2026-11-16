@@ -3,7 +3,8 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { updateInvoiceAction } from "../actions";
-import { ACCEPTANCE_COPY, ITEM_VARIANCE_KINDS, VARIANCE_COPY, varianceState } from "@/lib/variance";
+import { ACCEPTANCE_COPY, ITEM_VARIANCE_KINDS, VARIANCE_COPY } from "@/lib/variance";
+import { INVOICE_SPREAD_COPY } from "@/lib/invoiceSpread";
 
 const inputClass =
     "rounded border border-zinc-300 px-2 py-1";
@@ -11,26 +12,32 @@ const fieldClass =
     "mt-1 w-full rounded border border-zinc-300 px-3 py-2 disabled:opacity-50";
 
 // Issue #117 Tier 1 — edit an invoice's header fields and the VALUES of its
-// existing invoice items. Size/Maker/Unit are frozen copies from the linked PO Item
-// (reference-only, shown disabled), and the PO/PO Item links, plus
-// adding/removing invoice items, are out of scope here (delete + recreate for those).
-export default function EditInvoiceForm({ invoice, items: initialItems, vendors }) {
+// existing items. Size/Maker/Unit are frozen copies from the linked PO Item
+// (reference-only, shown disabled), and adding/removing items is out of scope here
+// (delete + recreate for those).
+//
+// #660 — AN ITEM IS THE VENDOR'S AS IT WAS WRITTEN, AND ONE ON MORE THAN ONE ORDER TAKES A
+// QUANTITY PER ORDER. The page hands down each item (`Invoice Items."Position"`) with a share
+// per ordered item it may be spread over — its material at its ordered price, on the invoice's
+// orders (`lib/invoiceSpread.js:editableShares`) — so the office can move quantity between
+// orders, or onto one the save spread nothing to. A share set to nothing is removed on save
+// and a share given a quantity is made; the name, the unit price and the remark are the
+// item's, written on every share. `updateInvoiceAction` plans the writes with
+// `planShareEdits` against what it reads, so this form's figures are a request.
+export default function EditInvoiceForm({ invoice, positions, vendors }) {
     const [state, formAction, pending] = useActionState(updateInvoiceAction, null);
 
     const [items, setItems] = useState(
-        initialItems.map((it) => ({
-            id: it.id,
-            itemName: it.itemName ?? "",
-            size: it.size ?? "",
-            maker: it.maker ?? "",
-            unit: it.unit ?? "",
-            qty: it.qty ?? "",
-            unitPrice: it.unitPrice ?? "",
-            remark: it.remark ?? "",
-            poId: it.poId || "—",
-            // #648 — each kind open or accepted, as the record holds it when the form opens.
-            priceVariance: varianceState(it, "price"),
-            quantityVariance: varianceState(it, "quantity"),
+        positions.map((p) => ({
+            key: p.key,
+            itemName: p.itemName ?? "",
+            size: p.size ?? "",
+            maker: p.maker ?? "",
+            unit: p.unit ?? "",
+            unitPrice: p.unitPrice ?? "",
+            remark: p.remark ?? "",
+            perOrder: p.perOrder,
+            shares: p.shares.map((s) => ({ ...s, qty: s.qty ?? 0 })),
         }))
     );
 
@@ -38,10 +45,18 @@ export default function EditInvoiceForm({ invoice, items: initialItems, vendors 
         setItems((prev) => prev.map((it, i) => (i === index ? { ...it, [field]: value } : it)));
     }
 
-    const itemsSubtotal = items.reduce(
-        (sum, it) => sum + (parseFloat(it.qty) || 0) * (parseFloat(it.unitPrice) || 0),
-        0
-    );
+    function updateShare(index, shareIndex, value) {
+        setItems((prev) =>
+            prev.map((it, i) =>
+                i === index
+                    ? { ...it, shares: it.shares.map((s, j) => (j === shareIndex ? { ...s, qty: value } : s)) }
+                    : it
+            )
+        );
+    }
+
+    const totalOf = (it) => it.shares.reduce((sum, s) => sum + (parseFloat(s.qty) || 0), 0);
+    const itemsSubtotal = items.reduce((sum, it) => sum + totalOf(it) * (parseFloat(it.unitPrice) || 0), 0);
 
     return (
         <form action={formAction} className="mt-6 space-y-8">
@@ -189,15 +204,13 @@ export default function EditInvoiceForm({ invoice, items: initialItems, vendors 
 
             <div>
                 <h2 className="text-lg font-semibold">Items</h2>
-                <p className="text-sm text-zinc-600">
-                    Edit item values. Size/Maker/Unit and the linked PO are fixed here — to change an
-                    item&apos;s PO or add/remove items, delete and recreate the invoice.
-                </p>
+                <p className="text-sm text-zinc-600">{INVOICE_SPREAD_COPY.editIntro}</p>
                 <div className="mt-2 space-y-3">
                     {items.map((it, i) => {
-                        const amount = (parseFloat(it.qty) || 0) * (parseFloat(it.unitPrice) || 0);
+                        const total = totalOf(it);
+                        const amount = total * (parseFloat(it.unitPrice) || 0);
                         return (
-                            <div key={it.id} className="rounded border border-zinc-300 p-3">
+                            <div key={it.key} className="rounded border border-zinc-300 p-3">
                                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                                     <input
                                         placeholder="Item Name"
@@ -224,14 +237,16 @@ export default function EditInvoiceForm({ invoice, items: initialItems, vendors 
                                         placeholder="Unit"
                                         className={`${inputClass} opacity-60`}
                                     />
-                                    <input
-                                        type="number"
-                                        placeholder="Qty"
-                                        required
-                                        value={it.qty}
-                                        onChange={(e) => updateItem(i, "qty", e.target.value)}
-                                        className={inputClass}
-                                    />
+                                    {!it.perOrder && (
+                                        <input
+                                            type="number"
+                                            placeholder="Qty"
+                                            required
+                                            value={it.shares[0]?.qty ?? ""}
+                                            onChange={(e) => updateShare(i, 0, e.target.value)}
+                                            className={inputClass}
+                                        />
+                                    )}
                                     <input
                                         type="number"
                                         step="0.01"
@@ -248,30 +263,45 @@ export default function EditInvoiceForm({ invoice, items: initialItems, vendors 
                                         className={inputClass}
                                     />
                                 </div>
+                                {/* #660 — A QUANTITY PER ORDER, each with what is uninvoiced on it
+                                    apart from this invoice, and the item's total under them. An
+                                    order at nothing is one this item will not charge once saved. */}
+                                {it.perOrder && (
+                                    <div className="mt-2 space-y-1">
+                                        {it.shares.map((s, j) => (
+                                            <div key={s.invoiceItemId || s.orderedItemId || j} className="flex flex-wrap items-center gap-2 text-sm">
+                                                <label
+                                                    htmlFor={`share-${i}-${j}`}
+                                                    className="w-44 shrink-0 text-zinc-600"
+                                                >
+                                                    {s.poId || "—"}
+                                                </label>
+                                                <input
+                                                    id={`share-${i}-${j}`}
+                                                    type="number"
+                                                    min="0"
+                                                    value={s.qty}
+                                                    onChange={(e) => updateShare(i, j, e.target.value)}
+                                                    className={`${inputClass} w-24`}
+                                                />
+                                                {s.uninvoiced != null && (
+                                                    <span className="text-xs text-zinc-500">
+                                                        {INVOICE_SPREAD_COPY.uninvoiced(s.uninvoiced, it.unit)}
+                                                    </span>
+                                                )}
+                                                <VarianceBadges share={s} />
+                                            </div>
+                                        ))}
+                                        <p className="text-sm text-zinc-600">{INVOICE_SPREAD_COPY.total(total, it.unit)}</p>
+                                    </div>
+                                )}
                                 <div className="mt-2 flex items-center justify-between text-sm text-zinc-600">
                                     <span>
-                                        PO: {it.poId}
-                                        {/* #648 — an accepted variance reads as accepted here
-                                            too, and says what a save will do to it: a changed
-                                            quantity or unit price is a changed figure it was
-                                            accepted on. */}
-                                        {ITEM_VARIANCE_KINDS.map((kind) => {
-                                            const state = it[`${kind}Variance`];
-                                            if (!state) return null;
-                                            const accepted = state === "accepted";
-                                            return (
-                                                <span
-                                                    key={kind}
-                                                    className={`ml-2 rounded px-1 text-xs ${
-                                                        accepted ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                                                    }`}
-                                                >
-                                                    {accepted ? ACCEPTANCE_COPY.badge[kind] : VARIANCE_COPY[kind]}
-                                                </span>
-                                            );
-                                        })}
-                                        {ITEM_VARIANCE_KINDS.some((kind) => it[`${kind}Variance`] === "accepted") && (
-                                            <span className="block text-xs text-zinc-500">{ACCEPTANCE_COPY.editNote}</span>
+                                        {!it.perOrder && (
+                                            <>
+                                                PO: {it.shares[0]?.poId || "—"}
+                                                <VarianceBadges share={it.shares[0]} />
+                                            </>
                                         )}
                                     </span>
                                     <span>Amount (preview): {amount.toFixed(2)}</span>
@@ -291,11 +321,15 @@ export default function EditInvoiceForm({ invoice, items: initialItems, vendors 
                 name="itemsJson"
                 value={JSON.stringify(
                     items.map((it) => ({
-                        id: it.id,
+                        key: it.key,
                         itemName: it.itemName,
-                        qty: it.qty,
                         unitPrice: it.unitPrice,
                         remark: it.remark,
+                        shares: it.shares.map((s) => ({
+                            invoiceItemId: s.invoiceItemId || null,
+                            orderedItemId: s.orderedItemId || null,
+                            qty: s.qty,
+                        })),
                     }))
                 )}
             />
@@ -313,5 +347,34 @@ export default function EditInvoiceForm({ invoice, items: initialItems, vendors 
                 </Link>
             </div>
         </form>
+    );
+}
+
+// #648 — an accepted variance reads as accepted here too, and says what a save will do to it:
+// a changed quantity or unit price is a changed figure it was accepted on. #660 — one share's,
+// beside its order's quantity where the item takes one per order.
+function VarianceBadges({ share }) {
+    if (!share) return null;
+    const kinds = ITEM_VARIANCE_KINDS.filter((kind) => share[`${kind}Variance`]);
+    if (kinds.length === 0) return null;
+    return (
+        <>
+            {kinds.map((kind) => {
+                const accepted = share[`${kind}Variance`] === "accepted";
+                return (
+                    <span
+                        key={kind}
+                        className={`ml-2 rounded px-1 text-xs ${
+                            accepted ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                        }`}
+                    >
+                        {accepted ? ACCEPTANCE_COPY.badge[kind] : VARIANCE_COPY[kind]}
+                    </span>
+                );
+            })}
+            {kinds.some((kind) => share[`${kind}Variance`] === "accepted") && (
+                <span className="block text-xs text-zinc-500">{ACCEPTANCE_COPY.editNote}</span>
+            )}
+        </>
     );
 }

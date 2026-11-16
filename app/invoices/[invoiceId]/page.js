@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import FileViewer from "@/app/components/FileViewer";
 import { requireUser } from "@/lib/authz";
@@ -19,7 +20,8 @@ import { invoiceDeliveryEntries } from "@/lib/invoiceDeliveryEntries";
 import { itemLabel } from "@/lib/materialIdentity";
 // #330 — one fact, one sentence, shared with `updateInvoiceAction`'s refusal.
 import { ITEMS_MISSING_COPY, invoiceItemsMissing } from "@/lib/invoiceItemsMissing";
-import { ORDER_BREAKDOWN_COPY, chargesByOrder } from "@/lib/invoiceOrderBreakdown";
+// #660 — the items as the vendor wrote them, each with a share per order where it spans two.
+import { invoicePositions, namesOrder, orderNaming } from "@/lib/invoiceSpread";
 // #309 — the WALK only. This page loads the invoice items it renders anyway, so it
 // never had a use for `seesEveryInvoice`'s cost shortcut; it imported the helper to
 // gate the Payment section, and payment no longer has a gate.
@@ -180,12 +182,12 @@ async function renderInvoiceDetailPage({ params }) {
     // read again. The rule is lib/deliveryStatus.js.
     const reconciliation = await getInvoiceReconciliation(items);
 
-    // Issue #167 — fold the rows an overage split produced back into one, so the
-    // table still reads line-for-line against the vendor's PDF. The key is #18's
+    // Issue #167 — fold the rows of one material at one price into one, keyed on #18's
     // Material link plus the unit price (lib/invoiceItemFold.js); the material comes
     // from the reconciliation, which already holds every invoice item's ordered
-    // item, so folding costs no query. Nothing folds on an invoice no correction
-    // touched.
+    // item, so folding costs no query. Since #660 the fold is the DELIVERY section's
+    // alone: its question is whether a material arrived, one answer per material, while
+    // the items table draws the items as the vendor wrote them (`invoicePositions`).
     const materialByOrderedItem = new Map(
         reconciliation.rows.map((r) => [r.invoiceItemId, r.materialRecordId])
     );
@@ -193,22 +195,56 @@ async function renderInvoiceDetailPage({ params }) {
         items.map((it) => ({ ...it, materialRecordId: materialByOrderedItem.get(it.invoiceItemId) ?? null }))
     );
 
-    // Issue #237 — which order each item was invoiced against, for the `Purchase Orders`
-    // section below, and only where the folded items disagree about that. Reads the
-    // fold's `rowIds` against the invoice items already loaded, so it costs no query:
-    // an Invoice Item carries its own `PO` and `PO Item`, and the order records are the
-    // ones that section already renders. The rule is lib/invoiceOrderBreakdown.js.
-    //
-    // Issue #408 — and what each of those charges was measured against. The ordered
-    // quantities come off the reconciliation, which read `PO Items` to compare
-    // quantities and now hands the level back, so the denominator costs NO operation
-    // and no extra field: `findByRecordIds` passes no `fields`, so `Qty` was already
-    // on the records this page had (lib/airtable/poItems.js says so of its own).
-    const orderBreakdown = chargesByOrder({
-        folded: foldedItems,
-        items,
-        orderedQtyByOrderedItem: reconciliation.orderedQtyByOrderedItem,
-    });
+    // Issue #660 — THE ITEMS AS THE VENDOR WROTE THEM, which is what the items table draws:
+    // one row per `Position`, in that order, and under an item spread over two orders a row
+    // per share. Every figure comes off records this page already holds — the shares' ordered
+    // items off the reconciliation's `PO Items` level, their orders off `poRecords` — so the
+    // table costs no query. #237's list of each item's charges under the orders, and #408's
+    // ordered quantity on each, stood in the `Purchase Orders` section until this: the shares
+    // say which order each item is on, and a variance's figures what it was measured against,
+    // so the list said one thing twice and went.
+    const poById = new Map(poRecords.map((po) => [po.id, po]));
+    const orderedItemById = new Map(
+        reconciliation.orderedItems.map((p) => {
+            const po = poById.get(p.po?.[0]);
+            return [
+                p.id,
+                { ...p, poRecordId: po?.id ?? p.po?.[0] ?? null, poId: po?.poId ?? null, poCreatedDate: po?.createdDate ?? null },
+            ];
+        })
+    );
+    const positions = invoicePositions({ items, orderedItemById });
+    const naming = orderNaming({ positions, orders: poRecords });
+    // What this invoice charges each ordered item, over all its items — the bracketed part of
+    // a quantity variance's `Invoiced`, which is the ordered item's `Invoiced Qty`, every
+    // invoice on it.
+    const thisInvoiceOn = new Map();
+    for (const it of items) {
+        const id = it.poItem?.[0];
+        if (id) thisInvoiceOn.set(id, (thisInvoiceOn.get(id) || 0) + (it.qty || 0));
+    }
+    const figuresFor = (kind, share) => {
+        const o = share.orderedItem;
+        if (!o) return null;
+        if (kind === "price") return VARIANCE_COPY.priceFigures(formatUSD(o.unitPrice), formatUSD(share.unitPrice));
+        const mine = thisInvoiceOn.get(o.id) || 0;
+        // Never below this invoice's own, which a rollup read before its write could show.
+        return VARIANCE_COPY.quantityFigures({
+            ordered: o.qty ?? 0,
+            invoiced: Math.max(o.invoicedQty || 0, mine),
+            thisInvoice: mine,
+        });
+    };
+    // What carries a variance: an item on one order, or each share of one on two — where the
+    // badge, its figures and `Accept` are drawn, and what the payment check names.
+    const varianceRows = positions.flatMap((p) =>
+        (p.split ? p.shares : p.shares.slice(0, 1)).map((share) => ({
+            key: share.id,
+            label: `${itemLabel(p) || p.itemName}${namesOrder(naming, p) && share.poId ? ` · ${share.poId}` : ""}`,
+            priceVariance: share.priceVariance,
+            quantityVariance: share.quantityVariance,
+        }))
+    );
 
     // Issue #241 — the delivery section's rows, one per FOLDED item rather than one
     // per invoice item, so what counts as one material is decided once for this page.
@@ -227,7 +263,7 @@ async function renderInvoiceDetailPage({ params }) {
     // totals, and the two used to be one condition here, which printed that fact twice
     // on one page. #648 — an OPEN one: a variance an Admin has accepted is settled, and the
     // prompt asks a reader to take up something nobody has.
-    const hasItemVariance = foldedItems.some((it) =>
+    const hasItemVariance = varianceRows.some((it) =>
         ITEM_VARIANCE_KINDS.some((kind) => it[`${kind}Variance`] === "open")
     );
     const file = invoice.file?.[0];
@@ -375,32 +411,11 @@ async function renderInvoiceDetailPage({ params }) {
                 )}
             </div>
 
-            {/* Issue #237 — THE ITEMS HANG UNDER THE ORDERS HERE, AND ONLY WHERE THE
-                FOLDED ITEMS DISAGREE ABOUT WHICH ORDERS THEY TOUCH. #167 took the `PO`
-                column off the items table because a folded row spans two orders and
-                left the question with the delivery section; #232 scoped that section to
-                one delivery, where an order is not a fact. This is the section whose
-                subject IS an order, so it is the answer's third and last home.
-
-                THE NESTING IS #233's, DELIBERATELY UNCHANGED: the parent row is the
-                document's identity and its own facts, the child list is the pair facts
-                in smaller gray text at `pl-4`. `/pos/[poId]` puts an invoice's charges
-                under the invoice the same way, so a reader crossing between the two
-                screens meets one grammar rather than two. What differs is the price —
-                see lib/invoiceOrderBreakdown.js for why a line here carries only the
-                quantity.
-
-                AN ORDER WITH NO CHILD ROW IS NOT A BUG. It is reached only through an
-                item with no ordered item behind it, which names no order; the order is
-                still charged, so it keeps its row, and the empty space under it is the
-                honest answer. The section's OWN list is unchanged — it comes from every
-                item's `PO`, free-text ones included.
-
-                THE SECTION STAYS ABOVE THE ITEMS TABLE, so these names precede the
-                table they mirror. Moving it below would be a change to a layout this
-                issue was not asked to redraw, and the list appears only in the
-                ambiguous case; its subject is the order, which is what this position
-                already says. */}
+            {/* THE ORDERS THIS INVOICE CHARGES, from its items' `PO` links. Until #660 each
+                order carried the charges of every item invoiced against it (#237), with what
+                the order asked for (#408), where the items disagreed about their orders; the
+                items table below names an item's order on the item itself now, by
+                `orderNaming`'s three answers, so this is the list of orders and no more. */}
             {/* #330 — THE HEADING GOES WITH THE LIST, because the one state that
                 empties this section is the one the Items section now speaks for.
                 `poRecords` is derived from the invoice items, so an invoice whose
@@ -419,33 +434,19 @@ async function renderInvoiceDetailPage({ params }) {
                     absence is stated once, where the rows would be, and this section
                     is simply not drawn. */}
                 {poRecords.length > 0 && (
-                    <ul className={`mt-2 text-sm ${orderBreakdown.shown ? "space-y-2" : "space-y-1"}`}>
-                        {poRecords.map((po) => {
-                            const charges = orderBreakdown.shown
-                                ? orderBreakdown.byOrder.get(po.id) ?? []
-                                : [];
-                            return (
-                                <li key={po.id}>
-                                    <p className="flex flex-wrap items-center gap-x-2">
-                                        <Link href={`/pos/${po.poId}`} className="underline">
-                                            {po.poId}
-                                        </Link>
-                                        <span>
-                                            — <strong>{po.status}</strong>
-                                        </span>
-                                    </p>
-                                    {charges.length > 0 && (
-                                        <ul className="mt-0.5 pl-4 text-xs text-zinc-500">
-                                            {charges.map((b) => (
-                                                <li key={b.key}>
-                                                    {ORDER_BREAKDOWN_COPY.charged(b).text}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                </li>
-                            );
-                        })}
+                    <ul className="mt-2 space-y-1 text-sm">
+                        {poRecords.map((po) => (
+                            <li key={po.id}>
+                                <p className="flex flex-wrap items-center gap-x-2">
+                                    <Link href={`/pos/${po.poId}`} className="underline">
+                                        {po.poId}
+                                    </Link>
+                                    <span>
+                                        — <strong>{po.status}</strong>
+                                    </span>
+                                </p>
+                            </li>
+                        ))}
                     </ul>
                 )}
             </div>
@@ -457,11 +458,10 @@ async function renderInvoiceDetailPage({ params }) {
                     A row an overage split produced spans two orders once folded, so
                     there is no single value for that cell: it is unrepresentable
                     rather than merely inconvenient. The order did not disappear from
-                    the page: #167 put it in the Delivery section's per-ordered-item
-                    boxes, and since #237 it is the `Purchase Orders` section above,
-                    which names the order each folded item was charged against where
-                    the items disagree about it. This said the Delivery section was
-                    one box per ordered item until #640 — false since #241 folded it. */}
+                    the page: since #660 an item spread over two orders carries a row
+                    per order under it, and an item names its order where
+                    `orderNaming` says the reader needs it — the column is still
+                    unrepresentable, and the answer is on the rows instead. */}
                 {/* #330 — THE SENTENCE REPLACES THE WHOLE TABLE, heads and totals
                     footer included, and that is the decision rather than a detail.
                     An empty `tbody` under eight column heads reads as an invoice that
@@ -498,49 +498,70 @@ async function renderInvoiceDetailPage({ params }) {
                         </tr>
                     </thead>
                     <tbody>
-                        {foldedItems.map((it) => (
-                            <tr key={it.key} className="border-t border-zinc-200">
-                                <td className="py-1 pr-2">
-                                    {it.itemName}
-                                    {/* #623 — `Price variance` and `Quantity variance`,
-                                        one badge each, since the two are stored apart:
-                                        the unit price against the order's, and what
-                                        every invoice has charged against this ordered
-                                        item against what it ordered. Each badge names
-                                        its cause now, which the one `Order variance`
-                                        flag #179 drew could not. What each was compared
-                                        against is on the order's own page, beside the
-                                        quantity and the price (#233).
-
-                                        #648 — EACH ONE OPEN OR ACCEPTED, and an Admin may
-                                        accept an open one with a reason beside it. A folded
-                                        row's state and its `Accept` cover every member
-                                        carrying that kind; the action writes only those
-                                        still open. */}
-                                    {ITEM_VARIANCE_KINDS.map((kind) => {
-                                        const state = it[`${kind}Variance`];
-                                        return state ? (
-                                            <VarianceMark
-                                                key={kind}
-                                                kind={kind}
-                                                state={state}
-                                                invoiceId={invoice.invoiceId}
-                                                itemRecordIds={it.rowIds}
-                                                note={noteFor(kind, it.rowIds, state)}
-                                                canAccept={user.isAdmin}
-                                            />
-                                        ) : null;
-                                    })}
-                                </td>
-                                <td className="py-1 pr-2">{it.size}</td>
-                                <td className="py-1 pr-2">{it.maker}</td>
-                                <td className="py-1 pr-2">{it.unit}</td>
-                                <td className="py-1 pr-2 text-right">{it.qty}</td>
-                                <td className="py-1 pr-2 text-right">{formatUSD(it.unitPrice)}</td>
-                                <td className="py-1 pr-2 text-right">{formatUSD(it.amount)}</td>
-                                <td className="py-1 pr-2">{it.remark}</td>
-                            </tr>
-                        ))}
+                        {/* #660 — AN ITEM AS THE VENDOR WROTE IT, in the order written, and never
+                            grouped by order. An item spread over two orders is its total row and
+                            a row per share under it, in the order the spread filled them; the
+                            share is what carries a variance, so its badge, the two or three
+                            figures the variance compared and `Accept` sit on its row. An item on
+                            one order carries them on its own row, as every item did before.
+                            Where an item names its order is `orderNaming`'s: nowhere on an
+                            invoice of one order, on the shares alone where every item has one on
+                            the oldest order, and on every item where some item does not. */}
+                        {positions.map((p) => {
+                            const marks = (share) =>
+                                ITEM_VARIANCE_KINDS.map((kind) => {
+                                    const state = share[`${kind}Variance`];
+                                    return state ? (
+                                        <VarianceMark
+                                            key={kind}
+                                            kind={kind}
+                                            state={state}
+                                            invoiceId={invoice.invoiceId}
+                                            itemRecordIds={[share.id]}
+                                            note={noteFor(kind, [share.id], state)}
+                                            canAccept={user.isAdmin}
+                                            figures={figuresFor(kind, share)}
+                                        />
+                                    ) : null;
+                                });
+                            const named = namesOrder(naming, p);
+                            return (
+                                <Fragment key={p.key}>
+                                    <tr className="border-t border-zinc-200">
+                                        <td className="py-1 pr-2">
+                                            {p.itemName}
+                                            {!p.split && named && p.shares[0]?.poId && (
+                                                <span className="ml-1 text-xs text-zinc-500">{p.shares[0].poId}</span>
+                                            )}
+                                            {!p.split && marks(p.shares[0])}
+                                        </td>
+                                        <td className="py-1 pr-2">{p.size}</td>
+                                        <td className="py-1 pr-2">{p.maker}</td>
+                                        <td className="py-1 pr-2">{p.unit}</td>
+                                        <td className="py-1 pr-2 text-right">{p.qty}</td>
+                                        <td className="py-1 pr-2 text-right">{formatUSD(p.unitPrice)}</td>
+                                        <td className="py-1 pr-2 text-right">{formatUSD(p.amount)}</td>
+                                        <td className="py-1 pr-2">{p.remark}</td>
+                                    </tr>
+                                    {p.split &&
+                                        p.shares.map((share) => (
+                                            <tr key={share.id} className="text-zinc-600">
+                                                <td className="py-0.5 pr-2 pl-4">
+                                                    {named && share.poId}
+                                                    {marks(share)}
+                                                </td>
+                                                <td className="py-0.5 pr-2" />
+                                                <td className="py-0.5 pr-2" />
+                                                <td className="py-0.5 pr-2" />
+                                                <td className="py-0.5 pr-2 text-right">{share.qty}</td>
+                                                <td className="py-0.5 pr-2" />
+                                                <td className="py-0.5 pr-2 text-right">{formatUSD(share.amount)}</td>
+                                                <td className="py-0.5 pr-2" />
+                                            </tr>
+                                        ))}
+                                </Fragment>
+                            );
+                        })}
                     </tbody>
                     <tfoot>
                         {summaryRows.map((row, i) => (
@@ -778,10 +799,7 @@ async function renderInvoiceDetailPage({ params }) {
                     paidDate={invoice.paidDate}
                     overdue={describeInvoiceOverdue(invoicePayment(invoice, today)).sentence}
                     outstanding={{
-                        variances: openVariances({
-                            folded: foldedItems.map((it) => ({ ...it, label: itemLabel(it) || it.itemName })),
-                            invoice,
-                        }),
+                        variances: openVariances({ folded: varianceRows, invoice }),
                         delivery:
                             reconciliation.summary?.key === "awaiting-delivery"
                                 ? PAYMENT_CHECK_COPY.delivery(
