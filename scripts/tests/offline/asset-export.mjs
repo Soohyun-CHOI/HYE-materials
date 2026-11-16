@@ -609,7 +609,7 @@ export async function run({ check, log, assert }) {
     );
     check(
         "  says it is busy and what it does",
-        /<Button ref=\{buttonRef\} variant="bordered" busy=\{busy\} busyLabel=\{COPY\.working\} ariaLabel=\{busy \? undefined : COPY\.exportName\} onClick=\{press\}>\s*\{COPY\.export\}\s*<\/Button>/.test(buttonSource),
+        /<Button ref=\{buttonRef\} variant="secondary" busy=\{busy\} busyLabel=\{COPY\.working\} ariaLabel=\{busy \? undefined : COPY\.exportName\} onClick=\{press\}>\s*\{COPY\.export\}\s*<\/Button>/.test(buttonSource),
         true
     );
     // A press that made no file puts 0k's toast up (1a, #566), and its action is the press again;

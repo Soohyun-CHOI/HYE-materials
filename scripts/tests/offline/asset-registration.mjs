@@ -1059,16 +1059,16 @@ export async function run({ check, assert, log }) {
             // The way back where it is drawn (#520): the actions' left, and on no dialog opened on
             // a kind, which has no first step.
             if (n.type === "JSXOpeningElement" && n.name?.name === "DialogActions") {
-                const secondary = n.attributes.find((a) => a.name?.name === "secondary")?.value?.expression;
-                if (secondary) {
+                const leading = n.attributes.find((a) => a.name?.name === "leading")?.value?.expression;
+                if (leading) {
                     let button = null;
-                    walk(secondary, (inner) => {
+                    walk(leading, (inner) => {
                         if (!button && inner.type === "JSXElement" && inner.openingElement.name?.name === "Button") button = inner;
                     });
-                    const gate = secondary.type === "LogicalExpression" ? `${text(secondary.left)} && ` : "";
+                    const gate = leading.type === "LogicalExpression" ? `${text(leading.left)} && ` : "";
                     facts.backDrawn = button
                         ? `${gate}Button { ${attributesOf(button.openingElement)} } ${text(button.children.find((child) => child.type === "JSXExpressionContainer")?.expression)}`
-                        : text(secondary);
+                        : text(leading);
                 }
             }
             // The second step's levels (#514, #520): which of `walkDetails`' levels are drawn, and
@@ -1337,7 +1337,7 @@ export async function run({ check, assert, log }) {
     check(
         "the opener opens the dialog, with no gate drawing it disabled and nothing over its form (#610)",
         `${dialog.opener} | ${dialog.gate ?? "no gate"} | ${dialog.formUnder}`,
-        // In the look its opener asks for (#463): an empty list's second opener is bordered.
+        // In the look its opener asks for (#463): an empty list's second opener is secondary.
         "Button variant: variant, onClick: registration.start | no gate | nothing"
     );
     check(
@@ -1394,7 +1394,7 @@ export async function run({ check, assert, log }) {
                 '{false ? <input type="hidden" name="categoryRecordId" value={category.id} /> : <Choice name="categoryRecordId" />}' +
                 "{details.levels.filter(() => true).map(({ level }) => <Field label={level}><Choice options={[]} /></Field>)}" +
                 "<DialogBody><Stated label={CATALOG.classLabel}>{made.assetClass}</Stated></DialogBody>" +
-                '<DialogActions secondary={<Button onClick={setPicked}>{COPY.changeName}</Button>}><Button type="submit" disabled={pending}>{COPY.submit(Number(count))}</Button></DialogActions>' +
+                '<DialogActions leading={<Button onClick={setPicked}>{COPY.changeName}</Button>}><Button type="submit" disabled={pending}>{COPY.submit(Number(count))}</Button></DialogActions>' +
                 "</form></DialogFrame>;\n" +
                 "}\n",
             "<planted-dialog>"

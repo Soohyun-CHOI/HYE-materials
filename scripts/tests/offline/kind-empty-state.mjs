@@ -65,7 +65,7 @@ export function emptyFacts(source) {
         none: [
             /<h2 className="text-heading font-semibold">\{empty\.heading\}<\/h2>/.test(none),
             /\{recording\.adds \? COPY\.untilYouAdd : COPY\.untilASiteManagerAdds\}/.test(none),
-            /\{recording\.adds && \(\s*<div className="mt-gap-lg">\s*<RegistrationDialog \{\.\.\.registration\} variant="bordered" \/>/.test(none),
+            /\{recording\.adds && \(\s*<div className="mt-gap-lg">\s*<RegistrationDialog \{\.\.\.registration\} variant="secondary" \/>/.test(none),
         ].join(" "),
         order: elsewhere !== "" && none !== "" && source.indexOf(elsewhere) < source.indexOf(none),
         // 1h's view, which the page has drawn from `PageNotFound` since #617, one component with
@@ -131,7 +131,7 @@ export function run({ check, log }) {
     const facts = emptyFacts(page.source);
     check("the page asks it of the count it read, the row's count and the job's code", facts.asks, true);
     check("  the job's own empty: its heading, no opener or other heading, and the choice that shows the items (#617)", facts.elsewhere, "true false true");
-    check("  the other empty: its heading, who fills it, and the bordered opener", facts.none, "true true true");
+    check("  the other empty: its heading, who fills it, and the secondary opener", facts.none, "true true true");
     check("  the job's own empty is asked first", facts.order, true);
     check("an unknown kind: Page not found and the way to the list", facts.missing, "true true");
 

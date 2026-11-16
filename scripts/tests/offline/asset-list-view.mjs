@@ -1836,7 +1836,7 @@ export function run({ check, assert, log }) {
         return found;
     };
     // TWO OPENERS EACH SINCE #463, HANDED ONE OBJECT: the head's, under the reader being a site
-    // manager alone (#506), and an empty list's second one, bordered, under the branch that
+    // manager alone (#506), and an empty list's second one, secondary, under the branch that
     // draws the empty state as well (1a, 1d). Each hands the job the list stands on since #565.
     const openers = dialogOpeners(parseFile(CATEGORY_SCREEN).ast);
     check("a category's page opens the registration dialog from its head, and from an empty list", openers.length, 2);
@@ -1850,9 +1850,9 @@ export function run({ check, assert, log }) {
     // stands on, or on all jobs — never on another job's list, where it stood until then.
     check("  and under the list being one the reader adds on — their own job's, or all jobs (#506, #597)", openers[0]?.under, "recording.adds");
     check(
-        "  the empty list's the same opener, bordered, under the empty branch and the same reader",
+        "  the empty list's the same opener, secondary, under the empty branch and the same reader",
         `${openers[1]?.handed} | ${openers[1]?.asks} | ${openers[1]?.under}`,
-        "catalog: catalog, category: opened, jobs: assignedJobs, listJobId: listJobId, opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | none | empty, recording.adds"
+        "catalog: catalog, category: opened, jobs: assignedJobs, listJobId: listJobId, opener: ASSET_REGISTRATION_COPY.heading, variant: secondary | none | empty, recording.adds"
     );
     // WHAT THE CATEGORY AND THE CATALOG ARE (#507), off their declarations, since `category: opened`
     // above reads alike whatever `opened` is: the row the page read, by the id the action
@@ -1902,9 +1902,9 @@ export function run({ check, assert, log }) {
         "recording.adds"
     );
     check(
-        "  the empty list's the same opener, bordered, under the empty branch and the same reader",
+        "  the empty list's the same opener, secondary, under the empty branch and the same reader",
         `${listOpeners[1]?.handed} | ${listOpeners[1]?.asks} | ${listOpeners[1]?.under}`,
-        "catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), listJobId: scope.job?.id ?? null, opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | none | rows.length === 0, recording.adds"
+        "catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), listJobId: scope.job?.id ?? null, opener: ASSET_REGISTRATION_COPY.heading, variant: secondary | none | rows.length === 0, recording.adds"
     );
     // The count a suggested tool carried, its link array's length (#456), was held here until
     // #507: a suggestion is a name of the catalog now, beside its category, and how many of a

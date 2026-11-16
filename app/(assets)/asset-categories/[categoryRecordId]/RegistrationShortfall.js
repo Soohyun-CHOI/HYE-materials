@@ -95,7 +95,7 @@ export default function RegistrationShortfall({ category, catalog, account, jobs
                     <DialogMessage>{COPY.shortfall(account.asked - account.unwritten)}</DialogMessage>
                 </DialogBody>
                 <DialogActions>
-                    <Button variant="bordered" onClick={notNow}>
+                    <Button variant="secondary" onClick={notNow}>
                         {COPY.doneRegistering}
                     </Button>
                     <Button onClick={registration.start}>{COPY.registerOthers(account.unwritten)}</Button>

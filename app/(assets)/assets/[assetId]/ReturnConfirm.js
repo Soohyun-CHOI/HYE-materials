@@ -56,7 +56,7 @@ export default function ReturnConfirm({ open, onClose, available, assetId, drawn
                 <DialogMessage>{COPY.returnBody({ ownerJobCode, jobCode })}</DialogMessage>
             </DialogBody>
             <DialogActions refusal={refusal} refusalId={refusalId}>
-                <Button variant="bordered" onClick={onClose}>
+                <Button variant="secondary" onClick={onClose}>
                     {COPY.cancel}
                 </Button>
                 <Button type="submit" unavailable={!available} describedBy={!available && refusal ? refusalId : undefined} busyLabel={COPY.working[ASSET_EVENT.RETURNED_TO_OWNER]}>

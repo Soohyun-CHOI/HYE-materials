@@ -235,7 +235,7 @@ function deletion582({ check, assert, log }) {
     assert(
         "  its body, then Cancel and the red commitment saying Deleting… while it sends, the refusal above them",
         /<DialogMessage>\{COPY\.deleteBody\}<\/DialogMessage>/.test(confirmBody) &&
-            /<DialogActions refusal=\{refusal\} refusalId=\{refusalId\}>\s*<Button variant="bordered" onClick=\{onClose\}>\s*\{COPY\.cancel\}\s*<\/Button>\s*<Button variant="danger" type="submit" unavailable=\{!available\} describedBy=\{!available && refusal \? refusalId : undefined\} busyLabel=\{COPY\.deleteWorking\}>\s*\{COPY\.deleteSubmit\}/.test(confirmBody)
+            /<DialogActions refusal=\{refusal\} refusalId=\{refusalId\}>\s*<Button variant="secondary" onClick=\{onClose\}>\s*\{COPY\.cancel\}\s*<\/Button>\s*<Button variant="danger" type="submit" unavailable=\{!available\} describedBy=\{!available && refusal \? refusalId : undefined\} busyLabel=\{COPY\.deleteWorking\}>\s*\{COPY\.deleteSubmit\}/.test(confirmBody)
     );
     check("  posting the asset's id and nothing else", [...confirm.source.matchAll(/<input[^>]*name="(\w+)"/g)].map((m) => m[1]).join(","), "assetId");
     const confirmWords = [...confirm.source.matchAll(/\bCOPY\.(\w+)/g)].map((m) => m[1]);

@@ -272,7 +272,7 @@ export default function AssetCategoryList({ rows, job, jobCode = null, allJobs =
                             </>
                         )}
                     </p>
-                    <Button variant="bordered" size="md" onClick={() => clear(emptied)}>
+                    <Button variant="secondary" size="md" onClick={() => clear(emptied)}>
                         {emptied.clear}
                     </Button>
                 </div>

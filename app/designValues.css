@@ -188,8 +188,10 @@
     /* The washes are the foreground in amounts, so each is written as one. */
     --color-hover-subtle: color-mix(in oklab, var(--color-foreground-default) 3%, transparent); /* Wash: a bordered control, or a table row, under the pointer */
     --color-pinned-column-hover: color-mix(in srgb, var(--color-foreground-default) 3%, white); /* 0b Row, the Wash made opaque: the ground of the name column a table holds at its start, under a row taking the Wash */
-    --color-background-muted: color-mix(in oklab, var(--color-foreground-default) 4.5%, transparent); /* Field: a resting ground that answers no pointer */
+    --color-background-muted: color-mix(in oklab, var(--color-foreground-default) 4.5%, transparent); /* Field: a resting ground that answers no pointer, and where a secondary button rests (0f Bordered, #662) */
     --color-hover: color-mix(in oklab, var(--color-foreground-default) 5.5%, transparent); /* Hover: anything without an outline under the pointer */
+    --color-secondary-hover: color-mix(in oklab, var(--color-foreground-default) 8%, transparent); /* 0f Bordered, 8%: a secondary button under the pointer (#662) */
+    --color-secondary-disabled: color-mix(in oklab, var(--color-background-muted) 40%, transparent); /* 0f Disabled: a secondary button that cannot act, its Field at 40% (#662) */
     --color-scrollbar-thumb: color-mix(in oklab, var(--color-foreground-default) 20%, transparent); /* 0i Bar: a scrollbar's thumb */
     --color-scrollbar-thumb-hover: color-mix(in oklab, var(--color-foreground-default) 34%, transparent); /* Thumb hover: a scrollbar under the pointer */
 

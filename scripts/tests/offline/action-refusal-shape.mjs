@@ -171,7 +171,7 @@ const ACTIONS = {
         file: "app/(assets)/asset-catalog/actions.js",
         shape: "return",
         binding: "awaited",
-        why: "the same dialog's secondary action, its refusal on the same line",
+        why: "the same dialog's leading action, its refusal on the same line",
     },
     removeAssetCategoryAction: {
         text: "COPY.noAccess",

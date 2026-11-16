@@ -339,6 +339,9 @@ const VALUES = [
     ["--color-pinned-column-hover", "color-mix(in srgb, var(--color-foreground-default) 3%, white)", null],
     ["--color-background-muted", "color-mix(in oklab, var(--color-foreground-default) 4.5%, transparent)", null],
     ["--color-hover", "color-mix(in oklab, var(--color-foreground-default) 5.5%, transparent)", null],
+    // A secondary button: Ink at 8% under the pointer, and its Field at 40% while it cannot act (0f, #662).
+    ["--color-secondary-hover", "color-mix(in oklab, var(--color-foreground-default) 8%, transparent)", null],
+    ["--color-secondary-disabled", "color-mix(in oklab, var(--color-background-muted) 40%, transparent)", null],
     ["--color-scrollbar-thumb", "color-mix(in oklab, var(--color-foreground-default) 20%, transparent)", null],
     ["--color-scrollbar-thumb-hover", "color-mix(in oklab, var(--color-foreground-default) 34%, transparent)", null],
     // 0f · States
@@ -1120,11 +1123,20 @@ export async function run({ check, assert, log }) {
         "--color-hover-subtle",
         "--color-background-muted",
         "--color-hover",
+        "--color-secondary-hover",
         "--color-scrollbar-thumb",
         "--color-scrollbar-thumb-hover",
         "--color-mobile-input-background",
     ];
-    for (const name of washes) check(`  ${name} is the foreground in an amount`, mixes(declared.get(name) ?? "").join(" "), "--color-foreground-default");    // A column held over a row under the pointer stands on the Wash made opaque (0b Row, #552):
+    for (const name of washes) check(`  ${name} is the foreground in an amount`, mixes(declared.get(name) ?? "").join(" "), "--color-foreground-default");
+    // An action that cannot act keeps its resting ground at 40% (0f Disabled): a filled one's Accent,
+    // a red one's Red (#616), and a secondary one's Field (#662).
+    const fadedFrom = (value) => value.match(/^color-mix\(in oklab, var\((--[a-z-]+)\) 40%, transparent\)$/)?.[1] ?? "none";
+    check(
+        "  an action that cannot act keeps its resting ground at 40%: a filled one's, a red one's, a secondary one's",
+        ["--color-primary-disabled", "--color-danger-disabled", "--color-secondary-disabled"].map((name) => fadedFrom(declared.get(name) ?? "")).join(" "),
+        "--color-primary --color-danger --color-background-muted"
+    );    // A column held over a row under the pointer stands on the Wash made opaque (0b Row, #552):
     // the same amount of the foreground over white, mixed in sRGB as the browser composites the
     // Wash over a white row, so the held column and the row beside it read as one ground.
     const amountOver = (value, space, over) => value.match(new RegExp(`^color-mix\\(in ${space}, var\\(--color-foreground-default\\) ([\\d.]+)%, ${over}\\)$`))?.[1] ?? null;

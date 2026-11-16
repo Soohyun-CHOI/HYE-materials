@@ -54,7 +54,7 @@ export default function DeleteConfirm({ open, onClose, available, assetId, itemN
                 <DialogMessage>{COPY.deleteBody}</DialogMessage>
             </DialogBody>
             <DialogActions refusal={refusal} refusalId={refusalId}>
-                <Button variant="bordered" onClick={onClose}>
+                <Button variant="secondary" onClick={onClose}>
                     {COPY.cancel}
                 </Button>
                 <Button variant="danger" type="submit" unavailable={!available} describedBy={!available && refusal ? refusalId : undefined} busyLabel={COPY.deleteWorking}>

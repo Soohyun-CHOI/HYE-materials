@@ -379,7 +379,7 @@ async function renderCategoryPage({ params, searchParams }) {
                     </p>
                     {recording.adds && (
                         <div className="mt-gap-lg">
-                            <RegistrationDialog {...registration} variant="bordered" />
+                            <RegistrationDialog {...registration} variant="secondary" />
                         </div>
                     )}
                 </div>

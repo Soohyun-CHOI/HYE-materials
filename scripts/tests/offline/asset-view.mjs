@@ -671,9 +671,9 @@ export function run({ check, assert, log }) {
     check("  which says `Page not found` and leads to the list", /\{COPY\.pageNotFound\}/.test(view) && /href=\{ASSET_CATEGORIES_PATH\}>\s*\{COPY\.goToTools\}/.test(view), true);
     check("  a page drawing its own heading is seen", drawsTheView('return <h1 className="text-heading">{COPY.pageNotFound}</h1>;'), false);
     // A code no item carries leads to the list too, at a desk alone: 1k-c draws a phone none (#655).
-    const leadsToList = (source) => /<div className="mt-gap-lg max-sm:hidden">\s*<ButtonLink variant="bordered" href=\{ASSET_CATEGORIES_PATH\}>\s*\{COPY\.goToTools\}/.test(source);
+    const leadsToList = (source) => /<div className="mt-gap-lg max-sm:hidden">\s*<ButtonLink variant="secondary" href=\{ASSET_CATEGORIES_PATH\}>\s*\{COPY\.goToTools\}/.test(source);
     check("an item's page for a code no item carries leads to the list at a desk alone", leadsToList(pageSource), true);
-    check("  one drawn at a phone too is seen", leadsToList('<div className="mt-gap-lg">\n<ButtonLink variant="bordered" href={ASSET_CATEGORIES_PATH}>\n{COPY.goToTools}'), false);
+    check("  one drawn at a phone too is seen", leadsToList('<div className="mt-gap-lg">\n<ButtonLink variant="secondary" href={ASSET_CATEGORIES_PATH}>\n{COPY.goToTools}'), false);
 }
 
 if (isMain(import.meta.url)) await standalone(title, run);

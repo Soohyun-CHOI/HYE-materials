@@ -157,7 +157,7 @@ export default function CatalogList({ rows, groups }) {
                         <ListHeader title={COPY.heading} count={count} noun={ASSET_LIST_COPY.itemNoun(reading.rows.length)} underBreadcrumb fill>
                             {/* 1l's two openers, 8 apart. */}
                             <div className="flex items-center gap-gap">
-                                <Button variant="bordered" onClick={() => openEntry({ mode: "category" })}>
+                                <Button variant="secondary" onClick={() => openEntry({ mode: "category" })}>
                                     {COPY.newCategoryTitle}
                                 </Button>
                                 <Button onClick={() => openEntry({ mode: "add" })}>{COPY.addTitle}</Button>
@@ -231,7 +231,7 @@ export default function CatalogList({ rows, groups }) {
                         emptied && (
                             <div className="flex flex-col items-center gap-list-emptied-stack border-t border-divider py-list-emptied-inset-y text-center">
                                 <p className="text-body">{COPY.noneMatch}</p>
-                                <Button variant="bordered" size="md" onClick={clearAll}>
+                                <Button variant="secondary" size="md" onClick={clearAll}>
                                     {COPY.clearAll}
                                 </Button>
                             </div>

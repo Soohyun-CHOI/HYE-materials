@@ -197,7 +197,7 @@ function AssetNotFound({ asked, account }) {
                 </p>
                 <p className="mt-gap max-w-mobile-empty-state text-mobile-body text-pretty text-foreground-subtle sm:hidden">{COPY.notFoundScanned}</p>
                 <div className="mt-gap-lg max-sm:hidden">
-                    <ButtonLink variant="bordered" href={ASSET_CATEGORIES_PATH}>
+                    <ButtonLink variant="secondary" href={ASSET_CATEGORIES_PATH}>
                         {COPY.goToTools}
                     </ButtonLink>
                 </div>
@@ -509,7 +509,7 @@ async function renderAssetPage({ params }) {
                                                 title={LABEL_COPY.openFromAsset}
                                                 itemName={category?.itemName}
                                                 run={{ sideModules: QR_SIDE_MODULES, labels: [label], missing: [] }}
-                                                variant="bordered"
+                                                variant="secondary"
                                             />
                                         </div>
                                     )}

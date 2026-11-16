@@ -111,7 +111,7 @@ function markSent() {
  * implementation, whichever of the two draws it. `RegistrationOpener` was a third, the gate
  * below, until #610 left it nothing to gate.
  *
- * AN EMPTY LIST DRAWS A SECOND OPENER, BORDERED, UNDER ITS SENTENCE (1a, 1d; #463) — another
+ * AN EMPTY LIST DRAWS A SECOND OPENER, SECONDARY, UNDER ITS SENTENCE (1a, 1d; #463) — another
  * of these beside the head's, `variant` its one difference — since a list with nothing in it
  * is where the reader who needs the dialog most is looking.
  *
@@ -451,7 +451,7 @@ export function RegistrationForm({ open, onClose, jobs, listJobId, category, cat
                         opened on a kind, which has no first step to go back to. */}
                     <DialogActions
                         refusal={said?.error}
-                        secondary={
+                        leading={
                             !category && (
                                 <Button variant="ghost" size="md" onClick={back}>
                                     {COPY.back}
@@ -459,7 +459,7 @@ export function RegistrationForm({ open, onClose, jobs, listJobId, category, cat
                             )
                         }
                     >
-                        <Button variant="bordered" onClick={onClose}>
+                        <Button variant="secondary" onClick={onClose}>
                             {COPY.cancel}
                         </Button>
                         {/* As wide as the two-figure count 1b holds its words at, whatever is typed. */}

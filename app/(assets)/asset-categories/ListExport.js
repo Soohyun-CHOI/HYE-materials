@@ -61,7 +61,7 @@ export default function ListExport() {
 
     return (
         <>
-            <Button ref={buttonRef} variant="bordered" busy={busy} busyLabel={COPY.working} ariaLabel={busy ? undefined : COPY.exportName} onClick={press}>
+            <Button ref={buttonRef} variant="secondary" busy={busy} busyLabel={COPY.working} ariaLabel={busy ? undefined : COPY.exportName} onClick={press}>
                 {COPY.export}
             </Button>
             <Toast shown={failed} line={COPY.failed} action={COPY.retry} onAction={press} dismissLabel={COPY.dismiss} onDismiss={() => setFailed(false)} opener={buttonRef} />

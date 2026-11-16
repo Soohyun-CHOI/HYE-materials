@@ -254,7 +254,7 @@ function RowEditor({ kind, value, available, control, onClose }) {
                     <TextInput size="md" value={draft} onChange={setDraft} inputRef={inputRef} autoComplete="off" {...detail.typing} />
                 </Field>
                 <div className="flex justify-end gap-gap pt-details-actions-stack">
-                    <Button variant="bordered" size="md" onClick={onClose}>
+                    <Button variant="secondary" size="md" onClick={onClose}>
                         {detail.copy.cancel}
                     </Button>
                     <Button type="submit" size="md" unavailable={!available} busyLabel={detail.copy.working[workingOf(detail, answer, value)]}>

@@ -297,7 +297,129 @@ function openingFocus(source) {
     };
 }
 
+/** What a reader presses, whatever draws it: a button, a link, or anything that says it is one. */
+const PRESSABLE = new Set(["button", "a", "Link"]);
+
+/** A class reading either of the secondary's own names, whatever its variants (#662). */
+const SECONDARY_NAME = /(?:^|\s)(?:[\w[\]-]+:)*[a-z]+-secondary-(?:hover|disabled)(?=\s|$)/;
+
+/**
+ * The secondary button (#662), read off the controls and every file a screen is drawn from:
+ * `Button`'s look for it, the kinds `Button` draws, every string reading the two names the
+ * secondary alone has — its hover and its state that cannot act — every button, link or
+ * `role="button"` outside `Controls.js` whose classes rest it on Field, the secondary's ground,
+ * and the kind every caller names. A class a pressable takes from a constant in its own file is
+ * read through that constant.
+ */
+function secondaryFacts({ controls, files }) {
+    const declared = (ast) => {
+        const found = new Map();
+        walk(ast, (n) => {
+            if (n.type === "VariableDeclarator" && n.id?.type === "Identifier" && n.init) found.set(n.id.name, n.init);
+        });
+        return found;
+    };
+    const stringsIn = (node, constants, seen = new Set()) => {
+        const out = [];
+        walk(node, (n) => {
+            if (n.type === "Literal" && typeof n.value === "string") out.push(n.value);
+            else if (n.type === "TemplateElement") out.push(n.value.cooked ?? n.value.raw);
+            else if (n.type === "Identifier" && constants.has(n.name) && !seen.has(n.name)) {
+                seen.add(n.name);
+                out.push(...stringsIn(constants.get(n.name), constants, seen));
+            }
+        });
+        return out;
+    };
+    const attribute = (element, name) => element.attributes.find((a) => a.type === "JSXAttribute" && a.name?.name === name);
+    const controlConstants = declared(controls.ast);
+    const kindsOf = (name) => (controlConstants.get(name)?.properties ?? []).map((p) => p.key?.name ?? p.key?.value);
+    const look = controlConstants.get("BUTTON_VARIANT")?.properties.find((p) => (p.key?.name ?? p.key?.value) === "secondary")?.value;
+    const lookText = look ? stringsIn(look, new Map()).join("") : "none";
+    const kinds = kindsOf("BUTTON_VARIANT");
+    const outside = [];
+    const strays = [];
+    const named = [];
+    let written = 0;
+    for (const file of [controls, ...files]) {
+        const constants = declared(file.ast);
+        walk(file.ast, (n) => {
+            const text = n.type === "Literal" && typeof n.value === "string" ? n.value : n.type === "TemplateElement" ? (n.value.cooked ?? n.value.raw) : null;
+            if (text !== null && SECONDARY_NAME.test(text) && !(file === controls && n === look)) outside.push(file.relPath);
+            if (n.type !== "JSXOpeningElement") return;
+            const element = n.name?.name;
+            if (["Button", "ButtonLink", "RegistrationDialog", "LabelsDialog"].includes(element)) {
+                const variant = attribute(n, "variant")?.value;
+                if (variant?.type === "Literal") named.push(variant.value);
+            }
+            if (file === controls || !(PRESSABLE.has(element) || attribute(n, "role")?.value?.value === "button")) return;
+            const classes = attribute(n, "className")?.value;
+            const tokens = classes ? stringsIn(classes, constants).join(" ").split(/\s+/) : [];
+            if (tokens.includes("bg-background-muted") || tokens.some((token) => SECONDARY_NAME.test(token))) strays.push(`${file.relPath} <${element}>`);
+        });
+        written += (file.source.match(/variant="secondary"/g) ?? []).length;
+    }
+    return {
+        look: lookText,
+        kinds: kinds.join(" "),
+        sheetKinds: kindsOf("SHEET_BUTTON_VARIANT").join(" "),
+        outside: [...new Set(outside)].join(", ") || "none",
+        strays: strays.join(", ") || "none",
+        unknown: named.filter((variant) => !kinds.includes(variant)).join(", ") || "none",
+        secondaries: named.filter((variant) => variant === "secondary").length,
+        written,
+    };
+}
+
 export function run({ check, assert, log }) {
+    // ── #662: the secondary button, on Field and borderless, drawn by `Button` alone ───
+    // At the head, as #616's block below is, so nothing older that throws keeps these from failing.
+    // The design's files of 2026-11-16 draw every secondary button — `Cancel`, `Export`, `Not now`,
+    // `Clear all`, an empty list's `Add items`, `Print label` and `Go to Equipment & Tools` — on Field
+    // with no border, Ink at 8% under the pointer (0f Bordered), and one that cannot act keeps its
+    // Field at 40% under words in Ink 4 (0f Disabled, 0e Ink 4).
+    {
+        log("the secondary button rests on Field with no border, and Button alone draws it (#662):");
+        const corpus = ["app", "lib"]
+            .flatMap((dir) => listJsFiles(repoPath(dir)))
+            .map((abs) => toPosix(abs).slice(toPosix(REPO_ROOT).length + 1))
+            .filter((relPath) => relPath !== CONTROLS)
+            .map((relPath) => parseFile(relPath));
+        const facts = secondaryFacts({ controls: parseFile(CONTROLS), files: corpus });
+        check(
+            "a secondary rests on Field with no border in Ink, takes Ink at 8% under the pointer, and one that cannot act its Field at 40% under Ink 4",
+            facts.look,
+            "bg-background-muted text-foreground-default not-disabled:not-aria-disabled:hover:bg-secondary-hover disabled:bg-secondary-disabled disabled:text-foreground-faint data-unavailable:bg-secondary-disabled data-unavailable:text-foreground-faint"
+        );
+        check("  the kinds `Button` draws, at a desk and in a sheet, `bordered` gone", `${facts.kinds} | ${facts.sheetKinds}`, "filled secondary danger ghost ghostDanger faced | filled secondary danger ghost ghostDanger faced");
+        check("  its two names read by that look alone", facts.outside, "none");
+        check("  no button, link or role=button outside the controls rests on Field or reads a secondary name", facts.strays, "none");
+        check("  every kind a caller names is one `Button` draws", facts.unknown, "none");
+        // A second path to the count: the attribute as text, against the elements the walk found.
+        check("  every secondary written as text is one the walk found", facts.secondaries === facts.written, true);
+        assert(`  and the walk found the axis's (${facts.secondaries})`, facts.secondaries >= 20);
+        const planted = secondaryFacts({
+            controls: parseSource(
+                'const BUTTON_VARIANT = { filled: "bg-primary", bordered: "border border-border bg-white text-foreground-default" };\n' +
+                    'const SHEET_BUTTON_VARIANT = { filled: "", bordered: "" };\n',
+                "<planted-controls>"
+            ),
+            files: [
+                parseSource('export const Cancel = () => <button type="button" className="h-control-lg rounded-control bg-background-muted px-control-lg-inset-x">x</button>;', "<planted-raw>"),
+                parseSource('const LOOK = "rounded-control bg-background-muted";\nexport const Go = () => <Link href="/" className={`inline-flex ${LOOK}`}>x</Link>;', "<planted-link>"),
+                parseSource('export const Row = ({ on }) => <div role="button" className={on ? "hover:bg-secondary-hover" : ""}>x</div>;', "<planted-role>"),
+                parseSource('export const Dots = () => <button type="button" className="rounded-full aria-expanded:bg-background-muted">x</button>;', "<planted-open-face>"),
+                parseSource('export const New = () => <Button variant="secondary">x</Button>;', "<planted-caller>"),
+            ],
+        });
+        check(
+            "  the controls as main left them, a raw button on Field, a link through a constant, a name read elsewhere and a kind not drawn, are seen",
+            [planted.look, planted.kinds, planted.outside, planted.strays, planted.unknown].join(" / "),
+            "none / filled bordered / <planted-role> / <planted-raw> <button>, <planted-link> <Link>, <planted-role> <div> / secondary"
+        );
+        log("");
+    }
+
     // ── #616: a red commitment that cannot act, and each spinner's track ───
     // At the head, as #555's block below is, so nothing older that throws keeps these from failing.
     // Tools 54 holds a dialog's commitment that pressing again cannot change at 40% — the red one
@@ -965,7 +1087,12 @@ export function run({ check, assert, log }) {
                 /max-sm:in-data-\[sheet\]:w-full/.test(sheetButton),
                 /max-sm:in-data-\[sheet\]:text-mobile-heading/.test(sheetButton),
             ].join(" "),
-            textButton: /bordered:\s*"max-sm:in-data-\[sheet\]:border-0 max-sm:in-data-\[sheet\]:bg-transparent max-sm:in-data-\[sheet\]:not-aria-disabled:active:opacity-mobile-pressed"/.test(sheetVariants),
+            // Its Field taken away, since #662 the one thing a secondary rests on (no Edge to take),
+            // and none given back to one that cannot act.
+            textButton:
+                /secondary:\s*"max-sm:in-data-\[sheet\]:bg-transparent max-sm:in-data-\[sheet\]:disabled:bg-transparent max-sm:in-data-\[sheet\]:data-unavailable:bg-transparent max-sm:in-data-\[sheet\]:not-aria-disabled:active:opacity-mobile-pressed"/.test(
+                    sheetVariants
+                ),
             applied: ["Button", "ButtonLink"].every((name) =>
                 /\$\{BUTTON\} \$\{sizeOf\(variant, size\)\} \$\{insetOf\(variant, size\)\} \$\{BUTTON_VARIANT\[variant\]\} \$\{SHEET_BUTTON\} \$\{SHEET_BUTTON_VARIANT\[variant\]\}/.test(functionSource(name))
             ),
@@ -1031,7 +1158,7 @@ export function run({ check, assert, log }) {
     check("a destructive commitment is filled red and hovers to Red's hover", controlRules.danger, true);
     check("  and no busy or locked action changes its fill under the pointer or a press, at a desk or in a sheet", controlRules.busyQuiet, true);
     check("in a sheet below the phone's edge a button is 48, full width and 17", controlRules.sheetButton, "true true true");
-    check("  a bordered one a text button that dims while held", controlRules.textButton, true);
+    check("  a secondary one a text button that dims while held", controlRules.textButton, true);
     check("  every button carrying both, which only a sheet's ancestor sets off", controlRules.applied, true);
     check("  and a field's label 15 there", controlRules.label, true);
     check("  and a refusal of the whole dialog 15 there, in the refusal every form shares", controlRules.refusal, true);
@@ -1548,7 +1675,7 @@ export function run({ check, assert, log }) {
     // its keys `searchResultsKey`'s, no result held until an arrow moves to one (#522; the first
     // was held once something was typed from #520) and a keystroke giving visual focus up, a result pressed with its mousedown stopped so focus stays
     // in the field, and the whole marked as the dialog's body, so focus that falls in the dialog
-    // comes back to the field. A secondary action stands at the actions' left (1b's `Back`), a
+    // comes back to the field. A leading action stands at the actions' left (1b's `Back`), a
     // ghost pulled out by its side room, and a ghost is its word alone in Ink, 10 either side.
     const searchFn = functionNamed(frame.ast, "DialogSearch");
     const searchPart = searchFn ? frame.source.slice(searchFn.start, searchFn.end) : "";
@@ -1575,9 +1702,9 @@ export function run({ check, assert, log }) {
     const actionsPart = actionsFn ? frame.source.slice(actionsFn.start, actionsFn.end) : "";
     const controlSource = parseFile(CONTROLS).source;
     check(
-        "  a secondary action stands first at the actions' left, pulled out, and a ghost is its word alone (#520)",
+        "  a leading action stands first at the actions' left, pulled out, and a ghost is its word alone (#520)",
         [
-            /\{secondary && <div className="mr-auto -ml-ghost-inset-x flex">\{secondary\}<\/div>\}\s*\{children\}/.test(actionsPart),
+            /\{leading && <div className="mr-auto -ml-ghost-inset-x flex">\{leading\}<\/div>\}\s*\{children\}/.test(actionsPart),
             /ghost: "text-foreground-default not-disabled:not-aria-disabled:hover:bg-hover",/.test(controlSource),
             /const GHOSTS = \["ghost", "ghostDanger"\];/.test(controlSource) &&
                 /const insetOf = \(variant, size\) =>\s*GHOSTS\.includes\(variant\) \? "px-ghost-inset-x" : variant === "faced" \? "pr-faced-inset-right pl-faced-inset-left" : BUTTON_INSET\[size\];/.test(controlSource),
