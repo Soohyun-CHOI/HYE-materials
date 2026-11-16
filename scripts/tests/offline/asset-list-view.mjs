@@ -2216,7 +2216,24 @@ export function run({ check, assert, log }) {
         /beneath \? "border-divider-strong bg-background-translucent backdrop-blur-sm" : "border-transparent bg-white"/.test(frameSource),
         true
     );
-    check("  and the rows end on the pager's height, and the bar's too while it stands", /className=\{overlayShown \? END_ROOM_WITH_BAR : END_ROOM\}/.test(frameSource), true);
+    check(
+        "  and the rows end on the pager's height, and the bar's too while it stands",
+        /className=\{`\$\{overlayShown \? END_ROOM_WITH_BAR : END_ROOM\} \$\{END_ROOM_MOVES\}`\}/.test(frameSource),
+        true
+    );
+    // #659 — the room changes in 160ms on `ease-out`, as the drawings move it: growing to the bar's as
+    // the bar comes and back as it goes (1a, 1d), and on Fill going as the lane turns sideways (1l).
+    const endRoomMoves = (source) =>
+        [
+            /const END_ROOM_MOVES = "transition-\[height\] duration-list-end ease-out";/.test(source),
+            /\{footer && <div aria-hidden="true" className=\{`\$\{sideways \? "h-0" : END_ROOM\} \$\{END_ROOM_MOVES\}`\} \/>\}/.test(source),
+        ].join(" ");
+    check("  the room under the rows grows with the selection bar and goes as the catalog turns sideways, in 160ms on ease-out", endRoomMoves(frame.source), "true true");
+    check(
+        "  and rooms that change at once, the catalog's taken away, are seen (anti-vacuity)",
+        endRoomMoves('const END_ROOM_MOVES = "";\n{footer && !sideways && <div aria-hidden="true" className={END_ROOM} />}'),
+        "false false"
+    );
     const rail = parseFile(RAIL);
     check(
         "the column holding a list scrolls nothing and reserves no lane",
@@ -2894,7 +2911,7 @@ export function run({ check, assert, log }) {
                 /footer && !sideways \? `\$\{TRACK_OVER_PAGER\} \$\{KEEP_CLEAR_OF_PAGER\}` : ""/.test(fn),
             /setSideways\(lane\.scrollWidth > lane\.clientWidth\)/.test(fn) && /setScrolledSideways\(lane\.scrollLeft > 0\)/.test(fn) && /headRef\.current\.scrollLeft = lane\.scrollLeft/.test(fn),
             /data-scrolled-sideways=\{scrolledSideways && laneShown \? "" : undefined\}/.test(fn) && /className=\{`group\/fill /.test(fn),
-            lane >= 0 && pager > lane && /\$\{sideways \? "" : PAGER_OVER_ROWS\}/.test(fn) && /\{footer && !sideways && <div aria-hidden="true" className=\{END_ROOM\} \/>\}/.test(fn),
+            lane >= 0 && pager > lane && /\$\{sideways \? "" : PAGER_OVER_ROWS\}/.test(fn) && /\{footer && <div aria-hidden="true" className=\{`\$\{sideways \? "h-0" : END_ROOM\} \$\{END_ROOM_MOVES\}`\} \/>\}/.test(fn),
             !/\boverlay/i.test(body),
             /const BAND_FILL = `\$\{LIST_FILL\} flex shrink-0 items-center gap-gap pb-control-band-inset-y`;/.test(source),
         ].join(" ");

@@ -18,6 +18,10 @@ const PAGER_OVER_ROWS = "-mt-[calc(var(--spacing-pager-inset-top)+var(--height-c
 const END_ROOM = "h-[calc(var(--spacing-pager-inset-top)+var(--height-control)+var(--spacing-pager-inset-bottom))]";
 const END_ROOM_WITH_BAR =
     "h-[calc(var(--spacing-pager-inset-top)+var(--height-control)+var(--spacing-pager-inset-bottom)+var(--spacing-selection-bar-offset)+var(--height-control-lg)+2*var(--spacing-selection-bar-inset)+2px)]";
+// And the room changes in 160ms on `ease-out`, as the drawings move it (#659): growing to the bar's
+// as the bar comes and back as it goes (1a, 1d), and on Fill going as the lane turns sideways and
+// coming back as it turns straight (1l). It changed at once until then.
+const END_ROOM_MOVES = "transition-[height] duration-list-end ease-out";
 
 // Where the column head holds, and what focus scrolls clear of at the top: 1a's head at its
 // least — 32 above, a 36 control's line, 18 under — or 1d's 48 bar, the column head's 36
@@ -87,7 +91,8 @@ function rowsRunBeneath(lane) {
  *
  * THE PAGER IS THE ENDING, SO THE ROWS END ON NO 40 (0i End). They end on the pager's own
  * height instead, so the last row scrolls clear of it — and on the selection bar's as well
- * while it stands (0b), so no row stays under the bar either. It stands outside the scroll,
+ * while it stands (0b), so no row stays under the bar either, the room growing to it as the
+ * bar comes and back as it goes, in 160ms (#659). It stands outside the scroll,
  * over its foot, clear of the lane's 8.
  *
  * THE PAGER STANDS OVER THE ROWS AND THE COLUMN HEAD (#501). It takes the head's z-index and
@@ -171,7 +176,7 @@ export default function ListFrame({ top, header, band, found, foundCount = 1, fo
                     </div>
                 )}
                 <div className={LIST_MEASURE}>{children}</div>
-                {footer && <div aria-hidden="true" className={overlayShown ? END_ROOM_WITH_BAR : END_ROOM} />}
+                {footer && <div aria-hidden="true" className={`${overlayShown ? END_ROOM_WITH_BAR : END_ROOM} ${END_ROOM_MOVES}`} />}
             </div>
             {footer && (
                 <div className={`relative z-10 shrink-0 pr-scrollbar-gutter ${PAGER_OVER_ROWS}`}>
@@ -324,9 +329,10 @@ export function SelectionBar({ shown, label, count, notOnPage, words, clearLabel
  *
  * WHAT IT SHARES WITH `ListFrame`: the pager pinned over the lane's foot — below it while the
  * lane scrolls sideways — its ground saying whether rows run beneath (`rowsRunBeneath`), the rows
- * ending on its height while it stands over them, and focus scrolling clear of it. `label` names
- * the table, whose head row and rows the frame holds in two parts; the catalog's dialogs stand
- * outside the frame. It held the catalog's selection bar over the pager from #527 until #552
+ * ending on its height while it stands over them, the room going in 160ms as the lane turns
+ * sideways and the pager steps below it, as 1l moves it (#659), and focus scrolling clear of
+ * it. `label` names the table, whose head row and rows the frame holds in two parts; the
+ * catalog's dialogs stand outside the frame. It held the catalog's selection bar over the pager from #527 until #552
  * took away `Set class`, the one act a selection there was for.
  *
  * `empty` IS WHAT A LIST THE BAND EMPTIED SAYS IN THE ROWS' PLACE, under the column head and
@@ -385,7 +391,7 @@ export function ListFrameFill({ top, header, band, columnHead, label, footer, em
                     >
                         <div aria-hidden="true" className="h-table-header" />
                         {children}
-                        {footer && !sideways && <div aria-hidden="true" className={END_ROOM} />}
+                        {footer && <div aria-hidden="true" className={`${sideways ? "h-0" : END_ROOM} ${END_ROOM_MOVES}`} />}
                     </div>
                 )}
             </div>

@@ -204,6 +204,8 @@ const VALUES = [
     ["--spacing-segmented-inset", "0.125rem", null],
     ["--spacing-segmented-option-inset-x", "0.375rem", null],
     ["--transition-duration-segmented", "200ms", null],
+    // 1l's pill fading in at the first choice and an option's ink changing (#659).
+    ["--transition-duration-segmented-fade", "120ms", null],
     ["--ease-segmented", "cubic-bezier(0.2, 0, 0, 1)", null],
     ["--min-width-menu", "8.75rem", null],
     ["--max-width-menu", "17.5rem", null],
@@ -259,6 +261,8 @@ const VALUES = [
     ["--spacing-selection-bar-inset", "0.5rem", null],
     ["--spacing-selection-bar-slide", "0.5rem", null],
     ["--transition-duration-selection-bar", "160ms", null],
+    // The room under a list's rows changing, for the bar and as 1l turns sideways (#659).
+    ["--transition-duration-list-end", "160ms", null],
     // The mark that leads an action's reason in the bar (#495).
     ["--spacing-selection-bar-reason-gap", "0.375rem", null],
     // The pager's 48 (#646): 8 above its controls, its rule counted, and 8 under them —
@@ -339,6 +343,8 @@ const VALUES = [
     ["--color-scrollbar-thumb-hover", "color-mix(in oklab, var(--color-foreground-default) 34%, transparent)", null],
     // 0f · States
     ["--width-number-input", "7.5rem", null],
+    // Its ground and ring changing, as the drawings move them (#659).
+    ["--transition-duration-number-input", "120ms", null],
     ["--spacing-stepper-inset-x", "0.1875rem", null],
     // A busy action (#473); its turn and its track are the drawings', not the spec's.
     ["--transition-delay-busy", "300ms", null],
@@ -494,7 +500,8 @@ const VALUES = [
     ["--transition-duration-avatar", "90ms", null],
     // 0m's account menu, beside a collapsed button and growing in (#495).
     ["--spacing-account-menu-offset-x", "0.5rem", null],
-    ["--animate-account-menu", "account-menu-in 120ms ease-out", null],
+    // Every menu and list's entrance, the account's alone from #495 until #659.
+    ["--animate-menu", "menu-in 120ms ease-out", null],
     ["--height-breadcrumb", "3rem", null],
     // From the drawings, not the spec (#519): the chevron after a breadcrumb level that opens
     // the job's list, its gap from the word and how far it runs into the level's side room.
@@ -1065,11 +1072,11 @@ export async function run({ check, assert, log }) {
 
     // #473 — a block's keyframes are what an animation it declares runs, and nothing else:
     // each one is run by an animation declared here, and each animation runs keyframes
-    // declared here or Tailwind's own. #495 added the account menu's entrance.
+    // declared here or Tailwind's own. #495 added the account menu's entrance, every menu's since #659.
     const keyframes = parsed.blocks.flatMap((b) => b.keyframes);
     const animations = [...declared].filter(([name]) => name.startsWith("--animate-"));
     const runs = (value) => value.split(/\s+/)[0];
-    check("  the keyframes declared are the account menu's entrance and the caret's blink", keyframes.join(" "), "account-menu-in code-caret-blink");
+    check("  the keyframes declared are every menu's entrance and the caret's blink", keyframes.join(" "), "menu-in code-caret-blink");
     check(
         "  every keyframes is run by an animation declared here",
         keyframes.filter((k) => !animations.some(([, value]) => runs(value) === k)).join(" "),
@@ -1227,22 +1234,38 @@ export async function run({ check, assert, log }) {
             ["app/components/TopBar.js", "duration-mobile-top-bar"],
             ["app/components/BottomBar.js", "duration-mobile-bottom-bar"],
             ["app/components/ListFrame.js", "duration-selection-bar"],
+            ["app/components/ListFrame.js", "duration-list-end"],
             ["app/components/Toast.js", "duration-toast"],
             ["app/components/Tooltip.js", "duration-tooltip"],
+            ["app/components/Controls.js", "duration-segmented-fade"],
+            ["app/components/Controls.js", "duration-number-input"],
         ]
             .map(([file, duration]) => curvesBy(read(file), duration).join(" "))
             .join(" | ");
     check(
-        "  1d's name, the phone's top bar's edge and name, the foot bar's edge and the selection bar's three on ease-out; the toast and the tooltip on none",
+        "  1d's name, the phone's top bar's edge and name, the foot bar's edge, the selection bar's three and the room under the rows on ease-out; the toast and the tooltip on none; a segmented option's ink on ease-out and a number field's frame on none",
         fades((file) => readFileSync(join(REPO_ROOT, file), "utf8")),
-        "ease-out | ease-out ease-out | ease-out | ease-out ease-out ease-out | none | none"
+        "ease-out | ease-out ease-out | ease-out | ease-out ease-out ease-out | ease-out | none | none | ease-out | none"
     );
     check(
         "  and a soft edge naming no curve, as both did until #659, is seen (anti-vacuity)",
         fades((file) =>
             file.endsWith("Bar.js") ? '"absolute opacity-0 transition-opacity duration-mobile-top-bar duration-mobile-bottom-bar"' : readFileSync(join(REPO_ROOT, file), "utf8")
         ),
-        "ease-out | none | none | ease-out ease-out ease-out | none | none"
+        "ease-out | none | none | ease-out ease-out ease-out | ease-out | none | none | ease-out | none"
+    );
+    // #659 — 1l's pill takes two motions at once, as the drawing has them: it slides in the segmented
+    // row's 200ms on the rail's curve and fades in its 120ms on `ease-out`, each list in the
+    // properties' order, and with reduced motion it does neither. Tailwind compiles the two lists
+    // into the names they say.
+    const controls = readFileSync(join(REPO_ROOT, "app/components/Controls.js"), "utf8");
+    const pill = cls("transition-", "[left,opacity] ", "duration-", "[var(--transition-duration-segmented),var(--transition-duration-segmented-fade)] ", "ease-", "[var(--ease-segmented),var(--ease-out)] ", "motion-reduce:", "transition-none");
+    check("  1l's pill slides in 200ms on the rail's curve and fades in 120ms on ease-out, at once with reduced motion", controls.includes(pill), true);
+    const pillReads = makeReader(ds, new Set([...declaredNames, ...CSS_CURVES.map(([name]) => name)]));
+    check(
+        "  and its two lists read those names",
+        [...pillReads(pill.split(" "))].sort().join(" "),
+        ["--default-transition-timing-function", "--ease-out", "--ease-segmented", "--transition-duration-segmented", "--transition-duration-segmented-fade"].sort().join(" ")
     );
 
     // ── the corpus, the graph and the reads ──────────────────────────────────

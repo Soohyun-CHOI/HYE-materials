@@ -494,13 +494,41 @@ The files of 2026-11-06 — Tools 54, Sign in 30, which is Sign in 29 byte for b
 | The rail | `width 200ms cubic-bezier(0.2, 0, 0, 1)` | `Rail.js` | `--ease-rail` | unchanged |
 | The rail's words | `opacity`, `visibility` 0ms `linear` after 200ms | `Rail.js` | 0ms | unchanged |
 | 1l's segmented pill | `left 200ms cubic-bezier(0.2, 0, 0, 1)` | `Controls.js` | `--ease-segmented` | unchanged |
+| The room under the rows as the selection bar comes | `height 160ms ease-out` | `ListFrame.js` | at once | 160ms `ease-out` |
+| 1l's room under the rows as the lane turns sideways | `height 160ms ease-out` | `ListFrameFill` | taken away at once | 160ms `ease-out` |
+| 1l's segmented pill at the first choice | `opacity 120ms ease-out` | `Controls.js` | at once | 120ms `ease-out` |
+| 1l's options' ink | `color 120ms ease-out` | `Controls.js` | at once | 120ms `ease-out` |
+| A number field's frame | `background 120ms, box-shadow 120ms` | `Controls.js` | at once | 120ms `ease` |
 | The spinner | `700ms linear` | `--animate-spinner` | `linear` | unchanged |
 
 **WHAT ELSE MOVES, AND WHAT DOES NOT.** Every other transition in `app/` takes no time: the busy labels of a commitment and of the resend control, the rail's wordmark and a held menu row turn at `duration-0`, so the default curve they now take draws nothing. The account menu's entrance names CSS's `ease-out` in its own value, the avatar `ease-linear`, and a sheet released short sets `ease-out` inline, so none of the three moved. No stylesheet beside the declaration reads a curve, and no screen above the assets axis draws a transition of its own.
 
-**WHAT THE DRAWINGS MOVE AND THE APP DOES NOT**, which no curve can change: the room under the rows growing as the selection bar comes (`height 160ms ease-out`), the segmented pill's fade (`opacity 120ms ease-out`) and its options' ink (`color 120ms ease-out`), and a number field's frame (`background` and `box-shadow`, 120ms). The app draws each at once.
+**FOUR MOTIONS THE DRAWINGS MOVE AND THE APP DREW AT ONCE, ADDED IN THE SAME ISSUE (SOO).** The room under the rows grows from the pager's 48 to the bar's 114 as the selection bar comes, and back as it goes, in 160ms on `ease-out`; on Fill it goes from 48 to nothing in the same 160ms as 1l's lane turns sideways and the pager steps below it, where the app took it away, and comes back as the lane turns straight — one time for the room in both frames (`--transition-duration-list-end`), since every list the drawings draw moves it the same. 1l's pill fades in at the first choice in 120ms on `ease-out` while it slides in 200ms on the rail's curve — one class holding two lists, `duration-[…]` and `ease-[…]`, in `left, opacity`'s order — and an option's word changes ink in the same 120ms (`--transition-duration-segmented-fade`); with reduced motion the pill does neither, as 1l has it. A number field's frame changes its ground and its ring in 120ms on `ease` (`--transition-duration-number-input`); its ground is white throughout, as the drawing's is, so the ring is what moves. No screen opens the segmented row with no type chosen today — both catalog dialogs start on `Equipment` — so the pill's fade is drawn only for a row whose type the catalog does not offer. Every menu and list the app opens enters as the account's does since the same issue (`Every menu and list opens one way`, below).
 
-**WHAT A BROWSER SHOWED**, on `next dev` against the test base, each fade caught at 80ms of its 160ms with its transition paused: 1d's name, the selection bar's opacity and its rise, and the phone's top bar's name and edge each ran on `ease-out` and stood at 0.6846, CSS's value; the foot bar's edge and the tooltip read `ease-out` and `ease` off the computed style, the tooltip at 120ms after 360ms. The root carried the four keys at `ease-in`, `ease-out`, `ease-in-out` and `ease`, and no `--ease-breadcrumb-title`.
+**WHAT A BROWSER SHOWED**, on `next dev` against the test base, each fade caught at 80ms of its 160ms with its transition paused: 1d's name, the selection bar's opacity and its rise, and the phone's top bar's name and edge each ran on `ease-out` and stood at 0.6846, CSS's value; the foot bar's edge and the tooltip read `ease-out` and `ease` off the computed style, the tooltip at 120ms after 360ms. The root carried the four keys at `ease-in`, `ease-out`, `ease-in-out` and `ease`, and no `--ease-breadcrumb-title`. Ticking a row's box on 25-USA-13's TIG welder grew the room under the rows from 48 to 114 on `ease-out`, 93.17 at 80ms, which is 48 and 0.6846 of 66; in 1l's dialog a press on `Tool` slid the pill in 200ms on the rail's curve and turned both options' ink in 120ms on `ease-out`, and the pill's class set as for no type and taken off faded it in 120ms on `ease-out`, 0.6846 at 60ms; and the registration's quantity frame, focused at 373 × 810, changed its ring in 120ms on `ease`, 0.81 of the way at 60ms, where `ease` stands at 0.80.
+
+## Every menu and list opens one way (#659)
+
+**ONE ENTRANCE, THE ACCOUNT'S (SOO).** The Tools file read for this, the Design artifact's version 1794847283-cfb1, opens all 66 of its menus and lists on `om-menu-in` — from `opacity: 0` and `scale(0.98)` to none, in 120ms on `ease-out` — and takes it away under reduced motion (`[style*="om-menu-in"] { animation: none }`). The `om-pop` the sending before named on the band's chips' lists and the sort, a keyframes it declared nowhere, is gone. The app drew it for the account's menu alone from #495 (`--animate-account-menu`); every other menu and list opened at once.
+
+**SO THE ENTRANCE IS ONE NAME AND ONE CLASS.** `--animate-menu` (`menu-in 120ms ease-out`, the account's keyframes renamed for every reader) is what `Menu.js:MENU_ENTRANCE` reads, `motion-safe:open:animate-menu`, and both `Menu` — every list a field, a chip, the sort or a breadcrumb level opens — and `ActionMenu` — the account's, `More actions` at a desk and on a phone, and a dialog's — take it, where the account's look held its own class. `motion-safe:` is how reduced motion keeps it out: the rule stands inside `prefers-reduced-motion: no-preference`, so under reduced motion nothing animates, as 1l's pill moves at once there. `offline/dialog-frame.mjs` fails a second class, an entrance written outside that constant, and a menu or a list drawn as a popover anywhere but `Menu.js`. The materials screens' own lists — `JobCombobox` under `/admin`, `PickerFilter` — are no popovers, no design file draws their screens, and they open at once as before.
+
+**IT GROWS FROM THE CORNER BY ITS OPENER.** A list under its field or chip grows from its top, from the left where it is set from the opener's left and from the right where it is set against its right end (`fit="end"`, the sort's, a chip in 1b); `More actions`, set against its opener's end, from the top right; the account's from the bottom left, whether the rail is open and the menu stands over its row or the rail is folded and it stands beside its button, their feet on one line. That is the corner that does not move, so a menu set against an edge — the phone's `More actions` 12 from the screen's right edge, the account's on the window's foot — grows away from it. The drawings name an origin for some and none for others (the band's lists and the sort grow from their middle there, a few of the 1b and 1l lists from the top's middle); at 0.98 the two differ by a pixel or two, and the opener's corner is the one rule that holds for all.
+
+| Menu or list | The drawing | The app | Grows from |
+|---|---|---|---|
+| The account's, rail open or folded | `om-menu-in`, bottom left | `menu-in` 120ms `ease-out` | bottom left |
+| 1a's list head's job, the band's `Type`, `Category` and `Job` | `om-menu-in`, no origin | the same | top left |
+| 1a's and 1d's sort, 1l's sort | `om-menu-in`, no origin | the same | top right |
+| 1d's and 1f's breadcrumb `Job` | `om-menu-in`, top left | the same | top left |
+| 1b's `Type` and `Category` chips | `om-menu-in`, top right | the same | top right |
+| 1b's and 1i's job field, 1i's name | `om-menu-in`, top | the same | top left |
+| 1l's `Type` and `Category` chips | `om-menu-in`, no origin | the same | top left |
+| 1l's dialog's `Category` and `Name` | `om-menu-in`, top center | the same | top left |
+| 1f's `More actions` at a desk, 1l's dialog's | `om-menu-in`, top right | the same | top right |
+| 1j's `More actions` on a phone | `om-menu-in`, top right | the same | top right |
+
+**WHAT A BROWSER SHOWED**, on `next dev` against the test base, each menu or list opened once and paused at 60 of its 120ms: at 1440 × 900 the list head's job, the band's `Type`, `Category` and `Job` and the sort on 25-USA-13's list; the account's with the rail folded and open; the breadcrumb's `Job` and the sort on a kind's page and the registration's job field; the item page's breadcrumb `Job` and `More actions`; the catalog's `Type` and `Category` chips, its sort, the edit dialog's `Category` and `Name` and, on a row with no items, the dialog's `More actions`; the registration's `Type` chip from the list. At 373 × 810 under touch, the item page's `More actions` and the list head's job. Every one stood at scale 0.9937 and opacity 0.6846 — 0.98 and nothing, 0.6846 of the way, `ease-out`'s value at half — and ran `menu-in` for 120ms, and in each the corner named above was the one that did not move between 60ms and the end. The compiled rule stands inside `(prefers-reduced-motion: no-preference)`; a reduced-motion reader was not stood in, since the pane cannot ask for one.
 
 ## From the design's words to the names
 
@@ -552,6 +580,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0b Selection bar, inside | `--spacing-selection-bar-inset` | 0.5rem (8) |
 | 0b Selection bar, rises | `--spacing-selection-bar-slide` | 0.5rem (8) |
 | 0b Selection bar, fades in | `--transition-duration-selection-bar` | 160ms |
+| 0i End in the drawings, the room under a list's rows changing — for the selection bar, and as 1l turns sideways — not the spec | `--transition-duration-list-end` | 160ms |
 | 0b Selection bar, an action's reason from its info mark | `--spacing-selection-bar-reason-gap` | 0.375rem (6) |
 | 1a and 1d's drawings, between two columns — not the spec | `--spacing-table-column-inline` | 1.25rem (20) |
 | 1a's drawing, a column of counts — not the spec; 96 until #566 | `--width-table-count` | 3.5rem (56) |
@@ -572,6 +601,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0f segmented row, inside its track | `--spacing-segmented-inset` | 0.125rem (2) |
 | 0f segmented row, either side of an option's word | `--spacing-segmented-option-inset-x` | 0.375rem (6) |
 | 0f segmented row, the pill sliding to a new choice | `--transition-duration-segmented` | 200ms |
+| 1l's drawing, the pill fading in at the first choice and an option's ink changing — not the spec | `--transition-duration-segmented-fade` | 120ms |
 | 0f segmented row, how it slides — the rail's curve | `--ease-segmented` | cubic-bezier(0.2, 0, 0, 1) |
 | 0b Pager, above its controls, its 1px rule counted — 12 until #646 | `--spacing-pager-inset-top` | 0.5rem (8) |
 | 0b Pager, under them, 48 in all — 16 and 60 until #646 | `--spacing-pager-inset-bottom` | 0.5rem (8) |
@@ -607,6 +637,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0i Bar, the thumb | `--color-scrollbar-thumb` | Ink at 20% |
 | 0e Thumb hover | `--color-scrollbar-thumb-hover` | Ink at 34% |
 | 0f Field, a number field | `--width-number-input` | 7.5rem (120) |
+| The drawings, a number field's ground and ring changing — not the spec | `--transition-duration-number-input` | 120ms |
 | 0f Field, its steps from its ends | `--spacing-stepper-inset-x` | 0.1875rem (3) |
 | 0f Working, the wait before it shows | `--transition-delay-busy` | 300ms |
 | 0f Working, the spinner | `--size-spinner` | 1rem (16) |
@@ -709,7 +740,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0m's drawing, the row's chevron — not the spec | `--size-account-chevron` | 0.8125rem (13) |
 | 0m's drawing, the avatar darkening under the pointer — not the spec | `--transition-duration-avatar` | 90ms |
 | 0m Account, its menu beside a collapsed button | `--spacing-account-menu-offset-x` | 0.5rem (8) |
-| 0m Account, its menu growing in from 0.98 | `--animate-account-menu` | 120ms |
+| 0a Menu, every menu and list growing in from 0.98 at the corner by its opener — the account's alone from #495 until #659 | `--animate-menu` | menu-in 120ms ease-out |
 | 0m Breadcrumb | `--height-breadcrumb` | 3rem (48) |
 | 1d's drawing, the chevron after a level that opens a list — not the spec | `--size-breadcrumb-chevron` | 0.75rem (12) |
 | 1d's drawing, that level's word to its chevron — not the spec | `--spacing-breadcrumb-chevron-gap` | 0.375rem (6) |

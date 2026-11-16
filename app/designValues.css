@@ -76,6 +76,7 @@
     --spacing-segmented-inset: 0.125rem; /* 0f segmented row, 2: inside its track */
     --spacing-segmented-option-inset-x: 0.375rem; /* 0f segmented row, 6: either side of an option's word */
     --transition-duration-segmented: 200ms; /* 0f segmented row: how long its pill takes to slide to a new choice */
+    --transition-duration-segmented-fade: 120ms; /* 0f segmented row, 1l: how long its pill takes to fade in at the first choice, and an option's word to change ink — from the drawings, not the spec */
     --ease-segmented: cubic-bezier(0.2, 0, 0, 1); /* 0f segmented row: how its pill slides — the rail's curve, which the spec names */
     --min-width-menu: 8.75rem; /* Menu, 140: its longest item's width, from here */
     --max-width-menu: 17.5rem; /* Menu, 280: to here */
@@ -121,6 +122,7 @@
     --spacing-selection-bar-inset: 0.5rem; /* Selection bar, 8: inside it */
     --spacing-selection-bar-slide: 0.5rem; /* Selection bar, 8: how far it rises as it appears */
     --transition-duration-selection-bar: 160ms; /* Selection bar: how long it takes to fade in */
+    --transition-duration-list-end: 160ms; /* 0i End: how long the room under a list's rows takes to change — growing for the selection bar, and going as 1l's lane turns sideways — from the drawings, not the spec */
     --spacing-selection-bar-reason-gap: 0.375rem; /* Selection bar, 6: from the info mark that leads an action's reason to its words */
     --spacing-table-column-inline: 1.25rem; /* 1a and 1d, 20: between two columns — from the drawings, not the spec */
     --width-table-count: 3.5rem; /* 1a, 56: a column of counts — from the drawings, not the spec */
@@ -193,6 +195,7 @@
 
     /* 0f · States — a number field with steps, and an action that is busy. */
     --width-number-input: 7.5rem; /* Field, 120: a number field */
+    --transition-duration-number-input: 120ms; /* Field: how long a number field's ground and ring take to change — from the drawings, not the spec */
     --spacing-stepper-inset-x: 0.1875rem; /* Field, 3: its − and + from its ends */
     --transition-delay-busy: 300ms; /* 0f, 300ms: how long an action that has started waits before it shows it is busy */
     --transition-delay-held: 100ms; /* 0a "takes its hover fill while held": how long a finger rests on a list's row before it does, so a scroll's touch never lights one — this repository's, not the design's (#617) */
@@ -335,8 +338,8 @@
     --size-account-chevron: 0.8125rem; /* Account, 13: the chevron at the row's end — from the drawings, not the spec */
     --transition-duration-avatar: 90ms; /* Account: how long the avatar takes to darken under the pointer — from the drawings, not the spec */
     --spacing-account-menu-offset-x: 0.5rem; /* Account, 8: its menu beside the collapsed button, their bottoms aligned */
-    --animate-account-menu: account-menu-in 120ms ease-out; /* Account: its menu growing from 0.98 at its corner by the button */
-    @keyframes account-menu-in {
+    --animate-menu: menu-in 120ms ease-out; /* 0a Menu: every menu and list growing in from 0.98 at its corner by its opener — the account's since #495, every one's since #659 */
+    @keyframes menu-in {
         from {
             opacity: 0;
             transform: scale(0.98);

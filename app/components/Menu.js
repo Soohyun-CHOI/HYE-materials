@@ -108,6 +108,26 @@ const MENU_HEADING = "shrink-0 truncate px-control-inset-x py-menu-heading-inset
  */
 export const HELD_ROW = "transition-[background-color] duration-0 pointer-coarse:active:bg-hover pointer-coarse:active:delay-held";
 
+/*
+ * EVERY MENU AND EVERY LIST OPENS ONE WAY (0a Menu, #659): from 0.98 and nothing, in 120ms on
+ * `ease-out` (`--animate-menu`), grown from the corner by what opened it, and at once with
+ * reduced motion, as the slide of 1l's pill is. `MENU_ENTRANCE` is the one class `Menu` and
+ * `ActionMenu` both take, so a list a field, a chip, the sort or a breadcrumb level opens and
+ * a menu a button opens cannot part. The account's menu opened so from #495, and every other at
+ * once until #659.
+ */
+const MENU_ENTRANCE = "motion-safe:open:animate-menu";
+
+// The corner it grows from is the one by its opener: from the top under it, from the bottom over
+// it or beside it at the foot, and from the right where it is set from its opener's right end.
+const MENU_FROM = {
+    "below start": "origin-top-left",
+    "below end": "origin-top-right",
+    "above start": "origin-bottom-left",
+    "above end": "origin-bottom-right",
+};
+const menuFrom = (upward, fromEnd) => MENU_FROM[`${upward ? "above" : "below"} ${fromEnd ? "end" : "start"}`];
+
 export default function Menu({ id, anchorRef, shown, labelId, heading, options, active, shade = true, onPick, fit = "field", minWidth, rows = "lg", multiselectable = false, checkSlot = false, lane = false }) {
     const listRef = useRef(null);
     const checkedIndex = options.findIndex((option) => option.checked);
@@ -169,7 +189,7 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
             aria-labelledby={labelId}
             aria-multiselectable={multiselectable || undefined}
             popover="manual"
-            className={`inset-auto mx-0 mt-menu-offset mb-0 flex-col rounded-card border border-border bg-white py-menu-inset font-ui text-body-sm text-foreground-default tabular-nums shadow-popover open:flex ${
+            className={`inset-auto mx-0 mt-menu-offset mb-0 flex-col rounded-card border border-border bg-white py-menu-inset font-ui text-body-sm text-foreground-default tabular-nums shadow-popover open:flex ${MENU_ENTRANCE} ${menuFrom(false, fit === "end")} ${
                 fit === "field" ? "" : "w-max min-w-menu max-w-menu"
             } ${lane ? "max-h-menu-lane" : ""}`}
         >
@@ -283,9 +303,9 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
  *
  * THE ACCOUNT'S MENU IS 0m's SINCE #495: 224 wide — the expanded rail's inner width, written
  * as that difference — whatever its button, a head naming the reader's email above its one
- * item, and the item at 13 and 400. It grows from 0.98 at its corner by the button over
- * 120ms. The head answers no pointer and is no item, so it describes the menu rather than
- * standing in it.
+ * item, and the item at 13 and 400. It grows in from its corner by the button as every menu and
+ * list does (`MENU_ENTRANCE`), the first to, from #495. The head answers no pointer and is no
+ * item, so it describes the menu rather than standing in it.
  *
  * `look="record"` IS THE ASSET PAGE'S `More actions` (#463, 1f and 1j): set against its
  * opener's right end, since the opener stands at the content's edge, and drawn two ways. At
@@ -402,7 +422,7 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
             popover="manual"
             onKeyDown={onKeyDown}
             onBlur={onBlur}
-            className={`inset-auto flex-col border border-border bg-white font-ui text-body text-foreground-default shadow-popover open:flex ${MENU_LOOK[look]} ${PLACEMENT[placement]}`}
+            className={`inset-auto flex-col border border-border bg-white font-ui text-body text-foreground-default shadow-popover open:flex ${MENU_ENTRANCE} ${menuFrom(placement !== "below", look === "record" || look === "end")} ${MENU_LOOK[look]} ${PLACEMENT[placement]}`}
         >
             {heading && (
                 <div id={headingId} aria-hidden="true" className={MENU_HEADING}>
@@ -566,8 +586,7 @@ const PLACEMENT = {
 // a desk the 8 between its opener's box and the dots' ink, so the menu meets the content's
 // edge; on a phone the 12 from the screen's edge less the top bar's 4 on the right, and the 4
 // under the top bar plus the 4 between the 48 button and the bar's foot. The account's width
-// is the expanded rail's inside — its 248 less the 12 either side — and it grows from the
-// corner by its button.
+// is the expanded rail's inside — its 248 less the 12 either side.
 //
 // A RECORD'S MENU TAKES 0a's WIDTHS INSIDE ITS ROOM AND ITS EDGE, AS 1f AND 1j DRAW IT (#522):
 // at a desk 140 to 280 inside its 5 and its Edge, so 152 on the asset page, and on a phone 232
@@ -575,7 +594,7 @@ const PLACEMENT = {
 // as 1a draws them, and the account's 224 is its own.
 const MENU_LOOK = {
     account:
-        "w-[calc(var(--width-rail-expanded)-2*var(--spacing-rail-inset))] rounded-card p-menu-inset origin-bottom-left open:animate-account-menu",
+        "w-[calc(var(--width-rail-expanded)-2*var(--spacing-rail-inset))] rounded-card p-menu-inset",
     record:
         "ml-0 w-max min-w-[calc(var(--min-width-menu)+2*var(--spacing-menu-inset)+2px)] max-w-[calc(var(--max-width-menu)+2*var(--spacing-menu-inset)+2px)] rounded-card p-menu-inset mr-[calc((var(--height-control)-var(--size-icon))/2)] " +
         "max-sm:w-[calc(var(--width-mobile-menu)+2px)] max-sm:min-w-0 max-sm:max-w-none max-sm:overflow-hidden max-sm:rounded-mobile-control max-sm:p-0 " +

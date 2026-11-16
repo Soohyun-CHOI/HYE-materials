@@ -1097,8 +1097,8 @@ export function run({ check, assert, log }) {
 
     // #495 — 0a's head is 12 at 400 in Ink 3, 6 above and below and 10 either side, and both
     // lists draw it; a field's list sets its options at 13 and a typed fragment's match at
-    // 600; the account's menu is 224, grows in from the corner by its button and stands beside
-    // a collapsed one; and the account a phone's menu ends on is a row of its own.
+    // 600; the account's menu is 224 and stands beside a collapsed one; and the account a phone's
+    // menu ends on is a row of its own.
     const menuSource = menu.source;
     const menuConstant = (name) => {
         let text = "";
@@ -1218,12 +1218,47 @@ export function run({ check, assert, log }) {
         "false false false false false"
     );
     check(
-        "the account's menu is 224, the expanded rail's inside, and grows in from the corner by its button (0m, #495)",
+        "the account's menu is 224, the expanded rail's inside (0m, #495)",
+        /w-\[calc\(var\(--width-rail-expanded\)-2\*var\(--spacing-rail-inset\)\)\]/.test(menuConstant("MENU_LOOK")),
+        true
+    );
+    // #659 — every menu and list opens one way, the account's since #495: one class both parts take,
+    // grown from the corner by the opener, at once with reduced motion; no other file draws a menu or
+    // a list that opens, and no file but this one names the entrance or a corner to grow from.
+    const entrance = (source, others) =>
         [
-            /w-\[calc\(var\(--width-rail-expanded\)-2\*var\(--spacing-rail-inset\)\)\]/.test(menuConstant("MENU_LOOK")),
-            /origin-bottom-left open:animate-account-menu/.test(menuConstant("MENU_LOOK")),
-        ].join(" "),
-        "true true"
+            /const MENU_ENTRANCE = "motion-safe:open:animate-menu";/.test(source),
+            /const MENU_FROM = \{\s*"below start": "origin-top-left",\s*"below end": "origin-top-right",\s*"above start": "origin-bottom-left",\s*"above end": "origin-bottom-right",\s*\};/.test(source),
+            /role="listbox"[\s\S]*?\$\{MENU_ENTRANCE\} \$\{menuFrom\(false, fit === "end"\)\}/.test(source),
+            /role="menu"[\s\S]*?\$\{MENU_ENTRANCE\} \$\{menuFrom\(placement !== "below", look === "record" \|\| look === "end"\)\}/.test(source),
+            (source.match(/\$\{MENU_ENTRANCE\}/g) ?? []).length === 2 &&
+                !/animate-menu|origin-/.test(
+                    source
+                        .replace(/\/\*[\s\S]*?\*\//g, "")
+                        .replace(/\/\/[^\n]*/g, "")
+                        .replace(/const MENU_ENTRANCE = [^;]*;/, "")
+                        .replace(/const MENU_FROM = \{[^}]*\};/, "")
+                ),
+            others.filter(({ source: s }) => /popover="manual"/.test(s) && /role="(?:menu|listbox)"/.test(s)).map(({ path }) => path).join(" | "),
+            others.filter(({ source: s }) => /animate-menu|animate-\[|origin-(?:top|bottom)/.test(s)).map(({ path }) => path).join(" | "),
+        ].join(" ; ");
+    const elsewhere = listJsFiles(repoPath("app"))
+        .map((abs) => ({ path: toPosix(abs).slice(toPosix(REPO_ROOT).length + 1), source: readFileSync(abs, "utf8") }))
+        .filter(({ path }) => path !== MENU);
+    check(
+        "every menu and list grows in from 0.98 at the corner by its opener in one class, at once with reduced motion, and no other file draws one (#659)",
+        entrance(menuSource, elsewhere),
+        "true ; true ; true ; true ; true ;  ; "
+    );
+    // Tailwind reads this file for class names too, so a planted class no screen draws is assembled.
+    const plantedEntrance = ["open", "animate-menu"].join(":");
+    const plantedFrom = ["origin", "bottom", "left"].join("-");
+    check(
+        "  and an account's entrance of its own, a list opening at once, and a popover menu drawn elsewhere are seen (anti-vacuity)",
+        entrance(`const MENU_ENTRANCE = "${plantedEntrance}";\nrole="listbox" className={\`open:flex\`}\nrole="menu" className={\`${plantedFrom} ${plantedEntrance}\`}`, [
+            { path: "app/x/Popup.js", source: `<div role="menu" popover="manual" className="${plantedFrom} ${plantedEntrance}" />` },
+        ]),
+        "false ; false ; false ; false ; false ; app/x/Popup.js ; app/x/Popup.js"
     );
     check(
         "  beside a collapsed button 8 out, its foot on the button's",

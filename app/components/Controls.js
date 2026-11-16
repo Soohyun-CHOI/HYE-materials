@@ -8,6 +8,7 @@ import {
     comboboxList,
     editableComboboxKey,
     fieldClearPress,
+    keepFocus,
     menuIndex,
     movedIndex,
     multiSelectKey,
@@ -981,20 +982,31 @@ export function Checkbox({ label, checked, indeterminate = false, onChange }) {
     );
 }
 
+// A step selects no text and zooms nothing however fast it is pressed (#659): `select-none`, and
+// `touch-manipulation`, which leaves a finger's pan and pinch and takes away double-tap zoom.
 const STEP =
-    "flex h-control-sm aspect-square shrink-0 items-center justify-center rounded-control text-foreground-subtle not-aria-disabled:hover:bg-hover not-aria-disabled:hover:text-foreground-default";
+    "flex h-control-sm aspect-square shrink-0 touch-manipulation select-none items-center justify-center rounded-control text-foreground-subtle not-aria-disabled:hover:bg-hover not-aria-disabled:hover:text-foreground-default";
 
 /**
  * A number field with its steps (0f Field): 120 wide, a 30 − and + inside it 3 from its
  * ends, the figure centered between them, and every edge the form field's — white, an Edge
- * ring, Edge focus while it holds the caret, red while it refuses. The steps are the one
- * control inside another that fills at Hover as well as changing its ink (0f Nested).
+ * ring, Edge focus while it holds the caret, red while it refuses — its ground and its ring
+ * changing in 120ms on CSS's `ease`, as the drawings move them (#659), at once until then.
+ * The steps are the one control inside another that fills at Hover as well as changing its
+ * ink (0f Nested).
  *
  * The figure is text rather than `type="number"`, as the design draws it: the browser's
  * own spinner and its own refusal bubble are neither this app's nor the design's, so what
  * a count may be is `lib/assetRegistration.js:readQuantity`'s to say in the field's own
  * line. What it keeps of a keystroke and what a step does are `lib/controls.js`'s. Inside a
  * busy form the figure is read-only and the steps take no press (#469).
+ *
+ * A STEP PRESSED FAST SELECTS NOTHING AND TAKES NO FOCUS (#659). Pressed twice quickly, a step is
+ * double-clicked, and a double click selects the word nearest the point it lands on: the step
+ * holds a mark and no text, so the browser chose the field's line under it and `Up to 100` turned
+ * blue. Its `mousedown` is stopped (`keepFocus`), which starts no selection and moves no focus, so
+ * a caret in the figure stays there; it selects no text itself and zooms nothing under a finger
+ * (`STEP`). The figure is a field of its own and is selected as any is.
  */
 export function NumberField({ name, value, onChange, min, max }) {
     const field = useField();
@@ -1004,11 +1016,11 @@ export function NumberField({ name, value, onChange, min, max }) {
     };
     return (
         <div
-            className={`flex h-control-lg w-number-input items-center rounded-control bg-white px-stepper-inset-x inset-ring ${
+            className={`flex h-control-lg w-number-input items-center rounded-control bg-white px-stepper-inset-x inset-ring transition-[background-color,box-shadow] duration-number-input ${
                 field.refused ? "inset-ring-danger" : "inset-ring-border focus-within:inset-ring-border-focus"
             }`}
         >
-            <button type="button" aria-label={COPY.fewer} aria-disabled={formBusy || undefined} onClick={step(-1)} className={STEP}>
+            <button type="button" aria-label={COPY.fewer} aria-disabled={formBusy || undefined} onMouseDown={keepFocus} onClick={step(-1)} className={STEP}>
                 <Icon name="minus" kind="words" className="size-icon-sm" />
             </button>
             <input
@@ -1024,7 +1036,7 @@ export function NumberField({ name, value, onChange, min, max }) {
                 aria-invalid={field.refused || undefined}
                 className="h-control-sm min-w-0 flex-1 bg-transparent text-center text-body tabular-nums text-foreground-default caret-primary outline-none pointer-coarse:text-mobile-body"
             />
-            <button type="button" aria-label={COPY.more} aria-disabled={formBusy || undefined} onClick={step(1)} className={STEP}>
+            <button type="button" aria-label={COPY.more} aria-disabled={formBusy || undefined} onMouseDown={keepFocus} onClick={step(1)} className={STEP}>
                 <Icon name="plus" kind="words" className="size-icon-sm" />
             </button>
         </div>
@@ -1258,7 +1270,10 @@ const CHOICE_LOOK = {
  * type, and until #552 its class. A white track on an Edge border, 36 tall, 2 inside, at the Group radius, its
  * options sharing its width, each at 14 and 500 with 6 either side; the chosen one a pill on the
  * Face at the Control radius with its word in Accent, the rest at Ink 3, lifting to Ink under
- * the pointer. A new choice slides the pill across, at once with reduced motion. A field that
+ * the pointer. A new choice slides the pill across in 200ms on the rail's curve; the first
+ * fades it in as it slides, in 120ms on `ease-out`, and an option's word changes ink in the
+ * same 120ms, as 1l draws them (#659), where the pill came in and the ink changed at once until
+ * then. With reduced motion the pill moves at once, as 1l has it. A field that
  * refuses turns the track Red, and the keyboard's focus turns it Edge focus, as a field's.
  *
  * A RADIO GROUP, AS 0l's CHIPS ARE (`ChipChoice`): one stop for Tab, on the option chosen or the
@@ -1300,7 +1315,7 @@ export function SegmentedChoice({ name, options, value, onChange }) {
         >
             <span
                 aria-hidden="true"
-                className={`pointer-events-none absolute inset-y-segmented-inset left-[calc(var(--spacing-segmented-inset)+(100%-2*var(--spacing-segmented-inset))/var(--segmented-count)*var(--segmented-at))] w-[calc((100%-2*var(--spacing-segmented-inset))/var(--segmented-count))] rounded-control bg-selected transition-[left] duration-segmented ease-segmented motion-reduce:transition-none ${
+                className={`pointer-events-none absolute inset-y-segmented-inset left-[calc(var(--spacing-segmented-inset)+(100%-2*var(--spacing-segmented-inset))/var(--segmented-count)*var(--segmented-at))] w-[calc((100%-2*var(--spacing-segmented-inset))/var(--segmented-count))] rounded-control bg-selected transition-[left,opacity] duration-[var(--transition-duration-segmented),var(--transition-duration-segmented-fade)] ease-[var(--ease-segmented),var(--ease-out)] motion-reduce:transition-none ${
                     chosen < 0 ? "opacity-0" : ""
                 }`}
             />
@@ -1318,7 +1333,7 @@ export function SegmentedChoice({ name, options, value, onChange }) {
                         tabIndex={index === stop ? 0 : -1}
                         onClick={() => choose(index)}
                         onKeyDown={onKeyDown(index)}
-                        className={`relative min-w-0 flex-1 truncate rounded-control px-segmented-option-inset-x text-body font-medium outline-none ${
+                        className={`relative min-w-0 flex-1 truncate rounded-control px-segmented-option-inset-x text-body font-medium outline-none transition-[color] duration-segmented-fade ease-out ${
                             on ? "text-primary" : "text-foreground-subtle not-aria-disabled:hover:text-foreground-default"
                         }`}
                     >
