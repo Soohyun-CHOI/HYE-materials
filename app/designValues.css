@@ -25,7 +25,10 @@
  * each waits.
  *
  * A NAME IS THE WORD DESIGN SYSTEMS USE FOR THE KIND, NEVER A NUMBER, AND NEVER A
- * KEY TAILWIND OR THE APP ALREADY DECLARES. The design's own word for each row
+ * KEY TAILWIND OR THE APP ALREADY DECLARES — but for Tailwind's four curves, declared
+ * again at the end of the first block as CSS's own curves of the same names, since
+ * the design writes CSS's keywords and Tailwind's utilities of those names draw other
+ * curves (#659). The design's own word for each row
  * stays in the comment beside it, and `docs/notes/design-system.md` holds the
  * table from one to the other. A step suffix marks the steps of one kind, and a
  * ladder the design draws is declared whole even where a step equals a default.
@@ -539,6 +542,12 @@
     --spacing-mobile-menu-row-inset-x: 1rem; /* Menu, 16: inside a row */
     --height-mobile-menu-account: 3.5rem; /* Menu, 56: the account row the top bar's menu ends on, at least */
     --spacing-mobile-menu-account-inset-y: 0.5rem; /* Menu, 8: inside that row, above and below */
+
+    /* CSS's own curves under Tailwind's names (#659): the four keys of Tailwind's declared again. */
+    --ease-in: ease-in; /* CSS's ease-in, where Tailwind's is cubic-bezier(0.4, 0, 1, 1) */
+    --ease-out: ease-out; /* CSS's ease-out, where Tailwind's is cubic-bezier(0, 0, 0.2, 1): every fade the drawings draw, the soft edges' and the selection bar's among them */
+    --ease-in-out: ease-in-out; /* CSS's ease-in-out, where Tailwind's is cubic-bezier(0.4, 0, 0.2, 1) */
+    --default-transition-timing-function: ease; /* CSS's own default, ease, for a transition that names no curve — the tooltip's and the toast's, as the drawings leave theirs — where Tailwind's is cubic-bezier(0.4, 0, 0.2, 1) */
 }
 
 @theme inline {

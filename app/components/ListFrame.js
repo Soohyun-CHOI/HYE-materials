@@ -7,6 +7,7 @@ import Icon from "@/app/components/Icon";
 import { LIST_FILL, LIST_MEASURE } from "@/app/components/ListTable";
 import { SCROLL_LANE } from "@/app/components/scrollLane";
 import { useTooltip } from "@/app/components/Tooltip";
+import { titleGoneUnder } from "@/app/components/TopBar";
 
 // The pager's own height — its room above and below a 32 control, its rule counted in the
 // room above, 48 in all (0b, #646; 60 until then) — is how far it stands over the rows and how
@@ -74,9 +75,15 @@ function rowsRunBeneath(lane) {
  * the head's least height — or 1d's 48 bar. The lane keeps what holds at the top, and the pager
  * at the foot, out of the way of what keyboard focus scrolls to (`scroll-padding`).
  *
- * 1d's NAME COMES INTO THE BAR ONCE ITS HEADER HAS SCROLLED UNDER IT, and goes as it comes back
- * (1d): the frame marks the lane `data-title-gone`, and `Breadcrumb.js` draws the name it is
- * handed under that mark. Measured on every scroll, as the pager's ground is.
+ * 1d's NAME COMES INTO THE BAR ONCE ITS TITLE HAS SCROLLED UNDER IT, and goes as it comes back
+ * (1d, #659): the title is the head's heading, its one `h1`, and it has gone once its foot is at
+ * or above the bar's — the phone's top bar's judgment (`titleGoneUnder`) — which 1d draws from
+ * a scroll of 46, where the head's own foot is further down. The frame marks the lane
+ * `data-title-gone`, and `Breadcrumb.js` draws the name it is handed under that mark. Measured
+ * on every scroll, as the pager's ground is, and whenever the title changes size, since a title
+ * that folds onto a second line, or is set again once its face arrives, moves its foot without
+ * moving the head's. From #519 until #659 the frame measured the head's whole height, so the
+ * name came in well after the title had gone.
  *
  * THE PAGER IS THE ENDING, SO THE ROWS END ON NO 40 (0i End). They end on the pager's own
  * height instead, so the last row scrolls clear of it — and on the selection bar's as well
@@ -120,17 +127,19 @@ export default function ListFrame({ top, header, band, found, foundCount = 1, fo
     useEffect(() => {
         const lane = laneRef.current;
         if (!lane) return undefined;
+        // The title the bar names: the heading in the head under a bar (1d).
+        const titleOf = () => headerRef.current?.querySelector("h1") ?? null;
         const measure = () => {
             setBeneath(rowsRunBeneath(lane));
-            const bar = topRef.current;
-            const head = headerRef.current;
-            if (bar && head) setTitleGone(head.getBoundingClientRect().bottom <= bar.getBoundingClientRect().bottom);
+            setTitleGone(titleGoneUnder(titleOf(), topRef.current));
         };
         measure();
         lane.addEventListener("scroll", measure, { passive: true });
         const resized = new ResizeObserver(measure);
         resized.observe(lane);
         for (const child of lane.children) resized.observe(child);
+        const title = titleOf();
+        if (title) resized.observe(title);
         return () => {
             lane.removeEventListener("scroll", measure);
             resized.disconnect();

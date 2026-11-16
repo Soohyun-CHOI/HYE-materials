@@ -13,7 +13,8 @@
 //      shadow ink in an amount, every size carries a line height on the 0.25rem
 //      grid — and the ones this repository adds: a length is rem, a whole number of
 //      the design's pixels over 16, outside the px kept by convention; no name
-//      carries a digit; and no name is a key Tailwind or the app already declares.
+//      carries a digit; and no name is a key Tailwind or the app already declares,
+//      but for Tailwind's four curves, declared again as CSS's own (#659).
 //   3. THE GROUND, THE INK AND THE FACES ARE APPLIED ONCE, BY THE ROOT LAYOUT (#258):
 //      `app/layout.js` sets each face's variable on `<html>` and White, Ink and the UI
 //      face on `<body>`, no other layout applies any of them, no file but the root
@@ -720,6 +721,22 @@ const VALUES = [
 ];
 
 /**
+ * CSS's own curves under Tailwind's names (#659), the four keys of Tailwind's the declaration
+ * takes again. The drawings write CSS's keywords — `ease-out` on every fade, `ease` where they
+ * name none — and Tailwind's utilities of those names draw other curves, as does a transition
+ * naming none, which reads `--default-transition-timing-function`. So a class takes CSS's curve
+ * by its own word, and no screen names a curve of its own. They sit outside `VALUES`: no row of
+ * the design names them, and a name Tailwind declares is read wherever its utility is, so none
+ * waits on a reader.
+ */
+const CSS_CURVES = [
+    ["--ease-in", "ease-in"],
+    ["--ease-out", "ease-out"],
+    ["--ease-in-out", "ease-in-out"],
+    ["--default-transition-timing-function", "ease"],
+];
+
+/**
  * The lengths that stay px: what is drawn in px by convention. The ring is a
  * stroke, and so is every mark's line, the one 1.25 at any size (#502); the
  * scrollbar's lane is the browser's own, whose width follows no text size, so the
@@ -820,6 +837,9 @@ export function parseDeclaration(css) {
 
 /** Every custom property a stylesheet declares, comments aside. */
 const keysOf = (css) => new Set([...withoutComments(css).matchAll(/(--[a-z0-9-]+)\s*:/gi)].map((m) => m[1]));
+
+/** And each one's value, as the last declaration of it says. */
+const valuesOf = (css) => new Map([...withoutComments(css).matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/gi)].map((m) => [m[1], m[2].trim()]));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tailwind, asked what a token reads
@@ -1078,8 +1098,13 @@ export async function run({ check, assert, log }) {
     // ── 2: every value is the design's ───────────────────────────────────────
     log("");
     log("every declaration is the design's value, and the relations the design states hold:");
-    check("  declared names are exactly the table's", [...declared.keys()].sort().join(" "), [...declaredNames].sort().join(" "));
+    check(
+        "  declared names are exactly the table's and Tailwind's four curves",
+        [...declared.keys()].sort().join(" "),
+        [...declaredNames, ...CSS_CURVES.map(([name]) => name)].sort().join(" ")
+    );
     for (const [name, value] of VALUES) check(`  ${name}`, declared.get(name), value);
+    for (const [name, value] of CSS_CURVES) check(`  ${name} is CSS's own ${value}`, declared.get(name), value);
 
     check("  no name carries a digit", [...declaredNames].filter((n) => /\d/.test(n)).join(" "), "");
 
@@ -1132,6 +1157,21 @@ export async function run({ check, assert, log }) {
     // The app's own are its two template colors since #258 took Geist's two faces out.
     assert("  and so are the app's own", ["--color-foreground", "--color-background"].every((k) => appKeys.has(k)));
     check("  no name is a key Tailwind already declares", [...declaredNames].filter((n) => tailwindKeys.has(n)).join(" "), "");
+    // #659 — Tailwind's keys the declaration takes again are its four curves and no other, and
+    // each is a curve of Tailwind's own there, so taking it again changes what its utility draws.
+    check(
+        "  the keys of Tailwind's declared again are its four curves",
+        [...declared.keys()].filter((n) => tailwindKeys.has(n)).sort().join(" "),
+        CSS_CURVES.map(([name]) => name).sort().join(" ")
+    );
+    const tailwindValues = valuesOf(readFileSync(requireFromRepo.resolve("tailwindcss/theme.css"), "utf8"));
+    check(
+        "  and Tailwind's own value for each is another curve",
+        CSS_CURVES.filter(([name, value]) => !/^cubic-bezier\(/.test(tailwindValues.get(name) ?? "") || tailwindValues.get(name) === value)
+            .map(([name]) => name)
+            .join(" "),
+        ""
+    );
     check("  no name is a key the app's other stylesheets declare", [...declaredNames].filter((n) => appKeys.has(n)).join(" "), "");
 
     // ── the oracle, seen to work before anything is claimed with it ──────────
@@ -1163,6 +1203,47 @@ export async function run({ check, assert, log }) {
     sees(cls("rounded-", "full"), []);
     sees(cls("text-", "zinc-500"), []);
     sees("Choose", []);
+    // #659 — a curve's class takes Tailwind's key, which the declaration gives CSS's curve, and a
+    // transition naming no curve takes the default.
+    const curveOf = makeReader(ds, new Set(CSS_CURVES.map(([name]) => name)));
+    const takes = (token, expected) =>
+        check(`  ${token} takes its curve from`, [...curveOf([token])].sort().join(" "), [...expected].sort().join(" "));
+    takes(cls("ease-", "out"), ["--ease-out"]);
+    takes(cls("ease-", "in"), ["--ease-in"]);
+    takes(cls("ease-", "in-out"), ["--ease-in-out"]);
+    takes(cls("transition-", "opacity"), ["--default-transition-timing-function"]);
+    takes(cls("transition-", "[opacity,visibility]"), ["--default-transition-timing-function"]);
+
+    // #659 — each fade the drawings draw names its curve by their word: `ease-out` where they write
+    // it, and nothing where they write `ease`, which a transition naming no curve takes. Found by
+    // the duration each fade reads, one class string to a fade.
+    log("");
+    log("each fade the drawings draw takes their curve by its word:");
+    const curvesBy = (source, duration) =>
+        [...source.matchAll(new RegExp(`[^"'\`]*(?<![\\w-])${duration}(?![\\w-])[^"'\`]*`, "g"))].map((m) => (m[0].match(/(?<![\w-])ease-[a-z-]+/g) ?? ["none"]).join(","));
+    const fades = (read) =>
+        [
+            ["app/components/Breadcrumb.js", "duration-breadcrumb-title"],
+            ["app/components/TopBar.js", "duration-mobile-top-bar"],
+            ["app/components/BottomBar.js", "duration-mobile-bottom-bar"],
+            ["app/components/ListFrame.js", "duration-selection-bar"],
+            ["app/components/Toast.js", "duration-toast"],
+            ["app/components/Tooltip.js", "duration-tooltip"],
+        ]
+            .map(([file, duration]) => curvesBy(read(file), duration).join(" "))
+            .join(" | ");
+    check(
+        "  1d's name, the phone's top bar's edge and name, the foot bar's edge and the selection bar's three on ease-out; the toast and the tooltip on none",
+        fades((file) => readFileSync(join(REPO_ROOT, file), "utf8")),
+        "ease-out | ease-out ease-out | ease-out | ease-out ease-out ease-out | none | none"
+    );
+    check(
+        "  and a soft edge naming no curve, as both did until #659, is seen (anti-vacuity)",
+        fades((file) =>
+            file.endsWith("Bar.js") ? '"absolute opacity-0 transition-opacity duration-mobile-top-bar duration-mobile-bottom-bar"' : readFileSync(join(REPO_ROOT, file), "utf8")
+        ),
+        "ease-out | none | none | ease-out ease-out ease-out | none | none"
+    );
 
     // ── the corpus, the graph and the reads ──────────────────────────────────
     log("");
