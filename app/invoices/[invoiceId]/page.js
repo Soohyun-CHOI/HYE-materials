@@ -216,7 +216,7 @@ async function renderInvoiceDetailPage({ params }) {
     const positions = invoicePositions({ items, orderedItemById });
     const naming = orderNaming({ positions, orders: poRecords });
     // What this invoice charges each ordered item, over all its items — the `This invoice`
-    // term of a quantity variance's figures, and what `Previously invoiced` is the rest of.
+    // term of a quantity variance's figures, and what `Other invoices` is the rest of.
     const thisInvoiceOn = new Map();
     for (const it of items) {
         const id = it.poItem?.[0];
@@ -229,7 +229,7 @@ async function renderInvoiceDetailPage({ params }) {
         const mine = thisInvoiceOn.get(o.id) || 0;
         return VARIANCE_COPY.quantityFigures({
             ordered: o.qty ?? 0,
-            previously: Math.max(0, (o.invoicedQty || 0) - mine),
+            otherInvoices: Math.max(0, (o.invoicedQty || 0) - mine),
             thisInvoice: mine,
         });
     };

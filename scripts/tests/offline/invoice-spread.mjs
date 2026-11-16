@@ -191,8 +191,8 @@ export function run({ check, assert, log }) {
 
     log("");
     log("a quantity variance's figures say it is cumulative:");
-    check("with an earlier invoice", VARIANCE_COPY.quantityFigures({ ordered: 5, previously: 5, thisInvoice: 2 }), "Ordered 5 · Previously invoiced 5 · This invoice 2");
-    check("with none", VARIANCE_COPY.quantityFigures({ ordered: 5, previously: 0, thisInvoice: 7 }), "Ordered 5 · This invoice 7");
+    check("with another invoice on it", VARIANCE_COPY.quantityFigures({ ordered: 5, otherInvoices: 5, thisInvoice: 2 }), "Ordered 5 · Other invoices 5 · This invoice 2");
+    check("with none", VARIANCE_COPY.quantityFigures({ ordered: 5, otherInvoices: 0, thisInvoice: 7 }), "Ordered 5 · This invoice 7");
 
     log("");
     log("ONE pour, called by both — the delivery planner and the invoice spread:");
