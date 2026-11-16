@@ -372,7 +372,7 @@ function LabelsFrame({ open, onClose, title, itemName, answer, reading = false, 
                 )}
             </DialogBody>
             <DialogActions refusal={said} refusalId={refusalId}>
-                <Button variant="bordered" onClick={onClose}>
+                <Button variant="secondary" onClick={onClose}>
                     {COPY.cancel}
                 </Button>
                 {/* Waiting while the run is read or the face awaited, reading again after a read

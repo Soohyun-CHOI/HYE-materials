@@ -71,7 +71,7 @@ import { moveFocus } from "./movedFocus";
  *
  * IN A SHEET ON A PHONE THEY TAKE THE PHONE'S SIZES, AND NOWHERE ELSE (#458). The asset
  * page's dialogs open as Tools 0a's sheets below the phone's edge, and there a button is
- * 48 and full width, 17 at 600, a bordered one a text button, and a field's label 15. The
+ * 48 and full width, 17 at 600, a secondary one a text button, and a field's label 15. The
  * frame marks such a dialog `data-sheet`, so those sizes are `max-sm:in-data-[sheet]:`
  * classes — CSS decides both conditions, the width and the ancestor, and a control in any
  * other dialog or on a page keeps 0a's at every width; the registration's and the labels'
@@ -268,8 +268,13 @@ const insetOf = (variant, size) =>
 const sizeOf = (variant, size) => (GHOSTS.includes(variant) && size === "lg" ? "inline-flex h-control shrink-0 text-body" : BUTTON_SIZE[size]);
 
 // 0f: a filled action hovers to its Accent hover and keeps its white ink, and one that
-// cannot act keeps its fill at 40% and takes no hover; a bordered one fills at Wash
-// and leaves its Edge alone. A destructive commitment is filled red and hovers to Red's
+// cannot act keeps its fill at 40% and takes no hover. A secondary one — `Cancel`, `Export`,
+// `Not now` and their kin — has no border: it rests at Field and fills to Ink at 8% under the
+// pointer, its words at 600 in Ink (0f Bordered, #662), and one that cannot act keeps its Field
+// at 40% and its words take Ink 4, a disabled control's glyph (0e), so its gray ground does not
+// read as the one at rest. No file draws a secondary that cannot act, and the 40% alone would
+// leave it 1.8% Ink under words in Ink — a resting button with its ground faded, not a disabled
+// one (`docs/notes/design-system.md`). A destructive commitment is filled red and hovers to Red's
 // Accent hover (0f Destructive, 0d) — the retirement's (#458) — and one that cannot act keeps
 // its red at 40% the same way, as Tools 54 holds a retirement or a deletion it refused (#616).
 // A ghost is its word alone in Ink, 10 either side, and fills at Hover (Ghost, 0f Faced) — a
@@ -285,7 +290,8 @@ const sizeOf = (variant, size) => (GHOSTS.includes(variant) && size === "lg" ? "
 const FILLED = ["filled", "danger"];
 const BUTTON_VARIANT = {
     filled: "bg-primary text-white not-disabled:not-aria-disabled:hover:bg-primary-hover disabled:bg-primary-disabled data-unavailable:bg-primary-disabled",
-    bordered: "border border-border bg-white text-foreground-default not-disabled:not-aria-disabled:hover:bg-hover-subtle",
+    secondary:
+        "bg-background-muted text-foreground-default not-disabled:not-aria-disabled:hover:bg-secondary-hover disabled:bg-secondary-disabled disabled:text-foreground-faint data-unavailable:bg-secondary-disabled data-unavailable:text-foreground-faint",
     danger: "bg-danger text-white not-disabled:not-aria-disabled:hover:bg-danger-hover data-unavailable:bg-danger-disabled",
     ghost: "text-foreground-default not-disabled:not-aria-disabled:hover:bg-hover",
     ghostDanger: "text-foreground-default not-disabled:not-aria-disabled:hover:bg-danger-subtle not-disabled:not-aria-disabled:hover:text-danger",
@@ -293,15 +299,16 @@ const BUTTON_VARIANT = {
 };
 
 // In a sheet below the phone's edge (Tools 0a Button, #458): full width, 48, 17 at 600, at
-// the phone's Radius; a filled one takes its hover fill while held, and a bordered one is a
-// text button that dims to 0.5 while held ("Cancel under it as a text button") — neither
-// while it is busy or locked, which takes no press.
+// the phone's Radius; a filled one takes its hover fill while held, and a secondary one is a
+// text button that dims to 0.5 while held ("Cancel under it as a text button"), its Field
+// taken away — neither while it is busy or locked, which takes no press. A text button has no
+// ground to fade, so one that cannot act keeps none and says so in its words alone (#662).
 const SHEET_BUTTON =
     "max-sm:in-data-[sheet]:h-mobile-dialog-button max-sm:in-data-[sheet]:w-full max-sm:in-data-[sheet]:rounded-mobile-control max-sm:in-data-[sheet]:text-mobile-heading";
 const SHEET_BUTTON_VARIANT = {
     filled: "max-sm:in-data-[sheet]:not-aria-disabled:active:bg-primary-hover",
-    bordered:
-        "max-sm:in-data-[sheet]:border-0 max-sm:in-data-[sheet]:bg-transparent max-sm:in-data-[sheet]:not-aria-disabled:active:opacity-mobile-pressed",
+    secondary:
+        "max-sm:in-data-[sheet]:bg-transparent max-sm:in-data-[sheet]:disabled:bg-transparent max-sm:in-data-[sheet]:data-unavailable:bg-transparent max-sm:in-data-[sheet]:not-aria-disabled:active:opacity-mobile-pressed",
     danger: "max-sm:in-data-[sheet]:not-aria-disabled:active:bg-danger-hover",
     ghost: "",
     ghostDanger: "",
@@ -370,7 +377,8 @@ export function ButtonLabel({ size, on, busyLabel, children }) {
  * An action (0a's Commitment, 36, or `size="xl"`, a sign-in page's 40): `filled` for the
  * one a screen or a dialog exists for, `danger` for a dialog's commitment that cannot be
  * undone, `ghost` for one that is its word alone — a dialog's `Back`, at `md` (#520) — its
- * Destructive kind `ghostDanger` (1l's `Discontinue`, #527), and `bordered` for the rest.
+ * Destructive kind `ghostDanger` (1l's `Discontinue`, #527), and `secondary` for the rest —
+ * `bordered` until the design took its Edge away (#662).
  *
  * A DISABLED ACTION NAMES WHY AS ITS DESCRIPTION, `describedBy` below, so a screen reader
  * reaching the control hears what stops it. From #456 to #610 a `disabledReason` drew it 14
@@ -400,8 +408,8 @@ export function ButtonLabel({ size, on, busyLabel, children }) {
  * so a keyboard reaches it and hears the reason `describedBy` points at, where `disabled` takes it
  * out of the order. It looks as a disabled one does — a filled action's fill at 40% (0f Disabled),
  * a destructive one's red at 40% since #616, the commitment of a dialog whose press pressing again
- * cannot change (Invoices 0l, Tools 54's 1f) — where a locked one keeps its look, so it says so with
- * `data-unavailable` of its own.
+ * cannot change (Invoices 0l, Tools 54's 1f), a secondary one's Field at 40% under words in Ink 4
+ * since #662 — where a locked one keeps its look, so it says so with `data-unavailable` of its own.
  *
  * `holdWidthOf` IS WORDS THE ACTION KEEPS ROOM FOR (#522): a commitment whose words carry a
  * count the reader changes in place holds the width of a longer form of them, unseen and

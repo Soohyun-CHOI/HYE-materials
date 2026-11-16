@@ -64,7 +64,7 @@ export function JobChangeForm({ open, onClose, available, assetId, plan, assetJo
                 </Field>
             </DialogBody>
             <DialogActions refusal={refusal} refusalId={refusalId}>
-                <Button variant="bordered" onClick={onClose}>
+                <Button variant="secondary" onClick={onClose}>
                     {COPY.cancel}
                 </Button>
                 <Button type="submit" unavailable={!available} describedBy={!available && refusal ? refusalId : undefined} busyLabel={COPY.saving}>

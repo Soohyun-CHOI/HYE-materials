@@ -19,7 +19,7 @@ export default function PageNotFound() {
         <div className="flex min-h-full flex-col items-center justify-center px-page-gutter text-center font-ui text-foreground-default">
             <h1 className="text-heading font-semibold">{COPY.pageNotFound}</h1>
             <div className="mt-gap-lg">
-                <ButtonLink variant="bordered" href={ASSET_CATEGORIES_PATH}>
+                <ButtonLink variant="secondary" href={ASSET_CATEGORIES_PATH}>
                     {COPY.goToTools}
                 </ButtonLink>
             </div>

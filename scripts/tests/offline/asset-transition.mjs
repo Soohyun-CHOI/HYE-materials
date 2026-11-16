@@ -1742,7 +1742,7 @@ export function run({ check, assert, log }) {
     check(
         "its commitment is filled red and submits, beside a way out",
         attributeSources(confirm.ast, confirm.source, "Button", "variant").join(" | "),
-        '"bordered" | "danger"'
+        '"secondary" | "danger"'
     );
     check("  the commitment the submit", attributeSources(confirm.ast, confirm.source, "Button", "type").join(), '"submit"');
     check("  giving way to its working word while it sends", attributeSources(confirm.ast, confirm.source, "Button", "busyLabel").join(), "{COPY.retireWorking}");
@@ -1770,7 +1770,7 @@ export function run({ check, assert, log }) {
     // since the value alone holds whatever the screens print in its place.
     check(
         "the way out says it on all three dialogs",
-        [form, confirm].map((f) => /<Button variant="bordered"[^>]*>\s*\{COPY\.cancel\}\s*<\/Button>/.test(f.source)).join(" "),
+        [form, confirm].map((f) => /<Button variant="secondary"[^>]*>\s*\{COPY\.cancel\}\s*<\/Button>/.test(f.source)).join(" "),
         "true true"
     );
     // IT TAKES NO INPUT AT ALL, which is two decisions rather than one. No reason

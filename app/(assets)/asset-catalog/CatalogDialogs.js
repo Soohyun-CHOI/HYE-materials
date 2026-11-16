@@ -269,7 +269,7 @@ export function EntryDialog({ entry, open, onClose, onRemove, rows, groups, offi
                 refusal={refusal}
                 refusalId={refusalId}
                 note={editing && renamesItems(row, values, { rows }) ? COPY.renames(row.assetCount) : null}
-                secondary={
+                leading={
                     editing &&
                     (row.discontinued ? (
                         <Button variant="ghost" busy={pending && working === "restore"} busyLabel={COPY.working.restore} onClick={() => markDiscontinued(false)}>
@@ -282,7 +282,7 @@ export function EntryDialog({ entry, open, onClose, onRemove, rows, groups, offi
                     ))
                 }
             >
-                <Button variant="bordered" onClick={onClose}>
+                <Button variant="secondary" onClick={onClose}>
                     {COPY.cancel}
                 </Button>
                 <Button type="submit" unavailable={!standing} describedBy={!standing && refusal ? refusalId : undefined} busyLabel={COPY.working[mode]}>
@@ -322,7 +322,7 @@ export function RemoveDialog({ row, rows, office, open, onClose }) {
                 <DialogMessage>{COPY.removeSays}</DialogMessage>
             </DialogBody>
             <DialogActions refusal={refusal} refusalId={refusalId}>
-                <Button variant="bordered" onClick={onClose}>
+                <Button variant="secondary" onClick={onClose}>
                     {COPY.cancel}
                 </Button>
                 <Button variant="danger" type="submit" unavailable={!removable} describedBy={!removable && refusal ? refusalId : undefined} busyLabel={COPY.working.remove}>

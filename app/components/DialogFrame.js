@@ -946,9 +946,10 @@ export function SheetRows({ rows }) {
  * The commitment is written last and drawn first, so the order a keyboard meets them at a
  * desk — `Cancel`, then the act — is the order in the markup at both widths.
  *
- * A SECONDARY ACTION STANDS ON THE LEFT (0l Actions, 1b; #520) — `secondary`, the
- * registration's `Back` — a ghost pulled out by its side room so its ink meets the edge, and
- * first in the order a keyboard meets them, as it stands first on the line.
+ * A LEADING ACTION STANDS ON THE LEFT (0l Actions, 1b; #520) — `leading`, the registration's
+ * `Back` and the catalog's `Discontinue` or `Restore` — a ghost pulled out by its side room so its
+ * ink meets the edge, and first in the order a keyboard meets them, as it stands first on the
+ * line. It was `secondary` until #662, when that word became the design's for `Cancel`'s kind.
  *
  * A `note` IS WHAT A PRESS WILL DO, SET ON THE REFUSAL'S LINE BEFORE ANY PRESS (1l, #527): an
  * edit's `10 items will show the new name.`, the same mark and words, heard as a status rather
@@ -957,12 +958,12 @@ export function SheetRows({ rows }) {
  * `refusalId` NAMES THE REFUSAL FOR A COMMITMENT IT TURNS AWAY (#614): a desk's dialog that stands
  * across a page no longer offering its act keeps its commitment `unavailable`, described by why.
  */
-export function DialogActions({ refusal, refusalId, note, secondary, children }) {
+export function DialogActions({ refusal, refusalId, note, leading, children }) {
     return (
         <div className="flex shrink-0 flex-col gap-gap-lg pt-dialog-inset in-data-preview:px-dialog-inset in-data-fixed:px-dialog-inset in-data-fixed:pb-dialog-inset max-sm:in-data-[sheet]:px-mobile-gutter max-sm:in-data-[sheet]:pt-mobile-drawer-body-stack">
             {refusal ? <Refusal id={refusalId}>{refusal}</Refusal> : note && <Refusal role="status">{note}</Refusal>}
             <div className="flex flex-wrap items-center justify-end gap-gap max-sm:in-data-[sheet]:flex-col-reverse max-sm:in-data-[sheet]:gap-mobile-drawer-action-stack">
-                {secondary && <div className="mr-auto -ml-ghost-inset-x flex">{secondary}</div>}
+                {leading && <div className="mr-auto -ml-ghost-inset-x flex">{leading}</div>}
                 {children}
             </div>
         </div>
