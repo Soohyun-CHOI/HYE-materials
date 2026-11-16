@@ -172,13 +172,13 @@ export function run({ check, log }) {
         each(() => "23-USA-09,25-USA-13,26-USA-12")
     );
     check(
-        "  and a list with no job asked starts on the first of their own, or on all of them",
+        "  and a list with no job asked starts on the first of their own, or on all of them — the office's whatever it holds (#656)",
         each((user) => {
             const scope = assetListScope(user, JOBS, null);
             return scope.allJobs ? "all" : scope.job.jobCode;
         }),
         "site manager on two: 23-USA-09 | site manager on one: 25-USA-13 | site manager on none: all | " +
-            "office on none: all | office, a site manager on one: 26-USA-12 | reader who records nothing: 23-USA-09"
+            "office on none: all | office, a site manager on one: all | reader who records nothing: 23-USA-09"
     );
     // THE ITEMS EACH RECORDS ON ARE THOSE ON THEIR OWN JOBS (#597), by the item's job: an item on
     // each of the three, and the jobs whose items a reader is offered anything on.

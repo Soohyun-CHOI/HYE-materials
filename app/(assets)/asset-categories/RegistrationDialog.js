@@ -95,7 +95,8 @@ function markSent() {
  *
  * AND EACH HANDS OVER THE JOB ITS LIST STANDS ON (#565), which the job's choice starts on when
  * it is one the choice offers — the reader's own assignments, as the page read them — so a list
- * on one of their jobs opens the dialog on it, the first a list starts on included. On all jobs
+ * on one of their jobs opens the dialog on it, the first a site reader's list starts on included
+ * (the office's starts on all jobs, #656). On all jobs
  * there is none to hand, and a job a reader may view and is not assigned to — any job, since
  * #593 — is not offered, so either starts as every opening did until then: on the one job a reader holds,
  * or on none of several (`chosenJobId`). What is handed is the page's reading of the address

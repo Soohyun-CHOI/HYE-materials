@@ -167,8 +167,9 @@ export default function CatalogList({ rows, groups }) {
                     band={
                         <>
                             <SearchField label={COPY.searchLabel} value={typed} onChange={search} clearLabel={COPY.clearSearch} />
-                            {/* 1l draws each chip's list as a lane of its own up to 340, where 1a's
-                                never scroll: the catalog offers every category its groups hold (#555). */}
+                            {/* 1l draws each chip's list as a lane of its own, as 1a does, at the
+                                one height (`Menu`'s `lane`, #555, #656): the catalog offers every
+                                category its groups hold. */}
                             {ASSET_LIST_FACETS.map((facet) => (
                                 <FilterChip
                                     key={facet}
@@ -178,8 +179,7 @@ export default function CatalogList({ rows, groups }) {
                                     onChange={(values) => write({ ...reading.held, [facet]: values })}
                                     clearLabel={ASSET_LIST_COPY.clearFacet[facet]}
                                     several={ASSET_LIST_COPY.selectedCount}
-                                    lane="max-h-catalog-filter-list"
-                                    gutter
+                                    lane
                                 />
                             ))}
                             <ToggleChip

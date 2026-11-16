@@ -4,10 +4,10 @@
 //
 //   THE PRESS IS PURE (`lib/assetListExport.js:listExport`), handed its four reads, so it runs
 //   here over a fixture of three jobs, five kinds and seven assets, and every read it asks for is
-//   written down: the office on its first job, on all of them, and on all of them narrowed by the
-//   `Job` chip, a type and a search; a site reader asking for a job off theirs and for all of
-//   them, each answered since #593; a reader on no job, on all of them; a band that empties the
-//   list. Each sheet is held by value, and the
+//   written down: a site reader on their first job; the office on all of them with no job asked
+//   (#656), as asked, and narrowed by the `Job` chip, a type and a search; a site reader asking
+//   for a job off theirs and for all of them, each answered since #593; a reader on no job, on
+//   all of them; a band that empties the list. Each sheet is held by value, and the
 //   two sheets against each other — every first-sheet row is exactly as many second-sheet rows,
 //   status for status, of its own type and category — which is a second path to the counts, and
 //   since #569 to the total, those of them not retired. Since #541 a press on an item's id too:
@@ -99,7 +99,8 @@ const LOG_ROWS = [
     entry("l6", ASSET_EVENT.CREATED, "2026-10-03T12:00:00.000Z"),
     entry("l7", ASSET_EVENT.CHECKED_IN, "2026-10-04T12:00:00.000Z"),
 ];
-// Assigned to 23-USA-09, so a press with no job stands there, the first of the office's own (#593).
+// Both assigned to 23-USA-09: a site reader's press with no job stands there, the first of their
+// own (#593), and the office's on all jobs whatever it is assigned to (#656).
 const OFFICE = { id: "recU1", isAdmin: true, assignedJobs: ["recJ1"] };
 const SITE = { id: "recU2", isAdmin: false, assignedJobs: ["recJ1"] };
 const NO_JOB = { id: "recU3", isAdmin: false, assignedJobs: [] };
@@ -244,7 +245,7 @@ function userHanded(actionText) {
  */
 async function byId541({ check, log }) {
     log("a press on an item's id, which the list finds the item by (#541):");
-    const byId = await press(OFFICE, "q=HYE-AST-261001-002");
+    const byId = await press(SITE, "q=HYE-AST-261001-002");
     check(
         "the first sheet holds the item's row on the job the list stands on, its counts whole",
         rowsSaid(byId.made.sheets[0]),
@@ -253,18 +254,25 @@ async function byId541({ check, log }) {
     check("  the second every asset under that row, not the item alone", byId.made.sheets[1].rows.map((row) => row[0]).join(" "), "HYE-AST-261001-002 HYE-AST-261001-001");
     check("  the one out read for its holder, and every asset on the job for the counts", `${byId.asked.assets.map((ids) => ids.join(",")).join(" / ")} | ${byId.asked.logRows.map((ids) => ids.join(",")).join(" / ")}`, "a1,a2,a5 | l2b");
     check("  and the two sheets agree", agreement(byId.made.sheets, { job: "23-USA-09" }), "agree");
-    check("its label's code presses the same file", rowsSaid((await press(OFFICE, "q=261001-002")).made.sheets[1]), rowsSaid(byId.made.sheets[1]));
+    check("its label's code presses the same file", rowsSaid((await press(SITE, "q=261001-002")).made.sheets[1]), rowsSaid(byId.made.sheets[1]));
     // AND ITS SERIAL NUMBER, WHOLE, IN ANY CASE (#601): the same row and every asset under it, as the
     // list shows it — the file asks the list's reading of the assets it read whole, their numbers in it.
-    check("its serial number presses the same file, in any case", rowsSaid((await press(OFFICE, "q=%20b53ad2304217%20")).made.sheets[1]), rowsSaid(byId.made.sheets[1]));
+    check("its serial number presses the same file, in any case", rowsSaid((await press(SITE, "q=%20b53ad2304217%20")).made.sheets[1]), rowsSaid(byId.made.sheets[1]));
     const onAll = await press(OFFICE, "job=all&q=261001-003");
     check(
         "on all of the office's jobs the item's row counts every job, and lists every asset under it",
         `${rowsSaid(onAll.made.sheets[0])} | ${onAll.made.sheets[1].rows.map((row) => `${row[0]} ${row[9]}`).join(" ")}`,
         "Band Saw, DeWalt (DCS375) ; Tool ; Power Tool ; 1 ; 1 ; 0 ; 1 ; 2 | HYE-AST-261001-002 23-USA-09 HYE-AST-261001-003 25-USA-13 HYE-AST-261001-001 23-USA-09"
     );
-    const offJob = await press(OFFICE, "q=261001-003");
+    const offJob = await press(SITE, "q=261001-003");
     check("an item off the job the list stands on is in no sheet", `${offJob.made.sheets[0].rows.length} ${offJob.made.sheets[1].rows.length}`, "0 0");
+    // The same press by the office stands on all jobs (#656), where that item is its row's.
+    const officeOff = await press(OFFICE, "q=261001-003");
+    check(
+        "  where the office's press with no job asked, on all of them (#656), holds it",
+        `${officeOff.made.fileName} ${officeOff.made.sheets[0].rows.length} ${officeOff.made.sheets[1].rows.length}`,
+        "Equipment & Tools - All jobs - 2026-10-22.xlsx 1 3"
+    );
     const offChip = await press(OFFICE, "job=all&job=recJ1&q=261001-003");
     check("  nor one off the jobs the Job chip takes", `${offChip.made.sheets[0].rows.length} ${offChip.made.sheets[1].rows.length}`, "0 0");
     const offReader = await press(SITE, "q=HYE-AST-261003-001");
@@ -283,8 +291,8 @@ export async function run({ check, log, assert }) {
 
     // ── 1: the press, by value ──────────────────────────────────────────────
     log("one press, over a fixture of three jobs and seven assets:");
-    const first = await press(OFFICE, "");
-    check("the office on no job asked stands on the first of its own, and the file says so", first.made.fileName, "Equipment & Tools - 23-USA-09 - 2026-10-22.xlsx");
+    const first = await press(SITE, "");
+    check("a site reader on no job asked stands on the first of their own, and the file says so", first.made.fileName, "Equipment & Tools - 23-USA-09 - 2026-10-22.xlsx");
     check("  each read asked once — the catalog, the jobs, the job's assets, the latest rows of those out", `${first.asked.categories} ${first.asked.jobs} ${first.asked.assets.map((ids) => ids.join(",")).join(" / ")} | ${first.asked.logRows.map((ids) => ids.join(",")).join(" / ")}`, "1 1 a1,a2,a5 | l2b");
     check(
         "  the first sheet is the list on that job: each kind, its type, its category, its four counts and its total",
@@ -313,6 +321,14 @@ export async function run({ check, log, assert }) {
         "HYE-AST-261001-002 23-USA-09 Dana K | HYE-AST-261001-003 25-USA-13 - | HYE-AST-261001-001 23-USA-09 - | HYE-AST-261004-001 25-USA-13 - | HYE-AST-261003-001 26-USA-12 - | HYE-AST-261002-001 25-USA-13 - | HYE-AST-261002-002 23-USA-09 -"
     );
     check("  every asset on them read, once, and the rows of the two out", `${all.asked.assets.map((ids) => ids.join(",")).join(" / ")} | ${all.asked.logRows.map((ids) => ids.join(",")).join(" / ")}`, "a1,a2,a3,a4,a5,a6,a7 | l2b,l7");
+    // THE OFFICE ON NO JOB ASKED STANDS ON ALL OF THEM (#656), its assignment notwithstanding: the
+    // file `job=all` gives, read the same way.
+    const officeStart = await press(OFFICE, "");
+    check(
+        "the office on no job asked stands on all of them, assigned to 23-USA-09 as it is (#656), and the file is all jobs' own",
+        `${officeStart.made.fileName} ${officeStart.asked.assets.map((ids) => ids.join(",")).join(" / ")} | ${rowsSaid(officeStart.made.sheets[0]) === rowsSaid(all.made.sheets[0])}`,
+        "Equipment & Tools - All jobs - 2026-10-22.xlsx a1,a2,a3,a4,a5,a6,a7 | true"
+    );
 
     // THE LIST'S ORDER (#540): the first sheet by most recent change when the list is sorted so,
     // and the second's blocks with it, each still newest change first within.
@@ -381,7 +397,7 @@ export async function run({ check, log, assert }) {
     const emptied = await press(OFFICE, "job=all&q=zzz");
     check("a band that empties the list gives both sheets with their heads alone", `${emptied.made.sheets[0].rows.length} ${emptied.made.sheets[1].rows.length}`, "0 0");
 
-    const west = await press(OFFICE, "", { timeZone: "America/Los_Angeles", now: new Date("2026-10-22T05:00:00.000Z") });
+    const west = await press(SITE, "", { timeZone: "America/Los_Angeles", now: new Date("2026-10-22T05:00:00.000Z") });
     check("a day is the reader's: the evening of the 21st in Los Angeles, the file named for it", `${said(west.made.sheets[1].rows[0][13])} ${west.made.fileName}`, "10/21/2026 Equipment & Tools - 23-USA-09 - 2026-10-21.xlsx");
     check("  and a zone the runtime does not know is read as UTC", `${knownTimeZone("Mars/Olympus")} ${knownTimeZone("")} ${knownTimeZone("Asia/Seoul")}`, "UTC UTC Asia/Seoul");
 

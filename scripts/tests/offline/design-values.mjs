@@ -206,11 +206,9 @@ const VALUES = [
     ["--ease-segmented", "cubic-bezier(0.2, 0, 0, 1)", null],
     ["--min-width-menu", "8.75rem", null],
     ["--max-width-menu", "17.5rem", null],
-    // The most 1l's two kinds of list stand before they scroll in their lanes (#555).
-    ["--max-height-catalog-field-list", "14.25rem", null],
-    ["--max-height-catalog-filter-list", "21.25rem", null],
-    // The most 1a's band lists stand before they scroll in their lanes (#566).
-    ["--max-height-category-list-filter-list", "15rem", null],
+    // The most a list drawn as a lane stands before it scrolls in it — 1a's band lists (#566) and,
+    // since the files of 2026-11-13, 1l's band and dialog lists at the same height (#555, #656).
+    ["--max-height-menu-lane", "15rem", null],
     ["--spacing-menu-offset", "0.375rem", null],
     ["--spacing-menu-inset", "0.3125rem", null],
     // 0a Menu's head, which names what follows (#495).

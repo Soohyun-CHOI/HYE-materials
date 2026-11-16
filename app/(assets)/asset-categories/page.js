@@ -55,14 +55,14 @@ export const metadata = { title: COPY.heading };
  * company's, whatever job this list stands on — so it costs nothing.
  *
  * THE LIST STARTS ON ONE JOB (#520). Every reader may move to any job since #593, where the office
- * alone could until then, and starts on the first of their own by its code; a category with
- * nothing on the job is left off. `lib/assetListView.js:assetListScope` is the judgment, and a
+ * alone could until then, and starts on the first of their own by its code — the office on all
+ * of them since #656, below; a category with nothing on the job is left off. `lib/assetListView.js:assetListScope` is the judgment, and a
  * category's own page reads its rows by the same one. **From #509 a list started from all of the
  * reader's jobs at once**, with `All jobs` first in the choice, which the design never drew;
  * docs/notes/tools.md has the turn.
  *
  * AND ON ALL OF THEM WHEN THE READER CHOOSES `All jobs` (#548), or with no job asked for a reader
- * assigned to none (#593): every job, read as one job is — the assets on them together in the one
+ * assigned to none (#593) and for the office (#656): every job, read as one job is — the assets on them together in the one
  * question below, and
  * nothing read per job. A row is a kind with an asset on any of them, its counts
  * those jobs' added up, and each row carries its counts per job for the band's `Job` chip, which

@@ -329,9 +329,25 @@ function allJobs548({ check, log }) {
     check("  but with one job there is, `all` is that job, as any value not offered is", said(assetListScope(single, [JOBS[0]], ALL_JOBS)), "false recJ2 26-B a3,a4,a5");
     check("  and where no job exists, nothing", said(assetListScope({ isAdmin: false }, [], ALL_JOBS)), "false null - ");
     check("an address naming one job, as every address did before, stands on it", said(assetListScope(office, JOBS, "recJ2")), "false recJ2 26-B a3,a4,a5");
-    check("  no job asked starts on the first of the reader's own, the office's too (#593)", said(assetListScope(office, JOBS, undefined)), "false recJ2 26-B a3,a4,a5");
-    check("  and several jobs without all are a repeated parameter, answered where no job asked starts", said(assetListScope(office, JOBS, ["recJ1", "recJ3"])), "false recJ2 26-B a3,a4,a5");
-    check("  as is a job that is no job, never the first by its code", said(assetListScope(office, JOBS, "recNope")), "false recJ2 26-B a3,a4,a5");
+    check("  no job asked starts on the first of the reader's own (#593)", said(assetListScope(single, JOBS, undefined)), "false recJ2 26-B a3,a4,a5");
+    check("  and the office's on all of them, assigned to 26-B as it is (#656)", said(assetListScope(office, JOBS, undefined)), "true all - a1,a2,a3,a4,a5");
+    check(
+        "  and several jobs without all are a repeated parameter, answered where no job asked starts",
+        [said(assetListScope(single, JOBS, ["recJ1", "recJ3"])), said(assetListScope(office, JOBS, ["recJ1", "recJ3"]))].join(" | "),
+        "false recJ2 26-B a3,a4,a5 | true all - a1,a2,a3,a4,a5"
+    );
+    check(
+        "  as is a job that is no job, never the first by its code",
+        [said(assetListScope(single, JOBS, "recNope")), said(assetListScope(office, JOBS, "recNope"))].join(" | "),
+        "false recJ2 26-B a3,a4,a5 | true all - a1,a2,a3,a4,a5"
+    );
+    // WITH ONE JOB THERE IS, THE OFFICE STANDS ON IT (#656), one it is not assigned to included, since
+    // `all` is offered only between two; and where none exists, on nothing.
+    check(
+        "  but with one job there is, the office stands on it with no job asked, and with none on nothing",
+        [said(assetListScope(office, [JOBS[2]], undefined)), said(assetListScope(office, [], undefined))].join(" | "),
+        "false recJ1 26-A a1,a2 | false null - "
+    );
 
     // THE COUNTS PER JOB each row carries, which the chip adds up in the browser.
     const KINDS = [
@@ -2512,12 +2528,13 @@ export function run({ check, assert, log }) {
     const named = (categories) => categories.map((category) => category.id).join(",");
     const jobsOf = (scope) => scope.jobs.map((job) => job.jobCode).join(",");
 
-    // THE OFFICE MAY STAND ON EVERY JOB AND STARTS ON THE FIRST OF ITS OWN (#593), where until
-    // #593 it started on the first by its code, its assignment notwithstanding. #509 started it
-    // from every asset there was, `null`, which went with `All jobs` (#520).
+    // THE OFFICE MAY STAND ON EVERY JOB AND STARTS ON ALL OF THEM (#656), its assignment
+    // notwithstanding, where from #593 it started on the first of its own and until #593 on the
+    // first by its code. #509 started it from every asset there was, `null`, which went with
+    // `All jobs` (#520).
     const whole = assetListScope(office, JOBS, undefined);
     check("the office may stand on every job, by its code, one with nothing on it included", jobsOf(whole), "26-A,26-B,26-C");
-    check("  starts on the first of its own, its assignment (#593)", `${whole.job?.jobCode} ${said(whole.shown)}`, "26-B i3,i4");
+    check("  starts on all of them, its assignment notwithstanding (#656)", `${whole.allJobs} ${whole.job} ${said(whole.shown)}`, "true null i1,i2,i3,i4");
     check("  and lists the categories with an asset there, the one with none left off (#507)", named(assetCategoriesInScope(CATEGORIES, whole.shown)), "recGrinder,recDriver");
     // ANYBODY ELSE MAY STAND ON EVERY JOB TOO (#593), AND STARTS ON THE FIRST OF THEIR OWN.
     const own = assetListScope(site, JOBS, undefined);
@@ -2546,8 +2563,8 @@ export function run({ check, assert, log }) {
     check("a job off the reader's own is stood on (#593)", asked("recJ2"), "26-B i3,i4");
     check("  one that is no job is answered with the first of theirs", asked("recNope"), "26-A i1,i2");
     check("  and a repeated parameter", asked(["recJ3"]), "26-A i1,i2");
-    // NO FLAG DECIDES IT: a President who is not marked Admin stands where anybody does, and
-    // the office where they do (#593).
+    // THE OFFICE'S FLAG ALONE DECIDES IT (#656): a President who is not marked Admin starts where
+    // anybody does (#593).
     const president = assetListScope({ role: "President", isAdmin: false, assignedJobs: ["recJ2"] }, JOBS);
     check("a President not marked Admin may stand on every job, and starts on their own", `${jobsOf(president)} ${said(president.shown)}`, "26-A,26-B,26-C i3,i4");
     const nobody = assetListScope({ isAdmin: false }, JOBS);

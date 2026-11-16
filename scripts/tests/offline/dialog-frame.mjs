@@ -117,10 +117,10 @@ const key = (name, mods = {}) => ({ key: name, altKey: false, ctrlKey: false, me
 
 /**
  * What a field's list draws as it scrolls, off `Menu.js` (#555): 0i's bar on every list and its
- * Chain, the bar's 8 reserved by a list handed `gutter` alone — 1l's, as Tools 56 draws them (#617),
- * where #555 reserved it on none — a lane's height only where a caller hands one, the height the less
- * of the lane's and the room under the field, and the option it checks scrolled to while no key has
- * moved visual focus.
+ * Chain, the bar's 8 reserved by none — as #555 drew every list, and the files of 2026-11-13 draw
+ * 1l's again, which from #617 reserved it (#656) — the lane's one height only where a caller marks
+ * the list a lane, the height the less of the lane's and the room under the field, and the option it
+ * checks scrolled to while no key has moved visual focus.
  */
 function laneFacts({ ast, source }) {
     const menu = functionNamed(ast, "Menu");
@@ -129,17 +129,18 @@ function laneFacts({ ast, source }) {
     const region = body.match(/<div className=\{`(flex min-h-0 flex-col overflow-y-auto[^`]*)`\}>/)?.[1] ?? "";
     return [
         /import \{ SCROLL_LANE \} from "\.\/scrollLane";/.test(source),
-        /\boverflow-y-auto overscroll-contain \$\{gutter \? "p-menu-inset \[scrollbar-gutter:stable\]" : "px-menu-inset"\} \$\{SCROLL_LANE\}/.test(region),
-        region !== "" && /\$\{lane \?\? ""\}/.test(body) && (body.match(/scrollbar-gutter/g) ?? []).length === 1,
+        /\boverflow-y-auto overscroll-contain px-menu-inset \$\{SCROLL_LANE\}/.test(region),
+        region !== "" && /\$\{lane \? "max-h-menu-lane" : ""\}/.test(body) && !/scrollbar-gutter|\bgutter\b/.test(body),
         /list\.style\.maxHeight = "";\s*const own = parseFloat\(getComputedStyle\(list\)\.maxHeight\);\s*list\.style\.maxHeight = `\$\{Number\.isNaN\(own\) \? room : Math\.min\(own, room\)\}px`;/.test(body),
         /const index = active >= 0 \? active : checkedIndex;/.test(body) && /\}, \[shown, active, checkedIndex\]\);/.test(body),
     ].join(" ");
 }
 
 /**
- * Where the Menu's 5 stands (#555, #617): the frame scrolls nothing, and holds the 5 above and below
- * but on a list handed `gutter`, whose scrolling region holds it on every side, as 1l pads it; any
- * other region holds the 5 either side, as 1a's band draws it.
+ * Where the Menu's 5 stands (#555, #656): the frame scrolls nothing and holds the 5 above and below,
+ * and the region that scrolls holds it either side, so a row passing the top or the foot is cut 5
+ * inside the Edge and the bar runs 5 inside it, on every list — 1a's band as 1l's, where from #617
+ * 1l's scrolled a region holding it on every side.
  */
 function insetFacts({ ast, source }) {
     const menu = functionNamed(ast, "Menu");
@@ -147,9 +148,9 @@ function insetFacts({ ast, source }) {
     const frame = body.match(/popover="manual"\s+className=\{`([^`]*)`\}/)?.[1] ?? "";
     const region = body.match(/<div className=\{`(flex min-h-0 flex-col overflow-y-auto[^`]*)`\}>/)?.[1] ?? "";
     return [
-        /\$\{gutter \? "" : "py-menu-inset"\}/.test(frame) && !/\bp-menu-inset\b/.test(frame),
+        /\bpy-menu-inset\b/.test(frame) && !/\bp-menu-inset\b|\$\{gutter/.test(frame),
         frame !== "" && !/\boverflow-/.test(frame),
-        /\$\{gutter \? "p-menu-inset \[scrollbar-gutter:stable\]" : "px-menu-inset"\}/.test(region) && /\bmin-h-0\b/.test(region),
+        /\bpx-menu-inset\b/.test(region) && !/\bp-menu-inset\b|\bpy-menu-inset\b|\$\{gutter/.test(region) && /\bmin-h-0\b/.test(region),
     ].join(" ");
 }
 
@@ -170,7 +171,7 @@ function everyFacts({ ast, source }) {
             /if \(answer\.shown && !shown\) setNarrowing\(false\);/.test(body),
         /onChange\(event\.target\.value\);\s*setNarrowing\(true\);/.test(body),
         /if \(onPick\) onPick\(list\[index\]\);\s*else onChange\(list\[index\]\.label\);/.test(body),
-        /lane=\{lane\}\s+gutter=\{gutter\}\s+options=\{list\.map\(/.test(body) && /checked: suggestion\.chosen === true,/.test(body),
+        /lane=\{lane\}\s+options=\{list\.map\(/.test(body) && /checked: suggestion\.chosen === true,/.test(body),
         chip ? /lane=\{lane\}/.test(source.slice(chip.start, chip.end)) : false,
     ].join(" ");
 }
@@ -359,19 +360,19 @@ export function run({ check, assert, log }) {
             everyFacts(parseSource("export function Combobox() { const shown = listOpen && suggestions.length > 0; return <input />; }\nexport function FilterChip() { return <Menu />; }\n", "<planted-every>")),
             "false false false false false false false"
         );
-        check("  every field list scrolls in 0i's bar, 1l's reserving its 8 always and a lane stopping at its height", laneFacts(parseFile(MENU)), "true true true true true");
-        check("  and 1l's region holds the Menu's 5 on every side, any other's frame above and below, no frame scrolling", insetFacts(parseFile(MENU)), "true true true");
+        check("  every field list scrolls in 0i's bar, reserving none of its 8, and a lane stopping at its one height", laneFacts(parseFile(MENU)), "true true true true true");
+        check("  and every frame holds the Menu's 5 above and below and its region either side, no frame scrolling (#656)", insetFacts(parseFile(MENU)), "true true true");
         check(
             "  a frame padded and scrolling itself is seen",
             insetFacts(parseSource('export default function Menu() { return <div popover="manual" className={`inset-auto overflow-y-auto p-menu-inset`} />; }\n', "<planted-inset>")),
             "false false false"
         );
         check(
-            "  and a frame holding the 5 for every list, 1l's too, is seen",
+            "  and #617's two kinds, 1l's region padded on every side, are seen",
             insetFacts(
                 parseSource(
-                    'export default function Menu() { return <div popover="manual" className={`inset-auto py-menu-inset`}><div className={`flex min-h-0 flex-col overflow-y-auto overscroll-contain px-menu-inset ${SCROLL_LANE}`}></div></div>; }\n',
-                    "<planted-inset-555>"
+                    'export default function Menu() { return <div popover="manual" className={`inset-auto ${gutter ? "" : "py-menu-inset"}`}><div className={`flex min-h-0 flex-col overflow-y-auto overscroll-contain ${gutter ? "p-menu-inset [scrollbar-gutter:stable]" : "px-menu-inset"} ${SCROLL_LANE}`}></div></div>; }\n',
+                    "<planted-inset-617>"
                 )
             ),
             "false true false"
@@ -387,38 +388,52 @@ export function run({ check, assert, log }) {
             "false false false false false"
         );
         check(
-            "  a list reserving the bar's 8 for every list, 1a's too, is seen",
+            "  a list reserving the bar's 8, as 1l's did from #617, is seen",
             laneFacts(
                 parseSource(
-                    'export default function Menu() { return <div popover="manual" className={`inset-auto ${lane ?? ""}`}><div className={`flex min-h-0 flex-col overflow-y-auto overscroll-contain p-menu-inset [scrollbar-gutter:stable] ${SCROLL_LANE}`}></div></div>; }\n',
+                    'export default function Menu() { return <div popover="manual" className={`inset-auto ${lane ? "max-h-menu-lane" : ""}`}><div className={`flex min-h-0 flex-col overflow-y-auto overscroll-contain p-menu-inset [scrollbar-gutter:stable] ${SCROLL_LANE}`}></div></div>; }\n',
                     "<planted-reserved>"
                 )
-            ).split(" ")[1],
-            "false"
+            )
+                .split(" ")
+                .slice(1, 3)
+                .join(" "),
+            "false false"
         );
         check(
-            "  and 1l's lists taking the 8 only while the bar shows, as #555 ruled, are seen",
+            "  and a region padded on every side, its 5 scrolling away with the rows, is seen",
             laneFacts(
                 parseSource(
-                    'export default function Menu() { return <div popover="manual" className={`inset-auto ${lane ?? ""}`}><div className={`flex min-h-0 flex-col overflow-y-auto overscroll-contain p-menu-inset ${SCROLL_LANE}`}></div></div>; }\n',
+                    'export default function Menu() { return <div popover="manual" className={`inset-auto ${lane ? "max-h-menu-lane" : ""}`}><div className={`flex min-h-0 flex-col overflow-y-auto overscroll-contain p-menu-inset ${SCROLL_LANE}`}></div></div>; }\n',
                     "<planted-unreserved>"
                 )
             ).split(" ")[1],
             "false"
         );
-        // #617 — exactly 1l's three lists are handed `gutter`: its band chips and its dialog's two
-        // fields, and not 1a's band, which Tools 56 draws as #555 left every list.
-        const gutterCallers = (file) => (parseFile(file).source.match(/^\s+gutter\s*$/gm) ?? []).length;
         check(
-            "1l's lists alone reserve the 8 and scroll their 5 away (#617)",
-            ["app/(assets)/asset-catalog/CatalogDialogs.js", "app/(assets)/asset-catalog/CatalogList.js", "app/(assets)/asset-categories/AssetCategoryList.js"].map(gutterCallers).join(" "),
-            "2 1 0"
+            "  and a lane whose height its caller hands, as each list's was until #656, is seen",
+            laneFacts(
+                parseSource(
+                    'export default function Menu() { return <div popover="manual" className={`inset-auto ${lane ?? ""}`}><div className={`flex min-h-0 flex-col overflow-y-auto overscroll-contain px-menu-inset ${SCROLL_LANE}`}></div></div>; }\n',
+                    "<planted-own-height>"
+                )
+            ).split(" ")[2],
+            "false"
         );
+        // #656 — every list drawn as a lane is marked so and nothing more: 1l's dialog's two fields and
+        // its band chips, and 1a's band's two chips, each at the Menu's one height, none handing a
+        // height or `gutter` of its own, which 1l's three handed from #617.
+        const laneCallers = (file) => {
+            const source = parseFile(file).source;
+            return `${(source.match(/^\s+lane\s*$/gm) ?? []).length}/${(source.match(/\blane=|^\s+gutter\b/gm) ?? []).length}`;
+        };
         check(
-            "  and the chip and the field hand it on to the list",
-            (parseFile("app/components/Controls.js").source.match(/lane=\{lane\}\s*gutter=\{gutter\}/g) ?? []).length,
-            2
+            "the lists drawn as lanes are marked so, at the one height, and none hands a height or gutter of its own (#656)",
+            ["app/(assets)/asset-catalog/CatalogDialogs.js", "app/(assets)/asset-catalog/CatalogList.js", "app/(assets)/asset-categories/AssetCategoryList.js"].map(laneCallers).join(" "),
+            "2/0 1/0 2/0"
         );
+        const controlsSource = parseFile("app/components/Controls.js").source;
+        check("  and the chip and the field hand the mark on to the list, and nothing else", `${(controlsSource.match(/lane=\{lane\}/g) ?? []).length} ${/\bgutter\b/.test(controlsSource)}`, "2 false");
         // #617 — a row a finger holds takes 0a's hover fill once the finger has rested, in a field's
         // list and the registration's results alike, and nothing more under a mouse.
         const menuFile = parseFile(MENU);
@@ -1103,7 +1118,7 @@ export function run({ check, assert, log }) {
     check(
         "a field's list sets its options at 13 and a typed fragment's match at 600 (#495)",
         [
-            /className=\{?[`"][^`"]*\bbg-white \$\{gutter \? "" : "py-menu-inset"\} font-ui text-body-sm\b/.test(fieldListSource),
+            /className=\{?[`"][^`"]*\bbg-white py-menu-inset font-ui text-body-sm\b/.test(fieldListSource),
             /\{option\.match \? \(\s*<>\s*\{option\.match\.before\}\s*<span className="font-semibold">\{option\.match\.match\}<\/span>/.test(fieldListSource),
         ].join(" "),
         "true true"

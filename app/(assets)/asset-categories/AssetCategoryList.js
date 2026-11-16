@@ -76,7 +76,7 @@ const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(4,var(--width-table-count))_var
  * list with rows: the empty states, which the page draws, have none. `ListExport.js` has what a
  * press reads and what it says.
  *
- * A CHIP'S LIST STANDS AT MOST 240, AND SCROLLS PAST IT (1a, #566), as the catalog's stand at 340:
+ * A CHIP'S LIST STANDS AT MOST 240, AND SCROLLS PAST IT (1a, #566), as the catalog's stand since #656:
  * the files of 2026-10-23 draw the category list's band lists as lanes of their own, where until
  * then they grew to their options.
  *
@@ -186,7 +186,7 @@ export default function AssetCategoryList({ rows, job, jobCode = null, allJobs =
                             onChange={(values) => choose(facet, values)}
                             clearLabel={COPY.clearFacet[facet]}
                             several={COPY.selectedCount}
-                            lane="max-h-category-list-filter-list"
+                            lane
                         />
                     ))}
                     {allJobs && (
@@ -197,7 +197,7 @@ export default function AssetCategoryList({ rows, job, jobCode = null, allJobs =
                             onChange={(values) => choose("jobs", values)}
                             clearLabel={COPY.clearJobs}
                             several={COPY.selectedCount}
-                            lane="max-h-category-list-filter-list"
+                            lane
                         />
                     )}
                     <div className="-mr-sort-inset-right ml-auto">

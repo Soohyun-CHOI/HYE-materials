@@ -314,20 +314,18 @@ export function run({ check, assert, log }) {
     {
         const dialogs = parseFile(DIALOGS).source;
         const handed = (field, every) =>
-            new RegExp(`<Combobox\\s+name="${field}"(?:(?!/>)[\\s\\S])*?every=\\{${every}\\(values, (groups|rows)\\)\\}\\s+lane="max-h-catalog-field-list"`).test(dialogs);
+            new RegExp(`<Combobox\\s+name="${field}"(?:(?!/>)[\\s\\S])*?every=\\{${every}\\(values, (groups|rows)\\)\\}\\s+lane\\s`).test(dialogs);
         check(
-            "the dialog hands both fields the whole list and 1l's 228 lane",
+            "the dialog hands both fields the whole list and the Menu's lane",
             `${handed("level2", "everyCategory")} ${handed("level3", "everyName")}`,
             "true true"
         );
-        const chipLanes = (file) => (parseFile(file).source.match(/<FilterChip\b[\s\S]*?\/>/g) ?? []).map((chip) => (chip.match(/lane="([^"]*)"/) ?? [])[1] ?? "none").join(", ");
-        // The category list's band takes 1a's own 240 since the files of 2026-10-23 (#566), where
-        // its lists grew to their options from #520.
-        check(
-            "the catalog's band hands its chips 1l's 340 lane, and the category list's 1a's 240",
-            `${chipLanes(LIST)} | ${chipLanes(CATEGORY_LIST)}`,
-            "max-h-catalog-filter-list | max-h-category-list-filter-list, max-h-category-list-filter-list"
-        );
+        // Every list a band chip opens is a lane of its own at the Menu's one height: 1a's since the
+        // files of 2026-10-23 (#566), and 1l's at 1a's height and shape since those of 2026-11-13,
+        // where it stood at 340 and scrolled its padded box (#555, #617, #656).
+        const chipLanes = (file) =>
+            (parseFile(file).source.match(/<FilterChip\b[\s\S]*?\/>/g) ?? []).map((chip) => (/\slane\s/.test(chip) ? "lane" : /\slane=/.test(chip) ? "lane=" : "none")).join(", ");
+        check("the catalog's band hands its chips the Menu's lane, and the category list's band its two", `${chipLanes(LIST)} | ${chipLanes(CATEGORY_LIST)}`, "lane | lane, lane");
     }
     log("");
 

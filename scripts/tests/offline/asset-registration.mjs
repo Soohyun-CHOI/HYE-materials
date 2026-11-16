@@ -165,7 +165,10 @@ export async function run({ check, assert, log }) {
     const officeOnOne = { assignedJobs: ["recUsa09"], isAdmin: true, role: "Employee" };
     const site = { assignedJobs: ["recUsa09", "recUsa13"], isAdmin: false, role: "Employee" };
     check("a list on one of the reader's jobs opens the dialog on it", opensOn(office, "recUsa13"), "recUsa13");
-    check("  and so does the first job a list starts on with no job asked", opensOn(office, undefined), "recUsa09");
+    check("  and so does the first job a site reader's list starts on with no job asked", opensOn(site, undefined), "recUsa09");
+    // THE OFFICE'S LIST STARTS ON ALL JOBS (#656), so there is no job to hand: its dialog starts on
+    // none of several, or on the one it holds.
+    check("  the office's starts on all jobs, so none of several or its one", `${opensOn(office, undefined) || "none"} ${opensOn(officeOnOne, undefined)}`, "none recUsa09");
     check("  for a site reader on one of theirs as for the office", opensOn(site, "recUsa13"), "recUsa13");
     // A JOB THE OFFICE VIEWS AND IS NOT ASSIGNED TO: the list stands on it — which is what makes
     // this the case and not a job the scope answered with another — and the choice starts on

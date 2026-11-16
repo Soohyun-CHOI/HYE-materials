@@ -148,10 +148,12 @@ export function siteManagerReads({ ast, source }) {
 /**
  * THE ONE READ OF THE OFFICE'S FLAG THE AXIS ADMITS (#509): in `assetListScope`, which until #593
  * read it for what an asset list starts from — every job for the office, a reader's own for
- * anybody else — and since #593, when every reader stands on every job, for one thing alone: its
- * answer's `office`, whether the office's acts on an asset are the reader's (#583). That is a
- * question about the office and not about who records, so the mark cannot answer it. It is the
- * flag alone, in this one function, once; the role is admitted nowhere.
+ * anybody else — and from #593, when every reader stands on every job, for one thing alone: its
+ * answer's `office`, whether the office's acts on an asset are the reader's (#583). Since #656 it
+ * is read for two: that `office`, and where a list with no job asked starts — on all jobs for the
+ * office, whatever it is assigned to. Each is a question about the office and not about who
+ * records, so the mark cannot answer either. It is the flag alone, in this one function, once;
+ * the role is admitted nowhere.
  */
 const SCOPE = { file: "lib/assetListView.js", fn: "assetListScope", name: "isAdmin" };
 
@@ -357,7 +359,7 @@ export function run({ check, assert, log }) {
         "1,1"
     );
     check(
-        `  but for whether the reader is the office (#509, #583): the flag, read once in ${SCOPE.file}:${SCOPE.fn}`,
+        `  but for whether the reader is the office (#509, #583, #656): the flag, read once in ${SCOPE.file}:${SCOPE.fn}`,
         readsInside(parseFile(SCOPE.file).ast, SCOPE.fn, SCOPE.name),
         1
     );
