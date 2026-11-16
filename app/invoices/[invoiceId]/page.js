@@ -215,8 +215,9 @@ async function renderInvoiceDetailPage({ params }) {
     );
     const positions = invoicePositions({ items, orderedItemById });
     const naming = orderNaming({ positions, orders: poRecords });
-    // What this invoice charges each ordered item, over all its items — the `This invoice`
-    // term of a quantity variance's figures, and what `Other invoices` is the rest of.
+    // What this invoice charges each ordered item, over all its items — the bracketed part of
+    // a quantity variance's `Invoiced`, which is the ordered item's `Invoiced Qty`, every
+    // invoice on it.
     const thisInvoiceOn = new Map();
     for (const it of items) {
         const id = it.poItem?.[0];
@@ -227,9 +228,10 @@ async function renderInvoiceDetailPage({ params }) {
         if (!o) return null;
         if (kind === "price") return VARIANCE_COPY.priceFigures(formatUSD(o.unitPrice), formatUSD(share.unitPrice));
         const mine = thisInvoiceOn.get(o.id) || 0;
+        // Never below this invoice's own, which a rollup read before its write could show.
         return VARIANCE_COPY.quantityFigures({
             ordered: o.qty ?? 0,
-            otherInvoices: Math.max(0, (o.invoicedQty || 0) - mine),
+            invoiced: Math.max(o.invoicedQty || 0, mine),
             thisInvoice: mine,
         });
     };

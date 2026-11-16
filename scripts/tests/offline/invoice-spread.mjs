@@ -190,9 +190,12 @@ export function run({ check, assert, log }) {
     );
 
     log("");
-    log("a quantity variance's figures say it is cumulative:");
-    check("with another invoice on it", VARIANCE_COPY.quantityFigures({ ordered: 5, otherInvoices: 5, thisInvoice: 2 }), "Ordered 5 · Other invoices 5 · This invoice 2");
-    check("with none", VARIANCE_COPY.quantityFigures({ ordered: 5, otherInvoices: 0, thisInvoice: 7 }), "Ordered 5 · This invoice 7");
+    log("a variance's figures, in one shape — what the order says, then what was invoiced:");
+    check("quantity, with another invoice on it: cumulative, this invoice's part bracketed", VARIANCE_COPY.quantityFigures({ ordered: 5, invoiced: 7, thisInvoice: 2 }), "Ordered 5 · Invoiced 7 (2 on this invoice)");
+    check("quantity, with none: no bracket", VARIANCE_COPY.quantityFigures({ ordered: 5, invoiced: 7, thisInvoice: 7 }), "Ordered 5 · Invoiced 7");
+    check("price", VARIANCE_COPY.priceFigures("$10.00", "$12.00"), "Ordered $10.00 · Invoiced $12.00");
+    const page = readFileSync(repoPath("app/invoices/[invoiceId]/page.js"), "utf8");
+    assert("  the page hands the ordered item's Invoiced Qty as the cumulative figure", page.includes("invoiced: Math.max(o.invoicedQty || 0, mine)"));
 
     log("");
     log("ONE pour, called by both — the delivery planner and the invoice spread:");

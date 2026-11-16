@@ -304,10 +304,11 @@ each way it differs — `⚠ Price variance` for a unit price other than the ord
 `⚠ Quantity variance` for an ordered item invoiced past what it ordered, across
 every invoice — on the row of the order it is about: under a spread item, the row of
 that order; otherwise the item's own. **Beside each badge, the figures it compared**:
-a price variance's `VARIANCE_COPY.priceFigures`, the order's unit price then this
-invoice's; a quantity variance's `VARIANCE_COPY.quantityFigures`, what was ordered,
-what the other invoices charge it — before or after this one — where any do, and
-what this invoice charges it — the three that show the comparison is cumulative.
+one shape for both kinds, what the order says and then what was invoiced. A price
+variance's `VARIANCE_COPY.priceFigures` is the order's unit price and this invoice's;
+a quantity variance's `VARIANCE_COPY.quantityFigures` is what was ordered and what
+every invoice has charged the ordered item — the comparison is cumulative — with this
+invoice's part in brackets where another invoice charges it too.
 
 **When at least one item carries either flag and nobody has accepted it:** an amber
 prompt near the foot of the page asking someone to check the item against the order,
