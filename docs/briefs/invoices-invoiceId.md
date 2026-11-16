@@ -74,10 +74,16 @@ does that.
 
 **evidence — the items table.** Eight columns: Item, Size, Maker, Unit, Qty, Unit
 Price, Amount, Remark. The last three of the first seven are right-aligned
-figures. A row here is a *folded* item — an invoice item split across two orders
-reads as one row again — so the row count is not the stored row count. There is
-deliberately **no order column**: a folded row can span two orders, so that cell
-has no single value. Under the table, a totals footer: Items Subtotal, Shipping
+figures. A row here is an **item as the vendor wrote it**, in the order written and
+never grouped by order, so the row count is not the stored row count. **An item
+spread over two orders has a row per order under it** — the order, that order's
+quantity and amount — beneath its own row, which carries the item's total quantity
+and amount. There is deliberately **no order column**: an item can span two orders,
+so that cell has no single value. **Where an order is named** is one of three
+answers, from the invoice's orders oldest first: nowhere when the invoice charges one
+order; on the rows under a spread item only, when every item has a share on the
+oldest order; and on every item — its own row, or the rows under it — when some item
+has none on the oldest. Under the table, a totals footer: Items Subtotal, Shipping
 Fee, and `Calculated Total` in bold.
 
 **Both this section and the one above it are conditional on the invoice having
@@ -102,7 +108,8 @@ link, or the sentence `No delivery has been recorded for this invoice's items ye
 They are the ordered items' deliveries, not this invoice's — a delivery belongs to no
 one invoice — so the line names them and the table below says how much arrived.
 
-**evidence — the delivery table.** One row per item, folded as the items table is,
+**evidence — the delivery table.** One row per material at one price — the items of
+one material are one row here, where the items table keeps the vendor's —
 under the heads `Item` · `Ordered` · `Delivered to date` · `Invoiced to date` ·
 `This invoice`. The middle three are the ordered item's own totals, every delivery
 and every invoice on it — which is why two heads say `to date` — and the last is this
@@ -292,12 +299,15 @@ visible on it: the record itself, the edited figures, the payment sentence with
 its control closed again. This carried a green line for each until #321 — see
 `_shared.md`, "The arrival is the confirmation".
 
-**When an individual charge differs from what its order agreed:** a small badge
-inside that item's name cell for each way it differs — `⚠ Price variance` for a
-unit price other than the order's, `⚠ Quantity variance` for an ordered item
-invoiced past what it ordered, across every invoice — and **no sentence beside
-them**. Each is its own stored flag, so the badge names the cause; what it was
-compared against lives on the order's own page.
+**When an individual charge differs from what its order agreed:** a small badge for
+each way it differs — `⚠ Price variance` for a unit price other than the order's,
+`⚠ Quantity variance` for an ordered item invoiced past what it ordered, across
+every invoice — on the row of the order it is about: under a spread item, the row of
+that order; otherwise the item's own. **Beside each badge, the figures it compared**:
+a price variance's `VARIANCE_COPY.priceFigures`, the order's unit price then this
+invoice's; a quantity variance's `VARIANCE_COPY.quantityFigures`, what was ordered,
+what other invoices charged it where any did, and what this invoice charges it — the
+three that show the comparison is cumulative.
 
 **When at least one item carries either flag and nobody has accepted it:** an amber
 prompt near the foot of the page asking someone to check the item against the order,
@@ -321,7 +331,7 @@ mark is — under the item's badges, or inside the totals box — with `Accept` 
 for `Edit payment`'s reason. **A reason is required**, and a blank one is refused inside
 that form in the app's own words (`Reason is required.`) rather than by the browser. Each
 of the three is accepted on its own — a price variance, a quantity variance, the totals
-— and an item folded from two rows accepts every row that carries it.
+— and an item spread over two orders is accepted per order, on that order's row.
 
 **When a variance has been accepted:** its badge reads as accepted and stops being red —
 `Price variance · Accepted`, `Quantity variance · Accepted`, `Totals differ · Accepted`,
@@ -339,34 +349,6 @@ order's, the totals' Invoice Total and Calculated Total. An edit that moves neit
 a Due Date, the vendor's number — leaves it accepted, and one that leaves no variance at
 all simply takes the mark away. Awaiting delivery is not a variance and is never
 accepted: a delivery recorded makes the invoice `Matched` by itself.
-
-**When the folded items are not all divided among the orders the same way:** a
-short indented list under each order's row, naming what that order was invoiced
-for and in what quantity. A line carries two figures — the quantity this invoice
-charged against that order, over the quantity that order asked for — with the
-unit written once after both: `Elbow 3" — 7 of 15 EA`. Only quantities, never
-prices.
-
-**What counts as the same way is the orders an item names AND the proportions it
-divided itself among them.** Two items that both put two thirds on one order and
-a third on the other say one thing, whatever the amounts; two that go 10 and 3
-against 2 and 11 do not, and the list appears. An invoice charging one order is
-always silent, because a single order takes the whole of every item — and there
-the list would repeat the items table line for line, since with one order a
-charge is the folded row's own quantity.
-
-**The unit is written once because both figures are in it.** An invoice item's
-`Unit` is a frozen copy of the ordered item's, so the two are one measure with a
-part and a whole on it; writing it twice would assert two measurements that
-happen to agree. A line whose ordered items carry no quantity states the charge
-alone, which is what a hand-emptied link leaves.
-
-**The whole is what that order asked for — not what is left to invoice.** A line
-reading `7 of 15` says this invoice charged 7 against an ordered quantity of 15;
-a second invoice may already have charged some of the rest, and nothing here
-says so. The figure also adds up every ordered item behind the line, since one
-folded row can cover two of them on one order, so it is the whole of what that
-line stands for rather than one row's.
 
 **When an item has not all arrived:** its row's name and its `This invoice` cell in
 amber — the one tone the table carries, `waiting`. It is a wait, not an error: under
@@ -399,11 +381,10 @@ meets one grammar rather than two.
 variance` stood beside them until #640: it compared this invoice with the one delivery
 it named, and with that link gone a shortfall is a wait, not a variance.
 
-**An ordered quantity appears on this screen twice, and both are the order's.** The
-`Purchase Orders` list carries one as a denominator, because that line's subject is
-an order and a charge against it needs a whole to be read against; the delivery
-table carries it as `Ordered`, the first of the three totals the three-way match
-compares. `/pos/[poId]`'s `Qty` column is the same figure on the order's own page.
+**An ordered quantity appears on this screen twice, and both are the order's.** A
+quantity variance carries one as its `Ordered` figure, the whole the invoices'
+charges are read against; the delivery table carries it as `Ordered`, the first of
+the three totals the three-way match compares. `/pos/[poId]`'s `Qty` column is the same figure on the order's own page.
 
 **What every invoice has charged against an ordered item is here once, labeled.**
 The delivery table's `Invoiced to date` is that cross-document total, because the

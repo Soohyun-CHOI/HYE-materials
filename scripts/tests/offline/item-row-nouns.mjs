@@ -156,9 +156,9 @@ function sentencesPerScreen() {
  */
 const REWORDED = [
     ["/invoices/new", "Every invoice item needs an ordered item from its PO."],
-    ["/invoices/new", "This invoice already charges every ordered item on this purchase order."],
-    ["/invoices/new", "Pick a different purchase order for this item, or remove it."],
-    ["/invoices/new", "Pick this item's PO first"],
+    // #660 took three off their screen with the state they named: a row whose order had
+    // nothing left to claim, and a row whose own order was not picked yet. An item chooses
+    // from every order's choices now and picks no order, so neither row exists.
     ["/invoices/new", "Every item's quantity has to be a whole number."],
     ["/invoices/[invoiceId]", "⚠ An item on this invoice differs from what its order agreed"],
     ["/prs", "No single invoice charges as much of this ordered item as was delivered beyond the"],
@@ -200,10 +200,12 @@ export function run({ check, assert, log }) {
         "  including the refusal that states the rule's own case",
         all.some((s) => /Every invoice item needs an ordered item from its PO\./.test(s.sentence))
     );
+    // A string of several sentences, split into them: the edit screen's intro (#660), since
+    // #303's restructured pair left the screen with the row it was about.
     assert(
-        "  and the restructured pair, as two sentences rather than one",
-        all.some((s) => /^This invoice already charges every ordered item/.test(s.sentence)) &&
-            all.some((s) => /^Pick a different purchase order for this item/.test(s.sentence))
+        "  and a string of several sentences, as sentences rather than one",
+        all.some((s) => /^An item on more than one PO takes a quantity per PO.$/.test(s.sentence)) &&
+            all.some((s) => /^Edit item values.$/.test(s.sentence))
     );
     check("the splitter splits", sentences("One item. Two ordered items.").length, 2);
     check("  and leaves an ellipsis alone", sentences("Loading PO items...").length, 1);

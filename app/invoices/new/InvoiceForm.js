@@ -27,12 +27,12 @@ import {
 // Issue #198 — pure and import-free, so a client component may hold it; the judgment
 // itself already ran on the server and every PO here carries its answer as `unsigned`.
 import { UNSIGNED_COPY, poOptionLabel } from "@/lib/poUnsigned";
-import { itemLabel } from "@/lib/materialIdentity";
 import { PO_ORIGIN, claimDetected, poOptionsForSlot } from "@/lib/poPickerOptions";
-// Issue #244 — same category as the two above: pure and import-free. This one is
-// the per-item half of what leaves an order open, and the sort below was an
-// inline copy of it.
-import { hasUninvoicedQty } from "@/lib/poItemQty";
+// Issue #660 — the same category: pure, so what this form says about an item's quantity
+// and what `createInvoiceAction` writes are one spread. It took over #244's
+// `hasUninvoicedQty` sort, which ordered one order's items with the uninvoiced first;
+// `spreadChoices` orders the choices that way across every order.
+import { INVOICE_SPREAD_COPY, spreadChoices, spreadInvoiceItems } from "@/lib/invoiceSpread";
 // Issue #272 — pure and import-free, same category again: the words for the way
 // out of an invoice with no order, and the one predicate the modal and
 // `createDirectPurchaseAction` both ask so they cannot disagree about it.
@@ -43,32 +43,31 @@ import { DIRECT_PURCHASE_COPY, directPurchaseBlocked } from "@/lib/directPurchas
 // carry its own threshold for the same comparison.
 import { VARIANCE_COPY, checkTotalsDiffer } from "@/lib/variance";
 
-// poItemTouched: false until the user (or #57's auto-default below) makes an
-// explicit choice in the PO Item dropdown. It distinguished "still unset" from
-// "deliberately Other (free text)" until #278 removed the second; what it
-// separates now is a pick from an auto-default, which is what keeps
-// `applyDefaultsAcrossItems` idempotent. unitPriceEditing: whether the Unit
-// Price lock (#57) is currently open for a linked PO Item.
+// #660 — AN ITEM IS ENTERED AS THE VENDOR WROTE IT: a choice of material at an ordered
+// price from the header's orders (`lib/invoiceSpread.js:spreadChoices`), a quantity and a
+// unit price, and no order. Saving spreads it over the ordered items of that choice, oldest
+// order first; this form shows no spread and says one thing about it — a quantity past what
+// the orders have uninvoiced. `key` is the choice's.
 //
-// `poItemRecordId: ""` IS A STATE OF THE FORM AND NOT OF A SAVED ITEM (#278).
-// A row holds it before its PO is picked, while that PO's items load, and when
-// #91 leaves it nothing to claim — none of which may be submitted, which
-// `createInvoiceAction` refuses and the row itself explains. THE ROW REALLY DOES
-// EXPLAIN ALL THREE SINCE #272: the first two still offered a free-text
-// `Item Name` box, which is the half of the free-text item #278 did not reach.
-// Nothing but the ordered item writes `itemName` now.
+// choiceTouched: false until the user picks a choice. An untouched item shows the default
+// `applyDefaultsAcrossItems` derives for it on every render — #187's derivation, so a choice
+// arriving with an order's items needs no second write — and an edit to the item keeps what
+// it was showing. unitPriceEditing: whether the Unit Price lock (#57) is open.
+//
+// `key: ""` IS A STATE OF THE FORM AND NOT OF A SAVED ITEM (#278): before an order is picked
+// and while its items load, none of which may be submitted, which `createInvoiceAction`
+// refuses. Nothing but a choice writes `itemName`.
 const EMPTY_ITEM = {
+    key: "",
     itemName: "",
-    // Issue #84 — frozen copies from the linked PO Item, same as itemName/
+    // Issue #84 — frozen copies from the chosen ordered items, same as itemName/
     // unitPrice: never manually entered, never editable.
     size: "",
     maker: "",
     unit: "",
     qty: "",
     unitPrice: "",
-    poRecordId: "",
-    poItemRecordId: "",
-    poItemTouched: false,
+    choiceTouched: false,
     unitPriceEditing: false,
     remark: "",
 };
@@ -80,97 +79,60 @@ const EMPTY_ITEM = {
 // they always change together and only ever matter per-slot.
 const EMPTY_SLOT = { poRecordId: "", searchMode: false, query: "", results: [], status: "idle" };
 
-// Issue #57 — items with uninvoiced qty left first (stable, so
-// relative order within each group is untouched), fully-invoiced/over-
-// invoiced pushed to the bottom rather than hidden.
-//
-// Issue #244 — the test was `uninvoicedQty > 0` written out here, which was the
-// last hand-typed copy of hasUninvoicedQty anywhere. It is the same rule the base
-// now answers with for whole orders, and #244 removed the predicate's other
-// caller, so leaving a copy of it on this very screen was the duplication worth
-// closing while the question was open. It reads the same figures the sort always
-// had: `qty` and `invoicedQty` both ride on each cached PO Item, from
-// getInvoicingStatusByPO, so this costs nothing.
-function sortByUninvoiced(poItems) {
-    return [...poItems].sort((a, b) => {
-        const aOpen = hasUninvoicedQty({ qty: a.qty, invoicedQty: a.invoicedQty }) ? 0 : 1;
-        const bOpen = hasUninvoicedQty({ qty: b.qty, invoicedQty: b.invoicedQty }) ? 0 : 1;
-        return aOpen - bOpen;
-    });
-}
-
-// Issue #57 — the one place that decides whether an invoice item gets defaulted to
-// its PO's first (Uninvoiced-sorted) item. Pure function of (item, cache)
-// rather than a setItems side effect, so it's usable both the moment a
-// invoice item's poRecordId is first assigned/changed (addItem, updateItem,
-// replacePoSlots — cases where that PO's items may *already* be cached
-// from earlier in the session) and again later when a fetch that was
-// still in flight at that moment finishes (applyDefaultPoItemSelection).
-// Never touches an invoice item once poItemTouched is true, or one with no PO / //
-// whose PO's items aren't loaded yet.
-// Issue #91 — usedElsewhere (a Set of PO Item record IDs already claimed
-// by sibling invoice items) is now honored here too, not just in the rendered
-// dropdown: without this, auto-defaulting a second untouched invoice item pointed
-// at the same PO would silently pick the exact same "first" item the
-// first invoice item already got, resurfacing the bug the dropdown filter alone
-// doesn't cover. Falls back to the invoice item as-is if every item for this PO
-// is already claimed elsewhere.
-function defaultedItem(item, cache, usedElsewhere = new Set()) {
-    if (item.poItemTouched || !item.poRecordId) return item;
-    const entry = cache[item.poRecordId];
-    if (!entry || entry.status !== "done" || entry.items.length === 0) return item;
-    const first = entry.items.find((poItem) => !usedElsewhere.has(poItem.id));
-    if (!first) return item;
+// The fields an item takes from its choice. Size, Maker and Unit are the ordered items'
+// frozen copies (#84); the unit price is the ordered one until the lock is opened (#57).
+function withChoice(item, choice) {
     return {
         ...item,
-        poItemRecordId: first.id,
-        itemName: first.itemName,
-        size: first.size || "",
-        maker: first.maker || "",
-        unit: first.unit || "",
-        unitPrice: first.unitPrice != null ? String(first.unitPrice) : item.unitPrice,
+        key: choice.key,
+        itemName: choice.itemName,
+        size: choice.size || "",
+        maker: choice.maker || "",
+        unit: choice.unit || "",
+        unitPrice: choice.unitPrice != null ? String(choice.unitPrice) : item.unitPrice,
+        unitPriceEditing: false,
     };
 }
 
-// Issue #91 — applies defaultedItem across a whole list of invoice items in
-// order, so an invoice item's auto-default takes into account whatever the ones
-// before it in the same pass just claimed (rather than each computing its
-// default in isolation and possibly colliding on the same PO Item). Must
-// stay idempotent — safe to run more than once over invoice items that are
-// already (auto-)defaulted, not just ones still blank — since
-// poItemTouched never becomes true from an auto-default alone, so a
-// second pass over the same invoice items is always possible (e.g. a duplicate
-// fetch resolving twice). Each invoice item's own current poItemRecordId is
-// excluded from what counts as "used by a sibling" while computing its
-// own default — otherwise re-running this over an already-correctly-
-// defaulted invoice item would see that invoice item's own pick reflected in `used` and
-// bump it to the next item instead of leaving it alone.
-function applyDefaultsAcrossItems(itemsList, cache) {
-    const used = new Set();
-    itemsList.forEach((item) => {
-        if (item.poItemRecordId) used.add(item.poItemRecordId);
-    });
+// Issue #57 — an untouched item shows the first choice no other item shows, those with
+// something uninvoiced first (`spreadChoices`' order). #91 kept a sibling's pick out of a
+// row's own list as well; #660 drops that half, because a vendor can write one material
+// twice and both items have to be enterable — what is kept is only that a NEW row does not
+// open on a choice already on the form. Applied across the list in order, so each default
+// sees what the ones above it took, and idempotent, since `choiceTouched` never becomes true
+// from a default. An item whose choice the orders no longer hold, or that has none, takes
+// the first free one.
+function applyDefaultsAcrossItems(itemsList, choices) {
+    const keys = new Set(choices.map((c) => c.key));
+    const used = new Set(itemsList.filter((it) => it.choiceTouched && keys.has(it.key)).map((it) => it.key));
     return itemsList.map((item) => {
-        const usedBySiblings = item.poItemRecordId
-            ? new Set([...used].filter((id) => id !== item.poItemRecordId))
-            : used;
-        const next = defaultedItem(item, cache, usedBySiblings);
-        if (next.poItemRecordId) used.add(next.poItemRecordId);
-        return next;
+        if (item.choiceTouched && keys.has(item.key)) return item;
+        const kept = item.key && keys.has(item.key) && !used.has(item.key) ? choices.find((c) => c.key === item.key) : null;
+        const choice = kept ?? choices.find((c) => !used.has(c.key));
+        if (!choice) return { ...item, key: "", choiceTouched: false };
+        used.add(choice.key);
+        return item.key === choice.key ? item : withChoice({ ...item, choiceTouched: false }, choice);
     });
 }
 
-// Issue #91 — PO Item IDs already claimed by every invoice item except the one at
-// exceptIndex (pass -1 for "none", e.g. a brand-new invoice item not in the list
-// yet) — what a single invoice item's own default/selection must avoid colliding
-// with.
-function usedElsewhereIds(itemsList, exceptIndex) {
-    return new Set(
-        itemsList
-            .filter((_, idx) => idx !== exceptIndex)
-            .map((it) => it.poItemRecordId)
-            .filter(Boolean)
-    );
+// What the spread needs of one of an order's ordered items, as `/api/pos/[poRecordId]/items`
+// returns it, with the order it is on (`lib/invoiceSpread.js`).
+function orderedItemForSpread(poItem, po) {
+    return {
+        id: poItem.id,
+        poItemId: poItem.poItemId,
+        poRecordId: po?.id ?? null,
+        poId: po?.poId ?? null,
+        poCreatedDate: po?.createdDate ?? null,
+        materialRecordId: poItem.material?.[0] ?? null,
+        itemName: poItem.itemName,
+        size: poItem.size,
+        maker: poItem.maker,
+        unit: poItem.unit,
+        qty: poItem.qty,
+        unitPrice: poItem.unitPrice,
+        invoicedQty: poItem.invoicedQty,
+    };
 }
 
 const inputClass =
@@ -196,8 +158,12 @@ const confirmChangeMessage = (subject) =>
 //
 // REMOVING THE FLAG WAS NOT THE WHOLE OF CLOSING IT, WHICH IS WHY THIS NOTE IS
 // HERE RATHER THAN IN THE PULL REQUEST. The flag gated one `<option>`; a second
-// path reached the same state with the flag untouched, and it is closed below at
-// `noOrderedItemLeft` and in `createInvoiceAction`.
+// path reached the same state with the flag untouched — a row whose order #91 had
+// left nothing to claim — and #278 closed it with a sentence on the row and a
+// refusal in `createInvoiceAction`. #660 took the path itself away: an item
+// chooses from every order's choices and no row's choice is taken out of
+// another's list, so the list cannot run out. The refusal stays, for an item
+// with no choice at all.
 
 /**
  * One file as a `FileList`, the only shape a file input's `files` accepts.
@@ -295,7 +261,7 @@ export default function InvoiceForm({ vendors, pos }) {
     const [shippingFeeEdit, setShippingFeeEdit] = useState("");
     // Issue #91 — whether the user has directly edited Shipping Fee since
     // the last time it was (re)defaulted. Same idiom as items' own
-    // poItemTouched: distinguishes "still showing an auto-prefill" from
+    // choiceTouched: distinguishes "still showing an auto-prefill" from
     // "deliberately set/cleared", so a prefill never clobbers a real edit.
     const [shippingFeeTouched, setShippingFeeTouched] = useState(false);
     const [tariffEnabled, setTariffEnabled] = useState(false);
@@ -336,10 +302,11 @@ export default function InvoiceForm({ vendors, pos }) {
     // occasionally landing on the second PO Item instead of the first.
     const poItemsFetchStartedRef = useRef(new Set());
     // Issue #99 — a snapshot of `items` as of the last *automatic*
-    // mutation (initial default row, PO-forced defaulting, PO Items
-    // finishing loading, detection auto-fill) — never updated by a
-    // user-driven one (addItem, removeItem, updateItem,
-    // updatePoItemSelection, handleCancelUnitPriceEdit). Comparing current
+    // mutation (the initial row, and the one row a PO swap resets to; since
+    // #660 a default choice is derived on render and never written, so loading
+    // an order's items mutates nothing) — never updated by a user-driven one
+    // (addItem, removeItem, updateItem, updateChoice,
+    // handleCancelUnitPriceEdit). Comparing current
     // `items` against this is the single source of truth for "has the
     // user actually changed anything", regardless of whether the compare
     // happens mid-load, right after load, or long after real edits —
@@ -671,34 +638,23 @@ export default function InvoiceForm({ vendors, pos }) {
             setPoSlots(newSlots);
             newSlots.forEach((s) => ensurePoItemsLoaded(s.poRecordId));
 
+            // #660 — NO ITEM IS SET HERE: an item shows its default choice once the orders'
+            // items load, derived on render, so the pristine items above stay as they are.
             if (newSlots.length === 1) {
-                const only = newSlots[0].poRecordId;
-                setItems((prev) => {
-                    const next = applyDefaultsAcrossItems(
-                        prev.map((item) => ({ ...item, poRecordId: only })),
-                        poItemsCache
-                    );
-                    autoInsertedItemsRef.current = JSON.stringify(next);
-                    return next;
-                });
                 setPoDetection({
                     level: detectionLevel,
                     message: `Detected PO: ${confirmed[0].poId} (auto-filled below)${fullyInvoicedNote}${unconfirmedNote}.${withdrawnNote}${unsignedNote}`,
                 });
             } else {
-                // Multi-PO case: scaffold one item row per detected PO,
-                // each pre-set to a different one, rather than leaving a
-                // single blank row with no default PO to seed it with.
-                const nextItems = confirmed.map((c) =>
-                    defaultedItem({ ...EMPTY_ITEM, poRecordId: c.recordId }, poItemsCache)
-                );
-                setItems(nextItems);
-                autoInsertedItemsRef.current = JSON.stringify(nextItems);
+                // Multi-PO case. It scaffolded one item row per detected PO until #660, each
+                // on its own order; an item is the vendor's now and is spread over every
+                // order, so the one pristine row stands and the vendor's items are entered
+                // as written.
                 setPoDetection({
                     level: detectionLevel,
                     message: `Detected ${confirmed.length} POs: ${confirmed
                         .map((c) => c.poId)
-                        .join(", ")} — auto-filled below, verify each item's assignment.${fullyInvoicedNote}${unconfirmedNote}${withdrawnNote}${unsignedNote}`,
+                        .join(", ")} — auto-filled below, verify each item.${fullyInvoicedNote}${unconfirmedNote}${withdrawnNote}${unsignedNote}`,
                 });
             }
         } catch (err) {
@@ -725,10 +681,8 @@ export default function InvoiceForm({ vendors, pos }) {
                 .sort((a, b) => (a.poId < b.poId ? 1 : a.poId > b.poId ? -1 : 0)),
         [posList, vendorId]
     );
-    // Every PO currently occupying a header slot — what each item's own
-    // PO <select> is allowed to offer (restricted to the header's
-    // selection, not the full Vendor PO list, since an item can only
-    // belong to a PO this invoice actually claims to cover), and what
+    // Every PO currently occupying a header slot — the orders every item is
+    // spread over (#660; each item picked one of them until then), and what
     // each slot's own dropdown excludes so the same PO can't be picked
     // twice across two slots.
     const selectedPoIds = useMemo(
@@ -750,6 +704,34 @@ export default function InvoiceForm({ vendors, pos }) {
     const itemsReady =
         selectedPoIds.length > 0 &&
         selectedPoIds.every((id) => poItemsCache[id]?.status === "done");
+
+    // #660 — THE CHOICES, THE ITEMS AS SHOWN, AND THEIR SPREAD, all derived on render. The
+    // choices are the selected orders' ordered items grouped by material and ordered price;
+    // an untouched item shows the default `applyDefaultsAcrossItems` gives it; and the spread
+    // is `createInvoiceAction`'s own function over what was fetched, read here for one thing:
+    // an item whose quantity runs past what its orders have uninvoiced. What is submitted is
+    // `shownItems`, so a default is what saves.
+    const orderedItemsForSpread = useMemo(
+        () =>
+            itemsReady
+                ? selectedPoIds.flatMap((id) =>
+                      (poItemsCache[id]?.items || []).map((p) =>
+                          orderedItemForSpread(p, posList.find((po) => po.id === id))
+                      )
+                  )
+                : [],
+        [itemsReady, selectedPoIds, poItemsCache, posList]
+    );
+    const choices = useMemo(() => spreadChoices(orderedItemsForSpread), [orderedItemsForSpread]);
+    const shownItems = useMemo(() => applyDefaultsAcrossItems(items, choices), [items, choices]);
+    const spread = useMemo(
+        () =>
+            spreadInvoiceItems({
+                entries: shownItems.map((it) => ({ key: it.key, qty: parseFloat(it.qty) || 0 })),
+                orderedItems: orderedItemsForSpread,
+            }),
+        [shownItems, orderedItemsForSpread]
+    );
 
     // Issue #91 — prefills Shipping Fee from the single selected PO's own
     // Shipping Fee, in addition to (not replacing) the reference text
@@ -797,31 +779,14 @@ export default function InvoiceForm({ vendors, pos }) {
             const res = await fetch(`/api/pos/${poRecordId}/items`);
             if (!res.ok) throw new Error("Request failed");
             const { items: rawItems } = await res.json();
-            const sorted = sortByUninvoiced(rawItems);
-            setPoItemsCache((prev) => ({ ...prev, [poRecordId]: { status: "done", items: sorted } }));
-            applyDefaultPoItemSelection(poRecordId, sorted);
+            // #660 — stored as fetched: `spreadChoices` orders the choices across every order,
+            // and an item's default is derived on render, so nothing here sets an item.
+            setPoItemsCache((prev) => ({ ...prev, [poRecordId]: { status: "done", items: rawItems } }));
         } catch (err) {
             console.error("Failed to load PO Items for", poRecordId, err);
             setPoItemsCache((prev) => ({ ...prev, [poRecordId]: { status: "error", items: [] } }));
             poItemsFetchStartedRef.current.delete(poRecordId);
         }
-    }
-
-    // Issue #57 — once a PO's items finish loading, any invoice item still pointing
-    // at that PO with poItemTouched still false gets defaulted to the
-    // first item in Uninvoiced-sorted order — a UI affordance making clear
-    // the dropdown is the primary path, not a guess at the correct item.
-    // Thin wrapper around defaultedItem: builds a one-PO cache override so
-    // it only ever touches invoice items pointing at this poRecordId, using data
-    // that (per the caller, fetchPoItems) isn't in poItemsCache state yet.
-    function applyDefaultPoItemSelection(poRecordId, sortedItems) {
-        if (sortedItems.length === 0) return;
-        const cacheOverride = { [poRecordId]: { status: "done", items: sortedItems } };
-        setItems((prev) => {
-            const next = applyDefaultsAcrossItems(prev, cacheOverride);
-            autoInsertedItemsRef.current = JSON.stringify(next);
-            return next;
-        });
     }
 
     // Issue #99 — Vendor change swaps the PO (and wipes items) exactly the
@@ -850,9 +815,7 @@ export default function InvoiceForm({ vendors, pos }) {
     function replacePoSlots(newSlots) {
         setPoSlots(newSlots);
         const activeIds = newSlots.map((s) => s.poRecordId).filter(Boolean);
-        const only = activeIds.length === 1 ? activeIds[0] : "";
-        const fresh = { ...EMPTY_ITEM, poRecordId: only };
-        const nextItems = [defaultedItem(fresh, poItemsCache)];
+        const nextItems = [{ ...EMPTY_ITEM }];
         setItems(nextItems);
         autoInsertedItemsRef.current = JSON.stringify(nextItems);
         activeIds.forEach((id) => ensurePoItemsLoaded(id));
@@ -895,20 +858,9 @@ export default function InvoiceForm({ vendors, pos }) {
 
         if (!previousValue) {
             setPoSlots(nextSlots);
-            if (newValue) {
-                ensurePoItemsLoaded(newValue);
-                const activeIds = nextSlots.map((s) => s.poRecordId).filter(Boolean);
-                if (activeIds.length === 1) {
-                    setItems((prev) => {
-                        const next = applyDefaultsAcrossItems(
-                            prev.map((item) => ({ ...item, poRecordId: newValue })),
-                            poItemsCache
-                        );
-                        autoInsertedItemsRef.current = JSON.stringify(next);
-                        return next;
-                    });
-                }
-            }
+            // #660 — the items take their choices from every order on render, so a
+            // first pick sets nothing on them.
+            if (newValue) ensurePoItemsLoaded(newValue);
             return;
         }
 
@@ -991,107 +943,48 @@ export default function InvoiceForm({ vendors, pos }) {
         }
     }
 
+    // Issue #57 — a new row shows the first choice no other row shows, derived on render
+    // (`applyDefaultsAcrossItems`), so it is added blank.
     function addItem() {
-        // Issue #57 — routed through defaultedItem too: the new row's PO
-        // (selectedPoIds[0]) may already have its items cached from
-        // earlier in the session, in which case there's no fetch here to
-        // trigger applyDefaultPoItemSelection later — this is the only
-        // chance to default it.
-        // Issue #91 — excludes whatever every existing invoice item already has
-        // selected, so a fresh "+ Add item" invoice item never auto-defaults to a
-        // PO Item that's already on the invoice.
-        setItems((prev) => {
-            const fresh = { ...EMPTY_ITEM, poRecordId: selectedPoIds[0] || "" };
-            return [...prev, defaultedItem(fresh, poItemsCache, usedElsewhereIds(prev, -1))];
-        });
+        setItems((prev) => [...prev, { ...EMPTY_ITEM }]);
     }
 
     function removeItem(index) {
         setItems((prev) => prev.filter((_, i) => i !== index));
     }
 
+    // #660 — AN EDIT KEEPS THE ITEM AS IT WAS SHOWN. An untouched item's choice is derived on
+    // render, so the row a reader typed into stores that choice with the typed value; a
+    // later order joining the header cannot then move a quantity onto another material.
     function updateItem(index, field, value) {
-        setItems((prev) => {
-            const used = usedElsewhereIds(prev, index);
-            return prev.map((item, i) => {
-                if (i !== index) return item;
-                if (field === "poRecordId") {
-                    // Issue #51 — a PO Item picked under the invoice item's previous
-                    // PO almost certainly doesn't belong to the new one
-                    // (same reasoning as handleVendorChange clearing PO
-                    // selection above). Item Name is left as-is rather than
-                    // cleared — it becomes ordinary editable free text
-                    // instead of a stale-but-still-accurate label.
-                    // Issue #57 — poItemTouched/unitPriceEditing reset too,
-                    // and routed through defaultedItem: the new PO's items
-                    // might already be cached (e.g. switching back to a PO
-                    // used earlier on this same invoice), in which case
-                    // there's no fetch here to trigger the default later.
-                    // Issue #91 — used excludes sibling invoice items' PO Items, so
-                    // this never re-defaults onto one already claimed.
-                    return defaultedItem(
-                        {
-                            ...item,
-                            poRecordId: value,
-                            poItemRecordId: "",
-                            poItemTouched: false,
-                            unitPriceEditing: false,
-                        },
-                        poItemsCache,
-                        used
-                    );
-                }
-                return { ...item, [field]: value };
-            });
-        });
+        setItems((prev) => prev.map((item, i) => (i === index ? { ...(shownItems[i] ?? item), [field]: value } : item)));
     }
 
-    // Issue #51 — the single sync point for an invoice item's PO Item choice.
-    // Selecting a PO Item copies its name (and, per #57, its Unit Price, freshly
-    // re-locked, plus per #84, its Size/Unit) in.
-    // Issue #57 — poItemTouched is set true on any explicit choice here, so
-    // applyDefaultPoItemSelection never later overwrites a deliberate pick with
-    // its own default.
-    //
-    // NO EMPTY BRANCH SINCE #278. The select's only options are ordered items, so
-    // it cannot emit `""` any more; the branch that stood here read an empty value
-    // as "Other (free text)" and cleared Size/Unit for it. A defensive early
-    // return would be a guard for a value nothing sends.
-    function updatePoItemSelection(index, poItemRecordId) {
+    // Issue #51 — the single sync point for an item's choice. Choosing copies its name, its
+    // Size/Maker/Unit (#84) and its ordered Unit Price, freshly re-locked (#57); since #660 the
+    // choice is a material at an ordered price across every order, not one order's item.
+    // `choiceTouched` keeps a deliberate pick from the defaults.
+    function updateChoice(index, key) {
+        const choice = choices.find((c) => c.key === key);
+        if (!choice) return;
         setItems((prev) =>
-            prev.map((item, i) => {
-                if (i !== index) return item;
-                const candidates = poItemsCache[item.poRecordId]?.items || [];
-                const matched = candidates.find((poItem) => poItem.id === poItemRecordId);
-                return {
-                    ...item,
-                    poItemRecordId,
-                    poItemTouched: true,
-                    itemName: matched ? matched.itemName : item.itemName,
-                    size: matched?.size || "",
-                    maker: matched?.maker || "",
-                    unit: matched?.unit || "",
-                    unitPrice: matched && matched.unitPrice != null ? String(matched.unitPrice) : item.unitPrice,
-                    unitPriceEditing: false,
-                };
-            })
+            prev.map((item, i) => (i === index ? { ...withChoice(shownItems[i] ?? item, choice), choiceTouched: true } : item))
         );
     }
 
-    // Issue #57 — reverts the Unit Price lock back to the linked PO
-    // Item's original Unit Price (re-derived from poItemsCache rather than
-    // stored separately — the link itself never changed while editing,
-    // just the typed value) and clears whatever Remark was written for
-    // the edit, re-locking the field.
+    // Issue #57 — reverts the Unit Price lock back to the choice's ordered Unit Price
+    // (re-derived from the choices rather than stored separately — the choice never
+    // changed while editing, just the typed value) and clears whatever Remark was written
+    // for the edit, re-locking the field.
     function handleCancelUnitPriceEdit(index) {
         setItems((prev) =>
             prev.map((item, i) => {
                 if (i !== index) return item;
-                const candidates = poItemsCache[item.poRecordId]?.items || [];
-                const matched = candidates.find((p) => p.id === item.poItemRecordId);
+                const shown = shownItems[i] ?? item;
+                const choice = choices.find((c) => c.key === shown.key);
                 return {
-                    ...item,
-                    unitPrice: matched && matched.unitPrice != null ? String(matched.unitPrice) : item.unitPrice,
+                    ...shown,
+                    unitPrice: choice && choice.unitPrice != null ? String(choice.unitPrice) : shown.unitPrice,
                     unitPriceEditing: false,
                     remark: "",
                 };
@@ -1099,7 +992,7 @@ export default function InvoiceForm({ vendors, pos }) {
         );
     }
 
-    const itemsTotal = items.reduce((sum, item) => {
+    const itemsTotal = shownItems.reduce((sum, item) => {
         const qty = parseFloat(item.qty) || 0;
         const unitPrice = parseFloat(item.unitPrice) || 0;
         return sum + qty * unitPrice;
@@ -1616,11 +1509,7 @@ export default function InvoiceForm({ vendors, pos }) {
     function renderItemsSection() {
         // Issue #99 — locked (visible but faded/disabled, not hidden — so
         // the shape of the invoice is visible right away) until a PO is
-        // chosen and its items have finished loading. Fixes two things at
-        // once: the item dropdown briefly rendering with zero options
-        // before the first real item loads, and Item Name being a live
-        // free-text box before any PO (and thus any PO Item list to
-        // constrain it) even exists.
+        // chosen and its items have finished loading.
         const locked = !itemsReady;
         return (
             <div>
@@ -1635,167 +1524,58 @@ export default function InvoiceForm({ vendors, pos }) {
                     </p>
                 )}
                 <div className={locked ? "mt-2 space-y-3 opacity-50" : "mt-2 space-y-3"}>
-                    {items.map((item, i) => {
+                    {shownItems.map((item, i) => {
                         const amount = (parseFloat(item.qty) || 0) * (parseFloat(item.unitPrice) || 0);
-                        // The per-item PO picker only makes sense (and only
-                        // renders) once the header has claimed 2+ POs —
-                        // with exactly one selected, every item is forced
-                        // to it, so there's no real choice left to show.
-                        const showPoPicker = selectedPoIds.length >= 2;
-                        // Issue #51 — the PO Item dropdown can't be scoped
-                        // until the invoice item actually has a PO (either forced
-                        // by the header's single-PO case, or picked via
-                        // showPoPicker above); until then this falls back
-                        // to the old plain free-text input.
-                        const poItemsEntry = item.poRecordId ? poItemsCache[item.poRecordId] : null;
-                        const poItemOptions = poItemsEntry?.items || [];
-                        // Issue #91 — once a PO Item is picked on one invoice item,
-                        // it shouldn't still be pickable on another invoice item of
-                        // the same invoice. Always keeps this invoice item's own
-                        // current selection available regardless — same
-                        // "selected value needs a matching <option>"
-                        // concern as posList's own comment above.
-                        const usedElsewhere = usedElsewhereIds(items, i);
-                        const availablePoItemOptions = poItemOptions.filter(
-                            (poItem) => poItem.id === item.poItemRecordId || !usedElsewhere.has(poItem.id)
-                        );
-                        // Issue #278 — THE SECOND PATH TO AN INVOICE ITEM WITH NO
-                        // ORDERED ITEM, and the one removing `SHOW_OTHER_ITEM_OPTION` does
-                        // not close. #91 keeps one ordered item to one row of one
-                        // invoice, so a row pointed at a PO whose every ordered item
-                        // a sibling row has already claimed has nothing left to
-                        // pick: `defaultedItem` returns it untouched with an empty
-                        // `poItemRecordId`, this filter comes back empty, and the
-                        // select renders with no options at all.
-                        //
-                        // #99's COMMENT BELOW SAYS THAT COMBINATION WAS FIXED, AND
-                        // IT FIXED ONE CAUSE OF IT. There it was a PO picked whose
-                        // items had not finished loading, which `!locked` now
-                        // covers; the same empty select above the same free-text box
-                        // survived for this cause, because the items ARE loaded and
-                        // every one of them is spoken for. Same symptom, different
-                        // cause, and only the first had a guard.
-                        //
-                        // The row says why rather than offering a box that
-                        // `createInvoiceAction` will refuse — this repo names what a
-                        // reader cannot do where they would try it (#232) and marks
-                        // a choice it still offers (#198), so silently accepting a
-                        // typed name and rejecting it on submit is the shape both
-                        // of those decisions are against.
-                        const noOrderedItemLeft =
-                            !locked && Boolean(item.poRecordId) && availablePoItemOptions.length === 0;
-                        // Issue #57 — only meaningful once a real PO Item is linked,
-                        // and since #278 that is every saved item.
-                        const linkedPoItem = item.poItemRecordId
-                            ? poItemOptions.find((p) => p.id === item.poItemRecordId)
-                            : null;
-                        const qtyExceedsUninvoiced =
-                            linkedPoItem != null &&
-                            linkedPoItem.uninvoicedQty != null &&
-                            (parseFloat(item.qty) || 0) > linkedPoItem.uninvoicedQty;
-                        const unitPriceLocked = !!item.poItemRecordId && !item.unitPriceEditing;
-                        const showRemark = item.unitPriceEditing || qtyExceedsUninvoiced;
+                        // #660 — the one thing this screen says about the spread: an item whose
+                        // quantity runs past what its orders have uninvoiced, under the item, in
+                        // place of #57's warning and the Remark box it asked for. The spread is
+                        // `createInvoiceAction`'s own function, so the item saved is the item
+                        // described.
+                        const over = !locked && item.key ? spread[i] : null;
+                        const unitPriceLocked = !!item.key && !item.unitPriceEditing;
                         return (
                             <div key={i} className="rounded border border-zinc-300 p-3">
-                                <div
-                                    className={
-                                        showPoPicker
-                                            ? "grid grid-cols-2 gap-2 sm:grid-cols-4"
-                                            : "grid grid-cols-2 gap-2 sm:grid-cols-3"
-                                    }
-                                >
-                                    {/* Issue #99 — the PO Item select only ever renders once
-                                        this row's PO is actually loaded (`!locked`); while no PO
-                                        is chosen yet, or one is chosen but still loading, this
-                                        falls to the single plain Item Name box below instead —
-                                        previously both rendered at once (an empty, 0-option
-                                        select stacked above a free-text box) whenever a PO was
-                                        picked but poItemRecordId hadn't been auto-filled yet. The
-                                        old per-row "Loading PO items..."/error messages here are
-                                        gone too — always dead once `!locked` guarantees every
-                                        selected PO's fetch already succeeded; the section-level
-                                        message above now covers both. */}
-                                    {item.poRecordId && !locked ? (
+                                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                    {/* #660 — ONE LIST OF CHOICES ACROSS EVERY ORDER, AND NO ORDER PER
+                                        ITEM. A material ordered on two orders at one price is one
+                                        choice and the save spreads it over both; one ordered at two
+                                        prices is two, each naming its orders and its price, which is
+                                        the one case the office enters an item per order. Nothing is
+                                        taken out of a row's list because another row chose it: a
+                                        vendor can write one material twice. That is why #278's
+                                        `noOrderedItemLeft` sentence went — a list that never shrinks
+                                        cannot run out — and why #91's per-row exclusion did. Until a
+                                        PO's items load the row keeps #99's shape with a disabled
+                                        select naming what is missing (#272). */}
+                                    {!locked ? (
                                         <div className="space-y-1">
                                             <select
-                                                value={item.poItemRecordId}
-                                                onChange={(e) => updatePoItemSelection(i, e.target.value)}
+                                                value={item.key}
+                                                onChange={(e) => updateChoice(i, e.target.value)}
                                                 className={inputClass + " w-full"}
                                             >
-                                                {availablePoItemOptions.map((poItem) => (
-                                                    <option key={poItem.id} value={poItem.id}>
-                                                        {itemLabel(poItem)}
-                                                        {poItem.uninvoicedQty != null
-                                                            ? ` (Uninvoiced: ${poItem.uninvoicedQty})`
-                                                            : ""}
+                                                {!item.key && (
+                                                    <option value="" disabled>
+                                                        {INVOICE_SPREAD_COPY.placeholder}
+                                                    </option>
+                                                )}
+                                                {choices.map((choice) => (
+                                                    <option key={choice.key} value={choice.key}>
+                                                        {INVOICE_SPREAD_COPY.choice(choice)}
                                                     </option>
                                                 ))}
-                                                {/* An `Other (free text)` option stood here, moved
-                                                    to the end of the list by #57 and hidden by #96.
-                                                    It is gone with the flag (#278) — see the note
-                                                    where that constant was. */}
                                             </select>
-                                            {/* Issue #84 — reference-only, frozen from the linked
-                                                PO Item at selection time; no input, no edit path.
-                                                A mismatch here means the wrong PO Item was picked,
-                                                not a value to correct in place. */}
-                                            {item.poItemRecordId && (item.size || item.maker || item.unit) && (
+                                            {/* Issue #84 — reference-only, frozen from the chosen ordered
+                                                items; no input, no edit path. */}
+                                            {item.key && (item.size || item.maker || item.unit) && (
                                                 <p className="text-xs text-zinc-500">
                                                     Size: {item.size || "—"} · Maker: {item.maker || "—"} · Unit: {item.unit || "—"}
                                                 </p>
                                             )}
-                                            {/* Issue #278 — a free-text Item Name box stood here,
-                                                on `!item.poItemRecordId`. It was the other half of
-                                                the option above, and the only way to reach it now
-                                                is the exhausted-PO state, which says what happened
-                                                instead. */}
-                                            {/* Issue #303 — RESTRUCTURED SO NEITHER SENTENCE NAMES
-                                                TWO KINDS OF ITEM ROW, which is what let the modifier
-                                                drop from the second one. It read `Every item on this
-                                                purchase order is already on another charge of this
-                                                invoice.` — an ordered item called `item` and an
-                                                invoice item called `charge`, one sentence, two
-                                                tables, and the bare word on the side the reader was
-                                                not looking at. Making the invoice the subject moves
-                                                the whole ordered-item half into the first sentence
-                                                and leaves the second one about this row alone; it
-                                                also puts #274's transitive verb where the sentence
-                                                was already reaching for it. */}
-                                            {noOrderedItemLeft && (
-                                                <p className="text-xs text-amber-700">
-                                                    This invoice already charges every ordered item on
-                                                    this purchase order. Pick a different purchase
-                                                    order for this item, or remove it.
-                                                </p>
-                                            )}
                                         </div>
                                     ) : (
-                                        /* Issue #272 — THE OTHER FREE-TEXT `Item Name` BOX, and the one
-                                           #278 did not reach. It removed the box on
-                                           `!item.poItemRecordId` and left this one, on
-                                           `!item.poRecordId`, where the row's own purchase order has
-                                           not been picked yet — reachable whenever the header holds
-                                           two orders, since then each row picks its own. Whatever was
-                                           typed here could never survive: choosing the order
-                                           overwrites `itemName` from the ordered item, and submitting
-                                           without one is refused by `createInvoiceAction`. It was
-                                           `required` as well, so the browser blocked the submit and
-                                           pointed at a name when what was missing was an order.
-
-                                           A DISABLED SELECT RATHER THAN NOTHING, so the row keeps the
-                                           shape #99 kept it for, and its one option names the
-                                           prerequisite the way the PO slot's `Select a Vendor first`
-                                           already does. The long form of the same fact is the
-                                           section-level message above; this is the short one, which
-                                           is the density split the strip chips make. */
-                                        <select
-                                            disabled
-                                            value=""
-                                            className={inputClass + " w-full"}
-                                        >
-                                            <option value="">
-                                                {locked ? "Select a PO above" : "Pick this item's PO first"}
-                                            </option>
+                                        <select disabled value="" className={inputClass + " w-full"}>
+                                            <option value="">Select a PO above</option>
                                         </select>
                                     )}
                                     <input
@@ -1828,7 +1608,7 @@ export default function InvoiceForm({ vendors, pos }) {
                                                 Edit
                                             </button>
                                         )}
-                                        {item.poItemRecordId && item.unitPriceEditing && (
+                                        {item.key && item.unitPriceEditing && (
                                             <button
                                                 type="button"
                                                 onClick={() => handleCancelUnitPriceEdit(i)}
@@ -1839,32 +1619,13 @@ export default function InvoiceForm({ vendors, pos }) {
                                             </button>
                                         )}
                                     </div>
-                                    {showPoPicker && (
-                                        <select
-                                            required
-                                            disabled={locked}
-                                            value={item.poRecordId}
-                                            onChange={(e) => updateItem(i, "poRecordId", e.target.value)}
-                                            className={inputClass}
-                                        >
-                                            <option value="" disabled>
-                                                PO
-                                            </option>
-                                            {selectedPos.map((po) => (
-                                                <option key={po.id} value={po.id}>
-                                                    {poOptionLabel(po)}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    )}
                                 </div>
-                                {qtyExceedsUninvoiced && (
+                                {over && over.over > 0 && (
                                     <p className="mt-2 text-xs text-amber-700">
-                                        Qty ({item.qty}) exceeds this PO Item&apos;s uninvoiced quantity (
-                                        {linkedPoItem.uninvoicedQty}) — not blocked, but worth a note below.
+                                        {INVOICE_SPREAD_COPY.over({ over: over.over, left: over.left, unit: item.unit })}
                                     </p>
                                 )}
-                                {showRemark && (
+                                {item.unitPriceEditing && (
                                     <input
                                         placeholder="Remark — why this differs from the PO"
                                         disabled={locked}
@@ -1875,7 +1636,7 @@ export default function InvoiceForm({ vendors, pos }) {
                                 )}
                                 <div className="mt-2 flex items-center justify-between text-sm text-zinc-600">
                                     <span>Amount (preview): {amount.toFixed(2)}</span>
-                                    {items.length > 1 && (
+                                    {shownItems.length > 1 && (
                                         <button
                                             type="button"
                                             onClick={() => removeItem(i)}
@@ -2130,7 +1891,9 @@ export default function InvoiceForm({ vendors, pos }) {
             {renderItemsSection()}
             {renderTotalsSection()}
 
-            <input type="hidden" name="itemsJson" value={JSON.stringify(items)} />
+            <input type="hidden" name="itemsJson" value={JSON.stringify(shownItems)} />
+            {/* #660 — the header's orders, which the save spreads every item over. */}
+            <input type="hidden" name="poRecordIdsJson" value={JSON.stringify(selectedPoIds)} />
             {invoiceFile.status === "done" && (
                 <>
                     <input type="hidden" name="invoiceFileUrl" value={invoiceFile.url} />

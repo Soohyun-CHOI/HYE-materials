@@ -6,7 +6,7 @@ import { withAdminAction, requireUser } from "@/lib/authz";
 import { base, TABLES } from "@/lib/airtable/client";
 import { createInvoice, getInvoiceByRecordId, updateInvoice } from "@/lib/airtable/invoices";
 import { createInvoiceItem, updateInvoiceItem } from "@/lib/airtable/invoiceItems";
-import { getPOItemByRecordId, getInvoicedQtyForPOItem } from "@/lib/airtable/poItems";
+import { getPOItemByRecordId } from "@/lib/airtable/poItems";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
 import { confirmIngestThenDelete } from "@/lib/blobIngest";
 import { isOurBlobUrl } from "@/lib/fileSource";
@@ -14,6 +14,8 @@ import { createDirectPurchase } from "@/lib/airtable/directPurchases";
 import { DIRECT_PURCHASE_COPY, directPurchaseBlocked } from "@/lib/directPurchase";
 import { isPOWithdrawn } from "@/lib/poWithdraw";
 import { withOpsLabel } from "@/lib/airtableOps";
+import { INVOICE_SPREAD_COPY, spreadInvoiceItems } from "@/lib/invoiceSpread";
+import { getSpreadOrderedItems } from "@/lib/invoiceSpread.server";
 import {
     ITEM_PRECISION_COPY,
     checkTotalsDiffer,
@@ -60,6 +62,9 @@ async function createInvoiceHandler(prevState, formData) {
         const tariff = formData.get("tariff"); // issue #57 — optional, only present once the header's "+ Add Tariff" was used
         const salesTax = formData.get("salesTax"); // issue #283 — the same, behind "+ Add Sales Tax"
         const items = JSON.parse(formData.get("itemsJson") || "[]");
+        // #660 — the header's orders, which every item is spread over: an item names a material
+        // at an ordered price (`lib/invoiceSpread.js`), never one order.
+        const poRecordIds = [...new Set(JSON.parse(formData.get("poRecordIdsJson") || "[]").filter(Boolean))];
         const invoiceFileUrl = formData.get("invoiceFileUrl");
         const invoiceFileFilename = formData.get("invoiceFileFilename");
 
@@ -99,12 +104,12 @@ async function createInvoiceHandler(prevState, formData) {
             return { error: "Attach the invoice file." };
         }
         if (items.length === 0) return { error: "Add at least one item." };
+        // #660 — the orders are the header's now and no item picks one; this said `Every item
+        // needs a PO — pick one at the top or per item.` while each item could.
+        if (poRecordIds.length === 0) return { error: "Select a PO." };
         for (const item of items) {
             if (!item.itemName || !item.qty || !item.unitPrice) {
                 return { error: "Every item needs a name, quantity, and unit price." };
-            }
-            if (!item.poRecordId) {
-                return { error: "Every item needs a PO — pick one at the top or per item." };
             }
             // Issue #278 — THE SAME REFUSAL ONE LEVEL DOWN, and the one that makes
             // "every invoice item names an ordered item" a property rather than a
@@ -121,7 +126,11 @@ async function createInvoiceHandler(prevState, formData) {
             // ordered-item select carries no `required`), so it is also the one that
             // was read that way. The three neighbours above name one kind each and
             // keep the bare word.
-            if (!item.poItemRecordId) {
+            //
+            // #660 — AN ITEM CHOOSES A MATERIAL AT AN ORDERED PRICE, AND THE SPREAD BELOW NAMES THE
+            // ORDERED ITEMS, so what is refused here is an item with no choice. A choice the orders
+            // no longer hold is the spread's `unknown`, refused further down once they are read.
+            if (!item.key) {
                 return { error: "Every invoice item needs an ordered item from its PO." };
             }
             // Issue #254 — the premise `TOTALS_TOLERANCE` is derived from, refused
@@ -154,10 +163,9 @@ async function createInvoiceHandler(prevState, formData) {
         // Action is directly callable, and a PO can be withdrawn while this form sits
         // open. Withdrawn is now the ONLY status either side excludes (#168), so this
         // check and those queries agree on exactly one condition.
-        const distinctPoIds = [...new Set(items.map((item) => item.poRecordId))];
         let linkedPos;
         try {
-            linkedPos = await Promise.all(distinctPoIds.map((id) => getPOByRecordId(id)));
+            linkedPos = await Promise.all(poRecordIds.map((id) => getPOByRecordId(id)));
         } catch (err) {
             // .find() throws on an id that doesn't resolve. Before this guard
             // existed such an id failed later, inside the rollback-protected
@@ -176,6 +184,21 @@ async function createInvoiceHandler(prevState, formData) {
                         : `${ids} were withdrawn, so an invoice can't be linked to them.`,
             };
         }
+
+        // #660 — THE SPREAD, FROM A FRESH READ OF THE ORDERS' ORDERED ITEMS. The form drew its
+        // sentence about a quantity past what is uninvoiced from the same function over what it
+        // fetched; this is what is written, so it reads `Invoiced Qty` now rather than trusting a
+        // figure another invoice may have moved since. One query per fifty ordered items, off the
+        // link arrays the orders above already carry. No `withKeyLock` around it: an id is minted
+        // under one inside `createInvoiceItem`, and two locks are never nested — two invoices
+        // saved at once can only over-spread an ordered item, which reads as the quantity
+        // variance this app already shows.
+        const orderedItems = await getSpreadOrderedItems(linkedPos);
+        const spread = spreadInvoiceItems({
+            entries: items.map((item) => ({ key: item.key, qty: parseFloat(item.qty) })),
+            orderedItems,
+        });
+        if (spread.some((s) => s.unknown)) return { error: INVOICE_SPREAD_COPY.choiceGone };
 
         // #382 — THE SESSION, FOR THE `Recorded By` THIS CREATE WRITES. It was read
         // for the delivery pairing's Job scope too, until #640 removed the pairing.
@@ -221,26 +244,30 @@ async function createInvoiceHandler(prevState, formData) {
                 recordedByUserId: user.id,
             });
 
+            // #660 — AN INVOICE ITEM PER SHARE, every share of one written item holding its place
+            // on the invoice. The name, size, maker and unit are the ordered item's own frozen
+            // copies (#84), as the form's were; the price and the remark are what was typed for
+            // the item, on every share of it.
             const createdItems = [];
-            for (const item of items) {
-                const created = await createInvoiceItem({
-                    invoiceRecordId: invoice.id,
-                    invoiceId: invoice.invoiceId,
-                    poRecordId: item.poRecordId,
-                    // `|| null` until #278 — the coalesce WAS the backend path #96
-                    // left standing. The refusal above is what lets this pass the
-                    // value through.
-                    poItemRecordId: item.poItemRecordId,
-                    itemName: item.itemName,
-                    size: item.size,
-                    maker: item.maker,
-                    unit: item.unit,
-                    qty: parseFloat(item.qty),
-                    unitPrice: parseFloat(item.unitPrice),
-                    remark: item.remark || "",
-                });
-                createdItemIds.push(created.id);
-                createdItems.push(created);
+            for (const [index, item] of items.entries()) {
+                for (const share of spread[index].shares) {
+                    const created = await createInvoiceItem({
+                        invoiceRecordId: invoice.id,
+                        invoiceId: invoice.invoiceId,
+                        poRecordId: share.orderedItem.poRecordId,
+                        poItemRecordId: share.orderedItem.id,
+                        itemName: share.orderedItem.itemName || item.itemName,
+                        size: share.orderedItem.size,
+                        maker: share.orderedItem.maker,
+                        unit: share.orderedItem.unit,
+                        qty: share.qty,
+                        unitPrice: parseFloat(item.unitPrice),
+                        remark: item.remark || "",
+                        position: index + 1,
+                    });
+                    createdItemIds.push(created.id);
+                    createdItems.push(created);
+                }
             }
 
             // Variance checking (#15), per the tolerance rules decided in #17. Qty
@@ -255,14 +282,22 @@ async function createInvoiceHandler(prevState, formData) {
             // one, which is not the free-text state and is not something to discover
             // by dereferencing undefined. It said "free-text `Other` invoice items
             // have nothing to compare against" and that is no longer why.
+            //
+            // #660 — ONE `find` PER ORDERED ITEM, where it was two per item: the record carries
+            // `Unit Price`, `Qty` and `Invoiced Qty` together since #235, which is why
+            // `judgeInvoiceAgain` reads it once. Kept per ordered item, since two items the vendor
+            // wrote can charge one.
+            const orderedItemNow = new Map();
             for (const created of createdItems) {
                 const poItemRecordId = created.poItem?.[0];
                 if (!poItemRecordId) continue;
 
-                const poItem = await getPOItemByRecordId(poItemRecordId);
+                if (!orderedItemNow.has(poItemRecordId)) {
+                    orderedItemNow.set(poItemRecordId, await getPOItemByRecordId(poItemRecordId));
+                }
+                const poItem = orderedItemNow.get(poItemRecordId);
                 const hasPriceVariance = checkPriceVariance(created.unitPrice, poItem.unitPrice);
-                const invoicedQty = await getInvoicedQtyForPOItem(poItemRecordId);
-                const hasQuantityVariance = checkQuantityVariance(invoicedQty, poItem.qty);
+                const hasQuantityVariance = checkQuantityVariance(poItem.invoicedQty || 0, poItem.qty);
 
                 // #623 — the two judged and stored apart, where one flag held either.
                 if (hasPriceVariance || hasQuantityVariance) {

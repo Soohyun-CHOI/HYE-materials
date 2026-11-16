@@ -162,8 +162,9 @@
 // no identifier — which left `billed-more`, `order-billed`, `billed-short` and
 // `billed-over` unseen by everything here. They were renamed with the rest, and what
 // catches a NEW one is not this file: it is the value pins in
-// `offline/delivery-status.mjs`, `offline/invoice-order-breakdown.mjs` and
-// `offline/overage.mjs`, each of which asserts a key by its literal. So a barred word
+// `offline/delivery-status.mjs` and `offline/overage.mjs`, each of which asserts a key
+// by its literal (`offline/invoice-order-breakdown.mjs` was a third until #660 took
+// its module and its `order-charged` key off the invoice's page). So a barred word
 // put into a `key` today fails there or nowhere.
 //
 // SO THE TWO ASSERTIONS #269 ADDED CHECK THE RULE'S PREMISES RATHER THAN ITS WORDS.

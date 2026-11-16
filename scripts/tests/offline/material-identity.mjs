@@ -364,7 +364,7 @@ export function run({ check, log, assert }) {
  */
 const HAND_JOIN_SCOPE = [
     "lib/deliveryAllocation.js",
-    "lib/invoiceOrderBreakdown.js",
+    "lib/invoiceSpread.js",
     "lib/overage.js",
     "lib/overage.server.js",
     "lib/poDocuments.js",

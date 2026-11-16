@@ -21,8 +21,11 @@ import { acceptVarianceAction } from "./actions";
 // replaced. `Reason` is not `required`: the action refuses a blank one — and one of spaces,
 // which the attribute would let through — in the app's own words, inside the form.
 
-/** The badge, the line under it, and the control — for an item's price or quantity variance. */
-export function VarianceMark({ kind, state, invoiceId, itemRecordIds, note, canAccept }) {
+/**
+ * The badge, the line under it, and the control — for an item's price or quantity variance.
+ * `figures` (#660) is what the variance compared, resolved on the server, beside the badge.
+ */
+export function VarianceMark({ kind, state, invoiceId, itemRecordIds, note, canAccept, figures }) {
     const [opened, setOpened] = useState(false);
     const accepted = state === "accepted";
     return (
@@ -34,6 +37,7 @@ export function VarianceMark({ kind, state, invoiceId, itemRecordIds, note, canA
             >
                 {accepted ? ACCEPTANCE_COPY.badge[kind] : VARIANCE_COPY[kind]}
             </span>
+            {figures && <span className="ml-1 text-xs tabular-nums text-zinc-500">{figures}</span>}
             {canAccept && !accepted && !opened && (
                 <button type="button" onClick={() => setOpened(true)} className="ml-1 text-xs text-zinc-500 underline">
                     {ACCEPTANCE_COPY.open}

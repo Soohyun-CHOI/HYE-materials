@@ -189,6 +189,8 @@ async function invoice({ po, orderedItem, qty, issueDate, paid }) {
         qty,
         unitPrice: 15,
         remark: "",
+        // #660 — the invoice's one item; the split copies this onto the share it makes.
+        position: 1,
     });
     // #318 — the date is the whole of the payment; `paid` has not been a parameter
     // of `updateInvoice` since, and was being destructured away here.

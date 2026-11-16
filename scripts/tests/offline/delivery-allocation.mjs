@@ -952,9 +952,12 @@ export function run({ check, assert, log }) {
     // comparison is between the two files.
     log("");
     log("the plan's row shape is the shape both readers use (#227):");
+    // #660 — THE ROWS ARE PUSHED IN `fillOrderedItems` NOW, which `planDelivery` hands its
+    // narrowed set to and an invoice item's spread pours through too; the writer moved and the
+    // shape did not.
     const { ast: allocAst } = parseFile("lib/deliveryAllocation.js");
-    const plan = resolveFunction(allocAst, "planDelivery");
-    assert("planDelivery resolves", Boolean(plan));
+    const plan = resolveFunction(allocAst, "fillOrderedItems");
+    assert("fillOrderedItems resolves", Boolean(plan));
     // Every `rows.push({ ... })` inside it, and the property that is not qty/over.
     const pushed = new Set();
     walkAst(plan, (node) => {

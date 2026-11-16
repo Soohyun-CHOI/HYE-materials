@@ -28,12 +28,12 @@
 // gate — it hid one `<option>` — so the two refusals above are what a re-added flag
 // would have to get past, and they are checked by shape rather than by name.
 //
-// AND THE FORM STILL EXPLAINS ITSELF, which is the half a refusal cannot cover. #91
-// leaves a row on an exhausted purchase order nothing to pick, and the sentence
-// naming that is written straight into JSX where no offline check can read its
-// wording. What IS checkable is that the branch exists and is reached from the same
-// emptiness the refusal keys on, so a form that silently offers a dead row fails
-// here even though its words do not.
+// AND THE FORM CANNOT LEAVE A ROW WITH NOTHING TO PICK. #91 left a row on an
+// exhausted purchase order nothing to pick and #278 gave that row a sentence; #660
+// took the state away instead — an item chooses from every order's choices, and no
+// row's choice is taken out of another's list — so what is held is that every row's
+// select is built from the one list of choices, whole. A per-row filter coming back
+// would bring the empty row back with it, and fails here.
 //
 // SCOPE: three files, named rather than swept. A sweep would ask "does any file
 // mention a free-text item", which is a question about comments.
@@ -85,21 +85,23 @@ function literalsIn(relPath) {
 }
 
 /**
- * Does this file refuse on a falsy `poItemRecordId` — an `if` whose test reads that
- * name under a `!`, containing a `return` or a `throw`?
+ * Does this file refuse on a falsy `field` — an `if` whose test reads that name
+ * under a `!`, containing a `return` or a `throw`? `poItemRecordId` for the writer;
+ * the action refuses on the item's `key` since #660, an item choosing a material at
+ * an ordered price and the spread naming the ordered items.
  *
  * ASKED ON THE SHAPE RATHER THAN ON THE WORDING, because the message is copy and
  * will be reworded. What it cannot see is order: a refusal after the write would
  * satisfy this, which is the standing limit of every structural check in this tier
  * (`_ast.mjs` says so) and is why the credentialed tier exists.
  */
-function refusesOnMissingOrderedItem(relPath) {
+function refusesOnMissingOrderedItem(relPath, field = "poItemRecordId") {
     const { ast } = parseFile(relPath);
     let found = false;
     walk(ast, (node) => {
         if (node.type !== "IfStatement" || found) return;
         const test = JSON.stringify(node.test);
-        if (!/"UnaryExpression"/.test(test) || !/poItemRecordId/.test(test)) return;
+        if (!/"UnaryExpression"/.test(test) || !test.includes(`"name":"${field}"`)) return;
         const body = JSON.stringify(node.consequent);
         if (/"ReturnStatement"|"ThrowStatement"/.test(body)) found = true;
     });
@@ -109,7 +111,7 @@ function refusesOnMissingOrderedItem(relPath) {
 export function run({ check, assert, log }) {
     // ── the two writers ─────────────────────────────────────────────────────
     log("both writers refuse an invoice item with no ordered item:");
-    check(`${ACTION} refuses before writing`, refusesOnMissingOrderedItem(ACTION), true);
+    check(`${ACTION} refuses before writing`, refusesOnMissingOrderedItem(ACTION, "key"), true);
     check(`${WRITER} throws rather than coercing`, refusesOnMissingOrderedItem(WRITER), true);
 
     // ANTI-VACUITY, and it needs both halves: the matcher has to be seen to say NO,
@@ -121,11 +123,12 @@ export function run({ check, assert, log }) {
         false
     );
     // And it must be reading the shape rather than the name: a file that MENTIONS
-    // `poItemRecordId` without refusing on it must still come back false.
+    // `poItemRecordId` without refusing on it must still come back false. The action
+    // is that file since #660 — it writes the field off the spread and refuses on
+    // `key` — so one file says yes for one name and no for the other.
     assert(
         "  even in a file that names the field",
-        identifiersIn("lib/invoiceOrderBreakdown.js").has("items") &&
-            refusesOnMissingOrderedItem("lib/invoiceOrderBreakdown.js") === false
+        identifiersIn(ACTION).has("poItemRecordId") && refusesOnMissingOrderedItem(ACTION) === false
     );
 
     // ── the writer's error names the issue ──────────────────────────────────
@@ -167,26 +170,30 @@ export function run({ check, assert, log }) {
         literalsIn(FORM).some((s) => s.includes("Add another PO"))
     );
 
-    // ── the form explains the one emptiness #91 can produce ─────────────────
+    // ── no row can run out of choices (#660) ────────────────────────────────
     log("");
-    log("a row with nothing left to pick says so rather than offering a box:");
-    // The branch is named rather than its wording checked, for the reason in the
-    // header: the sentence is JSX and this tier cannot read rendered text. What it
-    // can hold is that the form COMPUTES the condition and that the condition is the
-    // same emptiness the select is built from.
-    assert("the form names the state", formIdentifiers.has("noOrderedItemLeft"));
-    assert(
-        "  and derives it from the option list the select renders",
-        formIdentifiers.has("availablePoItemOptions")
-    );
+    log("every row picks from the one list of choices, so none is left with nothing:");
+    // The state #278 named with a sentence was a row whose list a per-row filter had
+    // emptied. #660 removed the filter, so what is held is that the select's options
+    // are the whole `choices` list — a `.map` called on that identifier itself, not on
+    // something derived from it per row.
     const formSource = parseFile(FORM);
-    let derivedFromOptions = false;
+    let mapsChoices = 0;
+    let mapsFiltered = 0;
     walk(formSource.ast, (node) => {
-        if (node.type !== "VariableDeclarator") return;
-        if (node.id?.name !== "noOrderedItemLeft") return;
-        derivedFromOptions = /availablePoItemOptions/.test(JSON.stringify(node.init));
+        if (node.type !== "CallExpression" || node.callee?.property?.name !== "map") return;
+        // A map whose callback returns an `<option>` and takes a choice: what a choice
+        // list renders, and nothing else on the form.
+        const callback = node.arguments?.[0];
+        if (callback?.body?.type !== "JSXElement" || callback.body.openingElement?.name?.name !== "option") return;
+        if (callback.params?.[0]?.name !== "choice") return;
+        const target = node.callee.object;
+        if (target?.type === "Identifier" && target.name === "choices") mapsChoices++;
+        else mapsFiltered++;
     });
-    check("  in its own declaration, not somewhere else", derivedFromOptions, true);
+    check("a select's options are the whole choices list", mapsChoices, 1);
+    check("  and no row maps a narrowed copy of it", mapsFiltered, 0);
+    check("the row-level emptiness #278 named is gone", formIdentifiers.has("noOrderedItemLeft"), false);
 
     // ── nothing calls the removed predicate ─────────────────────────────────
     // `countsTowardStatus` was the judgment's entry point and its absence is asserted

@@ -506,7 +506,8 @@ async function invoice({
         file,
     });
 
-    for (const r of rows) {
+    // #660 — each its own item on the vendor's invoice, numbered as createInvoiceAction numbers them.
+    for (const [index, r] of rows.entries()) {
         await createInvoiceItem({
             invoiceRecordId: invoice.id,
             invoiceId: invoice.invoiceId,
@@ -518,6 +519,7 @@ async function invoice({
             qty: r.qty,
             unitPrice: r.unitPrice,
             remark: r.remark || "",
+            position: index + 1,
         });
     }
 

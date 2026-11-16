@@ -1,5 +1,13 @@
 // Browsable states for the per-order item list on an invoice (#237).
 //
+// #660 TOOK THAT LIST OFF THE INVOICE'S PAGE, AND THE TWO INVOICES STAY USEFUL FOR WHAT
+// REPLACED IT. The items table names an item's order on the item itself now: A — one item
+// spread over the original order and its correction — draws one item with a share per
+// order, its orders named on the shares; B — one item per order, the second on the newer
+// order alone — names an order on every item. The paragraphs below are #237's record of
+// the list; where one names `lib/invoiceOrderBreakdown.js` or its offline check, both
+// went with the list in #660.
+//
 // TWO INVOICES, ONE EACH SIDE OF THE RULE, and the silent one is the shape nothing on
 // this base held — a case observable only in the data rather than in the copy:
 //
@@ -290,7 +298,7 @@ async function makeInvoice({ code, issueDate, invoiceTotal }) {
  * One charge against one ordered item. There is no free-text branch on purpose —
  * see the header for why that shape is not seeded.
  */
-async function charge({ invoice, po, orderedItem, qty, unitPrice = PRICE }) {
+async function charge({ invoice, po, orderedItem, qty, unitPrice = PRICE, position = 1 }) {
     const item = await createInvoiceItem({
         invoiceRecordId: invoice.id,
         invoiceId: invoice.invoiceId,
@@ -302,6 +310,8 @@ async function charge({ invoice, po, orderedItem, qty, unitPrice = PRICE }) {
         qty,
         unitPrice,
         remark: "",
+        // #660 — where the item stands on the vendor's invoice.
+        position,
     });
     made("Invoice Item", item.invoiceItemId, `${qty} on ${po.poId}`);
     return item;
@@ -388,7 +398,7 @@ const bInvoice = await makeInvoice({
     invoiceTotal: 5 * PRICE + 7 * PRICE,
 });
 await charge({ invoice: bInvoice, po: b1.po, orderedItem: b1.orderedItem, qty: 5 });
-await charge({ invoice: bInvoice, po: b2.po, orderedItem: b2.orderedItem, qty: 7 });
+await charge({ invoice: bInvoice, po: b2.po, orderedItem: b2.orderedItem, qty: 7, position: 2 });
 
 ids.bInvoice = bInvoice.invoiceId;
 ids.bPo1 = b1.po.poId;
@@ -414,62 +424,18 @@ function printGuide() {
     console.log("=".repeat(72));
     console.log(`
 ------------------------------------------------------------------
-1. /invoices/${ids.aInvoice ?? "<A>"}  —  two orders, NO item list
+1. /invoices/${ids.aInvoice ?? "<A>"}  —  one item, a share per order
 ------------------------------------------------------------------
-  Purchase Orders
-  ${ids.aPo ?? "<A-PO>"} — Awaiting Signature
-  ${ids.aCorrectionPo ?? "<A-CORRECTION>"} — Awaiting Signature
-
-Nothing under either line, and that is the answer rather than a gap: the
-invoice's ONE folded item touches both orders, so "which order was this
-invoiced against" has the same answer for every item and the list would
-repeat it. The items table below shows one row of 13; the two rows behind
-it are 10 on the first order and 3 on the second, at one price, which is
-what makes them fold.
-
-Its Delivery section reads Matched and names ${ids.aDelivery ?? "<A-DL>"},
-the delivery that brought both ordered items the invoice charges, and its
-table has one row for the one folded item: 13 of 13 delivered, across the
-order and its correction.
+The items table draws the vendor's one item of 13 with a share under it on
+${ids.aPo ?? "<A-PO>"} and on ${ids.aCorrectionPo ?? "<A-CORRECTION>"}, each naming its order: every
+item has a share on the oldest order, so the orders are named on the
+shares alone (#660).
 
 ------------------------------------------------------------------
-2. /invoices/${ids.bInvoice ?? "<B>"}  —  listed, one item per order
+2. /invoices/${ids.bInvoice ?? "<B>"}  —  one item per order
 ------------------------------------------------------------------
-  Purchase Orders
-  ${ids.bPo1 ?? "<B1>"} — Awaiting Signature
-      237-DEMO Tee 2" — 5 EA
-  ${ids.bPo2 ?? "<B2>"} — Awaiting Signature
-      237-DEMO Union 2" — 7 EA
-
-The sets differ — one item names one order, the other names the other — so
-the list appears and each order carries the quantity invoiced against IT.
-
-Its Delivery section reads Awaiting delivery, and THAT IS A RESULT: the
-matcher ran and answered \`none\`, nothing having been delivered against
-either order. The distinction matters because an empty Delivery looks
-identical whether the match failed or was never attempted, and the second
-would make a future reader of the invoice axis debug their own code
-against data nobody had asked the matcher about.
-
-WHAT IS DELIBERATELY NOT HERE: an order reached only through an item with
-no ordered item behind it, which would keep its row with nothing under
-it. That needs a free-text invoice item, which the form could not make and
-which #278 removed outright — the flag, the backend path and the branch
-that kept the order's row are all gone. The read still has to hold
-defensively against a link emptied by hand, and
-\`offline/invoice-order-breakdown.mjs\` is what holds it — asserting both
-that such a row stays out of the judgment and that it lands under no
-order, each shown to fail under a mutation. An
-earlier revision of this file seeded that row on ${ids.bInvoice ?? "<B>"};
-it was retired, and the order it charged (237-DEMO Cap) is left where it
-is, an order having existed either way.
-
-------------------------------------------------------------------
-3. The three that must stay silent
-------------------------------------------------------------------
-HYE-INV-260716-03 (one order, two items), HYE-INV-260804-02 (one order
-plus a free-text charge) and HYE-INV-260727-03 (no order at all). Nothing
-this seed created touches them.
+Two items, one on each order. The second has no share on the oldest order,
+so every item names its order (#660).
 `);
     if (manifest.length === 0) return;
     console.log("=".repeat(72));
