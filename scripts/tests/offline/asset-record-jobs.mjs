@@ -122,7 +122,7 @@ function asksIn(parsed, name) {
     const fn = resolveFunction(parsed.ast, name);
     const found = [];
     walk(fn ?? {}, (n) => {
-        if (n.type === "CallExpression" && ["recordsOn", "isSiteManager", "canRegisterAssets"].includes(n.callee?.name)) found.push(parsed.source.slice(n.start, n.end));
+        if (n.type === "CallExpression" && ["recordsOn", "isClosed", "isSiteManager", "canRegisterAssets"].includes(n.callee?.name)) found.push(parsed.source.slice(n.start, n.end));
     });
     return found.join(" | ") || "none";
 }
@@ -297,18 +297,20 @@ export function run({ check, log }) {
     // AND EVERY OPENER ON BOTH LISTS STANDS UNDER THAT ANSWER ALONE (#610), which on all jobs asks
     // the registration's own question of the reader's assignments over the jobs the list holds —
     // so no page asks it beside the answer, as 1a did until #610, and a site manager on no job
-    // meets no opener on either, where a kind's page drew its two disabled.
+    // meets no opener on either, where a kind's page drew its two disabled. On one job it asks too
+    // whether that job has closed, which takes no new item (#488), and the jobs a dialog is handed
+    // are the reader's own open ones (`registrationJobs`).
     const openersUnder = (page) =>
         recordingConditions(page.ast)
             .filter((under) => under.startsWith("RegistrationDialog"))
             .join(" | ");
     check(
         "  and the openers on both lists stand under that answer alone, which asks the reader's own jobs on all of them (#610)",
-        `${openersUnder(list)} || ${openersUnder(category)} || ${asksIn(parseFile(VIEW), "listRecording")} || ${bound(category, "assignedJobs")}`,
+        `${openersUnder(list)} || ${openersUnder(category)} || ${asksIn(parseFile(VIEW), "listRecording")} || ${bound(category, "registrableJobs")}`,
         "RegistrationDialog[recording.adds] | RegistrationDialog[rows.length === 0 && recording.adds] || " +
             "RegistrationDialog[recording.adds] | RegistrationDialog[empty && recording.adds] || " +
-            "recordsOn(user, scope?.job?.id) | isSiteManager(user) | canRegisterAssets(user, scope.jobs) || " +
-            "assignedJobsFor(user, jobs).map(({ id, jobCode, jobName }) => ({ id, jobCode, jobName }))"
+            "recordsOn(user, scope?.job?.id) | isClosed(scope.job) | isSiteManager(user) | canRegisterAssets(user, scope.jobs) || " +
+            "registrationJobs(user, jobs).map(({ id, jobCode, jobName }) => ({ id, jobCode, jobName }))"
     );
     check(
         "an asset's page plans from the item's own job, its owner job and its latest entry (#598), and offers the names that job gave (#597)",

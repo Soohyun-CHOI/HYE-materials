@@ -73,7 +73,7 @@ async function changeAssetJobHandler(prevState, formData) {
                 ? await Promise.all([getAssetLogByAsset(asset.id, { rowIds }), getAllJobs()])
                 : // The ids stand for the rows, which the plan counts and need not read.
                   [rowIds.map((id) => ({ id })), []];
-        const plan = planOfficeActs({ user, log, jobs });
+        const plan = planOfficeActs({ user, log, jobs, assetJobRecordId: asset.job?.[0] ?? null });
         const answer = readJobChange(plan, {
             jobId: String(formData.get("jobId") ?? ""),
             assetJobRecordId: asset.job?.[0] ?? null,

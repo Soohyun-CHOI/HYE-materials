@@ -43,7 +43,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 - A new **field** → the Data model list in `docs/notes/data-model.md`: name, type, link topology. Its rationale goes to the area notes file.
 - A new **module** → one line in Service layer pattern, `path — what it owns`.
 - **What a screen carries, the distinctions it must show, and a word locked on it** → `docs/briefs/`, one file per page (#260), and a page that became a dialog keeps its own (#456). A page added, removed or given new content updates its brief in the SAME COMMIT; `offline/screen-briefs.mjs` fails on a page with no brief and on a tone the shared brief does not list. **A screen a design file draws keeps in its brief only what the drawing does not, naming a sentence by its constant's key and a frame by its id (#620).**
-- **Every string a screen can render** → nowhere. `scripts/screen-strings.mjs` produces the list on demand (#288), and `docs/briefs/strings/` records only what it CANNOT produce and what no reader can reach. A file per screen was built, measured and dropped; the README there carries the figures and how a naming decision is made from the tool instead.
+- **Every string a screen can render** → nowhere. `scripts/screen-strings.mjs` produces the list on demand (#288), and `docs/briefs/strings/` records only what it CANNOT produce and what no reader can reach.
 - **No phase, milestone or branch status, ever.** What has merged is in the git history and in the tracker, and a document that restates it goes stale without anyone noticing.
 - **A path this file names in backticks is a present one** — `offline/claude-md-paths.mjs` fails one that does not resolve (#575) — so a record naming a path that has gone belongs in the notes.
 - If no area file fits, add one and an index row above it, in the same commit.
@@ -98,6 +98,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/productName.js` — the product's name. Not the company's legal name, which is `lib/poPdf.js:HYE_BUYER_NAME`.
 - `lib/userName.js` — the name a screen prints for a user (#381). **A name field is read nowhere else.**
 - `lib/userJobs.js` — who is asked for their jobs at sign-in (#554), the step's address, what a choice keeps, and its words.
+- `lib/closedJob.js` — whether a job is closed (#488), the jobs a new choice offers, the one a record already names kept, and every word.
 - `lib/authTokenState.js` — whether a sign-in row can still be used, by link or code (#471), the TTL, every word either says, and the email carrying both (#473).
 - `lib/companyEmail.js` — the company's address as the sign-in field takes it and the server admits it (#473).
 - `lib/signInLimit.js` — how often a sign-in email may be asked for (#148): the ceilings, `Resend email`'s rest, the mailbox and the IP a request counts against, and the judgment.

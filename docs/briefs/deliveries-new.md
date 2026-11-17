@@ -26,7 +26,10 @@ says so twice.
 to.` — a statement of the form's whole contract, in one sentence, before any field.
 
 **action — the job,** a required dropdown with the placeholder `Select a job…`,
-showing code and name. It gates everything below it.
+showing code and name. It gates everything below it. **It offers the open jobs
+alone (#488):** a closed job — one whose `Closed Date` holds a day — takes no new
+delivery, and a delivery sent naming one, from a form drawn before the job closed or
+from no form at all, is refused with `{Job Code} is closed.` above the button.
 
 **action — a checkbox in a bordered box:** `The packing list shows a PO number`.
 It is disabled until a job is chosen. Ticking it reveals a text field with the
@@ -135,6 +138,14 @@ line and needs no room of its own. The limit is one number for the whole app, so
 a phone photo is held to what a quotation and an invoice are.
 
 **When the save fails:** the error in red above the button.
+
+**When the reader may use no open job:** no form, only the heading and one line
+saying why. A reader on no job reads `You are not assigned to any job yet, so there
+is nothing to record a delivery against. An Admin can add you to a job in Airtable.`
+One whose every job has closed (#488) reads `Every job you are assigned to is
+closed, so there is nothing to record a delivery against. An Admin can add you to a
+job in Airtable.`, and the office and the President, who may use every job, read
+`Every job is closed, so there is nothing to record a delivery against.`
 
 ## What must agree elsewhere
 

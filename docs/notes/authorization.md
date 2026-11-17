@@ -304,6 +304,20 @@ On the test base, on `jobs.localhost:3554`, a host whose cookies stay apart from
 
 From the dev log: the step 2 operations, its save 4, and a page sending a reader to it 1. Measured against the drawings at 373 × 810 and 1598 × 898, every box of 1k and 1l stood where the drawing puts it — the step's column 10% from the top and the foot, the search band holding to the top with its soft edge once rows ran under it, a press with nothing chosen saying so 12 over the action on a phone, and the action disabled under its line at a desk.
 
+
+#### A reader whose jobs have all closed (#488)
+
+**Is not asked again.** A closed job is still a job the reader holds — `Assigned Jobs`
+keeps it, as every record naming a closed job keeps it — and the step is a first
+assignment: asking again would make it the screen that changes a person's jobs, which
+#554 left to the office. So `needsJobs` is unchanged, such a reader is sent on to where
+they were going, and what they meet there is each screen's: no closed job offered
+anywhere a job is newly chosen, a line saying so on `/deliveries/new` and `/prs/new`,
+and every asset on their jobs still theirs to record (`tools.md`). **The step offers
+the open jobs alone** (`jobsOffered`, through `lib/closedJob.js`), and a job closed
+while a reader was choosing is left out of the save as a job gone is. **Seen in a browser** on the test base with `UA00001`, `25-USA-13` and `26-DEMO-01`
+closed, the step's redirect for `soo@` dropped for the reading and restored byte for
+byte after it: the four open jobs listed, and the step read 2 operations, #554's figure.
 ---
 
 ### Signing in with a code (#471)

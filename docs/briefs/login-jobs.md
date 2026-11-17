@@ -16,14 +16,16 @@ before this step a person's jobs were set by hand in Airtable alone.
 
 **It is a first assignment and nothing more.** What the reader chooses becomes their
 `Assigned Jobs`; from then on their jobs are the office's to change. The step asks
-again only a reader whose assigned jobs the office empties.
+again only a reader whose assigned jobs the office empties — **not one whose jobs have
+all closed**, who holds them still and is sent on as anybody holding a job is.
 
 **The office and the President are never asked**: neither needs an assignment to
 work, and a reader of either kind with no job starts the asset list on all jobs.
 
 ## What it always carries
 
-**Every job there is, by its code and name**, several of which may be chosen, and a
+**Every open job there is, by its code and name** — a closed job, whose `Closed Date`
+holds a day, is offered nowhere a job is newly chosen — several of which may be chosen, and a
 search over them: a job stays while its code and name carry every word typed
 (`lib/typedText.js`). **While searching, a job chosen before the search began
 that the search does not match stays, above the matches** (`jobRows`), so a choice
@@ -56,8 +58,9 @@ the sentence when pressed, until a job is chosen.
 **When the write fails:** `USER_JOBS_COPY.refusal.failed`. The choice stays as it
 was.
 
-**When a job went while the reader was choosing:** the save leaves it out and the
-rest stands; a choice left with nothing in it says `USER_JOBS_COPY.refusal.none`.
+**When a job went or closed while the reader was choosing:** the save leaves it out
+and the rest stands; a choice left with nothing in it says
+`USER_JOBS_COPY.refusal.none`.
 
 **There is no success state.** Saving lands the reader on the page they were going
 to.

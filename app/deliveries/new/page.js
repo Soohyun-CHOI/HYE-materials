@@ -5,6 +5,7 @@ import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllAddresses } from "@/lib/airtable/addresses";
 import { getDeliveryCandidates } from "@/lib/deliveryAllocation.server";
 import { accessibleJobs as jobsFor } from "@/lib/deliveryAccess";
+import { CLOSED_JOB_COPY, noOpenJob, offeredJobs } from "@/lib/closedJob";
 import { withOpsLabel } from "@/lib/airtableOps";
 import DeliveryForm from "./DeliveryForm";
 
@@ -43,16 +44,24 @@ async function renderNewDeliveryPage() {
 
     // Entry is open to anyone assigned to the Job, plus the office — narrowed
     // through the same predicate createDeliveryAction re-checks per record, so the
-    // dropdown cannot offer a job the action would then refuse.
-    const jobs = jobsFor(user, await getAllJobs());
+    // dropdown cannot offer a job the action would then refuse. #488 — and to the
+    // open jobs among them, the action asking the same of the job it is sent.
+    const allJobs = await getAllJobs();
+    const reachable = jobsFor(user, allJobs);
+    const jobs = offeredJobs(reachable);
 
     if (jobs.length === 0) {
+        // #488 — A READER WHOSE EVERY JOB HAS CLOSED IS ASSIGNED, so the sentence below
+        // would be false for them; they are told their jobs are closed instead, and the
+        // office, which may use every job, that every job is.
+        const closed = noOpenJob(allJobs, reachable);
         return (
             <UndrawnPage measure="delivery">
                 <h1 className="text-2xl font-semibold">Record a delivery</h1>
                 <p className="mt-4 text-sm text-zinc-600">
-                    You are not assigned to any job yet, so there is nothing to record a delivery
-                    against. An Admin can add you to a job in Airtable.
+                    {closed
+                        ? CLOSED_JOB_COPY.noOpenJob.delivery[closed]
+                        : "You are not assigned to any job yet, so there is nothing to record a delivery against. An Admin can add you to a job in Airtable."}
                 </p>
                 <Link href="/deliveries" className="mt-6 inline-block text-sm underline">
                     All deliveries

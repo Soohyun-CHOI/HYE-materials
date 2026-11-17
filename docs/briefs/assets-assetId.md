@@ -82,9 +82,14 @@ dialog asks for the name and confirms nothing.
   is checked in first.
 - **A loan**, from `In stock`: lending to another job for a site manager on the job
   that owns an item standing there, and returning it to its owner for one on the job
-  it was lent to — never both, and nothing is lent on. The lending asks which job;
-  the return asks first. While it is lent, the borrowing job's site managers record on
-  it as their own and the owning job's read it.
+  it was lent to — never both, and nothing is lent on. The lending asks which job,
+  offering the open ones alone — a closed job, whose `Closed Date` holds a day,
+  takes no new item, though one a lending left half done went to stays offered so the
+  lending can finish — and the return asks first, to the owner job closed or not.
+  While it is lent, the borrowing job's site managers record on it as their own and
+  the owning job's read it. **Everything else on this page stands on a closed job as
+  on any other**: the item is recorded on its own job whether or not that job's work
+  has ended.
 - **Retire**, from `In stock`, `Out` or `In repair`, for a site manager on the job —
   an item that broke on a site, or one its maker gave up on, is retired from where it
   is, since requiring a check-in or a return first would record an event that did not
@@ -93,7 +98,8 @@ dialog asks for the name and confirms nothing.
   owner job, so an item retired on loan goes back to its owner as it ends.
 - **Change job** and **Delete**, for the office, only while the history holds the
   `Created` entry alone (`lib/assetOfficeActs.js`): the item's job and owner job move
-  with that entry, and its number, label, status and the entry's moment and recorder
+  with that entry — to an open job, or to the one the item or its entry already
+  names closed or not — and its number, label, status and the entry's moment and recorder
   stay; a deletion lands on the kind's list on the job it was on, and
   the item is shown nowhere again — no list, count, search, export or label run, and
   its address and label read as no item. Its number is never given to another.
@@ -159,6 +165,7 @@ is an action's, which draws the page again as it answers, and the sentence stand
 | a lending left half done | `ASSET_TRANSITION_COPY.lendHalfDone` |
 | a return to the owner left half done | `ASSET_TRANSITION_COPY.returnHalfDone` |
 | a lending with no job chosen | `ASSET_TRANSITION_COPY.lendNoneChosen` |
+| a lending to a job closed since the page was drawn | `CLOSED_JOB_COPY.refusal` |
 | a check-out with no name | `ASSET_TRANSITION_COPY.nameRequired` |
 
 The two about whose item it is say the same whatever was pressed — a detail's, a
@@ -172,7 +179,8 @@ the one that means something was written**, and pressing again finishes it.
 **The office's two acts refuse** something recorded since the page was drawn
 (`ASSET_OFFICE_COPY.recordedSince`, `ASSET_OFFICE_COPY.deleteRecordedSince`), a reader
 no longer the office (`ASSET_OFFICE_COPY.noAccess`, `ASSET_OFFICE_COPY.deleteNoAccess`),
-a job change with none chosen (`ASSET_OFFICE_COPY.jobNoneChosen`), and say a half-done
+a job change with none chosen (`ASSET_OFFICE_COPY.jobNoneChosen`) or to a job closed
+since the page was drawn (`CLOSED_JOB_COPY.refusal`), and say a half-done
 one (`ASSET_OFFICE_COPY.halfDone`, `ASSET_OFFICE_COPY.deleteHalfDone`) — where the press
 was, as above, the commitment turned away when the page drawn again no longer offers
 the act. A half-done deletion shows its `Deleted` entry, and its press stays to finish

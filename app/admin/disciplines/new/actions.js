@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { withAdminAction } from "@/lib/authz";
 import { getJobByRecordId } from "@/lib/airtable/jobs";
 import { createDiscipline } from "@/lib/airtable/disciplines";
+import { closedJobRefusal } from "@/lib/closedJob";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 // Server Actions are directly callable regardless of what the page renders
@@ -50,6 +51,11 @@ export const createDisciplineAction = withAdminAction(
             if (!job) {
                 return { error: "That Job doesn't exist. Pick one from the list." };
             }
+            // #488 — a closed job takes no new discipline: none could be chosen for a new
+            // request, the page offers the open jobs alone, and a press naming one is refused
+            // by the same rule, off the row read above.
+            const closed = closedJobRefusal(job);
+            if (closed) return { error: closed };
 
             const { disciplineLabel } = await createDiscipline({
                 jobRecordId: job.id,

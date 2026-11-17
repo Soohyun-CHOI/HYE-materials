@@ -327,7 +327,9 @@ which is what puts the record in front of a site and which the office learns by
 telephone; and a free-text **note**, which is the only thing the site's list can
 say about what was bought, since no items are recorded. The job list is fetched
 when the modal opens, not when the page loads, so its select reads
-`Loading jobs...` and then `Select a Job`. A third reading,
+`Loading jobs...` and then `Select a Job`. **It lists the open jobs alone (#488)**: a
+closed job takes no new direct purchase, and a press naming one closed since the modal
+opened is refused with `{Job Code} is closed.` A third reading,
 `Couldn't load the jobs — close this and try again`, exists in the code and
 **cannot be reached through this screen** without forcing that request to fail.
 

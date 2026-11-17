@@ -1,6 +1,7 @@
 import UndrawnPage from "@/app/components/UndrawnPage";
 import { requireAdmin } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
+import { offeredJobs } from "@/lib/closedJob";
 import DisciplineForm from "./DisciplineForm";
 import { withOpsLabel } from "@/lib/airtableOps";
 
@@ -27,8 +28,9 @@ async function renderNewDisciplinePage({ searchParams }) {
 
     // Issue #30 — the Job picker chooses from existing Jobs (no more free-text
     // Job Code). Whole-list load + a native select is plenty at this app's
-    // scale (one company's Jobs); sorted by Job Code for a findable order.
-    const jobs = (await getAllJobs()).sort((a, b) =>
+    // scale (one company's Jobs); sorted by Job Code for a findable order. #488 — the open
+    // ones alone, since a discipline on a closed job could take no new request.
+    const jobs = offeredJobs(await getAllJobs()).sort((a, b) =>
         (a.jobCode || "").localeCompare(b.jobCode || "")
     );
 

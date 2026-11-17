@@ -1324,7 +1324,7 @@ export function run({ check, assert, log }) {
     check(
         "  the fork is handed the page opener's tool, catalog and jobs, and that reading (#610)",
         facts.fork,
-        "account: account, catalog: catalog, category: opened, jobs: assignedJobs, listJobId: listJobId"
+        "account: account, catalog: catalog, category: opened, jobs: registrableJobs, listJobId: listJobId"
     );
     check("  and the notice the category's name and the same reading", facts.notice, "account: account, itemName: category.itemName");
     check("  which the page no longer lists itself", facts.mappedFromAddress, "");
@@ -1843,7 +1843,7 @@ export function run({ check, assert, log }) {
     check(
         "  on this tool and its catalog, with no count, in the dialog's own title",
         openers[0]?.handed,
-        "catalog: catalog, category: opened, jobs: assignedJobs, listJobId: listJobId, opener: ASSET_REGISTRATION_COPY.heading"
+        "catalog: catalog, category: opened, jobs: registrableJobs, listJobId: listJobId, opener: ASSET_REGISTRATION_COPY.heading"
     );
     check("  handed no gate of its own, the list's answer deciding whether it is drawn (#610)", openers[0]?.asks, "none");
     // Under the list's answer since #597 (`listRecording`): a site manager on the job the list
@@ -1852,7 +1852,7 @@ export function run({ check, assert, log }) {
     check(
         "  the empty list's the same opener, secondary, under the empty branch and the same reader",
         `${openers[1]?.handed} | ${openers[1]?.asks} | ${openers[1]?.under}`,
-        "catalog: catalog, category: opened, jobs: assignedJobs, listJobId: listJobId, opener: ASSET_REGISTRATION_COPY.heading, variant: secondary | none | empty, recording.adds"
+        "catalog: catalog, category: opened, jobs: registrableJobs, listJobId: listJobId, opener: ASSET_REGISTRATION_COPY.heading, variant: secondary | none | empty, recording.adds"
     );
     // WHAT THE CATEGORY AND THE CATALOG ARE (#507), off their declarations, since `category: opened`
     // above reads alike whatever `opened` is: the row the page read, by the id the action
@@ -1890,7 +1890,7 @@ export function run({ check, assert, log }) {
     check(
         "  on no tool, in the same title, with the whole catalog to pick from — whatever the list's scope (#509, #507)",
         listOpeners[0]?.handed,
-        "catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), key: registration, listJobId: scope.job?.id ?? null, opener: ASSET_REGISTRATION_COPY.heading"
+        "catalog: registrationCatalog(categories), jobs: registrationJobs(user, allJobs).map(…), key: registration, listJobId: scope.job?.id ?? null, opener: ASSET_REGISTRATION_COPY.heading"
     );
     check("  handed no gate either (#610)", listOpeners[0]?.asks, "none");
     // A SITE MANAGER ON NO JOB MEETS NO OPENER IN THE HEAD (1a2, #522), asked of their own jobs
@@ -1904,7 +1904,7 @@ export function run({ check, assert, log }) {
     check(
         "  the empty list's the same opener, secondary, under the empty branch and the same reader",
         `${listOpeners[1]?.handed} | ${listOpeners[1]?.asks} | ${listOpeners[1]?.under}`,
-        "catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), listJobId: scope.job?.id ?? null, opener: ASSET_REGISTRATION_COPY.heading, variant: secondary | none | rows.length === 0, recording.adds"
+        "catalog: registrationCatalog(categories), jobs: registrationJobs(user, allJobs).map(…), listJobId: scope.job?.id ?? null, opener: ASSET_REGISTRATION_COPY.heading, variant: secondary | none | rows.length === 0, recording.adds"
     );
     // The count a suggested tool carried, its link array's length (#456), was held here until
     // #507: a suggestion is a name of the catalog now, beside its category, and how many of a
@@ -3012,8 +3012,8 @@ export function run({ check, assert, log }) {
             /options=\{jobs\.map\(\(job\) => \(\{ value: job\.id, label: job\.jobCode, note: job\.jobName \}\)\)\}/.test(registration),
             !/plan\.jobs|jobId|JobSheet|jobLabel/.test(transition),
             !/plan\.jobs|jobId|JobSheet|jobLabel/.test(bar),
-            /jobs: assignedJobsFor\(user, allJobs\)\.map\(\(\{ id, jobCode, jobName \}\) => \(\{ id, jobCode, jobName \}\)\),/.test(list),
-            /const assignedJobs = assignedJobsFor\(user, jobs\)\.map\(\(\{ id, jobCode, jobName \}\) => \(\{ id, jobCode, jobName \}\)\);/.test(category),
+            /jobs: registrationJobs\(user, allJobs\)\.map\(\(\{ id, jobCode, jobName \}\) => \(\{ id, jobCode, jobName \}\)\),/.test(list),
+            /const registrableJobs = registrationJobs\(user, jobs\)\.map\(\(\{ id, jobCode, jobName \}\) => \(\{ id, jobCode, jobName \}\)\);/.test(category),
         ].join(" ");
     check(
         "  a dialog's job says the job's name after its code, the transition's two ask no job (#597), and both pages hand the registration the names",
@@ -3026,8 +3026,8 @@ export function run({ check, assert, log }) {
             registration: "options={jobs.map((job) => ({ value: job.id, label: job.jobCode }))}",
             transition: "const options = plan.jobs.map((job) => ({ value: job.id, label: job.jobCode }));",
             bar: '<input type="hidden" name="jobId" value={kept} />',
-            list: "jobs: assignedJobsFor(user, allJobs).map(({ id, jobCode }) => ({ id, jobCode })),",
-            category: "const assignedJobs = assignedJobsFor(user, jobs).map(({ id, jobCode }) => ({ id, jobCode }));",
+            list: "jobs: registrationJobs(user, allJobs).map(({ id, jobCode }) => ({ id, jobCode })),",
+            category: "const registrableJobs = registrationJobs(user, jobs).map(({ id, jobCode }) => ({ id, jobCode }));",
         }),
         "false false false false false"
     );

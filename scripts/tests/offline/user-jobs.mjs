@@ -165,6 +165,12 @@ export function run({ check, assert, log }) {
     check("  and one kept that the search finds too is listed once, among the matches", list({ chosen: ["recB", "recC"], pinned: ["recB", "recC"], query: "solar" }), "24-USA-07* 26-USA-10*");
     check("  and a search finding nothing says so", jobRows({ jobs, query: "fremont" }).noMatch, true);
     check("  under the rows it keeps", list({ chosen: ["recB"], pinned: ["recB"], query: "fremont" }), "24-USA-07*");
+    // #488 — A CLOSED JOB IS OFFERED TO NOBODY: the step is a first assignment, so no reader holds
+    // one to keep, and one closed since the page was drawn is left out of the choice as a job gone.
+    const withClosed = [...jobs, { id: "recD", jobCode: "25-USA-01", jobName: "Fresno yard", closedDate: "2026-11-02" }];
+    check("a closed job is not offered (#488)", jobsOffered(withClosed).map((j) => j.jobCode).join(" "), "24-USA-07 26-USA-9 26-USA-10");
+    check("  nor listed by the step, searched for or not", `${jobRows({ jobs: withClosed }).rows.map((r) => r.jobCode).join(" ")}|${jobRows({ jobs: withClosed, query: "fresno" }).noMatch}`, "24-USA-07 26-USA-9 26-USA-10|true");
+    check("  and one chosen before it closed is left out of what is kept", chosenJobIds(["recD", "recB"], withClosed).join(" "), "recB");
 
     log("");
     log("the step's words, typed out:");
@@ -219,7 +225,7 @@ export function run({ check, assert, log }) {
     check(
         "the predicate's module imports pure modules alone",
         owner.ast.body.filter((n) => n.type === "ImportDeclaration").map((n) => n.source.value).sort().join(" "),
-        "./assetCategory.js ./loginDestination.js ./typedText.js ./userName.js"
+        "./assetCategory.js ./closedJob.js ./loginDestination.js ./typedText.js ./userName.js"
     );
 
     // ── 3: the page sends on anybody the step is not for ────────────────────

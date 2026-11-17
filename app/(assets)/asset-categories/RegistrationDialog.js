@@ -237,6 +237,12 @@ export function RegistrationForm({ open, onClose, jobs, listJobId, category, cat
     // `onlyJob`, the one spelling of "one assignment" the transition's dialog starts from too
     // (#458).
     const [jobId, setJobId] = useState(chosenJobId(jobs, listJobId));
+    // AND THE JOB IT HOLDS IS ASKED AGAIN OF THE JOBS EACH DRAW HANDS IT (#488): a refusal draws
+    // the page again with the jobs a registration may use now, which a job closed since — or one
+    // taken off the reader — has left, so the job chosen is kept while it is among them and
+    // otherwise the choice holds where it starts. Seen in a browser for #488: kept as it was, the
+    // field read `Choose a job` over its one option, and a second press sent the closed job again.
+    const heldJobId = chosenJobId(jobs, jobId);
     // The dialog's own refusal of the last press, or null when that press was sent.
     const [guarded, setGuarded] = useState(null);
     // The fields changed since the last press, whose refusals no longer stand.
@@ -352,7 +358,7 @@ export function RegistrationForm({ open, onClose, jobs, listJobId, category, cat
                 <Choice
                     name="jobId"
                     options={jobs.map((job) => ({ value: job.id, label: job.jobCode, note: job.jobName }))}
-                    value={jobId}
+                    value={heldJobId}
                     onChange={edit("jobId", setJobId)}
                     placeholder={COPY.jobUnchosen}
                 />

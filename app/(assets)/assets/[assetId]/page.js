@@ -267,7 +267,7 @@ async function renderAssetPage({ params }) {
     // history and the job list are all in hand. `planOfficeActs` offers `Change job` and `Delete
     // this item` while the history holds its `Created` entry alone, with the jobs a list's choice
     // offers, and each action asks it again on a fresh read.
-    const office = planOfficeActs({ user, log, jobs });
+    const office = planOfficeActs({ user, log, jobs, assetJobRecordId: asset.job?.[0] ?? null });
     // Whether the office has a line in `More actions` at all — the deletion stands wherever the
     // change does, and alone where a deletion was left half done.
     const officeActs = office.mayChangeJob || office.mayDelete;

@@ -32,7 +32,9 @@ assigned to none; or whatever job the reader chooses — any job, or all of them
 for that the list does not offer is answered where the list starts, as an address
 naming no job is, so a list never says whether such a job exists; so is all jobs
 where there is one job or none. The rail's link carries no job, and every step
-the list writes keeps it.
+the list writes keeps it. **A closed job — one whose `Closed Date` holds a day — is
+offered and started on as any other**: the list only looks at a job, and what
+stands on one whose work has ended is still there and still recorded.
 
 **One row per category with an asset on what the list stands on.** A category with
 nothing there is on no list — on all jobs, one nobody has bought yet — and still
@@ -91,13 +93,14 @@ none of them holds it (`ASSET_LIST_COPY.noIdMatchOn`,
 `ASSET_LIST_COPY.noIdMatch`, and on all jobs at once; a number says what words
 finding nothing say, since it may be a name. A deleted asset is found on none.
 
-**For a site manager on the list's job, or on all jobs while holding a job, the way
-to add items** (`listRecording`): it opens the registration over this screen
+**For a site manager on the list's job while it is open, or on all jobs while holding
+an open job, the way to add items** (`listRecording`): it opens the registration over this screen
 (`tools-new.md`), carrying the job the list stands on, which the dialog's job starts
 on when it is one of the reader's own. **It is drawn for nobody else, and nothing
 says why** — not on another job's list, where a site manager reads as anybody does,
-not for a reader who is not a site manager, since being one is not asked for, and
-not for a site manager on no job, whom sign-in already asked for a job.
+not for a reader who is not a site manager, since being one is not asked for, not on
+a closed job's list, which takes no new item, and not for a site manager on no
+job, whom sign-in already asked for a job, nor one whose every job has closed.
 
 **For the office, the way to the catalog's screen**, in every state the head takes,
 and for nobody else.

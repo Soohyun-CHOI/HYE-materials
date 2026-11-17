@@ -715,3 +715,63 @@ its requester had no part in, and a direct call could put one on any job at all.
   which still offers every job:
   `docs/notes/addresses.md` says why the decision stands without the precedent this
   issue removed.
+
+### A closed job takes no new request, and a draft keeps its own (#488)
+
+A job is closed while its `Closed Date` holds a day, and a closed job is offered
+nowhere a job is newly chosen (`lib/closedJob.js`). `/prs/new` offers the jobs #639
+admits less the closed ones, and both actions refuse a closed one by the same rule —
+**but for the job the draft being edited already stands on**, which is the issue's
+"a form already holding it keeps it".
+
+- **THE HELD JOB IS THE REQUEST'S, AND A DIRECT-PURCHASE DRAFT HAS ONE BEFORE ITS
+  DISCIPLINE.** A request reaches its job through `Discipline`, and the claim raises
+  a direct purchase's draft with none (#272), so without more that draft's job is
+  nobody's until the requester picks a discipline — and the job the office recorded
+  the purchase on, once closed, could never be picked. `lib/prKind.js:requestJobId`
+  answers the discipline's job, and before there is one the job whose
+  `Direct Purchases` names the draft's purchase, off the job list both callers
+  already read; `loadPRDraft` carries the purchase's id off the record it read. So
+  the material a closed job bought still gets its request on that job. The form does
+  not preselect it — it never did — it only keeps it among the choices.
+- **THE FORM OFFERS THE HELD JOB WHILE IT EDITS THAT DRAFT AND NO OTHER.** The page
+  loads the reader's latest draft for the resume prompt as well as for a draft opened
+  from the list, and the first version offered its held job either way — so a reader
+  who declined the prompt and wrote a new request was offered a closed job the save
+  then refused, seen on the test base. The page hands the held job apart, with the
+  draft's record id, and the form lists it while `draftRecordId` — the record a save
+  re-targets, and so the draft `jobRefusal` keeps the job for — is that draft's.
+- **A DRAFT ON A CLOSED JOB SAVES AND SUBMITS.** The screen offers it, so the server
+  accepts it: one rule, `offeredJobs` and `closedJobRefusal` asked of the same held
+  job. Its disciplines stay choosable, since the held value is the job and not the
+  discipline. Moving the draft to another job and saving makes that job the held one,
+  and the closed job is then refused like any other. The signing chain does not ask:
+  it cannot move a request's job (#639's section above), and a request already in
+  review when its job closes goes on through its chain, as one whose requester left
+  the job does.
+- **WHAT IT COSTS.** The page reads nothing more — `Closed Date` comes with the
+  `getAllJobs` it already made. Each save or submit that names a discipline reads
+  the jobs beside the disciplines, in the same `Promise.all`, one operation more.
+- **THE REFUSAL SAYS THE FACT AND NO VERB** — `{Job Code} is closed.` — since this
+  form says `Select a Job` where the asset screens say `Choose`, and the choice drawn
+  again under it says what to do. **A CHOICE CLOSED JOBS EMPTY SAYS WHY**: a requester
+  whose every job has closed would meet an empty select with no word, so `noOpenJob`
+  picks one of two sentences under it — theirs, or every job's for a reader who may
+  use every job, told apart by comparing what they may use with every job so no office
+  clause is spelled again here. A draft's own closed job is no open job, so the line
+  stands under it too, as why nothing else is offered.
+- **A NEW DISCIPLINE TAKES NO CLOSED JOB EITHER.** A discipline is how a request is
+  filed, so one added under a closed job could take no new request.
+  `/admin/disciplines/new` offers the open jobs alone and its action refuses a closed
+  one off the row it already reads. This is one of the two places the issue's body
+  gained when this was decided; the other is the office's change of an asset's job
+  (`tools.md`).
+- **WHAT A BROWSER SHOWED**, as `soo@` on `next dev` against the test base, with
+  `26-DEMO-01` and `25-USA-13` closed: a draft saved on `26-DEMO-01` before it closed
+  (`HYE-PR-261117-01`, kept on the test base) opened with that job chosen in
+  `All Jobs` and its discipline under it, and saved again; behind the resume prompt,
+  and so for a new request, the choice held the five open jobs alone; resumed, it held
+  the five and `26-DEMO-01`. `/admin/disciplines/new` listed the five open jobs.
+  `/prs/new` read 15 operations for a new request, #639's figure, and 19 with a draft
+  opened; a first save 5, one more than #639's 4 — the jobs read beside the
+  disciplines.

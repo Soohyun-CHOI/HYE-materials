@@ -2,6 +2,7 @@
 
 import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
+import { offeredJobs } from "@/lib/closedJob";
 import { createAddressIfLabelFree } from "@/lib/airtable/addresses";
 import {
     ADDRESS_CREATION_COPY,
@@ -40,7 +41,9 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * address somebody typed. The reader is told — the account of what was written
  * names the job when there is one and does not when there is not — so a job that
  * vanished between the render and the submit is visible in the answer rather than
- * in a refusal with no copy behind it.
+ * in a refusal with no copy behind it. A job closed since the page was drawn is dropped
+ * the same way (#488): it is resolved among the open jobs, the ones the page offered,
+ * so the address is written with no job rather than linked to a job whose work has ended.
  *
  * THE DUPLICATE VERDICT IS REACHED TWICE ON PURPOSE. The form previews it against
  * the list the browser loaded, which cannot say whether a label is taken NOW;
@@ -64,7 +67,7 @@ export async function createAddressAction(prevState, formData) {
 
         const submittedJobId = String(formData.get("jobId") ?? "");
         const job = submittedJobId
-            ? (await getAllJobs()).find((candidate) => candidate.id === submittedJobId) ?? null
+            ? offeredJobs(await getAllJobs()).find((candidate) => candidate.id === submittedJobId) ?? null
             : null;
 
         const { address, existing } = await createAddressIfLabelFree({

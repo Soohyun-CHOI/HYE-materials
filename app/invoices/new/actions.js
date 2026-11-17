@@ -12,6 +12,8 @@ import { confirmIngestThenDelete } from "@/lib/blobIngest";
 import { isOurBlobUrl } from "@/lib/fileSource";
 import { createDirectPurchase } from "@/lib/airtable/directPurchases";
 import { DIRECT_PURCHASE_COPY, directPurchaseBlocked } from "@/lib/directPurchase";
+import { getJobByRecordId } from "@/lib/airtable/jobs";
+import { closedJobRefusal } from "@/lib/closedJob";
 import { isPOWithdrawn } from "@/lib/poWithdraw";
 import { withOpsLabel } from "@/lib/airtableOps";
 import { INVOICE_SPREAD_COPY, spreadInvoiceItems } from "@/lib/invoiceSpread";
@@ -411,6 +413,14 @@ async function createDirectPurchaseHandler(prevState, formData) {
             console.error("createDirectPurchaseAction refused a foreign file url");
             return { error: DIRECT_PURCHASE_COPY.blocked["no-file"] };
         }
+
+        // #488 — A CLOSED JOB IS NOT OFFERED (`GET /api/jobs`), AND A PRESS NAMING ONE IS
+        // REFUSED BY THE SAME RULE, before the write: the modal's list was read when it
+        // opened and the office may have closed the job since, and a Server Action is
+        // directly callable. One read, of the one job — the only one this action pays for
+        // it. An id naming no job is not answered here; the create refuses it, as before.
+        const closed = closedJobRefusal(await getJobByRecordId(jobId).catch(() => null));
+        if (closed) return { error: closed };
 
         let record;
         try {

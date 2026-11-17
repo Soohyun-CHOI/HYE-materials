@@ -28,6 +28,9 @@ import { getCategoriesByLeafCode } from "@/lib/airtable/materialCategories";
 import { CATEGORY_PICKER_COPY, categoryItemFields } from "@/lib/materialCategory";
 import { getAllAddresses } from "@/lib/airtable/addresses";
 import { getAllDisciplines } from "@/lib/airtable/disciplines";
+import { getAllJobs } from "@/lib/airtable/jobs";
+import { closedJobRefusal } from "@/lib/closedJob";
+import { requestJobId } from "@/lib/prKind";
 import { ADDRESS_CHOICE_COPY } from "@/lib/addressChoice";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
 import { OWN_DRAFT_COPY, ownDraftRefusal, requesterOf } from "@/lib/prRequester";
@@ -198,12 +201,25 @@ const JOB_NOT_OFFERED = "Select a Job you're assigned to.";
  * may be half-finished, and a job the reader may not raise on is not an unfinished
  * answer but a wrong one. So a draft written on a job the office has since taken the
  * reader off saves again only once its job is one of theirs.
+ *
+ * #488 — AND A CLOSED JOB IS REFUSED, BUT FOR THE ONE THE DRAFT ALREADY STANDS ON, which is
+ * the page's rule for the jobs it offers: `existing` is the draft this save re-targets, and
+ * `requestJobId` reads its job — its discipline's, or before it has one the job its direct
+ * purchase was recorded on — so a draft on a job that has closed since keeps it, saved and
+ * submitted, while a new request or a draft moved to another job may not take a closed one.
+ * The jobs are read beside the disciplines, the one read this costs, and only when a
+ * discipline is named.
  */
-async function jobRefusal(user, disciplineId) {
+async function jobRefusal(user, disciplineId, existing = null) {
     if (!disciplineId) return null;
-    const discipline = (await getAllDisciplines()).find((d) => d.id === disciplineId);
+    const [disciplines, jobs] = await Promise.all([getAllDisciplines(), getAllJobs()]);
+    const discipline = disciplines.find((d) => d.id === disciplineId);
     if (!discipline) return "Select a Discipline.";
-    return canAccessJobDeliveries(user, discipline.jobId) ? null : JOB_NOT_OFFERED;
+    if (!canAccessJobDeliveries(user, discipline.jobId)) return JOB_NOT_OFFERED;
+    const held = existing
+        ? requestJobId({ jobId: existing.job?.[0], directPurchaseIds: existing.directPurchaseRowIds }, jobs)
+        : null;
+    return closedJobRefusal(jobs.find((job) => job.id === discipline.jobId) ?? null, held);
 }
 
 /**
@@ -545,7 +561,7 @@ export async function saveDraftAction(prevState, formData) {
             return { error: "Couldn't save the draft. Please try again." };
         }
         // #639 — the job the draft would be on, before anything is resolved or written.
-        const jobRefused = await jobRefusal(user, parsed.disciplineId);
+        const jobRefused = await jobRefusal(user, parsed.disciplineId, resumed.existing);
         if (jobRefused) return { error: jobRefused };
         // Resolved even on a Draft, so a saved row carries its link and its
         // composed name rather than being repaired at submit — and so a Draft
@@ -686,7 +702,7 @@ export async function createPRAction(prevState, formData) {
         // most is that it runs ahead of the duplicate check below, which names another
         // request on the same discipline, who raised it and when: not this reader's to
         // learn about a job they may not raise on.
-        const jobRefused = await jobRefusal(user, disciplineId);
+        const jobRefused = await jobRefusal(user, disciplineId, resumed.existing);
         if (jobRefused) return { error: jobRefused };
         if (!vendorId) return { error: "Select a Vendor." };
         // #385 — REQUIRED AT SUBMIT AND NOT AT SAVE, which is every other required
