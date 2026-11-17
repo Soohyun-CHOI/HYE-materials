@@ -263,12 +263,12 @@ than a string in a file.
 | String | Screen | Source |
 |---|---|---|
 | `{Item Name} {Size}{ · {PO IDs} · {price}} (Uninvoiced: {n})` | `/invoices/new` | `INVOICE_SPREAD_COPY.choice`, one `<option>`; the middle part only where a material stands at two ordered prices |
-| `That item` | `/invoices/new` | `INVOICE_SPREAD_COPY.choice`, the `||` fallback in `itemLabel` |
 | `Changing the {Vendor\|PO} will clear the items you've entered so far. Continue?` | `/invoices/new` | `InvoiceForm.js:182`, `confirmChangeMessage` |
 
-The first three have no literal run long enough to be worth finding — ` — `,
-` (Uninvoiced: ` and a space are what a tool would report. The fallback is group B
-one level down. **The fourth is the only helper-returned template of prose in the
+The first has no literal run long enough to be worth finding — ` · `,
+` (Uninvoiced: ` and a space are what a tool would report. Its fallback for an item
+with no line, `That item`, is a literal inside the template since #660, and the
+extractor finds it. **The second is the only helper-returned template of prose in the
 whole app** — swept for and found once, at `confirmChangeMessage` — and it is the
 one member of this group a rule could plausibly reach, by collecting a template
 returned by a lower-case module-level function.

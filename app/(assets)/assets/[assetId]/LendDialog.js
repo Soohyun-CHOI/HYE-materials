@@ -22,7 +22,7 @@ import { ASSET_TRANSITION_COPY as COPY, lendStart, readLend } from "@/lib/assetT
  * the list's order, and opens on none — or on the job a lending left half done went to, so one press
  * finishes it (`lendStart`). At a desk the job is 0a's choice and `Lend` the commitment; on a phone a
  * press on a row moves the check and sends nothing, and `Lend` under the rows sends. A press with no
- * job chosen is the design's `Choose a job.`, under the field or over the commitment.
+ * job chosen is the design's `Choose a job`, under the field or over the commitment.
  *
  * WHAT A PRESS MAY SEND IS `readLend`, ASKED HERE BEFORE IT IS SENT AND AGAIN BY THE ACTION. The
  * answer is the page's provider's: at a desk every answer is said over the dialog's actions, which

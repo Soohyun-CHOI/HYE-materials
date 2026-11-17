@@ -5,7 +5,7 @@ const MARK = "·";
 
 /**
  * The dot between two clauses (0e): Ink 4, 9 either side (#463) — in a record's caption, a
- * history entry's line and the selection bar's second clause.
+ * Activity entry's line and the selection bar's second clause.
  *
  * THE 9s ARE `Space`s, so the two clauses copy and are read apart, which padding alone did
  * not do; the dot itself is not read.

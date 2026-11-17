@@ -952,7 +952,7 @@ export function SheetRows({ rows }) {
  * line. It was `secondary` until #662, when that word became the design's for `Cancel`'s kind.
  *
  * A `note` IS WHAT A PRESS WILL DO, SET ON THE REFUSAL'S LINE BEFORE ANY PRESS (1l, #527): an
- * edit's `10 items will show the new name.`, the same mark and words, heard as a status rather
+ * edit's `10 items will show the new name`, the same mark and words, heard as a status rather
  * than an alert since it answers nothing. A refusal takes the line from it while there is one.
  *
  * `refusalId` NAMES THE REFUSAL FOR A COMMITMENT IT TURNS AWAY (#614): a desk's dialog that stands

@@ -535,7 +535,7 @@ export function run({ check, assert, log }) {
     check("a submission naming the other event is refused", stale.event, null);
     // THE SENTENCE CARRIES WHAT A FRESHLY RENDERED PAGE CANNOT SAY (#378), and the
     // three assertions are the three halves of that. A refused press and a
-    // successful one both end on a flipped control and one more history entry, so
+    // successful one both end on a flipped control and one more Activity entry, so
     // the first two are what tell them apart; the third is this issue's own point,
     // and without it the instruction could come back with nothing failing. The
     // status is deliberately NOT named — the header above it says so, freshly.
@@ -610,7 +610,7 @@ export function run({ check, assert, log }) {
         `${recordingRefusal(inStock, { drawnJobId: JOB_A.id })} | ${recordingRefusal(movedOn, { drawnJobId: JOB_A.id })} | ${recordingRefusal(takenOff, { drawnJobId: JOB_B.id })}`,
         "null | This item moved to 26-DEMO-02. Nothing was saved. | You no longer have permission to update this item. Nothing was saved."
     );
-    check("  and the sentence for an item moved to no job says only what was not saved", ASSET_TRANSITION_COPY.movedTo({ jobCode: null }), "Nothing was saved.");
+    check("  and the sentence for an item moved to no job says only what was not saved, bare (#667)", ASSET_TRANSITION_COPY.movedTo({ jobCode: null }), "Nothing was saved");
     // EITHER CAUSE ENDS ON `Nothing was saved.` WHATEVER WAS PRESSED (#614), and names no press.
     check(
         "  a check-out, a check-in and a sending refused for either cause say the same sentence (#614)",
@@ -848,7 +848,7 @@ export function run({ check, assert, log }) {
         0
     );
     // The two sentences the sweep carried the noun into, by value.
-    check("the terminal sentence, the status itself (#612)", ASSET_TRANSITION_COPY.noTransition, "This item is retired.");
+    check("the terminal sentence, the status itself (#612), bare (#667)", ASSET_TRANSITION_COPY.noTransition, "This item is retired");
     // THE STALE PRESS IN 1k's WORDS (#463), the person in full, `already` and the moment as
     // a part the page draws in the reader's zone since the design's final files (#495), the
     // noun hyphenated and the verb not.
@@ -941,7 +941,7 @@ export function run({ check, assert, log }) {
         "checked this out | checked this in | sent this for repair | returned this from repair | lent this to another job | returned this to its owner"
     );
 
-    // IMPORTED RATHER THAN RE-SPELLED. `Checked out to` is the history entry's word and this
+    // IMPORTED RATHER THAN RE-SPELLED. `Checked out to` is the Activity entry's word and this
     // control's, so a second copy is a second word for one fact the first time somebody rewords
     // one. The `Job` label and the picker's two were imported beside it until #597 took the job
     // out of the transition, and the no-job sentence was this screen's own until then.
@@ -1120,7 +1120,7 @@ export function run({ check, assert, log }) {
         argumentSource({ ast: retireFn, source: action.source }, "readRetirement", "drawnJobId"),
         'String(formData.get("drawnJobId") ?? "")'
     );
-    // A RETIREMENT SOMEBODY GOT IN FRONT OF SAYS `This item is retired.` SINCE #614, the plan's terminal
+    // A RETIREMENT SOMEBODY GOT IN FRONT OF SAYS `This item is retired` SINCE #614, the plan's terminal
     // sentence: at a desk its question stands across the page drawn again and says it, on a phone the
     // Notice does. Until #614 it said nothing (#378), the question going with its opener.
     assert(
@@ -1133,7 +1133,7 @@ export function run({ check, assert, log }) {
     // WHAT THIS CATCHES THAT NOTHING ELSE CAN. A Server Action that only returns
     // re-renders nothing, so a refusal written straight into a branch is a true
     // sentence standing on a page that contradicts it — the status, the control's
-    // direction and the history all still reading what they did before the press.
+    // direction and the Activity all still reading what they did before the press.
     // Nothing fails: not a type check, not a render, and not one assertion above.
     // So the shape is held here, and held as a SHAPE: what is asserted is that no
     // return outside the helper builds `{ error }` itself, which is the one move a
@@ -1694,7 +1694,7 @@ export function run({ check, assert, log }) {
     check("the head of the recent names, on both widths", ASSET_TRANSITION_COPY.recentHeading, "Recently at this job");
     check("the name sheet's end", ASSET_TRANSITION_COPY.sheetDone, "Done");
     check("  and the name of its clear mark", ASSET_TRANSITION_COPY.clearName, "Clear");
-    check("a check-out with no name is answered in the desk dialog's words, at both widths (#612)", ASSET_TRANSITION_COPY.nameRequired, "Enter a name.");
+    check("a check-out with no name is answered in the desk dialog's words, at both widths (#612), bare (#667)", ASSET_TRANSITION_COPY.nameRequired, "Enter a name");
 
     // THE TERMINAL SENTENCE WIDENED WITH THE SCREEN. #362 wrote it as
     // `no check-out or check-in to record`, which enumerated two of three absent
@@ -1708,7 +1708,7 @@ export function run({ check, assert, log }) {
     const terminal = ASSET_TRANSITION_COPY.noTransition;
     check(
         "the terminal sentence says the item is retired (#612)",
-        new RegExp(`\\bis ${ASSET_STATUS.RETIRED}\\.$`, "i").test(terminal),
+        new RegExp(`\\bis ${ASSET_STATUS.RETIRED}$`, "i").test(terminal),
         true
     );
     check("  and claims no end, beside the serial number and note that still write", CLAIMS_AN_END.test(terminal), false);
@@ -1858,6 +1858,40 @@ export function run({ check, assert, log }) {
     check("it draws on no old frame", /modalStyles/.test(nameSheet.source), false);
     // AND THE FOOT BAR OPENS IT AS IT IS (#463), which is what #458 built it for.
     check("the foot bar opens it, as it is", attributeSources(barFn ?? {}, bar.source, "NameSheet", "open").join(), "{naming}");
+
+    // ── #667: a one-line notice ends without a period, wherever it stands ───
+    // THE DESIGN'S RULE SINCE THE FILES OF 2026-11-17: a title, a label and a one-line notice end
+    // without a period and a sentence under them with one, as 1f, 1j and 1k draw `This item is
+    // retired` at a desk's toast and dialog and under a phone's status. One constant says it in all
+    // three places, and the toast takes the answer as it came.
+    log("");
+    log("a refused press says one sentence bare and two with their periods, from one constant (#667):");
+    {
+        check(
+            "one sentence is bare: a retirement got in front, a name is missing, or the item moved to a job no list names",
+            [ASSET_TRANSITION_COPY.noTransition, ASSET_TRANSITION_COPY.nameRequired, ASSET_TRANSITION_COPY.movedTo({ jobCode: null })].join(" | "),
+            "This item is retired | Enter a name | Nothing was saved"
+        );
+        check(
+            "  and two keep both, as 1f draws them",
+            [
+                ASSET_TRANSITION_COPY.movedTo({ jobCode: "26-USA-07" }),
+                ASSET_TRANSITION_COPY.someoneFirst({ attempted: ASSET_EVENT.SENT_FOR_REPAIR }),
+                ASSET_TRANSITION_COPY.someoneFirst({ attempted: ASSET_EVENT.CHECKED_IN }),
+                ASSET_TRANSITION_COPY.noPermission,
+                ASSET_TRANSITION_COPY.statusNotUpdated,
+            ]
+                .filter((sentence) => !/\.$/.test(sentence) || !/\. \S/.test(sentence))
+                .join(" | "),
+            ""
+        );
+        const provider = parseFile(PROVIDER).source;
+        check(
+            "the toast says the answer as it came, as the phone and a dialog do",
+            `${/line=\{transitionSentence\}/.test(provider)} ${/toastSentence|ONE_SENTENCE/.test(provider + parseFile("lib/assetTransition.js").source)}`,
+            "true false"
+        );
+    }
 
     // ── anti-vacuity ───────────────────────────────────────────────────────
     log("");

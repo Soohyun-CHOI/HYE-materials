@@ -1,5 +1,12 @@
-// The asset screens never say `register`, say `create` only where it is named (#455, #485), and
-// say `tool` only in the axis's own name (#519).
+// The asset screens never say `register`, say `create` only where it is named (#455, #485),
+// say `tool` only in the axis's own name (#519), and end a one-line notice without a period (#667).
+//
+// AND SINCE #667 THE PERIOD. The files of 2026-11-17 end a title, a label and a one-line notice
+// bare and a sentence under them with a period, so a one-sentence string an asset screen renders
+// with a period fails unless `STILL_PERIOD` names it with where the design writes it so, and an
+// entry no screen renders any more fails too — `STILL_CREATE`'s shape. The constants the
+// collector reaches only through a function, `This item is retired` among them, are held by
+// value in their own checks.
 //
 // WHAT THIS HOLDS. Putting assets into stock is `add` on the screen since #485, where it was
 // the design's `create` from #455. The code keeps `register` — `registerAssetsAction`,
@@ -26,7 +33,7 @@
 // one dropped from the declaration is a failure rather than a screen nobody reads.
 //
 // WHAT IT CANNOT SEE. `docs/briefs/strings/unfindable.md`'s shapes, which that collector
-// cannot see either; and a value the base supplies rather than the code — the history
+// cannot see either; and a value the base supplies rather than the code — the Activity
 // prints each row's stored `Event`, which `offline/asset-status.mjs` holds by value. It
 // holds the two VERBS alone. The noun the design replaced, `tool item`, said its last word
 // on a screen in the asset page's not-found heading until #463 made it `Tool not
@@ -61,7 +68,7 @@ import { ASSET_CATEGORY_COPY } from "../../../lib/assetCategory.js";
 import { ASSET_TRANSITION_COPY } from "../../../lib/assetTransition.js";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "The asset screens never say `register`, say `create` only where it is named, and say `tool` only in the axis's name (#455, #485, #519)";
+export const title = "The asset screens never say `register`, say `create` only where it is named, say `tool` only in the axis's name, and end a one-line notice bare (#455, #485, #519, #667)";
 
 /** The verb the design replaced, in every form a sentence takes it. */
 const REGISTER = /regist/i;
@@ -92,9 +99,44 @@ const STILL_CREATE = new Map([
     ["Create category", "1l's commitment for a category added alone, which puts no asset into stock"],
     ["Creating…", "that commitment while it works"],
     ["Couldn't create the category. Try again.", "that commitment's press when it wrote nothing"],
-    // The history's first entry was named by its event in a job change left half done from #583 to
+    // The Activity's first entry was named by its event in a job change left half done from #583 to
     // #612, `The Created entry is on …`; Soo's words since name no entry.
 ]);
+
+/**
+ * A string that is one sentence ending in a period (#667). The design's rule since the files of
+ * 2026-11-17: a title, a heading, a label and a one-line notice end without a period, and a
+ * sentence under them with one — so a one-sentence string an asset screen renders with a period
+ * is one the design writes so, and `STILL_PERIOD` names it. Two sentences are not this; nor is a
+ * working word's ellipsis.
+ */
+const oneSentenceWithPeriod = (text) => /\.$/.test(text) && !/\.\s+\S/.test(text.slice(0, -1)) && !text.includes("…");
+
+/**
+ * Every one-sentence string an asset screen renders with a period, as the collector reads it — a
+ * builder's pieces rather than its sentence — with why the design writes it so. Each is a sentence
+ * under a title, a field, a question or a step, or a piece of one of two sentences.
+ */
+const STILL_PERIOD = new Map([
+    ["Each item shows here with how many are in stock, out, in repair and retired.", "1a's empty state, the sentence under its title"],
+    ["Items show here once a site manager adds them.", "1d's empty state for a reader who adds none, under its title"],
+    ["Items show here once you add them.", "1d's empty state for one who adds, under its title"],
+    ["to see items on other jobs.", "1d's empty state on one job, the sentence under its title"],
+    ["The other 1 was added and is selected on this page.", "1c's shortfall, the sentence under its title, for one"],
+    ["were added and are selected on this page.", "1c's shortfall, the sentence under its title, for several"],
+    ["Only the creation date wasn't saved for this one, and it can't be added later.", "1c's notice, the sentence under its title, for one"],
+    [", and it can't be added later.", "1c's notice, the sentence under its title, for several"],
+    ["Choose your label printer.", "1e's first print step, a sentence under the steps' heading"],
+    ["Keep scale at 100%.", "1e's second print step"],
+    ["first.", "the first of two sentences, `Someone else updated this item first. Nothing was saved.`"],
+    ["wasn't saved.", "the second of two sentences, `Your check-out wasn't saved.`"],
+    ["keeps owning it until it's returned.", "the lending's line under its field"],
+    ["can no longer record it.", "the return's sentence under its question"],
+    ["New category.", "the first of 1l's two sentences under a new category, `New category. It is added with this entry.`"],
+]);
+
+/** The one-sentence strings with a period that `STILL_PERIOD` does not name. */
+const unnamedPeriod = (strings) => strings.filter((s) => oneSentenceWithPeriod(String(s.text)) && !STILL_PERIOD.has(s.text));
 
 /** The noun #519 replaced, as a word in either number. */
 const TOOL = /\btools?\b/i;
@@ -177,6 +219,20 @@ export function run({ check, assert, log }) {
     }
     check("  and every string the list names is one an asset screen still renders", staleEntries(rendered).join(" | "), "");
 
+    // ── 2b: a one-line notice ends without a period (#667) ──────────────────
+    log("");
+    log("every one-sentence string an asset screen renders with a period is one the design writes so (#667):");
+    for (const route of ROUTES) {
+        check(
+            `  ${route} ends a one-line notice bare`,
+            unnamedPeriod(stringsForRoute(route).strings)
+                .map((s) => `${s.file}:${s.line} ${JSON.stringify(s.text)}`)
+                .join("; "),
+            ""
+        );
+    }
+    check("  and every sentence the list names is one an asset screen still renders", [...STILL_PERIOD.keys()].filter((text) => !rendered.has(text)).join(" | "), "");
+
     // ── 3: the noun ─────────────────────────────────────────────────────────
     log("");
     log("no string an asset screen renders says tool, the axis's own name aside (#519):");
@@ -226,6 +282,14 @@ export function run({ check, assert, log }) {
         "  and every entry but the one a planted rendering says is reported stale",
         staleEntries(new Set(["1 item has no creation date"])).length,
         STILL_CREATE.size - 1
+    );
+    // The one-sentence reader (#667), on the notices this issue made bare and on the shapes it passes.
+    check(
+        "  a one-line notice with its period is reported, and a named sentence, two, bare or working is not",
+        unnamedPeriod(["This item is retired.", "Choose a job.", "Keep scale at 100%.", "Couldn't load the labels. Try again.", "This item is retired", "Exporting…"].map((text) => ({ text })))
+            .map((s) => s.text)
+            .join(" | "),
+        "This item is retired. | Choose a job."
     );
     // The collector reaches the constant that says the verb most: "nothing says it" is
     // also what a collector reading nothing reports. The registration has no route of

@@ -48,7 +48,7 @@ What the tools axis owes these names is in `tools.md`, and how the check reads a
 
 ## The phone takes names of its own
 
-The Tools file's 0a gives the values the phone screen takes in place of the web ones, and each is a separate name under `mobile-` rather than the web name with a second value. **A second value under one name cannot be right, because the two sets divide the elements differently**: the web's Reading covers an item row, a table row and any control, where the phone gives a log entry's event 16, what the entry says under it 14, a button 17, a field's value 16 and a pill's label 15; the web's Commitment is the phone's 50 in the foot bar, 48 in a dialog and 50 for a field. One name holds one value, so an override would draw some of those elements at another element's size, silently. The phone also has kinds the web has none of — the top bar, the foot bar, the touch target, the sheet — and only one tools screen is drawn in the phone frame at all, so an override at the edge would reach screens the design drew only at a desk. **Where a kind and its value are the same on both, the web name serves both**: 12 from a block's name to what it heads, the round corner of a pill, and every foreground, border, divider and wash.
+The Tools file's 0a gives the values the phone screen takes in place of the web ones, and each is a separate name under `mobile-` rather than the web name with a second value. **A second value under one name cannot be right, because the two sets divide the elements differently**: the web's Reading covers an item row, a table row and any control, where the phone gives an Activity entry's event 16, what the entry says under it 14, a button 17, a field's value 16 and a pill's label 15; the web's Commitment is the phone's 50 in the foot bar, 48 in a dialog and 50 for a field. One name holds one value, so an override would draw some of those elements at another element's size, silently. The phone also has kinds the web has none of — the top bar, the foot bar, the touch target, the sheet — and only one tools screen is drawn in the phone frame at all, so an override at the edge would reach screens the design drew only at a desk. **Where a kind and its value are the same on both, the web name serves both**: 12 from a block's name to what it heads, the round corner of a pill, and every foreground, border, divider and wash.
 
 **THE EDGE IS 40rem, AND IT IS THIS REPOSITORY'S DECISION RATHER THAN THE DESIGN'S.** The design draws the phone frame at 375 and the web frame at 1600 and never the edge between them. 40rem is 640px, above the widest iPhone held upright (430) and below the narrowest iPad (744), so the frame a scan opens on is the phone's and a site's laptop gets the web's; a phone turned on its side is wider than the edge and gets the web frame, which no drawing covers. **40rem is Tailwind's `--breakpoint-sm`**, so the edge is a key Tailwind already holds: a screen writes a phone name under its `max-sm` variant beside the web name, and nothing here declares it. The rail's own edge is `--breakpoint-xl`, 80rem, which is the design's 1280 window at the default text size: from there the expanded rail pushes the page, and below it covers the page as a Panel (0m).
 
@@ -139,7 +139,7 @@ The values were read from Claude Design's `Tools - new direction` and `Invoices 
 - **1i's `Print` is drawn apart while no label prints**, the Accent at 40% on a control that does not act, where it was one control whose fill changed; the app's commitment draws that already, disabled on `--color-primary-disabled` with the title's words, so nothing moved.
 - **0f's Working keeps an action's resting width** and draws the spinner alone in it (above).
 - **0l's message about a whole dialog is Ink 2 behind a 16 info mark, 6 from it, at 13 and 15 in a sheet**, and red is a field's refusal alone. `Controls.js`'s `Refusal` draws it — a dialog's line above its actions, and the tool item page's under its status at a desk — on `--spacing-refusal-gap`.
-- **0b's selection bar says why its action does not act past a hundred**: `Up to 100 labels per print.` at 13 in Ink 3, led by a 16 info mark 6 before it (`--spacing-selection-bar-reason-gap`) and 14 before the action, opening and closing as the second clause does.
+- **0b's selection bar says why its action does not act past a hundred**: `Up to 100 labels per print` at 13 in Ink 3, led by a 16 info mark 6 before it (`--spacing-selection-bar-reason-gap`) and 14 before the action, opening and closing as the second clause does.
 - **1j's empty name has a line under it**, `Use an existing name to add to that tool.`, the field's help, whose place the preview and a refusal take. It went with the typed name in #507.
 - **1k's fork is titled by how many were not added**, and its sentence says the others were added and are the selection on this page (`tools.md`).
 - **Tools 0a's menu ends on the account** on every screen with a top bar: under a full-width Inner rule, at least 56 with 8 and 16 inside (`--height-mobile-menu-account`, `--spacing-mobile-menu-account-inset-y`), `Sign out` at 17 over the email at 13 in Ink 3 — and the account alone, with no rule, where the record takes no action.
@@ -860,7 +860,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | Tools 0a Bar | `--text-mobile-heading` | 1.0625rem at 1.5rem (17 at 24) |
 | Tools 0a Event | `--text-mobile-body` | 1rem at 1.5rem (16 at 24) |
 | Tools 0a Beside | `--text-mobile-body-sm` | 0.9375rem at 1.25rem (15 at 20) |
-| Tools 0a Log detail | `--text-mobile-body-xs` | 0.875rem at 1.25rem (14 at 20) |
+| Tools 0a Activity detail | `--text-mobile-body-xs` | 0.875rem at 1.25rem (14 at 20) |
 | Tools 0a Block name | `--text-mobile-heading-sm` | 0.8125rem at 1.25rem, 600 (13 at 20) |
 | Tools 0a Step page, the Wordmark | `--text-mobile-brand` | 1.0625rem at 1.5rem, 500 (17 at 24) |
 | Tools 0a Button, in the foot bar | `--height-mobile-button` | 3.125rem (50) |
@@ -908,10 +908,10 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | Tools 0a Keypad, the code under the address pill | `--spacing-mobile-code-stack` | 1.5rem (24) |
 | Tools 0a Code, the line under the field | `--spacing-mobile-code-help-stack` | 1.25rem (20) |
 | 1a's drawing, the caret's height in a phone's box — not the spec | `--height-mobile-code-caret` | 1.625rem (26) |
-| Tools 0a Log, the dot | `--size-mobile-log-dot` | 0.375rem (6) |
-| Tools 0a Log, beside the dot | `--spacing-mobile-log-gap` | 0.75rem (12) |
-| Tools 0a Log, between entries | `--spacing-mobile-log-stack` | 1.25rem (20) |
-| Tools 0a Log, the icon before who a check-out went to — and the job, until #597 | `--size-mobile-log-icon` | 0.875rem (14) |
+| Tools 0a Activity, the dot | `--size-mobile-log-dot` | 0.375rem (6) |
+| Tools 0a Activity, beside the dot | `--spacing-mobile-log-gap` | 0.75rem (12) |
+| Tools 0a Activity, between entries | `--spacing-mobile-log-stack` | 1.25rem (20) |
+| Tools 0a Activity, the icon before who a check-out went to — and the job, until #597 | `--size-mobile-log-icon` | 0.875rem (14) |
 | 1j's drawing, the dots and rule — not the spec | `--width-mobile-log-track` | 0.75rem (12) |
 | 1j's drawing, the dot from its entry's top — not the spec | `--spacing-mobile-log-dot-inset-top` | 0.5625rem (9) |
 | 1j's drawing, where the rule under a dot starts — not the spec | `--spacing-mobile-log-rule-inset-top` | 1.375rem (22) |

@@ -70,7 +70,7 @@ const NOT_MARKS = {
  * `book-open` is 1a's `Catalog` (#566), which the files of 2026-10-23 draw in an earlier
  * release's shape, as they draw the note's `message-square` (#533); this is 1.52.0's. `arrow-up-down`
  * leads the sort on 1a, 1d and 1l (#540), drawn as 1.52.0 holds it. `arrow-right` stands between a
- * loan's two jobs under its history entry on a phone (1j, #598), as the files of 2026-11-02 draw it.
+ * loan's two jobs under its Activity entry on a phone (1j, #598), as the files of 2026-11-02 draw it.
  * `ellipsis` is `More actions`' at 16, 24 and 14, and the files of 2026-11-04's afternoon fill its
  * dots to the edge Lucide's ring reaches — 1 and half the line — so its circles take `currentColor`
  * inside the one line (#607).
@@ -204,7 +204,7 @@ const MARKS_BY_FILE = {
     "app/(assets)/assets/[assetId]/MoreActions.js": ["ellipsis"],
     // The foot bar's job pill went with #597; a check-out's name keeps its mark.
     "app/(assets)/assets/[assetId]/TransitionBar.js": ["user"],
-    // The pin before a loan's route under its history entry on a phone (#598); it stood before the item's
+    // The pin before a loan's route under its Activity entry on a phone (#598); it stood before the item's
     // job in the title block from #597 until the files of 2026-11-04 put the job on the caption's line.
     "app/(assets)/assets/[assetId]/page.js": ["arrow-right", "map-pin", "search-x", "user"],
     "app/components/Breadcrumb.js": ["chevron-left"],

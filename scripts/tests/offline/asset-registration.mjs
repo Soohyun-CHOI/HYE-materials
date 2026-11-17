@@ -236,11 +236,11 @@ export async function run({ check, assert, log }) {
         ["a fraction", "1.5"],
         ["a word", "six"],
     ])
-        check(`  ${what} is refused with the range`, `${readQuantity(raw).count} ${readQuantity(raw).refusal}`, "null Enter 1 to 100.");
+        check(`  ${what} is refused with the range`, `${readQuantity(raw).count} ${readQuantity(raw).refusal}`, "null Enter 1 to 100");
     check(
         "  and one over the ceiling with the ceiling alone",
         `${readQuantity(String(MAX_ASSETS_PER_REGISTRATION + 1)).count} ${readQuantity(String(MAX_ASSETS_PER_REGISTRATION + 1)).refusal}`,
-        "null Max 100 at a time."
+        "null Max 100 at a time"
     );
     // THE WAY OUT IS IN THE WORDS: the ceiling is on one submission, so the refusal says
     // `at a time`, and picking the same category again lands the rest under it (#507).
@@ -365,7 +365,7 @@ export async function run({ check, assert, log }) {
     check("  and while it is on its way, 0f's -ing word with no count", ASSET_REGISTRATION_COPY.working, "Adding…");
     check("  and the way out", ASSET_REGISTRATION_COPY.cancel, "Cancel");
     // EACH FIELD'S REFUSAL, AND THE ONE ABOUT THE WHOLE DIALOG (#456). Those a pick earns
-    // are `Choose a job.`'s shape (#507), keyed by what they refuse — the second step's size and
+    // are `Choose a job`'s shape (#507), keyed by what they refuse — the second step's size and
     // model since #520, 1b's words, where #514 refused a maker and a part number apart — and a
     // category the catalog no longer offers is the whole registration's.
     check(
@@ -373,12 +373,12 @@ export async function run({ check, assert, log }) {
         Object.entries(ASSET_REGISTRATION_COPY.levelNoneChosen)
             .map(([level, word]) => `${level}=${word}`)
             .join(" | "),
-        "level3=Choose a name. | size=Choose a size. | model=Choose a model."
+        "level3=Choose a name | size=Choose a size | model=Choose a model"
     );
     check("  and no word is left for the tool #507 searched", ["toolNoneChosen", "sizeNoneChosen", "changeTool"].filter((key) => key in ASSET_REGISTRATION_COPY).join(", "), "");
-    check("  a category the catalog no longer offers", ASSET_REGISTRATION_COPY.itemGone, "That item isn't available any more.");
-    check("  a count out of range", ASSET_REGISTRATION_COPY.quantityInvalid(100), "Enter 1 to 100.");
-    check("  a count past the ceiling", ASSET_REGISTRATION_COPY.quantityTooMany(100), "Max 100 at a time.");
+    check("  a category the catalog no longer offers", ASSET_REGISTRATION_COPY.itemGone, "That item isn't available any more");
+    check("  a count out of range", ASSET_REGISTRATION_COPY.quantityInvalid(100), "Enter 1 to 100");
+    check("  a count past the ceiling", ASSET_REGISTRATION_COPY.quantityTooMany(100), "Max 100 at a time");
     check("  a job not chosen, the picker's own word", ASSET_REGISTRATION_COPY.jobNoneChosen, ASSET_JOB_COPY.noneChosen);
     check("  a job not the reader's, the picker's own word", ASSET_REGISTRATION_COPY.jobNotYours, ASSET_JOB_COPY.notYours);
     check("nothing written", ASSET_REGISTRATION_COPY.noneWritten, "Couldn't add the items. Try again.");
@@ -469,25 +469,25 @@ export async function run({ check, assert, log }) {
     // NO ROW IS A ROW NOT YET MADE: the dialog says each level still to choose under that level
     // and never sends, so this answers a caller with no dialog, under the field that carries the
     // row, in the words of nothing picked (#514).
-    check("  no row picked, under the field that carries it", reading({ ...good, categoryRecordId: "" }), JSON.stringify({ fields: { categoryRecordId: "Choose a name." } }));
+    check("  no row picked, under the field that carries it", reading({ ...good, categoryRecordId: "" }), JSON.stringify({ fields: { categoryRecordId: "Choose a name" } }));
     check(
         "  a row the catalog does not offer the whole registration's, and the page is out of date",
         reading({ ...good, categoryRecordId: "recGone" }),
-        JSON.stringify({ error: "That item isn't available any more.", stale: true })
+        JSON.stringify({ error: "That item isn't available any more", stale: true })
     );
     check(
         "  and so is a row an empty catalog cannot offer",
         reading(good, jobs, []),
-        JSON.stringify({ error: "That item isn't available any more.", stale: true })
+        JSON.stringify({ error: "That item isn't available any more", stale: true })
     );
-    check("  a count past the ceiling under the count", reading({ ...good, quantity: "140" }), JSON.stringify({ fields: { quantity: "Max 100 at a time." } }));
+    check("  a count past the ceiling under the count", reading({ ...good, quantity: "140" }), JSON.stringify({ fields: { quantity: "Max 100 at a time" } }));
     check("  no job chosen under the job", reading({ ...good, jobId: "" }), JSON.stringify({ fields: { jobId: ASSET_JOB_COPY.noneChosen } }));
     check("  a job not the reader's under the job", reading({ ...good, jobId: "job9" }), JSON.stringify({ fields: { jobId: ASSET_JOB_COPY.notYours } }));
     // #488 — ONE OF THE READER'S OWN THAT HAS CLOSED SINCE THE DIALOG WAS DRAWN is refused under
     // the job by name, and the page is out of date, so the action draws it again (#378); with
     // every one closed the whole registration is the reader's on no job's.
     const shut = [{ ...jobs[0], closedDate: "2026-11-02" }, jobs[1]];
-    check("  a closed job of the reader's own under the job, by name, the page out of date (#488)", reading({ ...good, jobId: "job1" }, shut), JSON.stringify({ fields: { jobId: "26-DEMO-01 is closed." }, stale: true }));
+    check("  a closed job of the reader's own under the job, by name, the page out of date (#488)", reading({ ...good, jobId: "job1" }, shut), JSON.stringify({ fields: { jobId: "26-DEMO-01 is closed" }, stale: true }));
     check("    while the open one beside it is taken", JSON.parse(reading(good, shut)).registration?.job?.id, "job2");
     check("    and with every one closed the whole registration is refused", reading(good, shut.map((job) => ({ ...job, closedDate: "2026-11-02" }))), JSON.stringify({ error: ASSET_REGISTRATION_COPY.noJob }));
     check(
@@ -516,9 +516,9 @@ export async function run({ check, assert, log }) {
         { id: "g5", level3: "Angle Grinder", size: '5"', maker: "", partNumber: "" },
     ];
     const refusedOf = (rows, chosen) => JSON.stringify(detailRefusals(walkDetails(rows, chosen).levels));
-    check("a model still to choose is refused on its own line", refusedOf(welder, {}), JSON.stringify({ model: "Choose a model." }));
-    check("  a size still to choose is, and the model waiting on it is not", refusedOf(grinder, {}), JSON.stringify({ size: "Choose a size." }));
-    check("  a size chosen leaves its model to refuse, `Not specified` among its options", refusedOf(grinder, { size: '4-1/2"' }), JSON.stringify({ model: "Choose a model." }));
+    check("a model still to choose is refused on its own line", refusedOf(welder, {}), JSON.stringify({ model: "Choose a model" }));
+    check("  a size still to choose is, and the model waiting on it is not", refusedOf(grinder, {}), JSON.stringify({ size: "Choose a size" }));
+    check("  a size chosen leaves its model to refuse, `Not specified` among its options", refusedOf(grinder, { size: '4-1/2"' }), JSON.stringify({ model: "Choose a model" }));
     check("  a size whose rows name no model refuses nothing", refusedOf(grinder, { size: '5"' }), "{}");
     check("  and `Not specified` chosen is a choice", refusedOf(grinder, { size: '4-1/2"', model: "\n" }), "{}");
     check("  a model chosen is not refused", refusedOf(welder, { model: "miller\nmillermatic 255" }), "{}");
@@ -1589,7 +1589,7 @@ export async function run({ check, assert, log }) {
         [told({ unwritten: 2 }), told({ unlogged: ["HYE-AST-261109-001"] }), told({ selected: 0 }), told({ sentAt: now - 61_000 }), told({ sentAt: Number.NaN }), told({ sentAt: now + 1000 })].join(" "),
         "0 0 0 0 0 0"
     );
-    check("  its words, Tools 57's", `${ASSET_REGISTRATION_COPY.added(5)} | ${ASSET_REGISTRATION_COPY.added(1)}`, "5 items added. | 1 item added.");
+    check("  its words, Tools 57's with no period since #667", `${ASSET_REGISTRATION_COPY.added(5)} | ${ASSET_REGISTRATION_COPY.added(1)}`, "5 items added | 1 item added");
     check("  and the mark's key, in the tab's own storage and on no address", REGISTRATION_SENT_KEY, "hye:items-sent");
     const sendingSource = parseFile("app/(assets)/asset-categories/RegistrationDialog.js").source;
     check(

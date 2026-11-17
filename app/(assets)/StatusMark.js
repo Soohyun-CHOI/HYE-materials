@@ -3,10 +3,11 @@ import { ON_LOAN_MARK, STATUS_MARK } from "@/lib/assetView";
 /*
  * The mark an asset's status is drawn with (0g, #463): a solid dot for `In stock`, a ring
  * for `Out`, the ring dashed for `In repair` (#531), the ring struck through for `Retired`
- * — `lib/assetView.js:STATUS_MARK` says which status takes which — and the ring with its right
- * half filled for an item on loan from the job a kind's page stands on (1d, #598). 9 at a desk and 10 below
- * the phone's edge, the ring 1.5, all in Ink 3 whatever the status, and it hides from
- * assistive tech, since the word beside it says the status.
+ * — `lib/assetView.js:STATUS_MARK` says which status takes which — and an item on loan from
+ * the job a kind's page stands on takes `In repair`'s, the dashed ring (1d, #598, #667), which
+ * `ON_LOAN_MARK` reads off the map; it was the ring with its right half filled until #667. 9
+ * at a desk and 10 below the phone's edge, the ring 1.5, all in Ink 3 whatever the status, and
+ * it hides from assistive tech, since the word beside it says the status.
  *
  * TWO DRAWINGS RATHER THAN ONE SCALED, because a scaled ring keeps neither figure: the
  * design draws the desk's ring 3.75 around its center and the phone's 4.25, each 1.5 wide,
@@ -15,9 +16,9 @@ import { ON_LOAN_MARK, STATUS_MARK } from "@/lib/assetView";
  *
  * THE DASHED RING IS THE INVOICES FILE'S 0g AWAY, and its dashes are its own figures at each
  * width: 2.36 on and 1.57 off around the desk's ring, 2.67 and 1.78 around the phone's, each
- * turned 75° back about its center, as 0g, 1d, 1f and 1j-e draw it. They are the
- * ring's geometry in its own box, as its radius and the slash's corners are, so they are
- * not names in `app/designValues.css`.
+ * turned 75° back about its center, as 0g, 1d, 1f and 1j-e draw it, and 1d an item on loan.
+ * They are the ring's geometry in its own box, as its radius and the slash's corners are, so
+ * they are not names in `app/designValues.css`.
  */
 
 const DRAWN = {
@@ -39,7 +40,6 @@ const DRAWN = {
             />
         ),
         slash: <path d="M1.85 7.15 7.15 1.85" stroke="currentColor" className="stroke-status-ring" />,
-        half: <path d="M4.5 0.75 A3.75 3.75 0 0 1 4.5 8.25 Z" fill="currentColor" />,
     },
     phone: {
         box: 10,
@@ -59,12 +59,11 @@ const DRAWN = {
             />
         ),
         slash: <path d="M2 8 8 2" stroke="currentColor" className="stroke-status-ring" />,
-        half: <path d="M5 0.75 A4.25 4.25 0 0 1 5 9.25 Z" fill="currentColor" />,
     },
 };
 
-/** Which drawing each shape takes: the dot, the ring, the dashed ring, the ring and its slash, or the ring and its half. */
-const FACE = { settled: "settled", open: "ring", away: "dashed", ended: "ring", [ON_LOAN_MARK]: "ring" };
+/** Which drawing each shape takes: the dot, the ring, the dashed ring, or the ring and its slash. A loan's is `away`'s. */
+const FACE = { settled: "settled", open: "ring", away: "dashed", ended: "ring" };
 
 function Drawn({ width, shape }) {
     const drawn = DRAWN[width];
@@ -72,7 +71,6 @@ function Drawn({ width, shape }) {
         <svg viewBox={`0 0 ${drawn.box} ${drawn.box}`} aria-hidden="true" className={`${drawn.className} shrink-0 self-center text-foreground-subtle`}>
             {drawn[FACE[shape]]}
             {shape === "ended" && drawn.slash}
-            {shape === ON_LOAN_MARK && drawn.half}
         </svg>
     );
 }

@@ -85,7 +85,7 @@ const CUT_CELLS = [{ key: "size", figures: true }, { key: "maker" }, { key: "par
  * A READER WHO IS NOT THE OFFICE IS HANDED NO CATALOG, AND READS WHY IN THE LIST'S PLACE (#616).
  * `rows` is null then, the page's answer that `requireAdmin` refused, and this draws the page as
  * 0b draws one the reader may no longer use (Tools 55's 1l `Not Admin, closed`): the breadcrumb,
- * and `Only admins can edit the catalog.` alone under it, no title, centered in what is left. The
+ * and `Only admins can edit the catalog` alone under it, no title, centered in what is left. The
  * page drew the sentence itself until #616, with no breadcrumb and at 14, and this did the same
  * until Tools 55. A dialog open when an action found its reader no longer the office stands
  * across that page drawn again (1l `Not Admin`): it draws from the catalog it was opened on,

@@ -527,7 +527,7 @@ const VALUES = [
     ["--spacing-subtitle-stack", "0.75rem", null],
     ["--spacing-heading-sm-stack", "0.75rem", null],
     // The record rail on 1080 (#463), which #462 left undeclared, its label block and the
-    // history beside it; all but the rail's three from the drawings, not the spec.
+    // Activity beside it; all but the rail's three from the drawings, not the spec.
     ["--spacing-record-header-inline", "3.5rem", null],
     // How far the record header's actions stand above its title's top (1f, #538).
     ["--spacing-record-header-actions-bleed", "0.1875rem", null],
@@ -685,7 +685,7 @@ const VALUES = [
     ["--size-mobile-log-icon", "0.875rem", null],
     // Either side of the arrow between a loan's two jobs (#598).
     ["--spacing-mobile-log-route-gap", "0.375rem", null],
-    // 1j's history, 1k's notice and its screen for a code no asset carries (#463), from the
+    // 1j's Activity, 1k's notice and its screen for a code no asset carries (#463), from the
     // drawings, not the spec.
     ["--width-mobile-log-track", "0.75rem", null],
     ["--spacing-mobile-log-dot-inset-top", "0.5625rem", null],

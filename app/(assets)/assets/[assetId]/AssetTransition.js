@@ -43,7 +43,8 @@ import TransitionForm from "./TransitionForm";
  *   stood under the status.
  * - **A desk's press with no dialog says its answer in 0k's toast** — a check-in and a return
  *   from repair in the header, a sending from `More actions` — which stays until it is dismissed
- *   or the next press (`Toast.js`), where until #614 it stood under the status.
+ *   or the next press (`Toast.js`), where until #614 it stood under the status. It says the
+ *   sentence the phone and a dialog say, from the same constant.
  * - **On a phone, every answer to a sheet or a question ends it**, and the page as it now stands
  *   says the answer in the Notice under the status (Tools 0a Notice, 1k); the foot bar's presses
  *   and the menu's sending have no sheet and say theirs there already. A detail's sheet keeps its
