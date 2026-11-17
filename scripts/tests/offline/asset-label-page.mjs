@@ -297,7 +297,7 @@ export function run({ check, assert, log }) {
         check("  the list opening it and holding it outside the bar a refusal takes away", facts.list, "true true true true");
         check("  the failure's words, by value", COPY.readFailed, "Couldn't load the labels. Try again.");
         // Soo's shorter words of 2026-11-06, as Tools 55's 1e `No permission` says them.
-        check("  and the refusal's", COPY.noPermission, "You no longer have permission to print.");
+        check("  and the refusal's", COPY.noPermission, "You no longer have permission to print");
         const planted = readFacts(
             "export default function LabelsDialog() { const press = async () => { const read = await readAssetLabelsAction(assetIds); if (!read) return; setRun(read); setOpen(true); }; return <><Button busy={pending}>{title}</Button><LabelsFrame run={run} /></>; }\n" +
                 "function LabelsFrame({ run }) { const print = async () => { await document.fonts.ready; window.print(); }; return <DialogActions><Button disabled={printing === 0} onClick={print}>{title}</Button></DialogActions>; }\n",
@@ -1470,7 +1470,7 @@ export function run({ check, assert, log }) {
     );
     check("the pages' list", COPY.pages, "Pages");
     check("  and one page in it", COPY.page({ page: 1, code: "260909-001" }), "Page 1, 260909-001");
-    check("the pane when nothing prints", COPY.noLabels, "No labels to print.");
+    check("the pane when nothing prints", COPY.noLabels, "No labels to print");
     // `of` ONLY WHEN THE TWO DIFFER, and the noun follows the larger figure.
     check("a run that prints whole", COPY.count({ printing: 5, named: 5 }), "5 labels");
     check("  one label", COPY.count({ printing: 1, named: 1 }), "1 label");
@@ -1525,12 +1525,12 @@ export function run({ check, assert, log }) {
     check(
         "a symbol past the label",
         COPY.symbolTooLarge(1),
-        "The address from this host is long enough that this symbol does not fit the label stock, so its label does not print."
+        "The address from this host is long enough that this symbol does not fit the label stock, so its label does not print"
     );
     check(
         "  and several",
         COPY.symbolTooLarge(4),
-        "The address from this host is long enough that these symbols do not fit the label stock, so their labels do not print."
+        "The address from this host is long enough that these symbols do not fit the label stock, so their labels do not print"
     );
     check(
         "  with no remedy in it that a wrong host would misread",

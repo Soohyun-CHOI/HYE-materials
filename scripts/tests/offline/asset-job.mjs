@@ -145,8 +145,8 @@ export function run({ check, assert, log }) {
     log("");
     log("the picker's words, and the screens that ask a job reading them:");
     check("the unchosen option", ASSET_JOB_COPY.unchosen, "Choose a job");
-    check("the refusal for none chosen", ASSET_JOB_COPY.noneChosen, "Choose a job.");
-    check("the not-your-job refusal", ASSET_JOB_COPY.notYours, "Choose a job you are assigned to.");
+    check("the refusal for none chosen", ASSET_JOB_COPY.noneChosen, "Choose a job");
+    check("the not-your-job refusal", ASSET_JOB_COPY.notYours, "Choose a job you are assigned to");
     check("three words and no more", Object.keys(ASSET_JOB_COPY).length, 3);
     // READ OFF THE SOURCE, for the reason `propertySource` records: comparing the
     // VALUES cannot tell a screen reading this constant from a screen spelling

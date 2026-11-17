@@ -17,7 +17,7 @@ import { ASSET_COPY } from "@/lib/assetView";
  * catalog (`Tool · Power tools · Class B`).
  *
  * THE VALUES IN INK AGAINST THE LINE'S INK 3, AND IN INK 2 ON A PHONE (1j), whose caption
- * draws them a step lighter under its 22 title; the dots are the dates' and the history's
+ * draws them a step lighter under its 22 title; the dots are the dates' and the Activity's
  * (`Dot`), 9 either side. `lead` is what stands first — the asset's id at a desk, which the
  * page hands over in its own face — and `job` after it, the item's job by its code, a value
  * as the type and the category are (1f, #597). A phone names the job on a line of its own

@@ -93,7 +93,7 @@ carries neither the selection nor the page. Drawn for nobody else, and nothing s
 why. **Drawn on no closed job's list** — one whose `Closed Date` holds a day,
 which takes no new item — where the boxes stay, since what stands on it is still
 recorded; and the dialog's job offers the reader's own open jobs alone, a press
-naming one closed since it opened refused under the job with `{Job Code} is closed.`
+naming one closed since it opened refused under the job with `{Job Code} is closed`
 and the page drawn again. **Drawn on no kind discontinued or set aside for a level** — one the office
 discontinued, or a row the catalog sets aside for a level missing or holding a
 placeholder — which the same answer asks of the row the page read, so the screen is
@@ -126,7 +126,7 @@ and the job it wrote to (`ASSET_REGISTRATION_COPY.registerOthers`) — and one t
 it (`ASSET_REGISTRATION_COPY.doneRegistering`). Canceling the registration brings this
 back, since nothing answered it. It acts on nothing in the base.
 
-**When some of what it wrote has no first history entry**
+**When some of what it wrote has no first Activity entry**
 (`ASSET_REGISTRATION_COPY.unloggedHeading`, `ASSET_REGISTRATION_COPY.unlogged`): a
 notice naming them, with one way to put it away (`ASSET_REGISTRATION_COPY.gotIt`).
 **Nothing repairs them, because nothing can**: a late entry would state a time that

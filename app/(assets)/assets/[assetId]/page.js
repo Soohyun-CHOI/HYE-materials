@@ -151,14 +151,14 @@ const ID_ON_PHONE = "font-id text-mobile-body-xs tracking-id tabular-nums text-f
  *
  * TWO DRAWINGS OF ONE PAGE (#463). A desk draws 0n's record page under the breadcrumb:
  * a header holding its category's name, the line under it, its status and the actions, the
- * history beside the record rail and its label (1f, 1g). A phone draws 1j: the top bar with
+ * Activity beside the record rail and its label (1f, 1g). A phone draws 1j: the top bar with
  * `More actions` and, once the heading has scrolled under it, the name; the title block; the
- * history; and the transition in a foot bar. **The line under the name is the id, the item's
+ * Activity; and the transition in a foot bar. **The line under the name is the id, the item's
  * job and the caption** — the id, the job, the type and the category at a desk, the id first as
  * it has been since #411; on a phone the id opens the title block over the name, the caption
  * stands under it and the job under that behind a pin (1j) — off the category row and the job
  * list already read, so it costs nothing (`CategoryCaption`). **The job left that line with #519
- * and came back with #597**, when it left every history entry instead: an item's job is the one
+ * and came back with #597**, when it left every Activity entry instead: an item's job is the one
  * it sits on, and the files of 2026-11-02 name it once, under the title. What is
  * one fact is one element — the heading, the status, an entry — set at each width's size;
  * what only one width draws is drawn there alone. Every word is a constant and every value a
@@ -463,11 +463,11 @@ async function renderAssetPage({ params }) {
                     </header>
                     <div className="grid grid-cols-[minmax(0,1fr)_var(--width-record-rail)] max-sm:block">
                         <section className="pt-record-header-stack pr-record-rail-inline max-sm:px-mobile-gutter max-sm:pt-[calc(var(--spacing-mobile-stack)-var(--spacing-mobile-title-stack))] max-sm:pb-scroll-inset-bottom">
-                            <h2 className="pb-heading-sm-stack text-heading-sm text-foreground-subtle max-sm:text-mobile-heading-sm">{COPY.historyHeading}</h2>
+                            <h2 className="pb-heading-sm-stack text-heading-sm text-foreground-subtle max-sm:text-mobile-heading-sm">{COPY.activityHeading}</h2>
                             {history.length === 0 ? (
-                                <p className="text-body text-foreground-subtle max-sm:text-mobile-body">{COPY.noHistory}</p>
+                                <p className="text-body text-foreground-subtle max-sm:text-mobile-body">{COPY.noActivity}</p>
                             ) : (
-                                <History rows={history} nameById={nameById} jobCodeById={jobCodeById} />
+                                <Activity rows={history} nameById={nameById} jobCodeById={jobCodeById} />
                             )}
                         </section>
                         {/* THE RECORD RAIL AND ITS ONE BLOCK, THE LABEL (0n, 0p). The label is
@@ -531,8 +531,9 @@ function routeCodes(route, jobCodeById) {
 }
 
 /**
- * The history, newest first (#463) — 0a's Log on a phone and the record page's at a desk: a
- * dot on a rule beside each entry, the rule stopping at the last.
+ * The Activity, newest first (#463) — 0a's Activity on a phone and the record page's at a desk: a
+ * dot on a rule beside each entry, the rule stopping at the last. `History` until #667, and 0a's row
+ * was `Log`.
  *
  * AN ENTRY IS ONE ELEMENT SET TWO WAYS. At a desk the event heads it with who a check-out
  * went to after `to`, and one line under it says when and `by` whom (1f). On a phone the event
@@ -545,7 +546,7 @@ function routeCodes(route, jobCodeById) {
  * 26-USA-06` with the arrow in Ink 3, and on a phone on a line of its own under the event, the job
  * pin in Ink 3, then the two codes in Ink 2 with 0a's arrow-right between them, 6 either side (1j).
  */
-function History({ rows, nameById, jobCodeById }) {
+function Activity({ rows, nameById, jobCodeById }) {
     return (
         <ol className="flex flex-col">
             {rows.map((row, index) => {
@@ -578,7 +579,7 @@ function History({ rows, nameById, jobCodeById }) {
                                 {handedTo && (
                                     <span className="max-sm:hidden">
                                         {" "}
-                                        <span className="text-foreground-subtle">{COPY.historyTo}</span> {facts.checkedOutTo}
+                                        <span className="text-foreground-subtle">{COPY.activityTo}</span> {facts.checkedOutTo}
                                     </span>
                                 )}
                                 {route && (
@@ -588,9 +589,9 @@ function History({ rows, nameById, jobCodeById }) {
                                             <>
                                                 {route.from}{" "}
                                                 <span aria-hidden="true" className="text-foreground-subtle">
-                                                    {COPY.historyRouteArrow}
+                                                    {COPY.activityRouteArrow}
                                                 </span>
-                                                <span className="sr-only">{COPY.historyTo}</span>{" "}
+                                                <span className="sr-only">{COPY.activityTo}</span>{" "}
                                             </>
                                         )}
                                         {route.to}
@@ -605,7 +606,7 @@ function History({ rows, nameById, jobCodeById }) {
                                             <>
                                                 <span>{route.from}</span>
                                                 <Icon name="arrow-right" kind="qualifier" className="size-mobile-log-icon shrink-0" />
-                                                <span className="sr-only">{COPY.historyTo}</span>
+                                                <span className="sr-only">{COPY.activityTo}</span>
                                             </>
                                         )}
                                         <span>{route.to}</span>
@@ -624,7 +625,7 @@ function History({ rows, nameById, jobCodeById }) {
                                     <Instant at={facts.eventAt} />
                                 </span>
                                 <Dot />
-                                {COPY.historyBy}{" "}
+                                {COPY.activityBy}{" "}
                                 <span className="text-foreground-muted max-sm:text-foreground-subtle">{facts.recordedBy}</span>
                             </p>
                         </div>

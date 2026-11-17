@@ -425,9 +425,9 @@ export async function run({ check, log, assert }) {
     );
     // 1a's failure toast (#566): the line says what happened and the action what to do next.
     check(
-        "  and the failure toast's, its line, its action and its dismiss (#566)",
+        "  and the failure toast's, its line with no period since #667, its action and its dismiss (#566)",
         [ASSET_EXPORT_COPY.failed, ASSET_EXPORT_COPY.retry, ASSET_EXPORT_COPY.dismiss].join(" | "),
-        "Couldn't export. | Try again | Dismiss"
+        "Couldn't export | Try again | Dismiss"
     );
 
     // ── 3: the file, read back by another library ───────────────────────────
@@ -460,7 +460,7 @@ export async function run({ check, log, assert }) {
         '-0042 | @SUM(A1) | =HYPERLINK("http://x","y")'
     );
     check("  each serial number in the column after the id, an item with none no cell (#601)", items.filter((cell) => cell.col === "B").map((cell) => cell.value).join(" | "), "Serial number | B53AD2304217 | -0042");
-    check("  the holder as the history says it", items.filter((cell) => cell.col === "L" && cell.row > 1).map((cell) => cell.value).join(" | "), "Dana K");
+    check("  the holder as the Activity says it", items.filter((cell) => cell.col === "L" && cell.row > 1).map((cell) => cell.value).join(" | "), "Dana K");
     check("  each day a serial under the day's style", items.filter((cell) => cell.col === "N" && cell.row > 1).map((cell) => `${cell.value}:${cell.s}:${cell.t}`).join(" "), "46317:3:null 46300:3:null 46296:3:null 46299:3:null 46298:3:null 46305:3:null 46297:3:null");
     check("  a blank written as no cell: an item with no serial number, size, holder or note has none of those cells", items.filter((cell) => cell.row === 4).map((cell) => cell.col).join(" "), "A C D E G H I J K N");
     const counts = cellsOf(parts["xl/worksheets/sheet1.xml"]).filter((cell) => cell.row > 1 && ["D", "E", "F", "G"].includes(cell.col));

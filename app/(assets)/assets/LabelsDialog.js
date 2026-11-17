@@ -261,7 +261,7 @@ function NamedCodes({ heading, codes }) {
  * THREE STATES, AND THEY ARE ONE ARRANGEMENT. Every code named on an asset and its
  * symbol fitting: the pages, `5 labels`, the steps, `Print 5 labels`. Some named on none:
  * the ones that are, `3 of 5 labels`, the codes not found under how many, the steps and
- * `Print 3 labels`. None that prints: `No labels to print.` in the pane, `0 of 3 labels`,
+ * `Print 3 labels`. None that prints: `No labels to print` in the pane, `0 of 3 labels`,
  * the codes, no steps and the title's words on a commitment drawn disabled, with no
  * reason before it since the pane and the codes are the reason (0f). A host long enough
  * that the symbols do not fit the label is 1e's third state too, with one sentence about

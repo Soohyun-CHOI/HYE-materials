@@ -60,7 +60,7 @@ import { addAssetCategoryGroupAction, removeAssetCategoryAction, saveAssetCatego
  * sentence that said so, since pressing again cannot change it — Tools 54's 1l `Removed first` and
  * `Now in use`. **Every commitment asks whether the reader is still the office (`office`)**, the
  * page drawn again for one who is not handing the list no catalog: the dialog stands over
- * `Only admins can edit the catalog.`, says it over its actions and holds its commitment, an add's
+ * `Only admins can edit the catalog`, says it over its actions and holds its commitment, an add's
  * and a category's too — 1l `Not Admin`. Its other acts keep theirs: 1l leaves `Discontinue` live
  * there.
  */

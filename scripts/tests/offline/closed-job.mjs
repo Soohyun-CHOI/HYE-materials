@@ -4,7 +4,8 @@
 //
 //   1. THE RULE, BY VALUE. `lib/closedJob.js` is pure: whether a job is closed (its `Closed Date`
 //      holds a day), the jobs a new choice offers (the open ones and the one a record already
-//      names, `held`), the refusal of a closed one, which of two sentences says a choice is empty
+//      names, `held`), the refusal of a closed one in its two forms, the Equipment & Tools screens'
+//      bare (#667), which of two sentences says a choice is empty
 //      because every job has closed, and every word. The direct-purchase request's held job is
 //      `lib/prKind.js:requestJobId`'s and is pinned beside it.
 //   2. ONE READING OF THE FIELD. `lib/airtable/jobs.js` maps `Closed Date` on both of its readers
@@ -196,6 +197,17 @@ export function run({ check, assert, log }) {
     );
     check("  a job with no code is still said", closedJobRefusal({ id: "recX", closedDate: "2026-11-02" }), "That job is closed.");
     check("  and no job is no refusal of this rule's", `${closedJobRefusal(null)} ${closedJobRefusal(undefined)}`, "null null");
+    check(
+        "the Equipment & Tools screens say the same words bare (#667), a held job and an open one still no refusal",
+        [
+            CLOSED_JOB_COPY.assetRefusal("26-USA-02"),
+            closedJobRefusal(SHUT_B, [], CLOSED_JOB_COPY.assetRefusal),
+            closedJobRefusal({ id: "recX", closedDate: "2026-11-02" }, [], CLOSED_JOB_COPY.assetRefusal),
+            closedJobRefusal(SHUT_B, SHUT_B.id, CLOSED_JOB_COPY.assetRefusal),
+            closedJobRefusal(OPEN_A, [], CLOSED_JOB_COPY.assetRefusal),
+        ].join(" | "),
+        "26-USA-02 is closed | 26-USA-02 is closed | That job is closed |  | "
+    );
 
     log("");
     log("why a choice is empty, when every job a reader may use has closed:");
@@ -259,6 +271,34 @@ export function run({ check, assert, log }) {
     for (const [file, fn, callee] of LIB_ASKS) {
         assert(`  ${file}:${fn} asks ${callee}`, callsTo(resolveFunction(parseFile(file).ast, fn) ?? {}, callee).length > 0);
     }
+    // #667 — THE ASSET READERS SAY THE REFUSAL BARE AND EVERY OTHER WRITE WITH ITS PERIOD, and the two
+    // forms stand only while the other screens' one-line notices keep theirs, so that is read too.
+    const formOf = (call) => {
+        const words = call?.arguments?.[2];
+        if (!call) return "no call";
+        if (!words) return "default";
+        return words.type === "MemberExpression" ? `${words.object?.name}.${words.property?.name}` : words.type;
+    };
+    check(
+        "  the Equipment & Tools readers say the refusal bare (#667)",
+        LIB_ASKS.filter(([, , callee]) => callee === "closedJobRefusal")
+            .map(([file, fn]) => `${fn} ${formOf(callsTo(resolveFunction(parseFile(file).ast, fn) ?? {}, "closedJobRefusal")[0])}`)
+            .join(" | "),
+        "readRegistration CLOSED_JOB_COPY.assetRefusal | readLend CLOSED_JOB_COPY.assetRefusal | readJobChange CLOSED_JOB_COPY.assetRefusal"
+    );
+    check(
+        "  and every other write says it in the default form, with its period",
+        WRITES.map(([file, fnName]) => {
+            const { ast } = parseFile(file);
+            return formOf(callsTo((fnName ? resolveFunction(ast, fnName) : ast) ?? {}, "closedJobRefusal")[0]);
+        }).join(" "),
+        "default default default default"
+    );
+    check(
+        "  two forms only while /deliveries/new still says `Select a job.` — once it does not, `refusal` drops its period and `assetRefusal` goes",
+        readFileSync(repoPath("app/deliveries/new/actions.js"), "utf8").includes('"Select a job."'),
+        true
+    );
 
     log("");
     log("every other reader of the jobs is named, with why:");

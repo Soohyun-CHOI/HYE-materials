@@ -112,7 +112,7 @@ const SECTION_ICONS = {
 //
 // WHAT IT SCROLLS STAYS IN IT, SO IT IS WHERE AN ABSOLUTE BOX STANDS (#617). A box placed
 // `absolute` with no placed box above it stands against the window's, and the window's
-// overflow is not the column's: on an item whose history ran past the window, each history
+// overflow is not the column's: on an item whose Activity ran past the window, each Activity
 // entry's `to` for assistive tech (`sr-only`) stood at its row's place below the fold, out of
 // the column's reach, so the document grew to 1774 at 900 and took the browser's own 15 bar,
 // moving the screen 7.5 left, which 1f does not draw. Placed, the column holds them.

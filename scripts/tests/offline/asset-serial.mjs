@@ -252,8 +252,8 @@ export async function run({ check, log }) {
     check("its name, and the desk row's short one", `${ASSET_SERIAL_COPY.label} | ${ASSET_SERIAL_COPY.rowLabel}`, "Serial number | Serial");
     check("  the openings", [ASSET_SERIAL_COPY.addSerial, ASSET_SERIAL_COPY.editSerial, ASSET_SERIAL_COPY.add, ASSET_SERIAL_COPY.edit].join(" | "), "Add serial number | Edit serial number | Add | Edit");
     check("  the actions, the note's", [ASSET_SERIAL_COPY.save, ASSET_SERIAL_COPY.cancel, ASSET_SERIAL_COPY.done, ASSET_SERIAL_COPY.clear].join(" | "), [ASSET_NOTE_COPY.save, ASSET_NOTE_COPY.cancel, ASSET_NOTE_COPY.done, ASSET_NOTE_COPY.clear].join(" | "));
-    check("  a number taken, the design's sentence", `${ASSET_SERIAL_COPY.takenBy("HYE-AST-261019-104")} || ${ASSET_SERIAL_COPY.takenRest}`, "HYE-AST-261019-104 already has this serial number. || already has this serial number.");
-    check("  too much, and one changed first, Soo's words (#612)", `${ASSET_SERIAL_COPY.tooLong} | ${ASSET_SERIAL_COPY.changedFirst}`, "Use 50 characters or fewer. | Someone else changed this serial number first. Nothing was saved.");
+    check("  a number taken, the design's sentence", `${ASSET_SERIAL_COPY.takenBy("HYE-AST-261019-104")} || ${ASSET_SERIAL_COPY.takenRest}`, "HYE-AST-261019-104 already has this serial number || already has this serial number");
+    check("  too much, and one changed first, Soo's words (#612)", `${ASSET_SERIAL_COPY.tooLong} | ${ASSET_SERIAL_COPY.changedFirst}`, "Use 50 characters or fewer | Someone else changed this serial number first. Nothing was saved.");
     check("  working, the note's", Object.values(ASSET_SERIAL_COPY.working).join(" | "), "Saving… | Adding… | Removing…");
     check(
         "the list's: the search, 1d's column and the two sentences",

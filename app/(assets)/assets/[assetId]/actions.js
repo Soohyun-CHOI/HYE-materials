@@ -104,7 +104,7 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * situation it describes is two people handing one drill over at once.
  *
  * ON SUCCESS IT REDIRECTS TO THE PAGE IT CAME FROM AND SAYS NOTHING (#321). The
- * status flips, a history entry appears and the control now reads the other way
+ * status flips, an Activity entry appears and the control now reads the other way
  * — that IS the confirmation, and a banner would say what the page already says
  * while standing between the reader and the next scan. **A refusal reaches the
  * same fresh page by the other mechanism and keeps its sentence**; `refuse`
@@ -197,7 +197,7 @@ async function recordAssetEventHandler(prevState, formData) {
  * written (`recordingRefusal`, #597).
  *
  * WHICH LEAVES THE BODY'S QUESTION AS `planTransition`'s: whether the actor records on this
- * item. **A retirement somebody else got in front of says `This item is retired.` (#614)**, the
+ * item. **A retirement somebody else got in front of says `This item is retired` (#614)**, the
  * plan's terminal sentence: at a desk the question stands across the page drawn again and says it
  * over its actions, as the files of 2026-11-05 draw a check-out refused so (1f), and on a phone the
  * Notice under the status does (1k). Until #614 it said nothing, the question going with its opener
@@ -277,7 +277,7 @@ async function retireAssetHandler(prevState, formData) {
  * the page drawn again, and one somebody got in front of two more, `refuseStale`'s.
  *
  * ON SUCCESS IT REDIRECTS TO THE PAGE IT CAME FROM AND SAYS NOTHING (#321): the job under the title,
- * `On loan from` beside it or gone, and the entry at the history's head say it.
+ * `On loan from` beside it or gone, and the entry at the Activity's head say it.
  */
 export const lendAssetAction = withSiteManagerAction(refuseNotASiteManager, lendAssetHandler);
 
@@ -377,7 +377,7 @@ async function writeLoan({ asset, event, answer, user, halfDone }) {
  * Write an asset's note, or clear it (#533) — `Assets."Note"` in place, and nothing else.
  *
  * NO `Asset Log` ROW, BECAUSE A NOTE IS NO EVENT. The two actions above append one and move
- * the caches; this writes the one field no event writes, so the item's history and the day
+ * the caches; this writes the one field no event writes, so the item's Activity and the day
  * its category's list says it last changed are left as they were (`lib/assetNote.js`).
  *
  * THE SAME WRAPPER, AND THE SAME ANSWER TO WHO (#506). Only a site manager gets past
@@ -519,7 +519,7 @@ async function updateAssetSerialHandler(prevState, formData) {
  * page reaches its own from the same function — so an action that refuses is one
  * whose caller is looking at something the base no longer says. Returning and no
  * more leaves every one of those facts on screen as it was: the status, the
- * control's direction and the history all still read what they did before the
+ * control's direction and the Activity all still read what they did before the
  * press, and the refusal is the one true line on a page contradicting it.
  *
  * `refresh()` IS WHAT SENDS THE SENTENCE AND A FRESH RENDER TOGETHER, and the
@@ -563,7 +563,7 @@ async function updateAssetSerialHandler(prevState, formData) {
  * write with — #378's terminal case, which from #533 to #612 a note on an item retired or sent for
  * repair since met, and since #612 only a status no screen shows does. Three are not since: a
  * press by a reader the item is no longer the reader's to record (#597), and from #614 a
- * retirement somebody got in front of, `This item is retired.`, and a press by a reader who is
+ * retirement somebody got in front of, `This item is retired`, and a press by a reader who is
  * no longer a site manager — the page drawn again shows the item's job and no control, and
  * nothing on it says the press was theirs and was lost.
  */
@@ -665,7 +665,7 @@ async function refuseStale({ asset, refusal, attempted }) {
  * **AND IT REPORTS THROUGH `refuse`, WHICH IS THE CASE THAT MOST NEEDED IT
  * (#378).** This is the one answer here that means something was written, and
  * until this issue it stood on a page where the row it says is safe was nowhere
- * to be seen. Re-rendering puts the new entry at the foot of the history and
+ * to be seen. Re-rendering puts the new entry at the foot of the Activity and
  * leaves the status where the sentence says it is, so the screen and the sentence
  * agree for the first time.
  *

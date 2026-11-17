@@ -40,6 +40,7 @@
 import { ASSET_EVENT, ASSET_STATUS, ASSET_STATUS_VALUES, SHOWN_STATUS_VALUES } from "../../../lib/assetStatus.js";
 import {
     FACT_KIND,
+    ON_LOAN_MARK,
     STATUS_MARK,
     ASSET_COPY,
     currentHolder,
@@ -89,6 +90,13 @@ const copyStrings = () => {
  * design, and the design's `Tool not found` took its place.
  */
 const TOOL_ITEM_NOUN = /\btool items?\b/i;
+
+/**
+ * The word the design replaced on the item's page (#667): `History` over its entries, and the empty
+ * state under it. `Activity` since the files of 2026-11-17, and no string or key here says the old one.
+ */
+const HISTORY_WORD = /\bhistory\b/i;
+const HISTORY_KEY = /history/i;
 
 /** A history row as the page hands it over, by event, at a moment. */
 const row = (event, eventAt, extra = {}) => ({ id: `${event}-${eventAt}`, event, eventAt, ...extra });
@@ -225,14 +233,22 @@ export function run({ check, assert, log }) {
     check(
         "  each shape takes its own drawing",
         markFile.source.match(/const FACE = \{([^}]*)\}/)?.[1].replace(/\s+/g, " ").trim(),
-        'settled: "settled", open: "ring", away: "dashed", ended: "ring", [ON_LOAN_MARK]: "ring"'
+        'settled: "settled", open: "ring", away: "dashed", ended: "ring"'
     );
-    // THE LOAN'S MARK IS THE RING WITH ITS RIGHT HALF FILLED (1d, #598), at each width's ring.
-    assert(
-        "  the loan's half, at the desk's ring and the phone's",
-        /half: <path d="M4\.5 0\.75 A3\.75 3\.75 0 0 1 4\.5 8\.25 Z" fill="currentColor" \/>/.test(markFile.source) &&
-            /half: <path d="M5 0\.75 A4\.25 4\.25 0 0 1 5 9\.25 Z" fill="currentColor" \/>/.test(markFile.source) &&
-            /\{shape === ON_LOAN_MARK && drawn\.half\}/.test(markFile.source)
+    // AN ITEM ON LOAN TAKES IN REPAIR'S MARK (1d, #667), where from #598 it was the ring with its
+    // right half filled: one shape read off the map, so the two cannot part, and the file draws
+    // nothing of its own for a loan at either width.
+    check("  an item on loan takes in repair's mark (#667)", ON_LOAN_MARK, STATUS_MARK[ASSET_STATUS.IN_REPAIR]);
+    check(
+        "  read off the map rather than spelled",
+        /export const ON_LOAN_MARK = STATUS_MARK\[ASSET_STATUS\.IN_REPAIR\];/.test(parseFile("lib/assetView.js").source),
+        true
+    );
+    const markCode = markFile.source.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
+    check(
+        "  and the mark's file draws no loan of its own",
+        `${/\bhalf\b/.test(markCode)} ${(markCode.match(/ON_LOAN_MARK/g) ?? []).length}`,
+        "false 2"
     );
 
     // ── 3: all three are on every row ──────────────────────────────────────
@@ -259,8 +275,11 @@ export function run({ check, assert, log }) {
     // THE SWEEP'S CLAIM (#455), WITH NO REMAINDER SINCE #463: the not-found heading was the
     // one string still saying the replaced noun, left for the design, and it is the design's.
     check("no string says `tool item`", strings.filter((s) => TOOL_ITEM_NOUN.test(s)).join(" | "), "");
+    check("no string says `history` (#667)", strings.filter((s) => HISTORY_WORD.test(s)).join(" | "), "");
+    check("  and no key does", Object.keys(ASSET_COPY).filter((key) => HISTORY_KEY.test(key)).join(" | "), "");
     // THE DESIGN'S WORDS (1f, 1k, 1h), typed out here so a rewording reaches this file.
-    check("the empty history", ASSET_COPY.noHistory, "No history yet");
+    check("the heading over the entries, the design's since #667", ASSET_COPY.activityHeading, "Activity");
+    check("the empty Activity", ASSET_COPY.noActivity, "No activity yet");
     check("a code no asset carries, at a desk", `${ASSET_COPY.notFoundHeading} | ${ASSET_COPY.notFoundCode.before}HYE-AST-260909-099${ASSET_COPY.notFoundCode.after}`, "Item not found | No item has the code HYE-AST-260909-099. Check it against the label.");
     check("  and after a scan", ASSET_COPY.notFoundScanned, "No item has this code. Check it against the label and scan again.");
     // `Go to`, since a label or a link brings a reader here rather than the list (#655).
@@ -269,7 +288,7 @@ export function run({ check, assert, log }) {
     // One line since the files of 2026-11-04 (1f, #601), where two rows said `Size` and `Symbol`.
     check("the label's print size, in text", ASSET_COPY.printsAt("11 × 12 mm"), "Prints at 11 × 12 mm on 12 mm tape");
     check("the rail's first block, the item's details (#601)", ASSET_COPY.detailsHeading, "Details");
-    check("an entry's two words", `${ASSET_COPY.historyTo} | ${ASSET_COPY.historyBy}`, "to | by");
+    check("an entry's two words", `${ASSET_COPY.activityTo} | ${ASSET_COPY.activityBy}`, "to | by");
     check("the retirement's button, at both widths", ASSET_COPY.moreActions, "More actions");
     check("  and the label's name for assistive tech", ASSET_COPY.symbolAlt, "QR label for this item");
     // `kind` is the notes' explanatory word for what separates `Asset Categories` from
@@ -378,7 +397,7 @@ export function run({ check, assert, log }) {
         "false 1 1"
     );
     check(
-        "  and the page draws that dot once in its history — before who recorded it, the job's before it gone with #597 — and no mark of its own, the line under the title taking its dots from `CategoryCaption` since #519, a phone's too since the files of 2026-11-04 put `On loan from` on a line of its own (#601)",
+        "  and the page draws that dot once in its Activity — before who recorded it, the job's before it gone with #597 — and no mark of its own, the line under the title taking its dots from `CategoryCaption` since #519, a phone's too since the files of 2026-11-04 put `On loan from` on a line of its own (#601)",
         `${imports.includes("@/app/components/Dot")} ${page.source.split("<Dot />").length - 1} ${page.source.split("·").length - 1} ${parseFile("app/(assets)/CategoryCaption.js").source.includes("<Dot />")}`,
         "true 1 0 true"
     );
@@ -390,7 +409,7 @@ export function run({ check, assert, log }) {
     );
     // THE HISTORY, NEWEST FIRST, AND WHAT THE LATEST ENTRY SAYS, from the module's rules on
     // the rows in hand — no read of their own.
-    check("the history is drawn newest first", initOf("history"), "newestFirst(log)");
+    check("the Activity is drawn newest first", initOf("history"), "newestFirst(log)");
     check("  who holds an asset that is out is the module's answer", initOf("holder"), "currentHolder(history, asset.status)");
     check("  and when a retired one was retired", initOf("retired"), "retiredAt(history, asset.status)");
     check("  and when one in repair was sent (#531)", initOf("sentForRepair"), "sentForRepairAt(history, asset.status)");
@@ -640,13 +659,16 @@ export function run({ check, assert, log }) {
     // a broken matcher reports.
     assert("the noun matcher finds `tool item`", TOOL_ITEM_NOUN.test("Tool item not found"));
     assert("  and passes the design's `tool`", !TOOL_ITEM_NOUN.test(ASSET_COPY.notFoundHeading));
+    // And the replaced word's, on the strings and the keys it said until #667.
+    assert("the history matchers find the old empty state and the old keys", HISTORY_WORD.test("No history yet") && HISTORY_KEY.test("historyHeading") && HISTORY_KEY.test("noHistory"));
+    assert("  and pass the design's `Activity`", !HISTORY_WORD.test(ASSET_COPY.noActivity) && !HISTORY_KEY.test("activityHeading") && !HISTORY_KEY.test("noActivity"));
     // The order and the holder are seen to read the rows, not a constant.
     assert("the order and the holder follow the rows", newestFirst(oldestFirst)[0] !== newestFirst(oldestFirst.slice(0, 3))[0] && currentHolder(history, ASSET_STATUS.OUT) !== currentHolder(newestFirst(oldestFirst.slice(0, 2)), ASSET_STATUS.OUT));
 
     // ── #617: three places the page drew otherwise than Tools 56 ────────────
     log("");
     log("the page as Tools 56 draws it (#617):");
-    // The column a desk screen scrolls in is where an absolute box stands, so a history's `to`
+    // The column a desk screen scrolls in is where an absolute box stands, so an Activity's `to`
     // for assistive tech below the fold stays in it rather than growing the document.
     const railSource = parseFile("app/components/Rail.js").source;
     const columnHolds = (source) => /const COLUMN = \[\s*"[^"]*\bsm:relative sm:overflow-y-auto\b[^"]*"/.test(source);

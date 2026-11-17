@@ -159,10 +159,10 @@ function deletion582({ check, assert, log }) {
     );
     check("the question, naming the kind", ASSET_OFFICE_COPY.deleteHeading({ itemName: "Battery M18, Milwaukee", assetId: "HYE-AST-260909-004" }), "Delete Battery M18, Milwaukee?");
     check("  or the id, for an item under no kind", ASSET_OFFICE_COPY.deleteHeading({ itemName: "", assetId: "HYE-AST-260909-004" }), "Delete HYE-AST-260909-004?");
-    check("the body", ASSET_OFFICE_COPY.deleteBody, "It will be deleted along with its history. This can't be undone.");
-    check("something recorded since", ASSET_OFFICE_COPY.deleteRecordedSince, "Something has been recorded on this item, so it can't be deleted.");
+    check("the body, `its activity` since #667", ASSET_OFFICE_COPY.deleteBody, "It will be deleted along with its activity. This can't be undone.");
+    check("something recorded since", ASSET_OFFICE_COPY.deleteRecordedSince, "Something has been recorded on this item, so it can't be deleted");
     check("a deletion left half done, Soo's words (#612)", ASSET_OFFICE_COPY.deleteHalfDone, "The item wasn't fully deleted. Delete it again to finish.");
-    check("a reader who is not the office", ASSET_OFFICE_COPY.deleteNoAccess, "Deleting an item is for Admins.");
+    check("a reader who is not the office", ASSET_OFFICE_COPY.deleteNoAccess, "Deleting an item is for Admins");
 
     // ── the action ──────────────────────────────────────────────────────────
     log("");
@@ -332,7 +332,7 @@ export function run({ check, assert, log }) {
     check(
         "  a press naming a closed one is refused by name, before either write",
         JSON.stringify(readJobChange(closedPlan(JOB_B, JOB_B), { jobId: JOB_A.id, assetJobRecordId: JOB_B.id, assetOwnerJobRecordId: JOB_B.id })),
-        '{"jobRecordId":null,"writesEntry":false,"writesAsset":false,"unchanged":false,"refusal":"26-USA-05 is closed."}'
+        '{"jobRecordId":null,"writesEntry":false,"writesAsset":false,"unchanged":false,"refusal":"26-USA-05 is closed"}'
     );
     check(
         "  while one the list offers no longer is still the choice's own refusal",
@@ -386,10 +386,10 @@ export function run({ check, assert, log }) {
         [ASSET_OFFICE_COPY.changeJob, ASSET_OFFICE_COPY.jobLabel, ASSET_OFFICE_COPY.jobUnchosen, ASSET_OFFICE_COPY.save, ASSET_OFFICE_COPY.saving, ASSET_OFFICE_COPY.cancel].join(" | "),
         "Change job | Job | Choose a job | Save | Saving… | Cancel"
     );
-    check("something recorded since", ASSET_OFFICE_COPY.recordedSince, "Something has been recorded on this item, so its job can't be changed.");
+    check("something recorded since", ASSET_OFFICE_COPY.recordedSince, "Something has been recorded on this item, so its job can't be changed");
     check("a change left half done, Soo's words (#612)", ASSET_OFFICE_COPY.halfDone, "The job wasn't fully changed. Save again to finish.");
-    check("a reader who is not the office", ASSET_OFFICE_COPY.noAccess, "Changing an item's job is for Admins.");
-    check("a job the list does not offer", ASSET_OFFICE_COPY.jobNoneChosen, "Choose a job.");
+    check("a reader who is not the office", ASSET_OFFICE_COPY.noAccess, "Changing an item's job is for Admins");
+    check("a job the list does not offer", ASSET_OFFICE_COPY.jobNoneChosen, "Choose a job");
     const officeSource = parseFile(OFFICE).source;
     assert("the module reads no flag of its own, asking the list's judgment whether the reader is the office", !/\.isAdmin\b/.test(officeSource) && /const scope = assetListScope\(user, jobs, null\);/.test(officeSource) && /if \(!scope\.office \|\| \(!created && !deleted\)\)/.test(officeSource));
 

@@ -42,7 +42,7 @@ import Space from "@/app/components/Space";
  * the same commit as the assets axis, which is the decision that issue recorded, and
  * this is the one component `offline/design-values.mjs` lets read the design's names
  * from a file the screens above the assets axis reach. Its ink is the line it stands in;
- * a history draws it at Ink 2, a caption at whatever the caption is.
+ * the Activity draws it at Ink 2, a caption at whatever the caption is.
  *
  * `useReaderInstant` IS EXPORTED BECAUSE SOME INSTANTS ARE INSIDE A SENTENCE.
  * `SEND_COPY.sent` builds a whole sentence around the moment an order went to its

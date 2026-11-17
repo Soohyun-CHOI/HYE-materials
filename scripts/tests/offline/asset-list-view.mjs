@@ -2098,7 +2098,7 @@ export function run({ check, assert, log }) {
     check("  and a hundred and one as a hundred and one", hundredAndOne.length, 101);
     check("a selection of a hundred prints", describeSelection(hundred, thisPage).printable, true);
     check("  and one of a hundred and one does not", describeSelection(hundredAndOne, thisPage).printable, false);
-    check("  and says why before the control", describeSelection(hundredAndOne, thisPage).reason, "Up to 100 labels per print.");
+    check("  and says why before the control", describeSelection(hundredAndOne, thisPage).reason, "Up to 100 labels per print");
     check("  where one it takes has no reason", describeSelection(hundred, thisPage).reason, null);
     // The same edge from the address's side: a hundred and one values holding a repeat
     // are a hundred assets, and print.
@@ -2262,7 +2262,7 @@ export function run({ check, assert, log }) {
         ].join(" "),
         "true true true"
     );
-    // ITS FIGURE IS TABULAR (#522), as 1d sets the `100` in `Up to 100 labels per print.`: 0h's
+    // ITS FIGURE IS TABULAR (#522), as 1d sets the `100` in `Up to 100 labels per print`: 0h's
     // every run of figures. The sentence's other words take nothing from it.
     check(
         "the bar's reason sets its figure tabular, as 1d draws it (#522)",

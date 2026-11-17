@@ -5,7 +5,7 @@ import { PassingToast } from "@/app/components/Toast";
 import { ASSET_REGISTRATION_COPY as COPY, REGISTRATION_SENT_KEY, addedToTell } from "@/lib/assetRegistration";
 
 /**
- * What a registration that wrote everything says on landing (#617): `5 items added.` for a moment,
+ * What a registration that wrote everything says on landing (#617): `5 items added` for a moment,
  * 12 over the selection bar and centered on the list, as Tools 57 draws 1c's `All written`.
  *
  * IT TAKES THE DIALOG'S MARK, AND NOTHING ON THE ADDRESS. The dialog leaves a mark in the tab's own

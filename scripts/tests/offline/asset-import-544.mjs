@@ -207,7 +207,7 @@ export function run({ check, assert, log }) {
     check("    and a class outside the two is no refusal either", classC.problems.join(" | "), "");
     assert(
         "    a new path the catalog's page would refuse is refused",
-        /(^| \| )A2: the catalog's page would refuse Saw {2}— Tools > Power Tools > Saw — level1: Choose a type\.$/.test(problemsOf(smallBase({ list: readList(csv([[SMALL[1][0], "Tools", ...SMALL[1].slice(2)]])).rows })))
+        /(^| \| )A2: the catalog's page would refuse Saw {2}— Tools > Power Tools > Saw — level1: Choose a type$/.test(problemsOf(smallBase({ list: readList(csv([[SMALL[1][0], "Tools", ...SMALL[1].slice(2)]])).rows })))
     );
     check("    an add part target with an item on it",problemsOf(withCatalog([base.catalog[0], row("recBand", BAND_SAW, { assets: ["recX"] })])), "line 6 (A5): add part, and 1 item(s) stand on its target recBand, which the part number would rename");
     const otherSpelling = plan(withCatalog([base.catalog[0], row("recBand", ["Tool", "Power Tools", "band saw", "", "DeWalt", ""])]), NONE);

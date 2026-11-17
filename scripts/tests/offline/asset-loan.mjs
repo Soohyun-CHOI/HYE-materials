@@ -25,7 +25,7 @@
 //   5. THE WRITES OFF THEIR SOURCE: the two actions' wrapper, fresh plan and latest entry, the entry
 //      before the item and only where due, the item's write caught and named, no `writeEvent`; the
 //      provider, the menu, the dialog and the sheet, the return's question, the page's caption and its
-//      history's route; the registration and the office's change writing `Owner Job`.
+//      Activity's route; the registration and the office's change writing `Owner Job`.
 //   6. THE FILL'S PLAN BY VALUE (`scripts/import/fill_owner_job_598_plan.mjs`).
 //   7. EVERY WORD by value, from the copy constants.
 //
@@ -197,12 +197,12 @@ export function run({ check, assert, log }) {
     const writes = (jobRecordId, entry) => said({ jobRecordId, writesEntry: entry, writesAsset: true, refusal: null, stale: false });
     const refused = (refusal, stale = false) => said({ jobRecordId: null, writesEntry: false, writesAsset: false, refusal, stale });
     check("a lending writes its entry and the item, on the job chosen", said(readLend(home, { drawnJobId: OWNER.id, jobId: BORROWER.id })), writes(BORROWER.id, true));
-    check("  none chosen is the design's sentence", said(readLend(home, { drawnJobId: OWNER.id, jobId: "" })), refused("Choose a job."));
-    check("  the owner job itself is no choice", said(readLend(home, { drawnJobId: OWNER.id, jobId: OWNER.id })), refused("Choose a job."));
-    check("  a job no list offers is none", said(readLend(home, { drawnJobId: OWNER.id, jobId: "recGone" })), refused("Choose a job."));
+    check("  none chosen is the design's sentence", said(readLend(home, { drawnJobId: OWNER.id, jobId: "" })), refused("Choose a job"));
+    check("  the owner job itself is no choice", said(readLend(home, { drawnJobId: OWNER.id, jobId: OWNER.id })), refused("Choose a job"));
+    check("  a job no list offers is none", said(readLend(home, { drawnJobId: OWNER.id, jobId: "recGone" })), refused("Choose a job"));
     check("  whose item it is now is asked first", said(readLend(home, { drawnJobId: BORROWER.id, jobId: "" })), refused("This item moved to 25-USA-13. Nothing was saved."));
     check("  a page drawn before somebody checked it out is stale", said(readLend(plan("site manager on the owner", { status: ASSET_STATUS.OUT }), { drawnJobId: OWNER.id, jobId: BORROWER.id })), refused("Someone else updated this item first. Nothing was saved.", true));
-    check("  a retired item says the terminal sentence", said(readLend(plan("site manager on the owner", { status: ASSET_STATUS.RETIRED }), { drawnJobId: OWNER.id, jobId: BORROWER.id })), refused("This item is retired."));
+    check("  a retired item says the terminal sentence", said(readLend(plan("site manager on the owner", { status: ASSET_STATUS.RETIRED }), { drawnJobId: OWNER.id, jobId: BORROWER.id })), refused("This item is retired"));
     check("nothing is lent on: the borrower's press is stale", said(readLend(loaned, { drawnJobId: BORROWER.id, jobId: OTHER.id })), refused("Someone else updated this item first. Nothing was saved.", true));
     check("  and the owner's, once lent, no longer theirs to record", said(readLend(plan("site manager on the owner", { job: BORROWER.id }), { drawnJobId: OWNER.id, jobId: OTHER.id })), refused("This item moved to 26-USA-12. Nothing was saved."));
     const halfLent = plan("site manager on the owner", { latest: lentEntry });
@@ -221,11 +221,11 @@ export function run({ check, assert, log }) {
     const shut = plan("site manager on the owner", { jobs: withClosed });
     check("a closed job is not offered to a lending (#488)", offers(shut), "records · lend(23-USA-09) · press Checked out");
     check("  and is kept apart, with its code", JSON.stringify(shut.lendClosed.map(({ id, jobCode }) => ({ id, jobCode }))), JSON.stringify([{ id: BORROWER.id, jobCode: BORROWER.jobCode }]));
-    check("  a press naming it is refused by name", said(readLend(shut, { drawnJobId: OWNER.id, jobId: BORROWER.id })), refused("26-USA-12 is closed."));
+    check("  a press naming it is refused by name", said(readLend(shut, { drawnJobId: OWNER.id, jobId: BORROWER.id })), refused("26-USA-12 is closed"));
     check("  and still an open one lends", said(readLend(shut, { drawnJobId: OWNER.id, jobId: OTHER.id })), writes(OTHER.id, true));
     const lastShut = plan("site manager on the owner", { jobs: [OWNER, closing(BORROWER), closing(OTHER)] });
     check("  with every other job closed nothing is lent", `${lastShut.mayLend} ${lastShut.lendJobs.length}`, "false 0");
-    check("  and a press is told the job closed, not that somebody got there first", said(readLend(lastShut, { drawnJobId: OWNER.id, jobId: OTHER.id })), refused("23-USA-09 is closed."));
+    check("  and a press is told the job closed, not that somebody got there first", said(readLend(lastShut, { drawnJobId: OWNER.id, jobId: OTHER.id })), refused("23-USA-09 is closed"));
     check("  though one on no job still is", said(readLend(lastShut, { drawnJobId: OWNER.id, jobId: "" })), refused("Someone else updated this item first. Nothing was saved.", true));
     const halfShut = plan("site manager on the owner", { jobs: withClosed, latest: lentEntry });
     check("a lending left half done keeps its closed job, and finishes there", said(readLend(halfShut, { drawnJobId: OWNER.id, jobId: BORROWER.id })), writes(BORROWER.id, false));
@@ -519,7 +519,7 @@ async function exportAndRest({ check, assert, log, jobs, kinds, kept }) {
     );
     assert(
         "  and draws a loan entry's route from loanRoute, named off the job list",
-        /route: routeCodes\(loanRoute\(rows, index\), jobCodeById\),/.test(page) && /<Icon name="arrow-right"/.test(page) && /\{COPY\.historyRouteArrow\}/.test(page)
+        /route: routeCodes\(loanRoute\(rows, index\), jobCodeById\),/.test(page) && /<Icon name="arrow-right"/.test(page) && /\{COPY\.activityRouteArrow\}/.test(page)
     );
     const caption = parseFile(CAPTION).source;
     assert("the caption's On loan from is the copy's, before the owner job's code", /\{ASSET_COPY\.onLoanFrom\}<\/span> \{ownerJob\}/.test(caption));
@@ -542,9 +542,9 @@ async function exportAndRest({ check, assert, log, jobs, kinds, kept }) {
     // ANTI-VACUITY: a planted writer of the owner job is counted.
     check("  a third writer would be seen", ([...assets.matchAll(/"Owner Job": \[/g)].length + (parseSource('base(T).update([{ id, fields: { "Owner Job": [x] } }]);', "<planted>").source.match(/"Owner Job": \[/g) ?? []).length), 3);
 
-    // ── the history's route ─────────────────────────────────────────────────
+    // ── the Activity's route ────────────────────────────────────────────────
     log("");
-    log("a loan's route in the history (loanRoute, logRowFacts):");
+    log("a loan's route in the Activity (loanRoute, logRowFacts):");
     const history = [
         { event: ASSET_EVENT.RETURNED_TO_OWNER, job: [OWNER.id] },
         { event: ASSET_EVENT.CHECKED_IN, job: [BORROWER.id] },
@@ -591,7 +591,7 @@ async function exportAndRest({ check, assert, log, jobs, kinds, kept }) {
     log("every word a loan adds:");
     const C = ASSET_TRANSITION_COPY;
     check("the menu's two lines", `${C.control[ASSET_EVENT.LENT]} | ${C.control[ASSET_EVENT.RETURNED_TO_OWNER]}`, "Lend to another job | Return to owner");
-    check("the lending's label, its choice, its line, its refusal and its commitment", [C.lendJobLabel, C.lendJobUnchosen, C.lendHelp({ ownerJobCode: "26-USA-01" }), C.lendNoneChosen, C.lendSubmit, C.working[ASSET_EVENT.LENT]].join(" | "), "Job | Choose a job | 26-USA-01 keeps owning it until it's returned. | Choose a job. | Lend | Lending…");
+    check("the lending's label, its choice, its line, its refusal and its commitment", [C.lendJobLabel, C.lendJobUnchosen, C.lendHelp({ ownerJobCode: "26-USA-01" }), C.lendNoneChosen, C.lendSubmit, C.working[ASSET_EVENT.LENT]].join(" | "), "Job | Choose a job | 26-USA-01 keeps owning it until it's returned. | Choose a job | Lend | Lending…");
     check(
         "the return's question",
         [C.returnHeading({ itemName: "Battery M18, Milwaukee", assetId: "HYE-AST-260909-004", ownerJobCode: "26-USA-07" }), C.returnHeading({ itemName: "", assetId: "HYE-AST-260909-004", ownerJobCode: "26-USA-07" }), C.returnBody({ ownerJobCode: "26-USA-07", jobCode: "26-USA-06" }), C.returnSubmit, C.working[ASSET_EVENT.RETURNED_TO_OWNER]].join(" | "),
@@ -599,7 +599,7 @@ async function exportAndRest({ check, assert, log, jobs, kinds, kept }) {
     );
     check("a lending left half done, naming the job it went to (#612)", C.lendHalfDone({ to: "26-USA-12" }), "The item wasn't fully lent to 26-USA-12. Lend it again to finish.");
     check("a return left half done, naming no job (#612)", C.returnHalfDone, "The item wasn't fully returned. Return it again to finish.");
-    check("the page's and the list's words", [ASSET_COPY.onLoanFrom, ASSET_COPY.onLoan, ASSET_COPY.historyRouteArrow, ASSET_COPY.historyTo].join(" | "), "On loan from | On loan | → | to");
+    check("the page's and the list's words", [ASSET_COPY.onLoanFrom, ASSET_COPY.onLoan, ASSET_COPY.activityRouteArrow, ASSET_COPY.activityTo].join(" | "), "On loan from | On loan | → | to");
     check("what got in front of a loan", C.moved({ by: "Jisoo Park", event: ASSET_EVENT.LENT, at: "2026-10-05T13:50:00.000Z", attempted: ASSET_EVENT.CHECKED_OUT })[0], "Jisoo Park already lent this to another job on ");
 }
 

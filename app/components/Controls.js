@@ -220,7 +220,7 @@ export function Notice({ children }) {
  * screen waits on, as the Notice's did (#463).
  *
  * A LINE THAT REFUSES NOTHING TAKES THE SAME LOOK AS `role="status"` (#527): 1l sets what an edit
- * will do — `10 items will show the new name.` — as this line before the press, which is a note
+ * will do — `10 items will show the new name` — as this line before the press, which is a note
  * the reader reads rather than an answer to a press, so it is heard when it changes and not as
  * an alert. `DialogActions`' `note` is its one caller.
  */

@@ -459,7 +459,7 @@ export function run({ check, assert, log }) {
             "Discontinued only",
             "Clear discontinued filter",
             "Nothing in the catalog matches",
-            "Only admins can edit the catalog.",
+            "Only admins can edit the catalog",
         ])
     );
     check(
@@ -592,7 +592,7 @@ export function run({ check, assert, log }) {
     check(
         "nothing typed is refused field by field, all at once",
         said(readCatalogEntry({}, { rows, groups: GROUPS })),
-        "level1=Choose a type. | level2=Enter a category. | level3=Enter a name."
+        "level1=Choose a type | level2=Enter a category | level3=Enter a name"
     );
     check(
         "  a type is one of its two values, and a class typed in is asked nothing and saved nowhere (#552)",
@@ -601,23 +601,23 @@ export function run({ check, assert, log }) {
             said(readCatalogEntry(entry({ assetClass: "C" }), { rows, groups: GROUPS })),
             "assetClass" in (readCatalogEntry(entry({ assetClass: "A" }), { rows, groups: GROUPS }).entry ?? {}),
         ].join(" | "),
-        "level1=Choose a type. | saves | false"
+        "level1=Choose a type | saves | false"
     );
     check(
         "  a placeholder is no category and no name, and a level a row may leave empty is left so",
         said(readCatalogEntry(entry({ level2: "N/A", level3: "tbd", size: "n.a.", maker: "-", partNumber: "None" }), { rows, groups: GROUPS })),
-        "level2=Enter a category. | level3=Enter a name. | size=Leave it empty. | maker=Leave it empty. | partNumber=Leave it empty."
+        "level2=Enter a category | level3=Enter a name | size=Leave it empty | maker=Leave it empty | partNumber=Leave it empty"
     );
     const saved = readCatalogEntry(entry({ level2: "  power   tool ", level3: "battery", size: " M18 ", maker: "milwaukee " }), { rows, groups: GROUPS });
     check(
         "a path another row holds is refused on the name, in that row's category — case and spacing aside",
         said(saved),
-        "level3=This item already exists in Power Tool."
+        "level3=This item already exists in Power Tool"
     );
     check(
         "  a discontinued row's path too, which it keeps",
         said(readCatalogEntry(entry({ level1: "Equipment", level2: "Cutting Equipment", level3: "Cutting Machine", maker: "AXXAIR", partNumber: "172" }), { rows, groups: GROUPS })),
-        "level3=This item already exists in Cutting Equipment."
+        "level3=This item already exists in Cutting Equipment"
     );
     check(
         "  but not the row an edit saves over",
@@ -683,7 +683,7 @@ export function run({ check, assert, log }) {
             JSON.stringify(readCategoryEntry({ level1: "Tool", level2: " Lift   Equipment " }, GROUPS).group),
             JSON.stringify(readCategoryEntry({ level1: "Tool", level2: "high-speed  tools" }, GROUPS).group),
         ].join(" || "),
-        'level2=This category already exists. || level1=Choose a type. | level2=Enter a category. || level2=Enter a category. || {"level1":"Tool","level2":"Lift Equipment"} || {"level1":"Tool","level2":"High-speed Tools"}'
+        'level2=This category already exists || level1=Choose a type | level2=Enter a category || level2=Enter a category || {"level1":"Tool","level2":"Lift Equipment"} || {"level1":"Tool","level2":"High-speed Tools"}'
     );
     check(
         "the field marks a category new for the type chosen, and a name new under the category",
@@ -805,7 +805,7 @@ export function run({ check, assert, log }) {
             "New",
             "New category. It is added with this entry.",
             "New category.",
-            "New name in this category.",
+            "New name in this category",
             "Shows as",
             "Item name",
         ])
@@ -813,7 +813,7 @@ export function run({ check, assert, log }) {
     check(
         "  an edit's line, its note, its leading actions and its menu",
         [C.itemCount(0), C.itemCount(1), C.itemCount(10), C.renames(1), C.renames(10), C.discontinue, C.restore, C.moreActions, C.remove, C.removeTitle("Wrench 16 mm"), C.removeSays].join(" | "),
-        "No items | 1 item | 10 items | 1 item will show the new name. | 10 items will show the new name. | Discontinue | Restore | More actions | Remove from catalog | Remove Wrench 16 mm from catalog? | It comes out of the catalog. No items use it."
+        "No items | 1 item | 10 items | 1 item will show the new name | 10 items will show the new name | Discontinue | Restore | More actions | Remove from catalog | Remove Wrench 16 mm from catalog? | It comes out of the catalog. No items use it."
     );
     check(
         "  a row's one control, and none of the words a selection said before #552 took away `Set class`",
@@ -824,18 +824,18 @@ export function run({ check, assert, log }) {
         "  each refusal",
         JSON.stringify([C.refusal.level1, C.refusal.level2, C.refusal.level3, C.refusal.leaveEmpty, C.refusal.exists("Wrench"), C.refusal.categoryExists, C.notSaved, C.categoryOnly, C.categoryNotCreated, C.notRemoved, C.gone, C.hasItems]),
         JSON.stringify([
-            "Choose a type.",
-            "Enter a category.",
-            "Enter a name.",
-            "Leave it empty.",
-            "This item already exists in Wrench.",
-            "This category already exists.",
+            "Choose a type",
+            "Enter a category",
+            "Enter a name",
+            "Leave it empty",
+            "This item already exists in Wrench",
+            "This category already exists",
             { add: "Couldn't add it to the catalog. Try again.", edit: "Couldn't save the changes. Try again." },
             "The category was added, but the item wasn't. Try again.",
             "Couldn't create the category. Try again.",
             "Couldn't remove it from the catalog. Try again.",
-            "This item was already removed from the catalog.",
-            "It can't be removed because items use it.",
+            "This item was already removed from the catalog",
+            "It can't be removed because items use it",
         ])
     );
     check(

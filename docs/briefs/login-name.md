@@ -60,7 +60,7 @@ this is a step, not a profile screen. Correcting a typo is an Airtable edit.
 **The first name is what every screen naming a person shows**; the full name
 appears where a person is chosen from a list (the signer pickers), where somebody
 outside the company reads it (the purchase order PDF and the order email), where
-a person is named as the one who did something (an asset's history), and where the
+a person is named as the one who did something (an asset's Activity), and where the
 reader is named to themselves (the rail's account).
 
 **While a name is blank the app prints the local part of the person's email**,

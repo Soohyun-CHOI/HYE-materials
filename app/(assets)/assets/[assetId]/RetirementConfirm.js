@@ -33,7 +33,7 @@ import { ASSET_TRANSITION_COPY as COPY } from "@/lib/assetTransition";
  * `Retiring…`, and `Cancel` locks with it (#469); neither is disabled, so focus stays on the
  * commitment that was pressed. A landing takes it away with the page it stood on, and the frame
  * then hands focus to the page's heading. A retirement somebody else's got in front of says
- * `This item is retired.` since #614, where until then it said nothing and left the page to.
+ * `This item is retired` since #614 (bare since #667), where until then it said nothing and left the page to.
  *
  * WHERE ITS ANSWER IS SAID IS THE PROVIDER'S (#614): at a desk above its actions, every refusal and a
  * press left half done alike, the question standing until the reader closes it, its commitment

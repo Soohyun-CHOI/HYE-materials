@@ -7,7 +7,7 @@ included — once the sign-in steps have their name and, unless they are the off
 the President, a job, as on every page. Recording on it — the transitions, a loan, the retirement, its serial
 number and note, and printing its label — is a site manager's on the job the item is
 on (`lib/assetJob.js:recordsOn`). Changing its job and deleting it are the office's
-(`Is Admin`), while its history holds its `Created` entry alone. Everyone else reads
+(`Is Admin`), while its Activity holds its `Created` entry alone. Everyone else reads
 the same screen, at both widths, with none of those controls.
 Which width comes first: **phone**. Both widths must work: a scan arrives on a phone,
 and the desk is what it opens out into.
@@ -37,7 +37,7 @@ the sticker**.
 **The status** (`Assets."Status"`): `In stock`, `Out`, `In repair` or `Retired`, and
 after it the one value only that status has — who holds an item that is out, the
 day one in repair was sent, the day a retired one was retired — each read off the
-latest history entry already in hand.
+latest Activity entry already in hand.
 
 **The job the item is on, under the title** — and at a desk with jobs to choose
 between, the breadcrumb's job level as well — and **while it is on loan, the job that
@@ -47,7 +47,7 @@ whatever list it was opened from (`listJobFromAsset`).
 
 **Its two details, the serial number and the note** — a maker's number, and the one
 line a site manager keeps on it. Each is read by everybody wherever the item has one,
-in every status. **Neither is an event**: writing one adds no history entry, moves no
+in every status. **Neither is an event**: writing one adds no Activity entry, moves no
 status and no job, and nothing records who wrote it or when. Neither is on the label.
 **A serial number is one item's within its kind**: no other item of the same kind,
 retired ones included and deleted ones not, may hold it, compared regardless of case
@@ -96,7 +96,7 @@ dialog asks for the name and confirms nothing.
   happen. It opens a question naming the item; **it takes no input — no reason and no
   job** — and nothing happens until a press inside it. A retirement records on the
   owner job, so an item retired on loan goes back to its owner as it ends.
-- **Change job** and **Delete**, for the office, only while the history holds the
+- **Change job** and **Delete**, for the office, only while the Activity holds the
   `Created` entry alone (`lib/assetOfficeActs.js`): the item's job and owner job move
   with that entry — to an open job, or to the one the item or its entry already
   names closed or not — and its number, label, status and the entry's moment and recorder
@@ -104,8 +104,8 @@ dialog asks for the name and confirms nothing.
   the item is shown nowhere again — no list, count, search, export or label run, and
   its address and label read as no item. Its number is never given to another.
 
-**The history**, one entry per `Asset Log` row, newest first: the event, when, and
-who recorded it, named in full. **The event is printed as the base stores it** —
+**The Activity** (`ASSET_COPY.activityHeading`), one entry per `Asset Log` row,
+newest first: the event, when, and who recorded it, named in full. **The event is printed as the base stores it** —
 `Created`, `Checked out`, `Checked in`, `Sent for repair`, `Returned from repair`,
 `Lent`, `Returned to owner`, `Retired` or `Deleted` — the last one only in a deletion
 left half done. **A `Checked out` entry carries a fourth fact, who it went to**, and a
@@ -126,8 +126,8 @@ For a site manager on the job, printing it opens the labels' dialog on this one
 label (`tool-items-labels.md`); the page prints nothing itself.
 
 **What it reads:** 5 operations — the session, the asset, its category, its people
-and the job list — plus one per fifty history rows, and one more, the job's recent
-names, when it offers a check-out: 7 for an item in stock with a short history and 6
+and the job list — plus one per fifty `Asset Log` rows, and one more, the job's recent
+names, when it offers a check-out: 7 for an item in stock with a short Activity and 6
 on the other paths (`docs/notes/tools.md`). What the status allows is decided from facts in hand and
 costs nothing.
 
@@ -165,7 +165,7 @@ is an action's, which draws the page again as it answers, and the sentence stand
 | a lending left half done | `ASSET_TRANSITION_COPY.lendHalfDone` |
 | a return to the owner left half done | `ASSET_TRANSITION_COPY.returnHalfDone` |
 | a lending with no job chosen | `ASSET_TRANSITION_COPY.lendNoneChosen` |
-| a lending to a job closed since the page was drawn | `CLOSED_JOB_COPY.refusal` |
+| a lending to a job closed since the page was drawn | `CLOSED_JOB_COPY.assetRefusal` |
 | a check-out with no name | `ASSET_TRANSITION_COPY.nameRequired` |
 
 The two about whose item it is say the same whatever was pressed — a detail's, a
@@ -180,7 +180,7 @@ the one that means something was written**, and pressing again finishes it.
 (`ASSET_OFFICE_COPY.recordedSince`, `ASSET_OFFICE_COPY.deleteRecordedSince`), a reader
 no longer the office (`ASSET_OFFICE_COPY.noAccess`, `ASSET_OFFICE_COPY.deleteNoAccess`),
 a job change with none chosen (`ASSET_OFFICE_COPY.jobNoneChosen`) or to a job closed
-since the page was drawn (`CLOSED_JOB_COPY.refusal`), and say a half-done
+since the page was drawn (`CLOSED_JOB_COPY.assetRefusal`), and say a half-done
 one (`ASSET_OFFICE_COPY.halfDone`, `ASSET_OFFICE_COPY.deleteHalfDone`) — where the press
 was, as above, the commitment turned away when the page drawn again no longer offers
 the act. A half-done deletion shows its `Deleted` entry, and its press stays to finish
@@ -218,7 +218,7 @@ A reader who may not write meets the values, and nothing where there is none.
 **For a reader who records nothing here**, nothing where the controls would be, and
 nothing said — no transition, no loan, no retirement, no detail editing and no
 printing — a site manager on another job or on none, and anybody who is not a site
-manager. The status, the job, who holds an item that is out and the whole history are
+manager. The status, the job, who holds an item that is out and the whole Activity are
 theirs as anybody's. A press made on a page drawn while they recorded is refused where
 it was pressed, as above — the item moved, or no longer theirs to record — and the
 page is drawn again for who they are now, with nothing written. The office still meets
@@ -234,7 +234,7 @@ empty.** Those rows exist and are not repaired — writing a name onto them now 
 state something nobody recorded. A blank fact reads as a defect upstream, shown
 rather than hidden.
 
-**When the asset has no history at all:** `ASSET_COPY.noHistory`. **This is reachable
+**When the asset has no activity at all:** `ASSET_COPY.noActivity`. **This is reachable
 and is not an error**: a registration writes the asset and then its first entry, and
 a failure between the two leaves exactly this. Nothing repairs it, since a later entry
 would state a time that is not when it was created.
@@ -262,13 +262,13 @@ what the person holding it can see, and the app does not record it.
 app on every event rather than computed on any screen, so the three cannot disagree;
 and it is the value this screen's controls move.
 
-**The job on a history entry is where the asset was after that event**
+**The job on an Activity entry is where the asset was after that event**
 (`lib/assetStatus.js:JOB_SOURCE_OF_EVENT`): a scan, a repair and a deletion the item's
 own job, which they leave it on; a lending the job chosen; a return the owner job; a
 retirement the owner job, or the item's own where it has none; a registration the
 registering site manager's. It is stored at that moment and never looked up again —
 but for the office's job change, which moves a `Created` entry standing alone — so the
-column of jobs down a history is the record of where the item was, and nothing stores
+column of jobs down an item's `Asset Log` rows is the record of where it was, and nothing stores
 a former job.
 
 **The facts on an entry are invariants of the base.** The event is one of the closed
@@ -279,7 +279,7 @@ hiding a defect upstream.
 
 **An action says what it did by arriving.** No banner, no toast and nothing in the
 address for a transition that worked: the status has flipped, an entry heads the
-history, and the control reads the other way.
+Activity, and the control reads the other way.
 
 **The two tables are not interchangeable.** An `Asset Categories` row is the kind, whose
 name heads this page; an `Assets` row is this object with this printed id. Both are an

@@ -243,7 +243,7 @@ export function run({ check, assert, log }) {
             ASSET_TRANSITION_COPY.movedTo({ jobCode: B.jobCode }),
             ASSET_TRANSITION_COPY.movedTo({ jobCode: null }),
         ].join(" | "),
-        "You no longer have permission to update this item. Nothing was saved. | This item moved to 25-USA-13. Nothing was saved. | Nothing was saved."
+        "You no longer have permission to update this item. Nothing was saved. | This item moved to 25-USA-13. Nothing was saved. | Nothing was saved"
     );
 
     // ── 4: the label read ────────────────────────────────────────────────────

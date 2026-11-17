@@ -167,7 +167,7 @@ export function run({ check, assert, log }) {
     check(
         "the field's line and its count, and no example in the field since the files of 2026-11-04's afternoon (#607)",
         ["placeholder" in ASSET_NOTE_COPY, ASSET_NOTE_COPY.help, ASSET_NOTE_COPY.count(28), ASSET_NOTE_COPY.count(55), ASSET_NOTE_COPY.tooLong].join(" | "),
-        "false | Up to 50 characters. | 28/50 | 55/50 | Use 50 characters or fewer."
+        "false | Up to 50 characters | 28/50 | 55/50 | Use 50 characters or fewer"
     );
     check(
         "the actions and their working words",

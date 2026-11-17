@@ -614,7 +614,7 @@ const DESIGNED = new Map([
             "ASSET_SERIAL_COPY.tooLong",
             "ASSET_SERIAL_COPY.takenBy",
             "ASSET_SERIAL_COPY.changedFirst",
-            "ASSET_COPY.noHistory",
+            "ASSET_COPY.noActivity",
             "ASSET_COPY.notFoundHeading",
             "ASSET_COPY.notFoundScanned",
             "ASSET_COPY.goToTools",
