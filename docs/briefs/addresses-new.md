@@ -42,8 +42,9 @@ company ships to, and the name people will know it by.`
   with a stray comma in it.
 - `Country`, a dropdown of exactly two options, `USA` and `Other`, defaulting to
   `USA`. It is the closed set the field already holds and is not editable here.
-- `Job`, a dropdown, **optional**, whose empty option reads `No job`. Every job on
-  the base is offered, grouped `My Jobs` then `All Jobs` — the reader's own
+- `Job`, a dropdown, **optional**, whose empty option reads `No job`. Every open job
+  on the base is offered (a closed one, whose `Closed Date` holds a day, takes no new
+  address, #488), grouped `My Jobs` then `All Jobs` — the reader's own
   assignments first and none hidden, which is the grouping and the three labels the
   request form shows the office and the President (`Jobs` is the heading when the
   reader has no assignment).
@@ -89,7 +90,10 @@ take.
 
 **The screen can also be opened with a job already chosen**, by a link carrying
 `?job={code}` — which the request form writes when a requester leaves it to add
-an address.
+an address. A code naming no open job chooses nothing, a closed job's as an unknown
+one's (#488), and a closed job submitted from a form drawn before it closed is left
+off the address rather than refused: the address is saved with no job and the line
+says `Created {label}.`
 
 **When a request sent the reader here (`?from={prId}`):** a line above the form,
 `{prId} is waiting for this address.`, with `Back to {prId}` beside it as a link.
@@ -126,7 +130,8 @@ job — so a job's address list cannot leak one. **What an assignment gates else
 is an act that makes a claim**: a request commits money on a job, a delivery says
 material arrived on one, a tool event says it happened on one. That is why the
 request form offers a requester only their own jobs, and why a requester it sends
-here already holds the job they came with. An address attached to a job says none
+here already holds the job they came with — unless it has closed, which this screen
+then does not choose for them. An address attached to a job says none
 of these — it says a place is somewhere that job ships to, and the person recording
 it is asserting nothing about themselves. So the grouping is the whole of what an
 assignment does on this screen, and a redesign may reorder it but must not turn it

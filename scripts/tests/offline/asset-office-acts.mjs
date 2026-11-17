@@ -114,12 +114,12 @@ function deletion582({ check, assert, log }) {
     check(
         "a deletion left half done may be finished and its job no longer changed, the Deleted entry named",
         JSON.stringify(planOfficeActs({ user: user({ admin: true }), log: [created(JOB_A), deletedRow], jobs: JOBS })),
-        '{"mayChangeJob":false,"mayDelete":true,"created":null,"deletedEntry":{"id":"recEntry2"},"jobs":[]}'
+        '{"mayChangeJob":false,"mayDelete":true,"created":null,"deletedEntry":{"id":"recEntry2"},"jobs":[],"closedJobs":[]}'
     );
     check(
         "  where an item nothing has happened to may have both",
         JSON.stringify(planOfficeActs({ user: user({ admin: true }), log: [created(JOB_A)], jobs: [JOB_A] })),
-        '{"mayChangeJob":true,"mayDelete":true,"created":{"id":"recEntry1","jobRecordId":"recJobA"},"deletedEntry":null,"jobs":[{"id":"recJobA","jobCode":"26-USA-05"}]}'
+        '{"mayChangeJob":true,"mayDelete":true,"created":{"id":"recEntry1","jobRecordId":"recJobA"},"deletedEntry":null,"jobs":[{"id":"recJobA","jobCode":"26-USA-05"}],"closedJobs":[]}'
     );
 
     // ── what a deletion writes ──────────────────────────────────────────────
@@ -317,12 +317,39 @@ export function run({ check, assert, log }) {
     );
     check("  which says whether the reader is the office, the flag read there once", `${assetListScope({ isAdmin: true }, JOBS, null).office} ${assetListScope({ isAdmin: false }, JOBS, null).office}`, "true false");
     check("its Created entry, the row and the job it holds", JSON.stringify(office.created), '{"id":"recEntry1","jobRecordId":"recJobB"}');
+    // #488 — A CHANGE NEWLY CHOOSES A JOB, SO A CLOSED ONE IS NOT OFFERED, but for the two the item
+    // already names: its `Created` entry's job and the one it stands on, which differ while a change
+    // is half done. The closed ones left off are kept apart, and a press naming one is told so.
+    const CLOSED_A = { ...JOB_A, closedDate: "2026-11-02" };
+    const CLOSED_C = { ...JOB_C, closedDate: "2026-11-03" };
+    const withClosed = [CLOSED_C, CLOSED_A, JOB_B];
+    const closedPlan = (entryJob, assetJob) =>
+        planOfficeActs({ user: user({ admin: true }), log: [created(entryJob)], jobs: withClosed, assetJobRecordId: assetJob?.id ?? null });
+    const codes = (plan) => `${plan.jobs.map((j) => j.jobCode).join(" ")} / closed ${plan.closedJobs.map((j) => j.jobCode).join(" ") || "none"}`;
+    check("a closed job is not offered to a change, and is kept apart (#488)", codes(closedPlan(JOB_B, JOB_B)), "26-USA-06 / closed 26-USA-05 26-USA-07");
+    check("  but the job its Created entry holds is, closed or not", codes(closedPlan(CLOSED_A, JOB_B)), "26-USA-05 26-USA-06 / closed 26-USA-07");
+    check("  and the one it stands on, which a half-done change leaves apart", codes(closedPlan(JOB_B, CLOSED_C)), "26-USA-06 26-USA-07 / closed 26-USA-05");
+    check(
+        "  a press naming a closed one is refused by name, before either write",
+        JSON.stringify(readJobChange(closedPlan(JOB_B, JOB_B), { jobId: JOB_A.id, assetJobRecordId: JOB_B.id, assetOwnerJobRecordId: JOB_B.id })),
+        '{"jobRecordId":null,"writesEntry":false,"writesAsset":false,"unchanged":false,"refusal":"26-USA-05 is closed."}'
+    );
+    check(
+        "  while one the list offers no longer is still the choice's own refusal",
+        readJobChange(closedPlan(JOB_B, JOB_B), { jobId: "recGone", assetJobRecordId: JOB_B.id, assetOwnerJobRecordId: JOB_B.id }).refusal,
+        ASSET_OFFICE_COPY.jobNoneChosen
+    );
+    check(
+        "  and the held one closed is saved as any other",
+        readJobChange(closedPlan(JOB_B, CLOSED_C), { jobId: JOB_C.id, assetJobRecordId: JOB_C.id, assetOwnerJobRecordId: JOB_C.id }).jobRecordId,
+        JOB_C.id
+    );
     check(
         "a reader who may not is handed no entry and no jobs",
         JSON.stringify(planOfficeActs({ user: user({ admin: false, manager: true, jobs: [JOB_A] }), log: [created(JOB_A)], jobs: JOBS })),
-        '{"mayChangeJob":false,"mayDelete":false,"created":null,"deletedEntry":null,"jobs":[]}'
+        '{"mayChangeJob":false,"mayDelete":false,"created":null,"deletedEntry":null,"jobs":[],"closedJobs":[]}'
     );
-    check("  nor an item something has happened to", JSON.stringify(planOfficeActs({ user: user({ admin: true }), log: [created(JOB_A), event(ASSET_EVENT.RETIRED, 2)], jobs: JOBS })), '{"mayChangeJob":false,"mayDelete":false,"created":null,"deletedEntry":null,"jobs":[]}');
+    check("  nor an item something has happened to", JSON.stringify(planOfficeActs({ user: user({ admin: true }), log: [created(JOB_A), event(ASSET_EVENT.RETIRED, 2)], jobs: JOBS })), '{"mayChangeJob":false,"mayDelete":false,"created":null,"deletedEntry":null,"jobs":[],"closedJobs":[]}');
 
     // ── what a Save writes ──────────────────────────────────────────────────
     log("");
@@ -424,7 +451,7 @@ export function run({ check, assert, log }) {
         "  its one row read, with the job list, only while it has one — the ids standing for the rows otherwise",
         /rowIds\.length === 1\s*\?\s*await Promise\.all\(\[getAssetLogByAsset\(asset\.id, \{ rowIds \}\), getAllJobs\(\)\]\)\s*:\s*(\/\/[^\n]*\n\s*)?\[rowIds\.map\(\(id\) => \(\{ id \}\)\), \[\]\];/.test(handlerSource)
     );
-    assert("  the plan asked of what it read", /const plan = planOfficeActs\(\{ user, log, jobs \}\);/.test(handlerSource));
+    assert("  the plan asked of what it read", /const plan = planOfficeActs\(\{ user, log, jobs, assetJobRecordId: asset\.job\?\.\[0\] \?\? null \}\);/.test(handlerSource));
     assert(
         "  the rule asked of the job sent and the asset's own, and its owner job (#598)",
         /readJobChange\(plan, \{\s*jobId: String\(formData\.get\("jobId"\) \?\? ""\),\s*assetJobRecordId: asset\.job\?\.\[0\] \?\? null,\s*assetOwnerJobRecordId: asset\.ownerJob\?\.\[0\] \?\? null,\s*\}\)/.test(handlerSource)
@@ -457,7 +484,7 @@ export function run({ check, assert, log }) {
     log("");
     log("the page asks the plan of what it already read:");
     const page = parseFile(PAGE);
-    assert("  of the reader, the history and the job list", /const office = planOfficeActs\(\{ user, log, jobs \}\);/.test(page.source));
+    assert("  of the reader, the history and the job list", /const office = planOfficeActs\(\{ user, log, jobs, assetJobRecordId: asset\.job\?\.\[0\] \?\? null \}\);/.test(page.source));
     const airtableImports = page.ast.body
         .filter((n) => n.type === "ImportDeclaration" && /lib\/airtable\//.test(n.source.value))
         .map((n) => `${n.source.value}: ${n.specifiers.map((s) => s.imported?.name ?? s.local.name).sort().join(",")}`)

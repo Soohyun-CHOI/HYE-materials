@@ -120,7 +120,8 @@ async function registerAssetsHandler(prevState, formData) {
 
         // One list for however many jobs this person is on, which is the shape
         // `/deliveries` uses. The dialog's choice and this check read the same
-        // function, so a job the dialog could not offer cannot be admitted here. The
+        // function, so a job the dialog could not offer cannot be admitted here — a
+        // closed one among the reader's own refused in its own words (#488). The
         // catalog beside it, read as the base holds it now (#507): the page's read is as old
         // as the page, and a kind is admitted only if the catalog still offers it.
         const [allJobs, categories] = await Promise.all([getAllJobs(), getAllAssetCategories()]);

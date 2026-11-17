@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllAddresses } from "@/lib/airtable/addresses";
 import { ADDRESS_CREATION_COPY as COPY } from "@/lib/addressCreation";
+import { offeredJobs } from "@/lib/closedJob";
 import { withOpsLabel } from "@/lib/airtableOps";
 import AddressForm from "./AddressForm";
 
@@ -56,7 +57,10 @@ async function renderNewAddressPage({ searchParams }) {
     const user = await requireUser();
 
     const { job: jobCode, from: fromPrId } = await searchParams;
-    const [jobs, addresses] = await Promise.all([getAllJobs(), getAllAddresses()]);
+    const [allJobs, addresses] = await Promise.all([getAllJobs(), getAllAddresses()]);
+    // #488 — the open jobs alone: a new address newly chooses its job, and a closed one is
+    // offered nowhere that happens (`lib/closedJob.js`). The action drops one the same way.
+    const jobs = offeredJobs(allJobs);
 
     // GROUPED TOWARD THE READER'S OWN ASSIGNMENTS AND HIDING NONE, which is the
     // partition `/prs/new` shows the office and the President and not a second rule
@@ -77,7 +81,8 @@ async function renderNewAddressPage({ searchParams }) {
     // `/asset-categories/[categoryRecordId]` and says not to repeat. Resolving it costs nothing:
     // the list is already in hand. An unknown code preselects nothing rather than
     // refusing, which is the same outcome as arriving with no parameter at all —
-    // the job is a convenience here, not the subject of the screen.
+    // the job is a convenience here, not the subject of the screen. A closed job's code is
+    // answered alike (#488), as the jobs it is looked up among are the open ones.
     const initialJobId = jobs.find((candidate) => candidate.jobCode === jobCode)?.id ?? "";
 
     return (

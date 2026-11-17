@@ -2,10 +2,11 @@
 
 Opens from: `/asset-categories` and `/asset-categories/[categoryRecordId]`, as a dialog over the page that opens it.
 Design: Tools 1b and 1c, on Invoices 0l.
-Who reaches it: a site manager holding a job, from a list standing on one of their
-own jobs or on all jobs (`lib/assetListView.js:listRecording`); nobody else is drawn
-a control that opens it — not on another job's list, not a site manager on no job,
-and not on the page of a kind discontinued or set aside for a level.
+Who reaches it: a site manager holding an open job, from a list standing on one of
+their own open jobs or on all jobs (`lib/assetListView.js:listRecording`); nobody else
+is drawn a control that opens it — not on another job's list, not on a closed job's,
+not a site manager on no job or whose every job has closed, and not on the page
+of a kind discontinued or set aside for a level.
 Which width comes first: **desktop**, and it is the only one: items are added at a
 desk, so this dialog does not support a phone's width.
 
@@ -68,7 +69,8 @@ nothing, since it says who made a model and not which.
   submission. **The cap is about one submission, not about a kind**: the rest can
   follow in another, and the labels' dialog prints the largest registration in one
   press.
-- **The job**, from the reader's own and no other, **never typed**. One job is chosen
+- **The job**, from the reader's own open jobs and no other (a closed job, whose
+  `Closed Date` holds a day, takes no new item), **never typed**. One job is chosen
   without asking. With several, it starts on the job the page it opens over stands
   on, which is one of the reader's (`lib/assetJob.js`), and on all jobs on none. It is
   a starting
@@ -110,15 +112,17 @@ a model with none chosen (`ASSET_REGISTRATION_COPY.levelNoneChosen`), a count th
 not a whole number of at least 1 (`ASSET_REGISTRATION_COPY.quantityInvalid`) or one
 over the cap
 (`ASSET_REGISTRATION_COPY.quantityTooMany`), a job not chosen
-(`ASSET_REGISTRATION_COPY.jobNoneChosen`) or not the reader's
-(`ASSET_REGISTRATION_COPY.jobNotYours`). About the whole dialog, over its actions:
+(`ASSET_REGISTRATION_COPY.jobNoneChosen`), not the reader's
+(`ASSET_REGISTRATION_COPY.jobNotYours`), or one of theirs closed since the dialog
+opened (`CLOSED_JOB_COPY.refusal`), the
+page drawn again so the choice no longer offers it. About the whole dialog, over its actions:
 - **nothing was written** (`ASSET_REGISTRATION_COPY.noneWritten`): the dialog stays and
   **everything chosen and typed stays with it**, since what the sentence asks for is
   the same submission again;
 - **the catalog does not offer the row picked** — emptied, discontinued or duplicated
   (`ASSET_REGISTRATION_COPY.itemGone`): refused whole, the dialog standing with
   everything else it holds;
-- **the reader's last job was taken off while it was open**
+- **the reader's last job was taken off, or closed, while it was open**
   (`ASSET_REGISTRATION_COPY.noJob`), the one place that sentence reaches a screen; the
   dialog stays.
 A field's refusal goes when the field changes; every field keeps what was chosen and

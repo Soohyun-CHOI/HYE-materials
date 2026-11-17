@@ -17,6 +17,7 @@ import { ADDRESS_CHOICE_COPY } from "@/lib/addressChoice";
 import { getJobByRecordId } from "@/lib/airtable/jobs";
 import { describePlan, itemOptionLabel, planDelivery } from "@/lib/deliveryAllocation";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
+import { closedJobRefusal } from "@/lib/closedJob";
 
 /**
  * The item's printed name, for a refusal that has to say which item it means.
@@ -141,6 +142,11 @@ export async function createDeliveryAction(prevState, formData) {
         // recorded against the same ordered item, while the form sits open.
         const job = await getJobByRecordId(jobRecordId).catch(() => null);
         if (!job) return { error: "That job no longer exists." };
+        // #488 — a closed job takes no new delivery, by the rule the page offered its
+        // jobs by: the job may have closed while the form sat open. Read off the row this
+        // action reads anyway, so it costs nothing.
+        const closed = closedJobRefusal(job);
+        if (closed) return { error: closed };
         const candidates = await getDeliveryCandidates([job]);
 
         // #387 — the id has to name a row, checked against the same whole-table read

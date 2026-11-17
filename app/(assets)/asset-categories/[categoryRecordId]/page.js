@@ -4,7 +4,6 @@ import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAssetsByRecordIds } from "@/lib/airtable/assets";
 import { getAssetLogEntriesByRecordIds } from "@/lib/airtable/assetLog";
 import { getAssetCategoriesByRecordIds } from "@/lib/airtable/assetCategories";
-import { assignedJobsFor } from "@/lib/assetJob";
 import {
     ASSET_LIST_COPY as COPY,
     holderRowIds,
@@ -17,7 +16,7 @@ import {
     listRecording,
 } from "@/lib/assetListView";
 import { itemCountOf, registrationCatalog } from "@/lib/assetCategory";
-import { ASSET_REGISTRATION_COPY, readRegistrationAccount } from "@/lib/assetRegistration";
+import { ASSET_REGISTRATION_COPY, readRegistrationAccount, registrationJobs } from "@/lib/assetRegistration";
 import { LIST_SORTS, assetCategoriesPath, readSort } from "@/lib/assetRoutes";
 import { FILTERED_LISTS, axesFor } from "@/lib/listFilters";
 import { withOpsLabel } from "@/lib/airtableOps";
@@ -272,7 +271,7 @@ async function renderCategoryPage({ params, searchParams }) {
     // them (#565) — none on all jobs, and the scope's answer rather than the address's, so it
     // costs nothing. Whether there is an opener is `recording.adds`, which a site manager on no
     // job is never answered (#610).
-    const assignedJobs = assignedJobsFor(user, jobs).map(({ id, jobCode, jobName }) => ({ id, jobCode, jobName }));
+    const registrableJobs = registrationJobs(user, jobs).map(({ id, jobCode, jobName }) => ({ id, jobCode, jobName }));
     const listJobId = scope.job?.id ?? null;
 
     // The way back is the breadcrumb's one level since #460, the list's own heading behind a
@@ -314,7 +313,7 @@ async function renderCategoryPage({ params, searchParams }) {
     // value already chosen (#514).
     const opened = { id: category.id, itemName: category.itemName };
     const catalog = registrationCatalog([category]);
-    const registration = { opener: ASSET_REGISTRATION_COPY.heading, jobs: assignedJobs, listJobId, category: opened, catalog };
+    const registration = { opener: ASSET_REGISTRATION_COPY.heading, jobs: registrableJobs, listJobId, category: opened, catalog };
     // The head's controls stand in a column at its foot (1d, #540): `Add items` for a site manager,
     // or its room for anybody else since #617 and on a kind the catalog no longer offers since
     // #620, and under it, while the list has rows to order, the sort — pulled out past the content's edge by
@@ -446,7 +445,7 @@ async function renderCategoryPage({ params, searchParams }) {
                     category={opened}
                     catalog={catalog}
                     account={account}
-                    jobs={assignedJobs}
+                    jobs={registrableJobs}
                     listJobId={listJobId}
                 />
             )}

@@ -30,8 +30,8 @@ const ALL_JOBS_LABEL = axesFor(FILTERED_LISTS[0]).find((axis) => axis.param === 
 // WHAT IT OFFERS AND WHAT IT HOLDS ARE THE PAGE'S, from `lib/assetListView.js:assetListScope`,
 // the one judgment the page read its rows by. This file only turns a choice into an address.
 // On an asset's page the level holds the job the asset is on (`shownAs`), which may not be among
-// the jobs offered — off every reader's until #593, and off the choice for a job #488 takes off
-// it — and then it shows the job's code and marks nothing;
+// the jobs offered — off every reader's until #593; a closed job stays on the choice (#488) — and
+// then it shows the job's code and marks nothing;
 // it never holds `All jobs` there, since the asset is on one job whatever list it was opened from.
 //
 // A CHOICE IS A NAVIGATION, AND IT ADDS A HISTORY ENTRY. The page reads only the job's assets,

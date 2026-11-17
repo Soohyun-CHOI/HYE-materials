@@ -35,6 +35,15 @@ with `Select a Job you're assigned to.` in the same red line as every other refu
 The server judges the job a request reaches through its discipline, so a submission
 that did not come from this screen is refused in the same words.
 
+**A closed job is offered to nobody (#488)** — one whose `Closed Date` holds a day —
+**but for the job the draft opened here already stands on**: its discipline's, or for
+a direct-purchase draft with no discipline yet, the job the office recorded the
+purchase on. That one stays among the choices, in its own group, **while the form
+edits that draft** — not once the reader declines the resume prompt and writes a new
+request — and the draft saves and submits on it as on any job. A request naming any other closed job is refused on
+save and on submit with `{Job Code} is closed.` in the same red line, judged by the
+same rule whatever sent it.
+
 **action — Quotations,** a section with its own heading and the line
 `A Vendor can send more than one quotation — add one entry per quotation
 received.` Each entry is a file input plus an optional `Vendor Quotation Code`
@@ -145,6 +154,14 @@ above until the reader picks one of their own jobs, and once they do, the draft'
 leaves the list. A draft is otherwise allowed to be half-finished; a job the reader may
 not raise a request on is a wrong answer rather than a missing one, which is the
 figures' rule above.
+
+**When every job the reader may use has closed**, a line under the Job dropdown says
+why — under the empty choice, or under a draft's own closed job, which is then all it
+offers: to a
+requester, `Every job you are assigned to is closed, so there is no job to raise a
+request on. An Admin can add you to a job in Airtable.`, and to the office and the
+President, who may use every job, `Every job is closed, so there is no job to raise a
+request on.`
 
 **When a draft has just been saved:** a `Draft saved` modal — **except when the
 save was the first half of leaving to create an address**, where the reader is

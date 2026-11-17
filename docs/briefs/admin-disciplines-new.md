@@ -28,7 +28,9 @@ either. What survives of the word is a line of rendered text and the
 
 **action — `Job`,** a searchable combobox rather than a plain dropdown, with the
 placeholder `Search Jobs by code or name…`. It is a combobox because the job list
-grows without bound while the other two admin forms have no such field. It has no
+grows without bound while the other two admin forms have no such field. It lists the
+open jobs alone (#488): a closed job, whose `Closed Date` holds a day, could take no new
+request, so it takes no new discipline either. It has no
 native required state, so the form tracks that itself — a validation detail that a
 redesign inherits rather than invents.
 
@@ -39,14 +41,16 @@ Narrow centered column, like its two siblings.
 ## What it carries only sometimes
 
 **When the form is refused:** a red box above the fields, carrying one sentence.
-Two can land there — `That Job doesn't exist. Pick one from the list.` and, since
-#185, the authorization refusal `Not authorized.` **One box, whatever the reason**, so
+Three can land there — `That Job doesn't exist. Pick one from the list.`; since #488
+`{Job Code} is closed.`, for a job closed after the page was drawn; and, since #185,
+the authorization refusal `Not authorized.` **One box, whatever the reason**, so
 a redesign draws the slot once and needs no second treatment for a refused role: the
 action hands every refusal back the same way and the form renders whichever arrived.
-**Neither is reachable by an ordinary reader** — the first needs a forged submit and
-the second a direct call or an Admin demoted mid-form — so the box is real and empty
-by construction. Draw it anyway; before #185 the authorization one bypassed it for a
-framework error page, and having somewhere for it to go is the whole of that change.
+**None is reachable by an ordinary press** — the first needs a forged submit, the
+second a job closed while the form stood open, and the third a direct call or an Admin
+demoted mid-form — so the box is real and empty by construction. Draw it anyway;
+before #185 the authorization one bypassed it for a framework error page, and having
+somewhere for it to go is the whole of that change.
 
 **When nothing matches the search:** `No matching Jobs.` inside the dropdown.
 

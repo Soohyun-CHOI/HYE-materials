@@ -450,3 +450,7 @@ the union), `Purchase Requests`, `Purchase Orders` and `Deliveries`. Every one o
 them was created by a script in this chain and named by hand afterwards; the
 inverse Airtable auto-creates took the source table's name correctly in all of
 them, which is the fifth and sixth confirmation of #334's 5-of-5 measurement.
+
+### A closed job takes no new address (#488)
+
+`/addresses/new` offers the open jobs alone, a closed one — whose `Closed Date` holds a day — being offered nowhere a job is newly chosen (`lib/closedJob.js`). **A closed job submitted is dropped, not refused**, which is this screen's own judgment for a job that resolves to nothing (#384): the job is a convenience here and the address the subject, so losing it must not lose what was typed. `createAddressAction` resolves the id among the open jobs, the page's list, so a job closed since the page was drawn writes the address with no job and the line says `Created {label}.` **`?job=` naming a closed job chooses nothing**, as an unknown code does — which is the one case a requester sent here from a draft holding a closed job meets: the draft keeps its job, and the address it comes back with is in `All addresses` rather than under it. **Seen in a browser** on the test base with `25-USA-13` and `26-DEMO-01` closed: `/addresses/new?job=25-USA-13` opened on `No job` with the five open jobs offered.

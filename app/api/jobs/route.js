@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { withAdminApi } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
+import { offeredJobs } from "@/lib/closedJob";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 // Issue #272. Backs the Job picker inside `/invoices/new`'s direct-purchase
@@ -19,9 +20,14 @@ import { withOpsLabel } from "@/lib/airtableOps";
 // THE PROJECTION IS THE PICKER'S, not the Job record's. `getAllJobs` also carries
 // three reverse-link arrays that other callers walk; sending them to a browser
 // would be record ids nobody there can use.
+//
+// #488 — AND IT IS THE OPEN JOBS ALONE, since the modal records a new direct purchase
+// and a closed job is offered nowhere a job is newly chosen (`lib/closedJob.js`). The
+// action asks the same of the job a press names, so this list is what the screen offers
+// and not what the server trusts.
 export const GET = withAdminApi(async () => {
     return withOpsLabel("GET /api/jobs", async () => {
-        const jobs = await getAllJobs();
+        const jobs = offeredJobs(await getAllJobs());
         return NextResponse.json({
             jobs: jobs.map((job) => ({
                 id: job.id,

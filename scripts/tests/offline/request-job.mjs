@@ -16,7 +16,8 @@
 //      disciplines and asks the rule of the discipline's `jobId`, and the brief quotes
 //      the sentence it answers with.
 //   3. THE SCREEN OFFERS WHAT THE RULE ADMITS. The page builds both job lists out of
-//      `accessibleJobs` rather than out of the whole table, and the form draws a draft's
+//      `accessibleJobs` rather than out of the whole table — the open ones among them since
+//      #488, which `closed-job.mjs` holds with the rest of that rule — and the form draws a draft's
 //      job the reader is not offered as a `disabled` option, only while it is the one
 //      chosen. The discipline the actions judge, and the vendor beside it, are sent from
 //      the form's state by hidden inputs, since a select React has reset sends nothing.
@@ -211,12 +212,15 @@ export function run({ check, assert, log }) {
     const page = parseFile("app/prs/new/page.js");
     const render = resolveFunction(page.ast, "renderNewPRPage");
     assert("renderNewPRPage exists", Boolean(render));
-    const offered = callsTo(render, "accessibleJobs")[0];
-    assert("  and asks accessibleJobs", Boolean(offered));
-    check("  of requireUser()'s user", offered?.arguments?.[0]?.name, "user");
-    check("  bound as offeredJobs", declaratorOf(render, "offeredJobs")?.init?.callee?.name, "accessibleJobs");
-    check("myJobs is narrowed from what it offers", filteredFrom(render, "myJobs"), "offeredJobs");
-    check("otherJobs is narrowed from what it offers", filteredFrom(render, "otherJobs"), "offeredJobs");
+    const reachable = callsTo(render, "accessibleJobs")[0];
+    assert("  and asks accessibleJobs", Boolean(reachable));
+    check("  of requireUser()'s user", reachable?.arguments?.[0]?.name, "user");
+    check("  bound as reachableJobs", declaratorOf(render, "reachableJobs")?.init?.callee?.name, "accessibleJobs");
+    // #488 — what it offers is those, less the closed ones but the draft's own (`closed-job.mjs`).
+    const offered = declaratorOf(render, "offered")?.init;
+    check("  and what it offers is narrowed from them (#488)", `${offered?.callee?.name} ${offered?.arguments?.[0]?.name}`, "offeredJobs reachableJobs");
+    check("myJobs is narrowed from what it offers", filteredFrom(render, "myJobs"), "offered");
+    check("otherJobs is narrowed from what it offers", filteredFrom(render, "otherJobs"), "offered");
 
     const form = parseFile("app/prs/new/PRForm.js");
     // WHAT THE JUDGMENT IS ASKED OF IS WHAT THE FORM HOLDS. A select React's reset has

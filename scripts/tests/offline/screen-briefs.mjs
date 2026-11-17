@@ -82,6 +82,7 @@ import { ASSET_JOB_COPY } from "../../../lib/assetJob.js";
 import { ASSET_CATEGORY_COPY } from "../../../lib/assetCategory.js";
 import { ASSET_EXPORT_COPY } from "../../../lib/assetListExport.js";
 import { ASSET_LABEL_PAGE_COPY } from "../../../lib/assetLabelPage.js";
+import { CLOSED_JOB_COPY } from "../../../lib/closedJob.js";
 import { ASSET_EVENT_VALUES } from "../../../lib/assetStatus.js";
 import { PO_DOCUMENTS_COPY } from "../../../lib/poDocuments.js";
 import { ALLOCATION_COPY } from "../../../lib/deliveryAllocation.js";
@@ -500,7 +501,8 @@ const PINNED = [
  * places already — the constant and the drawing — and a third copy in the brief is the one that
  * went stale with each sending. What the brief keeps is which case says what, by the constant's
  * key, and that is what the section below holds: a key it names is one the code holds, and every
- * case of the sets it covers is named. Every module here loads offline.
+ * case of the sets it covers is named. Every module here loads offline. `CLOSED_JOB_COPY` is
+ * here because a closed job's refusal is said on the drawn dialogs too (#488), which no file draws.
  */
 const DESIGN_COPY = {
     CONFIRM_COPY,
@@ -521,6 +523,7 @@ const DESIGN_COPY = {
     ASSET_CATEGORY_COPY,
     ASSET_EXPORT_COPY,
     ASSET_LABEL_PAGE_COPY,
+    CLOSED_JOB_COPY,
 };
 
 /**

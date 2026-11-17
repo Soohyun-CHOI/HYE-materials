@@ -134,7 +134,7 @@ export function run({ check, assert, log }) {
     );
     // ON ALL JOBS THE OPENER ASKS A JOB TO ADD ONTO AMONG THE JOBS THE LIST HOLDS (#610): a site
     // manager on no job is offered nothing there, as on one job, and neither is one whose only
-    // assignment is a job the list does not hold — one #488 would take off the choice — since the
+    // assignment is a job the list does not hold — one gone from the base — since the
     // registration's choice is drawn from those same jobs.
     const offGone = { isSiteManager: true, assignedJobs: ["recJ9"] };
     check(
@@ -144,6 +144,22 @@ export function run({ check, assert, log }) {
     );
     check("  a list on no job at all offers nothing", JSON.stringify(listRecording(READERS["site manager on 23-USA-09"], { job: null, allJobs: false })), '{"adds":false,"selects":false}');
     check("  and a list with no scope nothing either", JSON.stringify(listRecording(READERS["site manager on 23-USA-09"], undefined)), '{"adds":false,"selects":false}');
+    // A CLOSED JOB STAYS ON THE LIST AND TAKES NO NEW ITEM (#488): its own site manager keeps the
+    // boxes and is drawn no opener there, and on all jobs a site manager whose every job has closed
+    // is drawn none either, where one with an open job beside it still is.
+    const SHUT_A = { ...A, closedDate: "2026-11-02" };
+    const shutJobs = JOBS.map((job) => (job.id === A.id ? SHUT_A : job));
+    const shutOffers = (user, job) => {
+        const scope = assetListScope(user, shutJobs, job);
+        const r = listRecording(user, scope);
+        return `${scope.jobs.some((each) => each.id === A.id) ? "listed" : "unlisted"} ${r.adds ? "add" : "-"}/${r.selects ? "boxes" : "-"}`;
+    };
+    check(
+        "a closed job's list keeps it and its boxes, and draws no opener (#488)",
+        `${shutOffers(READERS["site manager on 23-USA-09"], A.id)} | ${shutOffers(READERS["site manager on 23-USA-09"], ALL_JOBS)} | ${shutOffers(READERS["site manager on two"], ALL_JOBS)}`,
+        "listed -/boxes | listed -/- | listed add/-"
+    );
+    check("  and a list starts on its site manager's closed job as on any", assetListScope(READERS["site manager on 23-USA-09"], shutJobs, null).job?.jobCode, "23-USA-09");
     // ON A KIND'S PAGE THE ROW IT READ IS ASKED AS WELL (#620): `readCatalog`'s own reading of it,
     // so a kind discontinued or set aside for a level is drawn as for a reader who may not add —
     // no opener, the boxes as they were — where until #620 the opener stood and its press was

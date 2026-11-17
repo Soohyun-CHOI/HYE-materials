@@ -86,6 +86,7 @@ import {
     readRegistration,
     readRegistrationAccount,
     REGISTRATION_SENT_KEY,
+    registrationJobs,
     searchedIn,
 } from "../../../lib/assetRegistration.js";
 import { ASSET_JOB_COPY, assignedJobsFor, chosenJobId } from "../../../lib/assetJob.js";
@@ -266,6 +267,13 @@ export async function run({ check, assert, log }) {
     check("a President on no job may not either", canRegisterAssets(presidentOnNone, jobs), false);
     check("an Employee on one job may", canRegisterAssets(onOne, jobs), true);
     check("and neither may somebody with no user at all", canRegisterAssets(undefined, jobs), false);
+    // #488 — A CLOSED JOB TAKES NO NEW ITEM: the jobs a registration may put items on are the
+    // reader's own open ones, so a reader whose every job has closed may not register at all.
+    const shutJobs = [{ ...jobs[0], closedDate: "2026-11-02" }, jobs[1]];
+    const onBoth = { assignedJobs: ["job1", "job2"], isAdmin: false, role: "Employee" };
+    check("a registration may go on the reader's own open jobs alone (#488)", registrationJobs(onBoth, shutJobs).map((j) => j.jobCode).join(), "26-DEMO-02");
+    check("  so one whose every job has closed may not register", canRegisterAssets({ assignedJobs: ["job1"] }, shutJobs), false);
+    check("  and one with an open job beside it may", canRegisterAssets(onBoth, shutJobs), true);
 
     // ── 5: the copy ────────────────────────────────────────────────────────
     log("");
@@ -475,6 +483,13 @@ export async function run({ check, assert, log }) {
     check("  a count past the ceiling under the count", reading({ ...good, quantity: "140" }), JSON.stringify({ fields: { quantity: "Max 100 at a time." } }));
     check("  no job chosen under the job", reading({ ...good, jobId: "" }), JSON.stringify({ fields: { jobId: ASSET_JOB_COPY.noneChosen } }));
     check("  a job not the reader's under the job", reading({ ...good, jobId: "job9" }), JSON.stringify({ fields: { jobId: ASSET_JOB_COPY.notYours } }));
+    // #488 — ONE OF THE READER'S OWN THAT HAS CLOSED SINCE THE DIALOG WAS DRAWN is refused under
+    // the job by name, and the page is out of date, so the action draws it again (#378); with
+    // every one closed the whole registration is the reader's on no job's.
+    const shut = [{ ...jobs[0], closedDate: "2026-11-02" }, jobs[1]];
+    check("  a closed job of the reader's own under the job, by name, the page out of date (#488)", reading({ ...good, jobId: "job1" }, shut), JSON.stringify({ fields: { jobId: "26-DEMO-01 is closed." }, stale: true }));
+    check("    while the open one beside it is taken", JSON.parse(reading(good, shut)).registration?.job?.id, "job2");
+    check("    and with every one closed the whole registration is refused", reading(good, shut.map((job) => ({ ...job, closedDate: "2026-11-02" }))), JSON.stringify({ error: ASSET_REGISTRATION_COPY.noJob }));
     check(
         "  and every field at once, as the design draws them",
         Object.keys(JSON.parse(reading({ categoryRecordId: "", quantity: "", jobId: "" })).fields).join(", "),
@@ -1232,6 +1247,15 @@ export async function run({ check, assert, log }) {
         "its fields start from what the opener handed over: no filter, no level chosen, the count, and the list's job among the reader's",
         `${dialog.starts.filters} | ${dialog.starts.chosen} | ${dialog.starts.count} | ${dialog.starts.jobId}`,
         '{ level1: "", level2: "" } | {} | String(openingCount(quantity)) | chosenJobId(jobs, listJobId)'
+    );
+    // AND THE CHOICE HOLDS THE JOB ASKED AGAIN OF EACH DRAW'S JOBS (#488): a refusal draws the page
+    // again with fewer jobs when one has closed, and the field shows and sends `chosenJobId`'s
+    // answer for them rather than the job chosen before.
+    const jobDialogSource = parseFile(DIALOG).source;
+    check(
+        "  and the job it shows and sends is asked again of the jobs each draw hands it (#488)",
+        `${/const heldJobId = chosenJobId\(jobs, jobId\);/.test(jobDialogSource)} ${/name="jobId"[\s\S]{0,200}?value=\{heldJobId\}/.test(jobDialogSource)}`,
+        "true true"
     );
     // THE LINE UNDER THE TITLE IN EACH STATE (#507, #520): the category a page opened it on; the
     // name the first step picked, with where it stands for a name the catalog holds in two places;

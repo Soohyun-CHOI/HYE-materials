@@ -2,7 +2,6 @@ import { requireAdmin } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllAssetCategories } from "@/lib/airtable/assetCategories";
 import { getAssetStatuses } from "@/lib/airtable/assets";
-import { assignedJobsFor } from "@/lib/assetJob";
 import {
     ASSET_LIST_COPY as COPY,
     categoryListRows,
@@ -13,7 +12,7 @@ import {
 } from "@/lib/assetListView";
 import { registrationCatalog } from "@/lib/assetCategory";
 import { ASSET_CATALOG_COPY } from "@/lib/assetCatalog";
-import { ASSET_REGISTRATION_COPY } from "@/lib/assetRegistration";
+import { ASSET_REGISTRATION_COPY, registrationJobs } from "@/lib/assetRegistration";
 import { ASSET_CATALOG_PATH } from "@/lib/assetRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
 import { ButtonLink } from "@/app/components/Controls";
@@ -175,7 +174,7 @@ async function renderCategoriesPage({ searchParams }) {
     // the registration's opener alone did, measured for a reader the catalog's is not drawn for.
     const registration = {
         opener: ASSET_REGISTRATION_COPY.heading,
-        jobs: assignedJobsFor(user, allJobs).map(({ id, jobCode, jobName }) => ({ id, jobCode, jobName })),
+        jobs: registrationJobs(user, allJobs).map(({ id, jobCode, jobName }) => ({ id, jobCode, jobName })),
         listJobId: scope.job?.id ?? null,
         catalog: registrationCatalog(categories),
     };

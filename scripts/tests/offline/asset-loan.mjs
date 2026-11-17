@@ -213,6 +213,24 @@ export function run({ check, assert, log }) {
         refused("The item wasn't fully lent to 26-USA-12. Lend it again to finish.")
     );
     check("  and its dialog opens on that job, a fresh one on none", `${lendStart(halfLent)}|${lendStart(home)}`, `${BORROWER.id}|`);
+    // #488 — A LENDING NEWLY CHOOSES A JOB, SO A CLOSED ONE IS NOT OFFERED, but for the one a lending
+    // left half done went to; a press naming one closed since the page was drawn is told so by name,
+    // and where it was the last job to go to the closing is said rather than somebody first.
+    const closing = (job) => ({ ...job, closedDate: "2026-11-02" });
+    const withClosed = [OWNER, closing(BORROWER), OTHER];
+    const shut = plan("site manager on the owner", { jobs: withClosed });
+    check("a closed job is not offered to a lending (#488)", offers(shut), "records · lend(23-USA-09) · press Checked out");
+    check("  and is kept apart, with its code", JSON.stringify(shut.lendClosed.map(({ id, jobCode }) => ({ id, jobCode }))), JSON.stringify([{ id: BORROWER.id, jobCode: BORROWER.jobCode }]));
+    check("  a press naming it is refused by name", said(readLend(shut, { drawnJobId: OWNER.id, jobId: BORROWER.id })), refused("26-USA-12 is closed."));
+    check("  and still an open one lends", said(readLend(shut, { drawnJobId: OWNER.id, jobId: OTHER.id })), writes(OTHER.id, true));
+    const lastShut = plan("site manager on the owner", { jobs: [OWNER, closing(BORROWER), closing(OTHER)] });
+    check("  with every other job closed nothing is lent", `${lastShut.mayLend} ${lastShut.lendJobs.length}`, "false 0");
+    check("  and a press is told the job closed, not that somebody got there first", said(readLend(lastShut, { drawnJobId: OWNER.id, jobId: OTHER.id })), refused("23-USA-09 is closed."));
+    check("  though one on no job still is", said(readLend(lastShut, { drawnJobId: OWNER.id, jobId: "" })), refused("Someone else updated this item first. Nothing was saved.", true));
+    const halfShut = plan("site manager on the owner", { jobs: withClosed, latest: lentEntry });
+    check("a lending left half done keeps its closed job, and finishes there", said(readLend(halfShut, { drawnJobId: OWNER.id, jobId: BORROWER.id })), writes(BORROWER.id, false));
+    check("  offered beside the open ones and kept from those apart", `${halfShut.lendJobs.map((j) => j.jobCode).join(",")} / ${halfShut.lendClosed.length}`, "23-USA-09,26-USA-12 / 0");
+    check("a closed owner job still takes its item back", said(readReturn(plan("site manager on the borrower", { job: BORROWER.id, jobs: [closing(OWNER), BORROWER, OTHER] }), { drawnJobId: BORROWER.id })), writes(OWNER.id, true));
     check("a return writes its entry and the item, on the owner job", said(readReturn(loaned, { drawnJobId: BORROWER.id })), writes(OWNER.id, true));
     check("  a page drawn before a check-out is stale", said(readReturn(plan("site manager on the borrower", { status: ASSET_STATUS.OUT, job: BORROWER.id }), { drawnJobId: BORROWER.id })), refused("Someone else updated this item first. Nothing was saved.", true));
     check("  one returned by somebody else since is no longer the reader's", said(readReturn(plan("site manager on the borrower"), { drawnJobId: BORROWER.id })), refused("This item moved to 25-USA-13. Nothing was saved."));

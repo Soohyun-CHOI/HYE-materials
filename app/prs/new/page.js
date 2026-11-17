@@ -3,6 +3,8 @@ import UndrawnPage from "@/app/components/UndrawnPage";
 import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { accessibleJobs } from "@/lib/deliveryAccess";
+import { CLOSED_JOB_COPY, noOpenJob, offeredJobs } from "@/lib/closedJob";
+import { requestJobId } from "@/lib/prKind";
 import { getAllDisciplines } from "@/lib/airtable/disciplines";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getActiveUsers } from "@/lib/airtable/users";
@@ -110,17 +112,32 @@ async function renderNewPRPage({ searchParams }) {
     // `otherJobs` is empty, which the form draws as one ungrouped list. Nothing here costs
     // a query — `getAllJobs` is the read the page already made, and `requireUser()` has
     // returned the record `assignedJobs` and the two flags sit on.
-    const offeredJobs = accessibleJobs(user, jobs);
+    //
+    // #488 — AND THE OPEN ONES AMONG THEM (`lib/closedJob.js`), with a line saying why when
+    // every job the reader may use has closed.
+    const reachableJobs = accessibleJobs(user, jobs);
+    const offered = offeredJobs(reachableJobs);
+    const noOpenJobAs = noOpenJob(jobs, reachableJobs);
     const assignedJobIds = new Set(user.assignedJobs || []);
-    const myJobs = offeredJobs.filter((j) => assignedJobIds.has(j.id));
-    const otherJobs = offeredJobs.filter((j) => !assignedJobIds.has(j.id));
+    const myJobs = offered.filter((j) => assignedJobIds.has(j.id));
+    const otherJobs = offered.filter((j) => !assignedJobIds.has(j.id));
     // A DRAFT OPENED HERE CAN HOLD A JOB THE READER IS NO LONGER OFFERED — written before
     // #639 on any job, or on one the office has since taken them off. The form shows it,
     // as a choice that cannot be picked again, because a control showing some other job
     // over the draft's own discipline would be a screen contradicting its draft; saving
     // or submitting it is refused, in words saying to pick one of their own.
     const unofferedJob = initialDraft?.jobId
-        ? (jobs.find((j) => j.id === initialDraft.jobId && !offeredJobs.includes(j)) ?? null)
+        ? (jobs.find((j) => j.id === initialDraft.jobId && !reachableJobs.includes(j)) ?? null)
+        : null;
+    // #488 — THE DRAFT OPENED HERE KEEPS THE JOB IT STANDS ON ONCE THAT JOB HAS CLOSED: its
+    // discipline's, or before it has one the job its direct purchase was recorded on
+    // (`requestJobId`). The form offers it while it edits that draft and no other — a reader
+    // who declines the resume prompt is writing a new request, which a closed job is not
+    // offered to — and the actions ask the same of the draft a save re-targets.
+    const heldJobId = initialDraft ? requestJobId(initialDraft, jobs) : null;
+    const heldClosed = reachableJobs.find((j) => j.id === heldJobId && !offered.includes(j)) ?? null;
+    const heldJob = heldClosed
+        ? { ...heldClosed, mine: assignedJobIds.has(heldClosed.id), draftRecordId: initialDraft.recordId }
         : null;
 
     return (
@@ -141,6 +158,8 @@ async function renderNewPRPage({ searchParams }) {
                 myJobs={myJobs}
                 otherJobs={otherJobs}
                 unofferedJob={unofferedJob}
+                heldJob={heldJob}
+                noOpenJobNotice={noOpenJobAs ? CLOSED_JOB_COPY.noOpenJob.request[noOpenJobAs] : null}
                 disciplines={disciplines}
                 vendors={vendors}
                 users={users}

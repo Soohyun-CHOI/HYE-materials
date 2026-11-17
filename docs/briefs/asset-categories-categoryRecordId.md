@@ -85,12 +85,16 @@ open — and the print control, which opens the labels' dialog on the selection
 (`tool-items-labels.md`). Nothing is drawn while nothing is selected: it does not
 print the page instead.
 
-**For a site manager on the list's job, or on all jobs while holding a job, the way
-to add more of this kind** (`listRecording`): the registration dialog opened on this kind at its second
+**For a site manager on the list's job while it is open, or on all jobs while holding
+an open job, the way to add more of this kind** (`listRecording`): the registration dialog opened on this kind at its second
 step, with no count, since nothing here knows how many were bought, and with the
 list's job, which the dialog's job starts on when it is one of the reader's own. It
 carries neither the selection nor the page. Drawn for nobody else, and nothing says
-why. **Drawn on no kind discontinued or set aside for a level** — one the office
+why. **Drawn on no closed job's list** — one whose `Closed Date` holds a day,
+which takes no new item — where the boxes stay, since what stands on it is still
+recorded; and the dialog's job offers the reader's own open jobs alone, a press
+naming one closed since it opened refused under the job with `{Job Code} is closed.`
+and the page drawn again. **Drawn on no kind discontinued or set aside for a level** — one the office
 discontinued, or a row the catalog sets aside for a level missing or holding a
 placeholder — which the same answer asks of the row the page read, so the screen is
 the one a reader who may not add sees: the opener's room in the head and, on an

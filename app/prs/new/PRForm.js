@@ -141,6 +141,12 @@ export default function PRForm({
     // #639 — the job of the draft opened here when the reader is not offered it, or
     // null. Listed only while it is the one chosen, and never choosable: see the page.
     unofferedJob = null,
+    // #488 — the closed job the draft opened here stands on, or null, with the draft's record
+    // id and whether it is the reader's own: offered while the form edits that draft. And the
+    // sentence saying every job the reader may use has closed, or null: the page's judgment
+    // (`lib/closedJob.js:noOpenJob`), said under the choice.
+    heldJob = null,
+    noOpenJobNotice = null,
     disciplines,
     vendors,
     users,
@@ -194,9 +200,15 @@ export default function PRForm({
     // wherever it was listed. The page owns the grouping; this is the lookup. #639 —
     // and a draft's job the reader is not offered, so the address control below still
     // answers for the job the draft holds.
+    // #488 — and the closed job a draft stands on, among its own group, while the form edits that
+    // draft: `draftRecordId` is the record a save re-targets, so this is the draft the actions
+    // keep the job for (`app/prs/new/actions.js:jobRefusal`). A new request does not see it.
+    const heldNow = heldJob && draftRecordId === heldJob.draftRecordId ? heldJob : null;
+    const mineOffered = useMemo(() => (heldNow?.mine ? [...(myJobs || []), heldNow] : myJobs || []), [myJobs, heldNow]);
+    const othersOffered = useMemo(() => (heldNow && !heldNow.mine ? [...(otherJobs || []), heldNow] : otherJobs || []), [otherJobs, heldNow]);
     const allJobs = useMemo(
-        () => [...(myJobs || []), ...(otherJobs || []), ...(unofferedJob ? [unofferedJob] : [])],
-        [myJobs, otherJobs, unofferedJob]
+        () => [...mineOffered, ...othersOffered, ...(unofferedJob ? [unofferedJob] : [])],
+        [mineOffered, othersOffered, unofferedJob]
     );
     const seedChoice = addressChoiceFromStored({
         storedAddressId: seed?.deliveryAddressId ?? "",
@@ -769,25 +781,25 @@ export default function PRForm({
                             nothing to group and the list is one. The office and the
                             President are offered every job, their own grouped first, as
                             every reader was until then. */}
-                        {otherJobs.length === 0 ? (
-                            myJobs.map((j) => (
+                        {othersOffered.length === 0 ? (
+                            mineOffered.map((j) => (
                                 <option key={j.id} value={j.id}>
                                     {j.jobCode} — {j.jobName}
                                 </option>
                             ))
                         ) : (
                             <>
-                                {myJobs.length > 0 && (
+                                {mineOffered.length > 0 && (
                                     <optgroup label="My Jobs">
-                                        {myJobs.map((j) => (
+                                        {mineOffered.map((j) => (
                                             <option key={j.id} value={j.id}>
                                                 {j.jobCode} — {j.jobName}
                                             </option>
                                         ))}
                                     </optgroup>
                                 )}
-                                <optgroup label={myJobs.length > 0 ? "All Jobs" : "Jobs"}>
-                                    {otherJobs.map((j) => (
+                                <optgroup label={mineOffered.length > 0 ? "All Jobs" : "Jobs"}>
+                                    {othersOffered.map((j) => (
                                         <option key={j.id} value={j.id}>
                                             {j.jobCode} — {j.jobName}
                                         </option>
@@ -796,6 +808,7 @@ export default function PRForm({
                             </>
                         )}
                     </select>
+                    {noOpenJobNotice && <p className="mt-1 text-sm text-zinc-600">{noOpenJobNotice}</p>}
                 </div>
 
                 <div>

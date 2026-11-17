@@ -19,7 +19,8 @@ import JobsForm from "./JobsForm";
  * a person's jobs, which is the office's decision and a different screen.
  *
  * TWO READS: the session, and every job there is (`getAllJobs`, one query per hundred jobs).
- * Every job is offered — which ones a person works on is theirs to say — in code order.
+ * Every open job is offered — which ones a person works on is theirs to say — in code order; a
+ * closed one is offered nowhere a job is newly chosen (#488).
  *
  * IT CARRIES THE DESTINATION THROUGH, judged here and again in the action, as the name step
  * does: a reader who scanned an asset's label lands on the asset.
