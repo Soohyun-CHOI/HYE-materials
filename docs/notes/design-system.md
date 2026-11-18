@@ -439,7 +439,7 @@ The files of 2026-11-06 — Tools 54, Sign in 30, which is Sign in 29 byte for b
 **A TEXT BUTTON'S SPINNER IS 16 AT BOTH WIDTHS.** Tools 0a's Busy says "a text button such as Done holds a 16 spinner in Accent in its words' width", and 1j draws it so in every note and serial number sheet and the job change's, where the app had taken a sheet's commitment's 20 for its `Done` since #533. So a spinner `on` a text button takes no phone size.
 ## Two names, and the two kinds of list Tools 56 draws (#617)
 
-**THE TYPED ID'S ROOM IS IN EM, THE ONE SPACING THAT IS.** 1a and 1a3 set the id after an emptied list's sentence `margin: 0 0.12em`, 1.56 at 13, which no whole number of the design's pixels in rem holds; the room follows the id's own size, as the files mean it to. `--spacing-list-emptied-id-inline` keeps their em, named for the emptied list it stands in, and the check holds it by value beside the tracking, which is in em for the same reason.
+**THE TYPED ID'S ROOM IS IN EM, THE ONE SPACING THAT IS.** 1a and 1a3 set the id after an emptied list's sentence `margin: 0 0.12em`, 1.56 at 13, which no whole number of the design's pixels in rem holds; the room follows the id's own size, as the files mean it to. It keeps their em, and the check holds it by value beside the tracking, which is in em for the same reason. It was `--spacing-list-emptied-id-inline`, named for the emptied list it stood in, until #670 gave a second sentence the same room and Invoices 0h.44 states it for every id in a sentence: `--spacing-id-in-sentence-inline`.
 
 **A HELD ROW'S WAIT IS THIS REPOSITORY'S.** 0a gives every control but a text button its hover fill while held, and a list's rows are what a finger touches when it starts to scroll one, so a fill drawn at once would flash under every scroll. `--transition-delay-held` is the 100ms a row waits under a finger before it takes the fill, long enough that a scroll ends the press first; it leaves at once. No file states a wait, so the name says it is not the design's.
 
@@ -544,6 +544,20 @@ The files of 2026-11-06 — Tools 54, Sign in 30, which is Sign in 29 byte for b
 
 **WHAT THE CHECKS HOLD.** `offline/dialog-frame.mjs`: the secondary's classes by value and its sheet's text button, the kinds `Button` draws at a desk and in a sheet, the two names read by that look alone, no button, link or `role="button"` outside `Controls.js` resting on Field or reading either name — through a constant in its own file as well — and every kind a caller names one `Button` draws, the walk's count held against the attribute's as text. `offline/design-values.mjs`: the two names by value, the 8% a wash, and each ground an action that cannot act keeps its resting one at 40%. **Twenty-nine mutations were run, one at a time, and each fails a check; each assertion this issue added or changed fails under at least one.**
 
+## Field at 6%, Hover folded into it, and one trim before a leading mark (#670)
+
+**THE FILES OF 2026-11-17 DRAW ONE GROUND FOR WHAT RESTS AND WHAT IS POINTED AT.** The Tools file read for this, the Design artifact's version 1794953417-abd2, writes every ground that was Ink at 4.5% and every hover that was 5.5% as 6%, and the Invoices file's 0e says it in words: Field, 0.060, is "a resting ground: a search field, a secondary button at rest (0.10 under the pointer), a dialog's summary, the ground under a print preview, and anything without an outline under the pointer" (0e.12), where Hover had a row of its own. Tools 0a sets the phone's filled field in a sheet (0a.24) and its Notice (0a.93) at the same 0.06. So `--color-background-muted` is 6%, `--color-hover` reads it rather than holding a figure of its own, the phone's sheet field reads Field and `--color-mobile-input-background` is gone — the washes are the web names on both widths, as `The phone takes names of its own` sets them — and a secondary button's hover, `--color-secondary-hover`, is 10% (0f.3). `offline/design-values.mjs` holds Hover read off Field and no fill of the phone's own.
+
+**A LEADING MARK TAKES 2 OFF ITS SIDE, AND THE 2 IS ONE NAME.** Invoices 0a.15 gives a control's room either side of its words — 8 on an inline pill, 10 on a chip or a menu option, 16 on a 36 — and 0a.16 says a leading icon takes 2 less on its side, where it took 3. The drawings follow it: Catalog 14, the job chip 8, the sort 8 and a `Details` row's `Add` 6. Each of the four insets was a figure from the drawings; each is now `calc` of its control's room less `--spacing-leading-icon-trim`, so the next change to the rule is one value, and the check fails an inset written as a figure. The rail's nav row keeps its 8, which centers its mark in the collapsed rail's 32 rather than following this rule, and Catalog's other side is the 36's own 16, so its name of its own went.
+
+**ONE LEAST WIDTH FOR WHAT A BUTTON OPENS.** 0a.19 sets an action menu at least 152 and 0a.29 a list from a button at least the button's width and 152, up to 280. `More actions`, a record's and a dialog's, took 152 as 140 inside the menu's 5 and its Edge (#522), and 1a's job chip's list took 160 from the drawings; `--min-width-button-list` is the one 152 for the three, with the room and the Edge counted. The band's chips' lists keep the Menu row's 140 and the sort's list its button's width, as 1a, 1d and 1l draw them.
+
+**AN ID IN A SENTENCE IS SET AT A LINE HEIGHT OF 1 (INVOICES 0h.44).** The app loads Instrument Sans as one variable face (`app/faces/`) where the files load its static weights, and a Fragment Mono span at the sentence's line height grows that line box by 1 — 41 where 1f2 draws 40 for `HYE-AST-… already has this serial number`. 0h.44 sets an id inside a sentence 0.12em either side at a line height of 1, so the id takes `leading-none`, and the room is `--spacing-id-in-sentence-inline` for it and for 1a's emptied list's typed id.
+
+**WHAT THE SHARED VALUES MOVE ON SCREENS NO SENDING OF THIS ISSUE DRAWS ANEW.** The sign-in steps: a refusal's Notice on a phone and `/login/jobs`'s search field at Field, its rows under the pointer and the clear × at Field, all as the Sign in file now draws them, and its address pill held on a phone at Field, as the file draws it (`SignInParts.js`). The materials screens read none of the names but through the rail, which every screen draws: its rows, its toggle, the account and the account's menu take 6% under the pointer where they took 5.5%. No `Button variant="secondary"` stands on a materials screen.
+
+**WHAT A BROWSER SHOWED** is in `tools.md` (#670): every changed value painted against the file's, and the four insets measured to their marks.
+
 ## From the design's words to the names
 
 Every declaration, by the design's row and the figure the design draws, and after them the values read under Tailwind's own names. A length's rem is the design's px over 16, and the px is given beside it.
@@ -565,9 +579,9 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0a Side room, a chip or a menu option | `--spacing-control-inset-x` | 0.625rem (10) |
 | 0a Side room, any 36px button | `--spacing-control-lg-inset-x` | 1rem (16) |
 | 1a's drawing, either side of a 32 button's words — not the spec | `--spacing-control-md-inset-x` | 0.8125rem (13) |
+| Invoices 0a.16, what a leading icon takes off its side's room (#670) | `--spacing-leading-icon-trim` | 0.125rem (2) |
 | Ghost, either side of its word in a row of 36 buttons, and its pull at the row's end | `--spacing-ghost-inset-x` | 0.625rem (10) |
-| 1a's drawing, a faced action's room before the mark that leads its word — not the spec | `--spacing-faced-inset-left` | 0.625rem (10) |
-| 1a's drawing, its room after the word — not the spec | `--spacing-faced-inset-right` | 0.75rem (12) |
+| Invoices 0b.11, a head action with no face, before the mark that leads its word — its other side is a 36's own | `--spacing-faced-inset-left` | a 36's room less the trim (14) |
 | 0o Field and Action, 40 tall | `--height-control-xl` | 2.5rem (40) |
 | 0a Side room, inside a form field — a dialog's and a sign-in page's — and 0o Field, its fixed domain from the border | `--spacing-input-inset-x` | 0.75rem (12) |
 | 0l Compact, a field's help under it, and 0o Refusal, one field's | `--spacing-input-message-stack` | 0.375rem (6) |
@@ -646,9 +660,9 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0e Edge focus | `--color-border-focus` | oklch(0.640 0.010 265) |
 | 0e Wash | `--color-hover-subtle` | Ink at 3% |
 | 0b Row, the Wash made opaque under a table's held name column — not a row of its own | `--color-pinned-column-hover` | Ink at 3% over white, mixed in sRGB |
-| 0e Field | `--color-background-muted` | Ink at 4.5% |
-| 0e Hover | `--color-hover` | Ink at 5.5% |
-| 0f Bordered, a secondary button under the pointer (#662) | `--color-secondary-hover` | Ink at 8% |
+| 0e Field (0e.12) | `--color-background-muted` | Ink at 6% |
+| 0e Field, anything without an outline under the pointer (0e.12, #670) | `--color-hover` | `var(--color-background-muted)` |
+| 0f.3, a secondary button under the pointer (#662) | `--color-secondary-hover` | Ink at 10% |
 | 0f Disabled, a secondary button that cannot act (#662) | `--color-secondary-disabled` | Field at 40% |
 | 0i Bar, the thumb | `--color-scrollbar-thumb` | Ink at 20% |
 | 0e Thumb hover | `--color-scrollbar-thumb-hover` | Ink at 34% |
@@ -768,6 +782,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0n Record header, under the breadcrumb bar, and a list header's title under it (0m Breadcrumb) | `--spacing-breadcrumb-stack` | 0.875rem (14) |
 | 0n Header right, above a list header with no breadcrumb over it | `--spacing-list-header-inset-top` | 2rem (32) |
 | 0n Header right, under a list header | `--spacing-list-header-inset-bottom` | 1.125rem (18) |
+| Invoices 0b.8, a kind's own head: the line under the title to its column head (#670) | `--spacing-list-header-line-stack` | 1.25rem (20) |
 | 0n Header right, the least room from a list header's title to its control | `--spacing-list-header-inline` | 2.5rem (40) |
 | 0n Header right, a list header's title to its count | `--spacing-list-count-inline` | 0.5rem (8) |
 | 1a's drawing, the search field in a list's band — not the spec | `--width-list-search` | 16.25rem (260) |
@@ -779,11 +794,11 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 1a's drawing, a filter chip's chevron — not the spec | `--size-filter-chip-chevron` | 0.75rem (12) |
 | 1a's drawing, a filter chip's room on its chevron's side — not the spec | `--spacing-filter-chip-inset-right` | 0.5rem (8) |
 | 1a's drawing, the least the job's chip takes at the start of the band — not the spec | `--min-width-job-chip` | 8rem (128) |
-| 1a's drawing, that chip's room before the pin that leads its job — not the spec | `--spacing-job-chip-inset-left` | 0.5625rem (9) |
+| 1a, that chip's room before the pin that leads its job (Invoices 0a.16) | `--spacing-job-chip-inset-left` | a chip's room less the trim (8) |
 | 1a's drawing, its room on its chevron's side — not the spec | `--spacing-job-chip-inset-right` | 0.5rem (8) |
 | 1a's drawing, its chevron — not the spec | `--size-job-chip-chevron` | 0.75rem (12) |
-| 1a's drawing, the least the list that chip opens takes, its room and Edge counted — not the spec | `--min-width-job-chip-list` | 10rem (160) |
-| 1a's, 1d's and 1l's drawings, the sort's room before its mark — not the spec | `--spacing-sort-inset-left` | 0.4375rem (7) |
+| Invoices 0a.19 and 0a.29, the least a list or a menu a button opens takes, its room and Edge counted — 1a's job chip's, and `More actions`' (#670) | `--min-width-button-list` | 9.5rem (152) |
+| 1a, 1d and 1l, the sort's room before its mark (Invoices 0a.16) | `--spacing-sort-inset-left` | a chip's room less the trim (8) |
 | their drawings, its room on its chevron's side, which it pulls out past the content's edge — not the spec | `--spacing-sort-inset-right` | 0.5rem (8) |
 | their drawings, its chevron — not the spec | `--size-sort-chevron` | 0.75rem (12) |
 | their drawings, from an order's name to the room its list keeps for the check — not the spec | `--spacing-sort-check-gap` | 0.625rem (10) |
@@ -794,14 +809,14 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0n Header stack, to the status | `--spacing-subtitle-stack` | 0.75rem (12) |
 | 0n Rail blocks, from a block's name | `--spacing-heading-sm-stack` | 0.75rem (12) |
 | 1f's drawing, the header's title block to its actions — not the spec | `--spacing-record-header-inline` | 3.5rem (56) |
-| 1f's drawing, the header's actions above its title's top — not the spec | `--spacing-record-header-actions-bleed` | 0.1875rem (3) |
-| 1f's drawing, a `Details` row's `Add` past its plus mark at its start, `Add note`'s until #601 — not the spec | `--spacing-note-add-bleed-left` | 0.3125rem (5) |
+| Invoices 0b.9, a header's actions above its title's top, a 36 centered on the title's 32 line — a record's and a kind's (#670) | `--spacing-header-actions-bleed` | half of 36 less 32 (2) |
+| 1f, a `Details` row's `Add` past its plus mark at its start (Invoices 0a.16) | `--spacing-note-add-bleed-left` | an inline pill's room less the trim (6) |
 | 1f's drawing, a `Details` row's `Add`'s plus mark to its word, `Add note`'s until #601 — not the spec | `--spacing-note-add-gap` | 0.375rem (6) |
 | 1f's drawing, a `Details` row's label to its value (#601) — not the spec | `--spacing-details-label-inline` | 1rem (16) |
 | 1f's drawing, between two `Details` rows (#601) — not the spec | `--spacing-details-row-stack` | 0.75rem (12) |
 | 1f's drawing, the least room from a `Details` value to its `Edit` (#601) — not the spec | `--spacing-details-edit-inline` | 0.875rem (14) |
 | 1f's drawing, a `Details` row's `Add` left of the value column (#601) — not the spec | `--spacing-details-add-bleed-left` | 0.5rem (8) |
-| 1f's drawing, a `Details` row's field, or the line under it, to its `Cancel` and `Save` (#601) — not the spec | `--spacing-details-actions-stack` | 0.75rem (12) |
+| Invoices 0o.21, a `Details` row's field, or the message under it, to its `Cancel` and `Save` (#601, #670) | `--spacing-details-actions-stack` | 0.5rem (8) |
 | 1f's drawing, the `Details` block's last row to the `Label` block's name (#601) — not the spec | `--spacing-details-block-stack` | 2.5rem (40) |
 | 0n Record rail, on 1080 | `--width-record-rail` | 21rem (336) |
 | 0n Record rail, the main column's text to its Rule | `--spacing-record-rail-inline` | 2rem (32) |
@@ -873,7 +888,6 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | Tools 0a Field, the mark of the clear × at a field's end (#607; 15 from 1j's and 1a's drawings until then) | `--size-mobile-input-clear-icon` | 1.125rem (18) |
 | The drawings since #607, the clear ×'s mark inside its target's end, which ends on the field's edge, so the ink ends 16 in, as Tools 0a Field says — every phone field's, a sheet's among them | `--spacing-mobile-input-clear-inset-right` | 0.75rem (12) |
 | Tools 0a Field, a text button pressed | `--opacity-mobile-pressed` | 50% |
-| Tools 0a Field, the one field in a sheet | `--color-mobile-input-background` | Ink at 5.5% |
 | Tools 0a Field label, a field to the next label | `--spacing-mobile-field-stack` | 1.25rem (20) |
 | Tools 0a Field error, 4 in, and 1a's line under a code | `--spacing-mobile-input-message-inset-x` | 0.25rem (4) |
 | Tools 0a Field error, its mark to its sentence | `--spacing-mobile-input-message-gap` | 0.375rem (6) |

@@ -347,7 +347,7 @@ function runCode({ check, assert, log }) {
     check("one attempt left is singular (#612)", CODE_COPY[CODE_STATES.WRONG](1), "Incorrect code. 1 attempt left.");
     check("  two are plural", CODE_COPY[CODE_STATES.WRONG](2), "Incorrect code. 2 attempts left.");
     check("  and four, the count the design draws", CODE_COPY[CODE_STATES.WRONG](4), "Incorrect code. 4 attempts left.");
-    check("a short code, which the design does not draw, keeps #471's sentence", CODE_COPY[CODE_STATES.MALFORMED], "Enter the 6-digit code from the email.");
+    check("a short code, which the design does not draw, keeps #471's sentence", CODE_COPY[CODE_STATES.MALFORMED], "Enter the 6-digit code from the email");
     // Read off the source, since a figure spelled out renders the same until the length moves.
     const stateSource = readFileSync(new URL("../../../lib/authTokenState.js", import.meta.url), "utf8");
     assert("  its figure interpolated rather than spelled", /\[CODE_STATES\.MALFORMED\]:\s*`[^`]*\$\{CODE_LENGTH\}[^`]*`/.test(stateSource));

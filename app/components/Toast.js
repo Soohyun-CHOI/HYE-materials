@@ -30,7 +30,8 @@ function closeToast(toast, opener, then) {
  *
  * WRITTEN FOR 1a's EXPORT (#566), AND A FAILURE IS ALL IT DRAWS. Its action is the caller's to give:
  * an item's page at a desk says a refused press with no dialog here (#614) and gives none, 1f's
- * toast holding its line and its dismiss alone, and `desk` keeps it from the phone, which says the
+ * toast holding its line and its dismiss alone — but `Try again` for an event left half done
+ * (1g, #670), as 1a's export gives it — and `desk` keeps it from the phone, which says the
  * same answer under the status (1k). A moment in its line is the date's notation with its slashes at
  * the toast's 60%, where the page's are 45% (`--opacity-toast-date-separator`, 1f). A failure leads its line with a
  * 16 white alert mark 8 before it and stays until it is dismissed or its action is taken (0k),

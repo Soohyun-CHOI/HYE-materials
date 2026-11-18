@@ -858,8 +858,9 @@ export function run({ check, assert, log }) {
         "true true true"
     );
     check(
-        "  and its least width is 140 inside its room and its Edge, and at least its opener",
-        /if \(look === "end"\) list\.style\.minWidth = `max\(calc\(var\(--min-width-menu\) \+ 2 \* var\(--spacing-menu-inset\) \+ 2px\), \$\{box\.width\}px\)`;/.test(menuSource),
+        "  and its least width is an action menu's 152 with its room and its Edge, and at least its opener (Invoices 0a.19, #670)",
+        /if \(look === "end"\) list\.style\.minWidth = `max\(var\(--min-width-button-list\), \$\{box\.width\}px\)`;/.test(menuSource) &&
+            /end: "mx-0 w-max min-w-button-list /.test(menuSource),
         true
     );
     // WHAT A NEW ENTRY OPENS ON IS 1l's: the first type, nothing typed — and no class, whose first

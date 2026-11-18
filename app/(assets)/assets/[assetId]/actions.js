@@ -553,6 +553,11 @@ async function updateAssetSerialHandler(prevState, formData) {
  * `takenBy` RIDES BESIDE THE SENTENCE FOR A SERIAL NUMBER ANOTHER ITEM HOLDS (#601): that item's printed
  * id, which the field draws in the id's face.
  *
+ * `unfinished` RIDES BESIDE THE SENTENCE FOR AN EVENT LEFT HALF DONE (#670): the event whose
+ * entry landed and whose status did not, which a desk's toast names in its own words and sends
+ * again from `Try again` (`ASSET_TRANSITION_COPY.halfSaved`). `error` is the sentence a dialog, a
+ * question and a phone say.
+ *
  * `moved` RIDES BESIDE THE SENTENCE FOR A STALE PRESS (#463): who recorded the latest
  * entry, what it was, and when, which the page turns into 1k's sentence in the reader's
  * own zone. `error` is still the whole sentence without them, so nothing that reads
@@ -567,10 +572,10 @@ async function updateAssetSerialHandler(prevState, formData) {
  * no longer a site manager — the page drawn again shows the item's job and no control, and
  * nothing on it says the press was theirs and was lost.
  */
-function refuse(error, moved = null, takenBy = null) {
+function refuse(error, moved = null, takenBy = null, unfinished = null) {
     refresh();
     if (error === null) return null;
-    return { error, ...(moved ? { moved } : {}), ...(takenBy ? { takenBy } : {}) };
+    return { error, ...(moved ? { moved } : {}), ...(takenBy ? { takenBy } : {}), ...(unfinished ? { unfinished } : {}) };
 }
 
 /**
@@ -708,7 +713,7 @@ async function writeEvent({ asset, event, jobRecordId, checkedOutTo, user, from 
                 error,
             }
         );
-        return refuse(ASSET_TRANSITION_COPY.statusNotUpdated);
+        return refuse(ASSET_TRANSITION_COPY.statusNotUpdated, null, null, event);
     }
 
     return null;

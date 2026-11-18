@@ -314,10 +314,11 @@ async function renderCategoryPage({ params, searchParams }) {
     const opened = { id: category.id, itemName: category.itemName };
     const catalog = registrationCatalog([category]);
     const registration = { opener: ASSET_REGISTRATION_COPY.heading, jobs: registrableJobs, listJobId, category: opened, catalog };
-    // The head's controls stand in a column at its foot (1d, #540): `Add items` for a site manager,
-    // or its room for anybody else since #617 and on a kind the catalog no longer offers since
-    // #620, and under it, while the list has rows to order, the sort — pulled out past the content's edge by
-    // its own room, so its chevron meets it, and 14 over the column head where the head's foot is 18.
+    // The head's controls stand in a column at its right (1c, 1d, 1e; #540): `Add items` for a site
+    // manager, or its room for anybody else since #617 and on a kind the catalog no longer offers since
+    // #620, centered on the title's line, and 8 under it, while the list has rows to order, the sort —
+    // pulled out past the content's edge by its own room, so its chevron meets it, 8 over the column
+    // head (Invoices 0b.7 to 0b.9, #670), where the column stood at the head's foot until then.
     const header = (
         <ListHeader
             title={category.itemName}
@@ -335,7 +336,7 @@ async function renderCategoryPage({ params, searchParams }) {
                 <div aria-hidden="true" className="h-control-lg flex-none" />
             )}
             {page.total > 0 && (
-                <div className="-mr-sort-inset-right -mb-[calc(var(--spacing-list-header-inset-bottom)-var(--spacing-gap-lg))]">
+                <div className="-mr-sort-inset-right">
                     <CategorySort categoryRecordId={category.id} job={job} sort={sort} selects={recording.selects} />
                 </div>
             )}

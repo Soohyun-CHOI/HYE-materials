@@ -36,7 +36,8 @@ const ICON = "app/components/Icon.js";
 /**
  * The figures the files of 2026-10-27 give (`Tools - new direction.dc (42).html`): 1f's `Add
  * note` at rest and under the pointer, and `Edit` beside a note under it; 0m's section row,
- * the current one on the Face at 500 in Ink, the others in Ink 2 at 500.
+ * the current one on the Face at 500 in Ink, the others in Ink 2 at 500. Hover is Field since the
+ * files of 2026-11-17, Ink at 6% where it was 5.5% (Invoices 0e.12, #670).
  */
 const DRAWING = {
     face: "#F0F9FF",
@@ -45,7 +46,7 @@ const DRAWING = {
     ink: "oklch(0.255 0.013 265)",
     ink2: "oklch(0.405 0.013 265)",
     ink3: "oklch(0.505 0.012 265)",
-    hover: "color-mix(in oklab, oklch(0.255 0.013 265) 5.5%, transparent)",
+    hover: "color-mix(in oklab, oklch(0.255 0.013 265) 6%, transparent)",
     rowWeight: "500",
 };
 

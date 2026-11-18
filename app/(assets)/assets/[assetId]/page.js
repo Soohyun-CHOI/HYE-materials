@@ -378,8 +378,10 @@ async function renderAssetPage({ params }) {
                     automatic margin would shrink it to what it holds. */}
                 <div className="mx-auto box-content max-w-content px-page-gutter pt-breadcrumb-stack pb-scroll-inset-bottom max-sm:mx-0 max-sm:max-w-none max-sm:px-0 max-sm:pt-0 max-sm:pb-0">
                     {/* 0n's RECORD HEADER: the name, the id and the caption under it, the status,
-                        and on the right what may be recorded, 3 above the title's top as 1f
-                        draws it — 24 above and below its Band. On a phone, 1j's title block,
+                        and on the right what may be recorded, centered on the title's line
+                        (Invoices 0b.9) — 2 above its top, where it stood 3 until the files of
+                        2026-11-17 (#670), and at a 36's height with `More actions` alone, so its
+                        32 stands where it does beside a 36 — 24 above and below its Band. On a phone, 1j's title block,
                         4 under the top bar: the id, the name and the caption, 4 apart (#538). The
                         block takes the phone's whole width, where nothing stands on its right, so
                         a note's line reaches 12 past it either side however short the name (#533). */}
@@ -455,7 +457,7 @@ async function renderAssetPage({ params }) {
                             (#583, #582), whoever else the reader is, so `More actions` stands for
                             them alone too. */}
                         {!transition.refusal && (transition.event || menuActs) && (
-                            <div className="-mt-record-header-actions-bleed flex shrink-0 items-center gap-gap max-sm:hidden">
+                            <div className="-mt-header-actions-bleed flex min-h-control-lg shrink-0 items-center gap-gap max-sm:hidden">
                                 {transition.event && <TransitionDialog />}
                                 {menuActs && <MoreActions />}
                             </div>

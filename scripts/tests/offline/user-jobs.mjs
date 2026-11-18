@@ -183,7 +183,7 @@ export function run({ check, assert, log }) {
     check("  with one", USER_JOBS_COPY.action(1), "Continue with 1 job");
     check("  and with two", USER_JOBS_COPY.action(2), "Continue with 2 jobs");
     check("while it saves", USER_JOBS_COPY.working, "Saving…");
-    check("nothing chosen", USER_JOBS_COPY.refusal.none, "Choose at least one job.");
+    check("nothing chosen", USER_JOBS_COPY.refusal.none, "Choose at least one job");
     check("a write that did not happen", USER_JOBS_COPY.refusal.failed, "Couldn't save your jobs. Try again.");
     check("the field each job is sent in", JOBS_PARAM, "job");
 

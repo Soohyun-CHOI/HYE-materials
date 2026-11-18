@@ -390,12 +390,14 @@ export function run({ check, assert, log }) {
         const provider = parseFile(PROVIDER).source;
         assert(
             "the provider holds which event is on its way, set by every send, which is then the one sent last (#583)",
-            /const send = \(formData, via\) => \{\s*setSending\(String\(formData\.get\("event"\) \?\? ""\)\);\s*setLastSent\("event"\);\s*setEventVia\(via\);\s*if \(via === "dialog"\) setEventSentFor\(opening\);\s*if \(via === "desk"\) pressedOn\.current = document\.activeElement instanceof HTMLElement \? document\.activeElement : null;\s*startTransition\(\(\) => formAction\(formData\)\);\s*\};/.test(provider)
+            /const post = \(formData, via\) => \{\s*setSending\(String\(formData\.get\("event"\) \?\? ""\)\);\s*setLastSent\("event"\);\s*setEventVia\(via\);\s*if \(via === "dialog"\) setEventSentFor\(opening\);\s*startTransition\(\(\) => formAction\(formData\)\);\s*\};/.test(provider) &&
+                /const send = \(formData, via\) => \{\s*if \(via === "desk"\) pressedOn\.current = document\.activeElement instanceof HTMLElement \? document\.activeElement : null;\s*post\(formData, via\);\s*\};/.test(provider)
         );
         assert("  and splits the wait: the press's, and the menu's sending", /pending: pending && !repairing,\s*repairPending: pending && repairing,/.test(provider) && /const repairing = sending === ASSET_EVENT\.SENT_FOR_REPAIR;/.test(provider));
         assert(
             "  the menu's sending posts the asset, the job the page was drawn on and the event (#597)",
-            /sendForRepair: \(via\) => \{\s*const formData = new FormData\(\);\s*formData\.set\("assetId", assetId\);\s*formData\.set\("drawnJobId", assetJobRecordId \?\? ""\);\s*formData\.set\("event", ASSET_EVENT\.SENT_FOR_REPAIR\);\s*send\(formData, via\);\s*\},/.test(provider)
+            /const formOf = \(event\) => \{\s*const formData = new FormData\(\);\s*formData\.set\("assetId", assetId\);\s*formData\.set\("drawnJobId", assetJobRecordId \?\? ""\);\s*formData\.set\("event", event\);\s*return formData;\s*\};/.test(provider) &&
+                /sendForRepair: \(via\) => send\(formOf\(ASSET_EVENT\.SENT_FOR_REPAIR\), via\),/.test(provider)
         );
         const opener = parseFile(OPENER).source;
         assert("More actions offers it only where the plan does", /const maySendForRepair = Boolean\(transition\?\.plan\.maySendForRepair\);/.test(opener) && /\.\.\.\(maySendForRepair\s*\?/.test(opener));
@@ -954,6 +956,23 @@ export function run({ check, assert, log }) {
 
     // The failure sentence, Soo's since #612: the act is not whole, and doing it again finishes it.
     check("a failed status write, said by value (#612, #614)", ASSET_TRANSITION_COPY.statusNotUpdated, "This wasn't fully saved. Try again to finish.");
+    // And a desk's toast for a press with no dialog names the act, bare, with `Try again` (1g, #670):
+    // the two the files draw, and the header's third press in their shape.
+    check(
+        "  a desk's toast names the act left half done, for each press with no dialog, and offers to try again (#670)",
+        [
+            Object.keys(ASSET_TRANSITION_COPY.halfSaved).sort().join(" + "),
+            ...[ASSET_EVENT.SENT_FOR_REPAIR, ASSET_EVENT.CHECKED_IN, ASSET_EVENT.RETURNED_FROM_REPAIR].map((event) => ASSET_TRANSITION_COPY.halfSaved[event]),
+            ASSET_TRANSITION_COPY.retry,
+        ].join(" | "),
+        [
+            [ASSET_EVENT.CHECKED_IN, ASSET_EVENT.SENT_FOR_REPAIR, ASSET_EVENT.RETURNED_FROM_REPAIR].sort().join(" + "),
+            "Repair wasn't fully saved",
+            "Check-in wasn't fully saved",
+            "Return from repair wasn't fully saved",
+            "Try again",
+        ].join(" | ")
+    );
 
     // ── 6: the actions, read off their own call sites ──────────────────────
     log("");
@@ -1837,7 +1856,7 @@ export function run({ check, assert, log }) {
         ["value", "onChange", "onDone", "label", "clearLabel"].map((a) => attributeSources(nameSheet.ast, nameSheet.source, "SheetInput", a).join()).join(" | "),
         "{value} | {onChange} | {onClose} | {COPY.checkedOutToLabel} | {COPY.clearName}"
     );
-    assert("  the field filled, with an Accent caret", /bg-mobile-input-background/.test(sheetInput) && /caret-primary/.test(sheetInput));
+    assert("  the field filled, with an Accent caret", /bg-background-muted/.test(sheetInput) && /caret-primary/.test(sheetInput));
     assert("  the keyboard's done key ends it", /if \(event\.key !== "Enter"\) return;\s*event\.preventDefault\(\);\s*if \(!locked\) onDone\(\);/.test(sheetInput));
     assert(
         "  with a clear mark once it holds a value, named for a screen reader — the field's own clear (#605)",
@@ -1888,8 +1907,23 @@ export function run({ check, assert, log }) {
         const provider = parseFile(PROVIDER).source;
         check(
             "the toast says the answer as it came, as the phone and a dialog do",
-            `${/line=\{transitionSentence\}/.test(provider)} ${/toastSentence|ONE_SENTENCE/.test(provider + parseFile("lib/assetTransition.js").source)}`,
+            `${/line=\{halfSaved \?\? transitionSentence\}/.test(provider)} ${/toastSentence|ONE_SENTENCE/.test(provider + parseFile("lib/assetTransition.js").source)}`,
             "true false"
+        );
+        // AN EVENT LEFT HALF DONE AT A DESK (1g, #670): the action hands the event back beside the
+        // sentence, the toast names it and offers `Try again`, and `Try again` posts that event from
+        // the page as it stands, keeping the control focus goes back to.
+        const actions = parseFile(ACTION).source;
+        check(
+            "  but an event left half done, named in the toast's words with `Try again`, which sends the same event again (#670)",
+            [
+                /return refuse\(ASSET_TRANSITION_COPY\.statusNotUpdated, null, null, event\);/.test(actions),
+                /\.\.\.\(unfinished \? \{ unfinished \} : \{\}\)/.test(actions),
+                /const halfSaved = answer\?\.unfinished \? \(COPY\.halfSaved\[answer\.unfinished\] \?\? null\) : null;/.test(provider),
+                /action=\{halfSaved \? COPY\.retry : undefined\}\s*onAction=\{retry\}/.test(provider),
+                /const retry = \(\) => post\(formOf\(answer\.unfinished\), "desk"\);/.test(provider),
+            ].join(" "),
+            "true true true true true"
         );
     }
 

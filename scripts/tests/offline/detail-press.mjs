@@ -212,7 +212,11 @@ export async function run({ check, log }) {
     check("  with no least height of its own", PAIRINGS.map((p) => lines[p].leastHeight ?? "none").join(" "), "none none none");
     check("  rounded at the phone's 12", PAIRINGS.map((p) => lines[p].radius).join(" "), "12 12 12");
     check("  and Hover under :active, the one face it takes", [...new Set(PAIRINGS.flatMap((p) => lines[p].states))].join(" | "), "active background-color var(--color-hover)");
-    check("  Hover is Ink at 5.5%, as the files draw a press there", tw.resolve("--color-hover"), "color-mix(in oklab, var(--color-foreground-default) 5.5%, transparent)");
+    check(
+        "  Hover is Field, Ink at 6%, as the files draw a press there since 2026-11-17 (Tools 0a.24, #670)",
+        `${tw.resolve("--color-hover")} ${tw.resolve("--color-background-muted")}`,
+        "var(--color-background-muted) color-mix(in oklab, var(--color-foreground-default) 6%, transparent)"
+    );
 
     log("the target — the button's ::after, past the face:");
     check("  an absolute box on a positioned face, as wide as the face", PAIRINGS.map((p) => `${lines[p].position} ${lines[p].after.position} ${lines[p].after.left} ${lines[p].after.right}`).join(" | "), "relative absolute 0 0 | relative absolute 0 0 | relative absolute 0 0");
@@ -227,7 +231,20 @@ export async function run({ check, log }) {
     // is seen for what it is, and so is a target with no `::after`. Every planted class is
     // assembled while this runs, so Tailwind, which reads `scripts/` for class names, never
     // builds one into the app's stylesheet.
+    // THE SIGN-IN STEPS' ADDRESS PILL TAKES THE SAME FACE WHILE HELD ON A PHONE (Tools 0a.25, #670):
+    // Field, which the Sign in file draws its pill held in since 2026-11-17 (Hover's 5.5% before it),
+    // where a desk's pill keeps the Wash a bordered control takes under the pointer.
+    const pillFaces = (source) => {
+        const chip = source.slice(source.indexOf("export function AddressChip"));
+        const button = chip.match(/<button[\s\S]*?className=\{`\$\{chip\} ([^`]*)`\}/)?.[1] ?? "";
+        const tokens = button.split(/\s+/);
+        return ["not-aria-disabled:hover:bg-hover-subtle", "not-aria-disabled:active:bg-hover-subtle", "max-sm:not-aria-disabled:active:bg-hover"].map((t) => tokens.includes(t)).join(" ");
+    };
+    const signInParts = parseFile("app/login/SignInParts.js").source;
+    check("the sign-in address pill: the Wash under the pointer and pressed at a desk, Field held on a phone (#670)", pillFaces(signInParts), "true true true");
+
     log("anti-vacuity — this check is seen to be able to fail:");
+    check("  a pill that keeps the Wash held on a phone is seen", pillFaces(signInParts.replace(" max-sm:not-aria-disabled:active:bg-hover", "")), "true true false");
     const cls = (...parts) => parts.join("");
     const shape601 = {
         press: [cls("-mx-", "mobile-note-bleed-x"), "flex", cls("min-h-", "mobile-touch-target"), "rounded-mobile-control", cls("px-", "mobile-note-bleed-x"), "text-mobile-body-sm", cls("active:", "bg-hover-subtle")].join(" "),

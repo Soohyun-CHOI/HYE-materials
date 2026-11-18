@@ -150,7 +150,8 @@ export function providerFacts(source) {
         guardedEnds: (source.match(/(phone\((retiring|lending|returning|changing|deleting|each)\)[^;\n]*|openOn === "phone"[^;\n]*)\.end\(\)/g) ?? []).length,
         toast: [
             /const toastShown = eventVia === "desk" && lastSent === "event" && !pending && transitionSentence !== null && answer !== dismissed;/.test(source),
-            /<Toast\s+shown=\{toastShown\}\s+line=\{transitionSentence\}\s+dismissLabel=\{ASSET_COPY\.dismiss\}\s+onDismiss=\{\(\) => setDismissed\(answer\)\}\s+opener=\{pressedOn\}\s+desk\s*\/>/.test(source),
+            // An event left half done says its own line and offers `Try again` (1g, #670).
+            /<Toast\s+shown=\{toastShown\}\s+line=\{halfSaved \?\? transitionSentence\}\s+action=\{halfSaved \? COPY\.retry : undefined\}\s+onAction=\{retry\}\s+dismissLabel=\{ASSET_COPY\.dismiss\}\s+onDismiss=\{\(\) => setDismissed\(answer\)\}\s+opener=\{pressedOn\}\s+desk\s*\/>/.test(source),
             (source.match(/if \(via === "desk"\) pressedOn\.current = document\.activeElement instanceof HTMLElement \? document\.activeElement : null;/g) ?? []).length === 2,
         ].join(" "),
         status: /event: eventSaidInDialog \|\| eventVia === "desk" \? null : transitionSentence,/.test(source),

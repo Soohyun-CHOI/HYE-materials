@@ -613,16 +613,17 @@ export function run({ check, assert, log }) {
     // face at 14 in Ink 3, first in the title block and 4 over the name, under a bar handed the
     // name to fade in once the heading has gone under it, hidden while out; 1k-c's bar is handed
     // no name, and its id stands over its title the same way. A phone's status mark centers on
-    // its line. At a desk the header's actions stand 3 above the title's top (1f).
+    // its line. At a desk the header's actions center on the title's line, a 36's height with `More
+    // actions` alone (Invoices 0b.9, #670), where they stood 3 above the title's top (1f).
     log("");
-    log("the heads: the id in a phone's title block, the name in its bar, a desk's actions 3 up:");
+    log("the heads: the id in a phone's title block, the name in its bar, a desk's actions on the title's line:");
     const heads = (pageSource, topBar) =>
         [
             /const ID_ON_PHONE = "font-id text-mobile-body-xs tracking-id tabular-nums text-foreground-subtle";/.test(pageSource),
             /<div className="flex flex-col gap-title-stack max-sm:gap-mobile-title-block-stack">\s*<p className=\{`\$\{ID_ON_PHONE\} sm:hidden`\}>\{asset\.assetId\}<\/p>\s*<h1 /.test(pageSource),
             /<TopBar name=\{name\}>/.test(pageSource) && /<TopBar>/.test(pageSource) && !/<TopBar[^>]*\bid=/.test(pageSource),
             /<p className=\{`\$\{ID_ON_PHONE\} sm:hidden`\}>\{asked\}<\/p>\s*<h1 /.test(pageSource),
-            /"-mt-record-header-actions-bleed flex shrink-0 items-center gap-gap max-sm:hidden"/.test(pageSource),
+            /"-mt-header-actions-bleed flex min-h-control-lg shrink-0 items-center gap-gap max-sm:hidden"/.test(pageSource),
             /"inline-flex items-baseline gap-gap text-body max-sm:items-center max-sm:text-mobile-body"/.test(pageSource),
             /export default function TopBar\(\{ name, children \}\)/.test(topBar) && !/\{id\}/.test(topBar),
             /setNamed\(titleGoneUnder\(name \? document\.querySelector\("h1"\) : null, barRef\.current\)\);/.test(topBar),
@@ -630,7 +631,7 @@ export function run({ check, assert, log }) {
         ].join(" ");
     const topBarSource = parseFile("app/components/TopBar.js").source;
     check(
-        "the id opens a phone's title block on both pages, the bar takes the name alone, the status mark centers, and a desk's actions stand 3 up",
+        "the id opens a phone's title block on both pages, the bar takes the name alone, the status mark centers, and a desk's actions center on the title's line",
         heads(page.source, topBarSource),
         "true true true true true true true true true"
     );
