@@ -2273,7 +2273,7 @@ export function run({ check, assert, log }) {
             /if \(!fell\) return;\s*held = null;\s*focusPageHeading\(\);/.test(hook),
             /useHeadingWhenFocusFalls\(columnRef, drawn\);/.test(railSource) &&
                 /\}, \[columnRef, drawn\]\);/.test(hook) &&
-                /<div ref=\{columnRef\} data-content-area="" className=\{COLUMN\}>/.test(railSource),
+                /<div ref=\{columnRef\} className=\{COLUMN\}>/.test(railSource),
         ].join(" ");
     };
     const railSource = parseFile("app/components/Rail.js").source;

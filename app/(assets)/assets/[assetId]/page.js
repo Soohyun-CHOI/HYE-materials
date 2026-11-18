@@ -7,7 +7,8 @@ import { getAssetCategoriesByRecordIds } from "@/lib/airtable/assetCategories";
 import { getRecentCheckOuts, getAssetLogByAsset } from "@/lib/airtable/assetLog";
 import { getUsersByRecordIds } from "@/lib/airtable/users";
 import { DAY_FORMAT } from "@/lib/format";
-import { ASSET_COPY as COPY, currentHolder, loanRoute, logRowFacts, newestFirst, retiredAt, sentForRepairAt } from "@/lib/assetView";
+import { ACTIVITY_MARK, ASSET_COPY as COPY, currentHolder, loanRoute, logRowFacts, newestFirst, retiredAt, sentForRepairAt } from "@/lib/assetView";
+import { ActivityEntry, ActivityTrail } from "@/app/components/ActivityTrail";
 import Breadcrumb from "@/app/components/Breadcrumb";
 import { ButtonLink } from "@/app/components/Controls";
 import Icon from "@/app/components/Icon";
@@ -533,9 +534,10 @@ function routeCodes(route, jobCodeById) {
 }
 
 /**
- * The Activity, newest first (#463) — 0a's Activity on a phone and the record page's at a desk: a
- * dot on a rule beside each entry, the rule stopping at the last. `History` until #667, and 0a's row
- * was `Log`.
+ * The Activity, newest first (#463, Invoices 0o.51) — 0a's Activity on a phone and the record page's
+ * at a desk: each entry led by its event's mark in a circle at a desk (`ACTIVITY_MARK`, 0o.56) and a
+ * dot on a phone (0o.54), on a Rule stopping at the last — `ActivityTrail.js`'s, since #670, where
+ * a desk drew the phone's dot. `History` until #667, and 0a's row was `Log`.
  *
  * AN ENTRY IS ONE ELEMENT SET TWO WAYS. At a desk the event heads it with who a check-out
  * went to after `to`, and one line under it says when and `by` whom (1f). On a phone the event
@@ -550,7 +552,7 @@ function routeCodes(route, jobCodeById) {
  */
 function Activity({ rows, nameById, jobCodeById }) {
     return (
-        <ol className="flex flex-col">
+        <ActivityTrail>
             {rows.map((row, index) => {
                 const facts = Object.fromEntries(
                     logRowFacts({
@@ -565,75 +567,64 @@ function Activity({ rows, nameById, jobCodeById }) {
                 const handedTo = "checkedOutTo" in facts;
                 const route = facts.route ?? null;
                 return (
-                    <li
-                        key={row.id}
-                        className="grid grid-cols-[var(--width-log-track)_minmax(0,1fr)] gap-x-gap-lg max-sm:grid-cols-[var(--width-mobile-log-track)_minmax(0,1fr)] max-sm:gap-x-mobile-log-gap"
-                    >
-                        <div aria-hidden="true" className="relative flex justify-center">
-                            {!last && (
-                                <span className="absolute top-log-rule-inset-top -bottom-log-rule-overhang w-px bg-divider max-sm:top-mobile-log-rule-inset-top max-sm:-bottom-mobile-log-rule-overhang" />
-                            )}
-                            <span className="relative mt-log-dot-inset-top size-log-dot rounded-full bg-foreground-faint max-sm:mt-mobile-log-dot-inset-top max-sm:size-mobile-log-dot" />
-                        </div>
-                        <div className={`flex min-w-0 flex-col gap-log-line-stack ${last ? "" : "pb-log-stack max-sm:pb-mobile-log-stack"}`}>
-                            <p className="text-body max-sm:text-mobile-body">
-                                <span className="font-medium">{facts.event}</span>
-                                {handedTo && (
-                                    <span className="max-sm:hidden">
-                                        {" "}
-                                        <span className="text-foreground-subtle">{COPY.activityTo}</span> {facts.checkedOutTo}
-                                    </span>
-                                )}
-                                {route && (
-                                    <span className="tabular-nums max-sm:hidden">
-                                        {" "}
-                                        {route.from && (
-                                            <>
-                                                {route.from}{" "}
-                                                <span aria-hidden="true" className="text-foreground-subtle">
-                                                    {COPY.activityRouteArrow}
-                                                </span>
-                                                <span className="sr-only">{COPY.activityTo}</span>{" "}
-                                            </>
-                                        )}
-                                        {route.to}
-                                    </span>
-                                )}
-                            </p>
-                            {route && (
-                                <p className="flex items-center gap-gap text-mobile-body-xs text-foreground-muted tabular-nums sm:hidden">
-                                    <Icon name="map-pin" kind="qualifier" className="size-mobile-log-icon shrink-0" />
-                                    <span className="inline-flex min-w-0 items-center gap-mobile-log-route-gap">
-                                        {route.from && (
-                                            <>
-                                                <span>{route.from}</span>
-                                                <Icon name="arrow-right" kind="qualifier" className="size-mobile-log-icon shrink-0" />
-                                                <span className="sr-only">{COPY.activityTo}</span>
-                                            </>
-                                        )}
-                                        <span>{route.to}</span>
-                                    </span>
-                                </p>
-                            )}
-                            {/* Who has it, in Ink 2 as the route above it is (1j); in Ink until #617. */}
+                    <ActivityEntry key={row.id} mark={ACTIVITY_MARK[row.event]} last={last}>
+                        <p className="text-body max-sm:text-mobile-body">
+                            <span className="font-medium">{facts.event}</span>
                             {handedTo && (
-                                <p className="flex items-center gap-gap text-mobile-body-xs text-foreground-muted sm:hidden">
-                                    <Icon name="user" kind="qualifier" className="size-mobile-log-icon shrink-0" />
-                                    <span className="min-w-0 text-pretty">{facts.checkedOutTo}</span>
-                                </p>
-                            )}
-                            <p className="text-body-sm text-foreground-subtle max-sm:text-mobile-body-xs">
-                                <span className="text-foreground-muted max-sm:text-foreground-subtle">
-                                    <Instant at={facts.eventAt} />
+                                <span className="max-sm:hidden">
+                                    {" "}
+                                    <span className="text-foreground-subtle">{COPY.activityTo}</span> {facts.checkedOutTo}
                                 </span>
-                                <Dot />
-                                {COPY.activityBy}{" "}
-                                <span className="text-foreground-muted max-sm:text-foreground-subtle">{facts.recordedBy}</span>
+                            )}
+                            {route && (
+                                <span className="tabular-nums max-sm:hidden">
+                                    {" "}
+                                    {route.from && (
+                                        <>
+                                            {route.from}{" "}
+                                            <span aria-hidden="true" className="text-foreground-subtle">
+                                                {COPY.activityRouteArrow}
+                                            </span>
+                                            <span className="sr-only">{COPY.activityTo}</span>{" "}
+                                        </>
+                                    )}
+                                    {route.to}
+                                </span>
+                            )}
+                        </p>
+                        {route && (
+                            <p className="flex items-center gap-gap text-mobile-body-xs text-foreground-muted tabular-nums sm:hidden">
+                                <Icon name="map-pin" kind="qualifier" className="size-mobile-log-icon shrink-0" />
+                                <span className="inline-flex min-w-0 items-center gap-mobile-log-route-gap">
+                                    {route.from && (
+                                        <>
+                                            <span>{route.from}</span>
+                                            <Icon name="arrow-right" kind="qualifier" className="size-mobile-log-icon shrink-0" />
+                                            <span className="sr-only">{COPY.activityTo}</span>
+                                        </>
+                                    )}
+                                    <span>{route.to}</span>
+                                </span>
                             </p>
-                        </div>
-                    </li>
+                        )}
+                        {/* Who has it, in Ink 2 as the route above it is (1j); in Ink until #617. */}
+                        {handedTo && (
+                            <p className="flex items-center gap-gap text-mobile-body-xs text-foreground-muted sm:hidden">
+                                <Icon name="user" kind="qualifier" className="size-mobile-log-icon shrink-0" />
+                                <span className="min-w-0 text-pretty">{facts.checkedOutTo}</span>
+                            </p>
+                        )}
+                        <p className="text-body-sm text-foreground-subtle max-sm:text-mobile-body-xs">
+                            <span className="text-foreground-muted max-sm:text-foreground-subtle">
+                                <Instant at={facts.eventAt} />
+                            </span>
+                            <Dot />
+                            {COPY.activityBy}{" "}
+                            <span className="text-foreground-muted max-sm:text-foreground-subtle">{facts.recordedBy}</span>
+                        </p>
+                    </ActivityEntry>
                 );
             })}
-        </ol>
+        </ActivityTrail>
     );
 }

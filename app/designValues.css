@@ -282,7 +282,7 @@
     --spacing-toast-inset-right: 0.375rem; /* Toast, 6: its dismiss from the end */
     --spacing-toast-inline: 1rem; /* Toast, 16: its line to its action */
     --spacing-toast-action-gap: 0.125rem; /* 1a, 2: its action to its dismiss — from the drawings, not the spec */
-    --spacing-toast-offset: 1.5rem; /* Toast, 24: above the content area's end */
+    --spacing-toast-offset: 1.5rem; /* Toast, 24: above the content's end, the toast at the window's middle (Invoices 0k.26) */
     --spacing-added-toast-offset: 4.875rem; /* 1c, 78: a passing toast over the selection bar, from the pager's top, 12 above the bar — from the drawings, not the spec (#617) */
     --transition-duration-toast: 200ms; /* 1c: a passing toast's fade once its 4 s are up — from the drawings' script, not the spec (#617) */
     --color-toast-hover: oklch(1 0 0 / 0.12); /* Toast: its action and its dismiss under the pointer */
@@ -383,13 +383,12 @@
     --spacing-label-preview-inset-x: 1rem; /* 1f, 16: inside the Field ground the label is drawn on, either side — from the drawings, not the spec */
     --spacing-label-preview-inset-y: 1.75rem; /* 1f, 28: inside it, above and below — from the drawings, not the spec */
     --spacing-label-caption-stack: 0.5rem; /* 1f, 8: from the label to the line saying what it prints at (#601) — from the drawings, not the spec */
-    --width-log-track: 1.25rem; /* 1f, 20: the column the Activity's dots and rule stand in — from the drawings, not the spec */
-    --size-log-dot: 0.375rem; /* 1f, 6: an Activity entry's dot — from the drawings, not the spec */
-    --spacing-log-dot-inset-top: 0.4375rem; /* 1f, 7: the dot from its entry's top — from the drawings, not the spec */
-    --spacing-log-rule-inset-top: 1.25rem; /* 1f, 20: where the rule under a dot starts — from the drawings, not the spec */
-    --spacing-log-rule-overhang: 0.1875rem; /* 1f, 3: how far the rule runs into the next entry — from the drawings, not the spec */
-    --spacing-log-line-stack: 0.1875rem; /* 1f and 1j, 3: between an entry's lines — from the drawings, not the spec */
-    --spacing-log-stack: 1.5rem; /* 1f, 24: between entries — from the drawings, not the spec */
+    --size-log-mark: 1.5rem; /* Invoices 0o.33, 24: the circle an Activity event leads with at a desk, and the column it stands in (#670) — where a 6 dot stood in a column of 20 until then */
+    --size-log-mark-icon: 0.75rem; /* Invoices 0o.33, 12: the event's mark that circle holds, at Ink 3 */
+    --spacing-log-mark-inline: 0.75rem; /* Invoices 0o.34, 12: from an event's circle to its words at a desk, and from the dot to them on a phone (Tools 0a's Activity, 0o.54) */
+    --spacing-log-mark-bleed: calc((var(--size-log-mark) - var(--text-body--line-height)) / 2); /* Invoices 0o.34, 2: how far the circle stands above its entry's top, so it centers on the event's first line — and where the Rule from the circle above meets it (0o.35) */
+    --spacing-log-line-stack: 0.1875rem; /* Invoices 0o.53, 3: between an entry's lines, at a desk and on a phone (1f, 1j) */
+    --spacing-log-stack: 1.5rem; /* Invoices 0o.51, 24: between a desk's Activity entries */
     --max-width-empty-state: 30rem; /* 1a2, 1d and 1h, 480: the sentence of a list with nothing on it and of a screen saying a record is not there — from the drawings, not the spec. The tool item page's refusal at a desk reads it too, which no row sizes, so it moves with this */
 
     /* 0o · Sign-in page — one column, centered, with the wordmark at its head (#473). */
@@ -506,7 +505,6 @@
     --spacing-mobile-sign-in-list-empty-inset-y: 2rem; /* Sign in 1k, 32: above and below what the list says when a search finds nothing — from the drawings, not the spec */
     --height-mobile-code-caret: 1.625rem; /* 1a, 26: the caret's height in a phone's box — from the drawings, not the spec */
     --size-mobile-log-dot: 0.375rem; /* Activity, 6: the dot */
-    --spacing-mobile-log-gap: 0.75rem; /* Activity, 12: beside the dot */
     --spacing-mobile-log-stack: 1.25rem; /* Activity, 20: between entries */
     --size-mobile-log-icon: 0.875rem; /* Activity, 14: before the person a check-out went to, and before and between a loan's two jobs (#598) — and the job, until the title block named it (#597) */
     --spacing-mobile-log-route-gap: 0.375rem; /* Activity, 6: either side of the arrow between a loan's two jobs (#598) */

@@ -100,11 +100,23 @@ const SHAPES = {
         ["path", { d: "M5 12h14" }],
         ["path", { d: "m12 5 7 7-7 7" }],
     ],
+    // The Activity's marks (Invoices 0o.56, #670): an item lent, and, with the rest of its events
+    // below, `ban`, `hammer`, `log-in`, `log-out`, `undo-2`, `check` and `wrench` (`ACTIVITY_MARK`).
+    "arrow-right-left": [
+        ["path", { d: "m16 3 4 4-4 4" }],
+        ["path", { d: "M20 7H4" }],
+        ["path", { d: "m8 21-4-4 4-4" }],
+        ["path", { d: "M4 17h16" }],
+    ],
     "arrow-up-down": [
         ["path", { d: "m21 16-4 4-4-4" }],
         ["path", { d: "M17 20V4" }],
         ["path", { d: "m3 8 4-4 4 4" }],
         ["path", { d: "M7 4v16" }],
+    ],
+    ban: [
+        ["circle", { cx: "12", cy: "12", r: "10" }],
+        ["path", { d: "M4.929 4.929 19.07 19.071" }],
     ],
     // An item's serial number leads with it on a phone (0a Value line, 1j; #601).
     barcode: [
@@ -150,10 +162,25 @@ const SHAPES = {
         ["path", { d: "M16 13H8" }],
         ["path", { d: "M16 17H8" }],
     ],
+    hammer: [
+        ["path", { d: "m15 12-9.373 9.373a1 1 0 0 1-3.001-3L12 9" }],
+        ["path", { d: "m18 15 4-4" }],
+        ["path", { d: "m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172v-.344a2 2 0 0 0-.586-1.414l-1.657-1.657A6 6 0 0 0 12.516 3H9l1.243 1.243A6 6 0 0 1 12 8.485V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5" }],
+    ],
     info: [
         ["circle", { cx: "12", cy: "12", r: "10" }],
         ["path", { d: "M12 16v-4" }],
         ["path", { d: "M12 8h.01" }],
+    ],
+    "log-in": [
+        ["path", { d: "m10 17 5-5-5-5" }],
+        ["path", { d: "M15 12H3" }],
+        ["path", { d: "M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" }],
+    ],
+    "log-out": [
+        ["path", { d: "m16 17 5-5-5-5" }],
+        ["path", { d: "M21 12H9" }],
+        ["path", { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" }],
     ],
     "map-pin": [
         ["path", { d: "M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" }],
@@ -201,6 +228,10 @@ const SHAPES = {
         ["path", { d: "M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" }],
         ["circle", { cx: "17", cy: "18", r: "2" }],
         ["circle", { cx: "7", cy: "18", r: "2" }],
+    ],
+    "undo-2": [
+        ["path", { d: "M9 14 4 9l5-5" }],
+        ["path", { d: "M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" }],
     ],
     user: [
         ["path", { d: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" }],

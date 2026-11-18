@@ -312,8 +312,7 @@ export default function Rail({ account, children }) {
                 </nav>
                 {tip.element}
             </div>
-            {/* The content area a toast centers on (0k, `Toast.js`). */}
-            <div ref={columnRef} data-content-area="" className={COLUMN}>
+            <div ref={columnRef} className={COLUMN}>
                 {children}
             </div>
         </div>

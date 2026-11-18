@@ -38,7 +38,7 @@ What the tools axis owes these names is in `tools.md`, and how the check reads a
 
 **#498 HELD EVERY NAME TO THESE WORDS, AND SEVENTEEN MOVED.** The names were chosen issue by issue as each screen took the design, and three kinds of drift had come in. **A role in another role's word, or in none.** A control pulled out so its ink meets an edge is a face reaching past the text, so the close, the pager's steps and the breadcrumb's way back were `--spacing-dialog-close-bleed`, `--spacing-pager-step-bleed` and `--spacing-breadcrumb-back-bleed`: #462 named the first an `-offset` beside the definition that gives `offset` to a surface and what opens it, and #460 and #463 named theirs after it. The last went with #502, when Design set the way back on its control's own side room (`Every mark from one source`). The least room between a row's two ends is `inline`, as a list's head, a record's header and a dialog's head already had it, so the pager's is `--spacing-pager-inline` and the room between two columns `--spacing-table-column-inline`, where `gap` and CSS's `column-gap` stood. A header's own room down from its title is a `stack`, as a dialog's and a record's are, so the sign-in head's is `--spacing-sign-in-title-stack`. An inset on one axis takes its axis, `--spacing-stepper-inset-x`, and the scrollbar's lane takes the role it plays, `--spacing-scrollbar-gutter`: the room `scrollbar-gutter` holds open. **One container under two words.** The record header was `page-header` in one name and `record-header` in another, and `page` reads as every page's while a list's head has names of its own; the labels' column beside its pane was `panel`, which is the design's word for what the names call a `drawer`, where the frame, its check and these notes all say `column`; an empty state was `empty` in four names and `empty-state` in two; and the design's Notice was `notice` in 1g's one name and `alert` in the four others. **A name for something nothing draws.** Ink 5 was `--color-skeleton`, named for a bar standing in for a line of text, and its one reader is the edge of an empty checkbox, so it is `--color-checkbox-border`; the bar takes a name of its own with its reader.
 
-**WHAT STAYED, AND WHY.** A `gap` is the room within a cluster, an icon and its word among them — 0b's own Gap row — so the account's avatar to its name and the breadcrumb's chevron to its word stay `gap`, as the nav row's, a refusal's, a selection bar's reason and the phone's alert do. Four spacing names hold no role word, and none would be right: `--spacing-mobile-touch-target` is a size its readers take through both the height and the size utilities, and spacing is the one namespace both resolve — on 4.3.2 the first reads no `--size-*` and the second no `--height-*`; `--spacing-selection-bar-slide` is how far the bar moves as it appears, and `--spacing-log-rule-overhang` and `--spacing-mobile-log-rule-overhang` how far a line runs past its box, which `offset` and `bleed` would each take as a third meaning. **And nothing was merged**: each pair holding one value for one kind of use — a message's mark to its sentence at 6, ids listed one to a line at 4, two things sharing a row at 12, the soft edges of the phone's two bars — is two of the design's rows or two containers, which is #459's reason for naming the summary's 4 for the summary.
+**WHAT STAYED, AND WHY.** A `gap` is the room within a cluster, an icon and its word among them — 0b's own Gap row — so the account's avatar to its name and the breadcrumb's chevron to its word stay `gap`, as the nav row's, a refusal's, a selection bar's reason and the phone's alert do. Three spacing names hold no role word, and none would be right: `--spacing-mobile-touch-target` is a size its readers take through both the height and the size utilities, and spacing is the one namespace both resolve — on 4.3.2 the first reads no `--size-*` and the second no `--height-*`; `--spacing-selection-bar-slide` is how far the bar moves as it appears, and `--spacing-mobile-log-rule-overhang` how far a line runs past its box, which `offset` and `bleed` would each take as a third meaning. Its desk twin went with #670, whose Rule stops at the next circle. **And nothing was merged**: each pair holding one value for one kind of use — a message's mark to its sentence at 6, ids listed one to a line at 4, two things sharing a row at 12, the soft edges of the phone's two bars — is two of the design's rows or two containers, which is #459's reason for naming the summary's 4 for the summary.
 
 ## A length is rem
 
@@ -720,7 +720,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0k Toast, its dismiss from the end | `--spacing-toast-inset-right` | 0.375rem (6) |
 | 0k Toast, its line to its action | `--spacing-toast-inline` | 1rem (16) |
 | 1a's drawing, the toast's action to its dismiss — not the spec | `--spacing-toast-action-gap` | 0.125rem (2) |
-| 0k Toast, above the content area's end | `--spacing-toast-offset` | 1.5rem (24) |
+| 0k.26 Toast, above the content's end, at the window's middle (#670) | `--spacing-toast-offset` | 1.5rem (24) |
 | 0k Toast, its action and its dismiss under the pointer | `--color-toast-hover` | white at 12% |
 | 1f's toast, a date's slashes on its Ink ground — not the spec (#614) | `--opacity-toast-date-separator` | 60% |
 | 0l Width | `--container-dialog` | 26.25rem (420) |
@@ -825,13 +825,12 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 1f's drawing, the label's Field ground, either side — not the spec | `--spacing-label-preview-inset-x` | 1rem (16) |
 | 1f's drawing, the label's Field ground, above and below — not the spec | `--spacing-label-preview-inset-y` | 1.75rem (28) |
 | 1f's drawing, the label to the line saying what it prints at (#601; `Size` and `Symbol` in a column of their own from #463, three names that went with them) — not the spec | `--spacing-label-caption-stack` | 0.5rem (8) |
-| 1f's drawing, the history's dots and rule — not the spec | `--width-log-track` | 1.25rem (20) |
-| 1f's drawing, an entry's dot — not the spec | `--size-log-dot` | 0.375rem (6) |
-| 1f's drawing, the dot from its entry's top — not the spec | `--spacing-log-dot-inset-top` | 0.4375rem (7) |
-| 1f's drawing, where the rule under a dot starts — not the spec | `--spacing-log-rule-inset-top` | 1.25rem (20) |
-| 1f's drawing, the rule into the next entry — not the spec | `--spacing-log-rule-overhang` | 0.1875rem (3) |
-| 1f and 1j's drawings, between an entry's lines — not the spec | `--spacing-log-line-stack` | 0.1875rem (3) |
-| 1f's drawing, between entries — not the spec | `--spacing-log-stack` | 1.5rem (24) |
+| Invoices 0o.33, the circle an Activity event leads with at a desk, and the column it stands in (#670; a 6 dot in a column of 20 until then) | `--size-log-mark` | 1.5rem (24) |
+| Invoices 0o.33, the event's mark in that circle | `--size-log-mark-icon` | 0.75rem (12) |
+| Invoices 0o.34, the circle to its words — and the phone's dot to them, which stands in for it (0o.54, Tools 0a's Activity) | `--spacing-log-mark-inline` | 0.75rem (12) |
+| Invoices 0o.34, the circle above its entry's top, so it centers on the first line, where the Rule from above meets it | `--spacing-log-mark-bleed` | half of 24 less the line's 20 (2) |
+| Invoices 0o.53, between an entry's lines, at a desk and on a phone | `--spacing-log-line-stack` | 0.1875rem (3) |
+| Invoices 0o.51, between a desk's entries | `--spacing-log-stack` | 1.5rem (24) |
 | 1a2's, 1d's and 1h's drawings, the sentence of a list with nothing on it and of a record that is not there — not the spec; 440 until #566 | `--max-width-empty-state` | 30rem (480) |
 | 0o Column | `--container-sign-in` | 22.5rem (360) |
 | 0o Column, the wordmark from the page's top | `--spacing-sign-in-inset-top` | clamp(4rem, 24dvh, 15rem) (24%, 64 to 240) |
@@ -923,7 +922,6 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | Tools 0a Code, the line under the field | `--spacing-mobile-code-help-stack` | 1.25rem (20) |
 | 1a's drawing, the caret's height in a phone's box — not the spec | `--height-mobile-code-caret` | 1.625rem (26) |
 | Tools 0a Activity, the dot | `--size-mobile-log-dot` | 0.375rem (6) |
-| Tools 0a Activity, beside the dot | `--spacing-mobile-log-gap` | 0.75rem (12) |
 | Tools 0a Activity, between entries | `--spacing-mobile-log-stack` | 1.25rem (20) |
 | Tools 0a Activity, the icon before who a check-out went to — and the job, until #597 | `--size-mobile-log-icon` | 0.875rem (14) |
 | 1j's drawing, the dots and rule — not the spec | `--width-mobile-log-track` | 0.75rem (12) |

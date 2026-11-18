@@ -555,11 +555,12 @@ const VALUES = [
     ["--spacing-label-preview-inset-x", "1rem", null],
     ["--spacing-label-preview-inset-y", "1.75rem", null],
     ["--spacing-label-caption-stack", "0.5rem", null],
-    ["--width-log-track", "1.25rem", null],
-    ["--size-log-dot", "0.375rem", null],
-    ["--spacing-log-dot-inset-top", "0.4375rem", null],
-    ["--spacing-log-rule-inset-top", "1.25rem", null],
-    ["--spacing-log-rule-overhang", "0.1875rem", null],
+    // A desk's Activity entry leads with its event's mark in a 24 circle, centered on the event's first
+    // line and 12 before its words, where a 6 dot stood in a column of 20 (Invoices 0o.33, 0o.34; #670).
+    ["--size-log-mark", "1.5rem", null],
+    ["--size-log-mark-icon", "0.75rem", null],
+    ["--spacing-log-mark-inline", "0.75rem", null],
+    ["--spacing-log-mark-bleed", "calc((var(--size-log-mark) - var(--text-body--line-height)) / 2)", null],
     ["--spacing-log-line-stack", "0.1875rem", null],
     ["--spacing-log-stack", "1.5rem", null],
     // Every empty list's and not-found screen's sentence at 480 since the files of 2026-10-23
@@ -687,7 +688,6 @@ const VALUES = [
     ["--spacing-mobile-sign-in-list-empty-inset-y", "2rem", null],
     ["--height-mobile-code-caret", "1.625rem", null],
     ["--size-mobile-log-dot", "0.375rem", null],
-    ["--spacing-mobile-log-gap", "0.75rem", null],
     ["--spacing-mobile-log-stack", "1.25rem", null],
     ["--size-mobile-log-icon", "0.875rem", null],
     // Either side of the arrow between a loan's two jobs (#598).
