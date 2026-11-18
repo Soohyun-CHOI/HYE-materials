@@ -103,19 +103,23 @@ export const TABLE_ROW_LINK = "after:absolute after:inset-0";
  *
  * `fill` IS A LIST ON FILL'S HEAD (1l, #538): the column's whole width rather than the measure.
  *
- * `stacked` IS A CATEGORY'S OWN HEAD SINCE #540 (1d, as the files of 2026-10-23 were last sent):
- * its controls in a column at the head's right, as tall as the title and its caption, standing at
- * its foot and 8 apart — `Add items` over the sort, either alone at the foot when the other is not
- * drawn, where the one control stood level with the title's top from #538.
+ * `stacked` IS A CATEGORY'S OWN HEAD SINCE #540 (1c, 1d, 1e): its controls in a column at the
+ * head's right, `Add items` — or its room — centered on the title's line (Invoices 0b.9) and the
+ * sort 8 under it (0b.7), and the column head 20 under the caption and 8 under the sort, whichever
+ * stands lower, so the rows start in one place with the sort and without it (0b.8). From #540 the
+ * column stood at the head's foot, as tall as the title and its caption, the sort 14 over the
+ * column head, until the files of 2026-11-17 (#670).
  */
 export function ListHeader({ title, count, noun, caption, underBreadcrumb = false, fill = false, stacked = false, children }) {
     return (
         <div
-            className={`${fill ? LIST_FILL : LIST_MEASURE} flex justify-between gap-list-header-inline pb-list-header-inset-bottom ${caption ? "items-start" : "items-center"} ${
-                underBreadcrumb ? "pt-breadcrumb-stack" : "min-h-(--height-control-lg) pt-list-header-inset-top"
-            }`}
+            className={`${fill ? LIST_FILL : LIST_MEASURE} flex justify-between gap-list-header-inline ${stacked ? "pb-gap" : "pb-list-header-inset-bottom"} ${
+                caption ? "items-start" : "items-center"
+            } ${underBreadcrumb ? "pt-breadcrumb-stack" : "min-h-(--height-control-lg) pt-list-header-inset-top"}`}
         >
-            <div className="flex min-w-0 flex-col gap-title-stack">
+            {/* A stacked head's title block keeps the 20 to the column head less the 8 under the
+                controls, so the column head stands 20 under the caption whatever the column holds. */}
+            <div className={`flex min-w-0 flex-col gap-title-stack ${stacked ? "pb-[calc(var(--spacing-list-header-line-stack)-var(--spacing-gap))]" : ""}`}>
                 <div className="flex min-w-0 items-baseline gap-list-count-inline">
                     <h1 className="min-w-0 text-heading-lg">{title}</h1>
                     {count != null && (
@@ -129,7 +133,7 @@ export function ListHeader({ title, count, noun, caption, underBreadcrumb = fals
             </div>
             {/* Its controls 8 apart, 0b's Gap within a cluster, as the files of 2026-10-23 draw 1a's
                 head (#566); 1a drew them 12 apart from #519 until then. */}
-            <div className={`flex shrink-0 gap-gap ${stacked ? "flex-col items-end justify-end self-stretch" : "items-center"}`}>{children}</div>
+            <div className={`flex shrink-0 gap-gap ${stacked ? "-mt-header-actions-bleed flex-col items-end" : "items-center"}`}>{children}</div>
         </div>
     );
 }

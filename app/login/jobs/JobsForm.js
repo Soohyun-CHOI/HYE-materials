@@ -23,7 +23,7 @@ import { chooseJobsAction } from "./actions";
  * name, its round check last.
  *
  * NOTHING CHOSEN IS SAID TWO WAYS, AS THE TWO DRAWINGS SAY IT. At a desk `Continue` is disabled
- * with `Choose at least one job.` over it at Ink 3 (1l); on a phone no button is ever disabled,
+ * with `Choose at least one job` over it at Ink 3 (1l); on a phone no button is ever disabled,
  * so `Continue` is live and a press says the same sentence in Red 12 above it, until a job is
  * chosen (Tools 0a Busy, 1k-c). So the action is drawn once per width, each hidden at the other.
  *

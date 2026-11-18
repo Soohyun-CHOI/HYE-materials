@@ -23,7 +23,8 @@
 import { ASSET_NOTE_COPY, NOTE_MAX, keptNote, readNote, readNoteSubmission } from "../../../lib/assetNote.js";
 import { ASSET_STATUS, ASSET_STATUS_VALUES } from "../../../lib/assetStatus.js";
 import { ASSET_TRANSITION_COPY, planTransition } from "../../../lib/assetTransition.js";
-import { parseFile, parseSource, resolveFunction } from "./_ast.mjs";
+import { readFileSync } from "node:fs";
+import { parseFile, parseSource, repoPath, resolveFunction } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "An item's note: what it keeps, who writes it, and where it is asked (#533, #612)";
@@ -165,9 +166,9 @@ export function run({ check, assert, log }) {
         "Note | Add note | Edit note | Edit | Add a note | Add"
     );
     check(
-        "the field's line and its count, and no example in the field since the files of 2026-11-04's afternoon (#607)",
-        ["placeholder" in ASSET_NOTE_COPY, ASSET_NOTE_COPY.help, ASSET_NOTE_COPY.count(28), ASSET_NOTE_COPY.count(55), ASSET_NOTE_COPY.tooLong].join(" | "),
-        "false | Up to 50 characters | 28/50 | 55/50 | Use 50 characters or fewer"
+        "the count and the refusal, no example in the field since the files of 2026-11-04's afternoon (#607), and no help line since 2026-11-17's (#670)",
+        ["placeholder" in ASSET_NOTE_COPY, "help" in ASSET_NOTE_COPY, ASSET_NOTE_COPY.count(28), ASSET_NOTE_COPY.count(55), ASSET_NOTE_COPY.tooLong].join(" | "),
+        "false | false | 28/50 | 55/50 | Use 50 characters or fewer"
     );
     check(
         "the actions and their working words",
@@ -197,7 +198,7 @@ export function run({ check, assert, log }) {
     check("  and no Asset Log row, nor the caches an event moves", facts.noEvent, true);
     check(
         "  the one helper answers a refusal the page says on its own with the page and nothing beside it",
-        /function refuse\(error, moved = null, takenBy = null\) \{\s*refresh\(\);\s*if \(error === null\) return null;\s*return \{ error, \.\.\.\(moved \? \{ moved \} : \{\}\), \.\.\.\(takenBy \? \{ takenBy \} : \{\}\) \};/.test(actions.source),
+        /function refuse\(error, moved = null, takenBy = null, unfinished = null\) \{\s*refresh\(\);\s*if \(error === null\) return null;\s*return \{ error, \.\.\.\(moved \? \{ moved \} : \{\}\), \.\.\.\(takenBy \? \{ takenBy \} : \{\}\), \.\.\.\(unfinished \? \{ unfinished \} : \{\}\) \};/.test(actions.source),
         true
     );
 
@@ -322,7 +323,9 @@ export function run({ check, assert, log }) {
                 /const answer = detail\.read\(\{ typed: draft, previous: value, stored: value \}\);/.test(body),
                 /if \(answer\.refusal\) \{\s*setPressed\(true\);/.test(body),
                 /if \(answer\.unchanged\) \{\s*(onClose|control\.close)\(\);\s*return;\s*\}\s*control\.send\(\{ typed: draft, previous: value, by: "submit" \}\);/.test(body),
-                /refusal=\{\(pressed \? answer\.refusal : null\) \?\? server\.taken\}\s*notice=\{server\.said\}\s*count=\{detail\.count\?\.\(draft\.length\)\}/.test(body),
+                name === "RowEditor"
+                    ? /const refusal = \(pressed \? answer\.refusal : null\) \?\? server\.taken;/.test(body) && /refusal=\{refusal\} notice=\{server\.said\} describedBy=\{detail\.count \? countId : undefined\}/.test(body)
+                    : /refusal=\{\(pressed \? answer\.refusal : null\) \?\? server\.taken\}\s*notice=\{server\.said\}\s*count=\{detail\.count\?\.\(draft\.length\)\}/.test(body),
             ].join(" "),
             "true true true true"
         );
@@ -362,11 +365,47 @@ export function run({ check, assert, log }) {
     check(
         "the field's count stands at its line's end, in Red while the field refuses, describing the field",
         [
-            /const described = \[said \? messageId : null, count !== undefined \? countId : null\]\.filter\(Boolean\)\.join\(" "\) \|\| undefined;/.test(field),
+            /const described = \[said \? messageId : null, count !== undefined \? countId : null, describedBy\]\.filter\(Boolean\)\.join\(" "\) \|\| undefined;/.test(field),
             /<span id=\{countId\} className=\{`ml-auto shrink-0 tabular-nums \$\{refusal \? "text-danger" : "text-foreground-subtle"\}`\}>\s*\{count\}\s*<\/span>/.test(field),
             /\{count === undefined \? \(\s*message\s*\) : \(\s*<div\s+className=\{`mt-input-message-stack flex items-start gap-field-count-inline/.test(field),
         ].join(" "),
         "true true true"
+    );
+
+    // ONE EDITOR FOR BOTH DETAILS AT A DESK, SO THEIR 6 AND 8 CANNOT PART (Invoices 0o.21, 0o.24, 0o.26,
+    // 0o.27; #670): a message stands 6 under the field as every field's line does, the actions 8
+    // under it in one row on the right, and the note's count at that row's left, level with their
+    // tops, in Ink 3 and Red while the field refuses, describing the field from there. The files of
+    // 2026-11-17 set the serial number's 12 to the note's 8; one row for both is what keeps them one.
+    const rowEditor = functionSource(component, "RowEditor");
+    const editorSpacing = (body) => [...body.matchAll(/\b(?:p|m)[trblxy]?-(?!auto\b)[a-z-]+|\b(?:pt|pb|mt|mb)-\[[^\]]*\]/g)].map((m) => m[0]).sort().join(" ");
+    const editorFacts = (source, body) =>
+        [
+            /const DETAILS_ACTIONS_ROW = "flex items-start gap-field-count-inline pt-details-actions-stack";/.test(source),
+            (body.match(/className=\{DETAILS_ACTIONS_ROW\}/g) ?? []).length === 1,
+            /\{detail\.count && \(\s*<span id=\{countId\} className=\{`min-w-0 text-body-sm tabular-nums \$\{refusal \? "text-danger" : "text-foreground-subtle"\}`\}>\s*\{detail\.count\(draft\.length\)\}\s*<\/span>\s*\)\}\s*<div className="ml-auto flex shrink-0 gap-gap">/.test(body),
+            // No spacing of a kind's own: the row and the field's line are the only room, for either.
+            !/kind === "(serial|note)"|detail\.(face|kind) === /.test(body) && editorSpacing(body.replace(/className=\{`-mt-[^`]*`\}/, "")) === "",
+            /<div className=\{DETAILS_ACTIONS_ROW\}>/.test(body) && !/count=\{/.test(body),
+        ].join(" ");
+    check(
+        "the serial number and the note edit in one row at a desk: a message 6 under the field, the actions 8 under that on the right, the note's count at their left (#670)",
+        editorFacts(component.source, rowEditor),
+        "true true true true true"
+    );
+    const designValues = readFileSync(repoPath("app/designValues.css"), "utf8");
+    check(
+        "  the field's line is 6 under it and the actions' row 8, by value",
+        `${/const message = \(said \|\| reserveMessage\) && \(\s*<div\s+id=\{messageId\}\s+aria-live="polite"\s+className=\{\s*count === undefined\s*\? `mt-input-message-stack /.test(field)} ${designValues.match(/--spacing-input-message-stack: ([\d.]+rem);/)?.[1]} ${designValues.match(/--spacing-details-actions-stack: ([\d.]+rem);/)?.[1]}`,
+        "true 0.375rem 0.5rem"
+    );
+    check(
+        "  and an editor that spaced the serial number on its own is seen (anti-vacuity)",
+        editorFacts(
+            'const DETAILS_ACTIONS_ROW = "flex items-start gap-field-count-inline pt-details-actions-stack";',
+            '<Field label={detail.name} /><div className={kind === "serial" ? "flex justify-end gap-gap pt-details-actions-stack" : DETAILS_ACTIONS_ROW}><div className="ml-auto flex shrink-0 gap-gap" /></div>'
+        ),
+        "true false false false false"
     );
 
     // ── anti-vacuity ────────────────────────────────────────────────────────

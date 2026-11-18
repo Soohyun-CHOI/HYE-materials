@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { focusPageHeading } from "./DialogFrame";
 import Icon from "./Icon";
 
@@ -22,7 +22,7 @@ function closeToast(toast, opener, then) {
 
 /*
  * 0k's Toast — a line that reports how a finished action went: the Ink ground, 44 tall, at the
- * Group radius under Toast's shadow, centered on the content area and 24 above its end. Its line
+ * Group radius under Toast's shadow, centered on the window and 24 above the content's end. Its line
  * is white 14 at 400, 14 from the start; its action follows 16 after the line, a faceless 32 at
  * white 14 and 600, and then a 32 dismiss holding a 14 ×, 2 after it and 6 from the end. The
  * line names what happened and the action what to do next, and the caller's words keep them
@@ -30,20 +30,21 @@ function closeToast(toast, opener, then) {
  *
  * WRITTEN FOR 1a's EXPORT (#566), AND A FAILURE IS ALL IT DRAWS. Its action is the caller's to give:
  * an item's page at a desk says a refused press with no dialog here (#614) and gives none, 1f's
- * toast holding its line and its dismiss alone, and `desk` keeps it from the phone, which says the
+ * toast holding its line and its dismiss alone — but `Try again` for an event left half done
+ * (1g, #670), as 1a's export gives it — and `desk` keeps it from the phone, which says the
  * same answer under the status (1k). A moment in its line is the date's notation with its slashes at
  * the toast's 60%, where the page's are 45% (`--opacity-toast-date-separator`, 1f). A failure leads its line with a
  * 16 white alert mark 8 before it and stays until it is dismissed or its action is taken (0k),
  * so `shown` is the caller's and nothing here times it out. A toast that reports a success,
  * which no screen draws yet, drops the mark; whether it goes by itself is the design's to say.
  *
- * IN THE TOP LAYER, PLACED ON THE COLUMN. It is drawn where its caller is — 1a's head, whose
+ * IN THE TOP LAYER, AT THE WINDOW'S MIDDLE. It is drawn where its caller is — 1a's head, whose
  * blur would hold a fixed box to the head — so it opens as a popover, above everything and still
- * a descendant for the faces it reads. The content area is the rail's column
- * (`[data-content-area]`, `Rail.js`): the toast stands at its middle and is placed again whenever
- * the column changes width, as the rail opens beside it. Below the phone's edge there is no rail
- * and the column is the window. It stands 24 above the window's end, which is the column's while
- * the column is held to the window, as it is from the phone's edge up.
+ * a descendant for the faces it reads, and a popover's box is the window's: it stands at the
+ * window's middle "whatever rails or columns it holds" (Invoices 0k.26), as 1a and 1g draw it, so the
+ * rail opening beside the column moves nothing. From #566 until #670 it stood at the middle of the
+ * rail's column, read off a mark the rail set on it, which 0k said then. It stands 24 above the
+ * content's end, the window's while the column is held to the window, as it is at every width.
  *
  * `role="alert"`, SO IT IS HEARD AS IT COMES. Focus stays where it was; the toast's buttons come
  * after the caller's in the order the page is read. It closes on `Escape` — except while a dialog
@@ -55,28 +56,10 @@ function closeToast(toast, opener, then) {
 export default function Toast({ shown, line, action, onAction, dismissLabel, onDismiss, opener, desk = false }) {
     const toastRef = useRef(null);
 
-    const place = useCallback(() => {
-        const toast = toastRef.current;
-        if (!toast) return;
-        const column = toast.closest("[data-content-area]");
-        const box = column ? column.getBoundingClientRect() : { left: 0, width: window.innerWidth };
-        toast.style.left = `${box.left + box.width / 2}px`;
-    }, []);
-
     useLayoutEffect(() => {
         const toast = toastRef.current;
-        if (!shown || !toast) return undefined;
-        place();
-        if (!toast.matches(":popover-open")) toast.showPopover();
-        const column = toast.closest("[data-content-area]");
-        const observer = new ResizeObserver(place);
-        if (column) observer.observe(column);
-        window.addEventListener("resize", place);
-        return () => {
-            observer.disconnect();
-            window.removeEventListener("resize", place);
-        };
-    }, [shown, place]);
+        if (shown && toast && !toast.matches(":popover-open")) toast.showPopover();
+    }, [shown]);
 
     useEffect(() => {
         if (!shown) return undefined;
@@ -94,7 +77,7 @@ export default function Toast({ shown, line, action, onAction, dismissLabel, onD
             ref={toastRef}
             popover="manual"
             role="alert"
-            className={`inset-auto bottom-0 mx-0 mt-0 mb-toast-offset -translate-x-1/2 gap-toast-inline overflow-visible pr-toast-inset-right pl-toast-inset-left ${TOAST_GROUND} open:flex ${desk ? "max-sm:open:hidden" : ""}`}
+            className={`inset-auto bottom-0 left-1/2 mx-0 mt-0 mb-toast-offset -translate-x-1/2 gap-toast-inline overflow-visible pr-toast-inset-right pl-toast-inset-left ${TOAST_GROUND} open:flex ${desk ? "max-sm:open:hidden" : ""}`}
         >
             <span className="flex items-center gap-gap text-body [--opacity-date-separator:var(--opacity-toast-date-separator)]">
                 <Icon name="circle-alert" kind="words" className="size-icon shrink-0" />
@@ -121,8 +104,9 @@ const PASSING_TOAST_MS = 4000;
  * 0k's Toast reporting a success, which goes by itself (#617): its line alone on the toast's ground,
  * 14 either side, with no mark, action or dismiss, standing for the drawings' 4 s and fading over
  * `--transition-duration-toast`, as Tools 57 draws 1c's `All written`. A status rather than an alert,
- * since it reports and asks nothing. Its caller places it — 1c's stands over the selection bar —
- * so it is drawn where it is put rather than in the top layer, and gone once it has faded.
+ * since it reports and asks nothing. Its caller places it — 1c's stands 12 over the selection bar,
+ * centered on the bar rather than the window (Invoices 0k.32) — so it is drawn where it is put
+ * rather than in the top layer, and gone once it has faded.
  */
 export function PassingToast({ line, className = "" }) {
     const [phase, setPhase] = useState("shown");

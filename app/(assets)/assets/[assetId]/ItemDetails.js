@@ -86,7 +86,6 @@ const DETAILS = {
         fieldFace: "",
         read: (input) => readNoteSubmission({ mayWriteNote: true }, input),
         valueOf: (answer) => answer.note,
-        help: ASSET_NOTE_COPY.help,
         count: ASSET_NOTE_COPY.count,
         typing: {},
     },
@@ -103,10 +102,11 @@ function workingOf(detail, answer, stored) {
 
 /**
  * The action's answer as the field draws it: a serial number taken names the item holding it in the
- * id's face, while the field still holds the number refused (`taken`); anything else is the sentence
- * as it came (`said`), the field's `notice` in the help's place with the count kept at the line's end,
- * as the files of 2026-11-05 draw a value somebody else changed first (#614), where it stood under the
- * field as a line of its own until then.
+ * id's face, 0.12em off the words after it at a line height of 1 (Invoices 0h.44, #670), so the line
+ * keeps the 20 of its words, while the field still holds the number refused (`taken`); anything else is the sentence
+ * as it came (`said`), the field's `notice` — at a desk on its own line 6 under the field (Invoices
+ * 0o.24, 0o.27), on a phone with the count kept at the line's end (Tools 0a.103), as the files of
+ * 2026-11-05 draw a value somebody else changed first (#614).
  */
 function serverAnswer(control, draft) {
     if (!control.refusal) return { taken: null, said: null };
@@ -115,7 +115,7 @@ function serverAnswer(control, draft) {
     return {
         taken: (
             <>
-                <span className="font-id tracking-id">{control.takenBy}</span> {ASSET_SERIAL_COPY.takenRest}
+                <span className="pr-id-in-sentence-inline font-id leading-none tracking-id">{control.takenBy}</span> {ASSET_SERIAL_COPY.takenRest}
             </>
         ),
         said: null,
@@ -187,7 +187,8 @@ function DetailsRow({ kind, value, writable }) {
                         )}
                     </div>
                 ) : (
-                    // `Add` in the value's column, its face reaching 8 left of it and its plus mark 3 (1f).
+                    // `Add` in the value's column, in Accent, its face reaching 8 left of it and its plus mark
+                    // 2 — the 26 pill's 8 less the leading icon's 2 (Invoices 0a.16; 3 until #670).
                     <button ref={openerRef} type="button" aria-label={detail.addName} onClick={() => control.start("desk")} className="-my-[calc((var(--height-control-inline)-var(--text-body--line-height))/2)] -ml-details-add-bleed-left inline-flex h-control-inline items-center gap-note-add-gap rounded-control pr-control-inline-inset-x pl-note-add-bleed-left text-body-sm font-semibold text-primary hover:bg-selected hover:text-primary-hover">
                         <Icon name="plus" kind="words" className="size-icon-sm shrink-0" />
                         {detail.copy.add}
@@ -199,15 +200,23 @@ function DetailsRow({ kind, value, writable }) {
 }
 
 /**
- * A row edited where it stands (1f): the field, 32 and centered on the row's line, the value in it
- * and the caret at its end; the note's line and count under it; `Cancel` and `Save` 12 under that.
+ * A row edited where it stands (1f2): the field, 32 and centered on the row's line, the value in it
+ * and the caret at its end; what an answer says on a line of its own 6 under it (Invoices 0o.24,
+ * 0o.27); and `Cancel` and `Save` 8 under that, or under the field, on the right (0o.21) — the
+ * note's count at the left of their row at 13 in Ink 3, level with their tops (0o.26), where it
+ * stood at the end of a line under the field beside `Up to 50 characters` until the files of
+ * 2026-11-17 (#670). One layout for the serial number and the note, so the 6 and the 8 are one
+ * pair of values for both: the serial number's row holds no count, and its actions keep its end.
  */
+const DETAILS_ACTIONS_ROW = "flex items-start gap-field-count-inline pt-details-actions-stack";
+
 function RowEditor({ kind, value, available, control, onClose }) {
     const detail = DETAILS[kind];
     const [draft, setDraft] = useState(value);
     const [pressed, setPressed] = useState(false);
     const focusRefused = useRefusalFocus();
     const inputRef = useRef(null);
+    const countId = useId();
     useLayoutEffect(() => {
         const input = inputRef.current;
         if (!input) return;
@@ -216,6 +225,7 @@ function RowEditor({ kind, value, available, control, onClose }) {
     }, []);
     const answer = detail.read({ typed: draft, previous: value, stored: value });
     const server = serverAnswer(control, draft);
+    const refusal = (pressed ? answer.refusal : null) ?? server.taken;
 
     const submit = (event) => {
         event.preventDefault();
@@ -242,24 +252,23 @@ function RowEditor({ kind, value, available, control, onClose }) {
             className={`-mt-[calc((var(--height-control)-var(--text-body--line-height))/2)] flex flex-col self-stretch ${detail.fieldFace}`}
         >
             <FormBusy busy={control.pending}>
-                <Field
-                    label={detail.name}
-                    labelHidden
-                    centered={false}
-                    help={detail.help}
-                    refusal={(pressed ? answer.refusal : null) ?? server.taken}
-                    notice={server.said}
-                    count={detail.count?.(draft.length)}
-                >
+                <Field label={detail.name} labelHidden centered={false} refusal={refusal} notice={server.said} describedBy={detail.count ? countId : undefined}>
                     <TextInput size="md" value={draft} onChange={setDraft} inputRef={inputRef} autoComplete="off" {...detail.typing} />
                 </Field>
-                <div className="flex justify-end gap-gap pt-details-actions-stack">
-                    <Button variant="secondary" size="md" onClick={onClose}>
-                        {detail.copy.cancel}
-                    </Button>
-                    <Button type="submit" size="md" unavailable={!available} busyLabel={detail.copy.working[workingOf(detail, answer, value)]}>
-                        {detail.copy.save}
-                    </Button>
+                <div className={DETAILS_ACTIONS_ROW}>
+                    {detail.count && (
+                        <span id={countId} className={`min-w-0 text-body-sm tabular-nums ${refusal ? "text-danger" : "text-foreground-subtle"}`}>
+                            {detail.count(draft.length)}
+                        </span>
+                    )}
+                    <div className="ml-auto flex shrink-0 gap-gap">
+                        <Button variant="secondary" size="md" onClick={onClose}>
+                            {detail.copy.cancel}
+                        </Button>
+                        <Button type="submit" size="md" unavailable={!available} busyLabel={detail.copy.working[workingOf(detail, answer, value)]}>
+                            {detail.copy.save}
+                        </Button>
+                    </div>
                 </div>
             </FormBusy>
         </form>
@@ -336,7 +345,9 @@ function PhoneDetail({ kind, value, writable, target }) {
 /**
  * A line's sheet (1j-b2, 1j-b3): Tools 0a's sheet holding one field, titled to add or edit, with `Done`
  * at its head's end — which saves, and on a cleared field removes (0a) — and under the field the
- * note's line with its count, or a serial number's refusal. A press behind it or on its handle, or a
+ * note's count alone at the line's right end, 6 under it and 4 in, with no help since the files of
+ * 2026-11-17 (Tools 0a.100, Invoices 0o.28; #670), what an answer says at the line's start, or a
+ * serial number's refusal. A press behind it or on its handle, or a
  * drag down (#580), puts it away and saves nothing, and none of them while it saves.
  */
 function DetailSheet({ kind, value, open, control }) {
@@ -373,7 +384,6 @@ function DetailSheet({ kind, value, open, control }) {
                     label={detail.name}
                     labelHidden
                     size="xl"
-                    help={detail.help}
                     refusal={(pressed ? answer.refusal : null) ?? server.taken}
                     notice={server.said}
                     count={detail.count?.(draft.length)}

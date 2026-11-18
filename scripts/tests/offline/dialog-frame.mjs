@@ -726,13 +726,14 @@ export function run({ check, assert, log }) {
             /<Button type="submit" busyLabel=\{COPY\.working\} holdWidthOf=\{COPY\.submit\(99\)\}>/.test(sourceOf("app/(assets)/asset-categories/RegistrationDialog.js")),
             true
         );
-        // A RECORD'S MENU TAKES 0a's WIDTHS INSIDE ITS ROOM AND ITS EDGE (1f, 1j), and a list a
-        // field or a chip opens holds 140 with both counted (1a).
+        // A RECORD'S MENU TAKES 0a's WIDTHS (1f, 1j): at a desk at least an action menu's 152 with its
+        // room and its Edge counted (Invoices 0a.19, #670), and a list a field or a filter chip opens
+        // holds 140 with both counted (1a).
         const menuLook = constantOf(MENU, "MENU_LOOK");
         check(
             "a record's menu is 152 at a desk and 234 on a phone, measured outside, and a list stays 140",
             [
-                menuLook.includes("min-w-[calc(var(--min-width-menu)+2*var(--spacing-menu-inset)+2px)]"),
+                /record:\s*"ml-0 w-max min-w-button-list /.test(menuLook),
                 menuLook.includes("max-sm:w-[calc(var(--width-mobile-menu)+2px)]"),
                 /fit === "field" \? "" : "w-max min-w-menu max-w-menu"/.test(menuFn),
             ].join(" "),
@@ -1266,20 +1267,20 @@ export function run({ check, assert, log }) {
     const crumbLook = choiceFrames.slice(choiceFrames.indexOf("crumb:"), choiceFrames.indexOf("sort:"));
     const sortLook = choiceFrames.slice(choiceFrames.indexOf("sort:"));
     check(
-        "a list a chip or a level opens is 140 to 280, from the control's start, the job's at least 160 and its chip, 32 rows under both",
+        "a list a chip or a level opens is 140 to 280, from the control's start, the job's at least 152 and its chip (Invoices 0a.29, #670), 32 rows under both",
         [
             /fit === "field" \? "" : "w-max min-w-menu max-w-menu"/.test(fieldListSource),
             /if \(fit === "end"\) \{\s*list\.style\.left = "auto";\s*list\.style\.right = `\$\{document\.documentElement\.clientWidth - box\.right\}px`;\s*list\.style\.minWidth = `max\(var\(--min-width-menu\), \$\{box\.width\}px\)`;/.test(fieldListSource),
             /if \(minWidth\) list\.style\.minWidth = `max\(\$\{minWidth\}, \$\{box\.width\}px\)`;/.test(fieldListSource),
             /rows === "sm" \? "h-control" : "h-control-lg"/.test(fieldListSource),
             /fit=\{look === "field" \? "field" : look === "sort" \? "end" : "start"\}/.test(choiceLooks) &&
-                /minWidth=\{look === "chip" \? "var\(--min-width-job-chip-list\)" : undefined\}/.test(choiceLooks) &&
+                /minWidth=\{look === "chip" \? "var\(--min-width-button-list\)" : undefined\}/.test(choiceLooks) &&
                 /rows=\{look === "field" \? "lg" : "sm"\}/.test(choiceLooks),
         ].join(" "),
         "true true true true true"
     );
     check(
-        "  the chip: 32 and at least 128, 9 before its pin and 8 on its chevron's side, 6 apart, at 13 and 500 on an Edge, its Wash held while open (#566)",
+        "  the chip: 32 and at least 128, a chip's 10 less the trim before its pin and 8 on its chevron's side, 6 apart, at 13 and 500 on an Edge, its Wash held while open (#566, #670)",
         [
             ["h-control ", "min-w-job-chip", "pl-job-chip-inset-left", "pr-job-chip-inset-right", "gap-control-icon-gap", "text-body-sm", "font-medium", "border-border", "bg-white", "aria-expanded:bg-hover-subtle"]
                 .filter((t) => !chipLook.includes(t))
@@ -1707,13 +1708,13 @@ export function run({ check, assert, log }) {
             /\{leading && <div className="mr-auto -ml-ghost-inset-x flex">\{leading\}<\/div>\}\s*\{children\}/.test(actionsPart),
             /ghost: "text-foreground-default not-disabled:not-aria-disabled:hover:bg-hover",/.test(controlSource),
             /const GHOSTS = \["ghost", "ghostDanger"\];/.test(controlSource) &&
-                /const insetOf = \(variant, size\) =>\s*GHOSTS\.includes\(variant\) \? "px-ghost-inset-x" : variant === "faced" \? "pr-faced-inset-right pl-faced-inset-left" : BUTTON_INSET\[size\];/.test(controlSource),
+                /const insetOf = \(variant, size\) =>\s*GHOSTS\.includes\(variant\) \? "px-ghost-inset-x" : variant === "faced" \? "pr-control-lg-inset-x pl-faced-inset-left" : BUTTON_INSET\[size\];/.test(controlSource),
         ].join(" "),
         "true true true"
     );
     // A FACED ACTION (0f Faced, 1a's `Catalog`, #566): no outline at a 36, its mark and word in Ink
-    // 2 lifting to Ink as it fills at Hover, 10 before the mark and 12 after the word, and the
-    // mark the caller's, 8 before the word.
+    // 2 lifting to Ink as it fills at Field (Hover until #670), a 36's 16 less the trim before the
+    // mark and its 16 after the word (Invoices 0b.11), and the mark the caller's, 8 before the word.
     check(
         "  a faced action is no outline at a 36 in Ink 2, filling at Hover and lifting to Ink, its mark 8 before its word (#566)",
         [
@@ -2272,7 +2273,7 @@ export function run({ check, assert, log }) {
             /if \(!fell\) return;\s*held = null;\s*focusPageHeading\(\);/.test(hook),
             /useHeadingWhenFocusFalls\(columnRef, drawn\);/.test(railSource) &&
                 /\}, \[columnRef, drawn\]\);/.test(hook) &&
-                /<div ref=\{columnRef\} data-content-area="" className=\{COLUMN\}>/.test(railSource),
+                /<div ref=\{columnRef\} className=\{COLUMN\}>/.test(railSource),
         ].join(" ");
     };
     const railSource = parseFile("app/components/Rail.js").source;

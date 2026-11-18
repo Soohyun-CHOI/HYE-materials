@@ -37,6 +37,7 @@
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
+import { ACTIVITY_MARK } from "../../../lib/assetView.js";
 import { listJsFiles, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
@@ -73,18 +74,30 @@ const NOT_MARKS = {
  * loan's two jobs under its Activity entry on a phone (1j, #598), as the files of 2026-11-02 draw it.
  * `ellipsis` is `More actions`' at 16, 24 and 14, and the files of 2026-11-04's afternoon fill its
  * dots to the edge Lucide's ring reaches — 1 and half the line — so its circles take `currentColor`
- * inside the one line (#607).
+ * inside the one line (#607). `arrow-right-left`, `ban`, `hammer`, `log-in`, `log-out` and `undo-2` are
+ * the Activity's marks with `check` and `wrench` (Invoices 0o.56, #670), as the files of 2026-11-18
+ * draw them at 1.52.0.
  */
 const DESIGN_SHAPES = {
     "arrow-right": [
         ["path", { d: "M5 12h14" }],
         ["path", { d: "m12 5 7 7-7 7" }],
     ],
+    "arrow-right-left": [
+        ["path", { d: "m16 3 4 4-4 4" }],
+        ["path", { d: "M20 7H4" }],
+        ["path", { d: "m8 21-4-4 4-4" }],
+        ["path", { d: "M4 17h16" }],
+    ],
     "arrow-up-down": [
         ["path", { d: "m21 16-4 4-4-4" }],
         ["path", { d: "M17 20V4" }],
         ["path", { d: "m3 8 4-4 4 4" }],
         ["path", { d: "M7 4v16" }],
+    ],
+    ban: [
+        ["circle", { cx: "12", cy: "12", r: "10" }],
+        ["path", { d: "M4.929 4.929 19.07 19.071" }],
     ],
     // An item's serial number leads its line on a phone (0a Value line, 1j; #601), Lucide's five bars.
     barcode: [
@@ -128,10 +141,25 @@ const DESIGN_SHAPES = {
         ["path", { d: "M16 13H8" }],
         ["path", { d: "M16 17H8" }],
     ],
+    hammer: [
+        ["path", { d: "m15 12-9.373 9.373a1 1 0 0 1-3.001-3L12 9" }],
+        ["path", { d: "m18 15 4-4" }],
+        ["path", { d: "m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172v-.344a2 2 0 0 0-.586-1.414l-1.657-1.657A6 6 0 0 0 12.516 3H9l1.243 1.243A6 6 0 0 1 12 8.485V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5" }],
+    ],
     info: [
         ["circle", { cx: "12", cy: "12", r: "10" }],
         ["path", { d: "M12 16v-4" }],
         ["path", { d: "M12 8h.01" }],
+    ],
+    "log-in": [
+        ["path", { d: "m10 17 5-5-5-5" }],
+        ["path", { d: "M15 12H3" }],
+        ["path", { d: "M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" }],
+    ],
+    "log-out": [
+        ["path", { d: "m16 17 5-5-5-5" }],
+        ["path", { d: "M21 12H9" }],
+        ["path", { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" }],
     ],
     "map-pin": [
         ["path", { d: "M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" }],
@@ -178,6 +206,10 @@ const DESIGN_SHAPES = {
         ["circle", { cx: "17", cy: "18", r: "2" }],
         ["circle", { cx: "7", cy: "18", r: "2" }],
     ],
+    "undo-2": [
+        ["path", { d: "M9 14 4 9l5-5" }],
+        ["path", { d: "M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" }],
+    ],
     user: [
         ["path", { d: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" }],
         ["circle", { cx: "12", cy: "7", r: "4" }],
@@ -189,6 +221,16 @@ const DESIGN_SHAPES = {
         ["path", { d: "M18 6 6 18" }],
         ["path", { d: "m6 6 12 12" }],
     ],
+};
+
+/**
+ * A mark a shared part draws by the name its caller hands it, and the maps those names come from
+ * (#670): the Activity's circle holds an item's event's mark, `ACTIVITY_MARK`'s, and an invoice's
+ * map joins it here when its Activity comes to draw one. A call naming its mark by no literal is
+ * read as taking every name of its file's maps, and fails as before where its file has none.
+ */
+const HANDED_ON = {
+    "app/components/ActivityTrail.js": Object.values(ACTIVITY_MARK),
 };
 
 /** Which marks each file draws, so a mark gone from a screen is a failure here. */
@@ -207,6 +249,8 @@ const MARKS_BY_FILE = {
     // The pin before a loan's route under its Activity entry on a phone (#598); it stood before the item's
     // job in the title block from #597 until the files of 2026-11-04 put the job on the caption's line.
     "app/(assets)/assets/[assetId]/page.js": ["arrow-right", "map-pin", "search-x", "user"],
+    // An Activity entry's mark at a desk, its event's (Invoices 0o.56, #670).
+    "app/components/ActivityTrail.js": ["arrow-right-left", "ban", "check", "hammer", "log-in", "log-out", "undo-2", "wrench"],
     "app/components/Breadcrumb.js": ["chevron-left"],
     "app/components/Controls.js": ["arrow-up-down", "check", "chevron-down", "circle-alert", "info", "map-pin", "minus", "plus", "search", "x"],
     "app/components/DialogFrame.js": ["check", "search", "x"],
@@ -240,6 +284,9 @@ const KINDS_BY_FILE = {
     "app/(assets)/assets/[assetId]/MoreActions.js": ["ellipsis:words", "ellipsis:words"],
     "app/(assets)/assets/[assetId]/TransitionBar.js": ["user:qualifier"],
     "app/(assets)/assets/[assetId]/page.js": ["arrow-right:qualifier", "map-pin:qualifier", "search-x:qualifier", "user:qualifier"],
+    // A qualifier at Ink 3 for an event that stays grey, and current, in Accent, for one that settles
+    // something left open (0o.36, 0o.37).
+    "app/components/ActivityTrail.js": ["arrow-right-left/ban/check/hammer/log-in/log-out/undo-2/wrench:current|qualifier"],
     "app/components/Breadcrumb.js": ["chevron-left:words"],
     "app/components/Controls.js": [
         "arrow-up-down:qualifier",
@@ -506,6 +553,7 @@ export function run({ check, assert, log }) {
         drawing.set(rel, svgsIn(ast));
         if (rel !== ICON_MODULE) {
             const calls = iconCallsIn(ast, source);
+            for (const call of calls) if (call.names.length === 0 && HANDED_ON[rel]) call.names.push(...HANDED_ON[rel]);
             if (calls.length > 0) callsByFile.set(rel, calls);
         }
     }

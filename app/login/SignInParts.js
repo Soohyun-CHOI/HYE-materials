@@ -39,7 +39,9 @@ export function SignInHeader({ heading, sentence, chip, headingRef }) {
  * when it is too long, with `Change` kept — and `Change` when the step can go back to the
  * address (0o, Tools 0a Pill). One that only names who is signing in has no `Change` and
  * takes no press. On a phone its target is the least a touch target takes, without the
- * chip growing. While its step is busy it keeps its look and takes no press.
+ * chip growing, and it takes Field while held (Tools 0a.25, as the
+ * Sign in file draws its pill held since the files of 2026-11-17; #670), where a desk's takes the Wash a bordered control takes under the pointer. While its
+ * step is busy it keeps its look and takes no press.
  */
 export function AddressChip({ email, onChange, disabled = false }) {
     const content = (
@@ -62,7 +64,7 @@ export function AddressChip({ email, onChange, disabled = false }) {
             type="button"
             aria-disabled={disabled || undefined}
             onClick={disabled ? undefined : onChange}
-            className={`${chip} not-aria-disabled:hover:bg-hover-subtle not-aria-disabled:active:bg-hover-subtle max-sm:before:absolute max-sm:before:inset-x-0 max-sm:before:-inset-y-[calc((var(--spacing-mobile-touch-target)-var(--height-mobile-chip))/2)]`}
+            className={`${chip} not-aria-disabled:hover:bg-hover-subtle not-aria-disabled:active:bg-hover-subtle max-sm:not-aria-disabled:active:bg-hover max-sm:before:absolute max-sm:before:inset-x-0 max-sm:before:-inset-y-[calc((var(--spacing-mobile-touch-target)-var(--height-mobile-chip))/2)]`}
         >
             {content}
         </button>

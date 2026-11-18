@@ -331,7 +331,9 @@ export async function run({ check, log }) {
         [
             /read: \(input\) => readSerialSubmission\(\{ mayWriteSerial: true \}, input\),/.test(details.source),
             /if \(serialKey\(draft\) !== serialKey\(control\.sentValue\)\) return \{ taken: null, said: null \};/.test(functionSource(details, "serverAnswer")),
-            /<span className="font-id tracking-id">\{control\.takenBy\}<\/span> \{ASSET_SERIAL_COPY\.takenRest\}/.test(functionSource(details, "serverAnswer")),
+            // The id inside the sentence set off by 0.12em on its far side at a line height of 1
+            // (Invoices 0h.44), as 1f2 and 1j draw it (#670).
+            /<span className="pr-id-in-sentence-inline font-id leading-none tracking-id">\{control\.takenBy\}<\/span> \{ASSET_SERIAL_COPY\.takenRest\}/.test(functionSource(details, "serverAnswer")),
             /\{\(serialNumber \|\| mayWriteSerial\) && <PhoneDetail kind="serial"/.test(functionSource(details, "PhoneDetails")),
         ].join(" "),
         "true true true true"

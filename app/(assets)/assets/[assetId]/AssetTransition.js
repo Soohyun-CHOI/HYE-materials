@@ -44,7 +44,8 @@ import TransitionForm from "./TransitionForm";
  * - **A desk's press with no dialog says its answer in 0k's toast** — a check-in and a return
  *   from repair in the header, a sending from `More actions` — which stays until it is dismissed
  *   or the next press (`Toast.js`), where until #614 it stood under the status. It says the
- *   sentence the phone and a dialog say, from the same constant.
+ *   sentence the phone and a dialog say, from the same constant — but for an event left half
+ *   done, which it names in the toast's own words and offers to send again (1g, #670).
  * - **On a phone, every answer to a sheet or a question ends it**, and the page as it now stands
  *   says the answer in the Notice under the status (Tools 0a Notice, 1k); the foot bar's presses
  *   and the menu's sending have no sheet and say theirs there already. A detail's sheet keeps its
@@ -294,15 +295,32 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetO
     };
     // A desk's press with no dialog says its answer in the toast until it is dismissed or the next press.
     const toastShown = eventVia === "desk" && lastSent === "event" && !pending && transitionSentence !== null && answer !== dismissed;
+    // AN EVENT LEFT HALF DONE IS NAMED IN THE TOAST AND OFFERS `Try again` (1g, #670), which sends the
+    // same event from the page as it now stands: its entry landed and its status did not, so the
+    // page offers the same press, and pressing it records the event again and writes the status.
+    const halfSaved = answer?.unfinished ? (COPY.halfSaved[answer.unfinished] ?? null) : null;
 
-    const send = (formData, via) => {
+    // What a press with no fields of its own posts: the item, the job the page was drawn on, and the event.
+    const formOf = (event) => {
+        const formData = new FormData();
+        formData.set("assetId", assetId);
+        formData.set("drawnJobId", assetJobRecordId ?? "");
+        formData.set("event", event);
+        return formData;
+    };
+    const post = (formData, via) => {
         setSending(String(formData.get("event") ?? ""));
         setLastSent("event");
         setEventVia(via);
         if (via === "dialog") setEventSentFor(opening);
-        if (via === "desk") pressedOn.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         startTransition(() => formAction(formData));
     };
+    const send = (formData, via) => {
+        if (via === "desk") pressedOn.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        post(formData, via);
+    };
+    // `Try again` keeps the control the first press was made on as the one focus goes back to.
+    const retry = () => post(formOf(answer.unfinished), "desk");
     // Each opening's own action, marked as sent by that opening and as the last action sent.
     const sendFrom = (each, key, action) => (formData) => {
         each.sent();
@@ -330,13 +348,7 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetO
             setEventVia(via);
             if (via === "desk") pressedOn.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         },
-        sendForRepair: (via) => {
-            const formData = new FormData();
-            formData.set("assetId", assetId);
-            formData.set("drawnJobId", assetJobRecordId ?? "");
-            formData.set("event", ASSET_EVENT.SENT_FOR_REPAIR);
-            send(formData, via);
-        },
+        sendForRepair: (via) => send(formOf(ASSET_EVENT.SENT_FOR_REPAIR), via),
         open,
         openDialog: () => {
             setOpening((count) => count + 1);
@@ -488,7 +500,9 @@ export default function AssetTransition({ plan, office, assetJobRecordId, assetO
             )}
             <Toast
                 shown={toastShown}
-                line={transitionSentence}
+                line={halfSaved ?? transitionSentence}
+                action={halfSaved ? COPY.retry : undefined}
+                onAction={retry}
                 dismissLabel={ASSET_COPY.dismiss}
                 onDismiss={() => setDismissed(answer)}
                 opener={pressedOn}

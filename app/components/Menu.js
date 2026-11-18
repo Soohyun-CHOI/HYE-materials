@@ -68,8 +68,9 @@ const MENU_HEADING = "shrink-0 truncate px-control-inset-x py-menu-heading-inset
  * `fit="start"` from the control's left, as 1d and 1f draw a level's and 1a the job's chip's
  * since #566; its rows are as tall as what opened it — 32 under an inline level or a 32 chip
  * (`rows="sm"`), "as tall as the control that opens it, and 32 when that control is Inline".
- * `minWidth` is a least width of the drawing's own, held with the control's: 1a's job list is
- * at least 160 and never narrower than its chip.
+ * `minWidth` is a least width held with the control's: 1a's job list is a list a button opens,
+ * at least 152 and never narrower than its chip (Invoices 0a.29, #670), where the drawing held it
+ * at 160 until then.
  *
  * AN OPTION IS PRESSED ON `click` AND ITS `mousedown` IS STOPPED, which is what keeps DOM
  * focus on the control: a blur would close the list before the click arrived, and a
@@ -327,8 +328,9 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
  * the opener and up to 280 inside its room and its Edge — a dialog's `More actions`, whose 28 has
  * no ink to meet the content's edge as the asset page's 32 does. Its items are as tall as the
  * control that opens it, 0a's rule and 1l's drawing: the 28 of a dialog head's close. **Its least
- * width is 1l's**, as #522 took every menu's from its drawing: 140 inside its room and its Edge,
- * as the record's is. The catalog's selection bar opened one above a 36 from #527 until #552,
+ * width is an action menu's**, 152 with its room and its Edge counted (Invoices 0a.19 and 0a.29,
+ * `--min-width-button-list`), as the record's is and as 1a's job chip's list is since #670 — the
+ * same 152 written once, where it stood as 140 inside the room and the Edge from #522. The catalog's selection bar opened one above a 36 from #527 until #552,
  * its rows 36 and its 140 counted outside the Edge, and went with `Set class`.
  */
 export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "below", look = "account", focusOn = "first", keyed = false, heading, items, onClose }) {
@@ -352,7 +354,7 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
             if (look === "record" || look === "end") {
                 list.style.left = "auto";
                 list.style.right = `${document.documentElement.clientWidth - box.right}px`;
-                if (look === "end") list.style.minWidth = `max(calc(var(--min-width-menu) + 2 * var(--spacing-menu-inset) + 2px), ${box.width}px)`;
+                if (look === "end") list.style.minWidth = `max(var(--min-width-button-list), ${box.width}px)`;
             } else {
                 list.style.left = `${placement === "beside" ? box.right : box.left}px`;
             }
@@ -588,19 +590,20 @@ const PLACEMENT = {
 // under the top bar plus the 4 between the 48 button and the bar's foot. The account's width
 // is the expanded rail's inside — its 248 less the 12 either side.
 //
-// A RECORD'S MENU TAKES 0a's WIDTHS INSIDE ITS ROOM AND ITS EDGE, AS 1f AND 1j DRAW IT (#522):
-// at a desk 140 to 280 inside its 5 and its Edge, so 152 on the asset page, and on a phone 232
-// inside its Edge, 234 in all. The lists a field or a chip opens hold 140 with both counted,
-// as 1a draws them, and the account's 224 is its own.
+// A RECORD'S MENU TAKES 0a's WIDTHS, AS 1f AND 1j DRAW IT (#522): at a desk at least an action
+// menu's 152 with its 5 and its Edge counted (Invoices 0a.19, `--min-width-button-list` since
+// #670) and up to 280 inside them, and on a phone 232 inside its Edge, 234 in all. The lists a
+// field or a filter chip opens hold 140 with both counted, as 1a draws them, and the account's
+// 224 is its own.
 const MENU_LOOK = {
     account:
         "w-[calc(var(--width-rail-expanded)-2*var(--spacing-rail-inset))] rounded-card p-menu-inset",
     record:
-        "ml-0 w-max min-w-[calc(var(--min-width-menu)+2*var(--spacing-menu-inset)+2px)] max-w-[calc(var(--max-width-menu)+2*var(--spacing-menu-inset)+2px)] rounded-card p-menu-inset mr-[calc((var(--height-control)-var(--size-icon))/2)] " +
+        "ml-0 w-max min-w-button-list max-w-[calc(var(--max-width-menu)+2*var(--spacing-menu-inset)+2px)] rounded-card p-menu-inset mr-[calc((var(--height-control)-var(--size-icon))/2)] " +
         "max-sm:w-[calc(var(--width-mobile-menu)+2px)] max-sm:min-w-0 max-sm:max-w-none max-sm:overflow-hidden max-sm:rounded-mobile-control max-sm:p-0 " +
         "max-sm:mt-[calc(var(--spacing-mobile-menu-offset)+(var(--height-mobile-top-bar)-var(--spacing-mobile-touch-target))/2)] " +
         "max-sm:mr-[calc(var(--spacing-mobile-menu-gutter)-var(--spacing-mobile-top-bar-inset-right))]",
-    end: "mx-0 w-max min-w-[calc(var(--min-width-menu)+2*var(--spacing-menu-inset)+2px)] max-w-[calc(var(--max-width-menu)+2*var(--spacing-menu-inset)+2px)] rounded-card p-menu-inset",
+    end: "mx-0 w-max min-w-button-list max-w-[calc(var(--max-width-menu)+2*var(--spacing-menu-inset)+2px)] rounded-card p-menu-inset",
 };
 
 // An item at each look: the Control's height and the Group corner at a desk, at 13 and 400,

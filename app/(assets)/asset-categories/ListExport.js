@@ -27,8 +27,8 @@ import { exportAssetListAction } from "./actions";
  * nothing else is said (#321).
  *
  * A PRESS THAT MADE NO FILE SAYS SO IN A TOAST (1a, #566): the action's `{ error }` or a request
- * that never came back puts 0k's failure toast at the foot of the content area, `Couldn't
- * export.` with `Try again`, which presses `Export` again, and its dismiss. It stays until one of
+ * that never came back puts 0k's failure toast at the foot of the window, at its middle (0k.26,
+ * #670), `Couldn't export` with `Try again`, which presses `Export` again, and its dismiss. It stays until one of
  * the two is pressed, `Escape` is, or `Export` is pressed again, which takes it down as the press
  * starts and a second failure puts it up again; whatever closes it hands focus back to `Export`.
  * From #553 until the files of 2026-10-23 drew the failure, the press said it before the button,

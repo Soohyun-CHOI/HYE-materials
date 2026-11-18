@@ -2,8 +2,8 @@
 //
 // WHAT THIS FILE IS FOR. The toast is 0k's Toast drawn once — 1a's export failure is its first
 // caller — and what it is held to is what the design's row and CLAUDE.md's rule for anything
-// opening over the page say: the look by its names, the top layer and the content area it centers
-// on, a failure that stays until it is dismissed or its action taken, `Escape`, focus handed back
+// opening over the page say: the look by its names, the top layer and the window's middle it stands
+// at (0k.26, #670), a failure that stays until it is dismissed or its action taken, `Escape`, focus handed back
 // to its opener, and no word of its own. The export's own words and wiring are
 // `offline/asset-export.mjs`'s.
 //
@@ -53,10 +53,13 @@ export function toastFacts({ ast, source }) {
         root: tokens(rootClasses),
         desk: /\$\{desk \? "max-sm:open:hidden" : ""\}/.test(source) && /export default function Toast\(\{[^}]*\bdesk = false \}\)/.test(source),
         popover: attr(root, "popover")?.value ?? null,
+        // Shown as it is drawn, and placed by its classes alone: a popover's box is the window's, so
+        // `left-1/2` is the window's middle whatever the rail does (Invoices 0k.26, #670), and
+        // nothing measures a column or places it again.
         layer: [
-            /useLayoutEffect\(\(\) => \{[\s\S]*?place\(\);\s*if \(!toast\.matches\(":popover-open"\)\) toast\.showPopover\(\);/.test(source),
-            /const column = toast\.closest\("\[data-content-area\]"\);\s*const box = column \? column\.getBoundingClientRect\(\) : \{ left: 0, width: window\.innerWidth \};\s*toast\.style\.left = `\$\{box\.left \+ box\.width \/ 2\}px`;/.test(source),
-            /const observer = new ResizeObserver\(place\);\s*if \(column\) observer\.observe\(column\);/.test(source),
+            /useLayoutEffect\(\(\) => \{\s*const toast = toastRef\.current;\s*if \(shown && toast && !toast\.matches\(":popover-open"\)\) toast\.showPopover\(\);\s*\}, \[shown\]\);/.test(source),
+            /\bleft-1\/2\b/.test(rootClasses ?? "") && /-translate-x-1\/2/.test(rootClasses ?? ""),
+            !/ResizeObserver|getBoundingClientRect|style\.left|data-content-area/.test(staying),
         ].join(" "),
         line: /<span className="flex items-center gap-gap text-body \[--opacity-date-separator:var\(--opacity-toast-date-separator\)\]">\s*<Icon name="circle-alert" kind="words" className="size-icon shrink-0" \/>\s*\{line\}\s*<\/span>/.test(source),
         button: tokens(button),
@@ -100,7 +103,7 @@ export function run({ check, assert, log }) {
         "the Ink ground, 44, the Group radius under Toast's shadow, 14 and 6 inside, 16 from its line to its action, white and unbroken",
         facts.root,
         tokens(
-            "inset-auto bottom-0 mx-0 mt-0 mb-toast-offset h-toast -translate-x-1/2 items-center gap-toast-inline overflow-visible rounded-card bg-foreground-default pr-toast-inset-right pl-toast-inset-left font-ui whitespace-nowrap text-white shadow-toast open:flex"
+            "inset-auto bottom-0 left-1/2 mx-0 mt-0 mb-toast-offset h-toast -translate-x-1/2 items-center gap-toast-inline overflow-visible rounded-card bg-foreground-default pr-toast-inset-right pl-toast-inset-left font-ui whitespace-nowrap text-white shadow-toast open:flex"
         )
     );
     // A DESK'S TOAST IS NOT A PHONE'S (#614): an item's page says a refused press with no dialog here at a
@@ -117,10 +120,10 @@ export function run({ check, assert, log }) {
     );
 
     log("");
-    log("it opens in the top layer, on the content area:");
+    log("it opens in the top layer, at the window's middle (Invoices 0k.26, #670):");
     check("a manual popover", facts.popover, "manual");
-    check("  shown as it is drawn, at the middle of the rail's column, and placed again as the column changes width", facts.layer, "true true true");
-    check("  and the rail's column is the one content area marked", markers(), "app/components/Rail.js");
+    check("  shown as it is drawn, at the window's middle whatever the rail does, and placed by nothing else", facts.layer, "true true true");
+    check("  and no element marks a content area for it, as the rail's column did from #566", markers(), "");
 
     log("");
     log("a failure stays, and closes as anything over the page does:");
@@ -149,9 +152,15 @@ export function run({ check, assert, log }) {
     assert("  one that leaves focus to fall where the opener went is seen (#614)", planted("else focusPageHeading();", "").handsBack === false);
     assert("  one drawn on a phone too is seen (#614)", planted(' ${desk ? "max-sm:open:hidden" : ""}', "").desk === false);
     assert("  one that says a word of its own is seen", planted("{action}", "{action} now").texts === "now");
-    // The `place` callback's lookup, the one followed by `const box`, matched over either line ending:
-    // a checkout made with `core.autocrlf` holds CRLF, where a planted `\n` matched nothing.
-    assert("  one centered on the window is seen", planted(/toast\.closest\("\[data-content-area\]"\);(?=\r?\n\s*const box)/, "null;").layer !== "true true true");
+    // #566's toast, placed at the middle of the rail's column and placed again as it changed width.
+    assert(
+        "  one centered on the rail's column is seen (#670)",
+        planted(
+            /useLayoutEffect\(\(\) => \{\s*const toast = toastRef\.current;\s*if \(shown && toast && !toast\.matches\(":popover-open"\)\) toast\.showPopover\(\);\s*\}, \[shown\]\);/,
+            'useLayoutEffect(() => { const toast = toastRef.current; const column = toast?.closest("[data-content-area]"); if (toast && column) toast.style.left = `${column.getBoundingClientRect().left}px`; }, [shown]);'
+        ).layer !== "true true true"
+    );
+    assert("  and one drawn from the box's own left is seen", planted("bottom-0 left-1/2 mx-0", "bottom-0 mx-0").layer !== "true true true");
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

@@ -68,10 +68,11 @@
     --spacing-control-inset-x: 0.625rem; /* Side room, 10: either side of a chip's or a menu option's words */
     --spacing-control-lg-inset-x: 1rem; /* Side room, 16: either side of a 36px control's words */
     --spacing-control-md-inset-x: 0.8125rem; /* 1a, 13: either side of a 32 button's words — from the drawings, not the spec */
+    --spacing-leading-icon-trim: 0.125rem; /* Side room, 2: what a leading icon takes off its side's room (Invoices 0a.16) — 3 until the files of 2026-11-17 (#670) — which every inset before a leading mark subtracts */
     --height-control-xl: 2.5rem; /* 0o, 40: a field or an action on a sign-in page, one step above a dialog's */
     --spacing-input-inset-x: 0.75rem; /* Side room, 12: inside a form field, either side — a dialog's 36 and a sign-in page's 40 (0o) — and a fixed suffix from its edge */
     --spacing-input-message-stack: 0.375rem; /* 0l and 0o, 6: a field's help or refusal under it */
-    --spacing-field-count-inline: 0.75rem; /* Tools 0a Note, 12: from what a field's line says to the count at its end — a desk's dialog and a phone's sheet */
+    --spacing-field-count-inline: 0.75rem; /* Tools 0a Note, 12: the least room beside a field's count on its line — from what a phone's sheet says under its field, and from a desk's actions under a note edited in place (Invoices 0o.26) */
     --spacing-input-mark-inset-right: 3.25rem; /* 1l, 52: inside a field that marks a value New at its end, so what is typed stops short of the mark — from the drawings, not the spec */
     --spacing-segmented-inset: 0.125rem; /* 0f segmented row, 2: inside its track */
     --spacing-segmented-option-inset-x: 0.375rem; /* 0f segmented row, 6: either side of an option's word */
@@ -95,14 +96,13 @@
     --width-clear-button: 1.5rem; /* 1a, 24: the × that empties a search field or a filter chip — from the drawings, not the spec */
     --size-clear-icon: 0.8125rem; /* 1a, 13: that ×'s mark — from the drawings, not the spec */
     --spacing-ghost-inset-x: 0.625rem; /* Ghost, 10: either side of an action that is its word alone, in a row of 36 buttons, and how far it pulls out at the row's end so its ink meets the edge */
-    --spacing-faced-inset-left: 0.625rem; /* 1a, 10: a faced action's room before the mark that leads its word, the category list's way to the catalog — from the drawings, not the spec */
-    --spacing-faced-inset-right: 0.75rem; /* 1a, 12: its room after the word — from the drawings, not the spec */
+    --spacing-faced-inset-left: calc(var(--spacing-control-lg-inset-x) - var(--spacing-leading-icon-trim)); /* Invoices 0b.11, 14: a head action with no face — the category list's way to the catalog — before the mark that leads its word, a 36's 16 less the leading icon's trim; its other side is the 36's own 16 */
     --min-width-job-chip: 8rem; /* 1a, 128: the least the job's chip takes at the start of the category list's band — from the drawings, not the spec */
-    --spacing-job-chip-inset-left: 0.5625rem; /* 1a, 9: that chip's room before the pin that leads its job — from the drawings, not the spec */
+    --spacing-job-chip-inset-left: calc(var(--spacing-control-inset-x) - var(--spacing-leading-icon-trim)); /* 1a, 8: that chip's room before the pin that leads its job, a chip's 10 less the leading icon's trim (Invoices 0a.16) */
     --spacing-job-chip-inset-right: 0.5rem; /* 1a, 8: its room on its chevron's side — from the drawings, not the spec */
     --size-job-chip-chevron: 0.75rem; /* 1a, 12: its chevron — from the drawings, not the spec */
-    --min-width-job-chip-list: 10rem; /* 1a, 160: the least the list that chip opens takes, its room and Edge counted, and never less than the chip — from the drawings, not the spec */
-    --spacing-sort-inset-left: 0.4375rem; /* 1a, 1d, 1l, 7: the sort's room before its mark — from the drawings, not the spec */
+    --min-width-button-list: 9.5rem; /* Invoices 0a.19 and 0a.29, 152: the least a list or a menu a button opens takes, its room and Edge counted, and never less than the button — 1a's job chip's, 160 until the files of 2026-11-17 (#670), and `More actions`, 140 inside its 5 and its Edge until then */
+    --spacing-sort-inset-left: calc(var(--spacing-control-inset-x) - var(--spacing-leading-icon-trim)); /* 1a, 1d, 1l, 8: the sort's room before its mark, a chip's 10 less the leading icon's trim (Invoices 0a.16) */
     --spacing-sort-inset-right: 0.5rem; /* 1a, 1d, 1l, 8: its room on its chevron's side, which it pulls out past the content's edge so its chevron meets it — from the drawings, not the spec */
     --size-sort-chevron: 0.75rem; /* 1a, 1d, 1l, 12: its chevron — from the drawings, not the spec */
     --spacing-sort-check-gap: 0.625rem; /* 1a, 1d, 1l, 10: from an order's name to the room its check keeps, in the sort's list — from the drawings, not the spec */
@@ -150,9 +150,9 @@
     --spacing-list-empty-state-band-inset-top: 12.125rem; /* 1a2, 194: above that state under the band holding the job's chip, so the sentence stands where it does with none — from the drawings, not the spec (#617) */
     --spacing-list-emptied-inset-y: 3.75rem; /* 1a, 60: above and below what a list says once its band has emptied it — from the drawings, not the spec */
     --spacing-list-emptied-stack: 0.75rem; /* 1a, 12: from that sentence to the control under it — from the drawings, not the spec */
-    --spacing-list-emptied-id-inline: 0.12em; /* 1a, 1a3: the typed id set off either side of itself, 1.56 at 13 — from the drawings, in their em (#617) */
+    --spacing-id-in-sentence-inline: 0.12em; /* Invoices 0h.44, 0.12em: an id inside a sentence set off either side of itself, 1.56 at 13 — the typed id after an emptied list's sentence (1a, 1a3; #617) and the item holding a serial number refused (1f2, 1j; #670) — in the files' em */
     --spacing-closed-page-inset-bottom: 3rem; /* 1l Not Admin closed, 48: under the one sentence of a page the reader may no longer use (0b Row), which sets it above the middle — from the drawings, not the spec */
-    --height-found-item: 2.5rem; /* 1a, 40: the way to the item a search found by its id, on the Face under the band — from the drawings, not the spec */
+    --height-found-item: 2.25rem; /* Invoices 0b.33, 36: the way to the item a search found by its id or serial number, on the Face under the band — 40 until the files of 2026-11-17 (#670) */
     --spacing-found-item-inset-x: 0.75rem; /* 1a, 12: inside that way's Edge, either side — from the drawings, not the spec */
     --spacing-found-item-inline: 1rem; /* 1a, 16: the least room from its words to its chevron — from the drawings, not the spec */
 
@@ -188,9 +188,9 @@
     /* The washes are the foreground in amounts, so each is written as one. */
     --color-hover-subtle: color-mix(in oklab, var(--color-foreground-default) 3%, transparent); /* Wash: a bordered control, or a table row, under the pointer */
     --color-pinned-column-hover: color-mix(in srgb, var(--color-foreground-default) 3%, white); /* 0b Row, the Wash made opaque: the ground of the name column a table holds at its start, under a row taking the Wash */
-    --color-background-muted: color-mix(in oklab, var(--color-foreground-default) 4.5%, transparent); /* Field: a resting ground that answers no pointer, and where a secondary button rests (0f Bordered, #662) */
-    --color-hover: color-mix(in oklab, var(--color-foreground-default) 5.5%, transparent); /* Hover: anything without an outline under the pointer */
-    --color-secondary-hover: color-mix(in oklab, var(--color-foreground-default) 8%, transparent); /* 0f Bordered, 8%: a secondary button under the pointer (#662) */
+    --color-background-muted: color-mix(in oklab, var(--color-foreground-default) 6%, transparent); /* Field, 6% (Invoices 0e.12): a resting ground — where a secondary button rests (0f.3, #662), a phone's filled field in a sheet (Tools 0a.24) and its Notice (Tools 0a.93) — 4.5% until the files of 2026-11-17 (#670) */
+    --color-hover: var(--color-background-muted); /* Field, under the pointer: anything without an outline (Invoices 0e.12, 0f.14) — Hover, Ink at 5.5% of its own, until the files of 2026-11-17 folded it into Field (#670) */
+    --color-secondary-hover: color-mix(in oklab, var(--color-foreground-default) 10%, transparent); /* Invoices 0f.3, 10%: a secondary button under the pointer — 8% until the files of 2026-11-17 (#670) */
     --color-secondary-disabled: color-mix(in oklab, var(--color-background-muted) 40%, transparent); /* 0f Disabled: a secondary button that cannot act, its Field at 40% (#662) */
     --color-scrollbar-thumb: color-mix(in oklab, var(--color-foreground-default) 20%, transparent); /* 0i Bar: a scrollbar's thumb */
     --color-scrollbar-thumb-hover: color-mix(in oklab, var(--color-foreground-default) 34%, transparent); /* Thumb hover: a scrollbar under the pointer */
@@ -282,7 +282,7 @@
     --spacing-toast-inset-right: 0.375rem; /* Toast, 6: its dismiss from the end */
     --spacing-toast-inline: 1rem; /* Toast, 16: its line to its action */
     --spacing-toast-action-gap: 0.125rem; /* 1a, 2: its action to its dismiss — from the drawings, not the spec */
-    --spacing-toast-offset: 1.5rem; /* Toast, 24: above the content area's end */
+    --spacing-toast-offset: 1.5rem; /* Toast, 24: above the content's end, the toast at the window's middle (Invoices 0k.26) */
     --spacing-added-toast-offset: 4.875rem; /* 1c, 78: a passing toast over the selection bar, from the pager's top, 12 above the bar — from the drawings, not the spec (#617) */
     --transition-duration-toast: 200ms; /* 1c: a passing toast's fade once its 4 s are up — from the drawings' script, not the spec (#617) */
     --color-toast-hover: oklch(1 0 0 / 0.12); /* Toast: its action and its dismiss under the pointer */
@@ -360,20 +360,21 @@
     --spacing-breadcrumb-stack: 0.875rem; /* Record header, 14: from the breadcrumb bar to the header — a record's, and a list's (0m Breadcrumb) */
     --spacing-list-header-inset-top: 2rem; /* Header right, 32: above a list header with no breadcrumb over it */
     --spacing-list-header-inset-bottom: 1.125rem; /* Header right, 18: under a list header, to its column head */
+    --spacing-list-header-line-stack: 1.25rem; /* Invoices 0b.8, 20: from the line under a list header's title to its column head, with the sort 8 under the actions and the column head 8 under the sort, or with no sort — a kind's own head (1c, 1d, 1e) */
     --spacing-list-header-inline: 2.5rem; /* Header right, 40: the least room between a list header's title and its control */
     --spacing-list-count-inline: 0.5rem; /* Header right, 8: from a list header's title to the count on its baseline */
     --spacing-title-stack: 0.625rem; /* Header stack, 10: from the title to the line of text under it */
     --spacing-subtitle-stack: 0.75rem; /* Header stack, 12: from the line of text under the title to the status */
     --spacing-heading-sm-stack: 0.75rem; /* Rail blocks, 12: from a block's name to what it heads, the phone's Block name too */
     --spacing-record-header-inline: 3.5rem; /* 1f, 56: between the header's title block and its actions — from the drawings, not the spec */
-    --spacing-record-header-actions-bleed: 0.1875rem; /* 1f, 3: how far the header's actions stand above its title's top — from the drawings, not the spec */
-    --spacing-note-add-bleed-left: 0.3125rem; /* 1f, 5: how far a Details row's Add reaches past its plus mark, which stands at its start — Add note's from #533 until #601 — from the drawings, not the spec */
+    --spacing-header-actions-bleed: calc((var(--height-control-lg) - var(--text-heading-lg--line-height)) / 2); /* Invoices 0b.9, 2: how far a header's actions stand above its title's top, so a 36 centers on the title's 32 line — a record's (1f) and a kind's (1c, 1d, 1e); 3 on a record's until the files of 2026-11-17 (#670) */
+    --spacing-note-add-bleed-left: calc(var(--spacing-control-inline-inset-x) - var(--spacing-leading-icon-trim)); /* 1f, 6: how far a Details row's Add reaches past its plus mark, which stands at its start, a 26 pill's 8 less the leading icon's trim (Invoices 0a.16) — Add note's from #533 until #601 */
     --spacing-note-add-gap: 0.375rem; /* 1f, 6: from a Details row's Add's plus mark to its word, Add note's until #601 — from the drawings, not the spec */
     --spacing-details-label-inline: 1rem; /* 1f, 16: from a Details row's label to its value (#601) — from the drawings, not the spec */
     --spacing-details-row-stack: 0.75rem; /* 1f, 12: between two Details rows (#601) — from the drawings, not the spec */
     --spacing-details-edit-inline: 0.875rem; /* 1f, 14: the least room from a Details value to its Edit at the row's end (#601) — from the drawings, not the spec */
     --spacing-details-add-bleed-left: 0.5rem; /* 1f, 8: how far a Details row's Add reaches left of the value column (#601) — from the drawings, not the spec */
-    --spacing-details-actions-stack: 0.75rem; /* 1f, 12: from a Details row's field, or the line under it, to its Cancel and Save (#601) — from the drawings, not the spec */
+    --spacing-details-actions-stack: 0.5rem; /* Invoices 0o.21, 8: from a Details row's field, or the message 6 under it, to its Cancel and Save — the serial number's and the note's alike (#601); 12 until the files of 2026-11-17 (#670) */
     --spacing-details-block-stack: 2.5rem; /* 1f, 40: from the Details block's last row to the Label block's name (#601) — from the drawings, not the spec */
     --width-record-rail: 21rem; /* Record rail, 336: on 1080, at the content's right edge */
     --spacing-record-rail-inline: 2rem; /* Record rail, 32: from the main column's text to the rail's Rule */
@@ -382,13 +383,12 @@
     --spacing-label-preview-inset-x: 1rem; /* 1f, 16: inside the Field ground the label is drawn on, either side — from the drawings, not the spec */
     --spacing-label-preview-inset-y: 1.75rem; /* 1f, 28: inside it, above and below — from the drawings, not the spec */
     --spacing-label-caption-stack: 0.5rem; /* 1f, 8: from the label to the line saying what it prints at (#601) — from the drawings, not the spec */
-    --width-log-track: 1.25rem; /* 1f, 20: the column the Activity's dots and rule stand in — from the drawings, not the spec */
-    --size-log-dot: 0.375rem; /* 1f, 6: an Activity entry's dot — from the drawings, not the spec */
-    --spacing-log-dot-inset-top: 0.4375rem; /* 1f, 7: the dot from its entry's top — from the drawings, not the spec */
-    --spacing-log-rule-inset-top: 1.25rem; /* 1f, 20: where the rule under a dot starts — from the drawings, not the spec */
-    --spacing-log-rule-overhang: 0.1875rem; /* 1f, 3: how far the rule runs into the next entry — from the drawings, not the spec */
-    --spacing-log-line-stack: 0.1875rem; /* 1f and 1j, 3: between an entry's lines — from the drawings, not the spec */
-    --spacing-log-stack: 1.5rem; /* 1f, 24: between entries — from the drawings, not the spec */
+    --size-log-mark: 1.5rem; /* Invoices 0o.33, 24: the circle an Activity event leads with at a desk, and the column it stands in (#670) — where a 6 dot stood in a column of 20 until then */
+    --size-log-mark-icon: 0.75rem; /* Invoices 0o.33, 12: the event's mark that circle holds, at Ink 3 */
+    --spacing-log-mark-inline: 0.75rem; /* Invoices 0o.34, 12: from an event's circle to its words at a desk, and from the dot to them on a phone (Tools 0a's Activity, 0o.54) */
+    --spacing-log-mark-bleed: calc((var(--size-log-mark) - var(--text-body--line-height)) / 2); /* Invoices 0o.34, 2: how far the circle stands above its entry's top, so it centers on the event's first line — and where the Rule from the circle above meets it (0o.35) */
+    --spacing-log-line-stack: 0.1875rem; /* Invoices 0o.53, 3: between an entry's lines, at a desk and on a phone (1f, 1j) */
+    --spacing-log-stack: 1.5rem; /* Invoices 0o.51, 24: between a desk's Activity entries */
     --max-width-empty-state: 30rem; /* 1a2, 1d and 1h, 480: the sentence of a list with nothing on it and of a screen saying a record is not there — from the drawings, not the spec. The tool item page's refusal at a desk reads it too, which no row sizes, so it moves with this */
 
     /* 0o · Sign-in page — one column, centered, with the wordmark at its head (#473). */
@@ -466,7 +466,6 @@
     --spacing-mobile-input-inset-x: 1rem; /* Field, 16: inside it */
     --size-mobile-input-icon: 1.125rem; /* Field, 18: its icon */
     --spacing-mobile-input-gap: 0.625rem; /* Field, 10: from its icon to its value, and between any two parts inside it */
-    --color-mobile-input-background: color-mix(in oklab, var(--color-foreground-default) 5.5%, transparent); /* Field, the one field in a sheet: filled, ink at 0.055, no edge */
     --spacing-mobile-field-stack: 1.25rem; /* Field label, 20: from a field to the next label */
     --size-mobile-input-clear-icon: 1.125rem; /* Field, 18: the mark of the clear × at its end (#607; 15 from the drawings until then) */
     --spacing-mobile-input-clear-inset-right: 0.75rem; /* Field, 12: the clear ×'s mark inside the end of its target, which ends on the field's edge, so the x's ink ends 16 from it (#607) — the 12 from the drawings, the 16 the spec */
@@ -506,7 +505,6 @@
     --spacing-mobile-sign-in-list-empty-inset-y: 2rem; /* Sign in 1k, 32: above and below what the list says when a search finds nothing — from the drawings, not the spec */
     --height-mobile-code-caret: 1.625rem; /* 1a, 26: the caret's height in a phone's box — from the drawings, not the spec */
     --size-mobile-log-dot: 0.375rem; /* Activity, 6: the dot */
-    --spacing-mobile-log-gap: 0.75rem; /* Activity, 12: beside the dot */
     --spacing-mobile-log-stack: 1.25rem; /* Activity, 20: between entries */
     --size-mobile-log-icon: 0.875rem; /* Activity, 14: before the person a check-out went to, and before and between a loan's two jobs (#598) — and the job, until the title block named it (#597) */
     --spacing-mobile-log-route-gap: 0.375rem; /* Activity, 6: either side of the arrow between a loan's two jobs (#598) */

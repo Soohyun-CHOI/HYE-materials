@@ -144,7 +144,8 @@ is an action's, which draws the page again as it answers, and the sentence stand
   was opened on;
 - **for a desk's press with no dialog** — a check-in, a return from repair, a sending
   for repair from the menu — in a toast at the page's foot, until it is dismissed or the
-  next press;
+  next press; one left half done is named by its act there, with a press that sends
+  the same event again;
 - **for a detail at a desk, in its editor's line**, the editor standing and its save
   turned away when the reader may no longer write it or the item moved;
 - **on a phone**, the sheet or question that sent it closes and the Notice under the
@@ -161,7 +162,7 @@ is an action's, which draws the page again as it answers, and the sentence stand
 | the item is on another job than the page was drawn on | `ASSET_TRANSITION_COPY.movedTo` |
 | the reader no longer records on it — taken off its job, or no longer a site manager | `ASSET_TRANSITION_COPY.noPermission` |
 | the status allows nothing — somebody retired it first | `ASSET_TRANSITION_COPY.noTransition` |
-| the entry was written and the status was not | `ASSET_TRANSITION_COPY.statusNotUpdated` |
+| the entry was written and the status was not | `ASSET_TRANSITION_COPY.statusNotUpdated`; a desk's toast `ASSET_TRANSITION_COPY.halfSaved`, with `ASSET_TRANSITION_COPY.retry` |
 | a lending left half done | `ASSET_TRANSITION_COPY.lendHalfDone` |
 | a return to the owner left half done | `ASSET_TRANSITION_COPY.returnHalfDone` |
 | a lending with no job chosen | `ASSET_TRANSITION_COPY.lendNoneChosen` |

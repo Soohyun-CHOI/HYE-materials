@@ -176,8 +176,8 @@ export function InfoMark({ size = "size-mobile-alert-icon" }) {
 
 /**
  * Tools 0a's Notice — something the reader did not cause and cannot fix in place: the ink
- * at 4.5% on the phone's Radius, 14 and 16 inside, the 18 info mark 10 before one sentence
- * at 16 in Ink. It is a refusal, so assistive tech hears it as one.
+ * at 6%, Field (Tools 0a.93, 4.5% until #670), on the phone's Radius, 14 and 16 inside, the 18
+ * info mark 10 before one sentence at 16 in Ink. It is a refusal, so assistive tech hears it as one.
  *
  * MOVED HERE FROM THE SIGN-IN STEPS IN #463, which drew it for a request that did not go
  * through; the asset page draws it for a press somebody else's scan got in front of
@@ -260,7 +260,7 @@ const BUTTON_SIZE = {
 const BUTTON_INSET = { md: "px-control-md-inset-x", lg: "px-control-lg-inset-x", xl: "px-control-lg-inset-x" };
 const GHOSTS = ["ghost", "ghostDanger"];
 const insetOf = (variant, size) =>
-    GHOSTS.includes(variant) ? "px-ghost-inset-x" : variant === "faced" ? "pr-faced-inset-right pl-faced-inset-left" : BUTTON_INSET[size];
+    GHOSTS.includes(variant) ? "px-ghost-inset-x" : variant === "faced" ? "pr-control-lg-inset-x pl-faced-inset-left" : BUTTON_INSET[size];
 
 // A ghost is "one step under what stands around it — 32 with 10 in a row of 36 buttons" (0f
 // Ghost), so one standing with 0a's 36 is the Control's 32 and keeps the row's 14 (1l, #527);
@@ -269,8 +269,8 @@ const sizeOf = (variant, size) => (GHOSTS.includes(variant) && size === "lg" ? "
 
 // 0f: a filled action hovers to its Accent hover and keeps its white ink, and one that
 // cannot act keeps its fill at 40% and takes no hover. A secondary one — `Cancel`, `Export`,
-// `Not now` and their kin — has no border: it rests at Field and fills to Ink at 8% under the
-// pointer, its words at 600 in Ink (0f Bordered, #662), and one that cannot act keeps its Field
+// `Not now` and their kin — has no border: it rests at Field and fills to Ink at 10% under the
+// pointer, its words at 600 in Ink (Invoices 0f.3; #662, 8% until #670), and one that cannot act keeps its Field
 // at 40% and its words take Ink 4, a disabled control's glyph (0e), so its gray ground does not
 // read as the one at rest. No file draws a secondary that cannot act, and the 40% alone would
 // leave it 1.8% Ink under words in Ink — a resting button with its ground faded, not a disabled
@@ -285,7 +285,9 @@ const sizeOf = (variant, size) => (GHOSTS.includes(variant) && size === "lg" ? "
 // hovers too. A ghost that removes or reverses the record is 0f's Destructive at a ghost's
 // size: transparent at rest, red on red's Face under the pointer — 1l's `Discontinue` (#527).
 // A faced action is 0f's Faced, no outline at a 36, its mark and word in Ink 2 lifting to Ink as
-// it fills at Hover (0f Ink on hover) — the category list's way to the catalog (1a, #566).
+// it fills at Field (0f Ink on hover) — the category list's way to the catalog (1a, #566), a head
+// action that only leads to another page: 16 either side, 14 beside its leading icon (Invoices
+// 0b.11, #670), where it stood 12 and 10.
 // The kinds whose words are white on a fill, and so whose spinner turns on one (`SPINNER_TRACK`).
 const FILLED = ["filled", "danger"];
 const BUTTON_VARIANT = {
@@ -513,10 +515,15 @@ export function ButtonLink({ variant = "filled", size = "lg", href, mark, childr
  * gives way to it and the count keeps the line's end, as the files of 2026-11-05 draw it. It
  * stands after a refusal of the value itself, which is the reader's to fix and in red.
  *
- * `count` IS HOW MUCH THE FIELD HOLDS AGAINST WHAT IT MAY, AT THE LINE'S END (0a Note, 1f, 1j-b2;
- * #533): `28/50` in the line's ink, 12 after what the line says, and in Red with the field while
- * it refuses. It describes the field as the line does, and is not read out as it changes, which
- * a count would be on every keystroke.
+ * `count` IS HOW MUCH THE FIELD HOLDS AGAINST WHAT IT MAY, AT THE LINE'S END (0a Note, 1j; #533):
+ * `28/50` in Ink 3, 12 after what the line says, and in Red with the field while it refuses. It
+ * describes the field as the line does, and is not read out as it changes, which a count would be
+ * on every keystroke. A phone's sheet draws it alone at the line's end, with no help beside it
+ * since the files of 2026-11-17 (Tools 0a.100, #670).
+ *
+ * `describedBy` IS WHAT DESCRIBES THE FIELD FROM ELSEWHERE IN ITS FORM (#670): a desk's note edited
+ * in place draws its count at the left of its actions' row (Invoices 0o.26, `ItemDetails.js`), and
+ * the field is described by it as by a count on its own line.
  */
 export function Field({
     label,
@@ -531,6 +538,7 @@ export function Field({
     refusal,
     reserveMessage = false,
     count,
+    describedBy,
     children,
 }) {
     const base = useId();
@@ -539,7 +547,7 @@ export function Field({
     const messageId = `${base}message`;
     const countId = `${base}count`;
     const said = refusal || notice || note || help;
-    const described = [said ? messageId : null, count !== undefined ? countId : null].filter(Boolean).join(" ") || undefined;
+    const described = [said ? messageId : null, count !== undefined ? countId : null, describedBy].filter(Boolean).join(" ") || undefined;
     const context = { control, labelId, messageId: described, refused: Boolean(refusal) };
     const xl = size === "xl";
     const labelClass = labelHidden ? "sr-only" : `mb-gap ${FIELD_LABEL} ${xl ? "max-sm:text-mobile-body-sm" : ""}`;
@@ -794,7 +802,7 @@ export function SheetInput({ value, onChange, onDone, placeholder, label, clearL
 
     return (
         <div
-            className={`flex h-mobile-input items-center rounded-mobile-control bg-mobile-input-background px-mobile-input-inset-x ${
+            className={`flex h-mobile-input items-center rounded-mobile-control bg-background-muted px-mobile-input-inset-x ${
                 field.refused ? "ring-1 ring-danger ring-inset" : ""
             }`}
         >
@@ -1078,16 +1086,18 @@ const TYPEAHEAD_MS = 500;
  * TWO MORE LOOKS, ONE PATTERN (#519). `look="chip"` is the job a list stands on, at the start of
  * its band since the files of 2026-10-23 (1a, #566), where #519 drew it in the head with `Job`
  * before the value at 36: a 32 control at least 128 wide, a 14 pin in Ink 3 leading the job at 13
- * and 500 in Ink, its 12 chevron in Ink 3 at the end, 6 between each, 9 before the pin and 8 after
+ * and 500 in Ink, its 12 chevron in Ink 3 at the end, 6 between each, 8 before the pin — a chip's
+ * 10 less the leading icon's 2 (Invoices 0a.16; 9 until #670) — and 8 after
  * the chevron, on an Edge and white, holding its Wash under the pointer and while its list is
- * open, the list from its left at least 160 wide with 32 rows. Its Edge turns to Edge focus for
+ * open, the list from its left at least 152 wide with 32 rows (Invoices 0a.29; 160 until #670). Its Edge turns to Edge focus for
  * the keyboard alone (#522): 1a draws a chip a press opened on its Edge, a bordered control's
  * Open being its Wash (0f). `look="crumb"` is the same choice standing as a breadcrumb
  * level (1d, 1f): the level's 26, its side room pulled back and its 13 at 600 in Ink 2, a 12
  * chevron 6 after the word, and its list from the level's left with 32 rows. `look="sort"` is the
- * order a list stands in (1a, 1d, 1l, #540): a 32 with no outline, 7 before a 14 `arrow-up-down` in
- * Ink 3, the order's name at 13 and 500 in Ink and a 12 chevron in Ink 3, 6 between each and 8
- * after it, Hover under the pointer and while its list is open, and its list set against its right
+ * order a list stands in (1a, 1d, 1l, #540): a 32 with no outline, 8 before a 14 `arrow-up-down` in
+ * Ink 3 — a chip's 10 less the leading icon's 2 (Invoices 0a.16; 7 until #670) — the order's name
+ * at 13 and 500 in Ink and a 12 chevron in Ink 3, 6 between each and 8 after it, Field under the
+ * pointer and while its list is open, and its list set against its right
  * end with 32 rows, each holding room for the check at its end so the list does not change width
  * with what is chosen. None of the three shows the field's label, which a screen reader hears as
  * the name.
@@ -1234,7 +1244,7 @@ export function Choice({ name, options, value, onChange, placeholder, look = "fi
                 shown={open}
                 labelId={field.labelId}
                 fit={look === "field" ? "field" : look === "sort" ? "end" : "start"}
-                minWidth={look === "chip" ? "var(--min-width-job-chip-list)" : undefined}
+                minWidth={look === "chip" ? "var(--min-width-button-list)" : undefined}
                 rows={look === "field" ? "lg" : "sm"}
                 checkSlot={look === "sort"}
                 options={options.map((option, index) => ({

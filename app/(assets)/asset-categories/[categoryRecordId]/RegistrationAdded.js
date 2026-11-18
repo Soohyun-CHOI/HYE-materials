@@ -6,7 +6,8 @@ import { ASSET_REGISTRATION_COPY as COPY, REGISTRATION_SENT_KEY, addedToTell } f
 
 /**
  * What a registration that wrote everything says on landing (#617): `5 items added` for a moment,
- * 12 over the selection bar and centered on the list, as Tools 57 draws 1c's `All written`.
+ * 12 over the selection bar and centered on it, beside it in the list's foot (Invoices 0k.32), as
+ * Tools 57 draws 1c's `All written`.
  *
  * IT TAKES THE DIALOG'S MARK, AND NOTHING ON THE ADDRESS. The dialog leaves a mark in the tab's own
  * storage as it sends; each selection this list is drawn with takes the mark away as it reads it,

@@ -193,6 +193,9 @@ const VALUES = [
     ["--spacing-control-lg-inset-x", "1rem", null],
     // 1a's 32 button under a list its band emptied (#520).
     ["--spacing-control-md-inset-x", "0.8125rem", null],
+    // What a leading icon takes off its side's room (Invoices 0a.16), 3 until the files of
+    // 2026-11-17 (#670): every inset before a leading mark is a side room less it.
+    ["--spacing-leading-icon-trim", "0.125rem", null],
     // A sign-in page's field and action, and the line under any field (#473).
     ["--height-control-xl", "2.5rem", null],
     ["--spacing-input-inset-x", "0.75rem", null],
@@ -230,17 +233,18 @@ const VALUES = [
     ["--size-clear-icon", "0.8125rem", null],
     ["--spacing-ghost-inset-x", "0.625rem", null],
     // 1a's head and band as the files of 2026-10-23 draw them (#566): `Catalog`, faced behind its
-    // book, and the job's chip at the band's start behind its pin, with the list it opens.
-    ["--spacing-faced-inset-left", "0.625rem", null],
-    ["--spacing-faced-inset-right", "0.75rem", null],
+    // book, and the job's chip at the band's start behind its pin, with the list it opens — each
+    // inset before a leading mark a side room less the trim since #670, and the list a button
+    // opens at least 0a.29's 152, the record's menu with it.
+    ["--spacing-faced-inset-left", "calc(var(--spacing-control-lg-inset-x) - var(--spacing-leading-icon-trim))", null],
     ["--min-width-job-chip", "8rem", null],
-    ["--spacing-job-chip-inset-left", "0.5625rem", null],
+    ["--spacing-job-chip-inset-left", "calc(var(--spacing-control-inset-x) - var(--spacing-leading-icon-trim))", null],
     ["--spacing-job-chip-inset-right", "0.5rem", null],
     ["--size-job-chip-chevron", "0.75rem", null],
-    ["--min-width-job-chip-list", "10rem", null],
+    ["--min-width-button-list", "9.5rem", null],
     // The sort on 1a, 1d and 1l (#540): its room either side of its mark and its chevron, the
     // chevron, and the room its list's options keep for the check.
-    ["--spacing-sort-inset-left", "0.4375rem", null],
+    ["--spacing-sort-inset-left", "calc(var(--spacing-control-inset-x) - var(--spacing-leading-icon-trim))", null],
     ["--spacing-sort-inset-right", "0.5rem", null],
     ["--size-sort-chevron", "0.75rem", null],
     ["--spacing-sort-check-gap", "0.625rem", null],
@@ -302,11 +306,11 @@ const VALUES = [
     // What a list says once its band has emptied it (1a, #520).
     ["--spacing-list-emptied-inset-y", "3.75rem", null],
     ["--spacing-list-emptied-stack", "0.75rem", null],
-    ["--spacing-list-emptied-id-inline", "0.12em", null],
+    ["--spacing-id-in-sentence-inline", "0.12em", null],
     // Under the sentence of a page the reader may no longer use (0b Row, 1l `Not Admin, closed`, #616).
     ["--spacing-closed-page-inset-bottom", "3rem", null],
-    // The way to the item a search found by its id, under the band (1a, #541).
-    ["--height-found-item", "2.5rem", null],
+    // The way to the item a search found by its id, under the band (1a, #541): a row's 36 since #670.
+    ["--height-found-item", "2.25rem", null],
     ["--spacing-found-item-inset-x", "0.75rem", null],
     ["--spacing-found-item-inline", "1rem", null],
     // 0c · Blue
@@ -337,10 +341,11 @@ const VALUES = [
     ["--color-hover-subtle", "color-mix(in oklab, var(--color-foreground-default) 3%, transparent)", null],
     // The Wash made opaque, for the name column a table holds at its start (0b Row, #552).
     ["--color-pinned-column-hover", "color-mix(in srgb, var(--color-foreground-default) 3%, white)", null],
-    ["--color-background-muted", "color-mix(in oklab, var(--color-foreground-default) 4.5%, transparent)", null],
-    ["--color-hover", "color-mix(in oklab, var(--color-foreground-default) 5.5%, transparent)", null],
+    ["--color-background-muted", "color-mix(in oklab, var(--color-foreground-default) 6%, transparent)", null],
+    // Hover is Field under the pointer since the files of 2026-11-17 (Invoices 0e.12, #670).
+    ["--color-hover", "var(--color-background-muted)", null],
     // A secondary button: Ink at 8% under the pointer, and its Field at 40% while it cannot act (0f, #662).
-    ["--color-secondary-hover", "color-mix(in oklab, var(--color-foreground-default) 8%, transparent)", null],
+    ["--color-secondary-hover", "color-mix(in oklab, var(--color-foreground-default) 10%, transparent)", null],
     ["--color-secondary-disabled", "color-mix(in oklab, var(--color-background-muted) 40%, transparent)", null],
     ["--color-scrollbar-thumb", "color-mix(in oklab, var(--color-foreground-default) 20%, transparent)", null],
     ["--color-scrollbar-thumb-hover", "color-mix(in oklab, var(--color-foreground-default) 34%, transparent)", null],
@@ -520,6 +525,8 @@ const VALUES = [
     // 0n's list header, one line (#505).
     ["--spacing-list-header-inset-top", "2rem", null],
     ["--spacing-list-header-inset-bottom", "1.125rem", null],
+    // A kind's head: the column head 20 under the caption, whatever its column holds (0b.8, #670).
+    ["--spacing-list-header-line-stack", "1.25rem", null],
     ["--spacing-list-header-inline", "2.5rem", null],
     ["--spacing-list-count-inline", "0.5rem", null],
     // A list header's controls stand at 0b's Gap since #566, which undeclared #519's 12 between them.
@@ -529,16 +536,17 @@ const VALUES = [
     // The record rail on 1080 (#463), which #462 left undeclared, its label block and the
     // Activity beside it; all but the rail's three from the drawings, not the spec.
     ["--spacing-record-header-inline", "3.5rem", null],
-    // How far the record header's actions stand above its title's top (1f, #538).
-    ["--spacing-record-header-actions-bleed", "0.1875rem", null],
+    // How far a header's actions stand above its title's top (1f, #538): a 36 centered on the
+    // title's 32 line (Invoices 0b.9) since #670, a record's and a kind's.
+    ["--spacing-header-actions-bleed", "calc((var(--height-control-lg) - var(--text-heading-lg--line-height)) / 2)", null],
     // Add note's face past its plus mark, and the mark to its word (1f, #533).
-    ["--spacing-note-add-bleed-left", "0.3125rem", null],
+    ["--spacing-note-add-bleed-left", "calc(var(--spacing-control-inline-inset-x) - var(--spacing-leading-icon-trim))", null],
     ["--spacing-note-add-gap", "0.375rem", null],
     ["--spacing-details-label-inline", "1rem", null],
     ["--spacing-details-row-stack", "0.75rem", null],
     ["--spacing-details-edit-inline", "0.875rem", null],
     ["--spacing-details-add-bleed-left", "0.5rem", null],
-    ["--spacing-details-actions-stack", "0.75rem", null],
+    ["--spacing-details-actions-stack", "0.5rem", null],
     ["--spacing-details-block-stack", "2.5rem", null],
     ["--width-record-rail", "21rem", null],
     ["--spacing-record-rail-inline", "2rem", null],
@@ -547,11 +555,12 @@ const VALUES = [
     ["--spacing-label-preview-inset-x", "1rem", null],
     ["--spacing-label-preview-inset-y", "1.75rem", null],
     ["--spacing-label-caption-stack", "0.5rem", null],
-    ["--width-log-track", "1.25rem", null],
-    ["--size-log-dot", "0.375rem", null],
-    ["--spacing-log-dot-inset-top", "0.4375rem", null],
-    ["--spacing-log-rule-inset-top", "1.25rem", null],
-    ["--spacing-log-rule-overhang", "0.1875rem", null],
+    // A desk's Activity entry leads with its event's mark in a 24 circle, centered on the event's first
+    // line and 12 before its words, where a 6 dot stood in a column of 20 (Invoices 0o.33, 0o.34; #670).
+    ["--size-log-mark", "1.5rem", null],
+    ["--size-log-mark-icon", "0.75rem", null],
+    ["--spacing-log-mark-inline", "0.75rem", null],
+    ["--spacing-log-mark-bleed", "calc((var(--size-log-mark) - var(--text-body--line-height)) / 2)", null],
     ["--spacing-log-line-stack", "0.1875rem", null],
     ["--spacing-log-stack", "1.5rem", null],
     // Every empty list's and not-found screen's sentence at 480 since the files of 2026-10-23
@@ -632,7 +641,6 @@ const VALUES = [
     ["--spacing-mobile-input-inset-x", "1rem", null],
     ["--size-mobile-input-icon", "1.125rem", null],
     ["--spacing-mobile-input-gap", "0.625rem", null],
-    ["--color-mobile-input-background", "color-mix(in oklab, var(--color-foreground-default) 5.5%, transparent)", null],
     ["--spacing-mobile-field-stack", "1.25rem", null],
     // The clear ×'s mark, 18 since Tools 0a's Field row gave it (#607).
     ["--size-mobile-input-clear-icon", "1.125rem", null],
@@ -680,7 +688,6 @@ const VALUES = [
     ["--spacing-mobile-sign-in-list-empty-inset-y", "2rem", null],
     ["--height-mobile-code-caret", "1.625rem", null],
     ["--size-mobile-log-dot", "0.375rem", null],
-    ["--spacing-mobile-log-gap", "0.75rem", null],
     ["--spacing-mobile-log-stack", "1.25rem", null],
     ["--size-mobile-log-icon", "0.875rem", null],
     // Either side of the arrow between a loan's two jobs (#598).
@@ -1122,13 +1129,24 @@ export async function run({ check, assert, log }) {
     const washes = [
         "--color-hover-subtle",
         "--color-background-muted",
-        "--color-hover",
         "--color-secondary-hover",
         "--color-scrollbar-thumb",
         "--color-scrollbar-thumb-hover",
-        "--color-mobile-input-background",
     ];
     for (const name of washes) check(`  ${name} is the foreground in an amount`, mixes(declared.get(name) ?? "").join(" "), "--color-foreground-default");
+    // Field is the ground under the pointer of anything without an outline, and of a phone's
+    // filled field in a sheet (Invoices 0e.12, Tools 0a.24; #670): Hover reads it, and the phone
+    // has no fill of its own to drift from it.
+    check("  Hover is Field, read rather than written again", declared.get("--color-hover"), "var(--color-background-muted)");
+    check("  no name declares a fill of its own for the phone's field", [...declared.keys()].filter((n) => /^--color-mobile-input/.test(n)).join(" "), "");
+    // A leading icon takes the one trim off its side's room (Invoices 0a.16, #670): each inset before
+    // a leading mark is the room its control takes either side, less the trim, so the rule is one value.
+    const lessTrim = (value) => value?.match(/^calc\(var\((--spacing-[a-z-]+)\) - var\(--spacing-leading-icon-trim\)\)$/)?.[1] ?? "none";
+    check(
+        "  every inset before a leading mark is its control's side room less the trim: Catalog's, the job chip's, the sort's, a Details row's Add",
+        ["--spacing-faced-inset-left", "--spacing-job-chip-inset-left", "--spacing-sort-inset-left", "--spacing-note-add-bleed-left"].map((n) => lessTrim(declared.get(n))).join(" "),
+        "--spacing-control-lg-inset-x --spacing-control-inset-x --spacing-control-inset-x --spacing-control-inline-inset-x"
+    );
     // An action that cannot act keeps its resting ground at 40% (0f Disabled): a filled one's Accent,
     // a red one's Red (#616), and a secondary one's Field (#662).
     const fadedFrom = (value) => value.match(/^color-mix\(in oklab, var\((--[a-z-]+)\) 40%, transparent\)$/)?.[1] ?? "none";

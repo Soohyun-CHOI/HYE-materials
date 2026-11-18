@@ -157,7 +157,7 @@ export async function run({ check, log }) {
         [
             /max-sm:px-mobile-input-inset-x/.test(controls.source.match(/TEXT_INPUT_SIZE = \{[^}]*?xl: "([^"]*)"/)?.[1] ?? "") && /rounded-control border bg-white/.test(textInput),
             /max-sm:border max-sm:border-border max-sm:bg-white max-sm:px-mobile-input-inset-x/.test(band),
-            /bg-mobile-input-background px-mobile-input-inset-x/.test(sheetInput) && !classTokens(sheetInput.slice(sheetInput.indexOf("return ("))).some((t) => /^(max-sm:)?border(-|$)/.test(t)),
+            /bg-background-muted px-mobile-input-inset-x/.test(sheetInput) && !classTokens(sheetInput.slice(sheetInput.indexOf("return ("))).some((t) => /^(max-sm:)?border(-|$)/.test(t)),
         ].join(" "),
         "true true true"
     );

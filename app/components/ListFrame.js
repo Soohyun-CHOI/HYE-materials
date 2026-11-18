@@ -31,7 +31,7 @@ const UNDER_HEAD =
 // 1a's head with its band of controls under it (#520): the band's 32 controls and the 14 under them.
 const UNDER_HEAD_AND_BAND =
     "[--table-head-top:calc(var(--spacing-list-header-inset-top)+var(--height-control-lg)+var(--spacing-list-header-inset-bottom)+var(--height-control)+var(--spacing-control-band-inset-y))] scroll-pt-[calc(var(--table-head-top)+var(--height-table-header))]";
-// And the way to an item a search found by its id under the band (1a, #541): its 40 and the 14 under it
+// And the way to an item a search found by its id under the band (1a, #541): its 36 and the 14 under it
 // — or to each item one serial number names, 8 apart (#601), `--found-count` of them.
 const UNDER_HEAD_BAND_AND_FOUND =
     "[--table-head-top:calc(var(--spacing-list-header-inset-top)+var(--height-control-lg)+var(--spacing-list-header-inset-bottom)+var(--height-control)+var(--spacing-control-band-inset-y)+var(--found-count,1)*var(--height-found-item)+(var(--found-count,1)-1)*var(--spacing-gap)+var(--spacing-control-band-inset-y))] scroll-pt-[calc(var(--table-head-top)+var(--height-table-header))]";

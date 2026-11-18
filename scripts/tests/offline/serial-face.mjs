@@ -78,7 +78,7 @@ export function run({ check, log }) {
     log("an id stays in the id's face:");
     check(
         "  the item a serial number taken names, and 1d's printed id",
-        [/<span className="font-id tracking-id">\{control\.takenBy\}<\/span>/.test(details), /<span role="cell" className="min-w-0 truncate font-id text-body-sm tracking-id">\s*<Link href=\{assetPath\(row\.assetId\)\}/.test(list)].join(" "),
+        [/<span className="pr-id-in-sentence-inline font-id leading-none tracking-id">\{control\.takenBy\}<\/span>/.test(details), /<span role="cell" className="min-w-0 truncate font-id text-body-sm tracking-id">\s*<Link href=\{assetPath\(row\.assetId\)\}/.test(list)].join(" "),
         "true true"
     );
 

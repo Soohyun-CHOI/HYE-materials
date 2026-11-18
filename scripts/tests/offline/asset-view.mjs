@@ -37,8 +37,9 @@
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
-import { ASSET_EVENT, ASSET_STATUS, ASSET_STATUS_VALUES, SHOWN_STATUS_VALUES } from "../../../lib/assetStatus.js";
+import { ASSET_EVENT, ASSET_EVENT_VALUES, ASSET_STATUS, ASSET_STATUS_VALUES, SHOWN_STATUS_VALUES } from "../../../lib/assetStatus.js";
 import {
+    ACTIVITY_MARK,
     FACT_KIND,
     ON_LOAN_MARK,
     STATUS_MARK,
@@ -249,6 +250,67 @@ export function run({ check, assert, log }) {
         "  and the mark's file draws no loan of its own",
         `${/\bhalf\b/.test(markCode)} ${(markCode.match(/ON_LOAN_MARK/g) ?? []).length}`,
         "false 2"
+    );
+
+    // AN ACTIVITY ENTRY LEADS WITH ITS EVENT'S MARK AT A DESK (Invoices 0o.33 to 0o.38, 0o.54, 0o.56;
+    // #670): the map one place, total over the events a screen shows, the first event's the rail's
+    // own, and the shared trail drawing the circle, the mark, the Rule and the phone's dot.
+    log("");
+    log("each event's mark, in its circle at a desk and a dot on a phone (#670):");
+    check(
+        "  the map, by value: an item's eight events and Invoices 0o.56's marks",
+        Object.entries(ACTIVITY_MARK).map(([event, mark]) => `${event} ${mark}`).join(" | "),
+        [
+            [ASSET_EVENT.CREATED, "wrench"],
+            [ASSET_EVENT.CHECKED_OUT, "log-out"],
+            [ASSET_EVENT.CHECKED_IN, "log-in"],
+            [ASSET_EVENT.LENT, "arrow-right-left"],
+            [ASSET_EVENT.RETURNED_TO_OWNER, "undo-2"],
+            [ASSET_EVENT.SENT_FOR_REPAIR, "hammer"],
+            [ASSET_EVENT.RETURNED_FROM_REPAIR, "check"],
+            [ASSET_EVENT.RETIRED, "ban"],
+        ]
+            .map(([event, mark]) => `${event} ${mark}`)
+            .join(" | ")
+    );
+    check(
+        "  every event but Deleted, which no screen meets, has one",
+        ASSET_EVENT_VALUES.filter((event) => !(event in ACTIVITY_MARK)).join(" | "),
+        ASSET_EVENT.DELETED
+    );
+    const railForMarks = parseFile("app/components/Rail.js").source;
+    check(
+        "  the first event's is the rail's mark for Equipment & Tools (0o.38)",
+        `${ACTIVITY_MARK[ASSET_EVENT.CREATED]} ${railForMarks.match(/const SECTION_ICONS = \{[^}]*\bassets: "([a-z-]+)"/)?.[1]}`,
+        "wrench wrench"
+    );
+    const trailFacts = (trail, page) => {
+        const entry = trail.slice(trail.indexOf("export function ActivityEntry"));
+        return [
+            /<li className="grid grid-cols-\[var\(--size-log-mark\)_minmax\(0,1fr\)\] gap-x-log-mark-inline max-sm:grid-cols-\[var\(--width-mobile-log-track\)_minmax\(0,1fr\)\]">/.test(entry),
+            /\{!last && \(\s*<span className="absolute top-\[calc\(var\(--size-log-mark\)-var\(--spacing-log-mark-bleed\)\)\] bottom-log-mark-bleed w-px bg-divider max-sm:top-mobile-log-rule-inset-top max-sm:-bottom-mobile-log-rule-overhang" \/>\s*\)\}/.test(entry),
+            /className=\{`relative -mt-log-mark-bleed flex size-log-mark shrink-0 items-center justify-center rounded-full \$\{settled \? CIRCLE_GROUND\.settled : CIRCLE_GROUND\.open\} max-sm:hidden`\}/.test(entry) &&
+                /open: "bg-white bg-\[linear-gradient\(var\(--color-background-muted\),var\(--color-background-muted\)\)\]",\s*settled: "bg-selected",/.test(trail),
+            /<Icon name=\{mark\} kind=\{settled \? "current" : "qualifier"\} className="size-log-mark-icon" \/>/.test(entry),
+            /<span className="relative mt-mobile-log-dot-inset-top size-mobile-log-dot rounded-full bg-foreground-faint sm:hidden" \/>/.test(entry),
+            /<ActivityTrail>\s*\{rows\.map\(\(row, index\) => \{/.test(page) && /<ActivityEntry key=\{row\.id\} mark=\{ACTIVITY_MARK\[row\.event\]\} last=\{last\}>/.test(page),
+            !/size-log-dot|log-dot-inset-top|log-rule-inset-top(?!.*mobile)|bg-foreground-faint/.test(page.slice(page.indexOf("function Activity("))),
+        ].join(" ");
+    };
+    const trailSource = parseFile("app/components/ActivityTrail.js").source;
+    const itemPage = parseFile("app/(assets)/assets/[assetId]/page.js").source;
+    check(
+        "  the trail: 24 then 12 before the words, the Rule from the circle's foot to the next, the circle on Field over white 2 above the line, its 12 mark in Ink 3 or Accent, the phone's dot, and the page drawing every entry through it",
+        trailFacts(trailSource, itemPage),
+        "true true true true true true true"
+    );
+    check(
+        "  and a page drawing #463's dot of its own is seen (anti-vacuity)",
+        trailFacts(
+            trailSource,
+            itemPage.replace(/<ActivityEntry key=\{row\.id\} mark=\{ACTIVITY_MARK\[row\.event\]\} last=\{last\}>/, '<li key={row.id}><span className="relative mt-log-dot-inset-top size-log-dot rounded-full bg-foreground-faint" />')
+        ),
+        "true true true true true false false"
     );
 
     // ── 3: all three are on every row ──────────────────────────────────────
@@ -613,16 +675,17 @@ export function run({ check, assert, log }) {
     // face at 14 in Ink 3, first in the title block and 4 over the name, under a bar handed the
     // name to fade in once the heading has gone under it, hidden while out; 1k-c's bar is handed
     // no name, and its id stands over its title the same way. A phone's status mark centers on
-    // its line. At a desk the header's actions stand 3 above the title's top (1f).
+    // its line. At a desk the header's actions center on the title's line, a 36's height with `More
+    // actions` alone (Invoices 0b.9, #670), where they stood 3 above the title's top (1f).
     log("");
-    log("the heads: the id in a phone's title block, the name in its bar, a desk's actions 3 up:");
+    log("the heads: the id in a phone's title block, the name in its bar, a desk's actions on the title's line:");
     const heads = (pageSource, topBar) =>
         [
             /const ID_ON_PHONE = "font-id text-mobile-body-xs tracking-id tabular-nums text-foreground-subtle";/.test(pageSource),
             /<div className="flex flex-col gap-title-stack max-sm:gap-mobile-title-block-stack">\s*<p className=\{`\$\{ID_ON_PHONE\} sm:hidden`\}>\{asset\.assetId\}<\/p>\s*<h1 /.test(pageSource),
             /<TopBar name=\{name\}>/.test(pageSource) && /<TopBar>/.test(pageSource) && !/<TopBar[^>]*\bid=/.test(pageSource),
             /<p className=\{`\$\{ID_ON_PHONE\} sm:hidden`\}>\{asked\}<\/p>\s*<h1 /.test(pageSource),
-            /"-mt-record-header-actions-bleed flex shrink-0 items-center gap-gap max-sm:hidden"/.test(pageSource),
+            /"-mt-header-actions-bleed flex min-h-control-lg shrink-0 items-center gap-gap max-sm:hidden"/.test(pageSource),
             /"inline-flex items-baseline gap-gap text-body max-sm:items-center max-sm:text-mobile-body"/.test(pageSource),
             /export default function TopBar\(\{ name, children \}\)/.test(topBar) && !/\{id\}/.test(topBar),
             /setNamed\(titleGoneUnder\(name \? document\.querySelector\("h1"\) : null, barRef\.current\)\);/.test(topBar),
@@ -630,7 +693,7 @@ export function run({ check, assert, log }) {
         ].join(" ");
     const topBarSource = parseFile("app/components/TopBar.js").source;
     check(
-        "the id opens a phone's title block on both pages, the bar takes the name alone, the status mark centers, and a desk's actions stand 3 up",
+        "the id opens a phone's title block on both pages, the bar takes the name alone, the status mark centers, and a desk's actions center on the title's line",
         heads(page.source, topBarSource),
         "true true true true true true true true true"
     );

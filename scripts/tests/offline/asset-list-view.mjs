@@ -671,7 +671,7 @@ function total569({ check, log }) {
     );
     // #617 — the typed id after an emptied list's sentence stands 0.12em off either side of
     // itself, as 1a and 1a3 set it; with none it stood 1.55 closer than drawn (#541).
-    const echoRoom = (source) => source.match(/<span className="([^"]*)">\{emptied\.typed\}<\/span>/)?.[1].split(" ").includes("mx-list-emptied-id-inline") ?? null;
+    const echoRoom = (source) => source.match(/<span className="([^"]*)">\{emptied\.typed\}<\/span>/)?.[1].split(" ").includes("mx-id-in-sentence-inline") ?? null;
     check("the typed id is set off from the sentence by the drawing's room (#617)", echoRoom(list), true);
     check("  an echo set flush is seen", echoRoom('<span className="font-id text-body-sm tracking-id">{emptied.typed}</span>'), false);
     // #617 — 1l's last step stands 12 past its rows and 1d's 13, each on its own table's text
@@ -706,12 +706,13 @@ function sortWiring540({ band, catalog, kindPage, kindSort, kindJob, jobChoice, 
         // 1l: the same, after its toggle.
         /clearLabel=\{COPY\.clearDiscontinued\}\s*\/>\s*<div className="-mr-sort-inset-right ml-auto">\s*<SortChoice list=\{LIST_SORTS\.kinds\} sort=\{reading\.held\.sort\} onChange=\{\(sort\) => write\(\{ \.\.\.reading\.held, sort \}\)\} \/>/.test(catalog) &&
             /setTyped\(""\);\s*write\(\{ sort: reading\.held\.sort \}\);/.test(catalog),
-        // 1d: the order read off the address, the page cut in it, and the control at the foot of a
-        // stacked head while the list has rows, pulled out by its own room and 14 over the column head.
+        // 1d: the order read off the address, the page cut in it, and the control 8 under the opener in a
+        // stacked head while the list has rows, pulled out by its own room, the column head 8 under it
+        // (Invoices 0b.7, 0b.8; #670) — at the head's foot and 14 over the column head until then.
         /const sort = readSort\(sp\.sort, LIST_SORTS\.items\);/.test(kindPage) &&
             /pageOfAssets\(await getAssetsByRecordIds\(idsInScope\(category\.assets, scope\.shown\)\), sp\.page, sort\)/.test(kindPage),
         // Since #617 the opener or, for a reader who adds nothing, room of its height (1d, Tools 59).
-        /underBreadcrumb\s*stacked\s*>\s*\{recording\.adds \? \(\s*<RegistrationDialog \{\.\.\.registration\} \/>\s*\) : \(\s*(?:\/\/[^\n]*\n\s*)*<div aria-hidden="true" className="h-control-lg flex-none" \/>\s*\)\}\s*\{page\.total > 0 && \(\s*<div className="-mr-sort-inset-right -mb-\[calc\(var\(--spacing-list-header-inset-bottom\)-var\(--spacing-gap-lg\)\)\]">\s*<CategorySort categoryRecordId=\{category\.id\} job=\{job\} sort=\{sort\} selects=\{recording\.selects\} \/>/.test(kindPage),
+        /underBreadcrumb\s*stacked\s*>\s*\{recording\.adds \? \(\s*<RegistrationDialog \{\.\.\.registration\} \/>\s*\) : \(\s*(?:\/\/[^\n]*\n\s*)*<div aria-hidden="true" className="h-control-lg flex-none" \/>\s*\)\}\s*\{page\.total > 0 && \(\s*<div className="-mr-sort-inset-right">\s*<CategorySort categoryRecordId=\{category\.id\} job=\{job\} sort=\{sort\} selects=\{recording\.selects\} \/>/.test(kindPage),
         /selects=\{recording\.selects\}\s*sort=\{sort\}\s*\/>/.test(kindPage) && /job=\{job\}\s*sort=\{sort\}\s*top=\{top\}/.test(kindPage),
         // A change of order is a navigation to the first page, keeping the job and, for a site
         // manager alone, the run.
@@ -2392,14 +2393,15 @@ export function run({ check, assert, log }) {
         return {
             // The title's line, and under it a caption alone, drawn only where a page hands one
             // (#507) — the control on the right kept centered on the title's line either way.
-            line: `${/<div className="flex min-w-0 items-baseline gap-list-count-inline">/.test(header)} ${/<div className="flex min-w-0 flex-col gap-title-stack">\s*<div className="flex min-w-0 items-baseline gap-list-count-inline">[\s\S]*?<\/p>\s*\)\}\s*<\/div>\s*\{caption\}\s*<\/div>/.test(header)}`,
+            line: `${/<div className="flex min-w-0 items-baseline gap-list-count-inline">/.test(header)} ${/<div className=\{`flex min-w-0 flex-col gap-title-stack \$\{stacked \? "pb-\[calc\(var\(--spacing-list-header-line-stack\)-var\(--spacing-gap\)\)\]" : ""\}`\}>\s*<div className="flex min-w-0 items-baseline gap-list-count-inline">[\s\S]*?<\/p>\s*\)\}\s*<\/div>\s*\{caption\}\s*<\/div>/.test(header)}`,
             // The figure stands only where the page hands one (#519): a reader on no job's head
             // is its title alone.
             countGiven: /\{count != null && \(\s*<p className="shrink-0 text-body tabular-nums text-foreground-subtle">/.test(header),
             centered:
                 /caption \? "items-start" : "items-center"/.test(header) &&
-                /<div className=\{`flex shrink-0 gap-gap \$\{stacked \? "flex-col items-end justify-end self-stretch" : "items-center"\}`\}>\{children\}<\/div>/.test(header) &&
-                !/-mt-/.test(header),
+                /<div className=\{`flex shrink-0 gap-gap \$\{stacked \? "-mt-header-actions-bleed flex-col items-end" : "items-center"\}`\}>\{children\}<\/div>/.test(header) &&
+                /\$\{stacked \? "pb-gap" : "pb-list-header-inset-bottom"\}/.test(header) &&
+                (header.match(/-mt-/g) ?? []).length === 1,
             figure: /<p className="shrink-0 text-body tabular-nums text-foreground-subtle">\s*\{count\}\s*<span className="sr-only">\{` \$\{noun\}`\}<\/span>\s*<\/p>/.test(header),
             top: /underBreadcrumb \? "pt-breadcrumb-stack" : "min-h-\(--height-control-lg\) pt-list-header-inset-top"/.test(header) && /pb-list-header-inset-bottom/.test(header),
             under: `${propSources(categoryScreen, "ListHeader", "underBreadcrumb").join()}|${propSources(listFile, "ListHeader", "underBreadcrumb").join()}`,

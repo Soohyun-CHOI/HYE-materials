@@ -12,7 +12,8 @@ import { readFoundHolderAction } from "./actions";
 
 /**
  * The way to the item the band's search found by its id (1a, #541): one line under the band, on
- * the Face inside its Edge at the Control's corner, 40 tall with 12 inside — the id in its face,
+ * the Face inside its Edge at the Control's corner, a row's 36 tall (Invoices 0b.33; 40 until #670)
+ * with 12 inside — the id in its face,
  * the item's name, its status with the mark 1d draws it with and, while it is out, who holds it,
  * a dot between each — and a 16 chevron in the Accent at its end, 16 from them at least. The
  * whole line is the way to the item's own page, and Enter in the search is too.

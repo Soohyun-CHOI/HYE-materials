@@ -139,9 +139,9 @@ export function run({ check, assert, log }) {
     check("  rather than the word undefined", fullUserName(undefined), "");
     // A REFUSAL STANDS UNDER THE NAME IT IS ABOUT (#473), so the judgment says which, and
     // both at once — in the design's words, typed out here.
-    check("a refused pair says which name", JSON.stringify(judgeName({ firstName: " ", lastName: "Choi" }).refusals), '{"first":"Enter your first name."}');
-    check("  and both when both are wrong", JSON.stringify(judgeName({ firstName: "", lastName: "" }).refusals), '{"first":"Enter your first name.","last":"Enter your last name."}');
-    check("  and one too long by the design's figure", judgeName({ firstName: "Soo", lastName: "x".repeat(61) }).refusals?.last, "Max 60 characters.");
+    check("a refused pair says which name", JSON.stringify(judgeName({ firstName: " ", lastName: "Choi" }).refusals), '{"first":"Enter your first name"}');
+    check("  and both when both are wrong", JSON.stringify(judgeName({ firstName: "", lastName: "" }).refusals), '{"first":"Enter your first name","last":"Enter your last name"}');
+    check("  and one too long by the design's figure", judgeName({ firstName: "Soo", lastName: "x".repeat(61) }).refusals?.last, "Max 60 characters");
     check("  while sixty is a name", judgeName({ firstName: "Soo", lastName: "x".repeat(60) }).lastName, "x".repeat(60));
     check("  and a good pair comes back trimmed", judgeName({ firstName: "  Soo  ", lastName: "Choi " }).firstName, "Soo");
     // WHAT IS TYPED IS KEPT AS TYPED (#554): the step shows an example in each field, and
