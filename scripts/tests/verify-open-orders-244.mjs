@@ -156,8 +156,8 @@ try {
     assert("it reads Invoiced Qty", referenced.has(idOf("Invoiced Qty")));
     // The withdrawn-order rule belongs to the picker query's status condition and
     // must not be duplicated into this formula.
-    assert("and NOT Committed Qty — the withdrawn rule stays in the status filter",
-        !referenced.has(idOf("Committed Qty")));
+    assert("and NOT Ordered Qty — the withdrawn rule stays in the status filter",
+        !referenced.has(idOf("Ordered Qty")));
 
     assert('Purchase Orders."Uninvoiced Items" exists and is a rollup', parent?.type === "rollup");
     assert("its rollup is valid", parent?.options?.isValid === true);

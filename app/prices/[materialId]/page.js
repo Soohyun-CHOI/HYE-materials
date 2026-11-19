@@ -117,7 +117,7 @@ async function renderMaterialHistoryPage({ params }) {
                         </thead>
                         <tbody>
                             {rows.map((row) => {
-                                // #18's Committed Qty holds this judgment; the
+                                // #18's Ordered Qty holds this judgment; the
                                 // status chip beside it is the label. Two fields,
                                 // each read from where the fact actually lives.
                                 const counted = countsAsOrdered(row);

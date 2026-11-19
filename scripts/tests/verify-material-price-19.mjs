@@ -407,7 +407,7 @@ if (incomplete) {
         assert("the withdrawn PO's line is INCLUDED, not filtered out", Boolean(withdrawnRow));
         if (withdrawnRow) {
             check("it still shows the quantity that was ordered", withdrawnRow.qty, 999);
-            // #18's Committed Qty is the judgment; nothing here parses a status.
+            // #18's Ordered Qty is the judgment; nothing here parses a status.
             check("but it does not count as ordered", countsAsOrdered(withdrawnRow), false);
         }
         const liveRow = adminHistory.rows.find((r) => r.poStatus === "Signed" || r.poStatus === "Awaiting Signature");

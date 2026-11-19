@@ -24,7 +24,7 @@
 //       #162 left it unlinked and therefore invisible on the invoice axis. Also
 //       that the attached ordered item's `Delivered Qty` then EXCEEDS its
 //       ordered `Qty`, which is the intended shape rather than a defect.
-//   E — a withdrawn PO's ordered item is not a candidate, read through Committed
+//   E — a withdrawn PO's ordered item is not a candidate, read through Ordered
 //       Qty; and with nothing left to attach to, the plan is BLOCKED rather
 //       than writing an unlinked row (#165), which is the action finally
 //       refusing the same set the item dropdown already refused.
@@ -533,11 +533,11 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     check("the new order's ordered item is a candidate while live", valveBefore.length, 1);
 
     await updatePO(po3, { status: PO_WITHDRAWN_STATUS, withdrawnAt: new Date().toISOString() });
-    const committed = await waitFor(
-        async () => (await getPOItemsByRecordIds([valveBefore[0].id]))[0]?.committedQty,
+    const ordered = await waitFor(
+        async () => (await getPOItemsByRecordIds([valveBefore[0].id]))[0]?.orderedQty,
         (v) => v === 0
     );
-    check(`Committed Qty drops to 0 on withdrawal (${settleNote(committed)})`, committed.value, 0);
+    check(`Ordered Qty drops to 0 on withdrawal (${settleNote(ordered)})`, ordered.value, 0);
 
     const afterWithdraw = await getDeliveryCandidates([job]);
     const valvePlan = planDelivery({

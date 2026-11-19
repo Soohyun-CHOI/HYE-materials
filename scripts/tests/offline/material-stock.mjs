@@ -75,9 +75,9 @@ const issued = (id, address, material, qty, eventDate = "2026-11-15") => ({
 });
 const logEntries = [issued("recML1", A, PIPE, 3), issued("recML2", B, ELBOW, 4, "2026-11-16")];
 const orderedItems = [
-    { materialRecordId: PIPE, qty: 20, committedQty: 20 },
-    { materialRecordId: PIPE, qty: 7, committedQty: 0 },
-    { materialRecordId: ELBOW, qty: 4, committedQty: 4 },
+    { materialRecordId: PIPE, qty: 20, orderedQty: 20 },
+    { materialRecordId: PIPE, qty: 7, orderedQty: 0 },
+    { materialRecordId: ELBOW, qty: 4, orderedQty: 4 },
 ];
 
 const throwsOn = (fn) => {

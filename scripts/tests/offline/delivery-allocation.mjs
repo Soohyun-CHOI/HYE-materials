@@ -57,7 +57,7 @@ function orderedItem(over) {
         size: '2"',
         unit: "EA",
         qty: over.qty ?? 10,
-        committedQty: "committedQty" in over ? over.committedQty : (over.qty ?? 10),
+        orderedQty: "orderedQty" in over ? over.orderedQty : (over.qty ?? 10),
         deliveredQty: over.deliveredQty ?? 0,
     };
 }
@@ -78,17 +78,17 @@ export function run({ check, assert, log }) {
         orderedItem({ poItemId: "keep" }),
         orderedItem({ poItemId: "wrong-vendor", vendorRecordId: OTHER_VENDOR }),
         orderedItem({ poItemId: "wrong-material", materialRecordId: OTHER_MATERIAL }),
-        orderedItem({ poItemId: "withdrawn", committedQty: 0 }),
-        orderedItem({ poItemId: "zero-qty", qty: 0, committedQty: 0 }),
+        orderedItem({ poItemId: "withdrawn", orderedQty: 0 }),
+        orderedItem({ poItemId: "zero-qty", qty: 0, orderedQty: 0 }),
     ];
     const picked = selectCandidates({ orderedItems: pool, vendorRecordId: VENDOR, materialRecordId: MATERIAL });
     check("only the matching ordered item survives", picked.length, 1);
     check("and it is the right one", picked[0].poItemId, "keep");
 
-    // The withdrawn case is read off Committed Qty, not off a status string —
+    // The withdrawn case is read off Ordered Qty, not off a status string —
     // #18 put the which-POs-count rule in that one field on purpose.
     const withdrawnOnly = selectCandidates({
-        orderedItems: [orderedItem({ poItemId: "withdrawn", committedQty: 0, deliveredQty: 0 })],
+        orderedItems: [orderedItem({ poItemId: "withdrawn", orderedQty: 0, deliveredQty: 0 })],
         vendorRecordId: VENDOR,
         materialRecordId: MATERIAL,
     });
@@ -97,7 +97,7 @@ export function run({ check, assert, log }) {
     // Signature status is deliberately not a filter: site orders first and the
     // PR/PO follow as a record, so an unsigned order must still receive goods.
     const unsigned = selectCandidates({
-        orderedItems: [orderedItem({ poItemId: "awaiting", qty: 10, committedQty: 10 })],
+        orderedItems: [orderedItem({ poItemId: "awaiting", qty: 10, orderedQty: 10 })],
         vendorRecordId: VENDOR,
         materialRecordId: MATERIAL,
     });
@@ -478,7 +478,7 @@ export function run({ check, assert, log }) {
         orderedItem({ poItemId: "a", qty: 10, deliveredQty: 4 }),
         orderedItem({ poItemId: "b", qty: 10, deliveredQty: 10 }),
         orderedItem({ poItemId: "c", materialRecordId: OTHER_MATERIAL, qty: 5, deliveredQty: 5 }),
-        orderedItem({ poItemId: "d", materialRecordId: "recMatBolt", qty: 7, committedQty: 0 }),
+        orderedItem({ poItemId: "d", materialRecordId: "recMatBolt", qty: 7, orderedQty: 0 }),
         orderedItem({ poItemId: "e", vendorRecordId: OTHER_VENDOR, materialRecordId: "recMatOther" }),
     ];
     const options = buildItemOptions(optionPool, VENDOR);
@@ -658,7 +658,7 @@ export function run({ check, assert, log }) {
     // 10 leaves the second row split at the boundary and the third wholly flagged, so
     // one delivery holds two flagged rows against one ordered item.
     const replay = recomputeOverDelivery({
-        orderedQty: 10,
+        orderedItemQty: 10,
         rows: [
             { id: "recA", deliveryItemId: "HYE-DL-260101-01-001", qty: 6 },
             { id: "recB", deliveryItemId: "HYE-DL-260101-01-002", qty: 6 },
@@ -856,7 +856,7 @@ export function run({ check, assert, log }) {
         const ln = built.state[0];
         const survivors = built.rowsByOrderedItem.get(ln.id).filter((r) => r.delivery !== sc.drop);
 
-        const plan = recomputeOverDelivery({ orderedQty: sc.qty, rows: survivors });
+        const plan = recomputeOverDelivery({ orderedItemQty: sc.qty, rows: survivors });
         const after = applyPlan(survivors, plan);
         splitsSeen += plan.splits.length;
 
@@ -902,7 +902,7 @@ export function run({ check, assert, log }) {
     // because a new row sorts LAST and putting the within piece there would leave
     // the ordered item reading within, over, within.
     const crossing = recomputeOverDelivery({
-        orderedQty: 10,
+        orderedItemQty: 10,
         rows: [
             { id: "a", deliveryItemId: "HYE-DL-260801-01-001", qty: 4 },
             { id: "b", deliveryItemId: "HYE-DL-260802-01-001", qty: 8 },
@@ -916,19 +916,19 @@ export function run({ check, assert, log }) {
     // AT MOST ONE PER ORDERED ITEM, because every stored row has a positive Qty so the
     // running total crosses the ordered quantity exactly once.
     const many = recomputeOverDelivery({
-        orderedQty: 10,
+        orderedItemQty: 10,
         rows: [1, 2, 3, 4, 5, 6].map((n) => ({ id: `r${n}`, deliveryItemId: `HYE-DL-26080${n}-01-001`, qty: 3 })),
     });
     check("six rows of 3 against an order of 10 still split only once", many.splits.length, 1);
 
     log("");
     log("shape:");
-    check("no rows, nothing to do", recomputeOverDelivery({ orderedQty: 10, rows: [] }).rows.length, 0);
+    check("no rows, nothing to do", recomputeOverDelivery({ orderedItemQty: 10, rows: [] }).rows.length, 0);
     check("nullish does not throw", recomputeOverDelivery().rows.length, 0);
     check("  and splits nothing", recomputeOverDelivery().splits.length, 0);
     // A zero-qty ordered item has room for nothing, so its first row is already
     // surplus — and is wholly surplus, so there is nothing to split.
-    const noOrder = recomputeOverDelivery({ orderedQty: 0, rows: [{ id: "z", deliveryItemId: "x", qty: 1 }] });
+    const noOrder = recomputeOverDelivery({ orderedItemQty: 0, rows: [{ id: "z", deliveryItemId: "x", qty: 1 }] });
     check("an order of nothing flags its first row", noOrder.rows[0].overDelivered, true);
     check("  without splitting it", noOrder.splits.length, 0);
 

@@ -62,7 +62,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { listJsFiles, parseFile, parseSource, repoPath, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "No reference names a retired table or field (#280, #333, #513, #622, #623)";
+export const title = "No reference names a retired table or field (#280, #333, #513, #622, #623, #685)";
 
 /** Where a string reaches Airtable, and nothing else, over `app/` + `lib/`. */
 const SCANNED_DIRS = ["app", "lib"];
@@ -226,6 +226,12 @@ const RETIRED = {
     "Has Total Variance": "#623 — the test base's name for `Invoices.\"Totals Differ\"` between the issue's two passes",
     "Has Order Variance": "#623 — split into `Has Price Variance` and `Has Quantity Variance`",
     "Amount Due": "#623 — the field is `Invoices.\"Invoice Total\"`, and no screen says `Amount due`",
+    // #685 — THE QUANTITY ON ORDERS NOT WITHDRAWN WAS `Committed Qty` WHILE EVERY SCREEN SAID
+    // `Ordered`. Renamed by id on both bases, on `PO Items` and `Materials`, by
+    // `scripts/import/ran/rename_ordered_qty_685.mjs`; a formula and a rollup, values unchanged.
+    // `record.get()` of the old name returns `undefined`, and `countsAsOrdered` then counts
+    // nothing — the quiet symptom again. No screen says it, so it is held over `scripts/` too.
+    "Committed Qty": "#685 — the field is `Ordered Qty` on `PO Items` and on `Materials`",
 };
 
 /**
@@ -242,6 +248,7 @@ const RETIRED_EVERYWHERE_BY = Object.freeze({
     "Has Total Variance": "scripts/import/ran/rename_invoice_variances_623.mjs",
     "Has Order Variance": "scripts/import/ran/rename_invoice_variances_623.mjs",
     "Amount Due": "scripts/import/ran/rename_invoice_variances_623.mjs",
+    "Committed Qty": "scripts/import/ran/rename_ordered_qty_685.mjs",
 });
 const RETIRED_EVERYWHERE = Object.freeze(Object.keys(RETIRED_EVERYWHERE_BY));
 
@@ -637,15 +644,16 @@ export function run({ check, assert, log }) {
     // as the app does. Read whole files, failing closed: a file that cannot be parsed is
     // a file this rule did not read.
     log("");
-    log("no literal under app/, lib/ or scripts/ names a link #622 renamed, but the files that rename it:");
+    log("no literal under app/, lib/ or scripts/ names what #622, #623 or #685 renamed, but the files that rename it:");
     const SUCCESSORS_622 = ["PR Edit Requests (as Initiator)", "PR Edit Requests (as Recipient)", "Jobs (as Delivery Address)"];
     const SUCCESSORS_623 = ["Totals Differ", "Has Price Variance", "Has Quantity Variance", "Invoice Total"];
+    const SUCCESSORS_685 = ["Ordered Qty"];
     const RETIRED_623 = RETIRED_EVERYWHERE.filter((n) => RETIRED_EVERYWHERE_BY[n].includes("_623"));
     const everywhere = EVERYWHERE_DIRS.flatMap((dir) => sourceFiles(dir));
     const unread = [];
     const literals = everywhere.flatMap((file) => {
         try {
-            return literalsFromSource(readFileSync(repoPath(file), "utf8"), file, [...RETIRED_EVERYWHERE, ...SUCCESSORS_622, ...SUCCESSORS_623]).map((l) => ({ ...l, file }));
+            return literalsFromSource(readFileSync(repoPath(file), "utf8"), file, [...RETIRED_EVERYWHERE, ...SUCCESSORS_622, ...SUCCESSORS_623, ...SUCCESSORS_685]).map((l) => ({ ...l, file }));
         } catch {
             unread.push(file);
             return [];
@@ -660,7 +668,7 @@ export function run({ check, assert, log }) {
     check("files this rule could not read", unread.length, 0);
     const outside = literals.filter((l) => RETIRED_EVERYWHERE.includes(l.value) && !RETIRED_EVERYWHERE_KEPT_BY.includes(l.file));
     for (const h of outside) log(`  ${h.file}:${h.line}  ${JSON.stringify(h.value)}  — ${RETIRED[h.value]}`);
-    check("literals of a name #622 retired, outside the files that rename it", outside.length, 0);
+    check("literals of a name #622, #623 or #685 retired, outside the files that rename it", outside.length, 0);
     // #623's four: a literal of one anywhere but its own script and this check.
     check(
         "literals of the names #623 retired, outside the files that rename them",
@@ -708,6 +716,25 @@ export function run({ check, assert, log }) {
     assert(
         `  and #622's successor "Jobs (as Delivery Address)" is named outside the files that rename it`,
         literals.some((l) => l.value === "Jobs (as Delivery Address)" && !RETIRED_EVERYWHERE_KEPT_BY.includes(l.file))
+    );
+    // #685's one, the same three ways: none outside its script, its script naming it, and
+    // the successor read outside it — by both mappers and the credentialed checks.
+    check(
+        "literals of the name #685 retired, outside the files that rename it",
+        outside.filter((l) => l.value === "Committed Qty").length,
+        0
+    );
+    assert(
+        "  and #685's script names the name it renames from",
+        literals.some((l) => l.file === RETIRED_EVERYWHERE_BY["Committed Qty"] && l.value === "Committed Qty")
+    );
+    assert(
+        "  a planted read of #685's old name is caught",
+        literalsFromSource('const qty = record.get("Committed Qty");', "planted.js", RETIRED_EVERYWHERE).length === 1
+    );
+    assert(
+        `  and #685's successor "Ordered Qty" is read outside the files that rename it`,
+        literals.some((l) => l.value === "Ordered Qty" && l.file.startsWith("lib/") && !RETIRED_EVERYWHERE_KEPT_BY.includes(l.file))
     );
 
     // ── the TABLES key spells its own value ─────────────────────────────────

@@ -17,17 +17,76 @@
 // only the JS side of the pair.
 //
 // lib/poItemQty.js imports nothing, which is what lets this be offline.
+//
+// #685 — ONE NAME PER QUANTITY, OVER THE WHOLE TREE. The quantity countsAsOrdered
+// reads is `orderedQty`, `PO Items."Ordered Qty"`: an ordered item's `Qty`, or 0 when
+// its order was withdrawn. It was `committedQty`, and `orderedQty` meant an ordered
+// item's own `Qty`, which is `orderedItemQty` now. A rename in two steps leaves two
+// misses no check of behavior here can see, because both sit in a caller under
+// `app/` or in a `.server.js` this tier never runs: a `committedQty` left behind
+// reads `undefined`, so nothing counts as ordered; and an `orderedQty` still handed
+// an item's `qty` counts a withdrawn order. So the last section reads every source
+// file under `app/`, `lib/` and `scripts/` for the two shapes. What it cannot see is
+// a positional argument, which carries no name — `checkQuantityVariance`'s second.
 
+import { readdirSync, readFileSync } from "node:fs";
 import {
     uninvoicedQty,
     hasUninvoicedQty,
     hasUninvoicedItems,
     countsAsOrdered,
 } from "../../../lib/poItemQty.js";
+import { parseSource, repoPath, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title =
-    "PO line quantity judgments — uninvoiced remainder, open order, counts-as-ordered (#18, #169, #244)";
+    "Ordered item quantity judgments and their names — uninvoiced remainder, open order, counts-as-ordered (#18, #169, #244, #685)";
+
+/** This file, which names the retired identifier in order to look for it. */
+const THIS_FILE = "scripts/tests/offline/po-item-qty.mjs";
+
+/** The directories the two names travel through. */
+const SCANNED_DIRS = ["app", "lib", "scripts"];
+
+/** Every `.js` and `.mjs` file under a directory, as repo-relative posix paths. */
+function sourceFiles(dir, out = []) {
+    for (const entry of readdirSync(repoPath(dir), { withFileTypes: true })) {
+        if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
+        const rel = `${dir}/${entry.name}`;
+        if (entry.isDirectory()) sourceFiles(rel, out);
+        else if (/\.m?js$/.test(entry.name)) out.push(rel);
+    }
+    return out;
+}
+
+/** An expression that hands over an item's own `qty`: `qty`, `item.qty`, `item?.qty`. */
+function handsItemQty(node) {
+    const inner = node?.type === "ChainExpression" ? node.expression : node;
+    if (inner?.type === "Identifier") return inner.name === "qty";
+    return inner?.type === "MemberExpression" && !inner.computed && inner.property?.name === "qty";
+}
+
+/**
+ * What one source says under the two names: the line of every `committedQty` — an
+ * identifier, a property or a string — and of every `orderedQty` property handed an
+ * item's `qty`, with how many `orderedQty` and `orderedItemQty` properties it holds.
+ */
+export function quantityNames(source, label) {
+    const lineOf = (offset) => source.slice(0, offset).split("\n").length;
+    const found = { committed: [], orderedFromQty: [], ordered: 0, orderedItem: 0 };
+    walk(parseSource(source, label).ast, (node) => {
+        if ((node.type === "Identifier" && node.name === "committedQty") || (node.type === "Literal" && node.value === "committedQty")) {
+            found.committed.push(lineOf(node.start));
+        }
+        if (node.type !== "Property") return;
+        const key = node.key?.type === "Identifier" ? node.key.name : node.key?.value;
+        if (key === "orderedItemQty") found.orderedItem++;
+        if (key !== "orderedQty") return;
+        found.ordered++;
+        if (handsItemQty(node.value)) found.orderedFromQty.push(lineOf(node.start));
+    });
+    return found;
+}
 
 export function run({ check, log }) {
     log("uninvoicedQty:");
@@ -97,15 +156,59 @@ export function run({ check, log }) {
 
     // MOVED HERE FROM material-price-view.mjs BY #169, with the function itself.
     log("");
-    log("countsAsOrdered — reads #18's Committed Qty, does not re-derive it:");
-    check("a live line counts", countsAsOrdered({ committedQty: 5 }), true);
-    // Committed Qty is IF(status = Withdrawn, 0, Qty), so this IS the withdrawn
+    log("countsAsOrdered — reads #18's Ordered Qty, does not re-derive it:");
+    check("a live ordered item counts", countsAsOrdered({ orderedQty: 5 }), true);
+    // Ordered Qty is IF(status = Withdrawn, 0, Qty), so this IS the withdrawn
     // case — without this file naming a status string.
-    check("a withdrawn PO's line does not", countsAsOrdered({ committedQty: 0 }), false);
+    check("a withdrawn PO's ordered item does not", countsAsOrdered({ orderedQty: 0 }), false);
     check("a blank rollup does not", countsAsOrdered({}), false);
     // Deliberately indistinguishable from withdrawn, which is why #19's screen
     // takes its LABEL from PO Status and only the judgment from here.
-    check("a Qty-0 line on a live PO also does not", countsAsOrdered({ committedQty: 0 }), false);
+    check("a Qty-0 ordered item on a live PO also does not", countsAsOrdered({ orderedQty: 0 }), false);
+
+    // #685 — the two names, read over the tree. See the header for why here.
+    log("");
+    log("#685 — `orderedQty` is the quantity on orders not withdrawn, `orderedItemQty` an item's own:");
+    const files = SCANNED_DIRS.flatMap((dir) => sourceFiles(dir)).filter((file) => file !== THIS_FILE);
+    check("this file is among the files walked, and is left out by name", sourceFiles("scripts").includes(THIS_FILE), true);
+    check("more than 300 files walked under app + lib + scripts", files.length > 300, true);
+    check("  .mjs files among them", files.some((file) => file.endsWith(".mjs")), true);
+    const unread = [];
+    const committed = [];
+    const orderedFromQty = [];
+    let ordered = 0;
+    let orderedItem = 0;
+    for (const file of files) {
+        let found;
+        try {
+            found = quantityNames(readFileSync(repoPath(file), "utf8"), file);
+        } catch {
+            unread.push(file);
+            continue;
+        }
+        committed.push(...found.committed.map((line) => `${file}:${line}`));
+        orderedFromQty.push(...found.orderedFromQty.map((line) => `${file}:${line}`));
+        ordered += found.ordered;
+        orderedItem += found.orderedItem;
+    }
+    for (const file of unread) log(`  could not parse ${file}`);
+    check("files this could not read", unread.length, 0);
+    for (const at of committed) log(`  ${at}  committedQty`);
+    check("a `committedQty` left anywhere — it reads undefined, and nothing counts", committed.length, 0);
+    for (const at of orderedFromQty) log(`  ${at}  orderedQty handed an item's qty`);
+    check("an `orderedQty` handed an item's own `qty` — it would count a withdrawn order", orderedFromQty.length, 0);
+    // ANTI-VACUITY: the walk has to see both names in use, and the matcher has to say
+    // yes to each shape and no to the two correct ones.
+    check("the tree hands over `orderedQty` in at least ten places", ordered >= 10, true);
+    check("and `orderedItemQty` in at least ten", orderedItem >= 10, true);
+    const planted = (source) => quantityNames(source, "planted.js");
+    check("a planted `committedQty` property is caught", planted("f({ committedQty: it.committedQty });").committed.length, 2);
+    check("a planted `committedQty` string is caught", planted('const has = "committedQty" in over;').committed.length, 1);
+    check("a planted `orderedQty: it.qty` is caught", planted("f({ orderedQty: it.qty });").orderedFromQty.length, 1);
+    check("  and `orderedQty: item?.qty`", planted("f({ orderedQty: item?.qty });").orderedFromQty.length, 1);
+    check("  and `orderedQty: qty`", planted("const r = { orderedQty: qty };").orderedFromQty.length, 1);
+    check("while `orderedQty: it.orderedQty` passes", planted("f({ orderedQty: it.orderedQty });").orderedFromQty.length, 0);
+    check("  and `orderedItemQty: it.qty` passes", planted("f({ orderedItemQty: it.qty });").orderedFromQty.length, 0);
 }
 
 if (isMain(import.meta.url)) standalone(title, run);
