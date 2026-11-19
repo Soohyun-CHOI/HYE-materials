@@ -87,7 +87,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 
 - `lib/airtable/client.js` — the shared connection, the table names, the batched readers, the batched create and `withKeyLock()`. Throws at module load without its base's key.
 - `lib/airtableBase.js` — which base a run reaches (#534), and the live base's id, written nowhere else.
-- `lib/deployment.js` — whether a run is the production deployment (#633), the one reading of `VERCEL_ENV`.
+- `lib/deployment.js` — whether a run is the production deployment (#633) or a preview, and the test deployment's branch, whose production build stops (#681): the one reading of `VERCEL_ENV`.
 - `lib/mailRedirect.js` — where a mail goes outside production (#633): all but a sign-in to `EMAIL_REDIRECT_TO`, or nowhere. **`lib/email.js:deliver` is the one send and asks it first.**
 - `lib/airtable/{table}.js` — one file per table, plain async functions.
 - `lib/airtableOps.js` — the Airtable operation counter and its attribution scope. Server-only; a forbidden root for client bundles.
@@ -287,7 +287,7 @@ Read `docs/notes/authorization.md` before adding an endpoint, an exemption or a 
 ## Utility scripts (scripts/)
 
 - `npm test` runs the whole offline tier and CI runs it on every pull request and every push to `main`; `npx eslint .` is a second CI job and stays clean, a rule this repo deliberately breaks taking a scoped disable with its reason rather than a tolerated error (#187). **It resolves names under `scripts/` since #426**, against Node's globals alone. **An unread binding may still be load-bearing**, so read one before deleting it.
-- **Every run reaches the test base unless it names the live one (#534)**: `AIRTABLE_BASE=live` per command, or the production deployment. A schema change goes to the test base first and to the live one once Soo approves.
+- **Every run reaches the test base unless it names the live one (#534)**: `AIRTABLE_BASE=live` per command, or the production deployment; a preview may not name it (#681). A schema change goes to the test base first and to the live one once Soo approves.
 - **Do not run a `verify-*.mjs` casually** — one run costs hundreds of Airtable operations.
 - **Dummy records on the test base are deliberate, not leftovers; the live base holds none since #537**, and every `scripts/demo/` script that writes refuses it. Nothing in either base is to be removed as tidying-up.
 - **`Assets` and `Asset Log` on the live base are the site's real records (#531)**: no script, check or browser walk writes or deletes a row of either, and a script that could asks `scripts/protectedTables.mjs` and stops first. One script is excepted, each request judged as it leaves: `scripts/import/ran/import_site_assets_544.mjs` (#544), creates shaped as a registration's and deletes of its own ledger's rows.
@@ -297,7 +297,7 @@ Read `docs/notes/verification.md` before adding a check, a script or a seed — 
 
 ## Git workflow rules
 
-- Never commit to main. One branch per issue: {issue#}-{short-desc}.
+- Never commit to main, nor to `test-deployment`, which a workflow keeps at main (#681). One branch per issue: {issue#}-{short-desc}.
 - Commit format: `{type}: {description} (#{issue#})` — feat / fix / chore / refactor / docs (project markdown/CLAUDE.md changes) / test (changes under scripts/tests/).
 - PR description must include `Closes #{issue#}`. Squash merge — PR description becomes the final commit body.
 - PR title is the representative commit's subject. Body opens on `Closes #{issue#}` — no issue summary before it — then four sections: **What this delivers** (a list of what changed), **Key design decisions** (a paragraph per decision, bold lead-in, five paragraphs at most), **Testing** (a table of check and result), **Not in this issue** (what a reader would look for and not find, and where it went).

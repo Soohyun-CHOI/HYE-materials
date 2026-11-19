@@ -1,0 +1,86 @@
+# The test deployment (#681): a preview deployment of the latest main at a fixed
+# address, test.hyeusa.com, which reaches the test base with the materials
+# screens open and never the live base (lib/deployment.js).
+#
+# WHY A BRANCH OF ITS OWN. Vercel builds a preview from one branch and leaves it
+# at that branch's code, so once a branch merges nothing shows main on the test
+# base. Vercel serves the latest deployment of `test-deployment` at the address,
+# and this file keeps that branch at main.
+#
+# ONE COMMIT PAST MAIN, HOLDING MAIN'S TREE, AND NOT MAIN'S OWN COMMIT. Vercel
+# makes no new deployment of a commit it has already deployed, and main's commit
+# has been deployed as production by the time this runs, so the branch pointed
+# at it would get no preview. Each run writes one commit whose parent is main's
+# head and whose tree is main's tree, so no file differs from main, and its
+# message names main's short SHA, which Vercel's list of deployments shows.
+#
+# ITS AUTHOR IS MAIN'S AUTHOR AND ITS COMMITTER THIS WORKFLOW. Vercel deploys a
+# commit whose author it admits to the project, so the commit carries the author
+# main's own deployment was admitted with; the committer says who wrote it.
+#
+# NOBODY COMMITS TO THE BRANCH, AND A PUSH TO IT IS UNDONE. A push there runs
+# this file, which writes main's tree over it again. This file's own push starts
+# no workflow, since GitHub starts none for a push made with the workflow's
+# token, so it never runs itself. `workflow_dispatch` is the restore by hand, and
+# the way to rebuild once the Preview scope's variables change, since Vercel
+# reads them at build.
+#
+# MAIN AS IT STANDS WHEN A RUN STARTS, NOT THE PUSH THAT STARTED IT. Each run
+# checks main out afresh, so a run that waited behind another cannot put an
+# older main back; the group runs one at a time and keeps the newest waiting.
+#
+# `contents: write` AND NOTHING ELSE. The repository's default token only reads,
+# and writing one branch is all this does: no secret and no Vercel token. main's
+# ruleset refuses a non-fast-forward push and one with no checks, so a refspec
+# gone wrong could not land there either.
+#
+# WHAT IT CANNOT SEE. A main commit whose message holds `[skip ci]` starts no
+# push workflow, this one included, so the address keeps the main before it
+# until the next merge or a run by hand. And Vercel's own settings — the address
+# connected to this branch, the Preview scope, the Ignored Build Step — which
+# docs/notes/airtable-access.md lists. `offline/test-deployment.mjs` holds the
+# branch named here to `lib/deployment.js:TEST_DEPLOYMENT_BRANCH`, and the
+# permission, the triggers and the commit this file writes.
+
+name: test-deployment
+
+on:
+  push:
+    branches: [main, test-deployment]
+  workflow_dispatch:
+
+concurrency:
+  group: test-deployment
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  test-deployment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Write main's tree to test-deployment
+        run: |
+          main=$(git rev-parse HEAD)
+          short=$(git rev-parse --short=7 "$main")
+          commit=$(
+            GIT_AUTHOR_NAME="$(git log -1 --format=%an "$main")" \
+            GIT_AUTHOR_EMAIL="$(git log -1 --format=%ae "$main")" \
+            GIT_COMMITTER_NAME="github-actions[bot]" \
+            GIT_COMMITTER_EMAIL="41898282+github-actions[bot]@users.noreply.github.com" \
+            git commit-tree "$main^{tree}" -p "$main" \
+              -m "Test deployment of main $short" \
+              -m "Holds main's tree at $main. Written by .github/workflows/test-deployment.yml (#681); nobody commits here."
+          )
+          git push --force origin "$commit:refs/heads/test-deployment"
+          pushed=$(git ls-remote origin refs/heads/test-deployment | cut -f1)
+          if [ "$pushed" != "$commit" ]; then
+            echo "test-deployment is $pushed after the push, not $commit"
+            exit 1
+          fi
+          echo "test-deployment is $commit, holding main $short's tree" >> "$GITHUB_STEP_SUMMARY"

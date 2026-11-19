@@ -1,5 +1,11 @@
+import { assertTestBranchNotProduction } from "./lib/deployment.js";
 import { DEFAULT_DESTINATION } from "./lib/loginDestination.js";
 import { materialsScreensAtBuild } from "./lib/openScreens.js";
+
+// THE TEST DEPLOYMENT'S BRANCH IS NEVER BUILT AS PRODUCTION (#681). Asked first, as the build
+// evaluates this file, so such a build fails before anything is built and production keeps
+// the deployment it had; `lib/deployment.js` has why the build asks and no request does.
+assertTestBranchNotProduction();
 
 // The materials screens as this build sets them (#631): open on every build but the
 // production deployment's. Asked here once, for the redirects below and for the answer
