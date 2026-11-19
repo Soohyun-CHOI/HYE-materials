@@ -18,7 +18,9 @@ thread and a vendor's invoice with nothing tying them together, so reconciling
 what was ordered against what was invoiced was manual and after the fact. Its
 screens are open on a local server and a preview deployment, which reach the
 test base, and closed on production until the sites start using them;
-`lib/openScreens.js` is the one switch.
+`lib/openScreens.js` is the one switch. The latest `main` is always a preview
+deployment at `test.hyeusa.com`, which `.github/workflows/test-deployment.yml`
+keeps current; it asks for a Vercel sign-in, as every preview does.
 
 ## Stack
 

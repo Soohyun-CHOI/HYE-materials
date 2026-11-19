@@ -8,8 +8,9 @@
 //
 //   1. THE ANSWER, BY VALUE, over environments built in this file: the default, both ways of
 //      naming the live base, and every refusal — a test base id that is the live one, a name
-//      other than `live`, and the live base named with only the test key to hand, which must
-//      fail rather than fall back.
+//      other than `live`, the live base named with only the test key to hand, which must
+//      fail rather than fall back, and the live base named on a preview deployment, which a
+//      deployment reaches by being production alone (#681).
 //   2. NO OTHER FILE READS THE VARIABLES. A script that read `AIRTABLE_API_KEY` itself would
 //      reach whatever that key reaches, past every refusal above. Every JavaScript file under
 //      `app/`, `lib/` and `scripts/`, and every file at the root, is parsed: a
@@ -135,6 +136,21 @@ export function run({ check, assert, log }) {
         "LIVE LIVE_BASE_ID patLive AIRTABLE_API_KEY VERCEL_ENV=production"
     );
     check("  a preview deployment does not", answer({ ...TEST, ...LIVE_KEY, VERCEL_ENV: "preview" }), "test appTestBase00000 patTest AIRTABLE_TEST_API_KEY null");
+    const PREVIEW_REFUSAL =
+        'refused: AIRTABLE_BASE is "live" on a preview deployment, which reaches the test base alone (#681) — ' +
+        "a deployment reaches the live base by being production";
+    check("  a preview naming the live base is refused, with the live key to hand", answer({ ...TEST, ...LIVE_KEY, VERCEL_ENV: "preview", AIRTABLE_BASE: "live" }), PREVIEW_REFUSAL);
+    check("  and read trimmed", answer({ ...TEST, ...LIVE_KEY, VERCEL_ENV: " preview\n", AIRTABLE_BASE: "live" }), PREVIEW_REFUSAL);
+    check(
+        "  a development run naming it reaches it, as a local run does",
+        answer({ ...TEST, ...LIVE_KEY, VERCEL_ENV: "development", AIRTABLE_BASE: "live" }),
+        "LIVE LIVE_BASE_ID patLive AIRTABLE_API_KEY AIRTABLE_BASE=live"
+    );
+    check(
+        "  the production deployment naming it reaches it, named by the deployment",
+        answer({ ...LIVE_KEY, VERCEL_ENV: "production", AIRTABLE_BASE: "live" }),
+        "LIVE LIVE_BASE_ID patLive AIRTABLE_API_KEY VERCEL_ENV=production"
+    );
     check("  values are read trimmed", answer({ AIRTABLE_TEST_API_KEY: " patTest ", AIRTABLE_TEST_BASE_ID: "appTestBase00000\n" }), "test appTestBase00000 patTest AIRTABLE_TEST_API_KEY null");
     check("  no environment is refused, naming the test key", answer({}), "refused: Missing AIRTABLE_TEST_API_KEY in environment variables — the test base's key");
     check("  the test key alone is refused, naming the id", answer({ AIRTABLE_TEST_API_KEY: "patTest" }), "refused: Missing AIRTABLE_TEST_BASE_ID in environment variables");

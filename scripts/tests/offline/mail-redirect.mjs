@@ -10,9 +10,9 @@
 //   1. WHICH RUN IS PRODUCTION, BY VALUE. `lib/deployment.js:isProductionDeployment` over
 //      environments built in this file: `production` is, and an unset variable, a preview,
 //      development, another case or another name is not. No file but that module reads
-//      `VERCEL_ENV`, and none but `lib/mailRedirect.js` reads `EMAIL_REDIRECT_TO` — a second
-//      reading is a second judgment, and `lib/airtableBase.js`, which read it itself until
-//      #633, is held to asking the module.
+//      `VERCEL_ENV`, or `VERCEL_GIT_COMMIT_REF` since #681, and none but `lib/mailRedirect.js`
+//      reads `EMAIL_REDIRECT_TO` — a second reading is a second judgment, and
+//      `lib/airtableBase.js`, which read it itself until #633, is held to asking the module.
 //   2. WHERE A MAIL GOES, BY VALUE. `routeMail` hands production and a sign-in the SAME object
 //      it was given, so nothing about it can have changed; anywhere else it hands back the
 //      message addressed to the redirect alone, `cc` and `bcc` gone, the subject naming every
@@ -52,7 +52,7 @@ const MAIL_REDIRECT = "lib/mailRedirect.js";
 const AIRTABLE_BASE = "lib/airtableBase.js";
 
 /** Each variable, and the one module that may read it. */
-const OWNERS = { VERCEL_ENV: DEPLOYMENT, EMAIL_REDIRECT_TO: MAIL_REDIRECT };
+const OWNERS = { VERCEL_ENV: DEPLOYMENT, VERCEL_GIT_COMMIT_REF: DEPLOYMENT, EMAIL_REDIRECT_TO: MAIL_REDIRECT };
 
 /** The files the repository has or is about to have, as git lists them. */
 function repositoryFiles() {
@@ -259,11 +259,15 @@ export function run({ check, assert, log }) {
     }
     assert("  lib/deployment.js is seen to read VERCEL_ENV", reads.some((r) => r.path === DEPLOYMENT && r.name === "VERCEL_ENV"));
     assert(
+        "  lib/deployment.js is seen to read VERCEL_GIT_COMMIT_REF",
+        reads.some((r) => r.path === DEPLOYMENT && r.name === "VERCEL_GIT_COMMIT_REF")
+    );
+    assert(
         "  lib/mailRedirect.js is seen to read EMAIL_REDIRECT_TO",
         reads.some((r) => r.path === MAIL_REDIRECT && r.name === "EMAIL_REDIRECT_TO")
     );
     check(
-        "  no other file reads either",
+        "  no other file reads any of them",
         reads
             .filter((r) => r.path !== OWNERS[r.name])
             .map((r) => `${r.path}: ${r.finding}`)
