@@ -98,6 +98,7 @@ import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { getPOByRecordId, updatePO } from "../../lib/airtable/purchaseOrders.js";
 import { getItemsByPO, getPOItemByRecordId } from "../../lib/airtable/poItems.js";
 import { createDelivery, getDeliveriesByRecordIds } from "../../lib/airtable/deliveries.js";
+import { deliveryAddressFor } from "./_delivery_address.mjs";
 import { createDeliveryItem, getItemsByDelivery } from "../../lib/airtable/deliveryItems.js";
 import {
     createInvoice,
@@ -410,6 +411,7 @@ async function makeOrder({ scenarioName, subTag = null, items, shippingFee = nul
 async function deliver({ scenarioName, rows, receivedDate, packingListPO = null, notes = "" }) {
     const delivery = await createDelivery({
         jobRecordId: discipline.jobId,
+        deliveryAddressRecordId: await deliveryAddressFor(discipline.jobId),
         vendorRecordId: vendor.id,
         packingListPORecordId: packingListPO,
         receivedDate,
@@ -663,7 +665,7 @@ if (CLEANUP) {
     // THE ITEM AXIS GOES TOO, AND LEAVING IT BEHIND WAS A REAL DEFECT. `Material
     // Prices` is a latest-value CACHE keyed on material x vendor, so a run that
     // deleted the orders and spared the cache left a price row pointing at an order
-    // that no longer exists — measured, it rendered on /materials with an em dash for
+    // that no longer exists — measured, it rendered on /prices with an em dash for
     // both Qty and Order, which reads as a broken row rather than as a stale cache.
     //
     // FOUND BY LINK, AND A SHARED ROW SURVIVES. A `Materials` row is an item's
@@ -1585,7 +1587,7 @@ await scenario("DETECT", "5 PDFs, one per detection voice", async () => {
 // --- PRICES — three vendors, one material, and the caveats ------------------
 //
 // Vendor is deliberately NOT part of a material's identity (#18), which is what makes
-// /materials a price comparison rather than a vendor catalog. Three orders for one
+// /prices a price comparison rather than a vendor catalog. Three orders for one
 // material at three prices and three QUANTITIES: the differing quantities are what
 // puts the caveat under the table, and the caveat is what makes `Lowest` honest.
 await scenario("PRICES", "one material, three vendors, Lowest and both caveats", async () => {
@@ -1763,9 +1765,9 @@ async function printGuide() {
     row("Partly invoiced", get("CHIP_PARTLY", "pos"));
     row("Awaiting invoice", get("CHIP_AWAITING", "pos"));
     row("the dash, and the dimmed row", get("CHIP_DASH", "pos"));
-    row("Lowest + both caveats", "/materials → Copper Tube");
-    row("no size (unit only)", "/materials → Site Consumables");
-    row("PO unsigned / PO withdrawn", "/materials/… → Copper Tube");
+    row("Lowest + both caveats", "/prices → Copper Tube");
+    row("no size (unit only)", "/prices → Site Consumables");
+    row("PO unsigned / PO withdrawn", "/prices/… → Copper Tube");
 
     console.log("\nACT VI — who sees what                                 (pre-made)");
     row("row-scoped, one job", "scoped-fixture@hanyangengusa.com");

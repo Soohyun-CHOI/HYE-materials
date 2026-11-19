@@ -164,7 +164,7 @@ const REWORDED = [
     ["/prs", "No single invoice charges as much of this ordered item as was delivered beyond the"],
     ["/prs", "More than one invoice could supply the quotation and they charge this ordered item at"],
     ["/prs", "least this much of the ordered item at the same price"],
-    ["/materials/[materialId]", "No purchase orders recorded for this material yet."],
+    ["/prices/[materialId]", "No purchase orders recorded for this material yet."],
 ];
 
 export function run({ check, assert, log }) {

@@ -11,8 +11,8 @@
 //   C — withKeyLock serializes, on both of its two distinct keys.
 //   D — the production path: every ordered item linked, dedupe on price only.
 //   E — Airtable's own judgment fields, which NOTHING has ever observed with
-//       real values: Committed/Signed Qty across all three PO statuses (the
-//       `& ""` lookup-to-text coercion), the three Materials rollups, and
+//       real values: Committed Qty across all three PO statuses (the
+//       `& ""` lookup-to-text coercion), the Materials rollups, and
 //       Uninvoiced Qty.
 //   F — invoiced qty: the rollup the JS duplication was merged onto, its
 //       immediacy re-measured, and the negative remainder preserved.
@@ -589,7 +589,8 @@ if (!requester || !vendorA || !vendorB || !discipline) {
     // -----------------------------------------------------------------------
     console.log("\nPart E — Airtable's own judgment fields, on real values:");
     // PO1 stays Awaiting Signature. PO2 -> Signed. PO3 -> Withdrawn.
-    // These three exercise the `& ""` coercion in PO Items.Committed/Signed Qty,
+    // These three exercise the `& ""` coercion in PO Items.Committed Qty (`Signed Qty`
+    // goes with #675, read by nothing once a job's ordered quantity took Committed),
     // which had never been observed with a value: if coercing the PO Status
     // LOOKUP (an array) to text silently produced "", a withdrawn PO's qty would
     // be counted as ordered.
@@ -610,23 +611,19 @@ if (!requester || !vendorA || !vendorB || !discipline) {
 
     const awaiting = await waitFor(() => poItemOf(gen1.poRecordId), (r) => r.get("Committed Qty") === 10);
     check(`Awaiting Signature: Committed Qty = Qty (${settleNote(awaiting)})`, awaiting.value.get("Committed Qty"), 10);
-    check("Awaiting Signature: Signed Qty = 0", awaiting.value.get("Signed Qty") || 0, 0);
 
-    const signed = await waitFor(() => poItemOf(gen2.poRecordId), (r) => r.get("Signed Qty") === 7);
-    check(`Signed: Signed Qty = Qty (${settleNote(signed)})`, signed.value.get("Signed Qty"), 7);
-    check("Signed: Committed Qty = Qty too", signed.value.get("Committed Qty"), 7);
+    const signed = await waitFor(() => poItemOf(gen2.poRecordId), (r) => r.get("Committed Qty") === 7);
+    check(`Signed: Committed Qty = Qty (${settleNote(signed)})`, signed.value.get("Committed Qty"), 7);
 
     const withdrawn = await waitFor(() => poItemOf(gen3.poRecordId), (r) => (r.get("Committed Qty") || 0) === 0);
     check(`Withdrawn: Committed Qty = 0, NOT the ordered item's 100 (${settleNote(withdrawn)})`, withdrawn.value.get("Committed Qty") || 0, 0);
-    check("Withdrawn: Signed Qty = 0", withdrawn.value.get("Signed Qty") || 0, 0);
     check("the lookup really coerced to text (else this would be the qty)", withdrawn.value.get("Committed Qty") || 0, 0);
     check("PO Status lookup reads as the status", (withdrawn.value.get("PO Status") || []).join(","), "Withdrawn");
 
     // Materials rollups: 10 + 5 (PO1, awaiting) + 7 (PO2, signed) + 0 (PO3,
-    // withdrawn) = 22 committed, of which 7 signed.
+    // withdrawn) = 22 committed.
     const rolled = await waitFor(() => getMaterialByRecordId(matX.id), (m) => m.committedQty === 22);
     check(`Materials.Committed Qty sums the non-withdrawn lines (${settleNote(rolled)})`, rolled.value.committedQty, 22);
-    check("Materials.Signed Qty is the signed subset", rolled.value.signedQty, 7);
     check("Materials.Invoiced Qty is 0 before any invoice", rolled.value.invoicedQty || 0, 0);
     check("Uninvoiced Qty = Committed - Invoiced", rolled.value.uninvoicedQty, 22);
 

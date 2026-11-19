@@ -67,6 +67,7 @@ import { resolveVerifyCategories } from "./_categories.mjs";
 import { createQuotation } from "../../lib/airtable/quotations.js";
 import { createPO } from "../../lib/airtable/purchaseOrders.js";
 import { createDelivery } from "../../lib/airtable/deliveries.js";
+import { deliveryAddressFor } from "../demo/_delivery_address.mjs";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
 import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
@@ -397,6 +398,7 @@ try {
 
     const dlA = await createDelivery({
         jobRecordId: jobs[0].id,
+        deliveryAddressRecordId: await deliveryAddressFor(jobs[0].id),
         vendorRecordId: vendor.id,
         packingListPORecordId: null,
         // Backdated on purpose: the packing-list date is routinely earlier than
@@ -409,6 +411,7 @@ try {
     track("deliveries", dlA.id);
     const dlB = await createDelivery({
         jobRecordId: jobs[0].id,
+        deliveryAddressRecordId: await deliveryAddressFor(jobs[0].id),
         vendorRecordId: vendor.id,
         packingListPORecordId: null,
         receivedDate: "2026-01-11",

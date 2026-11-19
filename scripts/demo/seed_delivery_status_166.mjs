@@ -43,6 +43,7 @@ import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { getPOByRecordId } from "../../lib/airtable/purchaseOrders.js";
 import { getItemsByPO } from "../../lib/airtable/poItems.js";
 import { createDelivery } from "../../lib/airtable/deliveries.js";
+import { deliveryAddressFor } from "./_delivery_address.mjs";
 import { createDeliveryItem } from "../../lib/airtable/deliveryItems.js";
 import { createInvoice } from "../../lib/airtable/invoices.js";
 import { createInvoiceItem } from "../../lib/airtable/invoiceItems.js";
@@ -182,6 +183,7 @@ async function deliver({ wants, receivedDate, notes, packingListPO = null }) {
     const candidates = await getDeliveryCandidates([await getJobByRecordId(job.id)]);
     const delivery = await createDelivery({
         jobRecordId: job.id,
+        deliveryAddressRecordId: await deliveryAddressFor(job.id),
         vendorRecordId: vendor.id,
         packingListPORecordId: packingListPO?.id ?? null,
         receivedDate,

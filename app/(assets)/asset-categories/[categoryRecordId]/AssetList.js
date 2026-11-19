@@ -77,7 +77,7 @@ const COLUMNS_WITH_JOB_WITHOUT_BOX =
 // the router's own URL, which is the address, so they cannot disagree. It needs no
 // `Suspense` boundary here, which was #373's other reason for avoiding the hook: this
 // route is rendered per request, so the hook has the address on the server too, as
-// `/materials`' search box already relies on.
+// `/prices`' search box already relies on.
 //
 // NOT `router.replace`, the other way to rewrite an address without a history entry and
 // the one the document lists use: it fetches the page again —

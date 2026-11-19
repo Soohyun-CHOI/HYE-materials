@@ -108,6 +108,16 @@ const DELIVERY_JOB_AXIS =
 // office clause, a retirement inheriting the asset's own job — is in
 // docs/notes/tools.md and lib/assetJob.js, where the code it is about is.
 
+// #675's. The same shape as DELIVERY_JOB_AXIS one role narrower: the comparison is
+// canAccessJobInventory (lib/materialStock.js) — an Admin on every job, a site manager on a
+// job they are assigned to (lib/assetJob.js:recordsOn) — for the job the form names. Neither
+// withAdminAction nor withSiteManagerAction fits: each would refuse half of who may.
+const INVENTORY_JOB_AXIS =
+    "Session + the job the submission names, not a role. requireUser() already cannot be dropped (it " +
+    "redirects), and the actual authorization is canAccessJobInventory (lib/materialStock.js) compared per " +
+    "record in the body — an Admin on every job, a site manager on their own — which no role wrapper covers, " +
+    "since an Admin who is not a site manager must pass and a site manager on another job must not.";
+
 // #384's, AND IT IS THE ONE ENTRY ON THIS LIST WITH NO PER-RECORD COMPARISON
 // BEHIND IT — which is why it is a constant of its own rather than a fifth reader
 // of REQUIRE_USER_AXIS. That reason claims "the actual authorization is the
@@ -339,6 +349,12 @@ const EXEMPTIONS = [
             "refuse every reader who is not one and withAdminAction the site.",
     },
     { file: "app/prs/new/actions.js", name: "saveDraftAction", mustCall: "requireUser", reason: REQUEST_JOB_AXIS },
+    {
+        file: "app/materials/[jobCode]/[materialId]/actions.js",
+        name: "issueMaterialsAction",
+        mustCall: "requireUser",
+        reason: INVENTORY_JOB_AXIS,
+    },
     { file: "app/prs/new/actions.js", name: "deleteDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "createPRAction", mustCall: "requireUser", reason: REQUEST_JOB_AXIS },
     { file: "app/deliveries/new/actions.js", name: "createDeliveryAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },

@@ -343,7 +343,7 @@ export function run({ check, assert, log }) {
     // #325 SPENT THE SEARCH RESERVATION AND #326 STILL HOLDS THE PAGE. What is left
     // reserved is `page`, and the assertion is unchanged for it: a filter taking that
     // name is what this stops. Both names were inherited rather than coined — `q` from
-    // `/materials` and `page` from `/asset-categories/[categoryRecordId]` — so the app says one word
+    // `/prices` and `page` from `/asset-categories/[categoryRecordId]` — so the app says one word
     // for one thing across screens that do the same thing.
     for (const [what, name] of Object.entries(RESERVED_PARAMS)) {
         assert(
@@ -743,7 +743,7 @@ export function run({ check, assert, log }) {
         );
     }
     check("and no kind at all is no sentence", emptyStateText("/invoices", null, searched), null);
-    // THE QUOTATION MARKS ARE `/materials`' OWN, which is the app's one other search
+    // THE QUOTATION MARKS ARE `/prices`' OWN, which is the app's one other search
     // miss. Two shapes of quote for one kind of sentence is the drift this catches.
     assert(
         "the term is quoted the way the other search box quotes one",

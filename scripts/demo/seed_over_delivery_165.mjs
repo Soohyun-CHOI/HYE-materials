@@ -38,6 +38,7 @@ import { createItem } from "../../lib/airtable/prItems.js";
 import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { getPOByRecordId } from "../../lib/airtable/purchaseOrders.js";
 import { createDelivery } from "../../lib/airtable/deliveries.js";
+import { deliveryAddressFor } from "./_delivery_address.mjs";
 import { createDeliveryItem } from "../../lib/airtable/deliveryItems.js";
 import { getDeliveryCandidates } from "../../lib/deliveryAllocation.server.js";
 import { planDelivery } from "../../lib/deliveryAllocation.js";
@@ -177,6 +178,7 @@ if (fillPlan.over > 0) throw new Error("scenario B fill went over — the orders
 
 const delivery = await createDelivery({
     jobRecordId: job.id,
+    deliveryAddressRecordId: await deliveryAddressFor(job.id),
     vendorRecordId: vendor.id,
     packingListPORecordId: null,
     receivedDate: "2026-07-25",

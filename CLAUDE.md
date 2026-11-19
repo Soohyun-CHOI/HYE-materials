@@ -13,7 +13,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 | `app/deliveries/**`, `app/invoices/**`, `lib/delivery*.js`, `lib/overage*.js`, `lib/invoice*.js`, `lib/variance.js` | `docs/notes/deliveries-and-invoices.md` |
 | `app/pos/**`, `lib/po*.js` | `docs/notes/purchase-orders.md` |
 | `app/prs/**`, `lib/prSigning.js`, `lib/prDraft.js` | `docs/notes/purchase-requests.md` |
-| `app/materials/**`, `lib/material*.js` | `docs/notes/materials.md` |
+| `app/materials/**`, `app/prices/**`, `lib/material*.js` | `docs/notes/materials.md` |
 | `lib/listFilters.js`, `app/components/ListFilterBar.js` | `docs/notes/deliveries-and-invoices.md` |
 | `app/addresses/**`, `lib/address*.js` | `docs/notes/addresses.md` |
 | `app/(assets)/**`, `lib/asset*.js` | `docs/notes/tools.md` |
@@ -139,7 +139,8 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/assetListExport.js` — the list as an Excel file (#553): the press, handed its reads, its sheets and its words. It narrows nothing itself.
 - `lib/xlsxWorkbook.js` — an `.xlsx` written whole (#553): text cells are words, a formula's first character `quotePrefix`'d. Server-only.
 - `lib/assetCatalog.js` — the office's catalog page (#527): every row, that band with a toggle, what an add or an edit may save, its order (#540), and its words.
-- `lib/materialPriceView.js` — the view rules for `/materials` and `/materials/[materialId]`: row ordering, the lowest-price mark, the quantity caveat, and `MATERIAL_SEARCH_COPY` (#357); `lib/materialPriceView.server.js`, their two queries and the per-row identifier gate.
+- `lib/materialPriceView.js` — the view rules for `/prices` and `/prices/[materialId]`: row ordering, the lowest-price mark, the quantity caveat, and `MATERIAL_SEARCH_COPY` (#357); `lib/materialPriceView.server.js`, their two queries and the per-row identifier gate.
+- `lib/materialStock.js` — a job's material stock (#675): computed from its deliveries and `Material Log`, never stored; who reads and records it, an issue's refusals, a delete's shortfall, and every word; `lib/materialStock.server.js`, its reads and the issue, read again after its write.
 - `lib/poItemQty.js` — what leaves an order open: `uninvoicedQty`, `hasUninvoicedQty`, `countsAsOrdered`, and `hasUninvoicedItems` per order.
 - `lib/poListView.js` — the PO list's Status text, its empty states, and both strips above it (#176, #295).
 - `lib/listFilters.js` — what the four document lists filter by (#324), search by (#325) and page by (#326), and every word the bar and the foot say. **`LIST_PAGE_SIZE` is the one place a page size lives and no screen reads it** — the cut is after the gate and after the bar, so the read stays whole. **A closed set a list renders is a filter when the document or its item rows hold it, and a strip's subject when it lies along a wait.** **A box searches a row's id, second name, vendor and job; `/invoices` trades the last two for its orders' and deliveries' ids (#649).**

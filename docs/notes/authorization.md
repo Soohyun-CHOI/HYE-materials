@@ -600,3 +600,10 @@ The step measured as 1m draws it: at a desk the heading 24/32 in two lines in th
 **From the dev log, against main's on the same cases**: `/login` 0 and `/login/confirm` 1 on both; the link's `POST` 3, a request 2, a code that signs in 4 and `DELETE /api/auth/request` 0 on both; a page or an action finding the session's row off 1 on both, and `GET /api/auth/deactivated` 0. Main then read the session again on every page the reader opened — 1 each, the session standing — and after a sign-in for an account that is off its destination read 1 before sending the reader to `/login`; this branch lands on `/login` at 0 in both places. Twelve sign-in rows, all spent: five minted, seven asked for on the screen, so seven emails went to `soo@`.
 
 ---
+
+### Inventory: an Admin on every job, a site manager on their own (#675)
+
+`canAccessJobInventory` (`lib/materialStock.js`) answers who reads a job's material stock and who records against it — one answer for both, so the screens a reader reaches are the ones whose form they may press. `issueMaterialsAction` is a `requireUser()` exemption under `INVENTORY_JOB_AXIS`: an Admin who is not a site manager must pass and a site manager on another job must not, so neither `withAdminAction` nor `withSiteManagerAction` fits. A job outside the reader's reach reads `Job not found`.
+
+- **THE DELIVERY RULE WAS THE FIRST CANDIDATE AND IS NOT THE RULE.** `canAccessJobDeliveries` admits anyone assigned to a job and the President on every job. Narrowed by the site-manager flag it still let a President who manages a site read every job — seen on the test base with soo@'s `Is Admin` off for the walk, and read back on after. The site manager's half is `lib/assetJob.js:recordsOn`, the assets axis's "a site manager on a job they are assigned to", with no President clause.
+- **A SITE MANAGER READS THEIR OWN JOBS' STOCK AND NO OTHER**, unlike the asset lists, where every reader stands on any job (#593). That is the issue's rule; whether stock should be readable more widely is a question for the screen's design, and is not asked here.

@@ -1,6 +1,6 @@
 # Material purchase history
 
-Route: `/materials/[materialId]`
+Route: `/prices/[materialId]`
 Who reaches it: anyone signed in, with the same per-row gate on document
 identifiers as the price list.
 

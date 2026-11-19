@@ -171,7 +171,7 @@ export async function resolveSeedCategories(leafCodes) {
  * what identity is KEYED ON stopped being the same string in #356.
  *
  * `unit` defaults to `EA` because most seed rows do and a missing one is skipped
- * by the cache entirely (#18) — a unit-less item never reaches `/materials`,
+ * by the cache entirely (#18) — a unit-less item never reaches `/prices`,
  * which is usually not what a seed wanted.
  */
 export function itemForCategory(category, { size = "", unit = "EA", ...rest } = {}) {

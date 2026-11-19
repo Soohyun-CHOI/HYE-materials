@@ -9,10 +9,12 @@
 //      below as the pages wrote them, so a measure is not moved by an edit to the component
 //      alone: nothing about these screens was designed, and a box restyled here would be a
 //      screen restyled with no design to answer to.
-//   2. THE PAGES STANDING IN IT ARE A LIST THAT ONLY SHRINKS. Every file calling it is typed
-//      below with the kinds it names, so a page added to it fails, a page that stops calling
-//      it — because its design arrived — fails until its line goes, and a call naming a kind
-//      the component does not hold fails. When the list is empty the component goes.
+//   2. THE PAGES STANDING IN IT ARE A LIST THAT ONLY SHRINKS, BUT FOR A SCREEN BUILT AHEAD OF ITS
+//      DESIGN BY DECISION — #675's three, written in with their reason. Every file calling it
+//      is typed below with the kinds it names, so a page added to it fails until its line is
+//      written, a page that stops calling it — because its design arrived — fails until its
+//      line goes, and a call naming a kind the component does not hold fails. When the list
+//      is empty the component goes.
 //   3. NO OTHER FILE SPELLS A CENTERED MEASURE: `mx-auto` beside one of Tailwind's width steps
 //      in one string, anywhere under `app/` and `lib/`. A screen the design draws takes its
 //      measure from the design's names — `max-w-content` is no step — and a page holds no
@@ -71,8 +73,13 @@ const UNDRAWN_PAGES = {
     "app/invoices/[invoiceId]/page.js": ["document"],
     "app/invoices/new/page.js": ["notice", "invoice-entry"],
     "app/invoices/page.js": ["list"],
-    "app/materials/[materialId]/page.js": ["list", "list"],
+    // #675 — the three Inventory screens, built before their design at Soo's call, in the box
+    // the screens the design has not drawn stand in until a design-matching issue takes them.
+    "app/materials/[jobCode]/[materialId]/page.js": ["list", "list"],
+    "app/materials/[jobCode]/page.js": ["list", "list"],
     "app/materials/page.js": ["list"],
+    "app/prices/[materialId]/page.js": ["list", "list"],
+    "app/prices/page.js": ["list"],
     "app/pos/[poId]/page.js": ["document"],
     "app/pos/page.js": ["list"],
     "app/prs/[prId]/page.js": ["document"],

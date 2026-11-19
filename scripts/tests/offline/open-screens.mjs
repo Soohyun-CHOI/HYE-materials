@@ -61,10 +61,10 @@ import { isMain, standalone } from "./_harness.mjs";
 export const title = "The materials screens open on every build but production's (#542, #631)";
 
 /** The first segments of the materials screens, by value. */
-const MATERIALS_SEGMENTS = ["prs", "pos", "invoices", "deliveries", "materials", "addresses"];
+const MATERIALS_SEGMENTS = ["prs", "pos", "invoices", "deliveries", "materials", "prices", "addresses"];
 
 /** The rail's sections, by key: every one, and the production deployment's. */
-const ALL_SECTIONS = "purchase-requests purchase-orders invoices deliveries assets material-prices";
+const ALL_SECTIONS = "purchase-requests purchase-orders invoices deliveries inventory assets material-prices";
 const PRODUCTION_SECTIONS = "assets";
 
 /** The module, the one call of its judgment, and the two files allowed to import it. */

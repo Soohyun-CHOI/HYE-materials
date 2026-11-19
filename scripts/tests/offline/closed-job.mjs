@@ -92,6 +92,10 @@ const SHOWS = [
     ["app/deliveries/[deliveryId]/page.js", "the delivery's own job"],
     ["app/deliveries/[deliveryId]/edit/page.js", "the delivery's own job, which an edit does not change"],
     ["lib/materialPriceView.server.js", "the job each price's order was raised on"],
+    ["app/materials/page.js", "the jobs whose inventory a reader may open, closed ones too (#675)"],
+    ["app/materials/[jobCode]/page.js", "the job whose inventory it is"],
+    ["app/materials/[jobCode]/[materialId]/page.js", "the job the material's stock is on"],
+    ["lib/materialStock.server.js", "the job whose stock an issue and a delivery's delete read again"],
     ["lib/poGeneration.js", "the request's job, for the order's PIC and manager"],
     ["lib/poPdf.js", "the order's job, printed on its document"],
 ];

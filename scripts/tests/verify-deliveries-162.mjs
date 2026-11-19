@@ -56,6 +56,7 @@ import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { updatePO, PO_WITHDRAWN_STATUS } from "../../lib/airtable/purchaseOrders.js";
 import { getPOItemsByRecordIds, getDeliveredQtyForPOItem } from "../../lib/airtable/poItems.js";
 import { createDelivery, getDeliveryById, replaceDeliveryPhoto, updateDelivery } from "../../lib/airtable/deliveries.js";
+import { deliveryAddressFor } from "../demo/_delivery_address.mjs";
 import { createDeliveryItem, getItemsByDelivery } from "../../lib/airtable/deliveryItems.js";
 import { getDeliveryCandidates } from "../../lib/deliveryAllocation.server.js";
 import {
@@ -351,6 +352,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     const targetOrderedItem = ourItems.find((l) => l.poRecordId === po1);
     const delivery1 = await createDelivery({
         jobRecordId: job.id,
+        deliveryAddressRecordId: await deliveryAddressFor(job.id),
         vendorRecordId: vendorA.id,
         packingListPORecordId: null,
         receivedDate: new Date().toISOString().slice(0, 10),
@@ -416,7 +418,8 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     check("nothing flagged", plan.rows.some((r) => r.over), false);
 
     const delivery2 = await createDelivery({
-        jobRecordId: job.id, vendorRecordId: vendorA.id, packingListPORecordId: null,
+        jobRecordId: job.id,
+        deliveryAddressRecordId: await deliveryAddressFor(job.id), vendorRecordId: vendorA.id, packingListPORecordId: null,
         receivedDate: new Date().toISOString().slice(0, 10),
         recordedByUserId: requester.id, notes: `${TAG} split delivery`, file: [],
     });
@@ -461,7 +464,8 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     );
 
     const delivery3 = await createDelivery({
-        jobRecordId: job.id, vendorRecordId: vendorA.id, packingListPORecordId: null,
+        jobRecordId: job.id,
+        deliveryAddressRecordId: await deliveryAddressFor(job.id), vendorRecordId: vendorA.id, packingListPORecordId: null,
         receivedDate: new Date().toISOString().slice(0, 10),
         recordedByUserId: requester.id, notes: `${TAG} over delivery`, file: [],
     });
@@ -611,7 +615,8 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     assert("the two materials are distinct identities", pipeMaterialId !== boltMaterialId);
 
     const multiDelivery = await createDelivery({
-        jobRecordId: job.id, vendorRecordId: vendorA.id, packingListPORecordId: null,
+        jobRecordId: job.id,
+        deliveryAddressRecordId: await deliveryAddressFor(job.id), vendorRecordId: vendorA.id, packingListPORecordId: null,
         receivedDate: new Date().toISOString().slice(0, 10),
         recordedByUserId: requester.id, notes: `${TAG} two items`, file: [],
     });

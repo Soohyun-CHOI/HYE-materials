@@ -94,6 +94,8 @@ const SECTION_ICONS = {
     "purchase-orders": "clipboard-list",
     invoices: "receipt",
     deliveries: "truck",
+    // #675 — the design has drawn no Inventory yet; a ledger's book stands in until it does.
+    inventory: "book-open",
     assets: "wrench",
     "material-prices": "tag",
 };

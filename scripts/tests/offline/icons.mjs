@@ -257,7 +257,7 @@ const MARKS_BY_FILE = {
     "app/components/ListFrame.js": ["x"],
     "app/components/ListTable.js": ["chevron-left", "chevron-right"],
     "app/components/Menu.js": ["check", "ellipsis"],
-    "app/components/Rail.js": ["clipboard-list", "file-text", "panel-left", "receipt", "tag", "truck", "wrench"],
+    "app/components/Rail.js": ["book-open", "clipboard-list", "file-text", "panel-left", "receipt", "tag", "truck", "wrench"],
     "app/components/RailAccount.js": ["chevron-up"],
     // 0k's failure toast leads its line with the alert mark and dismisses on a × (#566).
     "app/components/Toast.js": ["circle-alert", "x"],
@@ -315,7 +315,7 @@ const KINDS_BY_FILE = {
     "app/components/ListFrame.js": ["x:words"],
     "app/components/ListTable.js": ["chevron-left/chevron-right:words"],
     "app/components/Menu.js": ["check:current", "check:current", "check:words", "ellipsis:words"],
-    "app/components/Rail.js": ["clipboard-list/file-text/receipt/tag/truck/wrench:current|words", "panel-left:words"],
+    "app/components/Rail.js": ["book-open/clipboard-list/file-text/receipt/tag/truck/wrench:current|words", "panel-left:words"],
     "app/components/RailAccount.js": ["chevron-up:qualifier"],
     "app/components/Toast.js": ["circle-alert:words", "x:words"],
     "app/login/jobs/JobsForm.js": ["check:words", "circle-alert:words", "search:qualifier"],

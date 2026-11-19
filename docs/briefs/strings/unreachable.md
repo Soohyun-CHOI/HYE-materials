@@ -262,7 +262,7 @@ are the overage claim's guards and the strip's own offering rule decides them.
 
 ## Screens with nothing here
 
-`/login/confirm`, `/materials`, `/materials/[materialId]`, `/invoices` and
+`/login/confirm`, `/prices`, `/prices/[materialId]`, `/invoices` and
 `/deliveries` hold no refusal at all. Every state on those five is a consequence of the
 data or of who is reading, and all of it is reachable **between the two fixture
 accounts and `soo@`** — which is what the sentence here should always have said. It

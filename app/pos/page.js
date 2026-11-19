@@ -50,7 +50,7 @@ export const metadata = { title: "Purchase Orders" };
 const STATUSES = ["Awaiting Signature", "Signed", PO_SENT_STATUS, "Withdrawn"];
 
 // Labeled for #190, and NOT because every screen is — attribution there is
-// opt-in, and /invoices, /deliveries and /materials are still unlabeled by
+// opt-in, and /invoices, /deliveries and /prices are still unlabeled by
 // design. This one is labeled because #168's cost claim is a COMPARISON WITH
 // /prs: that page spends 7 operations and three of them are one `Users: find`
 // per distinct requester, where this page resolves every level in a batch. The
