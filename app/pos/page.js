@@ -136,13 +136,13 @@ async function renderPOListPage({ searchParams }) {
         if (!poRecordId) continue;
         if (!orderedItemsByPO.has(poRecordId)) orderedItemsByPO.set(poRecordId, []);
         orderedItemsByPO.get(poRecordId).push({
-            orderedQty: item.qty,
+            orderedItemQty: item.qty,
             deliveredQty: item.deliveredQty,
             // #235 — the invoicing chip's own quantity. Free: this reader already
             // returns the whole record, so the field costs no query and the two
             // chips are folded from one list of ordered items.
             invoicedQty: item.invoicedQty,
-            committedQty: item.committedQty,
+            orderedQty: item.orderedQty,
         });
     }
 

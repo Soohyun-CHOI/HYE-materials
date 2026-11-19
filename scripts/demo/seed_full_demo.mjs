@@ -903,7 +903,7 @@ await scenario("CHIP_SET", "Invoiced, Partly invoiced, Awaiting invoice, and the
     });
     ids.chipAwaiting = none.po.poId;
 
-    // The dash — a withdrawn order, whose every ordered item has Committed Qty 0.
+    // The dash — a withdrawn order, whose every ordered item has Ordered Qty 0.
     const gone = await makeOrder({
         scenarioName: "CHIP_SET",
         subTag: "CHIP_DASH",

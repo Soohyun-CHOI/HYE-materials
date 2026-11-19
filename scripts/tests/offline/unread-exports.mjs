@@ -43,9 +43,9 @@
 //   * A PROPERTY OF A RETURNED OBJECT that nothing reads. A name-keyed detector
 //     found six — `recordToAddress.country`, `recordToMaterialPrice.priceLabel`,
 //     `recordToMaterial.materialPrices` and three kept with reasons — and it is
-//     UNSOUND in the direction that matters: `recordToMaterial.committedQty` has
+//     UNSOUND in the direction that matters: `recordToMaterial.orderedQty` has
 //     no reader of a Material and still reads as live, because
-//     `recordToPOItem.committedQty` shares the name. Separating them is type or
+//     `recordToPOItem.orderedQty` shares the name. Separating them is type or
 //     dataflow analysis, which is not this tier.
 //   * #217's SHAPE, which is narrower again: a field of a returned object that
 //     its only consumer OVERRIDES. The name IS read — by the consumer that

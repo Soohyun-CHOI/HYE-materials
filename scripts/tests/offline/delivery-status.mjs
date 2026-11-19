@@ -373,8 +373,8 @@ export function run({ check, log, assert }) {
     // ── the PO axis: delivered against ORDERED (#169) ───────────────────────
     log("");
     log("orderedItemDelivery — one ordered item against its own order:");
-    const orderedItem = (orderedQty, deliveredQty, committedQty = orderedQty) =>
-        ({ orderedQty, deliveredQty, committedQty });
+    const orderedItem = (orderedItemQty, deliveredQty, orderedQty = orderedItemQty) =>
+        ({ orderedItemQty, deliveredQty, orderedQty });
 
     check("nothing delivered is not complete", orderedItemDelivery(orderedItem(10, 0)).complete, false);
     check("and reports no delivery at all", orderedItemDelivery(orderedItem(10, 0)).anyDelivered, false);
@@ -385,7 +385,7 @@ export function run({ check, log, assert }) {
     // of its own. The within/beyond split #166 needs is exactly what this axis
     // does not.
     check("more than ordered is complete too", orderedItemDelivery(orderedItem(10, 13)).complete, true);
-    check("a blank rollup reads as nothing delivered", orderedItemDelivery({ orderedQty: 10, committedQty: 10 }).delivered, 0);
+    check("a blank rollup reads as nothing delivered", orderedItemDelivery({ orderedItemQty: 10, orderedQty: 10 }).delivered, 0);
     check("nullish input does not throw", orderedItemDelivery().complete, true);
 
     log("");
@@ -413,16 +413,16 @@ export function run({ check, log, assert }) {
 
     log("");
     log("withdrawn orders fall out through countsAsOrdered, not a status string:");
-    // A withdrawn PO's every ordered item has Committed Qty 0 (#18's formula), so the
+    // A withdrawn PO's every ordered item has Ordered Qty 0 (#18's formula), so the
     // judged set empties and the chip is the dash.
     const withdrawn = [orderedItem(10, 10, 0), orderedItem(5, 0, 0)];
     check("a withdrawn order reports nothing-ordered", summary(withdrawn), "nothing-ordered");
     // ANTI-VACUITY #1. The assertion above also passes if the summarizer ignored
     // its input, returned the dash for everything, or received an empty array. The
-    // SAME ordered items with a live Committed Qty must therefore reach a different
+    // SAME ordered items with a live Ordered Qty must therefore reach a different
     // answer — that is what shows countsAsOrdered is the thing doing the work.
     check(
-        "the same lines with a live Committed Qty do NOT",
+        "the same ordered items with a live Ordered Qty do NOT",
         summary([orderedItem(10, 10, 10), orderedItem(5, 0, 5)]),
         "partly-delivered"
     );
@@ -492,10 +492,10 @@ export function run({ check, log, assert }) {
     // #242's removed narrowing, #241's always-silent list, #238's unfolded table and
     // #179's one word for two kinds stand at. So the first assertion is that the
     // four inputs below do not collapse to one answer.
-    const orderedItemInvoice = (qty, invoiced, committed = qty) => ({
-        orderedQty: qty,
+    const orderedItemInvoice = (qty, invoiced, ordered = qty) => ({
+        orderedItemQty: qty,
         invoicedQty: invoiced,
-        committedQty: committed,
+        orderedQty: ordered,
     });
     const invoicing = (orderedItems) => summarizePOInvoicingStatus(orderedItems).key;
     const everyState = [
@@ -563,7 +563,7 @@ export function run({ check, log, assert }) {
     log("a withdrawn order drops out through the same field as on the delivery axis:");
     check("nothing-ordered", invoicing([orderedItemInvoice(10, 10, 0), orderedItemInvoice(5, 0, 0)]), "nothing-ordered");
     check(
-        "  and the same ordered items with a live Committed Qty do not",
+        "  and the same ordered items with a live Ordered Qty do not",
         invoicing([orderedItemInvoice(10, 10, 10), orderedItemInvoice(5, 0, 5)]),
         "partly-invoiced"
     );

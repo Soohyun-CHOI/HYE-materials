@@ -255,16 +255,16 @@ async function renderPODetailPage({ params }) {
     // call — but this page never imported the module, so both sentences were false
     // for four issues. #233 makes them true rather than deleting them.
     //
-    // NO NEW READ ON EITHER PATH. `orderedItemDelivery` wants `orderedQty`,
-    // `deliveredQty` and `committedQty`, and `recordToPOItem` carries all three, so
+    // NO NEW READ ON EITHER PATH. `orderedItemDelivery` wants `orderedItemQty`,
+    // `deliveredQty` and `orderedQty`, and `recordToPOItem` carries all three, so
     // the privileged and employee projections both already hold what this needs.
     // The shape below is the one `/pos` builds for the same call.
     const deliveryChip = describePOColumn(
         summarizePODeliveryStatus(
             orderedItems.map((it) => ({
-                orderedQty: it.qty,
+                orderedItemQty: it.qty,
                 deliveredQty: it.deliveredQty,
-                committedQty: it.committedQty,
+                orderedQty: it.orderedQty,
             }))
         )
     );
@@ -293,9 +293,9 @@ async function renderPODetailPage({ params }) {
     const invoicingChip = describePOInvoicingColumn(
         summarizePOInvoicingStatus(
             orderedItems.map((it) => ({
-                orderedQty: it.qty,
+                orderedItemQty: it.qty,
                 invoicedQty: it.invoicedQty,
-                committedQty: it.committedQty,
+                orderedQty: it.orderedQty,
             }))
         )
     );

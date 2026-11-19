@@ -931,7 +931,7 @@ export function run(reporter) {
                 const key = n.key?.type === "Identifier" ? n.key.name : n.key?.value;
                 if (key) fields.add(key);
             });
-            for (const field of ["deliveredQty", "committedQty", "invoicedQty"]) {
+            for (const field of ["deliveredQty", "orderedQty", "invoicedQty"]) {
                 assert(`recordToPOItem carries ${field}, which no viewer is withheld`, fields.has(field));
             }
             // ANTI-VACUITY. The assertions above also pass if `walk` collected every

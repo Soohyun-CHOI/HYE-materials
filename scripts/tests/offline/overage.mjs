@@ -101,7 +101,7 @@ const invoice = (id, qty, issueDate, over = {}) => ({
  * invoice of 12 runs exactly 3 past the order — the paradigm excess the clauses below
  * ask about.
  */
-const pick = (invoices, excess, orderedQty = 9) => selectOverageInvoice({ invoices, excess, orderedQty });
+const pick = (invoices, excess, orderedItemQty = 9) => selectOverageInvoice({ invoices, excess, orderedItemQty });
 
 /**
  * The ordered item's three totals, AGREEING by default, so a clause that is not about
@@ -109,7 +109,7 @@ const pick = (invoices, excess, orderedQty = 9) => selectOverageInvoice({ invoic
  * invoiced is the paradigm shape for one — the vendor shipped a pack of two extra
  * and charged for them.
  */
-const totals = (over = {}) => ({ orderedQty: 10, deliveredQty: 12, invoicedQty: 12, ...over });
+const totals = (over = {}) => ({ orderedItemQty: 10, deliveredQty: 12, invoicedQty: 12, ...over });
 
 /** Eligibility with the ordered item's totals supplied, which every real caller does. */
 const eligible = (invoices, over = {}) =>
@@ -269,7 +269,7 @@ export function run({ check, log, assert }) {
     check(
         "  even where the ordered item's own excess differs",
         eligible([invoice("01", 12, "2026-07-01")], { row: row({ qty: 3 }) }).figures.deliveredQty -
-            eligible([invoice("01", 12, "2026-07-01")], { row: row({ qty: 3 }) }).figures.orderedQty,
+            eligible([invoice("01", 12, "2026-07-01")], { row: row({ qty: 3 }) }).figures.orderedItemQty,
         2
     );
 
@@ -415,7 +415,7 @@ export function run({ check, log, assert }) {
     // --- #265: THE FLAG ALREADY MEANS THE ORDER IS EXCEEDED ---------------
     //
     // WHY THERE IS NO FOURTH STATE, pinned as a property of the writer rather than
-    // trusted from a paragraph. `overageAgreement` takes `orderedQty` and never
+    // trusted from a paragraph. `overageAgreement` takes `orderedItemQty` and never
     // compares it, on the premise that a flagged row implies the ordered item is over —
     // `recomputeOverDelivery` flags a row only where `room === 0`, and deletion is the
     // only thing that mutates rows after creation. If that ever stopped holding, this
@@ -423,10 +423,10 @@ export function run({ check, log, assert }) {
     log("");
     log("#265 — a flagged row always implies the ordered item is over (recomputeOverDelivery):");
     const shapes = [
-        { orderedQty: 10, rows: [{ id: "a", deliveryItemId: "d-001", qty: 10 }, { id: "b", deliveryItemId: "d-002", qty: 3 }] },
-        { orderedQty: 10, rows: [{ id: "a", deliveryItemId: "d-001", qty: 4 }] },
-        { orderedQty: 0, rows: [{ id: "a", deliveryItemId: "d-001", qty: 5 }] },
-        { orderedQty: 10, rows: [{ id: "a", deliveryItemId: "d-001", qty: 25 }] },
+        { orderedItemQty: 10, rows: [{ id: "a", deliveryItemId: "d-001", qty: 10 }, { id: "b", deliveryItemId: "d-002", qty: 3 }] },
+        { orderedItemQty: 10, rows: [{ id: "a", deliveryItemId: "d-001", qty: 4 }] },
+        { orderedItemQty: 0, rows: [{ id: "a", deliveryItemId: "d-001", qty: 5 }] },
+        { orderedItemQty: 10, rows: [{ id: "a", deliveryItemId: "d-001", qty: 25 }] },
     ];
     let flaggedSeen = 0;
     let violations = 0;
@@ -439,7 +439,7 @@ export function run({ check, log, assert }) {
         // written — the same implication, on the row the recomputation creates.
         const flagged = out.rows.filter((r) => r.overDelivered).length + out.splits.length;
         flaggedSeen += flagged;
-        if (flagged > 0 && delivered <= (shape.orderedQty || 0)) violations++;
+        if (flagged > 0 && delivered <= (shape.orderedItemQty || 0)) violations++;
     }
     check("no flagged row on an ordered item that is not over", violations, 0);
     // ANTI-VACUITY: the loop has to have SEEN flagged rows, or "none violated" is the
@@ -496,7 +496,7 @@ export function run({ check, log, assert }) {
     const callSites = callsTo(prAst, "selectOverageInvoice");
     assert(`found ${callSites.length} call sites, preview and apply alike`, callSites.length >= 4);
     for (const [i, call] of callSites.entries()) {
-        assert(`  call ${i + 1} passes orderedQty`, callPassesProperty(call, "orderedQty"));
+        assert(`  call ${i + 1} passes orderedItemQty`, callPassesProperty(call, "orderedItemQty"));
     }
     // ANTI-VACUITY for that matcher: it must report false for a property that is not
     // there, or every call "passes" everything.
@@ -513,7 +513,7 @@ export function run({ check, log, assert }) {
     log("#265 — the eligibility call supplies the ordered item's totals (AST):");
     const eligibilityCalls = callsTo(prAst, "overageEligibility");
     check("one call site, and it is this module's", eligibilityCalls.length, 1);
-    for (const key of ["orderedItem", "orderedQty", "deliveredQty", "invoicedQty"]) {
+    for (const key of ["orderedItem", "orderedItemQty", "deliveredQty", "invoicedQty"]) {
         assert(`  it passes ${key}`, callPassesProperty(eligibilityCalls[0], key));
     }
     // ANTI-VACUITY, the same shape as above: the matcher has to say no to something.
@@ -990,7 +990,7 @@ export function run({ check, log, assert }) {
     // --- THE PREVIEW -------------------------------------------------------
     log("");
     log("the preview: one message for a blocked row, the full set otherwise:");
-    const figures = { orderedQty: 10, deliveredQty: 12, invoicedQty: 12 };
+    const figures = { orderedItemQty: 10, deliveredQty: 12, invoicedQty: 12 };
     // #265 — A BLOCKED ROW GETS TWO, AND THE SECOND IS WHY. The refusal comes from the
     // ORDERED ITEM's totals while the reader is looking at one delivery, so the reason
     // alone would sit beside figures that do not add up to it.
@@ -1066,7 +1066,7 @@ export function run({ check, log, assert }) {
         OVERAGE_COPY.preview.summary({ ...facts, unitPriceLabel: "$12.00" }).text,
         // #265's two additions: what was compared, and the tie-break that replaced
         // #219's two inference voices — neither can drift out of the vocabulary.
-        OVERAGE_COPY.preview.compared({ ...facts, orderedQty: 10, deliveredQty: 12, invoicedQty: 12 }).text,
+        OVERAGE_COPY.preview.compared({ ...facts, orderedItemQty: 10, deliveredQty: 12, invoicedQty: 12 }).text,
         OVERAGE_COPY.preview.tieBreak({ chosen: "HYE-INV-A", passedOver: ["HYE-INV-B"] }).text,
         // Every voice of the disagreement, which one builder produces from a key,
         // plus the no-direction one — DERIVED FROM THE CONSTANT, NOT NAMED (#274).
