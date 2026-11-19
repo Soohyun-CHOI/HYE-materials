@@ -1,13 +1,13 @@
 // How a typed query becomes match tokens, for both of the app's search boxes (#325).
 //
-// WHAT THIS FILE EXISTS FOR. `/materials` has tokenized a query since #19 and the four
+// WHAT THIS FILE EXISTS FOR. `/prices` has tokenized a query since #19 and the four
 // document lists got a box of their own in #325, and the second one was very nearly a
 // second tokenizer — the duplication CLAUDE.md's own "one rule, one implementation"
 // section forbids, and the kind that diverges quietly because both halves keep working.
 // So the rule moved to `lib/typedText.js` and what is pinned here is that it is ONE
 // rule with two arguments rather than two rules that currently agree.
 //
-// THE MATCH SIDE IS NECESSARILY TWO AND THAT IS NOT A DEFECT. `/materials` asks
+// THE MATCH SIDE IS NECESSARILY TWO AND THAT IS NOT A DEFECT. `/prices` asks
 // Airtable through `andSearchAll`, because it queries a table its screen does not
 // otherwise fetch; the lists ask JavaScript, because every row they could match is
 // already in the browser. One semantic, two languages. The JS half is `matchesTokens`
@@ -46,7 +46,7 @@ export function run({ check, assert, log }) {
     check("undefined", searchTokens(undefined).length, 0);
     check("null becomes nothing, never the word", searchTokens(null).join(","), "");
 
-    // ── 2: the two arguments, which are `/materials`' and not the rule's ─────
+    // ── 2: the two arguments, which are `/prices`' and not the rule's ─────
     log("");
     log("the two steps that belong to one screen are arguments, not the rule:");
     check("nothing is dropped by default", searchTokens("a > b").join(","), "a,>,b");
@@ -85,10 +85,10 @@ export function run({ check, assert, log }) {
 
     // ── 4: one rule, two callers ────────────────────────────────────────────
     log("");
-    log("both boxes call it, and `/materials`' two steps are the only difference:");
+    log("both boxes call it, and `/prices`' two steps are the only difference:");
     for (const query of ["ball valve 2\"", "Stainless Steel (SUS) > Tee", "  PIPE  ", ""]) {
         check(
-            `\`${query}\` tokenizes the same for /materials as the arguments say`,
+            `\`${query}\` tokenizes the same for /prices as the arguments say`,
             buildSearchTokens(query).join("|"),
             searchTokens(query, { drop: [">"], max: MAX_SEARCH_TOKENS }).join("|")
         );

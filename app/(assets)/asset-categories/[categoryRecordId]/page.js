@@ -76,7 +76,7 @@ export async function generateMetadata() {
 /**
  * One category and its assets, a page at a time (#339).
  *
- * IT IS KEYED ON THE AIRTABLE RECORD ID, which is `/materials/[materialId]`'s
+ * IT IS KEYED ON THE AIRTABLE RECORD ID, which is `/prices/[materialId]`'s
  * answer to the same problem one axis over: `Asset Categories` mints no id, the way
  * `Vendors` and `Materials` mint none, because nothing prints a category and nobody
  * quotes one. The name a person typed is the identity and it is not a path — it

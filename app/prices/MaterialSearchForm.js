@@ -34,7 +34,7 @@ export default function MaterialSearchForm({ initialQuery = "" }) {
         event.preventDefault();
         const next = value.trim();
         setSubmitting(true);
-        router.push(next ? `/materials?q=${encodeURIComponent(next)}` : "/materials");
+        router.push(next ? `/prices?q=${encodeURIComponent(next)}` : "/prices");
         // The navigation re-renders this component with a new initialQuery; the
         // flag is only here to stop a double submit landing two navigations.
         setSubmitting(false);
@@ -66,7 +66,7 @@ export default function MaterialSearchForm({ initialQuery = "" }) {
                     type="button"
                     onClick={() => {
                         setValue("");
-                        router.push("/materials");
+                        router.push("/prices");
                     }}
                     className="rounded border border-zinc-300 px-3 py-2 text-sm"
                 >

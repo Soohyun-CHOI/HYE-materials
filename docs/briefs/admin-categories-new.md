@@ -88,7 +88,7 @@ where the row is being planted, and this is the only place in the app that plant
 one.
 
 **This is the one screen that carries a path on purpose.** No document screen does;
-`/materials` searches one and does not show it. A redesign may move these two lines
+`/prices` searches one and does not show it. A redesign may move these two lines
 and may not drop either.
 
 **What the preview does NOT carry is the code**, and that is a decision: the codes
@@ -127,7 +127,7 @@ to pick and the office adding a path are looking at the same four words. A redes
 that renames them here renames them on three screens.
 
 **`Item Name` is the same word on the same axis.** It is what the request form's
-picker previews once a category is settled, what `/materials` heads its rows with,
+picker previews once a category is settled, what `/prices` heads its rows with,
 and what a vendor reads on a purchase order. The field here is where that string is
 authored for every material that will ever be under this path.
 
@@ -150,7 +150,7 @@ who cannot find a category asks the office, and a requester editing the catalog 
 different job. So a missing path means a request that waits, not a form that grows.
 
 **Nothing in the app links here.** Like the three sibling creates, this screen is
-reached by typing its address. The place a link belongs is `/materials`' own miss —
+reached by typing its address. The place a link belongs is `/prices`' own miss —
 the one sentence in the app that tells a reader the catalog has no path for their
 words — and `docs/notes/backlog.md` carries that with its condition.
 

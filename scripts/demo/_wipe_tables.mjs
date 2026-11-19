@@ -28,6 +28,9 @@ export const ORDER = [
     TABLES.INVOICE_VARIANCE_LOG,
     TABLES.INVOICE_ITEMS,
     TABLES.INVOICES,
+    // The inventory's ledger (#675): a row names a job's address and a material, so it goes
+    // before the materials, and before the deliveries its stock is counted beside.
+    TABLES.MATERIAL_LOG,
     // The delivery side.
     TABLES.DELIVERY_ITEMS,
     TABLES.DELIVERIES,

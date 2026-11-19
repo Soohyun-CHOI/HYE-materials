@@ -21,8 +21,8 @@
 // 52rem, and `/pos` declares 58.25rem and scrolls inside its container on
 // purpose (#235, #311, #314).
 //
-// THE FIVE THAT CARRY IT are `/deliveries`, `/invoices`, `/pos`, `/materials`
-// and `/materials/[materialId]`. **A table on a page with a different shell does
+// THE FIVE THAT CARRY IT are `/deliveries`, `/invoices`, `/pos`, `/prices`
+// and `/prices/[materialId]`. **A table on a page with a different shell does
 // NOT take this class** — `/deliveries/[deliveryId]` is `max-w-3xl` and declares
 // its own `min-w-[32rem]`, which is a different budget and not a stale copy of
 // this one. `scripts/tests/offline/list-table-width.mjs` reads the shell of

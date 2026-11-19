@@ -70,8 +70,9 @@ const SECTIONS = [
     ["purchase-orders", "Purchase orders", "/pos", "materials"],
     ["invoices", "Invoices", "/invoices", "materials"],
     ["deliveries", "Deliveries", "/deliveries", "materials"],
+    ["inventory", "Inventory", "/materials", "materials"],
     ["assets", "Equipment & Tools", "/asset-categories", "assets"],
-    ["material-prices", "Material prices", "/materials", "materials"],
+    ["material-prices", "Material prices", "/prices", "materials"],
 ];
 
 /** The sections the rail carries: all of them once the materials screens are open. */
@@ -91,6 +92,9 @@ const SECTION_OF_ROUTE = {
     "/deliveries/[deliveryId]": "deliveries",
     "/deliveries/[deliveryId]/edit": "deliveries",
     "/deliveries/new": "deliveries",
+    "/materials": "inventory",
+    "/materials/[jobCode]": "inventory",
+    "/materials/[jobCode]/[materialId]": "inventory",
     "/invoices": "invoices",
     "/invoices/[invoiceId]": "invoices",
     "/invoices/[invoiceId]/edit": "invoices",
@@ -99,8 +103,8 @@ const SECTION_OF_ROUTE = {
     "/login/confirm": null,
     "/login/jobs": null,
     "/login/name": null,
-    "/materials": "material-prices",
-    "/materials/[materialId]": "material-prices",
+    "/prices": "material-prices",
+    "/prices/[materialId]": "material-prices",
     "/pos": "purchase-orders",
     "/pos/[poId]": "purchase-orders",
     "/prs": "purchase-requests",
@@ -276,8 +280,8 @@ export async function run({ check, assert, log }) {
     // Anti-vacuity: the table names both kinds, so the filter above has something to keep
     // and something to leave out.
     assert(
-        "  the table names the assets section and the five materials ones",
-        SECTIONS.filter(([, , , axis]) => axis === "materials").length === 5 && SECTIONS.some(([, , , axis]) => axis === "assets")
+        "  the table names the assets section and the six materials ones",
+        SECTIONS.filter(([, , , axis]) => axis === "materials").length === 6 && SECTIONS.some(([, , , axis]) => axis === "assets")
     );
     check("  every word belongs to a section", Object.keys(NAVIGATION_COPY.sections).join(" "), SECTIONS.map(([k]) => k).join(" "));
     check("  no section says Office", JSON.stringify(NAVIGATION_COPY).includes("Office"), false);

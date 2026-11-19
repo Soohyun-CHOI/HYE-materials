@@ -105,6 +105,7 @@ export function run({ check, log, assert }) {
     check("Invoice", dailyIdPrefix(ID_KINDS.INVOICE, AUG_3), "HYE-INV-260803");
     check("Delivery", dailyIdPrefix(ID_KINDS.DELIVERY, AUG_3), "HYE-DL-260803");
     check("Direct purchase", dailyIdPrefix(ID_KINDS.DIRECT_PURCHASE, AUG_3), "HYE-DP-260803");
+    check("Material log", dailyIdPrefix(ID_KINDS.MATERIAL_LOG, AUG_3), "HYE-ML-260803");
 
     // The lengths the issue and CLAUDE.md both wrote down wrong. Recorded as
     // measurements rather than as a constant anything reads: `LEFT({Invoice ID},
@@ -119,6 +120,7 @@ export function run({ check, log, assert }) {
     check("Delivery is 13", dailyIdPrefix(ID_KINDS.DELIVERY, AUG_3).length, 13);
     check("Direct purchase is 13", dailyIdPrefix(ID_KINDS.DIRECT_PURCHASE, AUG_3).length, 13);
     check("Asset is 14", dailyIdPrefix(ID_KINDS.ASSET, AUG_3).length, 14);
+    check("Material log is 13", dailyIdPrefix(ID_KINDS.MATERIAL_LOG, AUG_3).length, 13);
 
     log("");
     log("the ID field each family counts — never a date field:");
@@ -133,6 +135,9 @@ export function run({ check, log, assert }) {
     // #335 — the sixth family, and the only one whose ID is PRINTED and stuck to a
     // physical object. Two rows sharing it is two labels on two assets.
     check("Asset", ID_KINDS.ASSET.idField, "Asset ID");
+    // #675 — the seventh, a log with no document above it; its rows carry `Event Date`,
+    // the day a site says the material moved, which can be days before the row.
+    check("Material log", ID_KINDS.MATERIAL_LOG.idField, "Material Log ID");
     // The defect as a property rather than as four equalities: whatever a kind
     // names, it must not be one of the fields a date lives in.
     const kinds = Object.entries(ID_KINDS);
@@ -140,7 +145,7 @@ export function run({ check, log, assert }) {
         "no kind names a date field (the #164 defect, as a property)",
         kinds.every(([, kind]) => !DATE_FIELD_NAMES.includes(kind.idField))
     );
-    assert("every family is registered", kinds.length === 6);
+    assert("every family is registered", kinds.length === 7);
     // Every prefix distinct, as a property rather than six equalities: two families
     // sharing a token would share a daily namespace and mint colliding sequences.
     const tokens = kinds.map(([, kind]) => kind.token);

@@ -145,7 +145,7 @@ const CARRIED = [
     { route: "/invoices", param: "vendor", note: "#324 — vendor filter; repeatable; a Vendor record id" },
     { route: "/invoices", param: "mine", note: "#382 — `1` narrows to invoices this reader entered, off `Invoices.\"Recorded By\"`. The last of the four lists to get this axis, because it was the last document to hold an author; an invoice entered before that field existed is nobody's" },
     { route: "/invoices", param: "status", note: "#324 — the payment word, `Paid` or `Not paid`. Named for the column it narrows; `Overdue` is a qualifier on the second rather than a third option" },
-    { route: "/materials", param: "q", note: "the search term, tokenized by lib/materialPriceView.js; an empty one is the unsearched screen rather than a filter matching everything" },
+    { route: "/prices", param: "q", note: "the search term, tokenized by lib/materialPriceView.js; an empty one is the unsearched screen rather than a filter matching everything" },
     // #509 — THE ASSET LISTS' JOB, THE DOCUMENT LISTS' NAME AND VALUE FOR THE SAME NARROWING,
     // AND ONE OF THEM RATHER THAN SEVERAL. The server reads it, before any asset: the job is
     // what the page reads, so it divides the read as `page` does on a category's own list.
@@ -170,7 +170,7 @@ const CARRIED = [
     {
         route: "/asset-categories",
         param: "q",
-        note: "#520 — the text searched, `/materials`' and the document lists' name for it; matched against a row's name, category and type through `lib/typedText.js`. Free text with nothing to intersect against, as #325's is",
+        note: "#520 — the text searched, `/prices`' and the document lists' name for it; matched against a row's name, category and type through `lib/typedText.js`. Free text with nothing to intersect against, as #325's is",
     },
     {
         route: "/asset-categories",
@@ -607,7 +607,7 @@ function writtenParameters(rel, ast, routes) {
  *
  * FOUR SHAPES, ALL OF WHICH ARE IN USE. A destructured `await searchParams` names its
  * keys directly; a whole `sp` is read a property at a time; `useSearchParams()` on the
- * client reads through `.get()`, which is `/materials`'s search box — or `.getAll()`
+ * client reads through `.get()`, which is `/prices`'s search box — or `.getAll()`
  * for a repeated key, which is a category's selection since #443; and a whole `sp` is
  * HANDED to `parseFilters(route, sp, options)`, which is what the four document lists
  * do since #324.
@@ -720,7 +720,7 @@ export function run({ check, assert, log }) {
         if (got.length) readBy.set(rel, got);
     }
     // A route's readers are its page plus anything under its directory — the client
-    // that mirrors the filters reads none of them itself, but `/materials`'s search box
+    // that mirrors the filters reads none of them itself, but `/prices`'s search box
     // does, so the read side is a union per route rather than a page-only lookup.
     const readByRoute = new Map();
     for (const [rel, got] of readBy) {

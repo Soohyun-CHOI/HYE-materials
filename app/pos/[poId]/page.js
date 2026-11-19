@@ -401,7 +401,7 @@ async function renderPODetailPage({ params }) {
                     who gets here can open it, and a condition here would claim
                     a state that cannot exist while leaving `Job`, `Vendor` and
                     the items table, all equally PR-derived, beside it. That is
-                    the opposite of `/materials`, where identifiers ARE gated
+                    the opposite of `/prices`, where identifiers ARE gated
                     per row: that page shows rows from many requests and cannot
                     refuse itself, so the same rule applies per row there and
                     once here. `Link` and `encodeURIComponent` match this page's

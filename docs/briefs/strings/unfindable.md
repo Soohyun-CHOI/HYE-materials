@@ -179,7 +179,7 @@ for what a sweep has to edit.
 
 `lib/materialPriceView.js:statusTag` returns `PO unsigned`, `PO withdrawn` and
 `PO: {status}` as bare literals. There is no constant to attribute. Both
-`/materials` and `/materials/[materialId]` render one of them beside every vendor
+`/prices` and `/prices/[materialId]` render one of them beside every vendor
 row.
 
 **Left open on purpose.** The screen imports `statusTag`; it did not name these

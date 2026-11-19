@@ -32,6 +32,7 @@ import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { getPOByRecordId } from "../../lib/airtable/purchaseOrders.js";
 import { getItemsByPO } from "../../lib/airtable/poItems.js";
 import { createDelivery, getDeliveriesByRecordIds } from "../../lib/airtable/deliveries.js";
+import { deliveryAddressFor } from "./_delivery_address.mjs";
 import { createDeliveryItem, getItemsByDelivery } from "../../lib/airtable/deliveryItems.js";
 import { createInvoice, getInvoiceByRecordId, updateInvoice } from "../../lib/airtable/invoices.js";
 import { createInvoiceItem } from "../../lib/airtable/invoiceItems.js";
@@ -140,6 +141,7 @@ async function makeOrder({ leafCode, qty, unitPrice = 15 }) {
 async function deliver({ orderedItem, within, over, receivedDate }) {
     const delivery = await createDelivery({
         jobRecordId: discipline.jobId,
+        deliveryAddressRecordId: await deliveryAddressFor(discipline.jobId),
         vendorRecordId: vendor.id,
         packingListPORecordId: null,
         receivedDate,

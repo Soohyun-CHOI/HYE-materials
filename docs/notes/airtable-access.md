@@ -254,7 +254,7 @@ What injection actually is, measured read-only against this base (#18 on `getVen
 
 **The two material locks use different keys on purpose:** identity locks on the `Category` + `Size` + `Unit` key `lib/materialIdentity.js` builds (#356), price on `material + vendor`. Two vendors' prices for one material are two rows and must not serialize against each other; two ordered items of one material from one vendor must. `lib/materialsCache.js` takes them in sequence, never nested.
 
-**The residual is the cross-invocation window, and it is named in three other files rather than solved here** — `deliveries-and-invoices.md` for allocation, `tools.md` twice for the tool item family and the duplicate gate. Two concurrent Vercel invocations each read "nothing exists yet"; no distributed lock is built, because that is new machinery against a risk this base has never been observed to hit, and the frontend disable-on-click guard is the other half.
+**The residual is the cross-invocation window, and it is named in three other files rather than solved here** — `deliveries-and-invoices.md` for allocation, `tools.md` twice for the tool item family and the duplicate gate. Two concurrent Vercel invocations each read "nothing exists yet"; no distributed lock is built, because that is new machinery against a risk this base has hit only when two processes were started at one instant on purpose (#675, `id-generation.md`), and the frontend disable-on-click guard is the other half.
 
 ### Client bundle safety — an import is an execution (#162)
 

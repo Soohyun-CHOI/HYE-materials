@@ -32,7 +32,7 @@ export const dynamic = "force-dynamic";
 // scope. An outer wrapper, so the page's own logic keeps its indentation, and
 // the route TEMPLATE, so repeated loads aggregate into one row.
 export default async function MaterialHistoryPage(props) {
-    return withOpsLabel("/materials/[materialId]", () => renderMaterialHistoryPage(props));
+    return withOpsLabel("/prices/[materialId]", () => renderMaterialHistoryPage(props));
 }
 
 async function renderMaterialHistoryPage({ params }) {
@@ -47,7 +47,7 @@ async function renderMaterialHistoryPage({ params }) {
         return (
             <UndrawnPage measure="list">
                 <p>Material not found.</p>
-                <Link href="/materials" className="mt-4 inline-block text-sm underline">
+                <Link href="/prices" className="mt-4 inline-block text-sm underline">
                     ← Material prices
                 </Link>
             </UndrawnPage>
@@ -71,7 +71,7 @@ async function renderMaterialHistoryPage({ params }) {
                 /* Issue #303 — `material`, matching the sentence above it. This screen
                    names an ordered item in the line directly overhead, so a bare
                    `item` for the `Materials` row it is about stood one sentence away
-                   from the same word meaning a `PO Items` row. `/materials` keeps
+                   from the same word meaning a `PO Items` row. `/prices` keeps
                    `item` throughout, where nothing else on the screen competes for
                    it; what a `Materials` row should be called in general is left
                    open — see docs/notes/naming.md. */
@@ -201,7 +201,7 @@ async function renderMaterialHistoryPage({ params }) {
                 </p>
             )}
 
-            <Link href="/materials" className="mt-6 inline-block text-sm underline">
+            <Link href="/prices" className="mt-6 inline-block text-sm underline">
                 ← Material prices
             </Link>
         </UndrawnPage>

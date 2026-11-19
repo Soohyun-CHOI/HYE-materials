@@ -564,7 +564,7 @@ shapes, from one noun per list:
 - `No invoices match “ABC-1029” and these filters.`
 
 A reader who has narrowed twice is told so, because neither half alone would be
-true. There is no second sentence explaining the miss the way `/materials` has
+true. There is no second sentence explaining the miss the way `/prices` has
 one: here the two candidates are a typo and a document nobody has entered, and
 nothing on the base tells them apart.
 
@@ -730,7 +730,8 @@ office. Invoicing is Admin because invoicing is office work.
 | `/invoices`, `/invoices/[invoiceId]` | row-scoped, reaching `canViewPR` through the orders the invoice charges (#211) |
 | `/prs/new` | anyone signed in; a request goes on one of the reader's assigned jobs, or on any job for the office and the President (#639) |
 | `/deliveries`, `/deliveries/[deliveryId]`, `/deliveries/[deliveryId]/edit`, `/deliveries/new` | anyone signed in, then Job assignment |
-| `/materials`, `/materials/[materialId]` | anyone signed in; document identifiers gated per row (#19) |
+| `/prices`, `/prices/[materialId]` | anyone signed in; document identifiers gated per row (#19) |
+| `/materials`, `/materials/[jobCode]`, `/materials/[jobCode]/[materialId]` | an Admin on every job, a site manager on their own (#675) |
 | `/asset-categories` | anyone signed in, with no Role and no Job gate (#337); the list starts from the reader's jobs, the office's on all of them (#656), and any job's may be chosen by anyone (#509, #593); adding items from it is a site manager's (#506) |
 | the registration dialog, over `/asset-categories` and `/asset-categories/[categoryRecordId]` (#456) | a site manager on either page (#506); only one assigned to a job can open it (#338) |
 | the labels' dialog, over `/asset-categories/[categoryRecordId]` and `/assets/[assetId]` (#457) | a site manager on either page (#506) |
