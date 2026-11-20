@@ -22,7 +22,7 @@ job's list.
 - **A reader with no job to open** reads one sentence saying so, and no list.
 - **A closed job is listed** like an open one. Closing a job stops it being offered
   where a job is newly chosen; the material still at its addresses is still there and
-  still issued from.
+  still issued and sent from.
 
 ## What must agree elsewhere
 

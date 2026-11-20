@@ -364,6 +364,26 @@ const EXEMPTIONS = [
         mustCall: "requireUser",
         reason: INVENTORY_JOB_AXIS,
     },
+    // #677 — the same axis: the job a send leaves for a send and a cancel, the job it goes to for a
+    // receipt, which the send itself names and lib/materialTransit.server.js asks once it is read.
+    {
+        file: "app/materials/[jobCode]/[materialId]/actions.js",
+        name: "sendMaterialsAction",
+        mustCall: "requireUser",
+        reason: INVENTORY_JOB_AXIS,
+    },
+    {
+        file: "app/materials/[jobCode]/[materialId]/actions.js",
+        name: "receiveMaterialsAction",
+        mustCall: "requireUser",
+        reason: INVENTORY_JOB_AXIS,
+    },
+    {
+        file: "app/materials/[jobCode]/[materialId]/actions.js",
+        name: "cancelSendAction",
+        mustCall: "requireUser",
+        reason: INVENTORY_JOB_AXIS,
+    },
     { file: "app/prs/new/actions.js", name: "deleteDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "createPRAction", mustCall: "requireUser", reason: REQUEST_JOB_AXIS },
     { file: "app/deliveries/new/actions.js", name: "createDeliveryAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },

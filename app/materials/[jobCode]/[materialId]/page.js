@@ -12,11 +12,17 @@ import {
     canAccessJobInventory,
     inventoryPath,
     materialActivity,
+    movedBetweenAddresses,
     qtyText,
 } from "@/lib/materialStock";
 import { readJobInventory } from "@/lib/materialStock.server";
 import { userName } from "@/lib/userName";
+import { daysWaiting } from "@/lib/deliveryStatus";
+import { TRANSIT_COPY, canCancel, canReceive, canSendFrom, canWriteOff, destinationChoices, transitActivityWords } from "@/lib/materialTransit";
+import { CancelSendForm, ReceiveForm, WriteOffForm } from "./InTransitForms";
+import InTransitCell from "../../InTransitCell";
 import IssueForm from "./IssueForm";
+import SendForm from "./SendForm";
 
 const COPY = INVENTORY_COPY.material;
 
@@ -28,6 +34,18 @@ const COPY = INVENTORY_COPY.material;
  *
  * THE FORM IS DRAWN FOR EVERY READER THIS PAGE ADMITS, because the page admits exactly those who
  * may issue (`canAccessJobInventory`), and its action asks again.
+ *
+ * WHAT MOVED BETWEEN ADDRESSES (#677): the sends of this material leaving the job and coming to it
+ * while any of them is still in transit — where each goes or came from, the day it was sent and by
+ * whom, what is left of it and, for one leaving, how long it has been on the way — with what may be
+ * done to each under it: received by the job it goes to, taken back by the job it left, written off
+ * by the office. `Received`, `Sent` and `In transit` join the stock table once the material has a
+ * figure in one, and the form that sends it sits beside the one that issues it. A receipt in the
+ * activity names the day it was sent beside its own day in the Date column. A material that has
+ * only ever been sent here is on this page too, since the job's inventory names it.
+ *
+ * HOW LONG A SEND HAS BEEN ON THE WAY IS COUNTED TO THE SERVER'S DAY, `daysWaiting`'s, as the
+ * invoice screens count a wait: the reader's own today is known only in their browser.
  */
 export default async function JobMaterialPage(props) {
     return withOpsLabel("/materials/[jobCode]/[materialId]", () => renderJobMaterialPage(props));
@@ -38,7 +56,8 @@ async function renderJobMaterialPage({ params }) {
     const { jobCode, materialId } = await params;
     const code = decodeURIComponent(jobCode);
     const materialRecordId = decodeURIComponent(materialId);
-    const job = (await getAllJobs()).find((candidate) => candidate.jobCode === code) ?? null;
+    const jobs = await getAllJobs();
+    const job = jobs.find((candidate) => candidate.jobCode === code) ?? null;
     const allowed = job && canAccessJobInventory(user, job.id);
     const read = allowed ? await readJobInventory(job) : null;
     const stock = read?.inventory.get(materialRecordId) ?? null;
@@ -57,15 +76,24 @@ async function renderJobMaterialPage({ params }) {
 
     const unit = material.unit ?? "";
     const label = (addressRecordId) => read.addressLabelById.get(addressRecordId) ?? addressRecordId;
+    const jobCodeById = new Map(jobs.map((j) => [j.id, j.jobCode]));
+    const jobCodeOf = (jobRecordId) => jobCodeById.get(jobRecordId) ?? jobRecordId;
     const addresses = [...stock.byAddress]
         .map(([addressRecordId, at]) => ({ addressRecordId, label: label(addressRecordId), ...at }))
         .sort((a, b) => a.label.localeCompare(b.label));
     const activity = materialActivity({ materialRecordId, ...read });
-    const users = await getUsersByRecordIds([...new Set(activity.map((row) => row.recordedBy).filter(Boolean))]);
+    const ofThis = (send) => send.materialRecordId === materialRecordId && send.remaining > 0;
+    const outgoing = read.outgoing.filter(ofThis);
+    const incoming = read.incoming.filter(ofThis);
+    const people = [...activity.map((row) => row.recordedBy), ...outgoing.map((send) => send.sentBy), ...incoming.map((send) => send.sentBy)];
+    const users = await getUsersByRecordIds([...new Set(people.filter(Boolean))]);
     const nameOf = new Map(users.map((u) => [u.id, userName(u)]));
     const issuable = addresses.filter((at) => at.inStock > 0).map(({ addressRecordId, label: addressLabel, inStock }) => ({ addressRecordId, label: addressLabel, inStock }));
     const columns = INVENTORY_COPY.list.columns;
     const activityColumns = COPY.activityColumns;
+    const figures = movedBetweenAddresses(stock) ? ["delivered", "received", "issued", "sent", "inTransit", "inStock"] : ["delivered", "issued", "inStock"];
+    const today = new Date().toISOString().slice(0, 10);
+    const words = (row) => transitActivityWords(row, unit, { sendById: read.sendById, addressLabel: label, jobCode: jobCodeOf, plain: activityWords });
 
     return (
         <UndrawnPage measure="list">
@@ -80,7 +108,7 @@ async function renderJobMaterialPage({ params }) {
                 <thead>
                     <tr className="border-b border-zinc-300 text-left">
                         <th className="py-2 font-medium">{columns.address}</th>
-                        {["delivered", "issued", "inStock"].map((key) => (
+                        {figures.map((key) => (
                             <th key={key} className="w-28 py-2 text-right font-medium">
                                 {columns[key]}
                             </th>
@@ -91,9 +119,9 @@ async function renderJobMaterialPage({ params }) {
                     {addresses.map((at) => (
                         <tr key={at.addressRecordId} className="border-b border-zinc-200">
                             <td className="py-2 pr-4">{at.label}</td>
-                            {["delivered", "issued", "inStock"].map((key) => (
+                            {figures.map((key) => (
                                 <td key={key} className={`py-2 text-right tabular-nums ${key === "inStock" && at[key] < 0 ? "text-red-700" : ""}`}>
-                                    {qtyText(at[key], unit)}
+                                    {key === "inTransit" ? <InTransitCell figures={at} unit={unit} /> : qtyText(at[key], unit)}
                                 </td>
                             ))}
                         </tr>
@@ -101,45 +129,94 @@ async function renderJobMaterialPage({ params }) {
                 </tbody>
             </table>
 
-            <IssueForm jobRecordId={job.id} materialRecordId={materialRecordId} unit={unit} addresses={issuable} />
-
-            <h2 className="mt-10 text-lg font-semibold">{COPY.activityHeading}</h2>
-            <div className="mt-2 overflow-x-auto">
-                <table className="w-full min-w-[44rem] text-sm">
-                    <thead>
-                        <tr className="border-b border-zinc-300 text-left">
-                            {["date", "what", "address", "by", "at"].map((key) => (
-                                <th key={key} className="py-2 pr-4 font-medium">
-                                    {activityColumns[key]}
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {activity.map((row) => (
-                            <tr key={row.key} className="border-b border-zinc-200 align-top">
-                                <td className="py-2 pr-4 tabular-nums">{row.date || "—"}</td>
-                                <td className="py-2 pr-4">
-                                    {activityWords(row, unit)}
-                                    {row.deliveryId ? (
-                                        <>
-                                            {" · "}
-                                            <Link href={`/deliveries/${encodeURIComponent(row.deliveryId)}`} className="underline">
-                                                {row.deliveryId}
-                                            </Link>
-                                        </>
-                                    ) : null}
-                                </td>
-                                <td className="py-2 pr-4">{row.addressRecordId ? label(row.addressRecordId) : "—"}</td>
-                                <td className="py-2 pr-4">{nameOf.get(row.recordedBy) ?? "—"}</td>
-                                <td className="py-2 pr-4">
-                                    <Instant at={row.recordedAt} />
-                                </td>
-                            </tr>
+            {outgoing.length + incoming.length > 0 ? (
+                <section>
+                    <h2 className="mt-8 text-lg font-semibold">{TRANSIT_COPY.heading}</h2>
+                    <ul className="mt-2 divide-y divide-zinc-200 border-y border-zinc-200 text-sm">
+                        {outgoing.map((send) => (
+                            <li key={`out-${send.id}`} className="py-3">
+                                <p className="font-medium">
+                                    {TRANSIT_COPY.outgoing(label(send.toAddressRecordId), jobCodeOf(send.toJobRecordId))}
+                                </p>
+                                <p className="text-zinc-600">
+                                    {label(send.fromAddressRecordId)} · {TRANSIT_COPY.sent(send.sentDate, nameOf.get(send.sentBy))} ·{" "}
+                                    {TRANSIT_COPY.left(send.remaining, send.qty, unit)} · {TRANSIT_COPY.days(daysWaiting(send.sentDate, today))}
+                                </p>
+                                {canCancel(user, send) ? <CancelSendForm sentRecordId={send.id} remaining={send.remaining} unit={unit} /> : null}
+                                {canWriteOff(user) ? <WriteOffForm sentRecordId={send.id} remaining={send.remaining} unit={unit} /> : null}
+                            </li>
                         ))}
-                    </tbody>
-                </table>
-            </div>
+                        {incoming.map((send) => (
+                            <li key={`in-${send.id}`} className="py-3">
+                                <p className="font-medium">
+                                    {TRANSIT_COPY.incoming(label(send.fromAddressRecordId), jobCodeOf(send.fromJobRecordId))}
+                                </p>
+                                <p className="text-zinc-600">
+                                    {label(send.toAddressRecordId)} · {TRANSIT_COPY.sent(send.sentDate, nameOf.get(send.sentBy))} ·{" "}
+                                    {TRANSIT_COPY.left(send.remaining, send.qty, unit)}
+                                </p>
+                                {canReceive(user, send) ? <ReceiveForm sentRecordId={send.id} unit={unit} sentDate={send.sentDate} /> : null}
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            ) : null}
+
+            <IssueForm jobRecordId={job.id} materialRecordId={materialRecordId} unit={unit} addresses={issuable} />
+            {canSendFrom(user, job.id) ? (
+                <SendForm
+                    jobRecordId={job.id}
+                    materialRecordId={materialRecordId}
+                    unit={unit}
+                    addresses={issuable}
+                    destinations={destinationChoices({ jobs, addresses: read.addresses, fromJobRecordId: job.id })}
+                />
+            ) : null}
+
+            {/* ONCE IT HAS A ROW, as a delivery's page draws its own (#680): a material only ever sent
+                here and not yet received has none, and a header over nothing reads as a table that
+                failed (#677). */}
+            {activity.length > 0 ? (
+                <>
+                    <h2 className="mt-10 text-lg font-semibold">{COPY.activityHeading}</h2>
+                    <div className="mt-2 overflow-x-auto">
+                        <table className="w-full min-w-[44rem] text-sm">
+                            <thead>
+                                <tr className="border-b border-zinc-300 text-left">
+                                    {["date", "what", "address", "by", "at"].map((key) => (
+                                        <th key={key} className="py-2 pr-4 font-medium">
+                                            {activityColumns[key]}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {activity.map((row) => (
+                                    <tr key={row.key} className="border-b border-zinc-200 align-top">
+                                        <td className="py-2 pr-4 tabular-nums">{row.date || "—"}</td>
+                                        <td className="py-2 pr-4">
+                                            {words(row)}
+                                            {row.deliveryId ? (
+                                                <>
+                                                    {" · "}
+                                                    <Link href={`/deliveries/${encodeURIComponent(row.deliveryId)}`} className="underline">
+                                                        {row.deliveryId}
+                                                    </Link>
+                                                </>
+                                            ) : null}
+                                        </td>
+                                        <td className="py-2 pr-4">{row.addressRecordId ? label(row.addressRecordId) : "—"}</td>
+                                        <td className="py-2 pr-4">{nameOf.get(row.recordedBy) ?? "—"}</td>
+                                        <td className="py-2 pr-4">
+                                            <Instant at={row.recordedAt} />
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </>
+            ) : null}
         </UndrawnPage>
     );
 }
