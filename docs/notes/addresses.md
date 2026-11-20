@@ -69,7 +69,8 @@ worst direction: a default missing from the set is exactly the address the creat
 screen has to show, since the job's own default is the one a requester is most
 likely to retype.
 
-`lib/addressCreation.js:addressesOnJob` is the one rule, and it takes the union.
+`lib/addressCreation.js:addressesOnJob` is the one rule, and it takes the union
+(`lib/jobAddresses.js`'s since #680).
 `offline/address-creation.mjs` holds it with two SEPARATE paths rather than one
 assertion phrased twice — one fixture address reachable only as the default and
 one only through the address's own link — so dropping either clause drops a named
@@ -430,13 +431,15 @@ issues for one field because each is a different FACT: a job's default is a habi
 a request's is an instruction, an order's is what a vendor was told, and a
 delivery's is what happened. The chain exists because inventory is counted per
 address, and `Deliveries."Delivery Address"` is the one of the four a quantity on
-hand is counted by — which is why it is the only one of the four that is not
-editable after it is written.
+hand is counted by — which is why it was the only one of the four not editable
+after it was written, until #680 made it correctable to another of the job's
+addresses with a refusal below zero (below).
 
 - **NOTHING IN THE APP READS A JOB'S ADDRESS AS A DOCUMENT'S ANY MORE.**
   `Jobs."Delivery Address"` has exactly one reader left: `/prs/new`, where it is
   the preselected branch of a picker, and `addressesOnJob`, where it is one arm of
-  the union that groups a list. It is a FORM DEFAULT and nothing else. #386 removed
+  the union that groups a list — and, since #680, the union a delivery's address is
+  chosen from. It is a FORM DEFAULT and nothing else. #386 removed
   the last live read on the order axis and #387 declined to open a new one on the
   delivery axis — the fallback there costs one token and was refused on the record.
   **That is the sentence to check before a job-address editor is built**, because
@@ -450,6 +453,10 @@ the union), `Purchase Requests`, `Purchase Orders` and `Deliveries`. Every one o
 them was created by a script in this chain and named by hand afterwards; the
 inverse Airtable auto-creates took the source table's name correctly in all of
 them, which is the fifth and sixth confirmation of #334's 5-of-5 measurement.
+
+### A delivery stands at one of its job's addresses (#680)
+
+`docs/notes/deliveries-and-invoices.md` owns the issue — the correction, its refusal and its record. What belongs here is what it did to the chain. **The four addresses are four facts still, and the delivery's is now held to the job's**: a request may name any address, since where material is to go can be a supplier's counter, while a delivery's is where the job's stock is counted, so it is one of the addresses `addressesOnJob` returns, at entry and when corrected. **`addressesOnJob` moved to `lib/jobAddresses.js`**, its move condition fired by its third caller; the create screen, the request form and both delivery forms import it from there. **The address form is now a way out of the delivery form too**: a job with no address takes no delivery, so the form links `/addresses/new?job=` for it — the `?job=` this screen already read, and no `from` beside it, since a delivery has no draft to come back to.
 
 ### A closed job takes no new address (#488)
 

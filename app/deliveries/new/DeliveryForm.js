@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
+import Link from "next/link";
 import { upload } from "@vercel/blob/client";
 import { refuseOversizeUpload } from "@/lib/uploadLimit";
 import { createDeliveryAction } from "./actions";
@@ -11,8 +12,9 @@ import {
     itemOptionLabel,
     planDelivery,
 } from "@/lib/deliveryAllocation";
-import { ADDRESS_CHOICE_COPY, addressOptions } from "@/lib/addressChoice";
-import { DELIVERY_ADDRESS_COPY, deliveryAddressDefault } from "@/lib/deliveryAddress";
+import { ADDRESS_CHOICE_COPY } from "@/lib/addressChoice";
+import { DELIVERY_ADDRESS_COPY, addAddressPath, deliveryAddressDefault } from "@/lib/deliveryAddress";
+import { addressesOnJob } from "@/lib/jobAddresses";
 
 // EVERY IMPORT HERE MUST BE CLIENT-SAFE. lib/deliveryAllocation.js imports only
 // lib/poItemQty.js, which imports nothing, so neither reaches lib/airtable/. That
@@ -173,7 +175,7 @@ export default function DeliveryForm({
         setHasPoNumber(false);
         setRows([{ ...EMPTY_ROW }]);
         // #387 — a pick made under the old job survives nothing else here and must
-        // not survive this either: the picker's first group is that JOB's addresses,
+        // not survive this either: the picker holds that JOB's addresses alone (#680),
         // and the default comes from orders the new job does not have.
         setPickedAddressId("");
     }
@@ -219,20 +221,23 @@ export default function DeliveryForm({
     // which orders are in play and the plan can. The rule itself is
     // `lib/deliveryAddress.js`, so this component decides nothing — it renders the
     // answer and the sentence that goes with it.
+    //
+    // #680 — AND ONLY AMONG THE JOB'S OWN ADDRESSES. A delivery's address is where
+    // the job's stock is counted, so the list is `addressesOnJob` and nothing else,
+    // and an address the orders agree on that is not the job's is no default.
+    const jobAddresses = useMemo(() => addressesOnJob(selectedJob, addresses), [selectedJob, addresses]);
     const addressDefault = useMemo(
         () =>
             deliveryAddressDefault(
                 [...plansByMaterial.values()].flatMap((p) =>
                     (p.rows || []).map((r) => r.orderedItem).filter(Boolean)
-                )
+                ),
+                jobAddresses.map((a) => a.id)
             ),
-        [plansByMaterial]
+        [plansByMaterial, jobAddresses]
     );
     const chosenAddressId = pickedAddressId || addressDefault.addressId || "";
-    const addressGroups = useMemo(
-        () => addressOptions(selectedJob, addresses),
-        [selectedJob, addresses]
-    );
+    const jobHasNoAddress = Boolean(selectedJob) && jobAddresses.length === 0;
 
     const filledRows = rows.filter((r) => r.materialRecordId && Number(r.qty) > 0);
     // NO BLOCKED-PLAN BRANCH HERE, and that is measured rather than assumed (#165).
@@ -289,6 +294,18 @@ export default function DeliveryForm({
                         </option>
                     ))}
                 </select>
+                {/* #680 — a job with no address takes no delivery, since a delivery
+                    stands at one of its job's. Said as soon as the job is picked, before
+                    anything is typed, with the way to add one: the address form is open
+                    to every reader (#384), and nothing here is a draft to lose. */}
+                {jobHasNoAddress && (
+                    <p className="mt-1 text-sm text-amber-700">
+                        {DELIVERY_ADDRESS_COPY.noJobAddress(selectedJob.jobCode)}{" "}
+                        <Link href={addAddressPath(selectedJob.jobCode)} className="underline">
+                            {DELIVERY_ADDRESS_COPY.addAddress}
+                        </Link>
+                    </p>
+                )}
             </div>
 
             {/* --- Optional PO number ------------------------------------------- */}
@@ -584,13 +601,17 @@ export default function DeliveryForm({
                     because the answer depends on the rows above, so it has to read
                     after them.
 
-                    THE LABEL AND THE GROUP HEADINGS ARE `/prs/new`'s OWN WORDS,
+                    THE LABEL AND THE PLACEHOLDER ARE `/prs/new`'s OWN WORDS,
                     imported rather than re-coined: the two forms ask one question
                     about one table, and a second wording would be two words for one
-                    fact the first time either was reworded. What is new is only the
+                    fact the first time either was reworded. What is new is the
                     sentence under the control, which is about where the DEFAULT came
                     from — a question that does not arise on a form whose default is
-                    the job's. */}
+                    the job's.
+
+                    ONE LIST SINCE #680, THE JOB'S OWN ADDRESSES, so the request form's
+                    two group headings are not drawn here: a delivery stands at one of
+                    its job's addresses, which is where the job's stock is counted. */}
                 <div>
                     <label htmlFor="deliveryAddressSelect" className="block text-sm font-medium">
                         {ADDRESS_CHOICE_COPY.label}
@@ -599,27 +620,15 @@ export default function DeliveryForm({
                         id="deliveryAddressSelect"
                         value={chosenAddressId}
                         onChange={(e) => setPickedAddressId(e.target.value)}
+                        disabled={jobHasNoAddress}
                         className={inputClass}
                     >
                         <option value="">{ADDRESS_CHOICE_COPY.pickerUnchosen}</option>
-                        {addressGroups.onJob.length > 0 && (
-                            <optgroup label={ADDRESS_CHOICE_COPY.groupOnJob}>
-                                {addressGroups.onJob.map((a) => (
-                                    <option key={a.id} value={a.id}>
-                                        {a.addressLabel}
-                                    </option>
-                                ))}
-                            </optgroup>
-                        )}
-                        {addressGroups.others.length > 0 && (
-                            <optgroup label={ADDRESS_CHOICE_COPY.groupOthers}>
-                                {addressGroups.others.map((a) => (
-                                    <option key={a.id} value={a.id}>
-                                        {a.addressLabel}
-                                    </option>
-                                ))}
-                            </optgroup>
-                        )}
+                        {jobAddresses.map((a) => (
+                            <option key={a.id} value={a.id}>
+                                {a.addressLabel}
+                            </option>
+                        ))}
                     </select>
                     {/* Gray reports what the app did, amber asks the recorder to
                         check — this screen's own grammar, the split #231's pairing
@@ -654,6 +663,13 @@ export default function DeliveryForm({
                     {addressDefault.state === "disagree" && (
                         <p className="mt-1 text-xs text-amber-700">
                             {DELIVERY_ADDRESS_COPY.disagree}
+                        </p>
+                    )}
+                    {/* #680 — about the ORDERS too, so it stays after a pick, gray as
+                        `noOrderAddress` is: the recorder has done nothing wrong. */}
+                    {addressDefault.state === "not-on-job" && (
+                        <p className="mt-1 text-xs text-zinc-500">
+                            {DELIVERY_ADDRESS_COPY.notOnJob(addressDefault.orderCount)}
                         </p>
                     )}
                 </div>

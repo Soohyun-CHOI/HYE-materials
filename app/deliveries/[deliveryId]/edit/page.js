@@ -6,7 +6,13 @@ import { FILE_AXIS } from "@/lib/fileLinks";
 import { getDeliveryById } from "@/lib/airtable/deliveries";
 import { getJobByRecordId } from "@/lib/airtable/jobs";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
+import { getAllAddresses } from "@/lib/airtable/addresses";
+import { ADDRESS_CHOICE_COPY } from "@/lib/addressChoice";
+import { closedJobRefusal } from "@/lib/closedJob";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
+import { correctionOptions } from "@/lib/deliveryAddress";
+import { isAddressOnJob } from "@/lib/jobAddresses";
+import AddressCorrectionForm from "./AddressCorrectionForm";
 import DeliveryEditForm from "./DeliveryEditForm";
 import { withOpsLabel } from "@/lib/airtableOps";
 
@@ -34,6 +40,11 @@ export const metadata = { title: "Edit Delivery" };
  * and #640 TOOK IT AWAY WITH THE PAIRING. Invoices and deliveries meet only through
  * the ordered items both name, so nothing on this page says which invoice a delivery
  * answers; the invoice detail and the order's own page say how much of each arrived.
+ *
+ * #680 ADDED THE ADDRESS, as a form of its own: correcting it moves the delivery's
+ * stock, so it has its own refusals and its own row on the delivery's activity. It is
+ * offered while the job is open, as recording a delivery is, and costs the page one
+ * read, the address table, which holds the current address's label too.
  */
 // Labeled for #190 by #224, the sweep across every entry point that opened no
 // scope. An outer wrapper, so the page's own logic keeps its indentation, and
@@ -61,12 +72,16 @@ async function renderEditDeliveryPage({ params }) {
         );
     }
 
-    const [job, vendor] = await Promise.all([
+    const [job, vendor, addresses] = await Promise.all([
         delivery.job?.[0] ? getJobByRecordId(delivery.job[0]) : null,
         delivery.vendor?.[0] ? getVendorByRecordId(delivery.vendor[0]) : null,
+        getAllAddresses(),
     ]);
 
     const photo = delivery.packingListFile?.[0] ?? null;
+    const standingAddressId = delivery.deliveryAddress?.[0] ?? "";
+    const standingAddress = addresses.find((address) => address.id === standingAddressId) ?? null;
+    const closed = closedJobRefusal(job);
 
     return (
         <UndrawnPage measure="delivery">
@@ -89,6 +104,10 @@ async function renderEditDeliveryPage({ params }) {
                     <span className="text-zinc-500">Vendor:</span> {vendor?.vendorName ?? "—"}
                 </p>
                 <p>
+                    <span className="text-zinc-500">{ADDRESS_CHOICE_COPY.label}:</span>{" "}
+                    {standingAddress?.addressLabel ?? "—"}
+                </p>
+                <p>
                     <span className="text-zinc-500">Current packing list:</span>{" "}
                     {photo ? (
                         <FileViewer
@@ -106,9 +125,9 @@ async function renderEditDeliveryPage({ params }) {
             </div>
 
             <p className="mt-4 rounded border border-zinc-200 px-3 py-2 text-xs text-zinc-600">
-                Only the received date, the note and the packing list photo can be changed. The
-                item, the quantity, the vendor and the PO are fixed — correcting one of those means
-                deleting this delivery and entering it again.
+                Only the received date, the note, the packing list photo and the delivery address
+                can be changed. The item, the quantity, the vendor and the PO are fixed — correcting
+                one of those means deleting this delivery and entering it again.
             </p>
 
             <DeliveryEditForm
@@ -116,6 +135,20 @@ async function renderEditDeliveryPage({ params }) {
                 receivedDate={delivery.receivedDate || ""}
                 notes={delivery.notes || ""}
             />
+
+            {/* #680 — the address, offered while the job is open; a closed job says so where
+                the control would be, and the address stands above either way (#318). */}
+            {closed ? (
+                <p className="mt-8 border-t border-zinc-200 pt-6 text-sm text-zinc-600">{closed}</p>
+            ) : (
+                <AddressCorrectionForm
+                    deliveryId={delivery.deliveryId}
+                    shownAddressId={standingAddressId}
+                    options={correctionOptions(job, addresses, standingAddressId).map(({ id, addressLabel }) => ({ id, addressLabel }))}
+                    jobCode={job?.jobCode ?? ""}
+                    standsOffJobLabel={standingAddress && !isAddressOnJob(job, addresses, standingAddressId) ? standingAddress.addressLabel : null}
+                />
+            )}
         </UndrawnPage>
     );
 }

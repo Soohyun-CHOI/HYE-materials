@@ -31,7 +31,9 @@ export const ORDER = [
     // The inventory's ledger (#675): a row names a job's address and a material, so it goes
     // before the materials, and before the deliveries its stock is counted beside.
     TABLES.MATERIAL_LOG,
-    // The delivery side.
+    // The delivery side. A delivery's `Delivery Log` rows name it and two addresses (#680), so
+    // they go before it.
+    TABLES.DELIVERY_LOG,
     TABLES.DELIVERY_ITEMS,
     TABLES.DELIVERIES,
     // The item axis. Prices before materials: a price row is keyed on a material and

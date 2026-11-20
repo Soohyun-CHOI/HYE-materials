@@ -144,6 +144,15 @@ const PO_DOCUMENT_AXIS =
     "the requester is on it at all (#138's symmetry); the office is on it because not sending stops the work " +
     "where not withdrawing stops nothing.";
 
+// #680's. DELIVERY_JOB_AXIS's comparison and the job open, asked inside the shared write path
+// rather than in the action body — deleteDeliveryAction's arrangement — so a script reaches the
+// real guard.
+const DELIVERY_CORRECTION_AXIS =
+    "Session + membership of the delivery's Job and the Job open, not a role: canAccessJobDeliveries " +
+    "(lib/deliveryAccess.js) and closedJobRefusal (lib/closedJob.js), the two questions createDeliveryAction " +
+    "asks, compared per record inside correctDeliveryAddress (lib/deliveryAddress.server.js). Whoever may record " +
+    "a delivery on the Job may correct its address, which no role helper covers.";
+
 const DELIVERY_AUTHOR_AXIS =
     "Session + authorship, not a role. The Job scope is checked first so someone outside it learns nothing, then " +
     "canDeleteDelivery (lib/deliveryDelete.js) decides on author-or-Admin inside the shared write path. Admin is " +
@@ -361,6 +370,7 @@ const EXEMPTIONS = [
     { file: "app/deliveries/[deliveryId]/actions.js", name: "updateDeliveryAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },
     { file: "app/deliveries/[deliveryId]/actions.js", name: "replaceDeliveryPhotoAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },
     { file: "app/deliveries/[deliveryId]/actions.js", name: "deleteDeliveryAction", mustCall: "requireUser", reason: DELIVERY_AUTHOR_AXIS },
+    { file: "app/deliveries/[deliveryId]/actions.js", name: "correctDeliveryAddressAction", mustCall: "requireUser", reason: DELIVERY_CORRECTION_AXIS },
     {
         file: "app/deliveries/[deliveryId]/actions.js",
         name: "createOverageDraftAction",

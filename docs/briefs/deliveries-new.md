@@ -66,28 +66,33 @@ because both describe how the list itself was built:
 
 **action — `Received Date`.**
 
-**action — `Delivery address`,** a required dropdown beside the date, holding every
-address on the base in two groups — the ones this job uses first, then the rest.
-**The app fills it in from the orders the items above attach to**, and the reader
-can change it: the order says where the material was meant to go and this says
-where it was delivered, which is a different fact and the reason the field exists.
-It is the same control, the same word and the same two group headings as the
-request form's own address picker.
+**action — `Delivery address`,** a required dropdown beside the date, holding the
+addresses the chosen job uses and no other (#680): a delivery's address is where
+the job's stock is counted, so another job's address, or a supplier's, would put
+this job's material where none of its screens can say why. **The app fills it in
+from the orders the items above attach to**, and the reader can change it: the
+order says where the material was meant to go and this says where it was
+delivered, which is a different fact and the reason the field exists. It is the
+same control and the same word as the request form's own address picker, but one
+list where that form's has two groups, since a request may name any address.
 
-**Under the control, one line saying where the default came from** — or none. Four
+**Under the control, one line saying where the default came from** — or none. Five
 states, and the silence is one of them: before any item has been entered the
 control stands alone, because the app has nothing to claim yet. When the orders
 agree it reports `Taken from the order this delivery attaches to.` in gray, with
 `Some of these orders record no address` added in amber when only some of them
 named one. When none of them did, gray again — it names the ORDER rather than the
 reader, who has done nothing wrong, since almost every order on the base records
-none. And when two orders name different addresses, nothing is preselected and an
-amber line says `so pick where the material was delivered`.
+none. When two orders name different addresses, nothing is preselected and an
+amber line says `so pick where the material was delivered`. And when the orders
+agree on an address that is not one of the job's, nothing is preselected and a
+gray line says so — the request was free to name it, and the recorder has done
+nothing wrong.
 
-**It never falls back to the job's usual address.** The job's addresses are first
-in the list, one click away, but the app does not assert one: this is the field
-inventory will be counted by, so a prefilled guess a busy reader accepts puts
-stock in the wrong place and leaves nothing on screen to say so.
+**It never falls back to the job's usual address.** The job's addresses are the
+list, one click away, but the app does not assert one: this is the field
+inventory is counted by, so a prefilled guess a busy reader accepts puts stock in
+the wrong place and leaves nothing on screen to say so.
 
 **action — `Packing list photo`,** a file input accepting PDF, JPEG or PNG.
 Required — the deliveries list's own empty state tells readers that the photo is
@@ -137,6 +142,12 @@ limit`, then the photo's own size against the limit. It reuses the failed-upload
 line and needs no room of its own. The limit is one number for the whole app, so
 a phone photo is held to what a quotation and an invoice are.
 
+**When the chosen job has no address (#680):** an amber line under the job, as soon
+as it is picked and before anything is typed, saying so and that no delivery can be
+recorded on it, with a link to add an address to the job; the address dropdown is
+disabled, and so is the button. Any reader may add an address, and nothing on this
+form is a draft to lose by leaving.
+
 **When the save fails:** the error in red above the button.
 
 **When the reader may use no open job:** no form, only the heading and one line
@@ -169,16 +180,17 @@ the invoice form.** In all three the document is what makes the record a record.
 **`Not against any order` is the same phrase** the delivery detail's table uses for
 the same state.
 
-**`Delivery address` is the request form's own word**, and so are the placeholder
-and the two group headings — one question about one table, asked on two forms.
-The two refusals are shared too, so a missing address reads identically whichever
-form refused it.
+**`Delivery address` is the request form's own word**, and so is the placeholder —
+one question about one table, asked on two forms. The two refusals are shared too,
+so a missing address reads identically whichever form refused it. The request
+form's two group headings are not here: this list is the job's alone.
 
 **The gray-versus-amber split under this control is the app's general grammar:**
 gray reports what the app did, amber asks a person to check. (The pairing box above
 it used the same split until #640 removed it.)
 
-**This screen is the only place the address is ever set.** It cannot be edited
-afterwards and the delivery's own page has no control for it — inventory is
-counted per address, so moving a recorded delivery to a different one is a stock
-movement rather than a correction, and nothing counts stock yet.
+**This screen sets the address, and the delivery's edit page corrects it (#680)**
+— to another of the job's addresses, refused when the address it leaves would go
+below zero, with a line on the delivery's activity. Inventory is counted per
+address, so a correction moves the delivery's stock with it; material that really
+moved after it was delivered is #677's sending and receiving, not a correction.

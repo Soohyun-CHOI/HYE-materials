@@ -96,6 +96,7 @@ const SHOWS = [
     ["app/materials/[jobCode]/page.js", "the job whose inventory it is"],
     ["app/materials/[jobCode]/[materialId]/page.js", "the job the material's stock is on"],
     ["lib/materialStock.server.js", "the job whose stock an issue and a delivery's delete read again"],
+    ["lib/deliveryAddress.server.js", "the delivery's own job, which a correction of its address does not change and refuses closed (#680)"],
     ["lib/poGeneration.js", "the request's job, for the order's PIC and manager"],
     ["lib/poPdf.js", "the order's job, printed on its document"],
 ];

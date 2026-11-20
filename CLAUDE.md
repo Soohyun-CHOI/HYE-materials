@@ -69,17 +69,7 @@ What that boundary implies keeps coming up: a decision made before a PR exists c
 - Next.js (App Router, JavaScript, Tailwind), deployed on Vercel.
 - Airtable as data store only (base: "Material Purchases"). All business logic lives in the backend. Airtable formulas only for pure data transforms, never workflow logic.
 - Auth: a magic link, or the code the same email carries (#471), restricted to company email domain, verified.
-
-
-### Editing the Airtable schema
-
-**The schema is editable by either of us, and a schema change ships in the SAME COMMIT as the code that reads it.** Outside the assets axis, `Users` and `Jobs` (#531, #537) no production data exists yet, so the moment to fix a name or a shape is now.
-
-**Renaming a field is safe and the procedure is mechanical**: a rename carries every formula, rollup and view filter with it, so the only thing it breaks is a string literal here — and a grep coming back empty does not finish it. `airtable-access.md` has the mechanism, the read-every-hunk step and the near-miss behind them.
-
-**A schema edit may not be assumed scriptable.** The Metadata API cannot write everything, and what it refuses is measured rather than read off the documentation — `docs/notes/airtable-access.md` has the figures, including which of the refusals force an invariant onto the DATA instead. **A new table's Unit field is one of them** — leave it off and let `scripts/import/add_unit_options.py` create it.
-
-**Deleting or retyping a field is not the same as renaming it.** A rename preserves every value; a type change can silently drop them. Records in this base are not to be removed as tidying-up.
+- **A schema change ships in the SAME COMMIT as the code that reads it**, and how a field is renamed, retyped or made is `docs/notes/data-model.md`'s, which the index sends every schema change to.
 
 ## Service layer pattern
 
@@ -117,7 +107,8 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/materialCategory.js` — a category's composed label and the walk that narrows to one (#354, #355, #367), plus the `Category`+`Item Name` pair no call site may spell apart. **Nothing here writes a label.**
 - `lib/airtable/materialCategories.js` — the catalog's three reads (#355, #356) and its one write (#368). **A duplicate leaf code throws rather than letting a row win.**
 - `lib/materialCategoryCreation.js` — adding a path to the catalog (#368): the 900 block, the resolve-or-mint, the drafted name and every word the screen says.
-- `lib/addressCreation.js` — creating an address (#384): the label key, the addresses a job uses, the refusals and every word the screen says.
+- `lib/addressCreation.js` — creating an address (#384): the label key, the refusals and every word the screen says.
+- `lib/jobAddresses.js` — the addresses a job uses (#384), and so where a delivery may stand (#680).
 - `lib/addressChoice.js` — how a form asks where material goes, on both screens that ask (#385, #387). **A request stores an ADDRESS and not a choice.**
 - `lib/materialIdentity.js` — what makes two ordered items the same material (#356, #629), and `itemLabel`, the one line any screen names an item by (#629). The lock key, the cache's grouping key and `getMaterialByKey`'s values come from here.
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
@@ -161,7 +152,8 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/prKind.js` — which of three kinds a request is (#272), the mark for each and the signer's sentence.
 - `lib/prWait.js` — a record waiting for a request: `WAIT_STAGE`, and the listed-against-offered split both strips above `/prs` obey (#272).
 - `lib/deliveryAllocation.js` — the allocation rule (`planDelivery`), its replay (`recomputeOverDelivery`), `ALLOCATION_COPY`, and the dropdown helpers the form imports; `lib/deliveryAllocation.server.js`, the walk that finds ordered items.
-- `lib/deliveryAddress.js` — where a delivery arrived (#387): the default taken from the orders it attaches to. **A job's address defaults `/prs/new` and nothing else, and a recorded delivery's is never rewritten — stock is counted by it.**
+- `lib/deliveryAddress.js` — where a delivery arrived (#387): the default taken from the orders it attaches to, and a recorded one's correction (#680); `lib/deliveryAddress.server.js`, its reads and writes. **A job's address defaults `/prs/new` and nothing else, and a delivery's moves only by that correction, refused below zero.**
+- `lib/deliveryLog.js` — a delivery's activity (#680): `Delivery Log`'s events and its page's words.
 - `lib/deliveryStatus.js` — delivered against invoiced against ordered: the judgment, `STATUS_COPY`, the list filters, the worklist order. All three order-scope summaries live here (#311), and `AWAITING_DELIVERY_DAYS` (#263). **Invoices and deliveries meet only through the ordered items both name (#640)**: one side's total fills the other's rows oldest first in entry order (`fillOldestFirst`). **A screen showing an invoice never compares `Due Date` to today (#316)** — `invoicePayment` hands back the verdict and its day count. `lib/deliveryStatus.server.js` holds the two batched walks through `PO Items`.
 - `lib/deliveryAccess.js` — `canAccessJobDeliveries`, the one Job-scope rule for deliveries.
 - `lib/deliveryDelete.js` — the delete predicate, the three voices of the confirmation, and the guarded write.
@@ -222,7 +214,7 @@ Read `docs/notes/data-model.md` before touching `lib/airtable/**` or a field or 
 
 ## ID generation (lib/idSequence*.js)
 
-`docs/notes/id-generation.md` holds the counter rule, the six daily families and the ten child relations.
+`docs/notes/id-generation.md` holds the counter rule, the daily families and the child relations.
 
 ## Querying parent/child data
 

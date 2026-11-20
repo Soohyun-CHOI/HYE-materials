@@ -36,7 +36,7 @@ import {
     chosenAddressId,
     jobDefaultAddressId,
 } from "../../../lib/addressChoice.js";
-import { addressesOnJob } from "../../../lib/addressCreation.js";
+import { addressesOnJob } from "../../../lib/jobAddresses.js";
 import { parseFile, parseSource, walk, callsBefore, resolveFunction } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 

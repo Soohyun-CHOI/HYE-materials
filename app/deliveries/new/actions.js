@@ -14,6 +14,8 @@ import { isOurBlobUrl } from "@/lib/fileSource";
 import { getDeliveryCandidates } from "@/lib/deliveryAllocation.server";
 import { getAllAddresses } from "@/lib/airtable/addresses";
 import { ADDRESS_CHOICE_COPY } from "@/lib/addressChoice";
+import { DELIVERY_ADDRESS_COPY } from "@/lib/deliveryAddress";
+import { isAddressOnJob } from "@/lib/jobAddresses";
 import { getJobByRecordId } from "@/lib/airtable/jobs";
 import { describePlan, itemOptionLabel, planDelivery } from "@/lib/deliveryAllocation";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
@@ -150,10 +152,17 @@ export async function createDeliveryAction(prevState, formData) {
         const candidates = await getDeliveryCandidates([job]);
 
         // #387 — the id has to name a row, checked against the same whole-table read
-        // the form's picker was built from. Unreachable from the screen and a Server
-        // Action is directly callable, which is the whole of why it is here.
-        if (!(await getAllAddresses()).some((a) => a.id === deliveryAddressId)) {
+        // the form's picker was built from. #680 — and the row has to be one of the
+        // job's addresses, since the job's stock is counted where a delivery stands;
+        // the same read answers it, so it costs nothing. Both are unreachable from the
+        // screen, and a Server Action is directly callable, which is the whole of why
+        // they are here.
+        const addresses = await getAllAddresses();
+        if (!addresses.some((a) => a.id === deliveryAddressId)) {
             return { error: ADDRESS_CHOICE_COPY.unknown };
+        }
+        if (!isAddressOnJob(job, addresses, deliveryAddressId)) {
+            return { error: DELIVERY_ADDRESS_COPY.offJob };
         }
 
         // ONE PLAN PER MATERIAL, each against the same snapshot. Different materials

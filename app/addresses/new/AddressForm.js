@@ -9,17 +9,18 @@ import {
     ADDRESS_CREATION_COPY as COPY,
     ADDRESS_COUNTRIES,
     DEFAULT_COUNTRY,
-    addressesOnJob,
     matchExistingAddress,
 } from "@/lib/addressCreation";
+import { addressesOnJob } from "@/lib/jobAddresses";
 
 /**
  * The address form (#384).
  *
- * IT IMPORTS `lib/addressCreation.js` AND NOTHING ELSE FROM `lib/`, which is
- * #162's rule: an import is an execution, so a `"use client"` file that reaches
- * `lib/airtable/` at any depth crashes in the browser rather than failing a lint
- * rule. That module is pure by construction and every word below comes out of it.
+ * IT IMPORTS PURE MODULES ALONE FROM `lib/`, which is #162's rule: an import is an
+ * execution, so a `"use client"` file that reaches `lib/airtable/` at any depth
+ * crashes in the browser rather than failing a lint rule. `lib/addressCreation.js`,
+ * `lib/jobAddresses.js` and `lib/addressChoice.js` are pure by construction, and every
+ * word below comes out of the first.
  *
  * THE TWO LISTS ARE THE PAGE'S, ALREADY LOADED, so the preview and the job's own
  * addresses cost no request per keystroke and no request per job picked.
