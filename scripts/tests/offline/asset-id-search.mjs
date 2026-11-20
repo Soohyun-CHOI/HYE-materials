@@ -226,8 +226,8 @@ export function run({ check, log }) {
         "true false true false false"
     );
     check(
-        "  and draws on the design's names for its 40, its 12 inside and its 16 to the chevron, on the Face inside its Edge",
-        /className="flex h-found-item items-center gap-found-item-inline rounded-control border border-selected-border bg-selected px-found-item-inset-x /.test(found) &&
+        "  and draws on the design's names for its 36, its 12 inside and its 16 to the chevron, on the Face with no edge (Invoices 0b.35, #690)",
+        /className="flex h-found-item items-center gap-found-item-inline rounded-control border border-transparent bg-selected px-found-item-inset-x /.test(found) &&
             /<Icon name="chevron-right" kind="words" className="size-icon shrink-0" \/>/.test(found),
         true
     );
