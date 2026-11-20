@@ -459,7 +459,13 @@ function runCode({ check, assert, log }) {
     assert("  and is a link to itself in Ink, with no underline (#495)", /color: #202329; text-decoration: none;/.test(addressSpan));
     assert(
         "the button's cell carries Outlook's padding, which ignores a link's (#495)",
-        html.includes('<td align="center" bgcolor="#0055D5" style="border-radius: 8px; background: #0055D5; mso-padding-alt: 12px 28px;">')
+        html.includes('<td align="center" bgcolor="#0169DA" style="border-radius: 8px; background: #0169DA; mso-padding-alt: 12px 28px;">')
+    );
+    // THE BUTTON IS THE ACCENT IN HEX (Sign in 0a Colour, #690): the nearest hex to the screens'
+    // Accent, #0169DA since the files of 2026-11-20, and no other blue in the mail.
+    assert(
+        "the button is Sign in 0a's Accent in hex, #0169DA, and no other blue is written (#690)",
+        [...html.matchAll(/#[0-9A-Fa-f]{6}\b/g)].map((m) => m[0].toUpperCase()).filter((hex) => !["#FFFFFF", "#202329", "#464950", "#F3F4F6", "#17191E", "#EDEEF1", "#BBBEC3", "#25282E"].includes(hex)).join(" ") === "#0169DA #0169DA"
     );
     // EVERY VALUE IN THE MARKUP IS ESCAPED (#473), the address and the link as well as the
     // link's `&`, so a value cannot become markup.

@@ -37,12 +37,13 @@ const ICON = "app/components/Icon.js";
  * The figures the files of 2026-10-27 give (`Tools - new direction.dc (42).html`): 1f's `Add
  * note` at rest and under the pointer, and `Edit` beside a note under it; 0m's section row,
  * the current one on the Face at 500 in Ink, the others in Ink 2 at 500. Hover is Field since the
- * files of 2026-11-17, Ink at 6% where it was 5.5% (Invoices 0e.12, #670).
+ * files of 2026-11-17, Ink at 6% where it was 5.5% (Invoices 0e.12, #670), and the Face, the
+ * Accent and its hover are the files of 2026-11-20's (Invoices 0c.1, 0c.3, 0c.4; #690).
  */
 const DRAWING = {
-    face: "#F0F9FF",
-    accent: "oklch(0.487 0.216 257)",
-    accentHover: "oklch(0.437 0.211 257)",
+    face: "#ECF6FE",
+    accent: "oklch(0.540 0.191 257)",
+    accentHover: "oklch(0.487 0.191 257)",
     ink: "oklch(0.255 0.013 265)",
     ink2: "oklch(0.405 0.013 265)",
     ink3: "oklch(0.505 0.012 265)",

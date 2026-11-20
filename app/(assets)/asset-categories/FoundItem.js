@@ -12,8 +12,8 @@ import { readFoundHolderAction } from "./actions";
 
 /**
  * The way to the item the band's search found by its id (1a, #541): one line under the band, on
- * the Face inside its Edge at the Control's corner, a row's 36 tall (Invoices 0b.33; 40 until #670)
- * with 12 inside — the id in its face,
+ * the Face with no edge at the Control's corner (inside a blue Edge until #690), filling at Face
+ * hover, a row's 36 tall (Invoices 0b.35; 40 until #670) with 12 inside — the id in its face,
  * the item's name, its status with the mark 1d draws it with and, while it is out, who holds it,
  * a dot between each — and a 16 chevron in the Accent at its end, 16 from them at least. The
  * whole line is the way to the item's own page, and Enter in the search is too.
@@ -63,7 +63,7 @@ export default function FoundItem({ found }) {
     return (
         <Link
             href={assetPath(assetId)}
-            className="flex h-found-item items-center gap-found-item-inline rounded-control border border-selected-border bg-selected px-found-item-inset-x text-body text-primary outline-none hover:bg-selected-hover hover:text-primary-hover focus-visible:border-border-focus"
+            className="flex h-found-item items-center gap-found-item-inline rounded-control border border-transparent bg-selected px-found-item-inset-x text-body text-primary outline-none hover:bg-selected-hover hover:text-primary-hover focus-visible:border-border-focus"
         >
             {/* The line is a link and takes a link's Accent, lifting under the pointer, which its
                 chevron takes as a mark that belongs to the press (0a Icon box, #614); the words

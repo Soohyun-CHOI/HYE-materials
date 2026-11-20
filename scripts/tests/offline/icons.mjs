@@ -251,6 +251,8 @@ const MARKS_BY_FILE = {
     "app/(assets)/assets/[assetId]/page.js": ["arrow-right", "map-pin", "search-x", "user"],
     // An Activity entry's mark at a desk, its event's (Invoices 0o.56, #670).
     "app/components/ActivityTrail.js": ["arrow-right-left", "ban", "check", "hammer", "log-in", "log-out", "undo-2", "wrench"],
+    // An address this device has not signed in with draws a person mark and no letters (Invoices 0q.9, #690).
+    "app/components/Avatar.js": ["user"],
     "app/components/Breadcrumb.js": ["chevron-left"],
     "app/components/Controls.js": ["arrow-up-down", "check", "chevron-down", "circle-alert", "info", "map-pin", "minus", "plus", "search", "x"],
     "app/components/DialogFrame.js": ["check", "search", "x"],
@@ -287,6 +289,7 @@ const KINDS_BY_FILE = {
     // A qualifier at Ink 3 for an event that stays grey, and current, in Accent, for one that settles
     // something left open (0o.36, 0o.37).
     "app/components/ActivityTrail.js": ["arrow-right-left/ban/check/hammer/log-in/log-out/undo-2/wrench:current|qualifier"],
+    "app/components/Avatar.js": ["user:qualifier"],
     "app/components/Breadcrumb.js": ["chevron-left:words"],
     "app/components/Controls.js": [
         "arrow-up-down:qualifier",

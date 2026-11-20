@@ -1085,13 +1085,14 @@ const TYPEAHEAD_MS = 500;
  *
  * TWO MORE LOOKS, ONE PATTERN (#519). `look="chip"` is the job a list stands on, at the start of
  * its band since the files of 2026-10-23 (1a, #566), where #519 drew it in the head with `Job`
- * before the value at 36: a 32 control at least 128 wide, a 14 pin in Ink 3 leading the job at 13
- * and 500 in Ink, its 12 chevron in Ink 3 at the end, 6 between each, 8 before the pin — a chip's
- * 10 less the leading icon's 2 (Invoices 0a.16; 9 until #670) — and 8 after
- * the chevron, on an Edge and white, holding its Wash under the pointer and while its list is
- * open, the list from its left at least 152 wide with 32 rows (Invoices 0a.29; 160 until #670). Its Edge turns to Edge focus for
- * the keyboard alone (#522): 1a draws a chip a press opened on its Edge, a bordered control's
- * Open being its Wash (0f). `look="crumb"` is the same choice standing as a breadcrumb
+ * before the value at 36: a 32 control as wide as what it holds, a 14 pin in Ink 3 leading the job
+ * at 13 and 500 in Ink, its 12 chevron in Ink 3 at the end, 6 between each, 8 before the pin — a
+ * chip's 10 less the leading icon's 2 (Invoices 0a.16; 9 until #670) — and 8 after the chevron,
+ * with no face or border, filling at Field under the pointer and while its list is open, and moved
+ * out by that 8 and its border's 1 so the pin stands on the band's left edge (Invoices 0b.16, #690;
+ * at least 128 wide on an Edge and white until then), the list from its left at least 152 wide
+ * with 32 rows (Invoices 0a.29; 160 until #670). Its border is transparent and turns to Edge focus
+ * for the keyboard alone (#522), as the sort's does. `look="crumb"` is the same choice standing as a breadcrumb
  * level (1d, 1f): the level's 26, its side room pulled back and its 13 at 600 in Ink 2, a 12
  * chevron 6 after the word, and its list from the level's left with 32 rows. `look="sort"` is the
  * order a list stands in (1a, 1d, 1l, #540): a 32 with no outline, 8 before a 14 `arrow-up-down` in
@@ -1272,8 +1273,11 @@ const CHOICE_LOOK = {
         `flex h-control-lg w-full cursor-pointer items-center justify-between gap-gap rounded-control border bg-white px-input-inset-x text-body outline-none aria-readonly:cursor-default not-aria-readonly:hover:bg-hover-subtle ${
             refused ? "border-danger" : "border-border focus:border-border-focus"
         }`,
+    // The job's chip (0b.16, #690): drawn with no face or border, moved out by its own inset and
+    // its border's 1 so its pin stands on the band's left edge, its Edge focus on a border
+    // transparent at rest, as the sort's.
     chip: () =>
-        "flex h-control min-w-job-chip cursor-pointer items-center gap-control-icon-gap rounded-control border border-border bg-white pr-job-chip-inset-right pl-job-chip-inset-left text-body-sm font-medium whitespace-nowrap tabular-nums outline-none not-aria-readonly:hover:bg-hover-subtle focus-visible:border-border-focus aria-expanded:bg-hover-subtle",
+        "-ml-[calc(var(--spacing-job-chip-inset-left)+1px)] flex h-control cursor-pointer items-center gap-control-icon-gap rounded-control border border-transparent pr-job-chip-inset-right pl-job-chip-inset-left text-body-sm font-medium whitespace-nowrap tabular-nums outline-none not-aria-readonly:hover:bg-hover focus-visible:border-border-focus aria-expanded:bg-hover",
     crumb: () =>
         "-mx-control-inline-inset-x flex h-control-inline cursor-pointer items-center gap-breadcrumb-chevron-gap rounded-control px-control-inline-inset-x text-body-sm font-semibold whitespace-nowrap text-foreground-muted tabular-nums not-aria-readonly:hover:bg-hover aria-expanded:bg-hover",
     // The sort (#540): drawn with no outline, so its Edge focus stands on a border that is
@@ -1571,13 +1575,14 @@ export function SearchField({ label, value, onChange, clearLabel, onEnter }) {
 
 // A filter chip's two looks (1a, #520). Holding nothing it is a ghost control — its words at
 // 13 and 500 in Ink 3 with a 12 chevron 6 after them — that fills at Hover and lifts to Ink
-// under the pointer and while its list shows (0f). Holding values it stands on the Face with
-// its Edge, its name in Ink 3 and what it holds in Ink, the chevron after them and a 24 × that
-// empties it at its end, each part filling at Face hover.
+// under the pointer and while its list shows (0f). Holding values it stands on the Face with no
+// Edge (Invoices 0b.15; inside a blue Edge until #690), its border kept transparent so its parts
+// stand where they did, its name in Ink 3 and what it holds in Ink, the chevron after them and a
+// 24 × that empties it at its end, each part filling at Face hover.
 const FILTER_CHIP_GHOST =
     "flex h-control cursor-pointer items-center gap-control-icon-gap rounded-control border border-transparent text-body-sm font-medium whitespace-nowrap text-foreground-subtle outline-none hover:bg-hover hover:text-foreground-default focus-visible:border-border-focus aria-expanded:bg-hover aria-expanded:text-foreground-default";
 const FILTER_CHIP_EMPTY = `${FILTER_CHIP_GHOST} pr-filter-chip-inset-right pl-control-inset-x`;
-const FILTER_CHIP_HOLDING = "flex h-control items-center rounded-control border border-selected-border bg-selected";
+const FILTER_CHIP_HOLDING = "flex h-control items-center rounded-control border border-transparent bg-selected";
 const FILTER_CHIP_HELD =
     "flex h-full cursor-pointer items-center gap-gap rounded-l-[calc(var(--radius-control)-1px)] pr-[calc(var(--spacing-filter-chip-inset-right)-1px)] pl-control-inset-x text-body-sm font-medium whitespace-nowrap outline-none hover:bg-selected-hover focus-visible:bg-selected-hover aria-expanded:bg-selected-hover";
 
@@ -1774,8 +1779,8 @@ export function FilterChip({ label, options, values, onChange, clearLabel, sever
 /**
  * A filter that narrows by one condition and holds no value (1l, #527) — the catalog's
  * `Discontinued only`. Off, it is a filter chip's ghost with no chevron and 10 either side, since
- * it opens nothing; on, it is a held filter chip's two parts: its words in Ink on the Face inside
- * the Edge, and a 24 × at its end that turns it off.
+ * it opens nothing; on, it is a held filter chip's two parts: its words in Ink on the Face with no
+ * Edge (Invoices 0b.15, #690), and a 24 × at its end that turns it off.
  *
  * A TOGGLE BUTTON IN BOTH LOOKS (`aria-pressed`), so assistive tech hears one control that is on
  * or off and turns it either way with the same press; the × is a pointer's second way off, named
@@ -1815,19 +1820,22 @@ export function ToggleChip({ label, on, onChange, clearLabel }) {
 }
 
 // A chip of 0l's chips: 36 tall, its option at 14 and 400 like a field's value, 12 either side,
-// on white inside the Edge, filling at Wash under the pointer (0f Bordered); the one chosen on
-// the Face inside its Edge, filling at Face hover. Neither moves while a form waits (#469).
-const CHIP = "flex h-control-lg min-w-0 items-center justify-center rounded-control border px-input-inset-x text-body tabular-nums outline-none focus-visible:border-border-focus";
+// with no edge — its border transparent, turning to Edge focus for the keyboard alone — resting on
+// Field and filling to 10% under the pointer; the one chosen on the Face, its option in Accent at
+// the same weight, the Face holding under the pointer (Invoices 0l.11, 0a.25; 1b). Until #690
+// each stood inside an Edge, white at rest with the Wash under the pointer and the chosen one
+// inside a blue Edge with its option in Ink. Neither moves while a form waits (#469).
+const CHIP = "flex h-control-lg min-w-0 items-center justify-center rounded-control border border-transparent px-input-inset-x text-body tabular-nums outline-none focus-visible:border-border-focus";
 const CHIP_LOOK = {
-    resting: "border-border bg-white not-aria-disabled:hover:bg-hover-subtle",
-    chosen: "border-selected-border bg-selected not-aria-disabled:hover:bg-selected-hover",
+    resting: "bg-background-muted not-aria-disabled:hover:bg-chip-choice-hover",
+    chosen: "bg-selected",
 };
 
 /**
  * 0l's chips (1b, #520): "when the options are few and short and choosing among them is the
  * dialog's main task, they are laid out instead as 36 chips … in an equal-width grid, each as
- * wide as the longest option, 8 apart; the chosen chip takes the selected Face and Edge." The
- * registration's size and model are the first. The label sits 8 above them at 13 and 500, as a
+ * wide as the longest option, 8 apart" — and the chosen one "on the Face with its label in
+ * Accent, no Edge" (0l.11, #690). The registration's size and model are the first. The label sits 8 above them at 13 and 500, as a
  * field's does, and a refusal at the right end of its line at 13 in red.
  *
  * EACH AS WIDE AS THE LONGEST OPTION, WHICH ONLY THE BROWSER CAN MEASURE. The grid fills its row
@@ -1915,7 +1923,10 @@ export function ChipChoice({ label, options, value, onChange, refusal }) {
                             onKeyDown={onKeyDown(index)}
                             className={`${CHIP} ${on ? CHIP_LOOK.chosen : CHIP_LOOK.resting}`}
                         >
-                            <span data-chip-label="" className={`min-w-0 truncate ${option.empty ? "text-foreground-subtle" : "text-foreground-default"}`}>
+                            <span
+                                data-chip-label=""
+                                className={`min-w-0 truncate ${on ? "text-primary" : option.empty ? "text-foreground-subtle" : "text-foreground-default"}`}
+                            >
                                 {option.label}
                             </span>
                         </button>

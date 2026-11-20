@@ -1,5 +1,6 @@
 "use client";
 
+import { AddressAvatar } from "@/app/components/Avatar";
 import { Notice, Refusal } from "@/app/components/Controls";
 import { SIGN_IN_COPY } from "@/lib/authTokenState";
 
@@ -35,7 +36,9 @@ export function SignInHeader({ heading, sentence, chip, headingRef }) {
 }
 
 /**
- * The address a step is about, as a chip: the avatar's initial, the address — an ellipsis
+ * The address a step is about, as a chip: its avatar — the letters this device keeps for an
+ * address it has signed in with, on the address's pair, or the person mark for one it has not
+ * (Invoices 0q.9, `AddressAvatar`, #690; the address's first character on the Face until then) — the address — an ellipsis
  * when it is too long, with `Change` kept — and `Change` when the step can go back to the
  * address (0o, Tools 0a Pill). One that only names who is signing in has no `Change` and
  * takes no press. On a phone its target is the least a touch target takes, without the
@@ -46,12 +49,7 @@ export function SignInHeader({ heading, sentence, chip, headingRef }) {
 export function AddressChip({ email, onChange, disabled = false }) {
     const content = (
         <>
-            <span
-                aria-hidden="true"
-                className="flex size-avatar shrink-0 items-center justify-center rounded-full bg-selected text-body-sm font-semibold text-primary"
-            >
-                {email.slice(0, 1)}
-            </span>
+            <AddressAvatar email={email} />
             <span className="min-w-0 truncate font-medium">{email}</span>
             {onChange && <span className="shrink-0 font-semibold text-primary">{SIGN_IN_COPY.code.change}</span>}
         </>

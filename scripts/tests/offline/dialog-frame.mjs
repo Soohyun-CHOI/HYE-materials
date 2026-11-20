@@ -675,7 +675,7 @@ export function run({ check, assert, log }) {
             "true true true"
         );
         // THE JOB'S CHIP TAKES EDGE FOCUS FROM THE KEYBOARD ALONE: 1a draws it opened by a press
-        // on its Edge, a bordered control's Open being its Wash (0f).
+        // with no border, on Field while its list shows (0b.16, 0f Open; #690).
         const chipLook = constantOf(CONTROLS, "CHOICE_LOOK").split(/\n\s*chip:/)[1]?.split(/\n\s*crumb:/)[0] ?? "";
         check(
             "the job's chip turns to Edge focus for the keyboard alone",
@@ -1254,8 +1254,9 @@ export function run({ check, assert, log }) {
     // A LIST A CHIP OR A BREADCRUMB LEVEL OPENS IS SIZED THE MENU'S WAY (#519): 140 to 280 by its
     // longest option, from the control's left — the job's chip at least 160 and as wide as it
     // since #566, where its list stood against its right end — and 32 rows under both. And the two
-    // looks that open them: the job's chip, 1a's 32 at least 128 wide behind a pin, 9 before the
-    // pin and 8 on its 12 chevron's side, its words at 13 and 500 (#566); and the level, the
+    // looks that open them: the job's chip, 1a's 32 behind a pin, 8 before the pin and 8 on its
+    // 12 chevron's side, its words at 13 and 500 (#566, #670), as wide as it holds with no face or
+    // border and moved out so the pin stands on the band's edge (0b.16, #690); and the level, the
     // breadcrumb's 26 with its 12 chevron 6 on.
     const choiceLooks = parseFile(CONTROLS).source;
     const looksOf = (source) => {
@@ -1280,16 +1281,32 @@ export function run({ check, assert, log }) {
         "true true true true true"
     );
     check(
-        "  the chip: 32 and at least 128, a chip's 10 less the trim before its pin and 8 on its chevron's side, 6 apart, at 13 and 500 on an Edge, its Wash held while open (#566, #670)",
+        "  the chip: 32 and as wide as it holds, a chip's 10 less the trim before its pin and 8 on its chevron's side, 6 apart, at 13 and 500 with no face or border, Field under the pointer and held while open, moved out by its inset and its border's 1 (#566, #670, Invoices 0b.16, #690)",
         [
-            ["h-control ", "min-w-job-chip", "pl-job-chip-inset-left", "pr-job-chip-inset-right", "gap-control-icon-gap", "text-body-sm", "font-medium", "border-border", "bg-white", "aria-expanded:bg-hover-subtle"]
+            [
+                "h-control ",
+                "pl-job-chip-inset-left",
+                "pr-job-chip-inset-right",
+                "gap-control-icon-gap",
+                "text-body-sm",
+                "font-medium",
+                "border-transparent",
+                "-ml-[calc(var(--spacing-job-chip-inset-left)+1px)]",
+                "not-aria-readonly:hover:bg-hover ",
+                "aria-expanded:bg-hover\"",
+            ]
                 .filter((t) => !chipLook.includes(t))
+                .join(" "),
+            // No least width, no white face and no Edge at rest: the three 0b.16 took away.
+            chipLook
+                .split(/[\s"]+/)
+                .filter((t) => /^min-w-/.test(t) || t === "bg-white" || t === "border-border" || /hover-subtle$/.test(t))
                 .join(" "),
             /\{look === "chip" && <Icon name="map-pin" kind="qualifier" className="size-icon-sm shrink-0" \/>\}/.test(choiceLooks),
             /name="chevron-down"\s*kind=\{look === "crumb" \? "words" : "qualifier"\}/.test(choiceLooks) && /: look === "chip"\s*\? "size-job-chip-chevron shrink-0"/.test(choiceLooks),
             /look === "chip" && label|aria-hidden="true" className="shrink-0 text-foreground-subtle">\s*\{label\}/.test(choiceLooks),
         ].join(" · "),
-        " · true · true · false"
+        " ·  · true · true · false"
     );
     check(
         "  the level: the breadcrumb's 26, its side room pulled back, 13 at 600 in Ink 2, the chevron 6 on",
@@ -1766,10 +1783,61 @@ export function run({ check, assert, log }) {
         "  its refusal on its label's line, the chosen chip on the Face, an empty option in Ink 3 (#520)",
         [
             /justify-between[^"]*"[\s\S]*?role="alert" className="text-body-sm text-danger"/.test(chipPart),
-            /chosen: "border-selected-border bg-selected not-aria-disabled:hover:bg-selected-hover"/.test(controlSource),
+            /chosen: "bg-selected",/.test(controlSource),
             /option\.empty \? "text-foreground-subtle" : "text-foreground-default"/.test(chipPart),
         ].join(" "),
         "true true true"
+    );
+    // 0l.11 AND 0a.25 SINCE THE FILES OF 2026-11-20 (#690): no chip draws an edge — its border is
+    // transparent and turns to Edge focus for the keyboard alone — one at rest sits on Field and
+    // fills to 10% under the pointer, and the chosen one sits on the Face with its option in
+    // Accent at the same weight, the Face holding under the pointer.
+    const controlConstant = (name) => {
+        const { ast, source } = parseFile(CONTROLS);
+        let text = "";
+        walk(ast, (n) => {
+            if (n.type === "VariableDeclarator" && n.id?.name === name && n.init) text = source.slice(n.init.start, n.init.end);
+        });
+        return text;
+    };
+    const chipConst = controlConstant("CHIP");
+    const chipLooks = controlConstant("CHIP_LOOK");
+    check(
+        "  no chip draws an edge: transparent, Edge focus for the keyboard alone (0l.11, #690)",
+        [
+            chipConst.split(/[\s"]+/).filter((t) => /^border(-|$)/.test(t)).join(" "),
+            /focus-visible:border-border-focus/.test(chipConst),
+            /border-(border|selected)/.test(chipLooks),
+        ].join(" · "),
+        "border border-transparent · true · false"
+    );
+    check(
+        "  one at rest on Field, 10% under the pointer; the chosen one on the Face with no hover of its own, its option in Accent at the same weight (0l.11, 0a.25, #690)",
+        [
+            /resting: "bg-background-muted not-aria-disabled:hover:bg-chip-choice-hover",/.test(chipLooks),
+            /chosen: "bg-selected",/.test(chipLooks),
+            /on \? "text-primary" : option\.empty \? "text-foreground-subtle" : "text-foreground-default"/.test(chipPart),
+            /font-(medium|semibold|bold)/.test(chipConst + chipLooks),
+        ].join(" "),
+        "true true true false"
+    );
+    // 0b.15 SINCE THE FILES OF 2026-11-20 (#690): a filter chip holding a value — the band's, a
+    // dialog's at the end of its search, and the catalog's toggle when on — stands on the Face with
+    // no Edge, its border kept transparent so its parts stand where they did, each part filling at
+    // Face hover and holding it while its list is open.
+    const held = controlConstant("FILTER_CHIP_HELD");
+    check(
+        "  a filter chip holding a value, and the catalog's toggle when on, stand on the Face with no Edge, each part at Face hover (0b.15, #690)",
+        [
+            controlConstant("FILTER_CHIP_HOLDING")
+                .split(/[\s"]+/)
+                .filter((t) => t === "border" || /^(border|bg)-/.test(t))
+                .join(" "),
+            /\bhover:bg-selected-hover\b/.test(held) && /\baria-expanded:bg-selected-hover\b/.test(held),
+            /className=\{held\.length > 0 \? FILTER_CHIP_HOLDING : "flex"\}/.test(controlSource),
+            /<div className=\{`\$\{FILTER_CHIP_HOLDING\} shrink-0`\}>/.test(controlSource),
+        ].join(" · "),
+        "border border-transparent bg-selected · true · true · true"
     );
     const bodyFn = functionNamed(frame.ast, "DialogBody");
     const bodyPart = bodyFn ? frame.source.slice(bodyFn.start, bodyFn.end) : "";

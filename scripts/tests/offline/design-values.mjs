@@ -237,7 +237,6 @@ const VALUES = [
     // inset before a leading mark a side room less the trim since #670, and the list a button
     // opens at least 0a.29's 152, the record's menu with it.
     ["--spacing-faced-inset-left", "calc(var(--spacing-control-lg-inset-x) - var(--spacing-leading-icon-trim))", null],
-    ["--min-width-job-chip", "8rem", null],
     ["--spacing-job-chip-inset-left", "calc(var(--spacing-control-inset-x) - var(--spacing-leading-icon-trim))", null],
     ["--spacing-job-chip-inset-right", "0.5rem", null],
     ["--size-job-chip-chevron", "0.75rem", null],
@@ -313,19 +312,31 @@ const VALUES = [
     ["--height-found-item", "2.25rem", null],
     ["--spacing-found-item-inset-x", "0.75rem", null],
     ["--spacing-found-item-inline", "1rem", null],
-    // 0c · Blue
-    ["--color-selected", "#F0F9FF", null],
-    ["--color-selected-hover", "#E6F5FF", null],
-    ["--color-selected-border", "#C1DEFD", null],
-    ["--color-primary", "oklch(0.487 0.216 257)", null],
-    ["--color-primary-hover", "oklch(0.437 0.211 257)", null],
+    // 0c · Blue, as the files of 2026-11-20 give it, with no blue Edge (#690)
+    ["--color-selected", "#ECF6FE", null],
+    ["--color-selected-hover", "#DAEEFD", null],
+    ["--color-primary", "oklch(0.540 0.191 257)", null],
+    ["--color-primary-hover", "oklch(0.487 0.191 257)", null],
     ["--color-primary-disabled", "color-mix(in oklab, var(--color-primary) 40%, transparent)", null],
     // 0d · Red
-    ["--color-danger-subtle", "#FFF4F5", null],
+    ["--color-danger-subtle", "#FFEEF0", null],
     ["--color-danger", "#DC0015", null],
     ["--color-danger-hover", "oklch(0.512 0.205 27)", null],
     // A red commitment that cannot act, as Tools 54 holds a dialog's it refused (#616).
     ["--color-danger-disabled", "color-mix(in oklab, var(--color-danger) 40%, transparent)", null],
+    // 0q · Avatar: six pairs, a fill and its letters, in the design's order (#690).
+    ["--color-avatar-orange", "#FFDFB5", null],
+    ["--color-avatar-orange-foreground", "#BD4800", null],
+    ["--color-avatar-grass", "#DAF1DB", null],
+    ["--color-avatar-grass-foreground", "#287939", null],
+    ["--color-avatar-teal", "#CCF3EA", null],
+    ["--color-avatar-teal-foreground", "#087868", null],
+    ["--color-avatar-violet", "#EBE4FF", null],
+    ["--color-avatar-violet-foreground", "#6550B9", null],
+    ["--color-avatar-plum", "#F7DEF8", null],
+    ["--color-avatar-plum-foreground", "#953EA3", null],
+    ["--color-avatar-crimson", "#FEDCE7", null],
+    ["--color-avatar-crimson-foreground", "#C41C60", null],
     // 0e · Ink
     ["--color-foreground-default", "oklch(0.255 0.013 265)", null],
     ["--color-foreground-muted", "oklch(0.405 0.013 265)", null],
@@ -344,9 +355,11 @@ const VALUES = [
     ["--color-background-muted", "color-mix(in oklab, var(--color-foreground-default) 6%, transparent)", null],
     // Hover is Field under the pointer since the files of 2026-11-17 (Invoices 0e.12, #670).
     ["--color-hover", "var(--color-background-muted)", null],
-    // A secondary button: Ink at 8% under the pointer, and its Field at 40% while it cannot act (0f, #662).
+    // A secondary button: Ink at 10% under the pointer (8% until #670), and its Field at 40% while it cannot act (0f, #662).
     ["--color-secondary-hover", "color-mix(in oklab, var(--color-foreground-default) 10%, transparent)", null],
     ["--color-secondary-disabled", "color-mix(in oklab, var(--color-background-muted) 40%, transparent)", null],
+    // One of a dialog's chips not chosen, under the pointer, from its Field at rest (1b, #690).
+    ["--color-chip-choice-hover", "color-mix(in oklab, var(--color-foreground-default) 10%, transparent)", null],
     ["--color-scrollbar-thumb", "color-mix(in oklab, var(--color-foreground-default) 20%, transparent)", null],
     ["--color-scrollbar-thumb-hover", "color-mix(in oklab, var(--color-foreground-default) 34%, transparent)", null],
     // 0f · States
@@ -505,7 +518,6 @@ const VALUES = [
     ["--spacing-account-inset-right", "0.75rem", null],
     ["--spacing-account-name-stack", "0.0625rem", null],
     ["--size-account-chevron", "0.8125rem", null],
-    ["--transition-duration-avatar", "90ms", null],
     // 0m's account menu, beside a collapsed button and growing in (#495).
     ["--spacing-account-menu-offset-x", "0.5rem", null],
     // Every menu and list's entrance, the account's alone from #495 until #659.
@@ -1130,6 +1142,7 @@ export async function run({ check, assert, log }) {
         "--color-hover-subtle",
         "--color-background-muted",
         "--color-secondary-hover",
+        "--color-chip-choice-hover",
         "--color-scrollbar-thumb",
         "--color-scrollbar-thumb-hover",
     ];

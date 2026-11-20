@@ -97,8 +97,7 @@
     --size-clear-icon: 0.8125rem; /* 1a, 13: that ×'s mark — from the drawings, not the spec */
     --spacing-ghost-inset-x: 0.625rem; /* Ghost, 10: either side of an action that is its word alone, in a row of 36 buttons, and how far it pulls out at the row's end so its ink meets the edge */
     --spacing-faced-inset-left: calc(var(--spacing-control-lg-inset-x) - var(--spacing-leading-icon-trim)); /* Invoices 0b.11, 14: a head action with no face — the category list's way to the catalog — before the mark that leads its word, a 36's 16 less the leading icon's trim; its other side is the 36's own 16 */
-    --min-width-job-chip: 8rem; /* 1a, 128: the least the job's chip takes at the start of the category list's band — from the drawings, not the spec */
-    --spacing-job-chip-inset-left: calc(var(--spacing-control-inset-x) - var(--spacing-leading-icon-trim)); /* 1a, 8: that chip's room before the pin that leads its job, a chip's 10 less the leading icon's trim (Invoices 0a.16) */
+    --spacing-job-chip-inset-left: calc(var(--spacing-control-inset-x) - var(--spacing-leading-icon-trim)); /* 1a, 8: the job's chip's room before the pin that leads its job at the start of the category list's band, a chip's 10 less the leading icon's trim (Invoices 0a.16) — and, with its border's 1, how far it moves out so the pin stands on the band's left edge (Invoices 0b.16, #690) */
     --spacing-job-chip-inset-right: 0.5rem; /* 1a, 8: its room on its chevron's side — from the drawings, not the spec */
     --size-job-chip-chevron: 0.75rem; /* 1a, 12: its chevron — from the drawings, not the spec */
     --min-width-button-list: 9.5rem; /* Invoices 0a.19 and 0a.29, 152: the least a list or a menu a button opens takes, its room and Edge counted, and never less than the button — 1a's job chip's, 160 until the files of 2026-11-17 (#670), and `More actions`, 140 inside its 5 and its Edge until then */
@@ -152,24 +151,38 @@
     --spacing-list-emptied-stack: 0.75rem; /* 1a, 12: from that sentence to the control under it — from the drawings, not the spec */
     --spacing-id-in-sentence-inline: 0.12em; /* Invoices 0h.44, 0.12em: an id inside a sentence set off either side of itself, 1.56 at 13 — the typed id after an emptied list's sentence (1a, 1a3; #617) and the item holding a serial number refused (1f2, 1j; #670) — in the files' em */
     --spacing-closed-page-inset-bottom: 3rem; /* 1l Not Admin closed, 48: under the one sentence of a page the reader may no longer use (0b Row), which sets it above the middle — from the drawings, not the spec */
-    --height-found-item: 2.25rem; /* Invoices 0b.33, 36: the way to the item a search found by its id or serial number, on the Face under the band — 40 until the files of 2026-11-17 (#670) */
-    --spacing-found-item-inset-x: 0.75rem; /* 1a, 12: inside that way's Edge, either side — from the drawings, not the spec */
+    --height-found-item: 2.25rem; /* Invoices 0b.35, 36: the way to the item a search found by its id or serial number, on the Face under the band with no edge (#690) — 40 until the files of 2026-11-17 (#670) */
+    --spacing-found-item-inset-x: 0.75rem; /* Invoices 0b.35, 12: inside that way, either side */
     --spacing-found-item-inline: 1rem; /* 1a, 16: the least room from its words to its chevron — from the drawings, not the spec */
 
     /* 0c · Blue — a face pair and an accent. Blue marks what is chosen: what is
        selected, current, or the single action a screen exists for (0f Chosen). */
-    --color-selected: #F0F9FF; /* Face: the current nav item, a set filter chip, the account avatar, a selected table row */
-    --color-selected-hover: #E6F5FF; /* Face hover: pointing at something already on the face */
-    --color-selected-border: #C1DEFD; /* Edge: the border of anything sitting on the face — a set filter chip */
-    --color-primary: oklch(0.487 0.216 257); /* Accent: the primary action, a current icon, a focused caret */
-    --color-primary-hover: oklch(0.437 0.211 257); /* Accent hover: a filled action under the pointer */
+    --color-selected: #ECF6FE; /* Face, Invoices 0c.1: the current nav item, a set filter chip, a chosen chip or segment, a selected table row, an exact search match, and under the pointer behind a blue target in running text — #F0F9FF until the files of 2026-11-20 (#690), which draw nothing on it with an edge of its own */
+    --color-selected-hover: #DAEEFD; /* Face hover, Invoices 0c.2: pointing at something already on the face — #E6F5FF until the files of 2026-11-20 (#690) */
+    --color-primary: oklch(0.540 0.191 257); /* Accent, Invoices 0c.3: the primary action, a current icon, a focused caret — oklch(0.487 0.216 257) until the files of 2026-11-20 (#690) */
+    --color-primary-hover: oklch(0.487 0.191 257); /* Accent hover, Invoices 0c.4: a filled action under the pointer — oklch(0.437 0.211 257) until the files of 2026-11-20 (#690) */
     --color-primary-disabled: color-mix(in oklab, var(--color-primary) 40%, transparent); /* 0f Disabled: a filled action that cannot act */
 
     /* 0d · Red — the one red that carries a message, and a destructive action. */
-    --color-danger-subtle: #FFF4F5; /* Face: under the pointer on a destructive action */
+    --color-danger-subtle: #FFEEF0; /* Face, Invoices 0d.1: under the pointer on a destructive action — #FFF4F5 until the files of 2026-11-20 (#690) */
     --color-danger: #DC0015; /* Accent: any mark, any word, any bar that carries a message */
     --color-danger-hover: oklch(0.512 0.205 27); /* Accent hover: a filled red action under the pointer */
     --color-danger-disabled: color-mix(in oklab, var(--color-danger) 40%, transparent); /* 0f Disabled: a filled red action that cannot act, a dialog's commitment that pressing again cannot change (Invoices 0l) */
+
+    /* 0q · Avatar — six pairs, a fill and its letters, one picked from a person's address
+       (FNV-1a of it in lower case, modulo 6; lib/avatar.js), in the design's order (#690). */
+    --color-avatar-orange: #FFDFB5; /* Orange, Invoices 0q.12: the fill */
+    --color-avatar-orange-foreground: #BD4800; /* Orange, 0q.12: the letters, 4.0:1 */
+    --color-avatar-grass: #DAF1DB; /* Grass, 0q.13: the fill */
+    --color-avatar-grass-foreground: #287939; /* Grass, 0q.13: the letters, 4.5:1 */
+    --color-avatar-teal: #CCF3EA; /* Teal, 0q.14: the fill */
+    --color-avatar-teal-foreground: #087868; /* Teal, 0q.14: the letters, 4.5:1 */
+    --color-avatar-violet: #EBE4FF; /* Violet, 0q.15: the fill */
+    --color-avatar-violet-foreground: #6550B9; /* Violet, 0q.15: the letters, 5.0:1 */
+    --color-avatar-plum: #F7DEF8; /* Plum, 0q.16: the fill */
+    --color-avatar-plum-foreground: #953EA3; /* Plum, 0q.16: the letters, 4.8:1 */
+    --color-avatar-crimson: #FEDCE7; /* Crimson, 0q.17: the fill */
+    --color-avatar-crimson-foreground: #C41C60; /* Crimson, 0q.17: the letters, 4.5:1 */
 
     /* 0e · Ink — one hue, and a foreground for what the text says. */
     --color-foreground-default: oklch(0.255 0.013 265); /* Ink: every figure, every heading, an id at rest, a row of text */
@@ -192,6 +205,7 @@
     --color-hover: var(--color-background-muted); /* Field, under the pointer: anything without an outline (Invoices 0e.12, 0f.14) — Hover, Ink at 5.5% of its own, until the files of 2026-11-17 folded it into Field (#670) */
     --color-secondary-hover: color-mix(in oklab, var(--color-foreground-default) 10%, transparent); /* Invoices 0f.3, 10%: a secondary button under the pointer — 8% until the files of 2026-11-17 (#670) */
     --color-secondary-disabled: color-mix(in oklab, var(--color-background-muted) 40%, transparent); /* 0f Disabled: a secondary button that cannot act, its Field at 40% (#662) */
+    --color-chip-choice-hover: color-mix(in oklab, var(--color-foreground-default) 10%, transparent); /* 1b, 10%: one of a dialog's chips (Invoices 0l.11) not chosen, under the pointer, from its Field at rest — from the drawings, not the spec (#690) */
     --color-scrollbar-thumb: color-mix(in oklab, var(--color-foreground-default) 20%, transparent); /* 0i Bar: a scrollbar's thumb */
     --color-scrollbar-thumb-hover: color-mix(in oklab, var(--color-foreground-default) 34%, transparent); /* Thumb hover: a scrollbar under the pointer */
 
@@ -333,12 +347,11 @@
     --spacing-rail-stack: 0.125rem; /* Rail, 2: between two sections — from the drawings, not the spec */
     --spacing-rail-header-stack: 1rem; /* Rail, 16: from its head — the toggle and, expanded, the wordmark — to its sections, with no rule between — from the drawings, not the spec */
     --height-account: 3rem; /* Account, 48: the account row at the rail's foot */
-    --size-avatar: 1.5rem; /* Account, 24: the avatar, and the one an address chip leads with on a sign-in page (0o) */
+    --size-avatar: 1.5rem; /* Invoices 0q.1, 24: an avatar in a row or beside a name — the account's, and the one an address chip leads with on a sign-in page (0o) */
     --spacing-account-gap: 0.625rem; /* Account, 10: from the avatar to the name — from the drawings, not the spec */
     --spacing-account-inset-right: 0.75rem; /* Account, 12: inside the row's right end — from the drawings, not the spec */
     --spacing-account-name-stack: 0.0625rem; /* Account, 1: between the name and the role — from the drawings, not the spec */
     --size-account-chevron: 0.8125rem; /* Account, 13: the chevron at the row's end — from the drawings, not the spec */
-    --transition-duration-avatar: 90ms; /* Account: how long the avatar takes to darken under the pointer — from the drawings, not the spec */
     --spacing-account-menu-offset-x: 0.5rem; /* Account, 8: its menu beside the collapsed button, their bottoms aligned */
     --animate-menu: menu-in 120ms ease-out; /* 0a Menu: every menu and list growing in from 0.98 at its corner by its opener — the account's since #495, every one's since #659 */
     @keyframes menu-in {

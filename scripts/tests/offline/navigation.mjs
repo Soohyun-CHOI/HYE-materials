@@ -458,22 +458,24 @@ export async function run({ check, assert, log }) {
     log("");
     log("the account says who is reading, in one string, from the page's own read:");
     // #554 — A NAMED READER IS THEIR FIRST AND LAST NAMES, in the button, its tooltip and the
-    // row, and the avatar is the name's first letter as it was typed. Every reader below this
+    // row, and the avatar their two letters in capitals (Invoices 0q.3, #690; the name's first
+    // letter as it was typed until then). Every reader below this
     // block holds no name, so it reads the local part, as every reader did from #478 to #554.
     const named = (firstName, lastName, email, role, isAdmin, isSiteManager = false) => accountOf({ firstName, lastName, email, role, isAdmin, isSiteManager });
     check(
         "  a named reader, by both names",
         JSON.stringify(named("Soo", "Choi", "soo@hanyangengusa.com", "President", true, true)),
-        JSON.stringify({ name: "Soo Choi", email: "soo@hanyangengusa.com", initial: "S", role: "President, Admin, Site manager", label: "Soo Choi, President, Admin, Site manager" })
+        JSON.stringify({ name: "Soo Choi", email: "soo@hanyangengusa.com", letters: "SC", role: "President, Admin, Site manager", label: "Soo Choi, President, Admin, Site manager" })
     );
-    check("  the avatar takes the name's first letter as it was typed", named("jongha", "Baek", "whdgk0818@hanyangengusa.com", "Employee", false).initial, "j");
+    check("  the avatar takes each name's first letter in capitals (0q.3, #690)", named("jongha", "Baek", "whdgk0818@hanyangengusa.com", "Employee", false).letters, "JB");
+    check("  and half a name draws the address's first letter in capitals (0q.4, #690)", named("Soo", "", "soo@hanyangengusa.com", "Employee", false).letters, "S");
     check("  a row with half a name is the local part", named("Soo", "", "soo@hanyangengusa.com", "Employee", false).name, "soo");
     // Each kind of reader the base holds — `soo@` is the President and the office both.
     const reader = (email, role, isAdmin) => accountOf({ email, role, isAdmin });
     check(
         "  an office reader, as the design draws one",
         JSON.stringify(reader("lee@hanyangengusa.com", "Employee", true)),
-        JSON.stringify({ name: "lee", email: "lee@hanyangengusa.com", initial: "l", role: "Admin", label: "lee, Admin" })
+        JSON.stringify({ name: "lee", email: "lee@hanyangengusa.com", letters: "L", role: "Admin", label: "lee, Admin" })
     );
     check("  the President who is the office too", reader("soo@hanyangengusa.com", "President", true).label, "soo, President, Admin");
     check("  the President alone", reader("soo@hanyangengusa.com", "President", false).role, "President");
@@ -482,9 +484,9 @@ export async function run({ check, assert, log }) {
     check(
         "  a reader who is neither, their name alone",
         JSON.stringify(reader("minjae.seo@hanyangengusa.com", "Employee", false)),
-        JSON.stringify({ name: "minjae.seo", email: "minjae.seo@hanyangengusa.com", initial: "m", role: "", label: "minjae.seo" })
+        JSON.stringify({ name: "minjae.seo", email: "minjae.seo@hanyangengusa.com", letters: "M", role: "", label: "minjae.seo" })
     );
-    check("  the avatar takes the address's first letter as it is spelled", reader("Kji9408@hanyangengusa.com", "Employee", false).initial, "K");
+    check("  the avatar takes the address's first letter in capitals (0q.4, #690)", reader("kji9408@hanyangengusa.com", "Employee", false).letters, "K");
     check("  the menu's one word", NAVIGATION_COPY.account.signOut, "Sign out");
     check("  the office's word", NAVIGATION_COPY.account.admin, "Admin");
     // #506 — A SITE MANAGER IS SAID LAST, after the roles the line already joined.
@@ -493,7 +495,7 @@ export async function run({ check, assert, log }) {
     check(
         "  a site manager who is otherwise an employee, as the account and its tooltip both say",
         JSON.stringify(manager("lee@hanyangengusa.com", "Employee", false)),
-        JSON.stringify({ name: "lee", email: "lee@hanyangengusa.com", initial: "l", role: "Site manager", label: "lee, Site manager" })
+        JSON.stringify({ name: "lee", email: "lee@hanyangengusa.com", letters: "L", role: "Site manager", label: "lee, Site manager" })
     );
     check("  a mark that is merely truthy is no site manager", accountOf({ email: "lee@hanyangengusa.com", role: "Employee", isSiteManager: "true" }).role, "");
     check("  the site manager's word, in the design's sentence case", NAVIGATION_COPY.account.siteManager, "Site manager");
@@ -546,15 +548,16 @@ export async function run({ check, assert, log }) {
         ["group-data-expanded:rounded-control", "group-data-expanded:rounded-card"].map((t) => accountButton.includes(t)).join(" "),
         "true false"
     );
+    // 0q (#690): THE AVATAR NEVER CHANGES; the button around it does — the collapsed 32 circle
+    // and the row both on Field under the pointer and while the menu is open, as the Tools file
+    // draws them, where until #690 the collapsed avatar itself turned Face hover.
     check(
-        "  and while its menu is open the row holds Hover and the collapsed avatar Face hover",
-        [
-            accountButton.includes("group-data-expanded:aria-expanded:bg-hover"),
-            avatar.includes("group-aria-expanded/account:bg-selected-hover"),
-            avatar.includes("group-data-expanded:group-aria-expanded/account:bg-selected"),
-        ].join(" "),
-        "true true true"
+        "  and under the pointer and while its menu is open the button holds Field, the collapsed circle and the row alike (0q, #690)",
+        [accountButton.includes("hover:bg-hover"), accountButton.includes("aria-expanded:bg-hover"), accountButton.some((t) => /^group-data-expanded:(hover|aria-expanded):/.test(t))].join(" "),
+        "true true false"
     );
+    check("  the avatar is the shared one, handed the reader's letters and address, and holds no state of its own", [accountSource.includes("<Avatar letters={words.letters} email={words.email} />"), avatar.length].join(" "), "true 0");
+    check("  and drawing it keeps the address on this device (lib/avatar.js)", accountSource.includes("useRememberAddress(words?.email, words?.letters);"), true);
 
     // The layout hands the rail the page's read and reads nobody itself.
     const layoutCalls = [];

@@ -601,6 +601,18 @@ The step measured as 1m draws it: at a desk the heading 24/32 in two lines in th
 
 ---
 
+### An address pill's avatar, from the device alone (#690)
+
+Invoices 0q draws a sign-in step's address pill with the person's letters on their address's pair when this device has signed in with that address, and a person mark with no letters when it has not (0q.9). The pill is drawn to a reader who is not signed in — the code step for the address they typed, the confirmation step for the address a link names — so what it may say about an address is this file's question.
+
+**THE BASE IS NEVER ASKED, SO NO SIGNED-OUT READER LEARNS ANYTHING FROM IT.** A read naming the person behind a typed address would give anyone at `/login` a company member's initials for any address they could guess, and would tell an address with an account from one without — what `requestMagicLink` and the request limit are built never to tell (#148). It would also cost a read on a page that reads nothing. So the pill reads only this browser's `localStorage`, and an address it finds there is one somebody signed in with on this device; an address with an account and one without draw the same mark on a device that has seen neither.
+
+**WHAT IS KEPT: THE ADDRESS AND ITS ONE OR TWO LETTERS, NO NAME.** `lib/avatar.js` keeps, under `hye-portal:signed-in-addresses` in this origin's storage, a list of `[address, letters]` — the address trimmed and in lower case, the letters `lib/userName.js:avatarLetters` draws (`SC` for Soo Choi) — newest first, at most twenty, the oldest dropped. The rail's account writes its reader's entry each time a signed-in page draws it, so a sign-in by link or by code, and a name changed since, both reach it on the next page. Nothing else is written, nothing is sent, and signing out keeps the entry, since the step that reads it is the one a reader meets after signing out or after the 30 days. A browser that refuses storage remembers nothing, and every address on it draws the mark.
+
+**WHAT A SHARED DEVICE SHOWS, AND WHY THAT IS THE DESIGN'S.** On a site's shared tablet, a reader typing an address someone else signed in with there sees that person's two letters on their pair — the device's own memory, which 0q.9's "an address the app cannot name, one this device has not signed in with" draws on purpose, and two letters rather than a name. The pill never shows a name; the step a link opens names nobody but its address.
+
+**BEFORE THE PAGE CAN READ THE DEVICE, THE PILL HOLDS AN EMPTY PLACE.** The confirmation step is rendered on the server, which has no device to ask, so its HTML draws the avatar's 24 empty, and the letters or the mark come once the page hydrates; a step reached from another step reads the device at once (`app/components/Avatar.js`).
+
 ### Inventory: an Admin on every job, a site manager on their own (#675)
 
 `canAccessJobInventory` (`lib/materialStock.js`) answers who reads a job's material stock and who records against it — one answer for both, so the screens a reader reaches are the ones whose form they may press. `issueMaterialsAction` is a `requireUser()` exemption under `INVENTORY_JOB_AXIS`: an Admin who is not a site manager must pass and a site manager on another job must not, so neither `withAdminAction` nor `withSiteManagerAction` fits. A job outside the reader's reach reads `Job not found`.
