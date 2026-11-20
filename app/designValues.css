@@ -169,6 +169,21 @@
     --color-danger-hover: oklch(0.512 0.205 27); /* Accent hover: a filled red action under the pointer */
     --color-danger-disabled: color-mix(in oklab, var(--color-danger) 40%, transparent); /* 0f Disabled: a filled red action that cannot act, a dialog's commitment that pressing again cannot change (Invoices 0l) */
 
+    /* 0q · Avatar — six pairs, a fill and its letters, one picked from a person's address
+       (FNV-1a of it in lower case, modulo 6; lib/avatar.js), in the design's order (#690). */
+    --color-avatar-orange: #FFDFB5; /* Orange, Invoices 0q.12: the fill */
+    --color-avatar-orange-foreground: #BD4800; /* Orange, 0q.12: the letters, 4.0:1 */
+    --color-avatar-grass: #DAF1DB; /* Grass, 0q.13: the fill */
+    --color-avatar-grass-foreground: #287939; /* Grass, 0q.13: the letters, 4.5:1 */
+    --color-avatar-teal: #CCF3EA; /* Teal, 0q.14: the fill */
+    --color-avatar-teal-foreground: #087868; /* Teal, 0q.14: the letters, 4.5:1 */
+    --color-avatar-violet: #EBE4FF; /* Violet, 0q.15: the fill */
+    --color-avatar-violet-foreground: #6550B9; /* Violet, 0q.15: the letters, 5.0:1 */
+    --color-avatar-plum: #F7DEF8; /* Plum, 0q.16: the fill */
+    --color-avatar-plum-foreground: #953EA3; /* Plum, 0q.16: the letters, 4.8:1 */
+    --color-avatar-crimson: #FEDCE7; /* Crimson, 0q.17: the fill */
+    --color-avatar-crimson-foreground: #C41C60; /* Crimson, 0q.17: the letters, 4.5:1 */
+
     /* 0e · Ink — one hue, and a foreground for what the text says. */
     --color-foreground-default: oklch(0.255 0.013 265); /* Ink: every figure, every heading, an id at rest, a row of text */
     --color-foreground-muted: oklch(0.405 0.013 265); /* Ink 2: the sentence under a heading, a note beside a value, the breadcrumb above a title */
@@ -332,12 +347,11 @@
     --spacing-rail-stack: 0.125rem; /* Rail, 2: between two sections — from the drawings, not the spec */
     --spacing-rail-header-stack: 1rem; /* Rail, 16: from its head — the toggle and, expanded, the wordmark — to its sections, with no rule between — from the drawings, not the spec */
     --height-account: 3rem; /* Account, 48: the account row at the rail's foot */
-    --size-avatar: 1.5rem; /* Account, 24: the avatar, and the one an address chip leads with on a sign-in page (0o) */
+    --size-avatar: 1.5rem; /* Invoices 0q.1, 24: an avatar in a row or beside a name — the account's, and the one an address chip leads with on a sign-in page (0o) */
     --spacing-account-gap: 0.625rem; /* Account, 10: from the avatar to the name — from the drawings, not the spec */
     --spacing-account-inset-right: 0.75rem; /* Account, 12: inside the row's right end — from the drawings, not the spec */
     --spacing-account-name-stack: 0.0625rem; /* Account, 1: between the name and the role — from the drawings, not the spec */
     --size-account-chevron: 0.8125rem; /* Account, 13: the chevron at the row's end — from the drawings, not the spec */
-    --transition-duration-avatar: 90ms; /* Account: how long the avatar takes to darken under the pointer — from the drawings, not the spec */
     --spacing-account-menu-offset-x: 0.5rem; /* Account, 8: its menu beside the collapsed button, their bottoms aligned */
     --animate-menu: menu-in 120ms ease-out; /* 0a Menu: every menu and list growing in from 0.98 at its corner by its opener — the account's since #495, every one's since #659 */
     @keyframes menu-in {

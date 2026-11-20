@@ -87,6 +87,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/idSequence.js` — the daily ID families and the child relations; `lib/idSequence.server.js`, all ID generation: the lock, the query and the create.
 - `lib/productName.js` — the product's name. Not the company's legal name, which is `lib/poPdf.js:HYE_BUYER_NAME`.
 - `lib/userName.js` — the name a screen prints for a user (#381). **A name field is read nowhere else.**
+- `lib/avatar.js` — an avatar's pair, from the address (0q, #690), and the addresses this device signed in with; `app/components/Avatar.js` draws every avatar.
 - `lib/userJobs.js` — who is asked for their jobs at sign-in (#554), the step's address, what a choice keeps, and its words.
 - `lib/closedJob.js` — whether a job is closed (#488), the jobs a new choice offers, the one a record already names kept, and every word.
 - `lib/authTokenState.js` — whether a sign-in row can still be used, by link or code (#471), the TTL, every word either says, and the email carrying both (#473).

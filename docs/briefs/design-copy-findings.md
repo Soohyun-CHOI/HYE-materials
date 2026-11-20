@@ -13,8 +13,7 @@ word have different owners and different lifetimes, which is the whole reason
 `docs/notes/naming.md` keeps a table of the divergences. What an entry buys is
 that the sweep is already enumerated.
 
-**SINCE #616 NOTHING HERE IS ABOUT THE TOOLS SCREENS OR SIGNING IN BUT AN
-AVATAR'S LETTERS (#690).** Soo sent
+**SINCE #616 NOTHING HERE IS ABOUT THE TOOLS SCREENS OR SIGNING IN.** Soo sent
 Design what the files of 2026-11-05 drew otherwise or not at all, in the words
 the app said after #614; the files Design sent back on 2026-11-06, Tools 54 and
 Sign in 30, draw every one of those words, and the three states Tools 54 drew
@@ -30,26 +29,6 @@ count the files draw on no list since 1a dropped it and the app since #652 — t
 sign-in mail's plain-text part, a job change's `Choose a job`, which no screen
 can send, and where a deletion lands, a list the app already draws, are the
 app's, in `docs/notes/tools.md` and `docs/notes/authorization.md`.
-
----
-
-## An avatar's letters (#690)
-
-The files of 2026-11-20 draw every avatar by Invoices 0q: two capitals, the
-first letter of the first name and of the last, or one, the first of the address
-in capitals, when either name is missing — on one of six color pairs picked from
-the address, and a person mark with no letters for an address the device has not
-signed in with. The app draws one letter on the Face in the Accent. It is held
-apart until Soo decides it, since the pairs and the device's memory of addresses
-are more than a word (`docs/notes/design-system.md`, #690).
-
-| What the app says | Where | What the files draw |
-|---|---|---|
-| the first character of the reader's name, `S` | the rail's account, `app/components/RailAccount.js` through `lib/navigation.js` (`initial`) | `DL`, the two capitals |
-| the first character of the address as typed, `s` | a sign-in step's address pill, `app/login/SignInParts.js` (`AddressChip`) | `MS`, or the person mark for an address not signed in here |
-
-No identifier mirrors the letters, and the base holds no avatar: the letters
-come from `First Name`, `Last Name` and `Email` on `Users`.
 
 ---
 

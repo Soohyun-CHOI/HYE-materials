@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
+import { Avatar, useRememberAddress } from "./Avatar";
 import Icon from "./Icon";
 import { ActionMenu, useOpenerPress } from "./Menu";
 import { clickFromKeys, menuButtonKey } from "@/lib/controls";
@@ -38,9 +39,16 @@ import { NAVIGATION_COPY as COPY } from "@/lib/navigation";
  * ITS MENU IS 0m's ACCOUNT MENU SINCE #495: a head holding the reader's email over `Sign out`,
  * 224 wide whatever the button. Expanded, it stands 6 above the row and as wide as it;
  * collapsed, 8 beside the button with their bottoms aligned. It grows from the corner by the button,
- * and while it is open the button holds its hover — the avatar on Face hover, the row on
- * Hover — so the reader sees what opened it. The row's corner is the Control's 8 since
+ * and while it is open the button holds its hover — the collapsed button's circle and the row on
+ * Field — so the reader sees what opened it. The row's corner is the Control's 8 since
  * #495, where it was the Group's 10.
+ *
+ * THE AVATAR IS 0q's, AND IT NEVER CHANGES (#690): the reader's two letters on their address's
+ * pair (`Avatar`), and under the pointer and while the menu is open it is the button around it
+ * that fills — the collapsed button's 32 circle on Field, as the row is — where until #690 the
+ * avatar itself turned from the Face to Face hover over 90ms. Drawing it is also how this device
+ * comes to know the reader's address and letters, which a sign-in step's pill reads after they
+ * sign out (`useRememberAddress`, `lib/avatar.js`).
  *
  * Below the phone's edge there is none, because there is no rail; the phone's top bar ends
  * its menu on the account instead (`MoreActions`, #495).
@@ -52,6 +60,7 @@ export default function RailAccount({ account: words, expanded = false, tip }) {
     const buttonRef = useRef(null);
     const press = useOpenerPress(open);
     const id = useId();
+    useRememberAddress(words?.email, words?.letters);
     if (!words) return null;
 
     const buttonId = `${id}-account`;
@@ -88,14 +97,9 @@ export default function RailAccount({ account: words, expanded = false, tip }) {
                     openOn(where, true);
                 }}
                 {...(open ? {} : tip.targetProps(words.label))}
-                className="group/account mb-[calc((var(--height-account)-var(--height-control))/2)] flex aspect-square h-control shrink-0 items-center justify-center self-start rounded-full text-foreground-default group-data-expanded:mb-0 group-data-expanded:aspect-auto group-data-expanded:h-account group-data-expanded:justify-start group-data-expanded:gap-account-gap group-data-expanded:self-stretch group-data-expanded:rounded-control group-data-expanded:pr-account-inset-right group-data-expanded:pl-[calc((var(--height-control)-var(--size-avatar))/2)] group-data-expanded:hover:bg-hover group-data-expanded:aria-expanded:bg-hover"
+                className="mb-[calc((var(--height-account)-var(--height-control))/2)] flex aspect-square h-control shrink-0 items-center justify-center self-start rounded-full text-foreground-default group-data-expanded:mb-0 group-data-expanded:aspect-auto group-data-expanded:h-account group-data-expanded:justify-start group-data-expanded:gap-account-gap group-data-expanded:self-stretch group-data-expanded:rounded-control group-data-expanded:pr-account-inset-right group-data-expanded:pl-[calc((var(--height-control)-var(--size-avatar))/2)] hover:bg-hover aria-expanded:bg-hover"
             >
-                <span
-                    aria-hidden="true"
-                    className="flex size-avatar shrink-0 items-center justify-center rounded-full bg-selected text-body-sm font-semibold text-primary transition-colors duration-avatar ease-linear group-hover/account:bg-selected-hover group-aria-expanded/account:bg-selected-hover group-data-expanded:group-hover/account:bg-selected group-data-expanded:group-aria-expanded/account:bg-selected"
-                >
-                    {words.initial}
-                </span>
+                <Avatar letters={words.letters} email={words.email} />
                 <span className="hidden min-w-0 flex-col items-start gap-account-name-stack group-data-expanded:flex">
                     <span className="max-w-full truncate text-body-sm font-semibold text-foreground-default">{words.name}</span>
                     {/* A reader who holds no role is their name alone (#519). */}

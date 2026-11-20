@@ -324,6 +324,19 @@ const VALUES = [
     ["--color-danger-hover", "oklch(0.512 0.205 27)", null],
     // A red commitment that cannot act, as Tools 54 holds a dialog's it refused (#616).
     ["--color-danger-disabled", "color-mix(in oklab, var(--color-danger) 40%, transparent)", null],
+    // 0q · Avatar: six pairs, a fill and its letters, in the design's order (#690).
+    ["--color-avatar-orange", "#FFDFB5", null],
+    ["--color-avatar-orange-foreground", "#BD4800", null],
+    ["--color-avatar-grass", "#DAF1DB", null],
+    ["--color-avatar-grass-foreground", "#287939", null],
+    ["--color-avatar-teal", "#CCF3EA", null],
+    ["--color-avatar-teal-foreground", "#087868", null],
+    ["--color-avatar-violet", "#EBE4FF", null],
+    ["--color-avatar-violet-foreground", "#6550B9", null],
+    ["--color-avatar-plum", "#F7DEF8", null],
+    ["--color-avatar-plum-foreground", "#953EA3", null],
+    ["--color-avatar-crimson", "#FEDCE7", null],
+    ["--color-avatar-crimson-foreground", "#C41C60", null],
     // 0e · Ink
     ["--color-foreground-default", "oklch(0.255 0.013 265)", null],
     ["--color-foreground-muted", "oklch(0.405 0.013 265)", null],
@@ -505,7 +518,6 @@ const VALUES = [
     ["--spacing-account-inset-right", "0.75rem", null],
     ["--spacing-account-name-stack", "0.0625rem", null],
     ["--size-account-chevron", "0.8125rem", null],
-    ["--transition-duration-avatar", "90ms", null],
     // 0m's account menu, beside a collapsed button and growing in (#495).
     ["--spacing-account-menu-offset-x", "0.5rem", null],
     // Every menu and list's entrance, the account's alone from #495 until #659.
