@@ -199,6 +199,15 @@ const ACTIONS = {
         binding: "useActionState",
         why: "AssetTransition.js binds it and says its error in the question or under the status",
     },
+    // A WRITE-OFF OF WHAT NEVER CAME (#677), the office's act on a material's page: `WriteOffForm`
+    // binds it and says the refusal over its button or its question.
+    writeOffMaterialsAction: {
+        text: "WRITE_OFF_COPY.noAccess",
+        file: "app/materials/[jobCode]/[materialId]/actions.js",
+        shape: "return",
+        binding: "useActionState",
+        why: "InTransitForms.js binds it and says its error over the write-off's button or question",
+    },
 };
 
 /** Bindings that can observe a return. The third, `form-action`, cannot. */

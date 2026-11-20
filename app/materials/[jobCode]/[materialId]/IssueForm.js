@@ -1,15 +1,11 @@
 "use client";
 
-import { startTransition, useActionState, useState, useSyncExternalStore } from "react";
-import { dayOf, readerTimeZone } from "@/lib/format";
-import { INVENTORY_COPY, isoDay, qtyText } from "@/lib/materialStock";
+import { startTransition, useActionState, useState } from "react";
+import { INVENTORY_COPY, qtyText } from "@/lib/materialStock";
 import { issueMaterialsAction } from "./actions";
+import { useReaderToday } from "./readerDay";
 
 const COPY = INVENTORY_COPY.issue;
-
-const noSubscription = () => () => {};
-const readerToday = () => isoDay(dayOf(new Date(), readerTimeZone()));
-const noToday = () => "";
 
 /**
  * Issue materials from one of the addresses holding some (#675). The address is asked only
@@ -29,7 +25,7 @@ export default function IssueForm({ jobRecordId, materialRecordId, unit, address
     const [addressRecordId, setAddressRecordId] = useState(addresses.length === 1 ? addresses[0].addressRecordId : "");
     const [qty, setQty] = useState("");
     const [typedDate, setTypedDate] = useState(null);
-    const today = useSyncExternalStore(noSubscription, readerToday, noToday);
+    const today = useReaderToday();
     const eventDate = typedDate ?? today;
 
     // The quantity clears once per issue that stood, judged while rendering rather than in an

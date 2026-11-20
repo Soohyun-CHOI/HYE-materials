@@ -201,7 +201,10 @@ export function run({ check, assert, log }) {
     check("  the issue reads the stock before its write", body.indexOf("stockNow()") > 0 && body.indexOf("stockNow()") < written, true);
     check("  and again after it", body.indexOf("stockNow()", written) > written, true);
     check("  and takes its own row back when that is below zero", body.indexOf("takeBackMaterialLogEntry(entry.id)", written) > written, true);
-    check("  under a lock on the job, the address and the material", /withKeyLock\(`material-stock::\$\{jobRecordId\}::\$\{addressRecordId\}::\$\{materialRecordId\}`/.test(body), true);
+    // #677 gave the key a function of its own, which a send from the same address takes too.
+    check("  under the stock's lock on the job, the address and the material", /withKeyLock\(stockLockKey\(jobRecordId, addressRecordId, materialRecordId\)/.test(body), true);
+    const keyOf = server.slice(server.indexOf("export function stockLockKey"));
+    check("  whose key names the three", /^[^}]*return `material-stock::\$\{jobRecordId\}::\$\{addressRecordId\}::\$\{materialRecordId\}`/.test(keyOf), true);
     const deliveriesModule = readFileSync(repoPath("lib/airtable/deliveries.js"), "utf8");
     const create = deliveriesModule.slice(deliveriesModule.indexOf("export async function createDelivery"));
     const refuses = create.indexOf("if (!deliveryAddressRecordId) throw");

@@ -66,6 +66,10 @@ const CHOOSES = [
     ["a new address", "app/addresses/new/actions.js", ["offeredJobs"]],
     ["a new discipline", "app/admin/disciplines/new/page.js", ["offeredJobs"]],
     ["a new discipline", "app/admin/disciplines/new/actions.js", ["closedJobRefusal"]],
+    // #677 — where a send goes: the page offers the open jobs' addresses, and the write refuses a
+    // closed job read afresh. The send's action reads no job itself; its module does.
+    ["a send's destination", "app/materials/[jobCode]/[materialId]/page.js", ["destinationChoices"]],
+    ["a send's destination", "lib/materialTransit.server.js", ["destinationRefusal"]],
 ];
 
 /** The module functions the places above reach the rule through, and what each asks of it. */
@@ -79,6 +83,8 @@ const LIB_ASKS = [
     ["lib/assetOfficeActs.js", "planOfficeActs", "offeredJobs"],
     ["lib/assetOfficeActs.js", "readJobChange", "closedJobRefusal"],
     ["lib/userJobs.js", "jobsOffered", "offeredJobs"],
+    ["lib/materialTransit.js", "destinationChoices", "offeredJobs"],
+    ["lib/materialTransit.js", "destinationRefusal", "isClosed"],
 ];
 
 /** EVERY OTHER READER OF THE JOBS, and why it chooses none: each shows a job a record already names. */
@@ -94,7 +100,6 @@ const SHOWS = [
     ["lib/materialPriceView.server.js", "the job each price's order was raised on"],
     ["app/materials/page.js", "the jobs whose inventory a reader may open, closed ones too (#675)"],
     ["app/materials/[jobCode]/page.js", "the job whose inventory it is"],
-    ["app/materials/[jobCode]/[materialId]/page.js", "the job the material's stock is on"],
     ["lib/materialStock.server.js", "the job whose stock an issue and a delivery's delete read again"],
     ["lib/deliveryAddress.server.js", "the delivery's own job, which a correction of its address does not change and refuses closed (#680)"],
     ["lib/poGeneration.js", "the request's job, for the order's PIC and manager"],

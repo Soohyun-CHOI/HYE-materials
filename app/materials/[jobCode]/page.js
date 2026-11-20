@@ -3,18 +3,20 @@ import UndrawnPage from "@/app/components/UndrawnPage";
 import { requireUser } from "@/lib/authz";
 import { withOpsLabel } from "@/lib/airtableOps";
 import { getAllJobs } from "@/lib/airtable/jobs";
-import { INVENTORY_COPY, canAccessJobInventory, inventoryRows, offersAddressView } from "@/lib/materialStock";
+import { INVENTORY_COPY, canAccessJobInventory, inventoryRows, offersAddressView, showsTransit } from "@/lib/materialStock";
 import { readJobInventory } from "@/lib/materialStock.server";
 import InventoryTable from "./InventoryTable";
 
 /**
- * One job's materials (#675): a row per material ordered, delivered or issued on the job, with
- * what was ordered, delivered and issued and what is in stock; and, for a job holding material
- * at two addresses or more, the same by address. A job outside the reader's reach reads as one
+ * One job's materials (#675): a row per material ordered, delivered, issued, sent or received on
+ * the job or on its way to it (#677), with what was ordered, delivered and issued and what is in
+ * stock — and what was received, sent and is in transit once anything was — and, for a job holding
+ * material at two addresses or more, the same by address. A job outside the reader's reach reads as one
  * that does not exist.
  *
- * WHAT IT READS: the jobs (which carry each job's deliveries and log rows), those by id, the
- * ordered items through delivery entry's walk, the materials by id and the address table —
+ * WHAT IT READS: the jobs (which carry each job's deliveries and log rows, and the Sent rows coming
+ * to it), those by id, the rows settling its sends that stand on other jobs, the ordered items
+ * through delivery entry's walk, the materials by id and the address table —
  * `lib/materialStock.server.js` has the count, which does not grow with the jobs or the
  * materials.
  */
@@ -54,7 +56,13 @@ async function renderJobInventoryPage({ params }) {
             {rows.length === 0 ? (
                 <p className="mt-6 text-sm text-zinc-600">{INVENTORY_COPY.list.empty}</p>
             ) : (
-                <InventoryTable jobCode={job.jobCode} rows={rows} groups={groups} offersByAddress={offersAddressView(inventory)} />
+                <InventoryTable
+                    jobCode={job.jobCode}
+                    rows={rows}
+                    groups={groups}
+                    offersByAddress={offersAddressView(inventory)}
+                    withTransit={showsTransit(inventory)}
+                />
             )}
         </UndrawnPage>
     );

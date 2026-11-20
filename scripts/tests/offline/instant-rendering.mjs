@@ -82,6 +82,7 @@ const OFF_BROWSER = {
  */
 const IN_READERS_ZONE = {
     "lib/assetListExport.js": "the Tools & Equipment list's file, whose days are the presser's, in the zone their browser sent",
+    "lib/materialTransit.js": "the reader's today, which a day sent or received is held to, in the zone their press sent (#677)",
 };
 
 /**

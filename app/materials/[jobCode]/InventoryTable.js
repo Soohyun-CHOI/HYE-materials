@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { LIST_TABLE_CLASS } from "@/app/components/listTableWidth";
 import { INVENTORY_COPY, inventoryPath, qtyText } from "@/lib/materialStock";
+import InTransitCell from "../InTransitCell";
 
 const COPY = INVENTORY_COPY.list;
 
@@ -16,8 +17,13 @@ const COPY = INVENTORY_COPY.list;
  * WHAT WAS ORDERED IS THE JOB'S, so the view by address has no column for it: an order's
  * address is where the vendor was told to send it and stock is counted where a delivery was
  * recorded, and splitting one by the other would draw differences no one made.
+ *
+ * WHAT MOVED BETWEEN ADDRESSES (#677) is three columns more once any material on the job has a
+ * figure in one (`showsTransit`): `Received`, `Sent` — what left, less what was taken back — and
+ * `In transit`, which says on the row what is leaving it and what is coming to it. With them the row
+ * adds up: in stock is delivered and received, less issued and sent.
  */
-export default function InventoryTable({ jobCode, rows, groups, offersByAddress }) {
+export default function InventoryTable({ jobCode, rows, groups, offersByAddress, withTransit }) {
     const [byAddress, setByAddress] = useState(false);
     const showByAddress = offersByAddress && byAddress;
 
@@ -45,18 +51,22 @@ export default function InventoryTable({ jobCode, rows, groups, offersByAddress 
                 groups.map((group) => (
                     <section key={group.addressRecordId} className="mb-8">
                         <h2 className="mb-2 text-lg font-semibold">{group.label}</h2>
-                        <MaterialTable jobCode={jobCode} rows={group.rows} withOrdered={false} />
+                        <MaterialTable jobCode={jobCode} rows={group.rows} withOrdered={false} withTransit={withTransit} />
                     </section>
                 ))
             ) : (
-                <MaterialTable jobCode={jobCode} rows={rows} withOrdered />
+                <MaterialTable jobCode={jobCode} rows={rows} withOrdered withTransit={withTransit} />
             )}
         </div>
     );
 }
 
-function MaterialTable({ jobCode, rows, withOrdered }) {
-    const figures = [...(withOrdered ? ["ordered"] : []), "delivered", "issued", "inStock"];
+function MaterialTable({ jobCode, rows, withOrdered, withTransit }) {
+    const figures = [
+        ...(withOrdered ? ["ordered"] : []),
+        ...(withTransit ? ["delivered", "received", "issued", "sent", "inTransit"] : ["delivered", "issued"]),
+        "inStock",
+    ];
     return (
         <div className="overflow-x-auto">
             <table className={LIST_TABLE_CLASS}>
@@ -80,7 +90,7 @@ function MaterialTable({ jobCode, rows, withOrdered }) {
                             </td>
                             {figures.map((key) => (
                                 <td key={key} className={`py-2 text-right tabular-nums ${key === "inStock" && row[key] < 0 ? "text-red-700" : ""}`}>
-                                    {qtyText(row[key], row.unit)}
+                                    {key === "inTransit" ? <InTransitCell figures={row} unit={row.unit} /> : qtyText(row[key], row.unit)}
                                 </td>
                             ))}
                         </tr>
