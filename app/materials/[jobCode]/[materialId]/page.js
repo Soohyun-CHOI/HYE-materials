@@ -10,10 +10,13 @@ import {
     INVENTORY_COPY,
     activityWords,
     canAccessJobInventory,
+    countEditAddresses,
+    countWasEdited,
     inventoryPath,
     materialActivity,
     movedBetweenAddresses,
     qtyText,
+    signedQtyText,
 } from "@/lib/materialStock";
 import { readJobInventory } from "@/lib/materialStock.server";
 import { userName } from "@/lib/userName";
@@ -21,6 +24,7 @@ import { daysWaiting } from "@/lib/deliveryStatus";
 import { TRANSIT_COPY, canCancel, canReceive, canSendFrom, canWriteOff, destinationChoices, transitActivityWords } from "@/lib/materialTransit";
 import { CancelSendForm, ReceiveForm, WriteOffForm } from "./InTransitForms";
 import InTransitCell from "../../InTransitCell";
+import EditCountForm from "./EditCountForm";
 import IssueForm from "./IssueForm";
 import SendForm from "./SendForm";
 
@@ -46,6 +50,11 @@ const COPY = INVENTORY_COPY.material;
  *
  * HOW LONG A SEND HAS BEEN ON THE WAY IS COUNTED TO THE SERVER'S DAY, `daysWaiting`'s, as the
  * invoice screens count a wait: the reader's own today is known only in their browser.
+ *
+ * A COUNT IS EDITED HERE TOO (#678), at any address the stock table draws, by the same readers: the
+ * count typed, the change it will record said before the press, a reason and any notes. Once the
+ * material has a count edit, `Count edited` joins the stock table, signed, so each row still adds
+ * up; the activity says each edit's count before and after, its reason, and its notes under it.
  */
 export default async function JobMaterialPage(props) {
     return withOpsLabel("/materials/[jobCode]/[materialId]", () => renderJobMaterialPage(props));
@@ -91,7 +100,12 @@ async function renderJobMaterialPage({ params }) {
     const issuable = addresses.filter((at) => at.inStock > 0).map(({ addressRecordId, label: addressLabel, inStock }) => ({ addressRecordId, label: addressLabel, inStock }));
     const columns = INVENTORY_COPY.list.columns;
     const activityColumns = COPY.activityColumns;
-    const figures = movedBetweenAddresses(stock) ? ["delivered", "received", "issued", "sent", "inTransit", "inStock"] : ["delivered", "issued", "inStock"];
+    const figures = [
+        ...(movedBetweenAddresses(stock) ? ["delivered", "received", "issued", "sent"] : ["delivered", "issued"]),
+        ...(countWasEdited(stock) ? ["countEdited"] : []),
+        ...(movedBetweenAddresses(stock) ? ["inTransit"] : []),
+        "inStock",
+    ];
     const today = new Date().toISOString().slice(0, 10);
     const words = (row) => transitActivityWords(row, unit, { sendById: read.sendById, addressLabel: label, jobCode: jobCodeOf, plain: activityWords });
 
@@ -121,7 +135,13 @@ async function renderJobMaterialPage({ params }) {
                             <td className="py-2 pr-4">{at.label}</td>
                             {figures.map((key) => (
                                 <td key={key} className={`py-2 text-right tabular-nums ${key === "inStock" && at[key] < 0 ? "text-red-700" : ""}`}>
-                                    {key === "inTransit" ? <InTransitCell figures={at} unit={unit} /> : qtyText(at[key], unit)}
+                                    {key === "inTransit" ? (
+                                        <InTransitCell figures={at} unit={unit} />
+                                    ) : key === "countEdited" ? (
+                                        signedQtyText(at[key], unit)
+                                    ) : (
+                                        qtyText(at[key], unit)
+                                    )}
                                 </td>
                             ))}
                         </tr>
@@ -172,6 +192,8 @@ async function renderJobMaterialPage({ params }) {
                     destinations={destinationChoices({ jobs, addresses: read.addresses, fromJobRecordId: job.id })}
                 />
             ) : null}
+            <EditCountForm jobRecordId={job.id} materialRecordId={materialRecordId} unit={unit} addresses={countEditAddresses(stock, label)} />
+
 
             {/* ONCE IT HAS A ROW, as a delivery's page draws its own (#680): a material only ever sent
                 here and not yet received has none, and a header over nothing reads as a table that
@@ -204,6 +226,7 @@ async function renderJobMaterialPage({ params }) {
                                                     </Link>
                                                 </>
                                             ) : null}
+                                            {row.notes ? <p className="mt-1 whitespace-pre-wrap text-zinc-600">{row.notes}</p> : null}
                                         </td>
                                         <td className="py-2 pr-4">{row.addressRecordId ? label(row.addressRecordId) : "—"}</td>
                                         <td className="py-2 pr-4">{nameOf.get(row.recordedBy) ?? "—"}</td>

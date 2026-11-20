@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { LIST_TABLE_CLASS } from "@/app/components/listTableWidth";
-import { INVENTORY_COPY, inventoryPath, qtyText } from "@/lib/materialStock";
+import { INVENTORY_COPY, inventoryPath, qtyText, signedQtyText } from "@/lib/materialStock";
 import InTransitCell from "../InTransitCell";
 
 const COPY = INVENTORY_COPY.list;
@@ -22,8 +22,12 @@ const COPY = INVENTORY_COPY.list;
  * figure in one (`showsTransit`): `Received`, `Sent` — what left, less what was taken back — and
  * `In transit`, which says on the row what is leaving it and what is coming to it. With them the row
  * adds up: in stock is delivered and received, less issued and sent.
+ *
+ * WHAT COUNT EDITS CHANGED (#678) is one column more once any material on the job has one
+ * (`showsCountEdits`), `Count edited`, signed since an edit moves a count either way — so the row
+ * still adds up.
  */
-export default function InventoryTable({ jobCode, rows, groups, offersByAddress, withTransit }) {
+export default function InventoryTable({ jobCode, rows, groups, offersByAddress, withTransit, withCountEdits }) {
     const [byAddress, setByAddress] = useState(false);
     const showByAddress = offersByAddress && byAddress;
 
@@ -51,20 +55,22 @@ export default function InventoryTable({ jobCode, rows, groups, offersByAddress,
                 groups.map((group) => (
                     <section key={group.addressRecordId} className="mb-8">
                         <h2 className="mb-2 text-lg font-semibold">{group.label}</h2>
-                        <MaterialTable jobCode={jobCode} rows={group.rows} withOrdered={false} withTransit={withTransit} />
+                        <MaterialTable jobCode={jobCode} rows={group.rows} withOrdered={false} withTransit={withTransit} withCountEdits={withCountEdits} />
                     </section>
                 ))
             ) : (
-                <MaterialTable jobCode={jobCode} rows={rows} withOrdered withTransit={withTransit} />
+                <MaterialTable jobCode={jobCode} rows={rows} withOrdered withTransit={withTransit} withCountEdits={withCountEdits} />
             )}
         </div>
     );
 }
 
-function MaterialTable({ jobCode, rows, withOrdered, withTransit }) {
+function MaterialTable({ jobCode, rows, withOrdered, withTransit, withCountEdits }) {
     const figures = [
         ...(withOrdered ? ["ordered"] : []),
-        ...(withTransit ? ["delivered", "received", "issued", "sent", "inTransit"] : ["delivered", "issued"]),
+        ...(withTransit ? ["delivered", "received", "issued", "sent"] : ["delivered", "issued"]),
+        ...(withCountEdits ? ["countEdited"] : []),
+        ...(withTransit ? ["inTransit"] : []),
         "inStock",
     ];
     return (
@@ -90,7 +96,13 @@ function MaterialTable({ jobCode, rows, withOrdered, withTransit }) {
                             </td>
                             {figures.map((key) => (
                                 <td key={key} className={`py-2 text-right tabular-nums ${key === "inStock" && row[key] < 0 ? "text-red-700" : ""}`}>
-                                    {key === "inTransit" ? <InTransitCell figures={row} unit={row.unit} /> : qtyText(row[key], row.unit)}
+                                    {key === "inTransit" ? (
+                                        <InTransitCell figures={row} unit={row.unit} />
+                                    ) : key === "countEdited" ? (
+                                        signedQtyText(row[key], row.unit)
+                                    ) : (
+                                        qtyText(row[key], row.unit)
+                                    )}
                                 </td>
                             ))}
                         </tr>

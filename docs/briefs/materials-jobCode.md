@@ -21,8 +21,8 @@ now.
 - **Ordered** counts every order raised on the job that was not withdrawn, signed or
   not — the rule delivery recording uses.
 - **Delivered** is what the job's recorded deliveries hold, over-deliveries included.
-- **In stock** is delivered and received less issued and sent (and, from a later
-  issue, corrected), counted where each delivery and each receipt was recorded.
+- **In stock** is delivered and received less issued and sent, plus what count edits
+  changed, counted where each delivery and each receipt was recorded.
   Material on its way is in no address's stock, and what was written off as never
   received is in none either.
 
@@ -35,6 +35,9 @@ now.
   material's unit. With them the row adds up. A send between two of the job's own
   addresses is both leaving and coming. A job that never sent or received anything
   carries the four figures alone.
+- **A job whose count was edited** at any address carries `Count edited` on every row
+  as well, before `In transit`: what the edits changed, with its sign (`+2 EA`,
+  `-3 EA`), since an edit moves a count either way — so the row still adds up.
 - **A job holding material at two addresses or more** — counting an address that
   only has material on its way to it or from it — offers a choice between all
   addresses together and one group per address. Grouped by address, the figures are
@@ -42,8 +45,8 @@ now.
   above); `Ordered` stays the job's, because an order's address is where the vendor
   was told to send it and stock is counted where it was delivered.
 - **A count below zero** is shown as it is, never as 0. It can follow only from two
-  writes racing past each other in a way the app could not hold apart; a count
-  correction is what fixes it.
+  writes racing past each other in a way the app could not hold apart; editing the
+  count on the material's page is what fixes it.
 - **A job with nothing ordered, delivered or on its way** reads one sentence saying
   so.
 
@@ -57,7 +60,7 @@ now.
   delivery's own page show the same address.
 - Reading this screen costs 12 operations on a job of 35 materials and 15 deliveries
   that sent nothing to another job, and one more once it sent to or received from
-  one: the jobs, the job's deliveries, their items and its log rows by id — the rows
+  one — 13 on that job since, its count edits costing nothing more: the jobs, the job's deliveries, their items and its log rows by id — the rows
   sending material to it read in the same query — the rows on other jobs that
   received or took back what it sent or was sent, the ordered items through delivery
   recording's walk, the materials by id and the addresses. It does not grow with the
