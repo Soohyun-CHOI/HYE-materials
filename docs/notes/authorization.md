@@ -614,3 +614,7 @@ Four acts on a send, each asked of a record. `sendMaterialsAction`, `receiveMate
 
 - **WHERE MATERIAL GOES IS NOT THE SENDER'S TO OWN**: a site manager sends to any open job's address, their own or not, and only the receiving job's people — or the office — take it in. A send makes no claim on the job it goes to; the receipt does, which is why the receipt is the one asked of that job.
 - **A PRESIDENT WHO MANAGES NO SITE DOES NONE OF THE FOUR**, on an assigned job or another: `recordsOn` has no President clause, which `offline/material-transit.mjs` holds by value.
+
+### Editing a count (#678)
+
+`editCountAction` is a `requireUser()` exemption under `INVENTORY_JOB_AXIS`, `issueMaterialsAction`'s: `canAccessJobInventory` on the job the form names, asked before `recordCountEdit` (held by `offline/material-count-edit.mjs`), and a refusal returned since `EditCountForm` binds it. **Seen on the test base** with soo@'s `Is Admin` off and 26-DEMO-01 added to its `Assigned Jobs` for the walk, both set back and read again: an edit on 26-DEMO-01 stood, 26-DEMO-02 read `Job not found`, and a press pointed at 26-DEMO-02 by hand was refused at one operation, the session's read, with nothing written.

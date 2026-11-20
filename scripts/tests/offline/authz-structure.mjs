@@ -384,6 +384,13 @@ const EXEMPTIONS = [
         mustCall: "requireUser",
         reason: INVENTORY_JOB_AXIS,
     },
+    // #678 — the same axis: the job whose count is edited, as an issue's.
+    {
+        file: "app/materials/[jobCode]/[materialId]/actions.js",
+        name: "editCountAction",
+        mustCall: "requireUser",
+        reason: INVENTORY_JOB_AXIS,
+    },
     { file: "app/prs/new/actions.js", name: "deleteDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "createPRAction", mustCall: "requireUser", reason: REQUEST_JOB_AXIS },
     { file: "app/deliveries/new/actions.js", name: "createDeliveryAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },

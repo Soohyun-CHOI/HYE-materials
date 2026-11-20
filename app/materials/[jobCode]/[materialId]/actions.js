@@ -5,8 +5,8 @@ import { requireUser, withAdminAction } from "@/lib/authz";
 import { withOpsLabel } from "@/lib/airtableOps";
 import { getAddressByRecordId } from "@/lib/airtable/addresses";
 import { getMaterialByRecordId } from "@/lib/airtable/materials";
-import { INVENTORY_COPY, canAccessJobInventory, readQty } from "@/lib/materialStock";
-import { recordIssue } from "@/lib/materialStock.server";
+import { INVENTORY_COPY, canAccessJobInventory, readFigure, readQty } from "@/lib/materialStock";
+import { recordCountEdit, recordIssue } from "@/lib/materialStock.server";
 import { TRANSIT_COPY, todayIn } from "@/lib/materialTransit";
 import { recordReceipt, recordSend, recordSendCancel, recordWriteOff } from "@/lib/materialTransit.server";
 
@@ -59,6 +59,57 @@ export async function issueMaterialsAction(prevState, formData) {
 
         refresh();
         return { issued: result.entry.materialLogId };
+    });
+}
+
+/**
+ * Edit a material's count at an address (#678): the count typed, the figure the page drew there,
+ * a reason and any notes. A `requireUser()` exemption, `issueMaterialsAction`'s: who may is
+ * `canAccessJobInventory` for the job the form names, asked here per record. Whether the stock is
+ * still the figure drawn, and stands at the count after the write, is `recordCountEdit`'s. The day
+ * recorded is the reader's today, in the zone the press sends, as a cancel's is (#677).
+ *
+ * EVERY CALL SITE BINDS THE RETURN (`useActionState`), so a refusal returns `{ error }`; one saying
+ * the stock moved is said over a fresh render, since the figures on the page are out of date.
+ */
+export async function editCountAction(prevState, formData) {
+    return withOpsLabel("editCountAction", async () => {
+        const user = await requireUser();
+        const words = INVENTORY_COPY.countEdit.refusals;
+        const jobRecordId = String(formData.get("jobRecordId") ?? "");
+        const materialRecordId = String(formData.get("materialRecordId") ?? "");
+        const addressRecordId = String(formData.get("addressRecordId") ?? "");
+        if (!canAccessJobInventory(user, jobRecordId)) return { error: words["not-allowed"] };
+
+        let result;
+        try {
+            result = await recordCountEdit({
+                jobRecordId,
+                materialRecordId,
+                addressRecordId,
+                countedQty: readQty(formData.get("countedQty")),
+                shownQty: readFigure(formData.get("shownQty")),
+                reason: String(formData.get("reason") ?? ""),
+                notes: String(formData.get("notes") ?? ""),
+                eventDate: todayIn(String(formData.get("timeZone") ?? "")),
+                recordedByUserId: user.id,
+            });
+        } catch (error) {
+            console.error("editCountAction failed", error);
+            return { error: words.failed };
+        }
+
+        if (result.ok) {
+            refresh();
+            return { edited: result.entry.materialLogId };
+        }
+        let sentence = words[result.refusal];
+        if (typeof sentence === "function") {
+            const [unit, address] = await Promise.all([unitOf(materialRecordId), getAddressByRecordId(addressRecordId).catch(() => null)]);
+            sentence = sentence(result.inStock, unit, address?.addressLabel ?? "that address");
+        }
+        if (STALE.has(result.refusal)) refresh();
+        return { error: sentence };
     });
 }
 
