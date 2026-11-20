@@ -249,6 +249,11 @@ What injection actually is, measured read-only against this base (#18 on `getVen
 - `lib/airtable/assetCategories.js:createAssetCategory` and `updateAssetCategory` (#527) — the catalog read and the row written, keyed by the path, so one path is one row.
 - `lib/airtable/assetCategoryGroups.js:createAssetCategoryGroup` (#527) — the groups read and the group added, keyed by the type and category, so one pair is one group.
 - `app/(assets)/assets/[assetId]/actions.js:updateAssetNoteHandler`, behind `updateAssetNoteAction` (#533) — the asset's note compared with the one the page was drawn with, and the new one written, keyed by the printed id, so two presses cannot both pass the comparison.
+- `app/(assets)/assets/[assetId]/actions.js:updateAssetSerialHandler` (#601) — the serial numbers of the item's kind read and the item's written, keyed by the serial typed, so one kind holds a serial once.
+- `lib/materialStock.server.js:recordIssue` (#675) — a material's stock at an address read and an `Issued` row written, keyed by the job, the address and the material, so two issues in one process cannot both draw on one count.
+- `lib/deliveryAddress.server.js:correctDeliveryAddress` (#680) — a delivery read, its address corrected and the stock read again, keyed by its printed id, so two corrections in one process cannot both start from one address. Its `Delivery Log` row is written after the lock is let go, since the row's id takes a lock of its own.
+
+**THE LIST ABOVE SAID NOTHING OF THE LAST THREE UNTIL #680**, which added the third and found the two before it missing — a list that names "as the code stands" is false the day a caller lands without it.
 
 **`lib/idSequence.server.js:generateFirstChildIds` is the one mint that takes no lock (#470)**, and the reason is that it reads nothing: a parent its caller just created has no siblings, so there is no read for a lock to join to the write — `id-generation.md` has the argument.
 
@@ -291,6 +296,7 @@ Enforced by `scripts/tests/offline/client-import-safety.mjs`, which walks the re
 - A `multipleRecordLinks` field CAN be created, and a table CAN be created.
 - A table CANNOT be deleted: 404, there is no endpoint.
 - Creating a link field auto-creates the symmetric field on the far table, named after the source table, and **that name can be PATCHed afterwards** — which is why every reverse-link on this base reads as a deliberate name rather than as whatever Airtable generated.
+  - **TWO LINKS TO ONE FAR TABLE, MADE IN ONE TABLE CREATE, GIVE BOTH SYMMETRIC FIELDS THE SAME NAME (#680).** `Delivery Log."Address"` and `"Former Address"` both reach `Addresses`, and the read straight after the create showed two `Addresses` fields named `Delivery Log`. A rename is what tells them apart, and it has to free a name before another takes it, so `scripts/import/ran/add_delivery_log_680.mjs` orders its PATCHes that way; `Delivery Log (as Former Address)` follows this base's `(as …)` for a second relation between two tables.
 
 **A fifth and a sixth were measured in #280, and they are what makes a TABLE rename scriptable.** A table's `name` PATCHes cleanly (200) on `/meta/bases/{baseId}/tables/{tableId}` — so the whole of that issue's base edit ran from a script and needed no UI work, which is worth knowing because a table cannot be DELETED through the API at all and the asymmetry is easy to assume the wrong way round. And **renaming a link field does NOT carry the far side**: `Purchase Requests."Line"` → `Line PROBE` left `Lines."Purchase Requests"` untouched, because the two are joined by `inverseLinkFieldId` and named independently. That is the same fact as the auto-created name being PATCHable, read from the other direction, and it means a rename of a relationship is two edits or one, depending on whether both sides say the same word — on this base they did not, so #280 renamed one side of each pair and left the other correct.
 

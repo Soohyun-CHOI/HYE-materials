@@ -71,9 +71,10 @@ async function renderNewDeliveryPage() {
     }
 
     // #387 — ONE `list` FOR BOTH HALVES OF THE ADDRESS CONTROL: the label the
-    // default renders under, and every option the picker offers. The whole table in
-    // one query is `getAllAddresses`'s own shape — the places a company ships to are
-    // bounded by its sites and its suppliers, four rows today — and it is what
+    // default renders under, and every option the picker offers — since #680 the
+    // picked job's addresses alone, which `addressesOnJob` reads off this same list.
+    // The whole table in one query is `getAllAddresses`'s own shape — the places a
+    // company ships to are bounded by its sites and its suppliers — and it is what
     // `/prs/new` already pays for the same control. The DEFAULT itself costs
     // nothing: each candidate ordered item carries its order's address id already
     // (lib/deliveryAllocation.server.js), so what this buys is the words, not the answer.
@@ -94,9 +95,9 @@ async function renderNewDeliveryPage() {
             </p>
 
             <DeliveryForm
-                // #387 — `deliveryAddress` rides along, because `addressOptions`
-                // groups by the addresses a JOB uses and that is a union of
-                // `Addresses."Jobs"` and the job's own default link.
+                // #387 — `deliveryAddress` rides along, because the picker offers
+                // the addresses a JOB uses (`addressesOnJob`, #680) and that is a
+                // union of `Addresses."Jobs"` and the job's own default link.
                 jobs={jobs.map((j) => ({
                     id: j.id,
                     jobCode: j.jobCode,

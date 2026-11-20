@@ -7,13 +7,15 @@ import { getItemsByDelivery } from "@/lib/airtable/deliveryItems";
 import { getPOItemsByRecordIds } from "@/lib/airtable/poItems";
 import { getPOsByRecordIds } from "@/lib/airtable/purchaseOrders";
 import { getJobByRecordId } from "@/lib/airtable/jobs";
-import { getAddressByRecordId } from "@/lib/airtable/addresses";
+import { getAddressByRecordId, getAllAddresses } from "@/lib/airtable/addresses";
+import { getDeliveryLogEntries } from "@/lib/airtable/deliveryLog";
+import { DELIVERY_ACTIVITY_COPY, deliveryActivity } from "@/lib/deliveryLog";
 // #387 — the word for this fact is `/prs/new`'s, so the three screens that print
 // an address link name it identically. Pure module; nothing credentialed here.
 import { ADDRESS_CHOICE_COPY } from "@/lib/addressChoice";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { itemLabel } from "@/lib/materialIdentity";
-import { getUserByRecordId } from "@/lib/airtable/users";
+import { getUserByRecordId, getUsersByRecordIds } from "@/lib/airtable/users";
 import {
     ALLOCATION_COPY,
     describeDelivery,
@@ -101,17 +103,36 @@ async function renderDeliveryDetailPage({ params }) {
     // #387 — THE ADDRESS JOINS THE BATCH AND COSTS ONE OPERATION, not none: the
     // field is a link, so it arrives as a record id and the `Addresses` row still
     // has to be read for its label — the same measurement #314 made for a
-    // discipline and #386 for an order's. A delivery recorded before the field
-    // existed reads nothing at all, so the 12 rows on this base pay for none of it.
-    const [job, vendor, recorder, packingListPO, deliveryAddress] = await Promise.all([
+    // discipline and #386 for an order's.
+    //
+    // #680 — A CORRECTED DELIVERY READS ITS ACTIVITY AND PAYS ONE OPERATION MORE. Its
+    // `Delivery Log` rows are read off the ids the delivery carries, and the labels of
+    // the addresses they name and the people who made them come in the reads this
+    // page makes anyway: the address table whole in place of its one row, and the
+    // people in one batch in place of the recorder alone. A delivery never corrected
+    // reads exactly what it did.
+    const corrected = (delivery.deliveryLog ?? []).length > 0;
+    const [job, vendor, packingListPO, addressRows, logEntries] = await Promise.all([
         delivery.job?.[0] ? getJobByRecordId(delivery.job[0]) : null,
         delivery.vendor?.[0] ? getVendorByRecordId(delivery.vendor[0]) : null,
-        delivery.recordedBy?.[0] ? getUserByRecordId(delivery.recordedBy[0]) : null,
         delivery.packingListPO?.[0] ? getPOsByRecordIds(delivery.packingListPO) : null,
-        delivery.deliveryAddress?.[0]
-            ? getAddressByRecordId(delivery.deliveryAddress[0])
-            : null,
+        corrected
+            ? getAllAddresses()
+            : delivery.deliveryAddress?.[0]
+              ? getAddressByRecordId(delivery.deliveryAddress[0]).then((address) => (address ? [address] : []))
+              : [],
+        corrected ? getDeliveryLogEntries(delivery.deliveryLog) : [],
     ]);
+    const addressLabelById = new Map(addressRows.map((address) => [address.id, address.addressLabel]));
+    const deliveryAddress = delivery.deliveryAddress?.[0]
+        ? { addressLabel: addressLabelById.get(delivery.deliveryAddress[0]) }
+        : null;
+    const peopleIds = [...new Set([delivery.recordedBy?.[0], ...logEntries.flatMap((entry) => entry.recordedBy)].filter(Boolean))];
+    const people =
+        peopleIds.length === 0 ? [] : peopleIds.length === 1 ? [await getUserByRecordId(peopleIds[0])].filter(Boolean) : await getUsersByRecordIds(peopleIds);
+    const personById = new Map(people.map((person) => [person.id, person]));
+    const recorder = delivery.recordedBy?.[0] ? personById.get(delivery.recordedBy[0]) ?? null : null;
+    const activity = deliveryActivity(logEntries, addressLabelById);
 
     const rows = items.map((item) => {
         const poItem = item.poItem?.[0] ? poItemById.get(item.poItem[0]) : null;
@@ -314,8 +335,9 @@ async function renderDeliveryDetailPage({ params }) {
                     two are allowed to differ. It is the address LABEL, which is what
                     `/prs/[prId]` and `/pos/[poId]` both render for the same link —
                     the street belongs to the purchase order document, where a vendor
-                    reads it. An em dash on the 12 deliveries recorded before the
-                    field existed, which were deliberately not backfilled. */}
+                    reads it. Every delivery holds one since #675, so the em dash is
+                    for a row emptied by hand. It is corrected on the edit page (#680),
+                    and the activity below says who moved it from where. */}
                 <p>
                     <span className="text-zinc-500">{ADDRESS_CHOICE_COPY.label}:</span>{" "}
                     {deliveryAddress?.addressLabel || "—"}
@@ -471,6 +493,33 @@ async function renderDeliveryDetailPage({ params }) {
                     edited; correcting one means deleting this delivery and entering it again.
                 </p>
             </div>
+
+            {/* #680 — WHAT HAS HAPPENED TO IT SINCE IT WAS RECORDED, newest first: its
+                `Delivery Log` rows, which today are address corrections. Absent on a
+                delivery never corrected — the recording itself is the `Recorded by` line
+                above, and a heading over nothing would say it twice. */}
+            {activity.length > 0 && (
+                <div className="mt-8">
+                    <h2 className="text-lg font-semibold">{DELIVERY_ACTIVITY_COPY.heading}</h2>
+                    <ul className="mt-2 space-y-1 text-sm">
+                        {activity.map((row) => (
+                            <li key={row.key}>
+                                {row.text}
+                                <span className="text-zinc-500">
+                                    {" "}
+                                    {DELIVERY_ACTIVITY_COPY.by(userName(personById.get(row.by)) || "—")}
+                                    {row.at ? (
+                                        <>
+                                            {" · "}
+                                            <Instant at={row.at} />
+                                        </>
+                                    ) : null}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
 
             {mayDelete && (
                 <div className="mt-8 border-t border-zinc-200 pt-6">

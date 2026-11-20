@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { refresh } from "next/cache";
 import { after } from "next/server";
 import { requireUser } from "@/lib/authz";
 import { TABLES } from "@/lib/airtable/client";
@@ -16,6 +17,8 @@ import { isOurBlobUrl } from "@/lib/fileSource";
 import { describeOveragePreview } from "@/lib/overage";
 import { createOverageDraft, getOverageContext } from "@/lib/overage.server";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
+import { correctionRefusalText } from "@/lib/deliveryAddress";
+import { correctDeliveryAddress } from "@/lib/deliveryAddress.server";
 import { deleteDeliveryAsUser } from "@/lib/deliveryDelete";
 import { withOpsLabel } from "@/lib/airtableOps";
 
@@ -43,11 +46,12 @@ async function loadForEdit(user, deliveryId) {
 /**
  * Edit the received date and the note in place.
  *
- * These two and the photo are the only editable things on a delivery. The item,
- * the quantity, the vendor and the PO are not: changing any of them changes what
- * the delivery was allocated against, which would mean re-running allocation and
- * mutating or destroying existing Delivery Items. There is deliberately no
- * allocation-editing UI, so putting one right means delete and re-enter.
+ * These two, the photo and the address (#680) are the only editable things on a
+ * delivery. The item, the quantity, the vendor and the PO are not: changing any of
+ * them changes what the delivery was allocated against, which would mean re-running
+ * allocation and mutating or destroying existing Delivery Items. There is
+ * deliberately no allocation-editing UI, so putting one right means delete and
+ * re-enter.
  */
 export async function updateDeliveryAction(prevState, formData) {
     return withOpsLabel("updateDeliveryAction", async () => {
@@ -133,6 +137,44 @@ export async function replaceDeliveryPhotoAction(prevState, formData) {
         );
 
         redirect(`/deliveries/${encodeURIComponent(deliveryId)}`);
+    });
+}
+
+/**
+ * Correct the delivery's address to another of its job's (#680).
+ *
+ * A thin wrapper, `deleteDeliveryAction`'s arrangement: who may, every refusal, the
+ * stock read on either side of the write and the activity row are
+ * `lib/deliveryAddress.server.js:correctDeliveryAddress`, so a script can call the
+ * real guard. This adds the session and the landing. Whoever may record a delivery
+ * on the job may correct one — `canAccessJobDeliveries`, the job open — which no
+ * role wrapper covers.
+ *
+ * A PAGE DRAWN BEFORE THE ADDRESS CHANGED REFRESHES AS IT REFUSES (#378): the form
+ * names the address it was drawn with, and a correction made since leaves its
+ * screen saying something false, so the refusal comes with the screen as it stands.
+ */
+export async function correctDeliveryAddressAction(prevState, formData) {
+    return withOpsLabel("correctDeliveryAddressAction", async () => {
+        const user = await requireUser();
+        const deliveryId = formData.get("deliveryId") || "";
+
+        let result;
+        try {
+            result = await correctDeliveryAddress({
+                deliveryId,
+                chosenAddressId: formData.get("addressRecordId") || "",
+                shownAddressId: formData.get("shownAddressId") || "",
+                actingUser: user,
+            });
+        } catch (err) {
+            console.error("correctDeliveryAddressAction failed", err);
+            return { error: correctionRefusalText("failed") };
+        }
+        if (result.reason === "moved") refresh();
+        if (result.error) return { error: result.error };
+
+        redirect(`/deliveries/${encodeURIComponent(result.deliveryId)}`);
     });
 }
 

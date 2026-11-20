@@ -36,10 +36,10 @@
 import {
     ADDRESS_CREATION_COPY,
     addressLabelKey,
-    addressesOnJob,
     matchExistingAddress,
     readAddressFields,
 } from "../../../lib/addressCreation.js";
+import { addressesOnJob } from "../../../lib/jobAddresses.js";
 import { textMatchKey } from "../../../lib/typedText.js";
 import { parseFile, parseSource, walk, callsBefore, callsFunction, insideCallTo, resolveFunction } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";

@@ -13,8 +13,9 @@
 //   3. THE VIEW BY ADDRESS is offered at two addresses holding material, not at one, and an
 //      address whose stock is back at zero does not count.
 //   4. AN ISSUE'S REFUSALS, each a key the copy holds, and a quantity is a whole number above 0.
-//   5. A DELETE'S SHORTFALL: a delivery whose quantity has since been issued is named; one that
-//      leaves every count at zero or above is not.
+//   5. A DELIVERY TAKEN OFF ITS ADDRESS — deleted, or its address corrected (#680): one whose
+//      quantity has since been issued is named; one that leaves every count at zero or above is
+//      not. And after a correction's write, a material left below zero where it stood is found.
 //   6. THE WRITE'S SHAPE, by source: the action asks `canAccessJobInventory` before
 //      `recordIssue`; `recordIssue` reads the stock again after its write and takes its own row
 //      back; `createDelivery` refuses a delivery with no address before it mints an id; and the
@@ -30,14 +31,15 @@ import { readFileSync } from "node:fs";
 import {
     INVENTORY_COPY,
     MATERIAL_LOG_EVENTS,
+    belowZeroAt,
     canAccessJobInventory,
-    deleteShortfall,
     foldJobInventory,
     inventoryRows,
     issueRefusal,
     materialActivity,
     offersAddressView,
     readQty,
+    shortfallWithout,
     stockAt,
 } from "../../../lib/materialStock.js";
 import { repoPath } from "./_ast.mjs";
@@ -166,14 +168,24 @@ export function run({ check, assert, log }) {
     const keys = ["no-address", "not-a-quantity", "no-date", "more-than-stock", "not-allowed", "failed"];
     check("  every refusal has its words", keys.filter((k) => !INVENTORY_COPY.refusals[k]).join(" ") || "none", "none");
 
-    log("5. a delete's shortfall:");
-    check("  a delivery whose quantity has been issued", JSON.stringify(deleteShortfall({ inventory, delivery: deliveries[0], items: deliveryItems.slice(0, 2) })), JSON.stringify([{ materialRecordId: PIPE, addressRecordId: A, after: -3 }]));
-    check("  a delivery whose quantity is still all there", deleteShortfall({ inventory, delivery: deliveries[1], items: [deliveryItems[2]] }).length, 0);
+    log("5. a delivery taken off its address, and what is below zero after:");
+    check("  a delivery whose quantity has been issued", JSON.stringify(shortfallWithout({ inventory, delivery: deliveries[0], items: deliveryItems.slice(0, 2) })), JSON.stringify([{ materialRecordId: PIPE, addressRecordId: A, after: -3 }]));
+    check("  a delivery whose quantity is still all there", shortfallWithout({ inventory, delivery: deliveries[1], items: [deliveryItems[2]] }).length, 0);
     check(
         "  a delivery of a material issued to zero",
-        deleteShortfall({ inventory, delivery: deliveries[1], items: [deliveryItems[3]] }).map((s) => `${s.materialRecordId}:${s.after}`).join(" "),
+        shortfallWithout({ inventory, delivery: deliveries[1], items: [deliveryItems[3]] }).map((s) => `${s.materialRecordId}:${s.after}`).join(" "),
         `${ELBOW}:-4`
     );
+    // #680 — once a correction has moved a delivery, its old address no longer counts it, so the
+    // read after the write asks what stands below zero there now, among the delivery's materials.
+    const movedOff = foldJobInventory({ deliveries: [deliveries[0], { ...deliveries[1], deliveryAddress: [A] }], deliveryItems, logEntries });
+    check(
+        "  after a correction: what the address it left holds below zero, among its materials",
+        belowZeroAt({ inventory: movedOff, materialRecordIds: [PIPE, ELBOW, ELBOW], addressRecordId: B }).map((s) => `${s.materialRecordId}:${s.after}`).join(" "),
+        `${ELBOW}:-4`
+    );
+    check("  and nothing where every count stands at zero or above", belowZeroAt({ inventory, materialRecordIds: [PIPE, ELBOW], addressRecordId: B }).length, 0);
+    check("  nor for a material the delivery does not hold", belowZeroAt({ inventory: movedOff, materialRecordIds: [PIPE], addressRecordId: B }).length, 0);
 
     log("activity, newest first, quantities unsigned:");
     const activity = materialActivity({ materialRecordId: PIPE, deliveries, deliveryItems, logEntries });
@@ -196,7 +208,7 @@ export function run({ check, assert, log }) {
     check("  createDelivery refuses no address before it mints an id", refuses > 0 && refuses < create.indexOf("generateNextDeliveryId("), true);
     const deleting = readFileSync(repoPath("lib/deliveryDelete.js"), "utf8");
     const del = deleting.slice(deleting.indexOf("export async function deleteDeliveryAsUser"));
-    const short = del.indexOf("readDeleteShortfall(");
+    const short = del.indexOf("readShortfallWithout(");
     check("  the delete asks the shortfall before its first destroy", short > 0 && short < del.indexOf(".destroy("), true);
 }
 

@@ -10,7 +10,19 @@ Moved verbatim out of CLAUDE.md, and three lines have changed since. The `PR Sig
 
 **If the Airtable MCP connector is available, prefer querying the live base schema over trusting this document for exact field types — this file can drift, but the rules below stay authoritative.**
 
-## Data model (28 tables)
+## Editing the schema
+
+**Moved here from CLAUDE.md in #680, when that file reached its ceiling, by its own rule: move a section out rather than raise it.** This was its `Editing the Airtable schema`, and its readers are exactly the ones the index sends here — anyone adding or changing a field or a table. One sentence stayed there, that a schema change ships in the same commit as the code that reads it, and so did the rule that records in either base are not removed as tidying-up, which `Utility scripts` holds. `airtable-access.md`'s section of the same name is the derivation behind each paragraph below.
+
+**The schema is editable by either of us, and a schema change ships in the SAME COMMIT as the code that reads it.** Outside the assets axis, `Users` and `Jobs` (#531, #537) no production data exists yet, so the moment to fix a name or a shape is now.
+
+**Renaming a field is safe and the procedure is mechanical**: a rename carries every formula, rollup and view filter with it, so the only thing it breaks is a string literal here — and a grep coming back empty does not finish it. `airtable-access.md` has the mechanism, the read-every-hunk step and the near-miss behind them.
+
+**A schema edit may not be assumed scriptable.** The Metadata API cannot write everything, and what it refuses is measured rather than read off the documentation — `airtable-access.md` has the figures, including which of the refusals force an invariant onto the DATA instead. **A new table's Unit field is one of them** — leave it off and let `scripts/import/add_unit_options.py` create it.
+
+**Deleting or retyping a field is not the same as renaming it.** A rename preserves every value; a type change can silently drop them. Records in this base are not to be removed as tidying-up.
+
+## Data model (29 tables)
 
 Field lists and link topology only. Why a field is shaped the way it is lives in the `docs/notes/` file for its area — see the index in CLAUDE.md.
 
@@ -52,12 +64,14 @@ Field lists and link topology only. Why a field is shaped the way it is lives in
 
 **Material Prices**: item × vendor (#18). Natural key = Material + Vendor. `Price Label` (primary, formula over the two links), `Material` / `Vendor` (links, single), `Unit Price`, `Latest Date` (calendar), `Latest PO` (link), and `Material Record ID` / `Vendor Record ID` lookups. Still a latest-value cache.
 
-**Deliveries**: one recorded delivery (#162). `Delivery ID` (HYE-DL-YYMMDD-##), `Job` / `Vendor` (links, single), `Packing List PO` (link, single, optional), `Delivery Address` (link -> Addresses, single, app-enforced — required at entry, written once, #387; held by every delivery since #675, which gave the test base's twelve older ones their job's default by `scripts/import/ran/fill_delivery_addresses_675.mjs` — the live base held none — and made `createDelivery` refuse a delivery without one, since stock is counted by it), `Received Date` (calendar), `Recorded By` (link → Users, single), `Created At` (datetime, UTC), `Notes` (long text, optional), `Packing List File` (attachment, required at creation), `Delivery Items` (reverse-link). **No link to `Invoices` since #640** — #210's
+**Deliveries**: one recorded delivery (#162). `Delivery ID` (HYE-DL-YYMMDD-##), `Job` / `Vendor` (links, single), `Packing List PO` (link, single, optional), `Delivery Address` (link -> Addresses, single, app-enforced — required at entry, #387, and one of the job's addresses, at entry and when corrected, #680; held by every delivery since #675, which gave the test base's twelve older ones their job's default by `scripts/import/ran/fill_delivery_addresses_675.mjs` — the live base held none — and made `createDelivery` refuse a delivery without one, since stock is counted by it; written by `createDelivery` and by #680's correction, `setDeliveryAddress`, and by nothing else), `Received Date` (calendar), `Recorded By` (link → Users, single), `Created At` (datetime, UTC), `Notes` (long text, optional), `Packing List File` (attachment, required at creation), `Delivery Items` (reverse-link), `Delivery Log` (reverse-link, #680). **No link to `Invoices` since #640** — #210's
 `Invoices."Delivery"` and its reverse `Deliveries."Invoices"` were removed from both
 bases: an invoice and a delivery meet only through the `PO Items` both name
 (`docs/notes/deliveries-and-invoices.md`).
 
 **Delivery Items**: one allocated slice of a delivery (#162). `Delivery Item ID` ({Delivery ID}-{seq}, 3 digits), `Delivery` (link, single), `PO Item` (link, single, **optional**), `Material` (link, single), `Item Name` / `Size` / `Maker` / `Unit` (frozen reference copies of the ordered item's, #629 for `Maker`), `Qty`, `Over Delivered` (checkbox, backend-set).
+
+**Delivery Log**: what has happened to a recorded delivery since it was recorded, append-only (#680) — the delivery's activity, a child of `Deliveries`. `Delivery Log ID` ({Delivery ID}-{seq}, 3 digits — the shape `Delivery Item ID` has, told apart by its table), `Delivery` (link, single by the app and by hand), `Event` (select — `Address corrected`, written by #680, and `Order attached`, #277's, made with the table because a select's choices are written only at create), `Address` (link → Addresses, single by the app and by hand — where the delivery stands after the event), `Former Address` (link → Addresses, single by the app and by hand — on an `Address corrected` row, the address it was corrected from), `Recorded By` (link → Users, single by the app and by hand), `Event At` (datetime, UTC). Reverse links `Deliveries."Delivery Log"`, `Addresses."Delivery Log"` and `"Delivery Log (as Former Address)"`, `Users."Delivery Log"`. **Stock is not read from here**: it is read off the delivery itself, so a correction moves it with its one write to `Delivery Address`. A delivery's delete takes its rows with it. Made by `scripts/import/ran/add_delivery_log_680.mjs`.
 
 **Material Log**: what has happened to a job's material at one of its addresses, append-only (#675) — the inventory's ledger. `Material Log ID` (HYE-ML-YYMMDD-##, a daily family: no document stands above a row), `Job` / `Address` / `Material` (links, single by the app and by hand), `Event` (select — `Issued` written by #675; `Sent`, `Received`, `Send canceled` and `Written off` for #677 and `Count edited` for #678, made with the table because a select's choices are written only at create), `Qty` (number, no decimals — the CHANGE to the stock of `Material` at `Address` on `Job`, negative for `Issued`), `Event Date` (calendar — the day it happened, as the recorder gave it), `Reason` (select — `Recorded wrong` / `Damaged or lost` / `Returned to the vendor` / `Physical count`, #678's), `Recorded By` (link → Users, single), `Recorded At` (datetime, UTC). Reverse links named `Material Log` on `Jobs`, `Addresses`, `Materials` and `Users`. **A delivery is not a row here**: a job's stock at an address is what its deliveries recorded there hold (`Delivery Items."Qty"`) plus the sum of these rows, computed by `lib/materialStock.js` and stored nowhere. Made by `scripts/import/ran/add_material_log_675.mjs`; no Unit field, the material carries one.
 
@@ -75,4 +89,4 @@ bases: an invoice and a delivery meet only through the `PO Items` both name
 
 ### Units
 
-One shared 19-value single select, source of truth `lib/units.js:CANONICAL_UNITS`. **Never use `typecast` on a Unit write** — it invents an option, which is how a canonical list silently gains a 20th value; omit an empty Unit instead. The derivation is in `airtable-access.md`; what a NEW table owes this list is under `Editing the Airtable schema` in CLAUDE.md.
+One shared 19-value single select, source of truth `lib/units.js:CANONICAL_UNITS`. **Never use `typecast` on a Unit write** — it invents an option, which is how a canonical list silently gains a 20th value; omit an empty Unit instead. The derivation is in `airtable-access.md`; what a NEW table owes this list is under `Editing the schema` above.

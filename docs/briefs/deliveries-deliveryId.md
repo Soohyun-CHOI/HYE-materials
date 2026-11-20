@@ -3,9 +3,10 @@
 Route: `/deliveries/[deliveryId]`
 Who reaches it: anyone signed in who is assigned to the delivery's job, or the
 office. Editing is open to the same set, because what it changes — the received
-date, the note, the photo — is a correction to the record
-rather than to what the delivery was allocated against. Deleting is the recorder's
-or the office's.
+date, the note, the photo and the address — is a correction to the record
+rather than to what the delivery was allocated against; the address is corrected
+only while the job is open, as a delivery is recorded only then. Deleting is the
+recorder's or the office's.
 
 ## What it answers
 
@@ -46,9 +47,11 @@ to.** The order's own address is on the purchase order's page and says where it 
 meant to go; the two are allowed to differ, and this line is the record of it. It
 shows the address's own label — the human-typed name of the place, the same value
 the request and the order both show — rather than the street, which belongs to the
-purchase order document a vendor reads. **There is no control for it here and a
-redesign should not draw one:** the address is set once, when the delivery is
-recorded. An em dash on every delivery entered before the field existed.
+purchase order document a vendor reads. **There is no control for it on this
+page:** it is corrected on the edit page, to another of the job's addresses, and
+the correction moves the delivery's stock with it — so it is a deliberate act with
+a record of its own (the activity below) rather than a field to tap. Every
+delivery holds one; an em dash would mean a row emptied by hand.
 
 **No `Invoices` row (#640).** An `Invoices` row named the invoices paired with this
 delivery until #640 removed the pairing. Invoices and deliveries meet only through the
@@ -144,15 +147,25 @@ sentence. The copy arrives in parts so the link can be rendered, and the same
 sentence flattened is what the server returns as a refusal — so the two cannot
 diverge.
 
+**When the delivery's address has been corrected:** `Activity`, under the
+`Recorded against` table, newest first — one line per correction naming the
+address it moved from and the one it moved to, then who made it and when, in the
+reader's own zone (`DELIVERY_ACTIVITY_COPY`). Absent on a delivery never
+corrected: its recording is the `Recorded by` line above, and a heading over
+nothing would say that twice. **A correction is not a movement of material**, and
+a design should not draw it as one — material that really moved between a job's
+addresses is #677's sending and receiving.
+
 **When the delivery has notes:** one more line in the facts block.
 
 **When the packing list photo is not attached:** an amber sentence in its place
 saying to reload in a moment if it was just uploaded. This is the one place the
 app admits an upload is still in flight.
 
-**Three actions land here and none of them says so.** Recording the delivery,
-editing it and replacing the packing list photo all finish on this screen, and each
-one is visible on it: the record, the edited facts, the new photo. Attaching and
+**Four actions land here and none of them says so.** Recording the delivery,
+editing it, replacing the packing list photo and correcting its address all finish
+on this screen, and each one is visible on it: the record, the edited facts, the
+new photo, the new address with its line under `Activity`. Attaching and
 detaching an invoice were two more until #640. This carried a green line for each until #321 — see `_shared.md`, "The
 arrival is the confirmation".
 

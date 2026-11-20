@@ -1,4 +1,4 @@
-// Where a delivery actually arrived (#387).
+// Where a delivery actually arrived (#387), and correcting it (#680).
 //
 // WHAT THIS FILE HOLDS, and the mutants it exists for are all quiet ones.
 //
@@ -13,13 +13,24 @@
 //   3. The action REQUIRES one and re-derives nothing. Re-deriving would record
 //      where the orders say the material should have gone rather than where the
 //      recorder said it went, which is the distinction the field draws.
-//   4. `Delivery Address` has exactly ONE writer. Not because a second one would
-//      break allocation — it would not — but because the field moves stock from
-//      the next issue on, and one writer is what keeps that decision from being
-//      undone by a path nobody weighed it against.
+//   4. `Delivery Address` has TWO writers, `createDelivery` and #680's
+//      `setDeliveryAddress`, and the date-and-note save is neither. Not because a
+//      third would break allocation — it would not — but because the field moves
+//      stock, and a third path would move it with no refusal below zero and no row
+//      on the delivery's activity. `setDeliveryAddress` has one caller, the correction.
 //   5. The delete path does not carry the address, and the reason is structural:
 //      a split row keeps its source's DELIVERY, so the address is inherited rather
 //      than copied. Putting it in the copy list would be one value in two places.
+//   7. A DELIVERY STANDS AT ONE OF ITS JOB'S ADDRESSES (#680). The form lists the
+//      job's alone, an agreed order address off the job is no default, a job with
+//      none says so, and the action refuses an address off the job. The mutant is
+//      the request form's list put back, which would let stock be counted where
+//      the job has no address.
+//   8. THE CORRECTION (#680): its refusals in their order, the list it offers, the
+//      words it shares rather than re-coins, and its write's shape — who and the
+//      job open asked before the write, the stock read before it and again after
+//      it with the old address written back, the activity row out of the lock, and
+//      a delete taking the delivery's rows before the delivery.
 //
 // WHAT IT CANNOT SEE.
 //
@@ -35,11 +46,19 @@
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
 import { ADDRESS_CHOICE_COPY } from "../../../lib/addressChoice.js";
-import { DELIVERY_ADDRESS_COPY, deliveryAddressDefault } from "../../../lib/deliveryAddress.js";
-import { parseFile, parseSource, walk, resolveFunction } from "./_ast.mjs";
+import {
+    DELIVERY_ADDRESS_COPY,
+    DELIVERY_ADDRESS_CORRECTION_COPY,
+    addAddressPath,
+    correctionOptions,
+    correctionRefusal,
+    correctionRefusalText,
+    deliveryAddressDefault,
+} from "../../../lib/deliveryAddress.js";
+import { listJsFiles, parseFile, parseSource, repoPath, toPosix, walk, resolveFunction, callsTo, insideCallTo } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Where a delivery actually arrived (#387)";
+export const title = "Where a delivery actually arrived, and correcting it (#387, #680)";
 
 /** Every `OBJ.key` member expression in a file, as `key` strings. */
 function memberKeys(parsed, objectName) {
@@ -121,14 +140,23 @@ export function run({ check, assert, log }) {
     // An ordered item the plan could not attach contributes no order at all, which
     // is the `Delivery Items` row with no `PO Item` this base already carries.
     check("an ordered item with no order is skipped", deliveryAddressDefault([on(null, "a1")]).state, "empty");
+    // #680 — AN AGREED ADDRESS OFF THE JOB IS NO DEFAULT: a request may name any address and its
+    // order freezes it, while a delivery stands at one of its job's.
+    const offJob = deliveryAddressDefault([on("po1", "a9")], ["a1", "a2"]);
+    check("the orders agree on an address that is not the job's", offJob.state, "not-on-job");
+    check("  and nothing is preselected", offJob.addressId, null);
+    check("  with the orders still counted", offJob.orderCount, 1);
+    check("an agreed address that is the job's is still the default", deliveryAddressDefault([on("po1", "a1")], ["a1", "a2"]).addressId, "a1");
+    check("  and two orders off the job still disagree first", deliveryAddressDefault([on("po1", "a8"), on("po2", "a9")], ["a1"]).state, "disagree");
 
     // ── 2: it never falls back to the job ──────────────────────────────────
     log("");
     log("nothing defaults from the job's own address:");
     const rule = parseFile("lib/deliveryAddress.js");
-    // The rule takes ONE argument and it is the ordered items, so a job fallback
-    // cannot be added without changing the call site too — which is what gives the
-    // assertion below something to catch.
+    // The rule takes ONE required argument and it is the ordered items, so a job
+    // fallback cannot be added without changing the call site too — which is what
+    // gives the assertion below something to catch. #680's second, the job's address
+    // ids, can turn a default down and never supply one (section 1 above).
     check("the rule takes one argument", deliveryAddressDefault.length, 1);
     assert("  and never names a job's address", !readsMember(rule.ast, "job", "deliveryAddress"));
     // THE WHOLE FILE, not the component node: `DeliveryForm` is a default export
@@ -146,8 +174,8 @@ export function run({ check, assert, log }) {
         !readsMember(form.ast, "selectedJob", "deliveryAddress")
     );
     assert(
-        "  though the job IS in hand for the picker's first group",
-        /addressOptions\(selectedJob/.test(form.source)
+        "  though the job IS in hand for the picker's list",
+        /addressesOnJob\(selectedJob/.test(form.source)
     );
 
     // ── 3: required at submit, and the action re-derives nothing ───────────
@@ -168,18 +196,32 @@ export function run({ check, assert, log }) {
     assert("  and it never recomputes the default", !/deliveryAddressDefault/.test(actions.source));
     assert("  it passes what arrived on the form", /deliveryAddressRecordId: deliveryAddressId/.test(createSrc));
 
-    // ── 4: one writer ──────────────────────────────────────────────────────
+    // ── 4: two writers ─────────────────────────────────────────────────────
     log("");
-    log("the field has exactly one writer:");
+    log("the field has two writers, and the second has one caller:");
     const table = parseFile("lib/airtable/deliveries.js");
-    // Two literals: the read in `recordToDelivery` and the write in `createDelivery`.
-    // A third is either a second writer or a second reader, and both are worth
-    // stopping — the shape `Packing List File`'s own writer count already has.
+    // Three literals: the read in `recordToDelivery`, the write in `createDelivery` and
+    // the write in `setDeliveryAddress` (#680). A fourth is either a third writer or a
+    // second reader, and both are worth stopping — the shape `Packing List File`'s own
+    // writer count already has.
     let literals = 0;
     walk(table.ast, (n) => {
         if (n.type === "Literal" && n.value === "Delivery Address") literals += 1;
     });
-    check("`Delivery Address` appears twice in the table module", literals, 2);
+    check("`Delivery Address` appears three times in the table module", literals, 3);
+    const setAddress = resolveFunction(table.ast, "setDeliveryAddress");
+    assert("setDeliveryAddress writes it", Boolean(setAddress) && namesLiteral(setAddress, "Delivery Address"));
+    // ONE CALLER, THE CORRECTION: a second would move a delivery's stock with no refusal below
+    // zero and no row on its activity.
+    const setters = [];
+    for (const dir of ["app", "lib"]) {
+        for (const full of listJsFiles(repoPath(dir))) {
+            const rel = toPosix(full.slice(repoPath(".").length + 1));
+            if (rel === "lib/airtable/deliveries.js") continue;
+            if (callsTo(parseFile(rel).ast, "setDeliveryAddress").length > 0) setters.push(rel);
+        }
+    }
+    check("  and the correction is its one caller", setters.join(" "), "lib/deliveryAddress.server.js");
     const update = resolveFunction(table.ast, "updateDelivery");
     assert("updateDelivery exists", Boolean(update));
     assert(
@@ -218,13 +260,12 @@ export function run({ check, assert, log }) {
         check(`  \`${borrowed}\` is borrowed, not re-coined`, borrowed in DELIVERY_ADDRESS_COPY, false);
         assert(`    and ADDRESS_CHOICE_COPY has it`, borrowed in ADDRESS_CHOICE_COPY);
     }
+    // Every key is read by the form, but the refusal of an address off the job, which is the
+    // action's and the correction's (#680).
     const readByForm = memberKeys(form, "DELIVERY_ADDRESS_COPY");
     const unread = Object.keys(DELIVERY_ADDRESS_COPY).filter((k) => !readByForm.has(k));
-    check(
-        `every key is read by the form${unread.length ? ` (${unread.join(", ")})` : ""}`,
-        unread.length,
-        0
-    );
+    check("every key is read by the form but the refusal", unread.join(" "), "offJob");
+    assert("  which the action gives", memberKeys(actions, "DELIVERY_ADDRESS_COPY").has("offJob"));
     // `taken` IS A CLAIM ABOUT THE VALUE AND THE OTHER TWO ARE ABOUT THE ORDERS, so
     // only `taken` stands down once the recorder has overridden the default. Found
     // by walking the form: `Cedar Park Shop` sat under `Taken from the order this
@@ -241,8 +282,12 @@ export function run({ check, assert, log }) {
         );
     }
     const borrowedRead = memberKeys(form, "ADDRESS_CHOICE_COPY");
-    for (const key of ["label", "pickerUnchosen", "groupOnJob", "groupOthers"]) {
+    for (const key of ["label", "pickerUnchosen"]) {
         assert(`  the form renders ADDRESS_CHOICE_COPY.${key}`, borrowedRead.has(key));
+    }
+    // ONE LIST SINCE #680, THE JOB'S OWN: the request form's two groups are not drawn here.
+    for (const key of ["groupOnJob", "groupOthers"]) {
+        check(`  and not ADDRESS_CHOICE_COPY.${key}, the request form's group`, borrowedRead.has(key), false);
     }
     // The singular and the plural are different sentences rather than one with an
     // `(s)`, which is `DELETE_COPY`'s shape on the same axis.
@@ -262,6 +307,103 @@ export function run({ check, assert, log }) {
     );
     check("no sentence says `arrived`", strings.filter((s) => /arriv/i.test(s)).length, 0);
     assert("and one of them says `delivered`", strings.some((s) => /delivered/.test(s)));
+
+    // ── 7: a delivery stands at one of its job's addresses ─────────────────
+    log("");
+    log("a delivery stands at one of its job's addresses (#680):");
+    assert("the form lists the job's addresses alone", /addressesOnJob\(selectedJob, addresses\)/.test(form.source));
+    check("  and never every address, the request form's list", /addressOptions\(/.test(form.source), false);
+    // ON THE CALL'S OWN SECOND ARGUMENT: the list's options are drawn from `jobAddresses.map(`
+    // further down, so a text match from the call onward finds that and passes without it.
+    const defaultCall = callsTo(form.ast, "deliveryAddressDefault")[0];
+    const secondArgument = defaultCall?.arguments?.[1];
+    assert(
+        "  and hands the job's addresses to the default",
+        Boolean(secondArgument) && /^jobAddresses\.map\(/.test(form.source.slice(secondArgument.start, secondArgument.end))
+    );
+    assert("a job with none says so, with the way to add one", memberKeys(form, "DELIVERY_ADDRESS_COPY").has("noJobAddress") && /addAddressPath\(selectedJob\.jobCode\)/.test(form.source));
+    check("  which opens the address form on the job", addAddressPath("26-DEMO-01"), "/addresses/new?job=26-DEMO-01");
+    check("  its job named", DELIVERY_ADDRESS_COPY.noJobAddress("26-DEMO-01").startsWith("26-DEMO-01 "), true);
+    const offJobAt = createSrc.indexOf("DELIVERY_ADDRESS_COPY.offJob");
+    assert("the action refuses an address off the job", offJobAt > 0 && /isAddressOnJob\(job, addresses, deliveryAddressId\)/.test(createSrc));
+    assert("  before it writes anything", offJobAt > 0 && offJobAt < createSrc.indexOf("createDelivery("));
+
+    // ── 8: the correction ──────────────────────────────────────────────────
+    log("");
+    log("correcting a recorded delivery's address (#680):");
+    const job = { id: "job1", jobCode: "J-1", deliveryAddress: ["a1"] };
+    const addresses = [
+        { id: "a1", addressLabel: "Yard", jobs: [] },
+        { id: "a2", addressLabel: "Gate 3", jobs: ["job1"] },
+        { id: "a3", addressLabel: "Shop", jobs: ["job2"] },
+    ];
+    const ask = (over) => correctionRefusal({ job, addresses, standingAddressId: "a1", shownAddressId: "a1", chosenAddressId: "a2", ...over });
+    check("another of the job's addresses is accepted", ask({}), null);
+    check("  none picked", ask({ chosenAddressId: "" }), "required");
+    check("  one that names no address", ask({ chosenAddressId: "a9" }), "unknown");
+    check("  a page drawn before the address changed", ask({ shownAddressId: "a2", chosenAddressId: "a2" }), "moved");
+    check("  the address it already stands at", ask({ chosenAddressId: "a1" }), "same");
+    check("  an address that is not the job's", ask({ chosenAddressId: "a3" }), "off-job");
+    // THE ORDER IS PART OF THE RULE: a stale page is refused as stale before what it picked is
+    // judged, so its reader is shown the delivery as it stands rather than told to pick again.
+    check("  a stale page picking an address off the job is refused as stale", ask({ shownAddressId: "a2", chosenAddressId: "a3" }), "moved");
+    check("it offers the job's addresses less the one it stands at", correctionOptions(job, addresses, "a1").map((a) => a.id).join(" "), "a2");
+    check("  and all of the job's for a delivery standing off the job", correctionOptions(job, addresses, "a3").map((a) => a.id).join(" "), "a2 a1");
+    check("  and nothing for a job with no other", correctionOptions({ id: "job3", deliveryAddress: ["a3"] }, addresses, "a3").length, 0);
+    // ONE FACT, ONE SENTENCE: the refusals the entry form already gives are its own words here.
+    check(
+        "its refusals the entry form shares are the entry form's words",
+        ["required", "unknown", "off-job"].map((k) => correctionRefusalText(k)).join(" | "),
+        [ADDRESS_CHOICE_COPY.required, ADDRESS_CHOICE_COPY.unknown, DELIVERY_ADDRESS_COPY.offJob].join(" | ")
+    );
+    const ownKeys = ["same", "moved", "below-zero", "failed"];
+    check("  and each of its own has words of its own", new Set(ownKeys.map((k) => correctionRefusalText(k, { names: "Pipe", addressLabel: "Yard" }))).size, 4);
+    check(
+        "  the one below zero names the material and the address it leaves",
+        /Pipe at Yard below zero/.test(correctionRefusalText("below-zero", { names: "Pipe", addressLabel: "Yard" })),
+        true
+    );
+    const correctionStrings = [
+        ...Object.values(DELIVERY_ADDRESS_CORRECTION_COPY).filter((v) => typeof v === "string"),
+        ...ownKeys.map((k) => correctionRefusalText(k, { names: "Pipe", addressLabel: "Yard" })),
+    ];
+    check("  and none says `arrived`", correctionStrings.filter((t) => /arriv/i.test(t)).length, 0);
+
+    log("the correction's write, by its shape:");
+    const server = parseFile("lib/deliveryAddress.server.js");
+    const correct = resolveFunction(server.ast, "correctDeliveryAddress");
+    assert("correctDeliveryAddress exists", Boolean(correct));
+    const first = (name) => callsTo(correct, name)[0]?.start ?? -1;
+    const writes = callsTo(correct, "setDeliveryAddress");
+    const firstWrite = writes[0]?.start ?? -1;
+    assert("it asks who before it writes", first("canAccessJobDeliveries") > 0 && first("canAccessJobDeliveries") < firstWrite);
+    assert("  and whether the job is closed", first("closedJobRefusal") > 0 && first("closedJobRefusal") < firstWrite);
+    assert("  and the pure refusals", first("correctionRefusal") > 0 && first("correctionRefusal") < firstWrite);
+    assert("it reads the stock before its write", first("readShortfallWithout") > 0 && first("readShortfallWithout") < firstWrite);
+    const afterRead = first("readBelowZeroAt");
+    assert("  and again after it", firstWrite > 0 && afterRead > firstWrite);
+    const logRow = callsTo(correct, "createDeliveryLogEntry")[0];
+    const backWithin = writes.filter((w) => w.start > afterRead && (!logRow || w.start < logRow.start));
+    assert(
+        "  and writes the address it left back when that is below zero",
+        backWithin.some((w) => /standingAddressId/.test(server.source.slice(w.start, w.end)))
+    );
+    assert("all of that under one lock on the delivery", writes.filter((w) => !logRow || w.start < logRow.start).every((w) => insideCallTo(correct, w, "withKeyLock")));
+    assert("the activity row is written out of the lock, two locks never nested", Boolean(logRow) && !insideCallTo(correct, logRow, "withKeyLock"));
+    const logSrc = logRow ? server.source.slice(logRow.start, logRow.end) : "";
+    assert("  as an Address corrected row naming both addresses", /DELIVERY_LOG_EVENTS\.ADDRESS_CORRECTED/.test(logSrc) && /formerAddressRecordId/.test(logSrc) && /addressRecordId: chosenAddressId/.test(logSrc));
+    assert("  and a failed row takes the address back", writes.some((w) => logRow && w.start > logRow.start));
+    const editActions = parseFile("app/deliveries/[deliveryId]/actions.js");
+    const correctAction = resolveFunction(editActions.ast, "correctDeliveryAddressAction");
+    assert(
+        "the action is the correction's, and refreshes a stale page as it refuses",
+        Boolean(correctAction) && callsTo(correctAction, "correctDeliveryAddress").length === 1 && callsTo(correctAction, "refresh").length === 1
+    );
+    const deleting = parseFile("lib/deliveryDelete.js");
+    const deleteFn = resolveFunction(deleting.ast, "deleteDeliveryAsUser");
+    const logGone = callsTo(deleteFn, "destroyDeliveryLogEntries")[0]?.start ?? -1;
+    const parentGone = callsTo(deleteFn, "destroy").map((c) => c.start).at(-1) ?? -1;
+    assert("a delete takes the delivery's activity rows before the delivery", logGone > 0 && logGone < parentGone);
 
     // ── anti-vacuity ───────────────────────────────────────────────────────
     log("");
@@ -300,14 +442,35 @@ export function run({ check, assert, log }) {
     check("a member expression is seen", [...memberKeys(planted, "DELIVERY_ADDRESS_COPY")].join(), "disagree");
     check("  and a key nothing reads is not invented", memberKeys(planted, "DELIVERY_ADDRESS_COPY").has("partly"), false);
     // And the rule has to answer more than one way, or section 1 is what a constant
-    // reports. Four distinct states over four inputs.
+    // reports. Five distinct states over five inputs.
     const states = new Set(
-        [[], [on("po1", "a1")], [on("po1", "a1"), on("po2", "a2")], [on("po1", null)]].map(
-            (input) => deliveryAddressDefault(input).state
+        [[[]], [[on("po1", "a1")]], [[on("po1", "a1"), on("po2", "a2")]], [[on("po1", null)]], [[on("po1", "a9")], ["a1"]]].map(
+            (args) => deliveryAddressDefault(...args).state
         )
     );
-    check("the rule reaches four states", states.size, 4);
-    assert("the constant holds the control's words", Object.keys(DELIVERY_ADDRESS_COPY).length === 4);
+    check("the rule reaches five states", states.size, 5);
+    assert("the constant holds the control's words", Object.keys(DELIVERY_ADDRESS_COPY).length === 8);
+    // Section 8's refusal rule has to answer null as well as every key, or its checks are what a
+    // constant reports.
+    const j = { id: "j" };
+    check(
+        "the correction's rule reaches six answers",
+        new Set([
+            correctionRefusal({ job: j, addresses: [{ id: "x", jobs: ["j"] }, { id: "y", jobs: ["j"] }], standingAddressId: "x", shownAddressId: "x", chosenAddressId: "y" }),
+            correctionRefusal({ job: j, addresses: [], chosenAddressId: "" }),
+            correctionRefusal({ job: j, addresses: [], chosenAddressId: "z" }),
+            correctionRefusal({ job: j, addresses: [{ id: "y", jobs: [] }], standingAddressId: "x", shownAddressId: "w", chosenAddressId: "y" }),
+            correctionRefusal({ job: j, addresses: [{ id: "x", jobs: ["j"] }], standingAddressId: "x", shownAddressId: "x", chosenAddressId: "x" }),
+            correctionRefusal({ job: j, addresses: [{ id: "y", jobs: [] }], standingAddressId: "x", shownAddressId: "x", chosenAddressId: "y" }),
+        ]).size,
+        6
+    );
+    // The lock walk has to be able to say yes and no, or "out of the lock" is what a walk that
+    // finds nothing reports.
+    const plantedLock = parseSource("async function f() { await withKeyLock(k, async () => { a(); }); b(); }\n", "<planted-lock>");
+    const plantedFn = resolveFunction(plantedLock.ast, "f");
+    check("the lock walk finds a call inside the lock", insideCallTo(plantedFn, callsTo(plantedFn, "a")[0], "withKeyLock"), true);
+    check("  and not one after it", insideCallTo(plantedFn, callsTo(plantedFn, "b")[0], "withKeyLock"), false);
 }
 
 if (isMain(import.meta.url)) await standalone(title, run);
